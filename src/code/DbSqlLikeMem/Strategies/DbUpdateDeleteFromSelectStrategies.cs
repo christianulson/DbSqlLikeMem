@@ -209,6 +209,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         // Optional WHERE on target alias: supports simple equality AND-chain
         var whereConds = ParseWhereEqualsList(whereSql);
+        var resolvedWhereConds = ResolveWhereEqualsList(target, whereConds, context.DbParameters);
 
         var joinInfo = target.GetColumn(targetJoinCol);
         var setInfo = target.GetColumn(targetSetCol);
@@ -218,7 +219,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         for (int i = 0; i < target.Count; i++)
         {
             var row = target[i];
-            if (whereConds.Count > 0 && !MatchWhereEquals(target, row, whereConds, context.DbParameters))
+            if (resolvedWhereConds.Count > 0 && !MatchWhereEquals(target, row, resolvedWhereConds))
                 continue;
 
             var key = joinInfo.GetGenValue != null ? joinInfo.GetGenValue(row, target) : row[joinInfo.Index];
@@ -262,14 +263,11 @@ internal static class DbUpdateDeleteFromSelectStrategies
         {
             foreach (var pkIndex in tableMock.PkIndexArray)
             {
-                if (tableMock.ColumnsByIndex.TryGetValue(pkIndex, out var pkColumnName)
-                    && changedCols.Contains(pkColumnName))
-                {
+                if (changedCols.Contains(tableMock.GetColumnByIndex(pkIndex).Name))
                     return true;
-                }
             }
 
-            foreach (var index in tableMock.Indexes.Values)
+            foreach (var index in tableMock.UniqueIndexes)
             {
                 foreach (var keyCol in index.KeyCols)
                 {
@@ -283,11 +281,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         foreach (var pkIndex in table.PrimaryKeyIndexes)
         {
-            foreach (var column in table.Columns.Values)
-            {
-                if (column.Index == pkIndex && changedCols.Contains(column.Name))
-                    return true;
-            }
+            var column = table is TableMock tableAsMock
+                ? tableAsMock.GetColumnByIndex(pkIndex)
+                : GetColumnByIndex(table, pkIndex);
+
+            if (changedCols.Contains(column.Name))
+                return true;
         }
 
         foreach (var index in table.Indexes.Values)
@@ -304,49 +303,79 @@ internal static class DbUpdateDeleteFromSelectStrategies
     private static List<(string Col, string Val)> ParseWhereEqualsList(string? whereSql)
     {
         var list = new List<(string Col, string Val)>();
-        if (string.IsNullOrWhiteSpace(whereSql)) return list;
+        if (string.IsNullOrWhiteSpace(whereSql))
+            return list;
 
-        whereSql = whereSql!.Trim().TrimEnd(';');
-        var parts = Regex.Split(whereSql, @"\s+AND\s+", RegexOptions.IgnoreCase);
-        for (var i = 0; i < parts.Length; i++)
+        var span = whereSql.AsSpan().Trim().TrimEnd(';');
+        var start = 0;
+        while (start < span.Length)
         {
-            var p = parts[i].Trim();
-            if (p.Length == 0)
-                continue;
+            var andIndex = IndexOfAndSeparator(span, start);
+            var part = (andIndex >= 0 ? span[start..andIndex] : span[start..]).Trim();
+            if (part.Length > 0)
+                TryAddWhereEqualsPart(list, part);
 
-            var kv = p.Split('=');
-            if (kv.Length < 2)
-                continue;
+            if (andIndex < 0)
+                break;
 
-            var col = kv[0].Trim();
-            // drop alias prefix if present
-            var dot = col.IndexOf('.');
-            if (dot >= 0)
-                col = col[(dot + 1)..];
-
-            col = col.Trim('`');
-            list.Add((col, kv[1].Trim()));
+            start = andIndex + 3;
         }
+
         return list;
+    }
+
+    private static List<ResolvedWhereCondition> ResolveWhereEqualsList(
+        ITableMock table,
+        IReadOnlyList<(string Col, string Val)> conds,
+        DbParameterCollection? pars)
+    {
+        if (conds.Count == 0)
+            return [];
+
+        var resolved = new List<ResolvedWhereCondition>(conds.Count);
+        foreach (var (colName, rawValue) in conds)
+        {
+            var info = table.GetColumn(colName);
+            table.CurrentColumn = colName;
+            try
+            {
+                var exp = table.Resolve(rawValue, info.DbType, info.Nullable, pars, table.Columns);
+                resolved.Add(new ResolvedWhereCondition(info, exp is DBNull ? null : exp));
+            }
+            finally
+            {
+                table.CurrentColumn = null;
+            }
+        }
+
+        return resolved;
     }
 
     private static bool MatchWhereEquals(
         ITableMock table,
         IReadOnlyDictionary<int, object?> row,
-        List<(string Col, string Val)> conds,
-        DbParameterCollection? pars)
+        IReadOnlyList<ResolvedWhereCondition> conds)
     {
-        foreach (var (Col, Val) in conds)
+        foreach (var condition in conds)
         {
-            var info = table.GetColumn(Col);
-            table.CurrentColumn = Col;
-            var exp = table.Resolve(Val, info.DbType, info.Nullable, pars, table.Columns);
-            table.CurrentColumn = null;
-            var expected = exp is DBNull ? null : exp;
+            var info = condition.Column;
             var actual = info.GetGenValue != null ? info.GetGenValue(row, table) : row[info.Index];
-            if (!Equals(actual, expected)) return false;
+            if (!Equals(actual, condition.Expected))
+                return false;
         }
+
         return true;
+    }
+
+    private static ColumnDef GetColumnByIndex(ITableMock table, int index)
+    {
+        foreach (var column in table.Columns.Values)
+        {
+            if (column.Index == index)
+                return column;
+        }
+
+        throw new InvalidOperationException($"Column index {index} was not found.");
     }
 
     /// <summary>
@@ -448,6 +477,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
         var joinInfo = target.GetColumn(targetJoinCol);
         var whereConds = ParseWhereEqualsList(whereSql);
+        var resolvedWhereConds = ResolveWhereEqualsList(target, whereConds, context.DbParameters);
         int deleted = 0;
         for (int i = target.Count - 1; i >= 0; i--)
         {
@@ -455,7 +485,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             var key = joinInfo.GetGenValue != null ? joinInfo.GetGenValue(row, target) : row[joinInfo.Index];
             if (key is null || key is DBNull) continue;
             if (!keys.Contains(key)) continue;
-            if (!string.IsNullOrWhiteSpace(whereSql) && !MatchWhereEquals(target, row, whereConds, context.DbParameters)) continue;
+            if (resolvedWhereConds.Count > 0 && !MatchWhereEquals(target, row, resolvedWhereConds)) continue;
             target.RemoveAt(i);
             deleted++;
         }
@@ -471,36 +501,119 @@ internal static class DbUpdateDeleteFromSelectStrategies
         };
     }
 
+    private readonly record struct ResolvedWhereCondition(ColumnDef Column, object? Expected);
+
     private static string ExtractJoinConditionFromWhere(string whereSql, string targetAlias, string subAlias, out string? remainingWhere)
     {
         remainingWhere = null;
-        var parts = Regex.Split(whereSql.Trim().TrimEnd(';'), @"\s+AND\s+", RegexOptions.IgnoreCase)
-            .Select(p => p.Trim())
-            .Where(p => p.Length > 0)
-            .ToList();
+        if (string.IsNullOrWhiteSpace(whereSql))
+            throw new InvalidOperationException(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition());
 
-        for (int i = 0; i < parts.Count; i++)
+        var span = whereSql.AsSpan().Trim().TrimEnd(';');
+        var parts = new List<string>();
+        string? joinCondition = null;
+        var start = 0;
+        while (start < span.Length)
         {
-            var candidate = parts[i].Trim();
-            while (candidate.StartsWith("(") && candidate.EndsWith(")"))
-                candidate = candidate[1..^1].Trim();
-            var onM = _regexOnSql.Match(candidate);
-            if (!onM.Success)
-                continue;
+            var andIndex = IndexOfAndSeparator(span, start);
+            var part = (andIndex >= 0 ? span[start..andIndex] : span[start..]).Trim();
+            if (part.Length > 0)
+            {
+                if (joinCondition is null && TryParseJoinCondition(part, targetAlias, subAlias, out var parsedJoinCondition))
+                    joinCondition = parsedJoinCondition;
+                else
+                    parts.Add(part.ToString());
+            }
 
-            var l = onM.Groups["l"].Value;
-            var r = onM.Groups["r"].Value;
-            var valid = (l.Equals(targetAlias, StringComparison.OrdinalIgnoreCase) && r.Equals(subAlias, StringComparison.OrdinalIgnoreCase))
-                || (l.Equals(subAlias, StringComparison.OrdinalIgnoreCase) && r.Equals(targetAlias, StringComparison.OrdinalIgnoreCase));
-            if (!valid)
-                continue;
+            if (andIndex < 0)
+                break;
 
-            parts.RemoveAt(i);
-            remainingWhere = parts.Count == 0 ? null : string.Join(SqlConst._AND_, parts);
-            return candidate;
+            start = andIndex + 3;
         }
 
-        throw new InvalidOperationException(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition());
+        if (joinCondition is null)
+            throw new InvalidOperationException(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition());
+
+        remainingWhere = parts.Count == 0 ? null : string.Join(SqlConst._AND_, parts);
+        return joinCondition;
+    }
+
+    private static void TryAddWhereEqualsPart(List<(string Col, string Val)> list, ReadOnlySpan<char> part)
+    {
+        var eqIndex = part.IndexOf('=');
+        if (eqIndex < 0)
+            return;
+
+        var col = part[..eqIndex].Trim();
+        var value = part[(eqIndex + 1)..].Trim();
+        var dotIndex = col.LastIndexOf('.');
+        if (dotIndex >= 0 && dotIndex + 1 < col.Length)
+            col = col[(dotIndex + 1)..];
+
+        var normalizedColumn = TrimIdentifier(col);
+        if (normalizedColumn.Length == 0 || value.Length == 0)
+            return;
+
+        list.Add((normalizedColumn.ToString(), value.ToString()));
+    }
+
+    private static bool TryParseJoinCondition(
+        ReadOnlySpan<char> part,
+        string targetAlias,
+        string subAlias,
+        out string joinCondition)
+    {
+        joinCondition = string.Empty;
+
+        var candidate = part;
+        while (candidate.StartsWith("(") && candidate.EndsWith(")"))
+            candidate = candidate[1..^1].Trim();
+
+        var onM = _regexOnSql.Match(candidate.ToString());
+        if (!onM.Success)
+            return false;
+
+        var l = onM.Groups["l"].Value;
+        var r = onM.Groups["r"].Value;
+        var valid = (l.Equals(targetAlias, StringComparison.OrdinalIgnoreCase) && r.Equals(subAlias, StringComparison.OrdinalIgnoreCase))
+            || (l.Equals(subAlias, StringComparison.OrdinalIgnoreCase) && r.Equals(targetAlias, StringComparison.OrdinalIgnoreCase));
+        if (!valid)
+            return false;
+
+        joinCondition = candidate.ToString();
+        return true;
+    }
+
+    private static ReadOnlySpan<char> TrimIdentifier(ReadOnlySpan<char> value)
+        => StringCompatibility.Trim(value, '`', '"', '[', ']');
+
+    private static int IndexOfAndSeparator(ReadOnlySpan<char> span, int start)
+    {
+        for (var i = start; i <= span.Length - 3; i++)
+        {
+            if (IsAndToken(span, i))
+                return i;
+        }
+
+        return -1;
+    }
+
+    private static bool IsAndToken(ReadOnlySpan<char> span, int index)
+    {
+        if (index < 0 || index + 2 >= span.Length)
+            return false;
+
+        if (!(span[index] is 'A' or 'a')
+            || !(span[index + 1] is 'N' or 'n')
+            || !(span[index + 2] is 'D' or 'd'))
+        {
+            return false;
+        }
+
+        var beforeOk = index == 0 || char.IsWhiteSpace(span[index - 1]) || span[index - 1] == '(';
+        var afterIndex = index + 3;
+        var afterOk = afterIndex >= span.Length || char.IsWhiteSpace(span[afterIndex]) || span[afterIndex] == ')';
+        return beforeOk && afterOk;
     }
 
     private sealed class ObjectEqualityComparer : IEqualityComparer<object>

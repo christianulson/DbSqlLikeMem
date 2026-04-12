@@ -75,17 +75,31 @@ internal static class SqlSequenceEvaluator
         if (string.IsNullOrWhiteSpace(sequenceName))
             return null;
 
-        var trimmed = sequenceName!.Trim().Trim('\'', '"');
-        var parts = trimmed
-            .Split('.').Select(s => s.Trim()).Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(part => part.Trim('\'', '"').NormalizeName())
-            .Where(part => !string.IsNullOrWhiteSpace(part))
-            .ToArray();
+        var trimmed = StringCompatibility.Trim(sequenceName.AsSpan(), '\'', '"');
+        var parts = new List<string>(4);
+        var start = 0;
+        while (start < trimmed.Length)
+        {
+            var remaining = trimmed[start..];
+            var dot = remaining.IndexOf('.');
+            var segment = dot >= 0
+                ? remaining[..dot]
+                : remaining;
 
-        if (parts.Length == 0)
+            segment = StringCompatibility.Trim(segment, '\'', '"');
+            if (segment.Length > 0)
+                parts.Add(segment.NormalizeName());
+
+            if (dot < 0)
+                break;
+
+            start += dot + 1;
+        }
+
+        if (parts.Count == 0)
             return null;
 
-        return parts.Length == 1
+        return parts.Count == 1
             ? new SequenceReference(null, parts[0])
             : new SequenceReference(parts[^2], parts[^1]);
     }

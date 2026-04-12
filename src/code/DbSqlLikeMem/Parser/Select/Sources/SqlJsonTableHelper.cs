@@ -110,7 +110,7 @@ internal static class SqlJsonTableHelper
         var nestedMatch = Regex.Match(
             item,
             @"^NESTED(?:\s+PATH)?\s+(?<path>N?'(?:''|[^'])*')\s+(?<rest>.+)$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
         if (!nestedMatch.Success)
             throw new InvalidOperationException($"JSON_TABLE nested path definition is invalid: '{rawItem}'.");
 

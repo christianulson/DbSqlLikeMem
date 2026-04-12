@@ -176,14 +176,22 @@ internal static class AstQueryJsonPathFunctionEvaluator
         JsonNode root,
         IReadOnlyList<JsonPathToken> tokens,
         out JsonNode? node)
+        => TryGetJsonNodeAtPath(root, tokens, tokens.Count, out node);
+
+    private static bool TryGetJsonNodeAtPath(
+        JsonNode root,
+        IReadOnlyList<JsonPathToken> tokens,
+        int tokenCount,
+        out JsonNode? node)
     {
         node = root;
-        if (tokens.Count == 0)
+        if (tokenCount == 0)
             return true;
 
         JsonNode? current = root;
-        foreach (var token in tokens)
+        for (var i = 0; i < tokenCount; i++)
         {
+            var token = tokens[i];
             if (token.Kind == JsonPathTokenKind.Property)
             {
                 if (current is not JsonObject obj || !obj.TryGetPropertyValue(token.PropertyName!, out current))
@@ -233,8 +241,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
             return true;
         }
 
-        var parentTokens = tokens.Take(tokens.Count - 1).ToList();
-        if (!TryGetJsonNodeAtPath(root, parentTokens, out var parent) || parent is null)
+        if (!TryGetJsonNodeAtPath(root, tokens, tokens.Count - 1, out var parent) || parent is null)
             return false;
 
         var lastToken = tokens[^1];
@@ -303,8 +310,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
         var last = tokens[^1];
         if (last.Kind == JsonPathTokenKind.ArrayIndex)
         {
-            var parentTokens = tokens.Take(tokens.Count - 1).ToList();
-            if (parentTokens.Count == 0)
+            if (tokens.Count == 1)
             {
                 if (root is not JsonArray rootArray)
                     return false;
@@ -315,7 +321,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
                 return true;
             }
 
-            if (!TryGetJsonNodeAtPath(root, parentTokens, out var parent) || parent is not JsonArray parentArray)
+            if (!TryGetJsonNodeAtPath(root, tokens, tokens.Count - 1, out var parent) || parent is not JsonArray parentArray)
                 return false;
 
             var parentIndex = Math.Max(0, last.ArrayIndex ?? 0);
@@ -473,7 +479,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
             return cached.Success;
         }
 
-        var success = TryParseJsonPathTokensCore(path, out tokens);
+        var success = TryParseJsonPathTokensCore(path.AsSpan(), out tokens);
         CacheJsonPathParseEntry(_jsonPathTokenCache, path, new JsonPathTokenCacheEntry(success, [.. tokens]));
         return success;
     }
@@ -488,7 +494,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
         append = false;
         strict = false;
 
-        var trimmed = path.Trim();
+        var trimmed = path.AsSpan().Trim();
         if (trimmed.StartsWith("append ", StringComparison.OrdinalIgnoreCase))
         {
             append = true;
@@ -498,7 +504,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
         if (trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
             strict = true;
 
-        return TryParseJsonPathTokens(trimmed, out tokens);
+        return TryParseJsonPathTokensCore(trimmed, out tokens);
     }
 
     internal static bool TryReadPostgresTextArray(object? value, out List<string> items)
@@ -518,13 +524,13 @@ internal static class AstQueryJsonPathFunctionEvaluator
         return false;
     }
 
-    private static bool TryParseJsonPathTokensCore(string path, out List<JsonPathToken> tokens)
+    private static bool TryParseJsonPathTokensCore(ReadOnlySpan<char> path, out List<JsonPathToken> tokens)
     {
         tokens = [];
-        if (string.IsNullOrWhiteSpace(path))
+        var trimmed = path.Trim();
+        if (trimmed.IsEmpty)
             return false;
 
-        var trimmed = path.Trim();
         if (trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase))
             trimmed = trimmed[4..].TrimStart();
         else if (trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
@@ -552,7 +558,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
                 if (i == start)
                     return false;
 
-                var property = trimmed[start..i];
+                var property = trimmed.Slice(start, i - start).ToString();
                 tokens.Add(new JsonPathToken(JsonPathTokenKind.Property, property, null));
                 continue;
             }
@@ -574,7 +580,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
                     if (i >= trimmed.Length)
                         return false;
 
-                    var property = trimmed[start..i];
+                    var property = trimmed[start..i].ToString();
                     i++;
                     if (i >= trimmed.Length || trimmed[i] != ']')
                         return false;
@@ -590,7 +596,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
                 if (i == indexStart || i >= trimmed.Length || trimmed[i] != ']')
                     return false;
 
-                if (!int.TryParse(trimmed[indexStart..i], NumberStyles.Integer, CultureInfo.InvariantCulture, out var index))
+                if (!ReadOnlySpanCompatibility.TryParseInt32(trimmed.Slice(indexStart, i - indexStart), NumberStyles.Integer, CultureInfo.InvariantCulture, out var index))
                     return false;
 
                 i++;

@@ -20,5 +20,11 @@ public class IndexDictionary : Dictionary<string, IndexDef>
     /// </summary>
     /// <returns>EN: Unique index set. PT: Conjunto de índices únicos.</returns>
     public IEnumerable<IndexDef> GetUnique()
-        => Values.Where(i => i.Unique);
+    {
+        foreach (var index in Values)
+        {
+            if (index.Unique)
+                yield return index;
+        }
+    }
 }

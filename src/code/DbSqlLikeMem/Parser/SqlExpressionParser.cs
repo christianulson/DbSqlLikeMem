@@ -1214,10 +1214,8 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (normalized.Length == 0)
             return false;
 
-        var hasExponent =
-            normalized.IndexOf('e') >= 0
-            || normalized.IndexOf('E') >= 0;
-        var hasDecimalPoint = normalized.IndexOf('.') >= 0;
+        if (!HasValidNumericLiteralSyntax(normalized, out var hasDecimalPoint, out var hasExponent))
+            return false;
 
         if (!hasDecimalPoint && !hasExponent)
         {
@@ -1252,6 +1250,63 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
         numericValue = fallbackDouble;
         return true;
+    }
+
+    private static bool HasValidNumericLiteralSyntax(
+        string text,
+        out bool hasDecimalPoint,
+        out bool hasExponent)
+    {
+        hasDecimalPoint = false;
+        hasExponent = false;
+
+        var index = 0;
+        if (text[index] is '+' or '-')
+        {
+            index++;
+            if (index == text.Length)
+                return false;
+        }
+
+        var digitsBeforeDecimal = 0;
+        while (index < text.Length && char.IsDigit(text[index]))
+        {
+            index++;
+            digitsBeforeDecimal++;
+        }
+
+        if (index < text.Length && text[index] == '.')
+        {
+            hasDecimalPoint = true;
+            index++;
+
+            while (index < text.Length && char.IsDigit(text[index]))
+                index++;
+        }
+
+        if (digitsBeforeDecimal == 0 && !hasDecimalPoint)
+            return false;
+
+        if (index < text.Length && (text[index] == 'e' || text[index] == 'E'))
+        {
+            hasExponent = true;
+            index++;
+
+            if (index < text.Length && (text[index] is '+' or '-'))
+                index++;
+
+            var exponentDigits = 0;
+            while (index < text.Length && char.IsDigit(text[index]))
+            {
+                index++;
+                exponentDigits++;
+            }
+
+            if (exponentDigits == 0)
+                return false;
+        }
+
+        return index == text.Length;
     }
 
     private bool TryParseParameter(SqlToken t, out SqlExpr expr)
@@ -2053,7 +2108,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         // Aqui estamos logo após "IN (" e talvez um "(" extra já consumido.
         // Vamos ler até encontrar ')' no depth 0 relativo.
         int depth = 0;
-        var parts = new List<string>();
+        var parts = new List<SqlToken>();
 
         while (true)
         {
@@ -2070,11 +2125,10 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
                 depth--;
             }
 
-            parts.Add(TokenToSql(t));
-            _context.Consume();
+            parts.Add(_context.Consume());
         }
 
-        return string.Join(" ", parts).Trim();
+        return _context.TokensToSql(parts).Trim();
     }
 
     private IReadOnlyList<SqlToken> ReadTokensUntilMatchingParen(string eofError)

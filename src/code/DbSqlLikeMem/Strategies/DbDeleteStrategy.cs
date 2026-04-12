@@ -49,23 +49,30 @@ internal static class DbDeleteStrategy
 
         var whereRaw = TableMock.ResolveWhereRaw(query.WhereRaw, query.RawSql);
         var conditions = TableMock.ParseWhereSimple(whereRaw);
+        var whereHasPositionalParameters = HasPositionalParameters(conditions);
 
         var rowsToDelete = new List<IReadOnlyDictionary<int, object?>>();
+        List<IReadOnlyDictionary<int, object?>>? affectedRowsData = connection.CaptureAffectedRowSnapshots
+            ? new List<IReadOnlyDictionary<int, object?>>()
+            : null;
         var indexesToDelete = new List<int>();
         var tableMock = table as TableMock;
+        var whereContextBase = context.Fork();
         var supportsTriggers = dialect.SupportsTriggers;
         var hasBeforeDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete);
         var hasAfterDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete);
 
-        foreach (var i in GetCandidateRowIndexes(table, context, pars, conditions))
+        foreach (var i in GetCandidateRowIndexes(table, whereContextBase, pars, conditions, whereHasPositionalParameters))
         {
             var row = table[i];
-            if (TableMock.IsMatchSimple(table, context.Fork(), pars, conditions, row))
+            var rowContext = whereHasPositionalParameters ? whereContextBase.Fork() : whereContextBase;
+            if (TableMock.IsMatchSimple(table, rowContext, pars, conditions, row))
             {
-                // Para o RETURNING, precisamos capturar o estado ANTES da remoção.
-                // Usamos snapshots para garantir que se o objeto row for alterado por triggers,
-                // tenhamos o estado estável da deleção.
-                rowsToDelete.Add(TableMock.SnapshotRow(row));
+                // Mantemos a linha original para validação de FK antes da remoção.
+                // Snapshot só é criado quando o caller pede o retorno das linhas afetadas.
+                rowsToDelete.Add(row);
+                if (affectedRowsData is not null)
+                    affectedRowsData.Add(TableMock.SnapshotRow(row));
                 indexesToDelete.Add(i);
             }
         }
@@ -120,17 +127,18 @@ internal static class DbDeleteStrategy
         {
             AffectedRows = rowsToDelete.Count,
             AffectedIndexes = indexesToDelete,
-            AffectedRowsData = connection.CaptureAffectedRowSnapshots ? rowsToDelete : new List<IReadOnlyDictionary<int, object?>>()
+            AffectedRowsData = affectedRowsData ?? []
         };
     }
     private static IEnumerable<int> GetCandidateRowIndexes(
         ITableMock table,
         QueryExecutionContext context,
         DbParameterCollection? pars,
-        List<(string C, string Op, string V)> conditions)
+        List<(string C, string Op, string V)> conditions,
+        bool hasPositionalParameters)
     {
         if (conditions.Count > 0
-            && TableMock.TryFindRowByPkConditions(table, context.Fork(), pars, conditions, out var rowIndex))
+            && TableMock.TryFindRowByPkConditions(table, hasPositionalParameters ? context.Fork() : context, pars, conditions, out var rowIndex))
         {
             yield return rowIndex;
             yield break;
@@ -138,6 +146,17 @@ internal static class DbDeleteStrategy
 
         for (int rowIdx = 0; rowIdx < table.Count; rowIdx++)
             yield return rowIdx;
+    }
+
+    private static bool HasPositionalParameters(List<(string C, string Op, string V)> conditions)
+    {
+        for (var i = 0; i < conditions.Count; i++)
+        {
+            if (conditions[i].V.IndexOf('?') >= 0)
+                return true;
+        }
+
+        return false;
     }
 
     private static void TryExecuteTableTrigger(
@@ -231,14 +250,46 @@ internal static class DbDeleteStrategy
     {
         if (allowParallel && childTable.Count >= ParallelFkScanThreshold)
         {
-            return childTable
-                .AsParallel()
-                .Any(childRow => fk.References.All(r =>
-                    Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+            var found = 0;
+            Parallel.For(0, childTable.Count, (childIndex, state) =>
+            {
+                if (System.Threading.Volatile.Read(ref found) != 0)
+                {
+                    state.Stop();
+                    return;
+                }
+
+                var childRow = childTable[childIndex];
+                foreach (var reference in fk.References)
+                {
+                    if (!Equals(childRow[reference.col.Index], parentRow[reference.refCol.Index]))
+                        return;
+                }
+
+                System.Threading.Interlocked.Exchange(ref found, 1);
+                state.Stop();
+            });
+
+            return System.Threading.Volatile.Read(ref found) != 0;
         }
 
-        return childTable.Any(childRow => fk.References.All(r =>
-            Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+        foreach (var childRow in childTable)
+        {
+            var matches = true;
+            foreach (var reference in fk.References)
+            {
+                if (!Equals(childRow[reference.col.Index], parentRow[reference.refCol.Index]))
+                {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (matches)
+                return true;
+        }
+
+        return false;
     }
 
     private static bool HasReferenceByIndex(
@@ -246,38 +297,10 @@ internal static class DbDeleteStrategy
         ForeignDef fk,
         IReadOnlyDictionary<int, object?> parentRow)
     {
-        IndexDef? matchingIndex = null;
-        var matchingKeyCount = -1;
-        foreach (var index in childTable.Indexes.Values)
-        {
-            var coversAllReferences = true;
-            foreach (var reference in fk.References)
-            {
-                if (!index.KeyCols.Contains(reference.col.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    coversAllReferences = false;
-                    break;
-                }
-            }
-
-            if (!coversAllReferences)
-                continue;
-
-            if (index.KeyCols.Count <= matchingKeyCount)
-                continue;
-
-            matchingIndex = index;
-            matchingKeyCount = index.KeyCols.Count;
-        }
-
-        if (matchingIndex is null)
+        if (!fk.TryGetChildLookupPlan(out var lookupPlan))
             return false;
 
-        var valuesByColumn = new Dictionary<string, object?>(fk.References.Count, StringComparer.OrdinalIgnoreCase);
-        foreach (var reference in fk.References)
-            valuesByColumn[reference.col.Name.NormalizeName()] = parentRow[reference.refCol.Index];
-
-        var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
-        return matchingIndex.LookupMutable(key)?.Count > 0;
+        var key = lookupPlan.BuildKey(parentRow);
+        return lookupPlan.Index.LookupMutable(key)?.Count > 0;
     }
 }

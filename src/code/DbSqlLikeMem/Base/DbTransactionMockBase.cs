@@ -29,23 +29,17 @@ public abstract class DbTransactionMockBase<TConnection>(
     /// <inheritdoc />
     public override void Commit()
     {
-        lock (Connection.Db.SyncRoot)
-        {
-            Debug.WriteLine("Transaction Committed");
-            Connection.CommitTransaction();
-            _completed = true;
-        }
+        Debug.WriteLine("Transaction Committed");
+        Connection.CommitTransaction();
+        _completed = true;
     }
 
     /// <inheritdoc />
     public override void Rollback()
     {
-        lock (Connection.Db.SyncRoot)
-        {
-            Debug.WriteLine("Transaction Rolled Back");
-            Connection.RollbackTransaction();
-            _completed = true;
-        }
+        Debug.WriteLine("Transaction Rolled Back");
+        Connection.RollbackTransaction();
+        _completed = true;
     }
 
 #if NET6_0_OR_GREATER
@@ -59,10 +53,7 @@ public abstract class DbTransactionMockBase<TConnection>(
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     public void Save(string savepointName)
 #endif
-    {
-        lock (Connection.Db.SyncRoot)
-            Connection.CreateSavepoint(savepointName);
-    }
+        => Connection.CreateSavepoint(savepointName);
 
 #if NET6_0_OR_GREATER
     /// <inheritdoc />
@@ -75,10 +66,7 @@ public abstract class DbTransactionMockBase<TConnection>(
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     public void Rollback(string savepointName)
 #endif
-    {
-        lock (Connection.Db.SyncRoot)
-            Connection.RollbackTransaction(savepointName);
-    }
+        => Connection.RollbackTransaction(savepointName);
 
 #if NET6_0_OR_GREATER
     /// <inheritdoc />
@@ -91,10 +79,7 @@ public abstract class DbTransactionMockBase<TConnection>(
     /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
     public void Release(string savepointName)
 #endif
-    {
-        lock (Connection.Db.SyncRoot)
-            Connection.ReleaseSavepoint(savepointName);
-    }
+        => Connection.ReleaseSavepoint(savepointName);
 
     /// <inheritdoc />
     protected override void Dispose(bool disposing)

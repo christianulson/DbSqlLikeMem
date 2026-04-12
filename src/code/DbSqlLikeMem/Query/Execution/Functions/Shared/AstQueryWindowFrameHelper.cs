@@ -36,6 +36,37 @@ internal static class AstQueryWindowFrameHelper
             );
     }
 
+    internal static RowsFrameRange ResolveWindowFrameRange(
+        this WindowPartitionExecutionContext context,
+        WindowFrameSpec? frame,
+        List<EvalRow> part,
+        int rowIndex,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        Dictionary<EvalRow, object?>? precomputedSingleOrderValuesByRow)
+    {
+        if (part.Count == 0)
+            return RowsFrameRange.Empty;
+
+        if (frame is null || frame.Unit == WindowFrameUnit.Rows)
+            return WindowFrameRangeResolver.ResolveRowsFrameRange(frame, part.Count, rowIndex);
+
+        if (orderBy.Count == 0)
+            throw new InvalidOperationException($"Window frame unit '{frame.Unit}' requires ORDER BY in OVER clause.");
+
+        if (precomputedSingleOrderValuesByRow is null)
+            throw new InvalidOperationException("Single ORDER BY value cache is required for single-order window frame evaluation.");
+
+        return context.ResolveRowsFrameRange(
+            frame,
+            part,
+            rowIndex,
+            orderBy,
+            precomputedSingleOrderValuesByRow
+            );
+    }
+
     internal static Func<EvalRow, object?>? TryCreateWindowValueSelector(
         this WindowPartitionExecutionContext context,
         SqlExpr valueExpr,

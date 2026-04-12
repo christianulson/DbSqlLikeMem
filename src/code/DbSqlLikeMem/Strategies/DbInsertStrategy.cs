@@ -112,7 +112,7 @@ internal static class DbInsertStrategy
         var hasBeforeUpdateTrigger = false;
         var hasAfterUpdateTrigger = false;
         var requiresOldSnapshotForIndex = false;
-        var hasInsertConflictTargets = tableMock.PrimaryKeyIndexes.Count > 0;
+        var hasInsertConflictTargets = tableMock.PkIndexArray.Length > 0 || tableMock.UniqueIndexes.Count > 0;
 
         if (query.HasOnDuplicateKeyUpdate)
         {
@@ -123,14 +123,6 @@ internal static class DbInsertStrategy
             requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, onDupChangedColumns);
             hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
             hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
-            foreach (var index in tableMock.Indexes.Values)
-            {
-                if (index.Unique)
-                {
-                    hasInsertConflictTargets = true;
-                    break;
-                }
-            }
         }
 
         if (query.IsReplace)
@@ -166,19 +158,19 @@ internal static class DbInsertStrategy
             else
             {
                 var pendingInsertRows = new List<Dictionary<int, object?>>(newRows.Count);
-                HashSet<IndexKey>? pendingPrimaryKeys = tableMock.PrimaryKeyIndexes.Count > 0
+                HashSet<IndexKey>? pendingPrimaryKeys = tableMock.PkIndexArray.Length > 0
                     ? new HashSet<IndexKey>()
                     : null;
                 List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys = null;
-                foreach (var index in tableMock.Indexes.Values)
+                foreach (var index in tableMock.UniqueIndexes)
                 {
-                    if (index.Unique)
-                    {
-                        pendingUniqueKeys ??= new List<(IndexDef Index, HashSet<IndexKey> Keys)>();
-                        pendingUniqueKeys.Add((index, new HashSet<IndexKey>()));
-                    }
+                    pendingUniqueKeys ??= new List<(IndexDef Index, HashSet<IndexKey> Keys)>();
+                    pendingUniqueKeys.Add((index, new HashSet<IndexKey>()));
                 }
                 var tracksPendingBatchConflicts = pendingPrimaryKeys is not null || pendingUniqueKeys is not null;
+                var pendingUniqueKeysBuffer = pendingUniqueKeys is not null
+                    ? new IndexKey[pendingUniqueKeys.Count]
+                    : null;
 
                 foreach (var newRow in newRows)
                 {
@@ -190,6 +182,7 @@ internal static class DbInsertStrategy
                             tableMock,
                             pendingPrimaryKeys,
                             pendingUniqueKeys,
+                            pendingUniqueKeysBuffer,
                             newRow,
                             out pendingBatchPrimaryKey,
                             out pendingBatchUniqueKeys);
@@ -362,9 +355,13 @@ internal static class DbInsertStrategy
         var affected = dialect.GetInsertUpsertAffectedRowCount(insertedCount, updatedCount);
         connection.SetLastFoundRows(affected);
 
-        var affectedRowsData = connection.CaptureAffectedRowSnapshots
-            ? affectedIndexes.ConvertAll(idx => TableMock.SnapshotRow(table[idx]))
-            : new List<IReadOnlyDictionary<int, object?>>();
+        List<IReadOnlyDictionary<int, object?>>? affectedRowsData = null;
+        if (connection.CaptureAffectedRowSnapshots)
+        {
+            affectedRowsData = new List<IReadOnlyDictionary<int, object?>>(affectedIndexes.Count);
+            for (var i = 0; i < affectedIndexes.Count; i++)
+                affectedRowsData.Add(TableMock.SnapshotRow(table[affectedIndexes[i]]));
+        }
 
         if (capturePlans)
         {
@@ -385,7 +382,7 @@ internal static class DbInsertStrategy
         {
             AffectedRows = affected,
             AffectedIndexes = affectedIndexes,
-            AffectedRowsData = affectedRowsData
+            AffectedRowsData = affectedRowsData ?? []
         };
     }
 
@@ -406,21 +403,21 @@ internal static class DbInsertStrategy
         var hasBeforeDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete);
         var hasAfterDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete);
         var affectedIndexes = new List<int>();
-        var affectedRowsData = new List<IReadOnlyDictionary<int, object?>>();
+        List<IReadOnlyDictionary<int, object?>>? affectedRowsData = null;
         var insertedCount = 0;
         var deletedCount = 0;
 
         foreach (var newRow in newRows)
         {
-            var conflictIndexes = FindReplaceConflictIndexes(tableMock, newRow).ToList();
+            var conflictIndexes = FindReplaceConflictIndexes(tableMock, newRow);
             conflictIndexes.Sort(static (left, right) => right.CompareTo(left));
 
             if (conflictIndexes.Count > 0)
             {
-                var deleteSnapshots = conflictIndexes
-                    .Select(idx => TableMock.SnapshotRow(table[idx]))
-                    .ToList();
-                tableMock.Schema.ValidateForeignKeysOnDelete(query.Table!.Name!, tableMock, deleteSnapshots);
+                var deleteRows = new List<IReadOnlyDictionary<int, object?>>(conflictIndexes.Count);
+                for (var i = 0; i < conflictIndexes.Count; i++)
+                    deleteRows.Add(table[conflictIndexes[i]]);
+                tableMock.Schema.ValidateForeignKeysOnDelete(query.Table!.Name!, tableMock, deleteRows);
 
                 foreach (var idx in conflictIndexes)
                 {
@@ -455,7 +452,10 @@ internal static class DbInsertStrategy
             insertedCount++;
             affectedIndexes.Add(beforeInsert);
             if (context.CaptureAffectedRowSnapshots)
+            {
+                affectedRowsData ??= new List<IReadOnlyDictionary<int, object?>>(newRows.Count);
                 affectedRowsData.Add(TableMock.SnapshotRow(insertedRow));
+            }
         }
 
         if (metricsEnabled)
@@ -486,7 +486,7 @@ internal static class DbInsertStrategy
         {
             AffectedRows = affected,
             AffectedIndexes = affectedIndexes,
-            AffectedRowsData = affectedRowsData
+            AffectedRowsData = affectedRowsData ?? []
         };
     }
     private static bool HasIndexedKeyChanges(ITableMock table, IReadOnlyList<string> changedCols)
@@ -494,13 +494,31 @@ internal static class DbInsertStrategy
         if (changedCols.Count == 0)
             return false;
 
-        foreach (var pkIndex in table.PrimaryKeyIndexes)
+        if (table is TableMock tableMock)
         {
-            foreach (var column in table.Columns.Values)
+            foreach (var pkIndex in tableMock.PkIndexArray)
             {
-                if (column.Index == pkIndex && ContainsChangedColumn(changedCols, column.Name))
+                if (ContainsChangedColumn(changedCols, tableMock.GetColumnByIndex(pkIndex).Name))
                     return true;
             }
+
+            foreach (var index in tableMock.IndexesRaw.Values)
+            {
+                foreach (var keyCol in index.KeyCols)
+                {
+                    if (ContainsChangedColumn(changedCols, keyCol))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        foreach (var pkIndex in table.PrimaryKeyIndexes)
+        {
+            var column = GetColumnByIndex(table, pkIndex);
+            if (ContainsChangedColumn(changedCols, column.Name))
+                return true;
         }
 
         foreach (var index in table.Indexes.Values)
@@ -515,6 +533,17 @@ internal static class DbInsertStrategy
         return false;
     }
 
+    private static ColumnDef GetColumnByIndex(ITableMock table, int index)
+    {
+        foreach (var column in table.Columns.Values)
+        {
+            if (column.Index == index)
+                return column;
+        }
+
+        throw new InvalidOperationException($"Column index {index} was not found.");
+    }
+
     private static bool ContainsChangedColumn(IReadOnlyList<string> changedCols, string columnName)
     {
         for (var i = 0; i < changedCols.Count; i++)
@@ -525,61 +554,71 @@ internal static class DbInsertStrategy
 
         return false;
     }
-    private static IReadOnlyList<int> FindReplaceConflictIndexes(
+    private static List<int> FindReplaceConflictIndexes(
         TableMock table,
         IReadOnlyDictionary<int, object?> newRow)
     {
-        var conflicts = new HashSet<int>();
+        var conflicts = new List<int>();
+        var seen = new HashSet<int>();
 
-        if (table.PrimaryKeyIndexes.Count > 0)
+        if (table.PkIndexArray.Length > 0)
         {
-            for (var rowIndex = 0; rowIndex < table.Count; rowIndex++)
+            if (TryFindRowByPrimaryKey(table, newRow, out var pkRowIndex))
             {
-                if (MatchesColumns(table, newRow, table.PrimaryKeyIndexes, table[rowIndex]))
-                    conflicts.Add(rowIndex);
+                if (seen.Add(pkRowIndex))
+                    conflicts.Add(pkRowIndex);
             }
         }
 
-        foreach (var index in table.Indexes.Values.Where(static ix => ix.Unique))
+        foreach (var index in table.UniqueIndexes)
         {
-            for (var rowIndex = 0; rowIndex < table.Count; rowIndex++)
+            var key = index.BuildIndexKey(newRow);
+            var hits = index.LookupMutable(key);
+            if (hits is null || hits.Count == 0)
+                continue;
+
+            foreach (var hit in hits)
             {
-                if (MatchesColumns(table, newRow, index.KeyCols, table[rowIndex]))
-                    conflicts.Add(rowIndex);
+                if (seen.Add(hit.Key))
+                    conflicts.Add(hit.Key);
             }
         }
 
-        return conflicts.ToList();
+        return conflicts;
     }
 
-    private static bool MatchesColumns(
+    private static bool TryFindRowByPrimaryKey(
         TableMock table,
         IReadOnlyDictionary<int, object?> newRow,
-        IReadOnlyCollection<int> columnIndexes,
-        IReadOnlyDictionary<int, object?> existingRow)
-        => columnIndexes.All(colIdx =>
-            existingRow.TryGetValue(colIdx, out var existingValue)
-            && newRow.TryGetValue(colIdx, out var newValue)
-            && Equals(existingValue, newValue));
-
-    private static bool MatchesColumns(
-        TableMock table,
-        IReadOnlyDictionary<int, object?> newRow,
-        IReadOnlyList<string> columnNames,
-        IReadOnlyDictionary<int, object?> existingRow)
+        out int rowIndex)
     {
-        foreach (var columnName in columnNames)
+        var pkIndexes = table.PkIndexArray;
+        if (pkIndexes.Length == 1)
         {
-            var info = table.GetColumn(columnName);
-            if (!existingRow.TryGetValue(info.Index, out var existingValue)
-                || !newRow.TryGetValue(info.Index, out var newValue)
-                || !Equals(existingValue, newValue))
-            {
-                return false;
-            }
+            var value0 = newRow.TryGetValue(pkIndexes[0], out var pkValue0) ? pkValue0 : null;
+            return table.TryFindRowByPkValues(value0, out rowIndex);
         }
 
-        return true;
+        if (pkIndexes.Length == 2)
+        {
+            var value0 = newRow.TryGetValue(pkIndexes[0], out var pkValue0) ? pkValue0 : null;
+            var value1 = newRow.TryGetValue(pkIndexes[1], out var pkValue1) ? pkValue1 : null;
+            return table.TryFindRowByPkValues(value0, value1, out rowIndex);
+        }
+
+        if (pkIndexes.Length == 3)
+        {
+            var value0 = newRow.TryGetValue(pkIndexes[0], out var pkValue0) ? pkValue0 : null;
+            var value1 = newRow.TryGetValue(pkIndexes[1], out var pkValue1) ? pkValue1 : null;
+            var value2 = newRow.TryGetValue(pkIndexes[2], out var pkValue2) ? pkValue2 : null;
+            return table.TryFindRowByPkValues(value0, value1, value2, out rowIndex);
+        }
+
+        var values = new object?[pkIndexes.Length];
+        for (var i = 0; i < pkIndexes.Length; i++)
+            values[i] = newRow.TryGetValue(pkIndexes[i], out var value) ? value : null;
+
+        return table.TryFindRowByPkValues(values, out rowIndex);
     }
 
     private static void FlushPendingInsertBatch(
@@ -653,19 +692,19 @@ internal static class DbInsertStrategy
         TableMock tableMock,
         HashSet<IndexKey>? pendingPrimaryKeys,
         List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys,
+        IndexKey[]? pendingUniqueKeysBuffer,
         IReadOnlyDictionary<int, object?> row,
         out IndexKey? pendingPrimaryKey,
         out IndexKey[]? pendingUniqueKeysForRow)
     {
         pendingPrimaryKey = null;
-        pendingUniqueKeysForRow = null;
+        pendingUniqueKeysForRow = pendingUniqueKeysBuffer;
 
         if (pendingPrimaryKeys is not null)
             pendingPrimaryKey = tableMock.BuildPkKey(row);
 
-        if (pendingUniqueKeys is not null)
+        if (pendingUniqueKeys is not null && pendingUniqueKeysForRow is not null)
         {
-            pendingUniqueKeysForRow = new IndexKey[pendingUniqueKeys.Count];
             for (var i = 0; i < pendingUniqueKeys.Count; i++)
                 pendingUniqueKeysForRow[i] = pendingUniqueKeys[i].Index.BuildIndexKey(row);
         }
@@ -756,7 +795,9 @@ internal static class DbInsertStrategy
 
     private static void TrySetLastInsertId(QueryExecutionContext context, ITableMock table, IReadOnlyDictionary<int, object?> insertedRow)
     {
-        var identityColumn = table.Columns.Values.FirstOrDefault(c => c.Identity);
+        var identityColumn = table is TableMock tableMock
+            ? tableMock.IdentityColumn
+            : GetIdentityColumn(table);
         if (identityColumn is null)
             return;
 
@@ -764,6 +805,17 @@ internal static class DbInsertStrategy
             return;
 
         context.Connection.SetLastInsertId(value);
+    }
+
+    private static ColumnDef? GetIdentityColumn(ITableMock table)
+    {
+        foreach (var column in table.Columns.Values)
+        {
+            if (column.Identity)
+                return column;
+        }
+
+        return null;
     }
 
     private static int CountInputTables(SqlSelectQuery query)
@@ -780,24 +832,30 @@ internal static class DbInsertStrategy
         SqlInsertQuery query,
         ITableMock table)
     {
-        var connection = context.Connection;
         var dialect = context.Dialect;
         var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
         var colNames = query.Columns; // Lista de colunas do Insert
         ColumnDef[]? explicitTargetColumns = null;
-        List<ColumnDef>? orderedTableColumns = null;
+        IReadOnlyList<ColumnDef>? orderedTableColumns = null;
         List<ColumnDef>? nonIdentityColumns = null;
+        IReadOnlyList<ColumnDef> targetColumns;
+        var targetColumnCount = 0;
 
         var colNamesCount = colNames.Count;
+        var firstValueCount = query.ValuesRaw.Count > 0 ? query.ValuesRaw[0].Count : 0;
         if (colNamesCount > 0)
         {
             explicitTargetColumns = new ColumnDef[colNamesCount];
             for (var i = 0; i < colNamesCount; i++)
                 explicitTargetColumns[i] = ResolveInsertColumn(table, colNames[i], dialect);
+            targetColumns = explicitTargetColumns;
+            targetColumnCount = explicitTargetColumns.Length;
         }
         else
         {
-            orderedTableColumns = [.. table.Columns.Values.OrderBy(c => c.Index)];
+            orderedTableColumns = table is TableMock tableMock
+                ? tableMock.ColumnsByOrdinal
+                : [.. table.Columns.Values.OrderBy(c => c.Index)];
             var orderedCount = orderedTableColumns.Count;
             nonIdentityColumns = new List<ColumnDef>(orderedCount);
             for (var i = 0; i < orderedCount; i++)
@@ -806,6 +864,15 @@ internal static class DbInsertStrategy
                 if (!col.Identity)
                     nonIdentityColumns.Add(col);
             }
+
+            targetColumns = firstValueCount == orderedTableColumns.Count
+                ? orderedTableColumns
+                : firstValueCount == nonIdentityColumns.Count
+                    ? nonIdentityColumns
+                    : orderedTableColumns;
+            targetColumnCount = firstValueCount < targetColumns.Count
+                ? firstValueCount
+                : targetColumns.Count;
         }
 
         var valuesRawCount = query.ValuesRaw.Count;
@@ -816,36 +883,29 @@ internal static class DbInsertStrategy
             var parsedExprBlock = rowIndex < valuesExprCount
                 ? query.ValuesExpr[rowIndex]
                 : null;
+            var valueCount = valueBlock.Count;
+            var parsedExprCount = parsedExprBlock?.Count ?? 0;
 
             // Validação de count
-            if (colNamesCount > 0 && colNamesCount != valueBlock.Count)
-                throw new InvalidOperationException($"Column count ({colNamesCount}) does not match value count ({valueBlock.Count}).");
+            if (colNamesCount > 0 && colNamesCount != valueCount)
+                throw new InvalidOperationException($"Column count ({colNamesCount}) does not match value count ({valueCount}).");
 
-            var newRow = new Dictionary<int, object?>(Math.Max(1, valueBlock.Count));
+            var newRow = new Dictionary<int, object?>(Math.Max(1, valueCount));
 
-            if (colNamesCount == 0 && valueBlock.Count > 0)
+            if (targetColumnCount > 0)
             {
-                var targetCols = valueBlock.Count == orderedTableColumns!.Count
-                    ? orderedTableColumns
-                    : (valueBlock.Count == nonIdentityColumns!.Count ? nonIdentityColumns : orderedTableColumns);
+                var limit = colNamesCount > 0
+                    ? targetColumnCount
+                    : valueCount < targetColumnCount
+                        ? valueCount
+                        : targetColumnCount;
 
-                for (int i = 0; i < valueBlock.Count; i++)
+                for (var i = 0; i < limit; i++)
                 {
-                    if (i >= targetCols.Count) break;
-                    var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
+                    var parsedExpr = parsedExprBlock is not null && i < parsedExprCount
                         ? parsedExprBlock[i]
                         : null;
-                    SetColValue(context, table, targetCols[i], valueBlock[i], parsedExpr, newRow);
-                }
-            }
-            else if (colNamesCount > 0)
-            {
-                for (var i = 0; i < explicitTargetColumns!.Length; i++)
-                {
-                    var parsedExpr = parsedExprBlock is not null && i < parsedExprBlock.Count
-                        ? parsedExprBlock[i]
-                        : null;
-                    SetColValue(context, table, explicitTargetColumns[i], valueBlock[i], parsedExpr, newRow);
+                    SetColValue(context, table, targetColumns[i], valueBlock[i], parsedExpr, newRow);
                 }
             }
 
@@ -874,15 +934,28 @@ internal static class DbInsertStrategy
         var trimmedPunctuation = normalized.TrimEnd(',', ';');
         AddInsertColumnCandidate(candidates, trimmedPunctuation);
 
-        var firstToken = trimmedPunctuation
-            .Split(' ')
-            .Select(_ => _.Trim())
-            .FirstOrDefault(_ => !string.IsNullOrWhiteSpace(_));
-        AddInsertColumnCandidate(candidates, firstToken);
+        AddInsertColumnCandidate(candidates, GetFirstInsertColumnToken(trimmedPunctuation));
 
         AppendQuotedInsertColumnCandidates(candidates, normalized, dialect);
 
         return candidates;
+    }
+
+    private static string? GetFirstInsertColumnToken(string value)
+    {
+        var span = value.AsSpan();
+        var start = 0;
+        while (start < span.Length && char.IsWhiteSpace(span[start]))
+            start++;
+
+        if (start >= span.Length)
+            return null;
+
+        var end = start;
+        while (end < span.Length && !char.IsWhiteSpace(span[end]))
+            end++;
+
+        return span[start..end].ToString();
     }
 
     private static void AppendQuotedInsertColumnCandidates(List<string> candidates, string normalized, ISqlDialect dialect)
@@ -904,6 +977,36 @@ internal static class DbInsertStrategy
         }
 
         candidates.Add(candidate!);
+    }
+
+    private static bool TrySplitQualifiedName(string rawName, out string firstPart, out string secondPart)
+    {
+        firstPart = string.Empty;
+        secondPart = string.Empty;
+
+        var span = rawName.AsSpan();
+        var firstDot = span.IndexOf('.');
+        if (firstDot < 0)
+            return false;
+
+        var first = span[..firstDot].Trim();
+        if (first.Length == 0)
+            return false;
+
+        firstPart = first.ToString();
+        var rest = span[(firstDot + 1)..];
+        var secondDot = rest.IndexOf('.');
+        secondPart = (secondDot >= 0 ? rest[..secondDot] : rest).Trim().ToString();
+        return true;
+    }
+
+    private static string GetUnqualifiedName(string name)
+    {
+        var dotIndex = name.LastIndexOf('.');
+        if (dotIndex < 0 || dotIndex + 1 >= name.Length)
+            return name;
+
+        return name[(dotIndex + 1)..];
     }
 
     private static string? UnwrapInsertColumnIdentifier(string value, char quoteStart, bool isAllowed)
@@ -943,43 +1046,65 @@ internal static class DbInsertStrategy
         SqlInsertQuery query,
         ITableMock targetTable)
     {
-        var connection = context.Connection;
-        var dialect = context.Dialect;
         var executor = context.CreateExecutor();
         var res = executor.ExecuteSelect(query.InsertSelect!);
 
-        var rows = new List<Dictionary<int, object?>>();
+        var rows = new List<Dictionary<int, object?>>(res.Count);
         var colNames = query.Columns;
-        ColumnDef[]? explicitTargetColumns = null;
-        List<ColumnDef>? orderedTableColumns = null;
+        var colNamesCount = colNames.Count;
+        int[]? explicitTargetIndexes = null;
+        IReadOnlyList<ColumnDef>? orderedTableColumns = null;
+        var selectColumnCount = res.Columns.Count;
 
-        if (colNames.Count > 0 && colNames.Count != res.Columns.Count)
+        if (colNamesCount > 0 && colNamesCount != selectColumnCount)
             throw new InvalidOperationException(SqlExceptionMessages.ColumnCountDoesNotMatchSelectList());
 
-        if (colNames.Count > 0)
-            explicitTargetColumns = [.. colNames.Select(targetTable.GetColumn)];
+        if (colNamesCount > 0)
+        {
+            explicitTargetIndexes = new int[colNamesCount];
+            for (var i = 0; i < colNamesCount; i++)
+                explicitTargetIndexes[i] = targetTable.GetColumn(colNames[i]).Index;
+        }
         else
-            orderedTableColumns = [.. targetTable.Columns.Values.OrderBy(c => c.Index)];
+            orderedTableColumns = targetTable is TableMock targetTableMock
+                ? targetTableMock.ColumnsByOrdinal
+                : [.. targetTable.Columns.Values.OrderBy(c => c.Index)];
+
+        var orderedTargetColumns = orderedTableColumns;
+        var orderedTargetCount = orderedTargetColumns?.Count ?? 0;
+        int[]? orderedTargetIndexes = null;
+        if (orderedTargetColumns is not null)
+        {
+            orderedTargetIndexes = new int[orderedTargetCount];
+            for (var i = 0; i < orderedTargetCount; i++)
+                orderedTargetIndexes[i] = orderedTargetColumns[i].Index;
+        }
+
+        var selectLimit = orderedTargetColumns is not null
+            ? (selectColumnCount < orderedTargetCount ? selectColumnCount : orderedTargetCount)
+            : 0;
 
         foreach (var srcRow in res)
         {
-            var newRow = new Dictionary<int, object?>(Math.Max(1, res.Columns.Count));
+            var newRow = new Dictionary<int, object?>(Math.Max(1, selectColumnCount));
 
-            if (colNames.Count > 0)
+            if (colNamesCount > 0)
             {
-                for (int i = 0; i < explicitTargetColumns!.Length; i++)
+                var targetIndexes = explicitTargetIndexes!;
+                var targetCount = targetIndexes.Length;
+                for (int i = 0; i < targetCount; i++)
                 {
                     var val = srcRow.TryGetValue(i, out var v) ? v : null;
-                    newRow[explicitTargetColumns[i].Index] = (val is DBNull) ? null : val;
+                    newRow[targetIndexes[i]] = (val is DBNull) ? null : val;
                 }
             }
             else
             {
-                for (int i = 0; i < res.Columns.Count; i++)
+                var targetIndexes = orderedTargetIndexes!;
+                for (int i = 0; i < selectLimit; i++)
                 {
-                    if (i >= orderedTableColumns!.Count) break;
                     var val = srcRow.TryGetValue(i, out var v) ? v : null;
-                    newRow[orderedTableColumns[i].Index] = (val is DBNull) ? null : val;
+                    newRow[targetIndexes[i]] = (val is DBNull) ? null : val;
                 }
             }
 
@@ -996,26 +1121,47 @@ internal static class DbInsertStrategy
         SqlExpr? parsedExpr,
         Dictionary<int, object?> row)
     {
-        table.CurrentColumn = colDef.Name;
         object? resolved;
-        var trimmedRawValue = rawValue.Trim();
-        if (TryResolveCastAsJsonValue(parsedExpr, context, out var castJsonValue))
+        try
         {
-            resolved = castJsonValue;
+            if (parsedExpr is LiteralExpr literalExpr)
+            {
+                resolved = literalExpr.Value;
+            }
+            else if (parsedExpr is ParameterExpr parameterExpr
+                && context.TryResolveParameter(parameterExpr.Name, out var parameterValue))
+            {
+                resolved = parameterValue;
+            }
+            else if (TryResolveCastAsJsonValue(parsedExpr, context, out var castJsonValue))
+            {
+                resolved = castJsonValue;
+            }
+            else if (TryResolveParsedSpecialValue(context, table, parsedExpr, out var parsedValue))
+            {
+                resolved = parsedValue;
+            }
+            else
+            {
+                table.CurrentColumn = colDef.Name;
+                var trimmedRawValue = rawValue;
+                if (trimmedRawValue.Length > 0
+                    && (char.IsWhiteSpace(trimmedRawValue[0]) || char.IsWhiteSpace(trimmedRawValue[^1])))
+                {
+                    trimmedRawValue = trimmedRawValue.Trim();
+                }
+
+                resolved = TryResolveTemporalValue(trimmedRawValue, context, out var temporalValue)
+                    ? temporalValue
+                    : context.TryResolveParameter(trimmedRawValue, out var rawParameterValue)
+                        ? rawParameterValue
+                        : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, context.DbParameters, table.Columns);
+            }
         }
-        else if (TryResolveParsedSpecialValue(context, table, parsedExpr, out var parsedValue))
+        finally
         {
-            resolved = parsedValue;
+            table.CurrentColumn = null;
         }
-        else
-        {
-            resolved = TryResolveTemporalValue(trimmedRawValue, context, out var temporalValue)
-                ? temporalValue
-                : context.TryResolveParameter(trimmedRawValue, out var parameterValue)
-                    ? parameterValue
-                    : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, context.DbParameters, table.Columns);
-        }
-        table.CurrentColumn = null;
 
         resolved = context.NormalizeResolvedValue(resolved);
         var val = (resolved is DBNull) ? null : NormalizeValueForColumn(colDef.DbType, resolved);
@@ -1195,21 +1341,6 @@ internal static class DbInsertStrategy
         QueryExecutionContext context,
         IDictionary<int, object?> targetRow)
     {
-        object? GetParamValue(string rawName)
-        {
-            if (context.DbParameters is null) return null;
-            var n = rawName.Trim();
-            if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
-
-            foreach (DbParameter p in context.DbParameters)
-            {
-                var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
-                if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
-                    return p.Value is DBNull ? null : p.Value;
-            }
-            return null;
-        }
-
         object? GetInsertedColumnValue(string col)
         {
             var info = table.GetColumn(col);
@@ -1250,12 +1381,12 @@ internal static class DbInsertStrategy
             return expr switch
             {
                 LiteralExpr lit => lit.Value,
-                ParameterExpr p => GetParamValue(p.Name),
+                ParameterExpr p => context.TryResolveParameter(p.Name, out var parameterValue) ? parameterValue : null,
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
                     : context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
-                        : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                        : GetExistingColumnValue(GetUnqualifiedName(id.Name)),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
                     ? GetInsertedColumnValue(c.Name)
                     : GetExistingColumnValue(c.Name),
@@ -1383,21 +1514,6 @@ internal static class DbInsertStrategy
         IReadOnlyList<SqlAssignment> assigns,
         QueryExecutionContext context)
     {
-        object? GetParamValue(string rawName)
-        {
-            if (context.DbParameters is null) return null;
-            var n = rawName.Trim();
-            if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
-
-            foreach (DbParameter p in context.DbParameters)
-            {
-                var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
-                if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
-                    return p.Value is DBNull ? null : p.Value;
-            }
-            return null;
-        }
-
         object? GetInsertedColumnValue(string col)
         {
             var info = table.GetColumn(col);
@@ -1442,10 +1558,10 @@ internal static class DbInsertStrategy
             return expr switch
             {
                 LiteralExpr lit => lit.Value,
-                ParameterExpr p => GetParamValue(p.Name),
+                ParameterExpr p => context.TryResolveParameter(p.Name, out var parameterValue) ? parameterValue : null,
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                    : GetExistingColumnValue(GetUnqualifiedName(id.Name)),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
                     ? GetInsertedColumnValue(c.Name)
                     : GetExistingColumnValue(c.Name),
@@ -1491,10 +1607,10 @@ internal static class DbInsertStrategy
             if (string.IsNullOrWhiteSpace(rawName))
                 return false;
 
-            var parts = rawName.Split('.').Select(_ => _.Trim()).Take(2).ToArray();
-            if (parts.Length == 2 && string.Equals(parts[0], "excluded", StringComparison.OrdinalIgnoreCase))
+            if (TrySplitQualifiedName(rawName, out var firstPart, out var secondPart)
+                && string.Equals(firstPart, "excluded", StringComparison.OrdinalIgnoreCase))
             {
-                value = GetInsertedColumnValue(parts[1]);
+                value = GetInsertedColumnValue(secondPart);
                 return true;
             }
 
@@ -1586,20 +1702,6 @@ internal static class DbInsertStrategy
         if (where is null)
             return true;
 
-        object? GetParamValue(string rawName)
-        {
-            if (context.DbParameters is null) return null;
-            var n = rawName.Trim();
-            if (n.Length > 0 && (n[0] == '@' || n[0] == ':' || n[0] == '?')) n = n[1..];
-            foreach (DbParameter p in context.DbParameters)
-            {
-                var pn = p.ParameterName?.TrimStart('@', ':', '?') ?? "";
-                if (string.Equals(pn, n, StringComparison.OrdinalIgnoreCase))
-                    return p.Value is DBNull ? null : p.Value;
-            }
-            return null;
-        }
-
         object? GetInsertedColumnValue(string col)
         {
             var info = table.GetColumn(col);
@@ -1616,12 +1718,12 @@ internal static class DbInsertStrategy
         {
             value = null;
             if (string.IsNullOrWhiteSpace(rawName)) return false;
-            var parts = rawName.Split('.').Select(_ => _.Trim()).Take(2).ToArray();
-            if (parts.Length != 2) return false;
-            if (string.Equals(parts[0], "excluded", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(parts[0], "values", StringComparison.OrdinalIgnoreCase))
+            if (!TrySplitQualifiedName(rawName, out var firstPart, out var secondPart))
+                return false;
+            if (string.Equals(firstPart, "excluded", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(firstPart, "values", StringComparison.OrdinalIgnoreCase))
             {
-                value = GetInsertedColumnValue(parts[1]);
+                value = GetInsertedColumnValue(secondPart);
                 return true;
             }
             return false;
@@ -1678,12 +1780,12 @@ internal static class DbInsertStrategy
             return expr switch
             {
                 LiteralExpr lit => lit.Value,
-                ParameterExpr p => GetParamValue(p.Name),
+                ParameterExpr p => context.TryResolveParameter(p.Name, out var parameterValue) ? parameterValue : null,
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
                     : context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
-                        : GetExistingColumnValue(id.Name.Contains('.') ? id.Name.Split('.').Last() : id.Name),
+                        : GetExistingColumnValue(GetUnqualifiedName(id.Name)),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
                     ? GetInsertedColumnValue(c.Name)
                     : GetExistingColumnValue(c.Name),
@@ -1726,4 +1828,3 @@ internal static class DbInsertStrategy
             tableMock.ExecuteTriggers(evt, oldRow, newRow);
     }
 }
-

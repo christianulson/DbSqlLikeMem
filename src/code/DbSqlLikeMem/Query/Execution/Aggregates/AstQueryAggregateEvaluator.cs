@@ -1029,24 +1029,47 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
+        var hasSeparator = separator.Length > 0;
         StringBuilder? builder = null;
-        for (var i = 0; i < values.Count; i++)
+        if (hasSeparator)
         {
-            if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(values[i], out var text))
-                continue;
-
-            if (builder is null)
+            for (var i = 0; i < values.Count; i++)
             {
-                builder = new StringBuilder(text.Length + separator.Length);
-                builder.Append(text);
-                continue;
-            }
+                if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(values[i], out var text))
+                    continue;
 
-            builder.Append(separator);
-            builder.Append(text);
+                if (builder is null)
+                {
+                    builder = StringBuilderCache.Acquire(text.Length + separator.Length);
+                    builder.Append(text);
+                    continue;
+                }
+
+                builder.Append(separator);
+                builder.Append(text);
+            }
+        }
+        else
+        {
+            for (var i = 0; i < values.Count; i++)
+            {
+                if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(values[i], out var text))
+                    continue;
+
+                if (builder is null)
+                {
+                    builder = StringBuilderCache.Acquire(text.Length);
+                    builder.Append(text);
+                    continue;
+                }
+
+                builder.Append(text);
+            }
         }
 
-        return builder?.ToString();
+        return builder is null
+            ? null
+            : StringBuilderCache.GetStringAndRelease(builder);
     }
 
     private static string? EvalSimpleStringAggregate(
@@ -1070,93 +1093,173 @@ internal static class AstQueryAggregateEvaluator
         if (fn.WithinGroupOrderBy is { Count: > 0 } orderBy && rowCount > 1)
             rows = OrderStringAggregateRows(context, orderBy, group.Rows, ctes, eval);
 
-        HashSet<string>? seen = fn.Distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
         rowCount = rows.Count;
         if (rowCount == 1)
         {
             var singleValue = hasDirectValueSelector
                 ? valueSelector!(rows[0])
                 : eval(fn.Args[0], rows[0], null, ctes);
-            if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison: true, out var singleText, out var singleKey))
-                return null;
+            if (fn.Distinct)
+            {
+                if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison: true, out var singleText1, out _))
+                    return null;
 
-            if (seen is not null && !seen.Add(singleKey))
+                return singleText1;
+            }
+
+            if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(singleValue, out var singleText))
                 return null;
 
             return singleText;
         }
 
         var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
+        var hasSeparator = separator.Length > 0;
         StringBuilder? builder = null;
         var hasValue = false;
         var estimatedCapacity = EstimateStringAggregateCapacity(rowCount, separator.Length);
+        HashSet<string>? seen = fn.Distinct && rowCount > 1
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : null;
 
         if (!hasDirectValueSelector)
         {
-            for (var i = 0; i < rowCount; i++)
+            if (hasSeparator)
             {
-                var value = eval(fn.Args[0], rows[i], null, ctes);
-                if (IsNullish(value))
-                    continue;
-
-                var text = string.Empty;
-                if (seen is not null)
+                for (var i = 0; i < rowCount; i++)
                 {
-                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
-                        || !seen.Add(key))
+                    var value = eval(fn.Args[0], rows[i], null, ctes);
+                    if (IsNullish(value))
                         continue;
-                }
-                else
-                {
-                    text = value?.ToString() ?? string.Empty;
-                }
 
-                if (!hasValue)
-                {
-                    builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                    var text = string.Empty;
+                    if (seen is not null)
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
+                            || !seen.Add(key))
+                            continue;
+                    }
+                    else
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(value, out text))
+                            continue;
+                    }
+
+                    if (!hasValue)
+                    {
+                        builder = StringBuilderCache.Acquire(Math.Max(estimatedCapacity, text.Length));
+                        builder.Append(text);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(separator);
                     builder.Append(text);
-                    hasValue = true;
-                    continue;
                 }
+            }
+            else
+            {
+                for (var i = 0; i < rowCount; i++)
+                {
+                    var value = eval(fn.Args[0], rows[i], null, ctes);
+                    if (IsNullish(value))
+                        continue;
 
-                builder!.Append(separator);
-                builder.Append(text);
+                    var text = string.Empty;
+                    if (seen is not null)
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
+                            || !seen.Add(key))
+                            continue;
+                    }
+                    else
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(value, out text))
+                            continue;
+                    }
+
+                    if (!hasValue)
+                    {
+                        builder = StringBuilderCache.Acquire(Math.Max(estimatedCapacity, text.Length));
+                        builder.Append(text);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(text);
+                }
             }
         }
         else
         {
-            for (var i = 0; i < rowCount; i++)
+            if (hasSeparator)
             {
-                var value = valueSelector!(rows[i]);
-                if (IsNullish(value))
-                    continue;
-
-                var text = string.Empty;
-                if (seen is not null)
+                for (var i = 0; i < rowCount; i++)
                 {
-                    if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
-                        || !seen.Add(key))
+                    var value = valueSelector!(rows[i]);
+                    if (IsNullish(value))
                         continue;
-                }
-                else
-                {
-                    text = value?.ToString() ?? string.Empty;
-                }
 
-                if (!hasValue)
-                {
-                    builder = new StringBuilder(Math.Max(estimatedCapacity, text.Length));
+                    var text = string.Empty;
+                    if (seen is not null)
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
+                            || !seen.Add(key))
+                            continue;
+                    }
+                    else
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(value, out text))
+                            continue;
+                    }
+
+                    if (!hasValue)
+                    {
+                        builder = StringBuilderCache.Acquire(Math.Max(estimatedCapacity, text.Length));
+                        builder.Append(text);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(separator);
                     builder.Append(text);
-                    hasValue = true;
-                    continue;
                 }
+            }
+            else
+            {
+                for (var i = 0; i < rowCount; i++)
+                {
+                    var value = valueSelector!(rows[i]);
+                    if (IsNullish(value))
+                        continue;
 
-                builder!.Append(separator);
-                builder.Append(text);
+                    var text = string.Empty;
+                    if (seen is not null)
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
+                            || !seen.Add(key))
+                            continue;
+                    }
+                    else
+                    {
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateText(value, out text))
+                            continue;
+                    }
+
+                    if (!hasValue)
+                    {
+                        builder = StringBuilderCache.Acquire(Math.Max(estimatedCapacity, text.Length));
+                        builder.Append(text);
+                        hasValue = true;
+                        continue;
+                    }
+
+                    builder!.Append(text);
+                }
             }
         }
 
-        return hasValue ? builder!.ToString() : null;
+        return hasValue ? StringBuilderCache.GetStringAndRelease(builder!) : null;
     }
 
     private static List<AstQueryExecutorBase.EvalRow> OrderStringAggregateRows(
@@ -1224,17 +1327,74 @@ internal static class AstQueryAggregateEvaluator
         EvalGroup group,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
-        => args.Count > 1 && group.Rows.Count > 0
-            ? eval(args[1], group.Rows[0], null, ctes)
-            : null;
+    {
+        if (args.Count <= 1 || group.Rows.Count == 0)
+            return null;
+
+        if (TryGetAggregateSeparatorText(args[1], out var separatorText))
+            return separatorText;
+
+        return eval(args[1], group.Rows[0], null, ctes);
+    }
+
+    private static bool TryGetAggregateSeparatorText(SqlExpr expr, out string separator)
+    {
+        separator = string.Empty;
+
+        switch (expr)
+        {
+            case LiteralExpr literal:
+                separator = literal.Value?.ToString() ?? string.Empty;
+                return true;
+            case RawSqlExpr raw:
+                separator = raw.Sql;
+                return true;
+            case IdentifierExpr identifier:
+                separator = identifier.Name;
+                return true;
+            case ColumnExpr column:
+                separator = column.Name;
+                return true;
+            default:
+                return false;
+        }
+    }
 
     private static int EstimateStringAggregateCapacity(int rowCount, int separatorLength)
     {
         if (rowCount <= 1)
             return 16;
 
-        var estimated = rowCount * Math.Max(8, separatorLength + 6);
-        return Math.Min(estimated, 64 * 1024);
+        var estimated = rowCount * Math.Max(12, separatorLength + 8);
+        return Math.Min(estimated, 256 * 1024);
+    }
+
+    private static class StringBuilderCache
+    {
+        [ThreadStatic]
+        private static StringBuilder? _cachedInstance;
+
+        internal static StringBuilder Acquire(int capacity)
+        {
+            var builder = _cachedInstance;
+            if (builder is null)
+                return new StringBuilder(capacity);
+
+            _cachedInstance = null;
+            builder.Clear();
+            if (builder.Capacity < capacity)
+                builder.Capacity = capacity;
+
+            return builder;
+        }
+
+        internal static string GetStringAndRelease(StringBuilder builder)
+        {
+            var result = builder.ToString();
+            if (builder.Capacity <= 64 * 1024)
+                _cachedInstance = builder;
+            return result;
+        }
     }
 
     internal static int GetKnownRowCount(IEnumerable<EvalRow> rows, int defaultValue = 0)

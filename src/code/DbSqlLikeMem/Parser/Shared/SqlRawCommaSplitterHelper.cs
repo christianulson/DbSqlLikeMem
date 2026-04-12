@@ -6,8 +6,11 @@ internal static class SqlRawCommaSplitterHelper
         this string? rawBlock)
     {
         var res = new List<string>();
-        if (rawBlock?.Length == 0)
+        if (string.IsNullOrEmpty(rawBlock))
             return res;
+
+        if (StringCompatibility.IndexOfAny(rawBlock!, '(', ')', '\'', '"') < 0)
+            return SplitRawByCommaSimple(rawBlock!);
 
         var depth = 0;
         var start = 0;
@@ -84,6 +87,29 @@ internal static class SqlRawCommaSplitterHelper
             }
 
             if (depth == 0 && ch == ',')
+            {
+                res.Add(rawBlock[start..i].Trim());
+                start = i + 1;
+            }
+        }
+
+        if (start <= rawBlock.Length)
+            res.Add(rawBlock[start..].Trim());
+
+        return res;
+    }
+
+    private static List<string> SplitRawByCommaSimple(
+        string rawBlock)
+    {
+        if (rawBlock.IndexOf(',') < 0)
+            return new List<string>(1) { rawBlock.Trim() };
+
+        var res = new List<string>();
+        var start = 0;
+        for (var i = 0; i < rawBlock.Length; i++)
+        {
+            if (rawBlock[i] == ',')
             {
                 res.Add(rawBlock[start..i].Trim());
                 start = i + 1;

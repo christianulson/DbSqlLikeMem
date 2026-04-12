@@ -55,7 +55,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         var normalizedSubquerySql = GetOrNormalizeSubquerySql(operation, subquerySql);
         var sb = new StringBuilder();
         AppendCorrelatedSubqueryCacheKeyPrefix(sb, operation, normalizedSubquerySql);
-        AppendCorrelatedSubqueryCacheKeyFields(sb, GetCorrelatedSubqueryCacheFields(subquerySql ?? string.Empty, row));
+        AppendCorrelatedSubqueryCacheKeyFields(sb, GetCorrelatedSubqueryCacheFields(normalizedSubquerySql, row));
 
         return sb.ToString();
     }
@@ -123,27 +123,44 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         string subquerySql,
         AstQueryExecutorBase.EvalRow row)
     {
-        var allFields = GetOrderedCorrelatedSubqueryCacheFields(row);
+        var fieldViews = row.CorrelatedCacheFieldViews;
+        if (fieldViews is not null && fieldViews.TryGetValue(subquerySql, out var cachedView))
+            return cachedView;
+
+        var allFields = row.CorrelatedCacheFields ?? GetOrderedCorrelatedSubqueryCacheFields(row);
+        row.CorrelatedCacheFields = allFields;
 
         if (allFields.Count == 0 || string.IsNullOrWhiteSpace(subquerySql))
-            return allFields;
+            return CacheCorrelatedFieldView(row, subquerySql, allFields);
 
         var normalizedSql = NormalizeSqlIdentifierSpacing(subquerySql);
         var qualifiedMatches = GetQualifiedCorrelatedSubqueryCacheFieldMatches(allFields, normalizedSql);
 
         if (qualifiedMatches.Count > 0)
-            return qualifiedMatches;
+            return CacheCorrelatedFieldView(row, subquerySql, qualifiedMatches);
 
         var unqualifiedMatches = GetUnqualifiedCorrelatedSubqueryCacheFieldMatches(allFields, normalizedSql);
 
         if (unqualifiedMatches.Count > 0)
-            return unqualifiedMatches;
+            return CacheCorrelatedFieldView(row, subquerySql, unqualifiedMatches);
 
         // If we cannot match any outer identifier but SQL still appears to reference outer qualifiers,
         // keep conservative behavior and include all fields to avoid stale cross-row reuse.
-        return ContainsPotentialOuterQualifierReference(normalizedSql, allFields)
+        var result = ContainsPotentialOuterQualifierReference(normalizedSql, allFields)
             ? allFields
             : [];
+
+        return CacheCorrelatedFieldView(row, subquerySql, result);
+    }
+
+    private static IReadOnlyList<KeyValuePair<string, object?>> CacheCorrelatedFieldView(
+        AstQueryExecutorBase.EvalRow row,
+        string subquerySql,
+        IReadOnlyList<KeyValuePair<string, object?>> fields)
+    {
+        row.CorrelatedCacheFieldViews ??= new Dictionary<string, IReadOnlyList<KeyValuePair<string, object?>>>(StringComparer.Ordinal);
+        row.CorrelatedCacheFieldViews[subquerySql] = fields;
+        return fields;
     }
 
     private static List<KeyValuePair<string, object?>> GetOrderedCorrelatedSubqueryCacheFields(AstQueryExecutorBase.EvalRow row)
@@ -350,6 +367,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             return string.Empty;
 
         var normalized = NormalizeSqlIdentifierSpacing(sql);
+        normalized = TrimRedundantOuterParentheses(normalized);
         var sb = new StringBuilder(normalized.Length);
         var previousWasSpace = false;
 
@@ -379,9 +397,55 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         }
 
         var canonicalSql = sb.ToString().Trim();
+        canonicalSql = NormalizeClauseKeywordSpacingForCacheKey(canonicalSql);
         canonicalSql = NormalizeRelationalOperatorSpacingForCacheKey(canonicalSql);
         canonicalSql = NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
         return NormalizeCommutativeAndClausesForCacheKey(canonicalSql);
+    }
+
+    /// <summary>
+    /// EN: Inserts a space after WHERE and HAVING when they are followed immediately by an opening parenthesis.
+    /// PT: Insere um espaco apos WHERE e HAVING quando eles sao seguidos imediatamente por um parenteses de abertura.
+    /// </summary>
+    private static string NormalizeClauseKeywordSpacingForCacheKey(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var sb = new StringBuilder(sql.Length + 8);
+        for (var i = 0; i < sql.Length; i++)
+        {
+            if (TryAppendProtectedSqlSegment(sql, ref i, sb))
+                continue;
+
+            if (MatchesKeywordTokenAt(sql, i, SqlConst.WHERE))
+            {
+                var end = i + SqlConst.WHERE.Length;
+                if (end < sql.Length && sql[end] == '(')
+                {
+                    sb.Append(SqlConst.WHERE);
+                    sb.Append(' ');
+                    i = end - 1;
+                    continue;
+                }
+            }
+
+            if (MatchesKeywordTokenAt(sql, i, SqlConst.HAVING))
+            {
+                var end = i + SqlConst.HAVING.Length;
+                if (end < sql.Length && sql[end] == '(')
+                {
+                    sb.Append(SqlConst.HAVING);
+                    sb.Append(' ');
+                    i = end - 1;
+                    continue;
+                }
+            }
+
+            sb.Append(sql[i]);
+        }
+
+        return sb.ToString();
     }
 
     /// <summary>

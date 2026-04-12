@@ -40,6 +40,21 @@ internal static class WindowFrameRangeResolver
             _ => ResolveRowsFrameRange(frame, partition.Count, rowIndex)
         };
 
+    internal static RowsFrameRange ResolveRowsFrameRange<T>(
+        this WindowPartitionExecutionContext context,
+        WindowFrameSpec frame,
+        List<T> partition,
+        int rowIndex,
+        IReadOnlyList<WindowOrderItem> orderBy,
+        Dictionary<T, object?> orderValuesByRow)
+        where T : notnull
+        => frame.Unit switch
+        {
+            WindowFrameUnit.Groups => context.ResolveGroupsFrameRange(frame, partition, rowIndex, orderValuesByRow),
+            WindowFrameUnit.Range => context.ResolveRangeFrameRange(frame, partition, rowIndex, orderValuesByRow, orderBy),
+            _ => ResolveRowsFrameRange(frame, partition.Count, rowIndex)
+        };
+
     private static int ResolveRowsFrameBoundIndex(WindowFrameBound bound, int rowIndex, int partitionSize, bool isStartBound)
     {
         var lastIndex = partitionSize - 1;
@@ -75,12 +90,70 @@ internal static class WindowFrameRangeResolver
         return new RowsFrameRange(groups[startGroup].Start, groups[endGroup].End, IsEmpty: false);
     }
 
+    private static RowsFrameRange ResolveGroupsFrameRange<T>(
+        this WindowPartitionExecutionContext context,
+        WindowFrameSpec frame,
+        List<T> partition,
+        int rowIndex,
+        Dictionary<T, object?> orderValuesByRow)
+        where T : notnull
+    {
+        var groups = context.BuildPeerGroups(partition, orderValuesByRow);
+        var currentGroupIndex = groups.FindIndex(group => rowIndex >= group.Start && rowIndex <= group.End);
+        if (currentGroupIndex < 0)
+            return RowsFrameRange.Empty;
+
+        var startGroup = ResolveGroupsBoundIndex(frame.Start, currentGroupIndex, groups.Count, isStartBound: true);
+        var endGroup = ResolveGroupsBoundIndex(frame.End, currentGroupIndex, groups.Count, isStartBound: false);
+        if (startGroup > endGroup)
+            return RowsFrameRange.Empty;
+
+        return new RowsFrameRange(groups[startGroup].Start, groups[endGroup].End, IsEmpty: false);
+    }
+
     private static RowsFrameRange ResolveRangeFrameRange<T>(
         this WindowPartitionExecutionContext context,
         WindowFrameSpec frame,
         List<T> partition,
         int rowIndex,
         Dictionary<T, object?[]> orderValuesByRow,
+        IReadOnlyList<WindowOrderItem> orderBy)
+        where T : notnull
+    {
+        var hasOffsetBound = frame.Start.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following
+            || frame.End.Kind is WindowFrameBoundKind.Preceding or WindowFrameBoundKind.Following;
+
+        ValidateRangeOffsetOrderBy(orderBy, hasOffsetBound);
+
+        var peerRange = context.ResolvePeerRange(partition, rowIndex, orderValuesByRow);
+
+        int startIndex;
+        int endIndex;
+        if (hasOffsetBound)
+        {
+            var scalarValues = BuildRangeScalarValues(partition, orderValuesByRow, orderBy);
+            var current = scalarValues[rowIndex];
+            startIndex = ResolveRangeBoundIndex(frame.Start, scalarValues, current, peerRange, isStartBound: true);
+            endIndex = ResolveRangeBoundIndex(frame.End, scalarValues, current, peerRange, isStartBound: false);
+        }
+        else
+        {
+            startIndex = ResolveRangeBoundIndexWithoutOffsets(frame.Start, partition.Count, peerRange, isStartBound: true);
+            endIndex = ResolveRangeBoundIndexWithoutOffsets(frame.End, partition.Count, peerRange, isStartBound: false);
+        }
+
+        if (startIndex > endIndex)
+            return RowsFrameRange.Empty;
+
+        return new RowsFrameRange(startIndex, endIndex, IsEmpty: false);
+    }
+
+    private static RowsFrameRange ResolveRangeFrameRange<T>(
+        this WindowPartitionExecutionContext context,
+        WindowFrameSpec frame,
+        List<T> partition,
+        int rowIndex,
+        Dictionary<T, object?> orderValuesByRow,
         IReadOnlyList<WindowOrderItem> orderBy)
         where T : notnull
     {
@@ -143,6 +216,28 @@ internal static class WindowFrameRangeResolver
         return groups;
     }
 
+    private static List<(int Start, int End)> BuildPeerGroups<T>(
+        this WindowPartitionExecutionContext context,
+        List<T> partition,
+        Dictionary<T, object?> orderValuesByRow)
+        where T : notnull
+    {
+        var groups = new List<(int Start, int End)>();
+        var start = 0;
+        for (var i = 1; i <= partition.Count; i++)
+        {
+            var isBoundary = i == partition.Count
+                || context.QueryExecutionContext.CompareSql(orderValuesByRow[partition[i - 1]], orderValuesByRow[partition[i]]) != 0;
+            if (!isBoundary)
+                continue;
+
+            groups.Add((start, i - 1));
+            start = i;
+        }
+
+        return groups;
+    }
+
     private static int ResolveGroupsBoundIndex(WindowFrameBound bound, int currentGroupIndex, int groupCount, bool isStartBound)
     {
         var last = groupCount - 1;
@@ -176,6 +271,25 @@ internal static class WindowFrameRangeResolver
         return (start, end);
     }
 
+    private static (int Start, int End) ResolvePeerRange<T>(
+        this WindowPartitionExecutionContext context,
+        List<T> partition,
+        int rowIndex,
+        Dictionary<T, object?> orderValuesByRow)
+        where T : notnull
+    {
+        var current = orderValuesByRow[partition[rowIndex]];
+        var start = rowIndex;
+        while (start > 0 && context.QueryExecutionContext.CompareSql(orderValuesByRow[partition[start - 1]], current) == 0)
+            start--;
+
+        var end = rowIndex;
+        while (end < partition.Count - 1 && context.QueryExecutionContext.CompareSql(orderValuesByRow[partition[end + 1]], current) == 0)
+            end++;
+
+        return (start, end);
+    }
+
     private static decimal[] BuildRangeScalarValues<T>(
         List<T> partition,
         Dictionary<T, object?[]> orderValuesByRow,
@@ -187,6 +301,30 @@ internal static class WindowFrameRangeResolver
         for (var i = 0; i < partition.Count; i++)
         {
             var rawOrderValue = orderValuesByRow[partition[i]].Length == 0 ? null : orderValuesByRow[partition[i]][0];
+            if (!TryConvertRangeOrderToDecimal(rawOrderValue, out var scalar))
+            {
+                var valueType = rawOrderValue?.GetType().Name ?? SqlConst.NULL;
+                throw new InvalidOperationException(
+                    $"RANGE with PRECEDING/FOLLOWING offset requires numeric/date ORDER BY values. Actual ORDER BY value type: {valueType}.");
+            }
+
+            values[i] = desc ? -scalar : scalar;
+        }
+
+        return values;
+    }
+
+    private static decimal[] BuildRangeScalarValues<T>(
+        List<T> partition,
+        Dictionary<T, object?> orderValuesByRow,
+        IReadOnlyList<WindowOrderItem> orderBy)
+        where T : notnull
+    {
+        var desc = orderBy.Count > 0 && orderBy[0].Desc;
+        var values = new decimal[partition.Count];
+        for (var i = 0; i < partition.Count; i++)
+        {
+            var rawOrderValue = orderValuesByRow[partition[i]];
             if (!TryConvertRangeOrderToDecimal(rawOrderValue, out var scalar))
             {
                 var valueType = rawOrderValue?.GetType().Name ?? SqlConst.NULL;

@@ -63,19 +63,31 @@ internal static class SqlTemporalFunctionEvaluator
         if (context.Dialect is null || string.IsNullOrWhiteSpace(functionName))
             return false;
 
+        if (context.TryGetCachedTemporalZeroArgIdentifierValue(functionName, out value))
+            return true;
+
         if (context.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
         {
-            switch (functionName.Trim())
+            var trimmedFunctionName = functionName.AsSpan().Trim();
+            if (trimmedFunctionName.Equals("TODAY", StringComparison.OrdinalIgnoreCase))
             {
-                case "TODAY":
-                    value = localNow.Date;
-                    return true;
-                case "TOMORROW":
-                    value = localNow.Date.AddDays(1);
-                    return true;
-                case "YESTERDAY":
-                    value = localNow.Date.AddDays(-1);
-                    return true;
+                value = localNow.Date;
+                context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+                return true;
+            }
+
+            if (trimmedFunctionName.Equals("TOMORROW", StringComparison.OrdinalIgnoreCase))
+            {
+                value = localNow.Date.AddDays(1);
+                context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+                return true;
+            }
+
+            if (trimmedFunctionName.Equals("YESTERDAY", StringComparison.OrdinalIgnoreCase))
+            {
+                value = localNow.Date.AddDays(-1);
+                context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+                return true;
             }
         }
 
@@ -85,7 +97,11 @@ internal static class SqlTemporalFunctionEvaluator
         if (!context.Dialect.TryGetTemporalFunctionKind(functionName, out var kind))
             return false;
 
-        return TryMapKind(context, kind, localNow, utcNow, out value);
+        var success = TryMapKind(context, kind, localNow, utcNow, out value);
+        if (success)
+            context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+
+        return success;
     }
 
     public static bool TryEvaluateZeroArgIdentifier(this QueryExecutionContext context, string functionName, out object? value)
@@ -102,13 +118,20 @@ internal static class SqlTemporalFunctionEvaluator
         if (context.Dialect is null || string.IsNullOrWhiteSpace(functionName))
             return false;
 
+        if (context.TryGetCachedTemporalZeroArgCallValue(functionName, out value))
+            return true;
+
         if (!context.Dialect.AllowsTemporalCall(functionName))
             return false;
 
         if (!context.Dialect.TryGetTemporalFunctionKind(functionName, out var kind))
             return false;
 
-        return TryMapKind(context, kind, localNow, utcNow, out value);
+        var success = TryMapKind(context, kind, localNow, utcNow, out value);
+        if (success)
+            context.CacheTemporalZeroArgCallValue(functionName, value);
+
+        return success;
     }
 
     public static bool TryEvaluateZeroArgCall(this QueryExecutionContext context, string functionName, out object? value)
@@ -118,20 +141,22 @@ internal static class SqlTemporalFunctionEvaluator
     {
         offset = default;
 
-        var trimmed = value.Trim();
+        var trimmed = value.AsSpan().Trim();
         if (trimmed.Length == 0)
             return false;
 
-        if (string.Equals(trimmed, "UTC", StringComparison.OrdinalIgnoreCase))
+        if (trimmed.Equals("UTC", StringComparison.OrdinalIgnoreCase))
         {
             offset = TimeSpan.Zero;
             return true;
         }
 
-        if (TimeSpan.TryParse(trimmed, CultureInfo.InvariantCulture, out offset))
+        var trimmedText = trimmed.ToString();
+
+        if (ReadOnlySpanCompatibility.TryParseTimeSpan(trimmedText.AsSpan(), CultureInfo.InvariantCulture, out offset))
             return true;
 
-        if (DateTime.TryParse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDate))
+        if (ReadOnlySpanCompatibility.TryParseDateTime(trimmedText.AsSpan(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDate))
         {
             offset = parsedDate.TimeOfDay;
             return true;
@@ -141,8 +166,8 @@ internal static class SqlTemporalFunctionEvaluator
             && (trimmed[0] == '+' || trimmed[0] == '-')
             && trimmed[3] == ':')
         {
-            if (int.TryParse(trimmed[1..3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
-                && int.TryParse(trimmed[4..6], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            if (ReadOnlySpanCompatibility.TryParseInt32(trimmed[1..3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                && ReadOnlySpanCompatibility.TryParseInt32(trimmed[4..6], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
             {
                 offset = new TimeSpan(hours, minutes, 0);
                 if (trimmed[0] == '-')
@@ -153,8 +178,8 @@ internal static class SqlTemporalFunctionEvaluator
 
         if (trimmed.Length == 5 && (trimmed[0] == '+' || trimmed[0] == '-'))
         {
-            if (int.TryParse(trimmed[1..3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
-                && int.TryParse(trimmed[3..5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            if (ReadOnlySpanCompatibility.TryParseInt32(trimmed[1..3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                && ReadOnlySpanCompatibility.TryParseInt32(trimmed[3..5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
             {
                 offset = new TimeSpan(hours, minutes, 0);
                 if (trimmed[0] == '-')

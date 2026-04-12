@@ -49,12 +49,15 @@ internal static class SqlRawExpressionReaderHelper
     internal static string ReadRawExpressionUntilCommaOrRightParen(
         this SqlQueryParserContext ctx)
     {
-        var buf = new List<SqlToken>();
         var depth = 0;
+        var startPos = -1;
+        var lastEndPos = -1;
 
         while (!ctx.IsEnd())
         {
             var t = ctx.Peek();
+            if (startPos < 0)
+                startPos = t.Position;
 
             if (depth == 0 && SqlQueryParserContext.IsSymbol(t, ";"))
                 throw new InvalidOperationException("ON CONFLICT target was not closed correctly (found '<end-of-statement>').");
@@ -71,24 +74,31 @@ internal static class SqlRawExpressionReaderHelper
                 depth--;
             }
 
-            buf.Add(ctx.Consume());
+            _ = ctx.Consume();
+            lastEndPos = ctx.IsEnd() ? ctx.RawSql.Length : ctx.Peek().Position;
         }
 
         if (depth != 0)
             throw new InvalidOperationException("ON CONFLICT target has unbalanced parentheses in expression.");
 
-        return ctx.TokensToSql(buf);
+        if (startPos < 0 || lastEndPos < startPos)
+            return string.Empty;
+
+        return ctx.RawSql[startPos..lastEndPos].Trim();
     }
 
     internal static string ReadRawExpressionUntilCommaOrTerminator(
         this SqlQueryParserContext ctx)
     {
-        var buf = new List<SqlToken>();
         var depth = 0;
+        var startPos = -1;
+        var lastEndPos = -1;
 
         while (!ctx.IsEnd())
         {
             var t = ctx.Peek();
+            if (startPos < 0)
+                startPos = t.Position;
 
             if (depth == 0 && (SqlQueryParserContext.IsSymbol(t, ",") || SqlQueryParserContext.IsSymbol(t, ";")))
                 break;
@@ -102,12 +112,16 @@ internal static class SqlRawExpressionReaderHelper
                 depth--;
             }
 
-            buf.Add(ctx.Consume());
+            _ = ctx.Consume();
+            lastEndPos = ctx.IsEnd() ? ctx.RawSql.Length : ctx.Peek().Position;
         }
 
         if (depth != 0)
             throw ctx.NotSupported("RETURNING has unbalanced parentheses in expression.");
 
-        return ctx.TokensToSql(buf);
+        if (startPos < 0 || lastEndPos < startPos)
+            return string.Empty;
+
+        return ctx.RawSql[startPos..lastEndPos].Trim();
     }
 }

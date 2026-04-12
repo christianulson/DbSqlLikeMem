@@ -87,6 +87,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             ParseExpr,
             BuildFrom,
             (tableSource, scope) => ResolveSource(tableSource, scope),
+            IndexHelper,
             AttachOuterRow,
             (select, scope, outerRow) => ExecuteSelect(select, scope, outerRow),
             PartitionHelper);
@@ -94,6 +95,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         => _joinService ??= new AstQueryJoinService(
             resolveSource: ResolveSource,
             buildMySqlIndexHintPlan: AstQueryIndexHelper.BuildMySqlIndexHintPlan,
+            evalJoinValue: (expr, row, ctes) => Eval(expr, row, group: null, ctes),
             evalJoinPredicate: (expr, row, ctes) => Eval(expr, row, group: null, ctes).ToBool());
     private AstQuerySourceResolver SourceResolver
         => _sourceResolver ??= new AstQuerySourceResolver(
@@ -555,7 +557,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 cte.Name);
         }
 
-        if (TryEvaluateSimpleUnionAllCount(selectQuery, ctes, outerRow, out var fastCountResult))
+        if (TryEvaluateSimpleUnionCount(selectQuery, ctes, outerRow, out var fastCountResult))
             return fastCountResult;
 
         var fromStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
@@ -678,7 +680,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         return projected;
     }
 
-    private bool TryEvaluateSimpleUnionAllCount(
+    private bool TryEvaluateSimpleUnionCount(
         SqlSelectQuery query,
         IDictionary<string, Source> ctes,
         EvalRow? outerRow,
@@ -701,18 +703,57 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         var union = query.Table.DerivedUnion;
         if (union.RowLimit is not null
-            || AstQuerySelectExecutionHelper.ContainsDistinctUnionFlag(union.AllFlags))
+            || union.Parts.Count != 2
+            || union.AllFlags.Count != 1)
             return false;
 
-        long count = 0;
-        foreach (var part in union.Parts)
+        if (union.AllFlags[0])
         {
-            if (!TryCountSimpleRows(part, ctes, outerRow, out var partCount))
-                return false;
+            long allCount = 0;
+            foreach (var part in union.Parts)
+            {
+                if (!TryCountSimpleRows(part, ctes, outerRow, out var partCount))
+                    return false;
 
-            count += partCount;
+                allCount += partCount;
+            }
+
+            return CreateSimpleUnionCountResult(query, exprRaw, isCountBig, allCount, out result);
         }
 
+        if (!TryCountSimpleRows(union.Parts[0], ctes, outerRow, out _)
+            || !TryCountSimpleRows(union.Parts[1], ctes, outerRow, out _))
+            return false;
+
+        var leftRows = ExecuteSelect(union.Parts[0], ctes, outerRow);
+        var rightRows = ExecuteSelect(union.Parts[1], ctes, outerRow);
+        if (leftRows.Columns.Count != rightRows.Columns.Count)
+            return false;
+
+        var seenRows = new HashSet<Dictionary<int, object?>>(new SqlRowDictionaryComparer(context));
+        long distinctCount = 0;
+        for (var i = 0; i < leftRows.Count; i++)
+        {
+            if (seenRows.Add(leftRows[i]))
+                distinctCount++;
+        }
+
+        for (var i = 0; i < rightRows.Count; i++)
+        {
+            if (seenRows.Add(rightRows[i]))
+                distinctCount++;
+        }
+
+        return CreateSimpleUnionCountResult(query, exprRaw, isCountBig, distinctCount, out result);
+    }
+
+    private bool CreateSimpleUnionCountResult(
+        SqlSelectQuery query,
+        string exprRaw,
+        bool isCountBig,
+        long count,
+        out TableResultMock result)
+    {
         var tableAlias = query.Table?.Alias ?? query.Table?.TableFunction?.Name ?? query.Table?.Name ?? string.Empty;
         var columnAlias = SelectPlanProjectionHelper.InferColumnAlias(exprRaw);
         var countValue = AstQueryAggregateEvaluator.CreateCountAggregateResult(context, isCountBig, count);
@@ -894,11 +935,9 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         count = 0;
 
         var src = ResolveSource(query.Table!, ctes);
-        var rows = IndexHelper.TryRowsFromIndex(src, query.Table, query.Where, hasOrderBy: query.OrderBy.Count > 0, hasGroupBy: false);
-        if (rows is null)
+        if (!IndexHelper.TryCountRowsFromIndex(src, query.Table, query.Where, hasOrderBy: query.OrderBy.Count > 0, hasGroupBy: false, out count))
             return false;
 
-        count = rows.Count();
         return true;
     }
 
@@ -2335,6 +2374,16 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         private static bool TryResolveSinglePrimaryKeyColumnName(ITableMock physical, out string columnName)
         {
             columnName = string.Empty;
+            if (physical is TableMock tableMock)
+            {
+                var pkIndexes = tableMock.PkIndexArray;
+                if (pkIndexes.Length != 1)
+                    return false;
+
+                columnName = tableMock.GetColumnByIndex(pkIndexes[0]).Name;
+                return true;
+            }
+
             var primaryKeyIndexes = physical.PrimaryKeyIndexes;
             if (primaryKeyIndexes.Count != 1)
                 return false;
@@ -2344,14 +2393,6 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             {
                 pkIndex = candidatePkIndex;
                 break;
-            }
-
-            if (physical is TableMock tableMock
-                && tableMock.ColumnsByIndex.TryGetValue(pkIndex, out var pkColumnName)
-                && !string.IsNullOrWhiteSpace(pkColumnName))
-            {
-                columnName = pkColumnName;
-                return true;
             }
 
             foreach (var column in physical.Columns)
@@ -2430,6 +2471,54 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
                 return Rows();
 
             return EnumerateRowByIndex(index);
+        }
+
+        internal long CountRowsByIndexes(IEnumerable<int> indexes)
+        {
+            if (Physical is null)
+                return Rows().Count();
+
+            var emitted = new HashSet<int>();
+            var count = 0L;
+            foreach (var raw in indexes)
+            {
+                if (raw < 0 || raw >= Physical.Count)
+                    continue;
+
+                if (!emitted.Add(raw))
+                    continue;
+
+                var row = Physical[raw];
+                if (_requestedPartitionNames is { Count: > 0 } requestedPartitions
+                    && Physical is TableMock table
+                    && !table.MatchesRequestedPartitions(row, requestedPartitions))
+                {
+                    continue;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+
+        internal long CountRowsByIndex(int index)
+        {
+            if (Physical is null)
+                return Rows().Count();
+
+            if (index < 0 || index >= Physical.Count)
+                return 0;
+
+            var row = Physical[index];
+            if (_requestedPartitionNames is { Count: > 0 } requestedPartitions
+                && Physical is TableMock table
+                && !table.MatchesRequestedPartitions(row, requestedPartitions))
+            {
+                return 0;
+            }
+
+            return 1;
         }
 
         private IEnumerable<Dictionary<string, object?>> EnumerateRowByIndex(int raw)
@@ -2590,6 +2679,9 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     {
         internal object?[]? OrdinalValues { get; init; }
         internal Dictionary<string, int>? OrdinalIndexes { get; init; }
+        internal IReadOnlyList<KeyValuePair<string, object?>>? CorrelatedCacheFields { get; set; }
+        internal Dictionary<string, IReadOnlyList<KeyValuePair<string, object?>>>? CorrelatedCacheFieldViews { get; set; }
+        internal Dictionary<string, string>? CorrelatedCacheKeys { get; set; }
         internal Source? SingleSource { get; set; }
 
         /// <summary>

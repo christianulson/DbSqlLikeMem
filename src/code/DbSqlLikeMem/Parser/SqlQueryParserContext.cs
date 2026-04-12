@@ -44,6 +44,7 @@ internal sealed class SqlQueryParserContext
     private readonly Func<string, SqlExpr> _parseWhere;
 
     internal SqlQueryParserContext(
+        string rawSql,
         IReadOnlyList<SqlToken> toks,
         DbMock db,
         ISqlDialect dialect,
@@ -54,6 +55,7 @@ internal sealed class SqlQueryParserContext
         Func<string, SqlExpr> parseScalar,
         Func<string, SqlExpr> parseWhere)
     {
+        RawSql = rawSql ?? throw new ArgumentNullException(nameof(rawSql));
         Toks = toks ?? throw new ArgumentNullException(nameof(toks));
         Db = db ?? throw new ArgumentNullException(nameof(db));
         Dialect = dialect ?? throw new ArgumentNullException(nameof(dialect));
@@ -64,6 +66,8 @@ internal sealed class SqlQueryParserContext
         _parseScalar = parseScalar ?? throw new ArgumentNullException(nameof(parseScalar));
         _parseWhere = parseWhere ?? throw new ArgumentNullException(nameof(parseWhere));
     }
+
+    internal string RawSql { get; }
 
     internal IReadOnlyList<SqlToken> Toks { get; }
 
@@ -437,10 +441,14 @@ internal sealed class SqlQueryParserContext
         var items = new List<string>();
         var buf = new List<SqlToken>();
         var depth = 0;
+        var itemStartPos = -1;
 
         while (!IsEnd(Peek()))
         {
             var t = Peek();
+            if (itemStartPos < 0)
+                itemStartPos = t.Position;
+
             if (IsSymbol(t, "(")) depth++;
             else if (IsSymbol(t, ")")) depth--;
 
@@ -448,13 +456,26 @@ internal sealed class SqlQueryParserContext
                 break;
 
             if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf))
+            {
+                if (buf.Count > 0)
+                {
+                    items.Add(RawSql[itemStartPos..t.Position].Trim());
+                    buf.Clear();
+                    itemStartPos = -1;
+                }
                 break;
+            }
 
             if (depth == 0 && IsSymbol(t, ","))
             {
                 Consume();
-                items.Add(TokensToSql(buf));
+                if (itemStartPos >= 0)
+                    items.Add(RawSql[itemStartPos..t.Position].Trim());
+                else
+                    items.Add(string.Empty);
+
                 buf.Clear();
+                itemStartPos = -1;
                 continue;
             }
 
@@ -462,7 +483,10 @@ internal sealed class SqlQueryParserContext
         }
 
         if (buf.Count > 0)
-            items.Add(TokensToSql(buf));
+        {
+            var itemEndPos = IsEnd() ? RawSql.Length : Peek().Position;
+            items.Add(RawSql[itemStartPos..itemEndPos].Trim());
+        }
 
         return items;
     }
@@ -471,10 +495,15 @@ internal sealed class SqlQueryParserContext
     {
         var buf = new List<SqlToken>();
         var depth = 0;
+        var startPos = -1;
+        var lastEndPos = -1;
 
         while (!IsEnd(Peek()))
         {
             var t = Peek();
+            if (startPos < 0)
+                startPos = t.Position;
+
             if (IsSymbol(t, "(")) depth++;
             else if (IsSymbol(t, ")")) depth--;
 
@@ -484,37 +513,53 @@ internal sealed class SqlQueryParserContext
             if (depth == 0 && ShouldStopAtTopLevelToken(t, stopWords, buf))
                 break;
 
-            buf.Add(Consume());
+            var consumed = Consume();
+            buf.Add(consumed);
+            lastEndPos = IsEnd() ? RawSql.Length : Peek().Position;
         }
 
-        return TokensToSql(buf);
+        if (startPos < 0 || lastEndPos < startPos)
+            return string.Empty;
+
+        return RawSql[startPos..lastEndPos].Trim();
     }
 
     internal string ReadBalancedParenRawTokens()
     {
         ExpectSymbol("(");
         var depth = 1;
-        var buf = new List<SqlToken>();
+        var startPos = -1;
+        var lastEndPos = -1;
 
         while (!IsEnd(Peek()))
         {
-            var t = Consume();
+            var t = Peek();
+            if (startPos < 0)
+                startPos = t.Position;
+
+            _ = Consume();
             if (IsSymbol(t, "("))
                 depth++;
             else if (IsSymbol(t, ")"))
             {
                 depth--;
                 if (depth == 0)
+                {
+                    lastEndPos = t.Position;
                     break;
+                }
             }
 
-            buf.Add(t);
+            lastEndPos = IsEnd() ? RawSql.Length : Peek().Position;
         }
 
         if (depth != 0)
             throw new InvalidOperationException("INSERT VALUES row tuple was not closed correctly.");
 
-        return TokensToSql(buf);
+        if (startPos < 0 || lastEndPos < startPos)
+            return string.Empty;
+
+        return RawSql[startPos..lastEndPos].Trim();
     }
 
     internal string TokensToSql(List<SqlToken> toks)

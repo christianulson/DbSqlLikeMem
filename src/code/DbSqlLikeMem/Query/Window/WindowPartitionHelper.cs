@@ -41,6 +41,36 @@ internal static class WindowPartitionHelper
         for (var i = 0; i < partition.Count; i++)
             orderIndexes[i] = i;
 
+        if (orderBy.Count == 1)
+        {
+            var orderItem = orderBy[0];
+            var cachedValues = new object?[partition.Count];
+            var hasCachedValues = new bool[partition.Count];
+
+            object? GetOrderValue(int index)
+            {
+                if (hasCachedValues[index])
+                    return cachedValues[index];
+
+                var value = evalOrderExpression(orderItem.Expr, partition[index]);
+                cachedValues[index] = value;
+                hasCachedValues[index] = true;
+                return value;
+            }
+
+            Array.Sort(orderIndexes, (leftIndex, rightIndex) =>
+            {
+                var comparison = compareSql(GetOrderValue(leftIndex), GetOrderValue(rightIndex));
+                if (comparison != 0)
+                    return orderItem.Desc ? -comparison : comparison;
+
+                return leftIndex.CompareTo(rightIndex);
+            });
+
+            ReorderPartition(partition, orderIndexes);
+            return null;
+        }
+
         // EN: Ensure deterministic ordering for peers (equal ORDER BY values) so window functions like NTILE/LAG/LEAD
         // preserve the original row sequence when the ORDER BY does not provide a tie-breaker.
         // PT: Garante ordenacao deterministica para peers (valores iguais no ORDER BY) para que funcoes de janela como
@@ -49,24 +79,6 @@ internal static class WindowPartitionHelper
             partition,
             orderBy,
             evalOrderExpression);
-
-        if (orderBy.Count == 1)
-        {
-            var orderItem = orderBy[0];
-            Array.Sort(orderIndexes, (leftIndex, rightIndex) =>
-            {
-                var leftValue = orderValuesByIndex[leftIndex][0];
-                var rightValue = orderValuesByIndex[rightIndex][0];
-                var comparison = compareSql(leftValue, rightValue);
-                if (comparison != 0)
-                    return orderItem.Desc ? -comparison : comparison;
-
-                return leftIndex.CompareTo(rightIndex);
-            });
-
-            ReorderPartition(partition, orderIndexes);
-            return includeOrderValues ? BuildOrderValuesByRow(partition, orderValuesByIndex, orderIndexes) : null;
-        }
 
         Array.Sort(orderIndexes, (leftIndex, rightIndex) =>
         {
@@ -122,16 +134,21 @@ internal static class WindowPartitionHelper
         Func<object?, string> normalizePartitionKeyValue)
     {
         if (partitionBy.Count == 0)
-            return new WindowPartitionKey(Array.Empty<string>());
+            return new WindowPartitionKey(SingleValue: null, Values: Array.Empty<string>());
+
+        if (partitionBy.Count == 1)
+            return new WindowPartitionKey(
+                SingleValue: normalizePartitionKeyValue(evalPartitionExpression(partitionBy[0], row)),
+                Values: null);
 
         var parts = new string[partitionBy.Count];
         for (var i = 0; i < partitionBy.Count; i++)
             parts[i] = normalizePartitionKeyValue(evalPartitionExpression(partitionBy[i], row));
 
-        return new WindowPartitionKey(parts);
+        return new WindowPartitionKey(SingleValue: null, Values: parts);
     }
 
-    internal readonly record struct WindowPartitionKey(string[] Values)
+    internal readonly record struct WindowPartitionKey(string? SingleValue, string[]? Values)
     {
         internal static IEqualityComparer<WindowPartitionKey> Comparer { get; } = new WindowPartitionKeyComparer();
 
@@ -139,8 +156,10 @@ internal static class WindowPartitionHelper
         {
             public bool Equals(WindowPartitionKey x, WindowPartitionKey y)
             {
-                if (ReferenceEquals(x.Values, y.Values))
-                    return true;
+                if (x.Values is null || y.Values is null)
+                    return x.Values is null
+                        && y.Values is null
+                        && string.Equals(x.SingleValue, y.SingleValue, StringComparison.Ordinal);
 
                 if (x.Values.Length != y.Values.Length)
                     return false;
@@ -156,6 +175,9 @@ internal static class WindowPartitionHelper
 
             public int GetHashCode(WindowPartitionKey obj)
             {
+                if (obj.Values is null)
+                    return obj.SingleValue is null ? 0 : StringComparer.Ordinal.GetHashCode(obj.SingleValue);
+
                 var hash = 17;
                 for (var i = 0; i < obj.Values.Length; i++)
                 {

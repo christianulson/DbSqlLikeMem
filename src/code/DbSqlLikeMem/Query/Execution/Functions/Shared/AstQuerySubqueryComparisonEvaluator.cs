@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
@@ -28,6 +30,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
     private readonly AstQueryIndexHelper _indexHelper = indexHelper ?? throw new ArgumentNullException(nameof(indexHelper));
     private readonly Func<string, SqlTableSource, IDictionary<string, Source>, Source> _buildCorrelatedExistsPatternSource = buildCorrelatedExistsPatternSource ?? throw new ArgumentNullException(nameof(buildCorrelatedExistsPatternSource));
     private readonly Func<SubqueryExpr, string, EvalRow, IDictionary<string, Source>, List<object?>?> _getOrEvaluateSubqueryFirstColumnValuesForOperation = getOrEvaluateSubqueryFirstColumnValuesForOperation ?? throw new ArgumentNullException(nameof(getOrEvaluateSubqueryFirstColumnValuesForOperation));
+    private readonly ConcurrentDictionary<SqlSelectQuery, string> _correlatedLookupCanonicalSqlCache = new(ReferenceEqualityComparer<SqlSelectQuery>.Instance);
 
     internal bool EvalExists(
         ExistsExpr ex,
@@ -164,7 +167,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
             return false;
         }
 
-        var canonicalSql = AstQueryCorrelatedExistsSupport.BuildCorrelatedLookupCanonicalSql(query.Table, keyPairs, innerFilterExpr);
+        var canonicalSql = GetOrBuildCorrelatedLookupCanonicalSql(query, keyPairs, innerFilterExpr);
         if (string.IsNullOrWhiteSpace(canonicalSql))
             return false;
 
@@ -209,18 +212,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
             return false;
         }
 
-        var cacheKey = AstQueryCorrelatedExistsSupport.BuildCorrelatedLookupStateCacheKey(
-            "EXISTS_PREAGG",
-            query.Table!,
-            keyPairs,
-            innerFilterExpr);
-
-        if (_cache.TryGetOperationData(cacheKey, out CorrelatedExistsLookupState? cachedState)
-            && cachedState is not null)
-        {
-            state = cachedState;
-            return true;
-        }
+        var cacheKey = string.Concat("EXISTS_PREAGG", '\u001F', GetOrBuildCorrelatedLookupCanonicalSql(query, keyPairs, innerFilterExpr));
 
         var built = BuildCorrelatedExistsLookupState(query, ctes, resolvedSource, keyPairs, innerFilterExpr);
         if (built is null)
@@ -258,7 +250,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
 
         if (innerFilter is null)
         {
-            if (rows is List<EvalRow> rowList)
+            if (rows is IReadOnlyList<EvalRow> rowList)
             {
                 for (var i = 0; i < rowList.Count; i++)
                 {
@@ -293,7 +285,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
                 }
             }
         }
-        else if (rows is List<EvalRow> rowList)
+        else if (rows is IReadOnlyList<EvalRow> rowList)
         {
             for (var i = 0; i < rowList.Count; i++)
             {
@@ -438,6 +430,14 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
 
         if (!TryResolveSimpleEqualityColumns(src, equalsByColumn, out var resolvedEqualities))
             return false;
+
+        var indexedRows = _indexHelper.TryRowsFromIndex(src, query.Table, query.Where, hasOrderBy: query.OrderBy.Count > 0, hasGroupBy: false);
+        if (indexedRows is not null)
+        {
+            using var enumerator = indexedRows.GetEnumerator();
+            exists = enumerator.MoveNext();
+            return true;
+        }
 
         return TryExistsWithResolvedEqualities(src, resolvedEqualities, out exists);
     }
@@ -727,18 +727,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
                 out var innerFilterExpr))
             return false;
 
-        var cacheKey = AstQueryCorrelatedExistsSupport.BuildCorrelatedLookupStateCacheKey(
-            "COUNT_PREAGG",
-            query.Table!,
-            keyPairs,
-            innerFilterExpr);
-
-        if (_cache.TryGetOperationData(cacheKey, out CorrelatedCountLookupState? cachedState)
-            && cachedState is not null)
-        {
-            state = cachedState;
-            return true;
-        }
+        var cacheKey = string.Concat("COUNT_PREAGG", '\u001F', GetOrBuildCorrelatedLookupCanonicalSql(query, keyPairs, innerFilterExpr));
 
         var built = BuildCorrelatedCountLookupState(query, ctes, keyPairs, innerFilterExpr);
         if (built is null)
@@ -776,7 +765,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
 
         if (innerFilter is null)
         {
-            if (rows is List<EvalRow> rowList)
+            if (rows is IReadOnlyList<EvalRow> rowList)
             {
                 for (var i = 0; i < rowList.Count; i++)
                 {
@@ -811,7 +800,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
                 }
             }
         }
-        else if (rows is List<EvalRow> rowList)
+        else if (rows is IReadOnlyList<EvalRow> rowList)
         {
             for (var i = 0; i < rowList.Count; i++)
             {
@@ -864,4 +853,12 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
 
         counts[key] = 1;
     }
+
+    private string GetOrBuildCorrelatedLookupCanonicalSql(
+        SqlSelectQuery query,
+        IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
+        SqlExpr? innerFilterExpr)
+        => _correlatedLookupCanonicalSqlCache.GetOrAdd(
+            query,
+            _ => AstQueryCorrelatedExistsSupport.BuildCorrelatedLookupCanonicalSql(query.Table!, keyPairs, innerFilterExpr));
 }

@@ -20,3 +20,5 @@ Read build output carefully, locate the real compiler or project issue, and fix 
 - Do not delete tests just to make the build pass.
 - Do not widen the change beyond the failing area unless the error requires it.
 - Keep existing behavior and SQL coverage intact.
+- When the failure is caused by framework API differences, create a focused compatibility helper under `src/code/DbSqlLikeMem/Compatibility/` instead of weakening the `net8.0` path.
+- Prefer a compatibility wrapper or polyfill over scattering `#if` blocks across unrelated files.

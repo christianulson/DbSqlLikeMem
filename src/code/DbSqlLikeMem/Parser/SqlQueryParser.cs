@@ -71,6 +71,7 @@ internal sealed class SqlQueryParser
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         var prelude = GetPrelude(sql, dialect);
         _ctx = new SqlQueryParserContext(
+            sql,
             prelude.Tokens,
             db,
             dialect,
@@ -83,6 +84,7 @@ internal sealed class SqlQueryParser
     }
 
     private SqlQueryParser(
+        string sql,
         IReadOnlyList<SqlToken> toks,
         DbMock db,
         ISqlDialect dialect,
@@ -93,6 +95,7 @@ internal sealed class SqlQueryParser
         ArgumentNullExceptionCompatible.ThrowIfNull(toks, nameof(toks));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
         _ctx = new SqlQueryParserContext(
+            sql,
             toks,
             db, dialect,
             parameters,
@@ -155,7 +158,7 @@ internal sealed class SqlQueryParser
 
             if (customFunctionSupported is not null)
             {
-                var parsedWithoutCache = ParseUncached(preludeTokens, db, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
+                var parsedWithoutCache = ParseUncached(sql, preludeTokens, db, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
                 EnsureDialectSupport(parsedWithoutCache, dialect);
                 return parsedWithoutCache with { RawSql = sql };
             }
@@ -172,12 +175,12 @@ internal sealed class SqlQueryParser
             // DDL statements are cheap to parse and benefit from deterministic no-cache behavior in tests.
             if (IsWord(first, SqlConst.CREATE) || IsWord(first, SqlConst.ALTER) || IsWord(first, SqlConst.DROP) || IsWord(first, SqlConst.RECREATE))
             {
-                var uncached = ParseUncached(preludeTokens, db, dialect, null, autoSyntaxFeatures);
+                var uncached = ParseUncached(sql, preludeTokens, db, dialect, null, autoSyntaxFeatures);
                 EnsureDialectSupport(uncached, dialect);
                 return uncached with { RawSql = sql };
             }
 
-            var parsed = ParseUncached(preludeTokens, db, dialect, parameters, autoSyntaxFeatures);
+            var parsed = ParseUncached(sql, preludeTokens, db, dialect, parameters, autoSyntaxFeatures);
             EnsureDialectSupport(parsed, dialect);
             _astCache.Set(cacheKey, parsed);
 
@@ -272,6 +275,7 @@ internal sealed class SqlQueryParser
     }
 
     private static SqlQueryBase ParseUncached(
+        string sql,
         IReadOnlyList<SqlToken> tokens,
         DbMock db,
         ISqlDialect dialect,
@@ -279,7 +283,7 @@ internal sealed class SqlQueryParser
         AutoSqlSyntaxFeatures autoSyntaxFeatures,
         Func<string, bool>? customFunctionSupported = null)
     {
-        var q = new SqlQueryParser(tokens, db, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
+        var q = new SqlQueryParser(sql, tokens, db, dialect, parameters, autoSyntaxFeatures, customFunctionSupported);
         var first = q.Peek();
 
         SqlQueryBase? result;

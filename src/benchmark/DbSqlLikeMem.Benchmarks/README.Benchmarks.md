@@ -34,7 +34,6 @@ pwsh ./Scripts/run-core-matrix.ps1
 pwsh ./Scripts/start-benchmark-databases.ps1
 pwsh ./Scripts/start-benchmark-databases.robust.ps1
 pwsh ./Scripts/run-benchmarks-preprovisioned.ps1 --filter "*Testcontainers*"
-pwsh ./Scripts/export-wiki.ps1 -ArtifactsDir ./BenchmarkDotNet.Artifacts/results -OutFile ./wiki/performance-matrix.md
 dotnet run -c Release -- --validate-catalog
 ```
 

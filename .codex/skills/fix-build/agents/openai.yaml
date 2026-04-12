@@ -1,7 +1,7 @@
 interface:
   display_name: "Fix Build"
   short_description: "Resolve build and compiler issues"
-  default_prompt: "Use $fix-build to resolve build errors and warnings with minimal safe code changes."
+  default_prompt: "Use $fix-build to resolve build errors and warnings with minimal safe code changes. When the issue is caused by framework API differences, prefer a focused compatibility helper under src/code/DbSqlLikeMem/Compatibility/ without weakening net8.0."
 
 policy:
   allow_implicit_invocation: true

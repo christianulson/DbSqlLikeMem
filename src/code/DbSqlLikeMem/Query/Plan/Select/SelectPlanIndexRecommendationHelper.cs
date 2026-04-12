@@ -104,7 +104,7 @@ internal static class SelectPlanIndexRecommendationHelper
 
     private static bool HasMatchingIndex(ITableMock table, IReadOnlyList<string> keyCols)
     {
-        foreach (var idx in table.Indexes.Values)
+        foreach (var idx in table is TableMock tableMock ? tableMock.IndexesRaw.Values : table.Indexes.Values)
         {
             if (idx.KeyCols.Count < keyCols.Count)
                 continue;
@@ -128,10 +128,6 @@ internal static class SelectPlanIndexRecommendationHelper
 
     private static bool HasPrimaryKeyPrefix(ITableMock table, IReadOnlyList<string> keyCols)
     {
-        var primaryKeyIndexes = table.PrimaryKeyIndexes;
-        if (primaryKeyIndexes.Count == 0)
-            return false;
-
         if (table is TableMock tableMock)
         {
             var pkIndexArray = tableMock.PkIndexArray;
@@ -140,8 +136,7 @@ internal static class SelectPlanIndexRecommendationHelper
 
             for (var i = 0; i < keyCols.Count; i++)
             {
-                if (!tableMock.ColumnsByIndex.TryGetValue(pkIndexArray[i], out var columnName)
-                    || !string.Equals(columnName, keyCols[i], StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(tableMock.GetColumnByIndex(pkIndexArray[i]).Name, keyCols[i], StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
@@ -149,6 +144,10 @@ internal static class SelectPlanIndexRecommendationHelper
 
             return true;
         }
+
+        var primaryKeyIndexes = table.PrimaryKeyIndexes;
+        if (primaryKeyIndexes.Count == 0)
+            return false;
 
         var pkByOrdinal = new List<string>(primaryKeyIndexes.Count);
         foreach (var column in table.Columns.Values)

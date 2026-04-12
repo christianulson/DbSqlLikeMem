@@ -56,10 +56,17 @@ internal static class DbUpdateStrategy
         var changedCols = new string[setPairs.Length];
         for (var i = 0; i < setPairs.Length; i++)
             changedCols[i] = setPairs[i].Col;
+        var changedColsLookup = new HashSet<string>(changedCols, StringComparer.OrdinalIgnoreCase);
         var positionalSetParameterCount = CountPositionalParameters(parsedSetPairs);
+        var whereHasPositionalParameters = HasPositionalParameters(conditions);
         var whereContextBase = context.Fork();
         whereContextBase.AdvancePositionalParameterCursor(positionalSetParameterCount);
         var setContextBase = context.Fork();
+        QueryExecutionContext CreateWhereContext()
+            => whereHasPositionalParameters ? whereContextBase.Fork() : whereContextBase;
+
+        QueryExecutionContext CreateSetContext()
+            => positionalSetParameterCount > 0 ? setContextBase.Fork() : setContextBase;
 
         int updated = 0;
         var tableMock = (TableMock)table;
@@ -67,16 +74,16 @@ internal static class DbUpdateStrategy
         var supportsTriggers = dialect.SupportsTriggers;
         var hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
         var hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
-        var requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, changedCols);
-        var requiresUniqueValidation = HasUniqueKeyChanges(tableMock, changedCols);
+        var requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, changedColsLookup);
+        var requiresUniqueValidation = HasUniqueKeyChanges(tableMock, changedColsLookup);
         var captureAffectedRowSnapshots = connection.CaptureAffectedRowSnapshots;
         var affectedRowsData = captureAffectedRowSnapshots ? new List<IReadOnlyDictionary<int, object?>>() : null;
 
         void ProcessMatchedRow(int rowIdx)
         {
             var row = table[rowIdx];
-            var simulatedSetContext = setContextBase.Fork();
-            var rowSetContext = setContextBase.Fork();
+            var simulatedSetContext = CreateSetContext();
+            var rowSetContext = CreateSetContext();
 
             var oldSnapshot = (hasBeforeUpdateTrigger || hasAfterUpdateTrigger || requiresOldSnapshotForIndex)
                 ? TableMock.SnapshotRow(row)
@@ -112,7 +119,7 @@ internal static class DbUpdateStrategy
         }
 
         if (conditions.Count > 0
-            && TableMock.TryFindRowByPkConditions(table, whereContextBase.Fork(), context.DbParameters, conditions, out var pkRowIndex))
+            && TableMock.TryFindRowByPkConditions(table, CreateWhereContext(), context.DbParameters, conditions, out var pkRowIndex))
         {
             ProcessMatchedRow(pkRowIndex);
         }
@@ -121,7 +128,7 @@ internal static class DbUpdateStrategy
             for (var rowIdx = 0; rowIdx < table.Count; rowIdx++)
             {
                 var row = table[rowIdx];
-                if (!TableMock.IsMatchSimple(table, whereContextBase.Fork(), context.DbParameters, conditions, row))
+                if (!TableMock.IsMatchSimple(table, CreateWhereContext(), context.DbParameters, conditions, row))
                     continue;
 
                 ProcessMatchedRow(rowIdx);
@@ -236,7 +243,17 @@ internal static class DbUpdateStrategy
 
     private static int CountPositionalParameters(WindowFrameBound bound)
         => 0;
-    private static bool HasIndexedKeyChanges(ITableMock table, IReadOnlyList<string> changedCols)
+    private static bool HasPositionalParameters(List<(string C, string Op, string V)> conditions)
+    {
+        for (var i = 0; i < conditions.Count; i++)
+        {
+            if (conditions[i].V.IndexOf('?') >= 0)
+                return true;
+        }
+
+        return false;
+    }
+    private static bool HasIndexedKeyChanges(ITableMock table, HashSet<string> changedCols)
     {
         var changedCount = changedCols.Count;
         if (changedCount == 0)
@@ -246,18 +263,15 @@ internal static class DbUpdateStrategy
         {
             foreach (var pkIndex in tableMock.PkIndexArray)
             {
-                if (tableMock.ColumnsByIndex.TryGetValue(pkIndex, out var pkColumnName)
-                    && ContainsChangedColumn(changedCols, pkColumnName))
-                {
+                if (changedCols.Contains(tableMock.GetColumnByIndex(pkIndex).Name))
                     return true;
-                }
             }
 
-            foreach (var index in tableMock.Indexes.Values)
+            foreach (var index in tableMock.UniqueIndexes)
             {
                 foreach (var keyCol in index.KeyCols)
                 {
-                    if (ContainsChangedColumn(changedCols, keyCol))
+                    if (changedCols.Contains(keyCol))
                         return true;
                 }
             }
@@ -267,18 +281,19 @@ internal static class DbUpdateStrategy
 
         foreach (var pkIndex in table.PrimaryKeyIndexes)
         {
-            foreach (var column in table.Columns.Values)
-            {
-                if (column.Index == pkIndex && ContainsChangedColumn(changedCols, column.Name))
-                    return true;
-            }
+            var column = table is TableMock tableAsMock
+                ? tableAsMock.GetColumnByIndex(pkIndex)
+                : GetColumnByIndex(table, pkIndex);
+
+            if (changedCols.Contains(column.Name))
+                return true;
         }
 
         foreach (var index in table.Indexes.Values)
         {
             foreach (var keyCol in index.KeyCols)
             {
-                if (ContainsChangedColumn(changedCols, keyCol))
+                if (changedCols.Contains(keyCol))
                     return true;
             }
         }
@@ -286,19 +301,16 @@ internal static class DbUpdateStrategy
         return false;
     }
 
-    private static bool HasUniqueKeyChanges(TableMock table, IReadOnlyList<string> changedCols)
+    private static bool HasUniqueKeyChanges(TableMock table, HashSet<string> changedCols)
     {
         if (changedCols.Count == 0)
             return false;
 
-        foreach (var index in table.Indexes.Values)
+        foreach (var index in table.UniqueIndexes)
         {
-            if (!index.Unique)
-                continue;
-
             foreach (var keyCol in index.KeyCols)
             {
-                if (ContainsChangedColumn(changedCols, keyCol))
+                if (changedCols.Contains(keyCol))
                     return true;
             }
         }
@@ -306,15 +318,15 @@ internal static class DbUpdateStrategy
         return false;
     }
 
-    private static bool ContainsChangedColumn(IReadOnlyList<string> changedCols, string columnName)
+    private static ColumnDef GetColumnByIndex(ITableMock table, int index)
     {
-        for (var i = 0; i < changedCols.Count; i++)
+        foreach (var column in table.Columns.Values)
         {
-            if (string.Equals(changedCols[i], columnName, StringComparison.OrdinalIgnoreCase))
-                return true;
+            if (column.Index == index)
+                return column;
         }
 
-        return false;
+        throw new InvalidOperationException($"Column index {index} was not found.");
     }
 
     private static void UpdateRowValues(
@@ -366,7 +378,13 @@ internal static class DbUpdateStrategy
         QueryExecutionContext context)
     {
         table.CurrentColumn = colName;
-        var trimmedExprRaw = exprRaw.Trim();
+        var trimmedExprRaw = exprRaw;
+        if (trimmedExprRaw.Length > 0
+            && (char.IsWhiteSpace(trimmedExprRaw[0]) || char.IsWhiteSpace(trimmedExprRaw[^1])))
+        {
+            trimmedExprRaw = trimmedExprRaw.Trim();
+        }
+
         try
         {
             if (TryResolveCastAsJsonValue(parsedExpr, context, out var castJsonValue))

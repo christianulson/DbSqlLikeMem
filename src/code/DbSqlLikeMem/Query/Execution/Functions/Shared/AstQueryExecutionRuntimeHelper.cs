@@ -35,9 +35,20 @@ internal static class AstQueryExecutionRuntimeHelper
     };
 
     internal static TemporalUnit ResolveTemporalUnit(string unit)
-        => _temporalUnits.TryGetValue(unit.Trim().ToUpperInvariant(), out var resolved)
-            ? resolved
+    {
+        if (string.IsNullOrWhiteSpace(unit))
+            return TemporalUnit.Unknown;
+
+        if (unit.IndexOfAny([' ', '\t', '\r', '\n']) < 0)
+            return _temporalUnits.TryGetValue(unit, out var resolved)
+                ? resolved
+                : TemporalUnit.Unknown;
+
+        var trimmed = unit.Trim();
+        return trimmed.Length > 0 && _temporalUnits.TryGetValue(trimmed, out var resolvedTrimmed)
+            ? resolvedTrimmed
             : TemporalUnit.Unknown;
+    }
 
     internal static bool TryGetJsonAndPathArguments(
         Func<int, object?> evalArg,

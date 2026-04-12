@@ -565,19 +565,42 @@ public abstract class DbConnectionMockBase(
         if (Db.TryGetValue(Database, out _))
             return;
 
-        var nextDatabase = snapshot.Schemas
-            .FirstOrDefault(static schema =>
-                schema.Tables.Count > 0
+        string? nextDatabase = null;
+        foreach (var schema in snapshot.Schemas)
+        {
+            if (schema.Tables.Count > 0
                 || schema.Views.Count > 0
                 || schema.Functions.Count > 0
                 || schema.Procedures.Count > 0
                 || schema.Sequences.Count > 0)
-            ?.Name
-            ?? snapshot.Schemas
-            .Select(static schema => schema.Name)
-            .FirstOrDefault(name => name.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase))
-            ?? snapshot.Schemas.FirstOrDefault()?.Name
-            ?? "DefaultSchema";
+            {
+                nextDatabase = schema.Name;
+                break;
+            }
+        }
+
+        if (nextDatabase is null)
+        {
+            foreach (var schema in snapshot.Schemas)
+            {
+                if (schema.Name.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase))
+                {
+                    nextDatabase = schema.Name;
+                    break;
+                }
+            }
+        }
+
+        if (nextDatabase is null)
+        {
+            foreach (var schema in snapshot.Schemas)
+            {
+                nextDatabase = schema.Name;
+                break;
+            }
+        }
+
+        nextDatabase ??= "DefaultSchema";
 
         ChangeDatabase(nextDatabase);
     }
@@ -590,7 +613,8 @@ public abstract class DbConnectionMockBase(
             if (string.IsNullOrWhiteSpace(statement))
                 continue;
 
-            statements.Add(statement.Trim());
+            var trimmed = statement.AsSpan().Trim();
+            statements.Add(trimmed.Length == statement.Length ? statement : trimmed.ToString());
         }
 
         if (statements.Count == 0 || _lastDebugTraces.Count == 0)
@@ -791,18 +815,43 @@ public abstract class DbConnectionMockBase(
         if (string.IsNullOrWhiteSpace(connectionString))
             return string.Empty;
 
-        var parts = connectionString.Split(';').Select(_ => _.Trim()).Where(_ => !string.IsNullOrWhiteSpace(_));
-        foreach (var part in parts)
+        var span = connectionString.AsSpan();
+        var start = 0;
+        while (start < span.Length)
         {
+            var separator = span[start..].IndexOf(';');
+            var part = separator >= 0
+                ? span[start..(start + separator)]
+                : span[start..];
+
+            part = part.Trim();
+            if (part.Length == 0)
+            {
+                if (separator < 0)
+                    break;
+
+                start += separator + 1;
+                continue;
+            }
+
             var equalsIndex = part.IndexOf('=');
             if (equalsIndex <= 0)
+            {
+                if (separator < 0)
+                    break;
+
+                start += separator + 1;
                 continue;
+            }
 
             var key = part[..equalsIndex].Trim();
-            if (!key.Equals("DATA SOURCE", StringComparison.OrdinalIgnoreCase))
-                continue;
+            if (key.Equals("DATA SOURCE", StringComparison.OrdinalIgnoreCase))
+                return part[(equalsIndex + 1)..].Trim().ToString();
 
-            return part[(equalsIndex + 1)..].Trim();
+            if (separator < 0)
+                break;
+
+            start += separator + 1;
         }
 
         return string.Empty;
@@ -922,9 +971,12 @@ public abstract class DbConnectionMockBase(
         TableMock source,
         bool includeRows)
     {
-        var columnDefinitions = source.Columns.Values
-            .OrderBy(static column => column.Index)
-            .Select(static column => new Col(
+        var sourceColumns = source.ColumnsByOrdinal;
+        var columnDefinitions = new Col[sourceColumns.Count];
+        for (var i = 0; i < sourceColumns.Count; i++)
+        {
+            var column = sourceColumns[i];
+            columnDefinitions[i] = new Col(
                 column.Name,
                 column.DbType,
                 column.Nullable,
@@ -932,13 +984,25 @@ public abstract class DbConnectionMockBase(
                 column.DecimalPlaces,
                 column.Identity,
                 column.DefaultValue,
-                [.. column.EnumValues]))
-            .ToArray();
+                [.. column.EnumValues]);
+        }
 
         IEnumerable<Dictionary<int, object?>>? rows = null;
         if (includeRows)
         {
-            rows = source.Select(static row => row.ToDictionary(entry => entry.Key, entry => entry.Value)).ToArray();
+            var sourceRows = source.Items;
+            var clonedRows = new Dictionary<int, object?>[sourceRows.Count];
+            for (var i = 0; i < sourceRows.Count; i++)
+            {
+                var row = sourceRows[i];
+                var clonedRow = row is Dictionary<int, object?> rowDictionary
+                    ? new Dictionary<int, object?>(rowDictionary)
+                    : CloneDictionaryRow(row);
+
+                clonedRows[i] = clonedRow;
+            }
+
+            rows = clonedRows;
         }
 
         var clone = source.Schema.CreateTableInstance(source.TableName, columnDefinitions, rows);
@@ -946,20 +1010,32 @@ public abstract class DbConnectionMockBase(
         clone.AllowIdentityInsert = source.AllowIdentityInsert;
         clone.PartitionClauseSql = source.PartitionClauseSql;
 
-        if (source.PrimaryKeyIndexes.Count > 0)
+        if (source.PkIndexArray.Length > 0)
         {
-            clone.AddPrimaryKeyIndexes(
-                [.. source.PrimaryKeyIndexes
-                    .OrderBy(static index => index)
-                    .Select(index => source.Columns.Values.First(column => column.Index == index).Name)]);
+            var primaryKeyColumns = new string[source.PkIndexArray.Length];
+            for (var i = 0; i < source.PkIndexArray.Length; i++)
+                primaryKeyColumns[i] = source.GetColumnByIndex(source.PkIndexArray[i]).Name;
+
+            clone.AddPrimaryKeyIndexes(primaryKeyColumns);
         }
 
-        foreach (var index in source.Indexes.Values)
+        var sourceIndexes = source.IndexesRaw.Values;
+        foreach (var index in sourceIndexes)
         {
-            clone.CreateIndex(index.Name, index.KeyCols, [.. index.Include], index.Unique);
+            var include = index.Include as string[] ?? [.. index.Include];
+            clone.CreateIndex(index.Name, index.KeyCols, include, index.Unique);
         }
 
         return clone;
+    }
+
+    private static Dictionary<int, object?> CloneDictionaryRow(IReadOnlyDictionary<int, object?> row)
+    {
+        var clonedRow = new Dictionary<int, object?>(row.Count);
+        foreach (var entry in row)
+            clonedRow[entry.Key] = entry.Value;
+
+        return clonedRow;
     }
 
     private ITableMock CreateConnectionGlobalTemporaryTable(
@@ -2545,7 +2621,16 @@ public abstract class DbConnectionMockBase(
 
         RollbackJournalTo(journalPosition);
 
-        var savepointIndex = _savepointOrder.FindIndex(name => name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
+        var savepointIndex = -1;
+        for (var i = 0; i < _savepointOrder.Count; i++)
+        {
+            if (_savepointOrder[i].Equals(normalizedName, StringComparison.OrdinalIgnoreCase))
+            {
+                savepointIndex = i;
+                break;
+            }
+        }
+
         if (savepointIndex >= 0)
         {
             for (var idx = _savepointOrder.Count - 1; idx > savepointIndex; idx--)
@@ -2566,13 +2651,18 @@ public abstract class DbConnectionMockBase(
         if (!_savepoints.Remove(normalizedName))
             throw SqlUnsupported.ForSavepointNotFound(savepointName);
 
-        _savepointOrder.RemoveAll(name => name.Equals(normalizedName, StringComparison.OrdinalIgnoreCase));
+        for (var i = _savepointOrder.Count - 1; i >= 0; i--)
+        {
+            if (_savepointOrder[i].Equals(normalizedName, StringComparison.OrdinalIgnoreCase))
+                _savepointOrder.RemoveAt(i);
+        }
     }
 
     private static string NormalizeSavepointName(string savepointName)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(savepointName, nameof(savepointName));
-        return savepointName.Trim();
+        var trimmed = savepointName.AsSpan().Trim();
+        return trimmed.Length == savepointName.Length ? savepointName : trimmed.ToString();
     }
 
     private void EnsureActiveTransaction()
@@ -2731,7 +2821,7 @@ public abstract class DbConnectionMockBase(
             return;
         }
 
-        RestoreIndexesAfterJournalReplay(touchedTables.ToArray());
+        RestoreIndexesAfterJournalReplay(touchedTables);
     }
 
     private void ReplayTransactionJournalEntry(TransactionJournalEntry entry)
@@ -2930,10 +3020,10 @@ public abstract class DbConnectionMockBase(
                 entry.ProcedureState.SchemaName);
     }
 
-    private void RestoreIndexesAfterJournalReplay(TableMock[] touchedTableList)
+    private void RestoreIndexesAfterJournalReplay(IEnumerable<TableMock> touchedTableList)
     {
-        if (Db.ThreadSafe && touchedTableList.Length > 1)
-            Parallel.ForEach(touchedTableList, table => table.RestoreIndexesAfterJournalReplay());
+        if (Db.ThreadSafe && touchedTableList is ICollection<TableMock> collection && collection.Count > 1)
+            Parallel.ForEach(collection, table => table.RestoreIndexesAfterJournalReplay());
         else
             foreach (var table in touchedTableList)
                 table.RestoreIndexesAfterJournalReplay();

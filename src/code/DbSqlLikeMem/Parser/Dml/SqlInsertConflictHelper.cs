@@ -131,7 +131,7 @@ internal static class SqlInsertConflictHelper
                                 || SqlQueryParserContext.IsWord(token, SqlConst.RETURNING)
                                 || SqlQueryParserContext.IsWord(token, SqlConst.ON),
             expressionStopWords: [",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, SqlConst.ON, ";"],
-            normalizeRaw: raw => NormalizeInsertValueRaw(raw, ctx.Dialect));
+            normalizeRaw: raw => SqlSimpleValueParserHelper.NormalizeSimpleSqlValueRawTrimmed(raw, ctx.Dialect));
     }
 
     /// <summary>
@@ -160,7 +160,7 @@ internal static class SqlInsertConflictHelper
                                 || SqlQueryParserContext.IsWord(token, SqlConst.USING)
                                 || SqlQueryParserContext.IsWord(token, SqlConst.RETURNING),
             expressionStopWords: [",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, SqlConst.ON, ";"],
-            normalizeRaw: raw => NormalizeInsertValueRaw(raw, ctx.Dialect));
+            normalizeRaw: raw => SqlSimpleValueParserHelper.NormalizeSimpleSqlValueRawTrimmed(raw, ctx.Dialect));
     }
 
     private static List<SqlAssignment> ParseOnConflictUpdateAssignments(
@@ -173,7 +173,7 @@ internal static class SqlInsertConflictHelper
                                 || SqlQueryParserContext.IsWord(token, SqlConst.USING)
                                 || SqlQueryParserContext.IsWord(token, SqlConst.RETURNING),
             expressionStopWords: [",", SqlConst.WHERE, SqlConst.FROM, SqlConst.USING, SqlConst.RETURNING, SqlConst.ON, ";"],
-            normalizeRaw: raw => raw);
+            normalizeRaw: raw => SqlSimpleValueParserHelper.NormalizeSimpleSqlValueRawTrimmed(raw, ctx.Dialect));
     }
 
     private static List<SqlAssignment> ParseAssignmentList(
@@ -212,6 +212,27 @@ internal static class SqlInsertConflictHelper
                 throw new InvalidOperationException($"{clauseLabel} assignment for '{col}' requires an expression.");
 
             SqlExpr expr;
+            if (SqlSimpleValueParserHelper.TryParseSimpleSqlValueExpressionTrimmed(exprRaw, ctx.Dialect, out expr))
+            {
+                list.Add(new SqlAssignment(col, normalizeRaw(exprRaw), expr));
+
+                if (ctx.IsSymbol(","))
+                {
+                    ctx.Consume();
+
+                    if (ctx.IsEnd() || ctx.IsSymbol(";") || isClauseStop(ctx.Peek()))
+                        throw new InvalidOperationException(
+                            $"{clauseLabel} has a trailing comma without assignment (found '{ctx.DescribeFoundToken()}').");
+
+                    continue;
+                }
+
+                if (ctx.IsEnd() || ctx.IsSymbol(";") || isClauseStop(ctx.Peek()))
+                    return list;
+
+                throw new InvalidOperationException($"{clauseLabel} must separate assignments with commas.");
+            }
+
             try
             {
                 expr = SqlExpressionParser.ParseScalar(exprRaw, ctx.Db, ctx.Dialect);
@@ -236,7 +257,6 @@ internal static class SqlInsertConflictHelper
             {
                 throw new InvalidOperationException($"{clauseLabel} assignment for '{col}' has an invalid expression.", ex);
             }
-
             list.Add(new SqlAssignment(col, normalizeRaw(exprRaw), expr));
 
             if (ctx.IsSymbol(","))
@@ -467,23 +487,6 @@ internal static class SqlInsertConflictHelper
             txt = txt[..^1].TrimEnd();
 
         return txt;
-    }
-
-    private static string NormalizeInsertValueRaw(string raw, ISqlDialect dialect)
-    {
-        raw = raw.Trim();
-        if (string.IsNullOrWhiteSpace(raw))
-            return raw;
-
-        var tokens = new SqlTokenizer(raw, dialect).Tokenize();
-        if (tokens.Count == 2
-            && tokens[0].Kind == SqlTokenKind.String
-            && tokens[1].Kind == SqlTokenKind.EndOfFile)
-        {
-            return tokens[0].Text;
-        }
-
-        return raw;
     }
 
     private static bool IsTrailingTokenInWherePredicate(InvalidOperationException ex)

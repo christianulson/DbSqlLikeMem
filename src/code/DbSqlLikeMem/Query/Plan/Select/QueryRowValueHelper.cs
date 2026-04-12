@@ -77,6 +77,28 @@ internal static class QueryRowValueHelper
     internal static TableResultMock ApplyDistinct(this QueryExecutionContext context, TableResultMock result)
     {
         var estimatedCount = result.Count;
+        if (estimatedCount <= 1)
+            return result;
+
+        if (result.Columns.Count == 1)
+        {
+            var seenSingle = new HashSet<string>(StringComparer.Ordinal);
+            var outputSingle = new List<Dictionary<int, object?>>(estimatedCount);
+
+            foreach (var row in result)
+            {
+                var key = context.NormalizeDistinctKey(row.TryGetValue(0, out var singleValue) ? singleValue : null);
+                if (seenSingle.Add(key))
+                    outputSingle.Add(row);
+            }
+
+            result.Clear();
+            foreach (var row in outputSingle)
+                result.Add(row);
+
+            return result;
+        }
+
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var outputRows = new List<Dictionary<int, object?>>(estimatedCount);
 

@@ -18,6 +18,21 @@ internal static class AstQuerySubqueryLookupSupport
         if (keyPairCount == 0)
             return false;
 
+        if (keyPairCount == 1)
+        {
+            var pair = keyPairs[0];
+            var expr = useInnerSide ? pair.InnerExpr : pair.OuterExpr;
+            var value = eval(expr, row, null, ctes);
+            if (value is null || value is DBNull)
+                return false;
+
+            if (!TryCreateInLookupScalarKey(value, null, out var component))
+                return false;
+
+            key = BuildLookupScalarKeyComponent(component);
+            return true;
+        }
+
         var sb = new StringBuilder(keyPairCount * 32);
         if (useInnerSide)
         {
@@ -57,7 +72,17 @@ internal static class AstQuerySubqueryLookupSupport
     }
 
     internal static string BuildCorrelatedSubqueryCacheKey(string operation, string? subquerySql, EvalRow row)
-        => AstCorrelatedSubqueryCacheKeyBuilder.Build(operation, subquerySql, row);
+    {
+        var cacheKey = string.Concat(operation, '\u001F', subquerySql ?? string.Empty);
+        var cachedKeys = row.CorrelatedCacheKeys;
+        if (cachedKeys is not null && cachedKeys.TryGetValue(cacheKey, out var cachedValue))
+            return cachedValue;
+
+        var built = AstCorrelatedSubqueryCacheKeyBuilder.Build(operation, subquerySql, row);
+        row.CorrelatedCacheKeys ??= new Dictionary<string, string>(StringComparer.Ordinal);
+        row.CorrelatedCacheKeys[cacheKey] = built;
+        return built;
+    }
 
     internal static SqlSelectQuery LimitToSingleRow(SqlSelectQuery query)
         => query with
@@ -227,6 +252,19 @@ internal static class AstQuerySubqueryLookupSupport
         sb.Append(':');
         sb.Append(component.Value);
     }
+
+    private static string BuildLookupScalarKeyComponent(InLookupScalarKey component)
+        => string.Concat(
+            component.Kind.Length.ToString(CultureInfo.InvariantCulture),
+            ":",
+            component.Kind,
+            ";",
+            component.Value.Length.ToString(CultureInfo.InvariantCulture),
+            ":",
+            component.Value);
+
+    internal static string BuildLookupScalarKeyString(InLookupScalarKey component)
+        => BuildLookupScalarKeyComponent(component);
 
     internal static string NormalizeLookupText(string value, ISqlDialect? dialect)
         => (dialect?.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal

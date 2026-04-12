@@ -3,10 +3,12 @@ namespace DbSqlLikeMem;
 internal sealed class AstQueryJoinService(
     Func<SqlTableSource, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, AstQueryExecutorBase.Source> resolveSource,
     Func<IReadOnlyList<SqlMySqlIndexHint>?, ITableMock, bool, bool, AstQueryExecutorBase.MySqlIndexHintPlan?> buildMySqlIndexHintPlan,
+    Func<SqlExpr, AstQueryExecutorBase.EvalRow, IDictionary<string, AstQueryExecutorBase.Source>, object?> evalJoinValue,
     Func<SqlExpr, AstQueryExecutorBase.EvalRow, IDictionary<string, AstQueryExecutorBase.Source>, bool> evalJoinPredicate)
 {
     private readonly Func<SqlTableSource, IDictionary<string, AstQueryExecutorBase.Source>, AstQueryExecutorBase.EvalRow?, AstQueryExecutorBase.Source> _resolveSource = resolveSource;
     private readonly Func<IReadOnlyList<SqlMySqlIndexHint>?, ITableMock, bool, bool, AstQueryExecutorBase.MySqlIndexHintPlan?> _buildMySqlIndexHintPlan = buildMySqlIndexHintPlan;
+    private readonly Func<SqlExpr, AstQueryExecutorBase.EvalRow, IDictionary<string, AstQueryExecutorBase.Source>, object?> _evalJoinValue = evalJoinValue;
     private readonly Func<SqlExpr, AstQueryExecutorBase.EvalRow, IDictionary<string, AstQueryExecutorBase.Source>, bool> _evalJoinPredicate = evalJoinPredicate;
 
     public IEnumerable<AstQueryExecutorBase.EvalRow> ApplyJoin(
@@ -124,6 +126,33 @@ internal sealed class AstQueryJoinService(
             yield break;
         }
 
+        if (TryBuildLeftJoinEqualityLookup(join, rightSource, rightRows, out var joinLookup))
+        {
+            var outerValue = _evalJoinValue(joinLookup.OuterExpr, leftRow, ctes);
+            if (outerValue is null || outerValue is DBNull
+                || !AstQuerySubqueryLookupSupport.TryCreateInLookupScalarKey(outerValue, null, out var outerComponent))
+            {
+                if (isLeftJoin)
+                    yield return CreateNullExtendedRow(leftRow, rightSource);
+
+                yield break;
+            }
+
+            var outerKey = AstQuerySubqueryLookupSupport.BuildLookupScalarKeyString(outerComponent);
+            if (!joinLookup.RightRowsByKey.TryGetValue(outerKey, out var matchingRows) || matchingRows.Count == 0)
+            {
+                if (isLeftJoin)
+                    yield return CreateNullExtendedRow(leftRow, rightSource);
+
+                yield break;
+            }
+
+            for (var i = 0; i < matchingRows.Count; i++)
+                yield return MergeRows(leftRow, rightSource, matchingRows[i]);
+
+            yield break;
+        }
+
         var matched = false;
         for (var i = 0; i < rightRows.Count; i++)
         {
@@ -139,6 +168,85 @@ internal sealed class AstQueryJoinService(
         if (isLeftJoin && !matched)
             yield return CreateNullExtendedRow(leftRow, rightSource);
     }
+
+    private bool TryBuildLeftJoinEqualityLookup(
+        SqlJoin join,
+        AstQueryExecutorBase.Source rightSource,
+        IReadOnlyList<Dictionary<string, object?>> rightRows,
+        out LeftJoinEqualityLookup lookup)
+    {
+        lookup = default;
+
+        if (join.On is null
+            || join.Type is not SqlJoinType.Left
+            )
+        {
+            return false;
+        }
+
+        var conjuncts = new List<SqlExpr>(1);
+        AstQuerySubqueryLookupSupport.FlattenConjuncts(join.On, conjuncts);
+        if (conjuncts.Count != 1
+            || !AstQueryCorrelatedExistsSupport.TryGetCorrelatedCountEquality(conjuncts[0], rightSource, out var innerExpr, out var outerExpr))
+        {
+            return false;
+        }
+
+        if (!AstQueryInnerColumnAnalysisHelper.TryResolveInnerColumnName(innerExpr, rightSource, out var innerColumnName))
+            return false;
+
+        var rightRowsByKey = new Dictionary<string, List<Dictionary<string, object?>>>(Math.Max(1, rightRows.Count), StringComparer.Ordinal);
+        for (var i = 0; i < rightRows.Count; i++)
+        {
+            var rightFields = rightRows[i];
+            if (!TryGetJoinColumnValue(rightFields, innerColumnName, out var rightValue)
+                || rightValue is null
+                || rightValue is DBNull
+                || !AstQuerySubqueryLookupSupport.TryCreateInLookupScalarKey(rightValue, null, out var component))
+            {
+                continue;
+            }
+
+            var key = AstQuerySubqueryLookupSupport.BuildLookupScalarKeyString(component);
+            if (!rightRowsByKey.TryGetValue(key, out var bucket))
+            {
+                bucket = new List<Dictionary<string, object?>>();
+                rightRowsByKey[key] = bucket;
+            }
+
+            bucket.Add(rightFields);
+        }
+
+        if (rightRowsByKey.Count == 0)
+            return false;
+
+        lookup = new LeftJoinEqualityLookup(outerExpr, rightRowsByKey);
+        return true;
+    }
+
+    private static bool TryGetJoinColumnValue(
+        Dictionary<string, object?> row,
+        string columnName,
+        out object? value)
+    {
+        if (row.TryGetValue(columnName, out value))
+            return true;
+
+        var dot = columnName.IndexOf('.');
+        if (dot > 0)
+        {
+            var unqualified = columnName[(dot + 1)..];
+            if (row.TryGetValue(unqualified, out value))
+                return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private readonly record struct LeftJoinEqualityLookup(
+        SqlExpr OuterExpr,
+        Dictionary<string, List<Dictionary<string, object?>>> RightRowsByKey);
 
     private IEnumerable<AstQueryExecutorBase.EvalRow> ApplyLateralJoin(
         SqlJoin join,

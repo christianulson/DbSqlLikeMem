@@ -1,9 +1,14 @@
+using System.Collections.Concurrent;
+
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
 
 internal static class AstQueryJsonExtractionFunctionEvaluator
 {
+    private const int NormalizedJsonPathCacheSoftLimit = 256;
+    private static readonly ConcurrentDictionary<string, string> _normalizedJsonPathCache = new(StringComparer.Ordinal);
+
     internal static bool TryEvalJsonAccessShimFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -22,7 +27,7 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
             return true;
         }
 
-        var normalizedPath = NormalizeJsonPath(path!);
+        var normalizedPath = GetNormalizedJsonPath(path!);
         var value = QueryJsonFunctionHelper.TryReadJsonPathValue(json!, normalizedPath);
         if (value is JsonElement element && element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
         {
@@ -36,47 +41,93 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
         return true;
     }
 
+    private static string GetNormalizedJsonPath(string path)
+    {
+        if (_normalizedJsonPathCache.TryGetValue(path, out var cached))
+            return cached;
+
+        var normalized = NormalizeJsonPath(path);
+        if (_normalizedJsonPathCache.Count < NormalizedJsonPathCacheSoftLimit)
+            _normalizedJsonPathCache.TryAdd(path, normalized);
+
+        return normalized;
+    }
+
     private static string NormalizeJsonPath(string path)
     {
-        var trimmed = path.Trim();
+        var trimmed = path.AsSpan().Trim();
         if (trimmed.Length == 0)
-            return trimmed;
+            return string.Empty;
 
         if (trimmed[0] == '$'
             || trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase)
             || trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
-            return trimmed;
+            return trimmed.ToString();
 
         if (trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
         {
             var inner = trimmed[1..^1];
-            if (!string.IsNullOrWhiteSpace(inner))
+            var hasContent = false;
+            for (var i = 0; i < inner.Length; i++)
             {
-                var parts = inner
-                    .Split(',')
-                    .Select(part => part.Trim())
-                    .Where(part => part.Length > 0)
-                    .Select(part => part.Trim('"'))
-                    .Where(part => part.Length > 0)
-                    .ToArray();
+                if (!char.IsWhiteSpace(inner[i]))
+                {
+                    hasContent = true;
+                    break;
+                }
+            }
 
-                if (parts.Length > 0)
-                    return "$." + string.Join(".", parts);
+            if (hasContent)
+            {
+                var builder = new System.Text.StringBuilder(inner.Length + 2);
+                var added = false;
+                var start = 0;
+                while (start < inner.Length)
+                {
+                    var remaining = inner[start..];
+                    var comma = remaining.IndexOf(',');
+                    var segment = comma >= 0
+                        ? remaining[..comma]
+                        : remaining;
+
+                    segment = segment.Trim();
+                    while (segment.Length > 0 && segment[0] == '"')
+                        segment = segment[1..];
+                    while (segment.Length > 0 && segment[^1] == '"')
+                        segment = segment[..^1];
+
+                    if (segment.Length > 0)
+                    {
+                        if (added)
+                            builder.Append('.');
+
+                        builder.AppendSpan(segment);
+                        added = true;
+                    }
+
+                    if (comma < 0)
+                        break;
+
+                    start += comma + 1;
+                }
+
+                if (added)
+                    return "$." + builder;
             }
         }
 
-        if (int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index) && index >= 0)
+        if (ReadOnlySpanCompatibility.TryParseInt32(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index) && index >= 0)
             return $"$[{index}]";
 
         if (IsSimpleJsonPropertyName(trimmed))
-            return "$." + trimmed;
+            return "$." + trimmed.ToString();
 
-        return trimmed;
+        return trimmed.ToString();
     }
 
-    private static bool IsSimpleJsonPropertyName(string value)
+    private static bool IsSimpleJsonPropertyName(ReadOnlySpan<char> value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value.Length == 0)
             return false;
 
         if (!(char.IsLetter(value[0]) || value[0] == '_'))

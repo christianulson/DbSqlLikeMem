@@ -54,7 +54,7 @@ internal static class QueryJsonFunctionHelper
 
     internal static object? TryReadJsonPathValue(object json, string path)
     {
-        var lookup = LookupJsonPath(json, path);
+        var lookup = LookupJsonPathNoClone(json, path);
         if (!lookup.Success)
             return null;
 
@@ -75,7 +75,7 @@ internal static class QueryJsonFunctionHelper
     internal static bool TryReadJsonPathElement(object json, string path, out JsonElement element)
     {
         element = default;
-        var lookup = LookupJsonPath(json, path);
+        var lookup = LookupJsonPathNoClone(json, path);
         if (!lookup.Success)
             return false;
 
@@ -86,7 +86,7 @@ internal static class QueryJsonFunctionHelper
     internal static bool TryReadJsonPathElement(JsonElement element, string path, out JsonElement value)
     {
         value = default;
-        var lookup = LookupJsonPath(element, path);
+        var lookup = LookupJsonPathNoClone(element, path);
         if (!lookup.Success)
             return false;
 
@@ -96,6 +96,17 @@ internal static class QueryJsonFunctionHelper
 
     internal static JsonPathLookupResult LookupJsonPath(object json, string path)
     {
+        var lookup = LookupJsonPathNoClone(json, path);
+        return lookup.Success
+            ? lookup with { Value = lookup.Value.Clone() }
+            : lookup;
+    }
+
+    private static JsonPathLookupResult LookupJsonPathNoClone(object json, string path)
+    {
+        if (TryLookupSimpleJsonPath(json, path, out var simpleLookup))
+            return simpleLookup;
+
         if (!TryParseJsonPathSpec(path, out var spec, out _))
             return new JsonPathLookupResult(false, JsonPathMode.Lax, JsonPathLookupFailure.InvalidPath, path, default);
 
@@ -121,9 +132,7 @@ internal static class QueryJsonFunctionHelper
             return new JsonPathLookupResult(false, spec.Mode, JsonPathLookupFailure.NotFound, path, default);
 
         var lookup = GetJsonPathResolver(path, spec)(root);
-        return lookup.Success
-            ? lookup with { Value = lookup.Value.Clone() }
-            : lookup;
+        return lookup;
     }
 
     internal static bool TryGetJsonRootElement(object json, out JsonElement root)
@@ -155,10 +164,145 @@ internal static class QueryJsonFunctionHelper
 
     internal static JsonPathLookupResult LookupJsonPath(JsonElement element, string path)
     {
+        if (TryLookupSimpleJsonPath(element, path, out var simpleLookup))
+            return simpleLookup;
+
         if (!TryParseJsonPathSpec(path, out var spec, out _))
             return new JsonPathLookupResult(false, JsonPathMode.Lax, JsonPathLookupFailure.InvalidPath, path, default);
 
         return GetJsonPathResolver(path, spec)(element);
+    }
+
+    private static bool TryLookupSimpleJsonPath(object json, string path, out JsonPathLookupResult result)
+    {
+        result = default;
+
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var trimmed = path.AsSpan().Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase)
+            || trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (trimmed[0] != '$')
+            return false;
+
+        if (trimmed.IndexOf('"') >= 0)
+            return false;
+
+        if (!TryGetJsonRootElement(json, out var root))
+            return false;
+
+        return TryReadSimpleJsonPath(root, trimmed, path, out result);
+    }
+
+    private static bool TryReadSimpleJsonPath(
+        JsonElement root,
+        ReadOnlySpan<char> path,
+        string originalPath,
+        out JsonPathLookupResult result)
+    {
+        result = default;
+
+        var current = root;
+        var index = 1;
+        while (index < path.Length)
+        {
+            while (index < path.Length && char.IsWhiteSpace(path[index]))
+                index++;
+
+            if (index >= path.Length)
+                break;
+
+            if (path[index] == '.')
+            {
+                index++;
+                if (!TryParseSimpleJsonProperty(path, ref index, out var propertyName))
+                    return false;
+
+                if (!current.TryGetProperty(propertyName, out current))
+                {
+                    result = new JsonPathLookupResult(false, JsonPathMode.Lax, JsonPathLookupFailure.NotFound, originalPath, default);
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (path[index] == '[')
+            {
+                index++;
+                if (!TryParseSimpleJsonArrayIndex(path, ref index, out var arrayIndex))
+                    return false;
+
+                if (current.ValueKind != JsonValueKind.Array
+                    || arrayIndex < 0
+                    || arrayIndex >= current.GetArrayLength())
+                {
+                    result = new JsonPathLookupResult(false, JsonPathMode.Lax, JsonPathLookupFailure.NotFound, originalPath, default);
+                    return true;
+                }
+
+                current = current[arrayIndex];
+                continue;
+            }
+
+            return false;
+        }
+
+        result = new JsonPathLookupResult(true, JsonPathMode.Lax, JsonPathLookupFailure.None, originalPath, current);
+        return true;
+    }
+
+    private static bool TryParseSimpleJsonProperty(
+        ReadOnlySpan<char> path,
+        ref int index,
+        out ReadOnlySpan<char> propertyName)
+    {
+        propertyName = default;
+
+        var start = index;
+        while (index < path.Length && path[index] is not '.' and not '[' && !char.IsWhiteSpace(path[index]))
+            index++;
+
+        if (index == start)
+            return false;
+
+        propertyName = path[start..index];
+        return true;
+    }
+
+    private static bool TryParseSimpleJsonArrayIndex(
+        ReadOnlySpan<char> path,
+        ref int index,
+        out int arrayIndex)
+    {
+        arrayIndex = default;
+
+        var start = index;
+        var value = 0;
+        while (index < path.Length && char.IsDigit(path[index]))
+        {
+            var digit = path[index] - '0';
+            if (value > (int.MaxValue - digit) / 10)
+                return false;
+
+            value = value * 10 + digit;
+            index++;
+        }
+
+        if (start == index || index >= path.Length || path[index] != ']')
+            return false;
+
+        arrayIndex = value;
+        index++;
+        return true;
     }
 
     private static bool TryGetJsonReturningTypeSql(FunctionCallExpr fn, out string normalizedType)
@@ -171,11 +315,11 @@ internal static class QueryJsonFunctionHelper
         if (!raw.Sql.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var typeSql = raw.Sql[prefix.Length..].Trim();
+        var typeSql = raw.Sql[prefix.Length..].AsSpan().Trim();
         if (typeSql.Length == 0)
             return false;
 
-        normalizedType = typeSql.ToUpperInvariant();
+        normalizedType = typeSql.ToString().ToUpperInvariant();
         return true;
     }
 
@@ -324,17 +468,20 @@ internal static class QueryJsonFunctionHelper
     }
 
     private static bool TryParseJsonPathSpecCore(string path, out JsonPathSpec spec, out string? error)
+        => TryParseJsonPathSpecCore(path.AsSpan(), out spec, out error);
+
+    private static bool TryParseJsonPathSpecCore(ReadOnlySpan<char> path, out JsonPathSpec spec, out string? error)
     {
         spec = default;
         error = null;
 
-        if (string.IsNullOrWhiteSpace(path))
+        var trimmed = path.Trim();
+        if (trimmed.IsEmpty)
         {
             error = "JSON path is empty.";
             return false;
         }
 
-        var trimmed = path.Trim();
         var mode = JsonPathMode.Lax;
         if (trimmed.StartsWith("lax ", StringComparison.OrdinalIgnoreCase))
         {
@@ -387,7 +534,7 @@ internal static class QueryJsonFunctionHelper
             return false;
         }
 
-        spec = new JsonPathSpec(mode, trimmed, [.. steps]);
+        spec = new JsonPathSpec(mode, trimmed.ToString(), [.. steps]);
         return true;
     }
 
@@ -540,7 +687,7 @@ internal static class QueryJsonFunctionHelper
     }
 
     private static bool TryParseJsonPropertyStep(
-        string path,
+        ReadOnlySpan<char> path,
         ref int index,
         out string propertyName,
         out string? error)
@@ -561,7 +708,7 @@ internal static class QueryJsonFunctionHelper
         while (index < path.Length && path[index] is not '.' and not '[' && !char.IsWhiteSpace(path[index]))
             index++;
 
-        propertyName = path[start..index];
+        propertyName = path.Slice(start, index - start).ToString();
         if (propertyName.Length == 0)
         {
             error = "JSON path property name is missing.";
@@ -572,7 +719,7 @@ internal static class QueryJsonFunctionHelper
     }
 
     private static bool TryParseQuotedJsonProperty(
-        string path,
+        ReadOnlySpan<char> path,
         ref int index,
         out string propertyName,
         out string? error)
@@ -614,7 +761,7 @@ internal static class QueryJsonFunctionHelper
     }
 
     private static bool TryParseJsonBracketStep(
-        string path,
+        ReadOnlySpan<char> path,
         ref int index,
         out JsonPathStep step,
         out string? error)
@@ -654,7 +801,12 @@ internal static class QueryJsonFunctionHelper
             return false;
         }
 
-        var parsedIndex = int.Parse(path[start..index], CultureInfo.InvariantCulture);
+        if (!ReadOnlySpanCompatibility.TryParseInt32(path.Slice(start, index - start), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedIndex))
+        {
+            error = "JSON path array index is invalid.";
+            return false;
+        }
+
         index++; // closing bracket
         step = new JsonPathStep(JsonPathStepKind.ArrayIndex, null, parsedIndex);
         return true;

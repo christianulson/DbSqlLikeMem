@@ -104,6 +104,9 @@ internal sealed class QueryExecutionContext
     /// </summary>
     internal DateTime EvaluationUtcNow { get; }
 
+    private readonly Dictionary<string, object?> _temporalZeroArgIdentifierCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, object?> _temporalZeroArgCallCache = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
     /// PT: Cria um contexto de execução de query a partir de uma conexão, dialeto e coleção de parâmetros.
@@ -155,7 +158,27 @@ internal sealed class QueryExecutionContext
         HasActiveTransaction = source.HasActiveTransaction;
         EvaluationLocalNow = source.EvaluationLocalNow;
         EvaluationUtcNow = source.EvaluationUtcNow;
+        _temporalZeroArgIdentifierCache = source._temporalZeroArgIdentifierCache;
+        _temporalZeroArgCallCache = source._temporalZeroArgCallCache;
         _positionalParameterCursor = positionalParameterCursor;
+    }
+
+    internal bool TryGetCachedTemporalZeroArgIdentifierValue(string functionName, out object? value)
+        => _temporalZeroArgIdentifierCache.TryGetValue(functionName, out value);
+
+    internal void CacheTemporalZeroArgIdentifierValue(string functionName, object? value)
+    {
+        if (!_temporalZeroArgIdentifierCache.ContainsKey(functionName))
+            _temporalZeroArgIdentifierCache[functionName] = value;
+    }
+
+    internal bool TryGetCachedTemporalZeroArgCallValue(string functionName, out object? value)
+        => _temporalZeroArgCallCache.TryGetValue(functionName, out value);
+
+    internal void CacheTemporalZeroArgCallValue(string functionName, object? value)
+    {
+        if (!_temporalZeroArgCallCache.ContainsKey(functionName))
+            _temporalZeroArgCallCache[functionName] = value;
     }
 
     /// <summary>
@@ -200,29 +223,22 @@ internal sealed class QueryExecutionContext
     /// <returns>EN: True when a positional parameter was consumed. PT: Verdadeiro quando um parametro posicional foi consumido.</returns>
     internal bool TryResolveNextPositionalParameter(out object? value)
     {
-        var positionalParameters = new List<IDataParameter>();
+        var positionalIndex = 0;
         foreach (IDataParameter parameter in Parameters)
         {
-            if (IsPositionalParameter(parameter.ParameterName))
-                positionalParameters.Add(parameter);
+            if (!IsPositionalParameter(parameter.ParameterName))
+                continue;
+
+            if (positionalIndex++ != _positionalParameterCursor)
+                continue;
+
+            _positionalParameterCursor++;
+            value = NormalizeResolvedValue(parameter.Value);
+            return true;
         }
 
-        if (positionalParameters.Count == 0)
-        {
-            value = null;
-            return false;
-        }
-
-        var index = _positionalParameterCursor++;
-        if (index >= positionalParameters.Count)
-        {
-            value = null;
-            return false;
-        }
-
-        value = NormalizeResolvedValue(positionalParameters[index].Value);
-
-        return true;
+        value = null;
+        return false;
     }
 
     /// <summary>
@@ -240,9 +256,8 @@ internal sealed class QueryExecutionContext
             return TryResolveNextPositionalParameter(out value);
 
         var normalized = parameterToken.TrimStart('@', ':', '?');
-
-        if (TryResolveParameterFromCollection(normalized, out value))
-            return true;
+        if (normalized.Length == 0)
+            return false;
 
         foreach (IDataParameter parameter in Parameters)
         {
@@ -252,36 +267,6 @@ internal sealed class QueryExecutionContext
                 value = NormalizeResolvedValue(parameter.Value);
                 return true;
             }
-        }
-
-        return false;
-    }
-
-    private bool TryResolveParameterFromCollection(string normalizedParameterName, out object? value)
-    {
-        value = null;
-        if (string.IsNullOrWhiteSpace(normalizedParameterName))
-            return false;
-
-        var candidates = new[]
-        {
-            normalizedParameterName,
-            "@" + normalizedParameterName,
-            ":" + normalizedParameterName,
-            "?" + normalizedParameterName
-        };
-
-        foreach (var candidate in candidates)
-        {
-            var index = DbParameters.IndexOf(candidate);
-            if (index < 0)
-                continue;
-
-            if (DbParameters[index] is not IDataParameter parameter)
-                continue;
-
-            value = NormalizeResolvedValue(parameter.Value);
-            return true;
         }
 
         return false;

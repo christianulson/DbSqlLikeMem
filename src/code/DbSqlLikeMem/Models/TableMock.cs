@@ -30,6 +30,10 @@ public abstract class TableMock
     {
         TableName = tableName.NormalizeName();
         Schema = schema;
+        _columnsView = new ReadOnlyDictionary<string, ColumnDef>(_columns);
+        _itemsView = new ItemsView(_items);
+        _indexesView = new ReadOnlyDictionary<string, IndexDef>(_indexes);
+        _primaryKeyIndexesView = new ReadOnlyHashSet<int>(_primaryKeyIndexes);
         foreach (var c in columns)
             AddColumn(c);
         AddRange(rows ?? []);
@@ -336,19 +340,33 @@ public abstract class TableMock
 
     private readonly ColumnDictionary _columns = [];
     private readonly Dictionary<int, string> _columnsByIndex = [];
+    private readonly List<ColumnDef> _columnsByOrdinal = [];
+    private readonly ReadOnlyDictionary<string, ColumnDef> _columnsView;
+    private readonly ItemsView _itemsView;
+    private readonly ReadOnlyDictionary<string, IndexDef> _indexesView;
+    private readonly List<IndexDef> _uniqueIndexes = [];
+    private bool _hasSelfReferencingForeignKey;
+    private int _indexVersion;
+    private IReadOnlyHashSet<int> _primaryKeyIndexesView;
 
     /// <summary>
     /// EN: Table column dictionary.
     /// PT: Dicionário de colunas da tabela.
     /// </summary>
     public IReadOnlyDictionary<string, ColumnDef> Columns
-        => new ReadOnlyDictionary<string, ColumnDef>(_columns);
+        => _columnsView;
 
     internal IReadOnlyDictionary<int, string> ColumnsByIndex => _columnsByIndex;
+    internal ColumnDictionary ColumnsRaw => _columns;
+    internal IReadOnlyList<ColumnDef> ColumnsByOrdinal => _columnsByOrdinal;
+    internal ColumnDef? IdentityColumn => _identityColumn;
+    internal ColumnDef GetColumnByIndex(int index) => _columnsByOrdinal[index];
+    internal IReadOnlyList<IndexDef> UniqueIndexes => _uniqueIndexes;
+    internal int IndexVersion => _indexVersion;
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
-    public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => new ItemsView(_items);
+    public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => _itemsView;
 
     private sealed class ItemsView(List<Dictionary<int, object?>> items) : IReadOnlyList<IReadOnlyDictionary<int, object?>>
     {
@@ -360,6 +378,7 @@ public abstract class TableMock
 
     internal HashSet<int> _primaryKeyIndexes = [];
     private int[] _pkIndexArray = [];
+    private ColumnDef? _identityColumn;
 
     internal int[] PkIndexArray => _pkIndexArray;
 
@@ -374,15 +393,16 @@ public abstract class TableMock
     /// EN: Indexes of columns that form the primary key.
     /// PT: Índices das colunas que formam a chave primária.
     /// </summary>
-    public IReadOnlyHashSet<int> PrimaryKeyIndexes => new ReadOnlyHashSet<int>(_primaryKeyIndexes);
+    public IReadOnlyHashSet<int> PrimaryKeyIndexes => _primaryKeyIndexesView;
 
     public void AddPrimaryKeyIndexes(params string[] columns)
     {
         foreach (var colName in columns)
-            _primaryKeyIndexes.Add(Columns[colName].Index);
+            _primaryKeyIndexes.Add(_columns[colName].Index);
         if (_primaryKeyIndexes.Count != columns.Length)
             throw new InvalidOperationException(SqlExceptionMessages.DuplicatePrimaryKeyColumns());
         _pkIndexArray = [.. _primaryKeyIndexes.OrderBy(static i => i)];
+        _primaryKeyIndexesView = new ReadOnlyHashSet<int>(_primaryKeyIndexes);
         RebuildPkIndex();
     }
 
@@ -539,13 +559,14 @@ public abstract class TableMock
     public IReadOnlyDictionary<string, ForeignDef> ForeignKeys => _foreignKeys;
 
     internal IndexDictionary _indexes = [];
+    internal IndexDictionary IndexesRaw => _indexes;
 
     /// <summary>
     /// EN: Indexes declared on the table.
     /// PT: Índices declarados na tabela.
     /// </summary>
     public IReadOnlyDictionary<string, IndexDef> Indexes
-        => new ReadOnlyDictionary<string, IndexDef>(_indexes);
+        => _indexesView;
 
     private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
     private readonly Dictionary<string, (TableTriggerEvent Event, Action<TableTriggerContext> Handler)> _namedTriggers = new(StringComparer.OrdinalIgnoreCase);
@@ -751,6 +772,9 @@ public abstract class TableMock
 
         _columns.Add(normalizedName, col);
         _columnsByIndex[col.Index] = normalizedName;
+        _columnsByOrdinal.Add(col);
+        if (identity && _identityColumn is null)
+            _identityColumn = col;
         BackfillAddedColumn(col);
         return col;
     }
@@ -869,6 +893,9 @@ public abstract class TableMock
 
         var idx = new IndexDef(this, name, normalizedKeyCols, normalizedIncludeCols?.ToArray(), unique);
         _indexes.Add(name, idx);
+        if (unique)
+            _uniqueIndexes.Add(idx);
+        _indexVersion++;
         return idx;
     }
 
@@ -880,7 +907,13 @@ public abstract class TableMock
         name = name.NormalizeName();
 
         if (_indexes.Remove(name))
+        {
+            if (_uniqueIndexes.Count > 0)
+                _uniqueIndexes.RemoveAll(index => string.Equals(index.Name, name, StringComparison.OrdinalIgnoreCase));
+
+            _indexVersion++;
             return;
+        }
 
         if (ifExists)
             return;
@@ -1003,10 +1036,19 @@ public abstract class TableMock
             this,
             name,
             tbRef,
-            [.. references.Select(_ => (col: Columns[_.col], refCol: tbRef.Columns[_.refCol]))]
+            [.. references.Select(reference =>
+            {
+                var col = _columns[reference.col];
+                var refCol = tbRef is TableMock refTableMock
+                    ? refTableMock._columns[reference.refCol]
+                    : tbRef.Columns[reference.refCol];
+                return (col: col, refCol: refCol);
+            })]
             );
 
         _foreignKeys.Add(name, fk);
+        if (ReferenceEquals(tbRef, this))
+            _hasSelfReferencingForeignKey = true;
         return fk;
     }
 
@@ -1058,73 +1100,36 @@ public abstract class TableMock
         IReadOnlyDictionary<int, object?> row)
     {
         var refTable = fk.RefTable;
-        IndexDef? matchingIndex = null;
-        var matchingKeyCount = -1;
-        foreach (var index in refTable.Indexes.Values)
+        if (fk.TryGetRefLookupPlan(out var lookupPlan))
         {
-            var coversAllReferences = true;
-            foreach (var reference in fk.References)
-            {
-                if (!index.KeyCols.Contains(reference.refCol.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    coversAllReferences = false;
-                    break;
-                }
-            }
-
-            if (!coversAllReferences)
-                continue;
-
-            if (index.KeyCols.Count <= matchingKeyCount)
-                continue;
-
-            matchingIndex = index;
-            matchingKeyCount = index.KeyCols.Count;
-        }
-
-        if (matchingIndex is not null)
-        {
-            IndexKey key;
-            if (fk.References.Count == 1)
-            {
-                using var refEnumerator = fk.References.GetEnumerator();
-                refEnumerator.MoveNext();
-                var r = refEnumerator.Current;
-
-                key = new IndexKey(row[r.col.Index]);
-            }
-            else
-            {
-                var valuesByColumn = new Dictionary<string, object?>(fk.References.Count, StringComparer.OrdinalIgnoreCase);
-                foreach (var reference in fk.References)
-                    valuesByColumn[reference.refCol.Name.NormalizeName()] = row[reference.col.Index];
-
-                key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
-            }
-
-            if (matchingIndex.LookupMutable(key)?.Count > 0)
+            var key = lookupPlan.BuildKey(row);
+            if (lookupPlan.Index.LookupMutable(key)?.Count > 0)
                 return true;
         }
 
         if (Schema.Db.ThreadSafe && refTable.Count >= 2048)
         {
-            foreach (var refRow in refTable.AsParallel())
+            var found = 0;
+            Parallel.For(0, refTable.Count, (refIndex, state) =>
             {
-                var matches = true;
+                if (System.Threading.Volatile.Read(ref found) != 0)
+                {
+                    state.Stop();
+                    return;
+                }
+
+                var refRow = refTable[refIndex];
                 foreach (var reference in fk.References)
                 {
                     if (!Equals(refRow[reference.refCol.Index], row[reference.col.Index]))
-                    {
-                        matches = false;
-                        break;
-                    }
+                        return;
                 }
 
-                if (matches)
-                    return true;
-            }
+                System.Threading.Interlocked.Exchange(ref found, 1);
+                state.Stop();
+            });
 
-            return false;
+            return System.Threading.Volatile.Read(ref found) != 0;
         }
 
         foreach (var refRow in refTable)
@@ -1294,12 +1299,7 @@ public abstract class TableMock
 
         var allIndexes = _indexes.Values.ToArray();
         var allIndexCount = allIndexes.Length;
-        var uniqueIndexCount = 0;
-        for (var i = 0; i < allIndexCount; i++)
-        {
-            if (allIndexes[i].Unique)
-                uniqueIndexCount++;
-        }
+        var uniqueIndexCount = _uniqueIndexes.Count;
 
         var uniqueIndexSlots = uniqueIndexCount > 0 ? new int[uniqueIndexCount] : Array.Empty<int>();
         if (uniqueIndexCount > 0)
@@ -1405,15 +1405,7 @@ public abstract class TableMock
     }
 
     private bool HasSelfReferencingForeignKey()
-    {
-        foreach (var fk in _foreignKeys.Values)
-        {
-            if (ReferenceEquals(fk.RefTable, this))
-                return true;
-        }
-
-        return false;
-    }
+        => _hasSelfReferencingForeignKey;
 
     /// <summary>
     /// EN: Adds a row ensuring default values and uniqueness.
@@ -1472,10 +1464,9 @@ public abstract class TableMock
 
     private void ApplyDefaultValues(Dictionary<int, object?> value)
     {
-        foreach (var it in Columns)
+        foreach (var col in _columnsByOrdinal)
         {
-            var col = it.Value;
-            var hasExplicitValue = value.ContainsKey(col.Index);
+            var hasExplicitValue = value.TryGetValue(col.Index, out var currentValue);
             if (!hasExplicitValue)
                 value[col.Index] = null;
 
@@ -1484,8 +1475,8 @@ public abstract class TableMock
                 if (col.DefaultValue != null && !hasExplicitValue && value[col.Index] == null)
                     value[col.Index] = col.DefaultValue;
             }
-            else if (AllowIdentityInsert && value[col.Index] is not null)
-                UpdateNextIdentityFromExplicitValue(value[col.Index]);
+            else if (AllowIdentityInsert && currentValue is not null)
+                UpdateNextIdentityFromExplicitValue(currentValue);
             else
                 value[col.Index] = NextIdentity++;
 
@@ -1493,7 +1484,7 @@ public abstract class TableMock
                 value[col.Index] = col.GetGenValue(value, this);
 
             if (!col.Nullable && value[col.Index] == null)
-                throw ColumnCannotBeNull(it.Key);
+                throw ColumnCannotBeNull(col.Name);
         }
     }
 
@@ -1525,7 +1516,7 @@ public abstract class TableMock
 
     private void RefreshPersistedComputedValues(IDictionary<int, object?> row)
     {
-        foreach (var col in Columns.Values)
+        foreach (var col in _columnsByOrdinal)
         {
             if (col.GetGenValue == null || !col.PersistComputedValue)
                 continue;
@@ -1543,16 +1534,17 @@ public abstract class TableMock
             return false;
 
         IndexDef? pkIndex = null;
-        foreach (var index in _indexes.GetUnique())
+        foreach (var index in _uniqueIndexes)
         {
-            if (index.KeyCols.Count != _primaryKeyIndexes.Count)
+            if (index.KeyCols.Count != _pkIndexArray.Length)
                 continue;
 
             var matches = true;
-            foreach (var pkIdx in _primaryKeyIndexes)
+            for (var i = 0; i < _pkIndexArray.Length; i++)
             {
-                if (!_columnsByIndex.TryGetValue(pkIdx, out var columnName)
-                    || !index.KeyCols.Contains(columnName, StringComparer.OrdinalIgnoreCase))
+                var pkIdx = _pkIndexArray[i];
+                var columnName = _columnsByOrdinal[pkIdx].Name;
+                if (!index.KeyCols.Contains(columnName, StringComparer.OrdinalIgnoreCase))
                 {
                     matches = false;
                     break;
@@ -1569,12 +1561,11 @@ public abstract class TableMock
         if (pkIndex is null)
             return false;
 
-        var valuesByColumn = new Dictionary<string, object?>(_primaryKeyIndexes.Count, StringComparer.OrdinalIgnoreCase);
-        foreach (var pkIdx in _primaryKeyIndexes)
+        var valuesByColumn = new Dictionary<string, object?>(_pkIndexArray.Length, StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < _pkIndexArray.Length; i++)
         {
-            if (!_columnsByIndex.TryGetValue(pkIdx, out var columnName))
-                continue;
-
+            var pkIdx = _pkIndexArray[i];
+            var columnName = _columnsByOrdinal[pkIdx].Name;
             valuesByColumn[columnName.NormalizeName()] = newRow.TryGetValue(pkIdx, out var val) ? val : null;
         }
 
@@ -1595,7 +1586,7 @@ public abstract class TableMock
     {
         CheckUniquePrimary(newRow);
 
-        foreach (var idx in _indexes.GetUnique())
+        foreach (var idx in _uniqueIndexes)
         {
             var key = idx.BuildIndexKey(newRow);
             var hits = idx.LookupMutable(key);
@@ -1630,8 +1621,9 @@ public abstract class TableMock
         {
             var existingRow = this[i];
             var matchedCount = 0;
-            foreach (var pkIdx in _primaryKeyIndexes)
+            for (var pkPos = 0; pkPos < _pkIndexArray.Length; pkPos++)
             {
+                var pkIdx = _pkIndexArray[pkPos];
                 if (newRow.TryGetValue(pkIdx, out var pkVal)
                     && existingRow.TryGetValue(pkIdx, out var cur)
                     && Equals(cur, pkVal))
@@ -1639,7 +1631,7 @@ public abstract class TableMock
                     matchedCount++;
                 }
             }
-            if (_primaryKeyIndexes.Count == matchedCount)
+            if (_pkIndexArray.Length == matchedCount)
                 throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(existingRow));
         }
     }
@@ -1674,7 +1666,7 @@ public abstract class TableMock
         if (!CheckPrimary(newRow, ref conflictIndexName, ref conflictKey, out var value))
             return value;
 
-        foreach (var idx in _indexes.GetUnique())
+        foreach (var idx in _uniqueIndexes)
         {
             var key = idx.BuildIndexKey(newRow);
             var hits = idx.LookupMutable(key);
@@ -1701,8 +1693,9 @@ public abstract class TableMock
         {
             var existingRow = this[i];
             var matchedCount = 0;
-            foreach (var pkIdx in _primaryKeyIndexes)
+            for (var pkPos = 0; pkPos < _pkIndexArray.Length; pkPos++)
             {
+                var pkIdx = _pkIndexArray[pkPos];
                 if (newRow.TryGetValue(pkIdx, out var pkVal)
                     && existingRow.TryGetValue(pkIdx, out var cur)
                     && Equals(cur, pkVal))
@@ -1710,7 +1703,7 @@ public abstract class TableMock
                     matchedCount++;
                 }
             }
-            if (_primaryKeyIndexes.Count != matchedCount)
+            if (_pkIndexArray.Length != matchedCount)
                 continue;
 
             conflictIndexName = PRIMARY;
@@ -1727,9 +1720,7 @@ public abstract class TableMock
         var parts = new List<string>(_pkIndexArray.Length);
         foreach (var pkIdx in _pkIndexArray)
         {
-            if (!_columnsByIndex.TryGetValue(pkIdx, out var columnName))
-                continue;
-
+            var columnName = _columnsByOrdinal[pkIdx].Name;
             parts.Add($"{columnName}: {(row.TryGetValue(pkIdx, out var value) ? value : null)}");
         }
 
@@ -1743,7 +1734,7 @@ public abstract class TableMock
         int rowIdx,
         IReadOnlyList<string> changedCols)
     {
-        foreach (var ix in _indexes.GetUnique())
+        foreach (var ix in _uniqueIndexes)
             ix.EnsureUniqueBeforeUpdate(rowIdx, existingRow, simulatedRow, changedCols);
 
     }
@@ -1766,38 +1757,185 @@ public abstract class TableMock
         var list = new List<(string C, string Op, string V)>();
         if (string.IsNullOrWhiteSpace(w)) return list;
 
-        w = w!.Trim();
-        if (w.StartsWith("WHERE ", StringComparison.OrdinalIgnoreCase))
-            w = w[6..].Trim();
+        var span = w.AsSpan().Trim();
+        if (span.StartsWith("WHERE ", StringComparison.OrdinalIgnoreCase))
+            span = span[6..].TrimStart();
 
-        var parts = Regex.Split(w, @"\s+AND\s+", RegexOptions.IgnoreCase)
-            .Where(p => !string.IsNullOrWhiteSpace(p));
-
-        foreach (var p in parts)
+        var partStart = 0;
+        while (partStart < span.Length)
         {
-            var s = p.Trim();
+            var andIndex = IndexOfAndSeparator(span, partStart);
+            var partEnd = andIndex >= 0 ? andIndex : span.Length;
+            var part = span[partStart..partEnd].Trim();
+            if (part.Length > 0 && TryParseSimpleWherePart(part, out var condition))
+                list.Add(condition);
 
-            var min = Regex.Match(s, @"^(?<c>[\w`\.]+)\s+IN\s*(?<v>.+)$", RegexOptions.IgnoreCase);
-            if (min.Success)
-            {
-                list.Add((min.Groups["c"].Value.Trim(), SqlConst.IN, min.Groups["v"].Value.Trim()));
-                continue;
-            }
+            if (andIndex < 0)
+                break;
 
-            var comparison = Regex.Match(
-                s,
-                @"^(?<c>[\w`\.]+)\s*(?<op><=|>=|<>|!=|=|<|>)\s*(?<v>.+)$",
-                RegexOptions.IgnoreCase);
-            if (comparison.Success)
-            {
-                list.Add((
-                    comparison.Groups["c"].Value.Trim(),
-                    comparison.Groups["op"].Value.Trim(),
-                    comparison.Groups["v"].Value.Trim()));
-            }
+            partStart = andIndex + 3;
+            while (partStart < span.Length && char.IsWhiteSpace(span[partStart]))
+                partStart++;
         }
 
         return list;
+    }
+
+    private static int IndexOfAndSeparator(ReadOnlySpan<char> span, int start)
+    {
+        for (var i = start + 1; i + 2 < span.Length; i++)
+        {
+            if (!IsAndToken(span, i))
+                continue;
+
+            if (!char.IsWhiteSpace(span[i - 1]))
+                continue;
+
+            var afterToken = i + 3;
+            if (afterToken >= span.Length || !char.IsWhiteSpace(span[afterToken]))
+                continue;
+
+            return i;
+        }
+
+        return -1;
+    }
+
+    private static bool IsAndToken(ReadOnlySpan<char> span, int index)
+        => (span[index] == 'A' || span[index] == 'a')
+            && (span[index + 1] == 'N' || span[index + 1] == 'n')
+            && (span[index + 2] == 'D' || span[index + 2] == 'd');
+
+    private static bool TryParseSimpleWherePart(
+        ReadOnlySpan<char> part,
+        out (string C, string Op, string V) condition)
+    {
+        condition = default;
+
+        var pos = 0;
+        while (pos < part.Length && char.IsWhiteSpace(part[pos]))
+            pos++;
+
+        var columnStart = pos;
+        while (pos < part.Length)
+        {
+            var ch = part[pos];
+            if (char.IsWhiteSpace(ch) || ch is '<' or '>' or '=' or '!')
+                break;
+
+            pos++;
+        }
+
+        if (pos <= columnStart)
+            return false;
+
+        var column = part[columnStart..pos].Trim();
+        if (column.Length == 0)
+            return false;
+
+        var rest = part[pos..].TrimStart();
+        if (rest.Length == 0)
+            return false;
+
+        if (TryParseInClause(rest, out var inValue))
+        {
+            condition = (column.ToString(), SqlConst.IN, inValue);
+            return true;
+        }
+
+        if (TryParseComparisonClause(rest, out var opLength))
+        {
+            var value = rest[opLength..].TrimStart();
+            if (value.Length == 0)
+                return false;
+
+            condition = (column.ToString(), rest[..opLength].ToString(), value.ToString());
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseInClause(ReadOnlySpan<char> rest, out string value)
+    {
+        value = string.Empty;
+        if (rest.Length < 2)
+            return false;
+
+        if (!((rest[0] == 'I' || rest[0] == 'i') && (rest[1] == 'N' || rest[1] == 'n')))
+            return false;
+
+        if (rest.Length > 2 && !char.IsWhiteSpace(rest[2]) && rest[2] != '(')
+            return false;
+
+        value = rest[2..].TrimStart().ToString();
+        return value.Length > 0;
+    }
+
+    private static bool TryParseComparisonClause(ReadOnlySpan<char> rest, out int opLength)
+    {
+        opLength = 0;
+        if (rest.Length == 0)
+            return false;
+
+        var first = rest[0];
+        if (first == '=')
+        {
+            opLength = 1;
+            return true;
+        }
+
+        if (first == '<' || first == '>')
+        {
+            if (rest.Length > 1 && (rest[1] == '=' || rest[1] == '>'))
+                opLength = 2;
+            else
+                opLength = 1;
+
+            return true;
+        }
+
+        if (first == '!' && rest.Length > 1 && rest[1] == '=')
+        {
+            opLength = 2;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static Dictionary<string, (string C, string Op, string V)> BuildEqualityConditionLookup(
+        List<(string C, string Op, string V)> conditions,
+        out int equalityCount)
+    {
+        var lookup = new Dictionary<string, (string C, string Op, string V)>(conditions.Count * 2, StringComparer.OrdinalIgnoreCase);
+        equalityCount = 0;
+
+        for (var i = 0; i < conditions.Count; i++)
+        {
+            var condition = conditions[i];
+            if (condition.Op != "=")
+                continue;
+
+            equalityCount++;
+            AddEqualityConditionLookup(lookup, condition.C.NormalizeName(), condition);
+
+            var trimmed = condition.C.Trim('`', '"', '[', ']').NormalizeName();
+            AddEqualityConditionLookup(lookup, trimmed, condition);
+        }
+
+        return lookup;
+    }
+
+    private static void AddEqualityConditionLookup(
+        Dictionary<string, (string C, string Op, string V)> lookup,
+        string key,
+        (string C, string Op, string V) condition)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return;
+
+        lookup.TryAdd(key, condition);
     }
 
     /// <summary>
@@ -1821,15 +1959,12 @@ public abstract class TableMock
         if (conditions.Count == 0 || table.PrimaryKeyIndexes.Count == 0)
             return false;
 
-        var eqConditions = new List<(string C, string Op, string V)>(conditions.Count);
-        foreach (var condition in conditions)
-        {
-            if (condition.Op == "=")
-                eqConditions.Add(condition);
-        }
-
-        if (eqConditions.Count < table.PrimaryKeyIndexes.Count)
+        var eqConditionsByName = BuildEqualityConditionLookup(conditions, out var eqConditionCount);
+        if (eqConditionCount < table.PrimaryKeyIndexes.Count)
             return false;
+
+        var exactPkEqualityOnly = eqConditionCount == table.PrimaryKeyIndexes.Count
+            && eqConditionCount == conditions.Count;
 
         if (table is TableMock tableMock)
         {
@@ -1841,6 +1976,9 @@ public abstract class TableMock
 
                 if (!tableMock.TryFindRowByPkValues(pkValue0, out rowIndex))
                     return false;
+
+                if (exactPkEqualityOnly)
+                    return true;
 
                 var pkMatchedRow1 = table[rowIndex];
                 return IsMatchSimple(table, context, pars, conditions, pkMatchedRow1);
@@ -1856,6 +1994,9 @@ public abstract class TableMock
 
                 if (!tableMock.TryFindRowByPkValues(pkValue0, pkValue1, out rowIndex))
                     return false;
+
+                if (exactPkEqualityOnly)
+                    return true;
 
                 var pkMatchedRow2 = table[rowIndex];
                 return IsMatchSimple(table, context, pars, conditions, pkMatchedRow2);
@@ -1873,6 +2014,9 @@ public abstract class TableMock
                 if (!tableMock.TryFindRowByPkValues(pkValue0, pkValue1, pkValue2, out rowIndex))
                     return false;
 
+                if (exactPkEqualityOnly)
+                    return true;
+
                 var pkMatchedRow3 = table[rowIndex];
                 return IsMatchSimple(table, context, pars, conditions, pkMatchedRow3);
             }
@@ -1889,15 +2033,16 @@ public abstract class TableMock
             if (!tableMock.TryFindRowByPkValues(pkValues, out rowIndex))
                 return false;
 
+            if (exactPkEqualityOnly)
+                return true;
+
             var pkMatchedRow4 = table[rowIndex];
             return IsMatchSimple(table, context, pars, conditions, pkMatchedRow4);
 
             bool TryResolvePkConditionValue(int pkIdx, out object? value)
             {
-                var col = tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
-                    ? tableMock.GetColumn(columnName)
-                    : table.Columns.Values.First(c => c.Index == pkIdx);
-                if (!TryFindMatchingCondition(eqConditions, col.Name, out var matchingCond))
+                var col = tableMock.GetColumnByIndex(pkIdx);
+                if (!eqConditionsByName.TryGetValue(col.Name, out var matchingCond))
                 {
                     value = null;
                     return false;
@@ -1908,23 +2053,13 @@ public abstract class TableMock
             }
         }
 
-        var eqConditionsByName = new Dictionary<string, (string C, string Op, string V)>(eqConditions.Count * 2, StringComparer.OrdinalIgnoreCase);
-        foreach (var cond in eqConditions)
-        {
-            var normalized = cond.C.NormalizeName();
-            eqConditionsByName.TryAdd(normalized, cond);
-
-            var trimmed = cond.C.Trim('`', '"', '[', ']').NormalizeName();
-            eqConditionsByName.TryAdd(trimmed, cond);
-        }
-
         var syntheticRow = new Dictionary<int, object?>(table.PrimaryKeyIndexes.Count);
 
         foreach (var pkIdx in table.PrimaryKeyIndexes)
         {
-            var col = table is TableMock tableAsMock && tableAsMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
-                ? tableAsMock.GetColumn(columnName)
-                : table.Columns.Values.First(c => c.Index == pkIdx);
+            var col = table is TableMock tableAsMock
+                ? tableAsMock.GetColumnByIndex(pkIdx)
+                : GetColumnByIndex(table, pkIdx);
             if (!eqConditionsByName.TryGetValue(col.Name, out var matchingCond))
                 return false;
 
@@ -1933,6 +2068,9 @@ public abstract class TableMock
 
         if (!table.TryFindRowByPk(syntheticRow, out rowIndex))
             return false;
+
+        if (exactPkEqualityOnly)
+            return true;
 
         var syntheticMatchedRow = table[rowIndex];
         return IsMatchSimple(table, context, pars, conditions, syntheticMatchedRow);
@@ -1948,15 +2086,12 @@ public abstract class TableMock
         if (conditions.Count == 0 || table.PrimaryKeyIndexes.Count == 0)
             return false;
 
-        var eqConditions = new List<(string C, string Op, string V)>(conditions.Count);
-        foreach (var condition in conditions)
-        {
-            if (condition.Op == "=")
-                eqConditions.Add(condition);
-        }
-
-        if (eqConditions.Count < table.PrimaryKeyIndexes.Count)
+        var eqConditionsByName = BuildEqualityConditionLookup(conditions, out var eqConditionCount);
+        if (eqConditionCount < table.PrimaryKeyIndexes.Count)
             return false;
+
+        var exactPkEqualityOnly = eqConditionCount == table.PrimaryKeyIndexes.Count
+            && eqConditionCount == conditions.Count;
 
         if (table is TableMock tableMock)
         {
@@ -1968,6 +2103,9 @@ public abstract class TableMock
 
                 if (!tableMock.TryFindRowByPkValues(pkValue0, out rowIndex))
                     return false;
+
+                if (exactPkEqualityOnly)
+                    return true;
 
                 var pkMatchedRow1 = table[rowIndex];
                 return IsMatchSimple(table, pars, conditions, pkMatchedRow1);
@@ -1983,6 +2121,9 @@ public abstract class TableMock
 
                 if (!tableMock.TryFindRowByPkValues(pkValue0, pkValue1, out rowIndex))
                     return false;
+
+                if (exactPkEqualityOnly)
+                    return true;
 
                 var pkMatchedRow2 = table[rowIndex];
                 return IsMatchSimple(table, pars, conditions, pkMatchedRow2);
@@ -2000,6 +2141,9 @@ public abstract class TableMock
                 if (!tableMock.TryFindRowByPkValues(pkValue0, pkValue1, pkValue2, out rowIndex))
                     return false;
 
+                if (exactPkEqualityOnly)
+                    return true;
+
                 var pkMatchedRow3 = table[rowIndex];
                 return IsMatchSimple(table, pars, conditions, pkMatchedRow3);
             }
@@ -2016,15 +2160,16 @@ public abstract class TableMock
             if (!tableMock.TryFindRowByPkValues(pkValues, out rowIndex))
                 return false;
 
+            if (exactPkEqualityOnly)
+                return true;
+
             var pkMatchedRow4 = table[rowIndex];
             return IsMatchSimple(table, pars, conditions, pkMatchedRow4);
 
             bool TryResolvePkConditionValue(int pkIdx, out object? value)
             {
-                var col = tableMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
-                    ? tableMock.GetColumn(columnName)
-                    : table.Columns.Values.First(c => c.Index == pkIdx);
-                if (!TryFindMatchingCondition(eqConditions, col.Name, out var matchingCond))
+                var col = tableMock.GetColumnByIndex(pkIdx);
+                if (!eqConditionsByName.TryGetValue(col.Name, out var matchingCond))
                 {
                     value = null;
                     return false;
@@ -2044,23 +2189,13 @@ public abstract class TableMock
             }
         }
 
-        var eqConditionsByName = new Dictionary<string, (string C, string Op, string V)>(eqConditions.Count * 2, StringComparer.OrdinalIgnoreCase);
-        foreach (var cond in eqConditions)
-        {
-            var normalized = cond.C.NormalizeName();
-            eqConditionsByName.TryAdd(normalized, cond);
-
-            var trimmed = cond.C.Trim('`', '"', '[', ']').NormalizeName();
-            eqConditionsByName.TryAdd(trimmed, cond);
-        }
-
         var syntheticRow = new Dictionary<int, object?>(table.PrimaryKeyIndexes.Count);
 
         foreach (var pkIdx in table.PrimaryKeyIndexes)
         {
-            var col = table is TableMock tableAsMock && tableAsMock.ColumnsByIndex.TryGetValue(pkIdx, out var columnName)
-                ? tableAsMock.GetColumn(columnName)
-                : table.Columns.Values.First(c => c.Index == pkIdx);
+            var col = table is TableMock tableAsMock
+                ? tableAsMock.GetColumnByIndex(pkIdx)
+                : GetColumnByIndex(table, pkIdx);
             if (!eqConditionsByName.TryGetValue(col.Name, out var matchingCond))
                 return false;
 
@@ -2073,39 +2208,22 @@ public abstract class TableMock
         if (!table.TryFindRowByPk(syntheticRow, out rowIndex))
             return false;
 
+        if (exactPkEqualityOnly)
+            return true;
+
         var syntheticMatchedRow = table[rowIndex];
         return IsMatchSimple(table, pars, conditions, syntheticMatchedRow);
     }
 
-    private static bool TryFindMatchingCondition(
-        List<(string C, string Op, string V)> conditions,
-        string columnName,
-        out (string C, string Op, string V) matchingCondition)
+    private static ColumnDef GetColumnByIndex(ITableMock table, int index)
     {
-        var normalizedColumnName = columnName.NormalizeName();
-        for (var i = 0; i < conditions.Count; i++)
+        foreach (var column in table.Columns.Values)
         {
-            var condition = conditions[i];
-            if (condition.Op != "=")
-                continue;
-
-            var normalized = condition.C.NormalizeName();
-            if (string.Equals(normalized, normalizedColumnName, StringComparison.OrdinalIgnoreCase))
-            {
-                matchingCondition = condition;
-                return true;
-            }
-
-            var trimmed = condition.C.Trim('`', '"', '[', ']').NormalizeName();
-            if (string.Equals(trimmed, normalizedColumnName, StringComparison.OrdinalIgnoreCase))
-            {
-                matchingCondition = condition;
-                return true;
-            }
+            if (column.Index == index)
+                return column;
         }
 
-        matchingCondition = default;
-        return false;
+        throw new InvalidOperationException("Column index not found.");
     }
 
     internal static bool IsMatchSimple(

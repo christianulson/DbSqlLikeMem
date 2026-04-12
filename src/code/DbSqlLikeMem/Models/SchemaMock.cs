@@ -467,8 +467,23 @@ public abstract class SchemaMock
                     Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
         }
 
-        return childTable.Any(childRow => fk.References.All(r =>
-            Equals(childRow[r.col.Index], parentRow[r.refCol.Index])));
+        foreach (var childRow in childTable)
+        {
+            var matches = true;
+            foreach (var reference in fk.References)
+            {
+                if (!Equals(childRow[reference.col.Index], parentRow[reference.refCol.Index]))
+                {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (matches)
+                return true;
+        }
+
+        return false;
     }
 
     private static bool HasReferenceByIndex(
@@ -476,39 +491,11 @@ public abstract class SchemaMock
         ForeignDef fk,
         IReadOnlyDictionary<int, object?> parentRow)
     {
-        IndexDef? matchingIndex = null;
-        var matchingKeyCount = -1;
-        foreach (var index in childTable.Indexes.Values)
-        {
-            var coversAllReferences = true;
-            foreach (var reference in fk.References)
-            {
-                if (!index.KeyCols.Contains(reference.col.Name, StringComparer.OrdinalIgnoreCase))
-                {
-                    coversAllReferences = false;
-                    break;
-                }
-            }
-
-            if (!coversAllReferences)
-                continue;
-
-            if (index.KeyCols.Count <= matchingKeyCount)
-                continue;
-
-            matchingIndex = index;
-            matchingKeyCount = index.KeyCols.Count;
-        }
-
-        if (matchingIndex is null)
+        if (!fk.TryGetChildLookupPlan(out var lookupPlan))
             return false;
 
-        var valuesByColumn = new Dictionary<string, object?>(fk.References.Count, StringComparer.OrdinalIgnoreCase);
-        foreach (var reference in fk.References)
-            valuesByColumn[reference.col.Name.NormalizeName()] = parentRow[reference.refCol.Index];
-
-        var key = matchingIndex.BuildIndexKeyFromValues(valuesByColumn);
-        return matchingIndex.LookupMutable(key)?.Count > 0;
+        var key = lookupPlan.BuildKey(parentRow);
+        return lookupPlan.Index.LookupMutable(key)?.Count > 0;
     }
 
 }

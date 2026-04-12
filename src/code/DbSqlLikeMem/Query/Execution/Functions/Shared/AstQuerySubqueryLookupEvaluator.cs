@@ -9,6 +9,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
     Func<string, SqlExpr> parseExpr,
     Func<SqlTableSource?, IDictionary<string, Source>, SqlExpr?, bool, bool, IEnumerable<EvalRow>> buildFrom,
     Func<SqlTableSource, IDictionary<string, Source>, Source> resolveSource,
+    AstQueryIndexHelper? indexHelper,
     Func<EvalRow, EvalRow, EvalRow> attachOuterRow,
     Func<SqlSelectQuery, IDictionary<string, Source>, EvalRow?, TableResultMock> executeSelect,
     AstQueryPartitionHelper? partitionHelper)
@@ -19,6 +20,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
     private readonly Func<string, SqlExpr> _parseExpr = parseExpr ?? throw new ArgumentNullException(nameof(parseExpr));
     private readonly Func<SqlTableSource?, IDictionary<string, Source>, SqlExpr?, bool, bool, IEnumerable<EvalRow>> _buildFrom = buildFrom ?? throw new ArgumentNullException(nameof(buildFrom));
     private readonly Func<SqlTableSource, IDictionary<string, Source>, Source> _resolveSource = resolveSource ?? throw new ArgumentNullException(nameof(resolveSource));
+    private readonly AstQueryIndexHelper? _indexHelper = indexHelper;
     private readonly Func<EvalRow, EvalRow, EvalRow> _attachOuterRow = attachOuterRow ?? throw new ArgumentNullException(nameof(attachOuterRow));
     private readonly Func<SqlSelectQuery, IDictionary<string, Source>, EvalRow?, TableResultMock> _executeSelect = executeSelect ?? throw new ArgumentNullException(nameof(executeSelect));
     private readonly AstQueryPartitionHelper? _partitionHelper = partitionHelper;
@@ -169,9 +171,6 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         IDictionary<string, Source> ctes)
     {
         var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
-        if (_cache.TryGetFirstColumnValues(cacheKey, out var cachedValues))
-            return cachedValues!;
-
         return _cache.GetOrAddFirstColumnValues(
             cacheKey,
             _ => EvaluateSubqueryFirstColumnValues(sq, operation, row, ctes));
@@ -195,10 +194,6 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         IDictionary<string, Source> ctes)
     {
         var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey("IN_LOOKUP", sq.Sql, row);
-        if (_cache.TryGetOperationData(cacheKey, out InSubqueryLookupState? cachedState)
-            && cachedState is not null)
-            return cachedState;
-
         return _cache.GetOrAddOperationData(
             cacheKey,
             _ => BuildInSubqueryLookupState(sq, row, ctes));
@@ -210,10 +205,6 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         IDictionary<string, Source> ctes)
     {
         var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey("IN_ROWS_LOOKUP", sq.Sql, row);
-        if (_cache.TryGetOperationData(cacheKey, out InSubqueryLookupState? cachedState)
-            && cachedState is not null)
-            return cachedState;
-
         return _cache.GetOrAddOperationData(
             cacheKey,
             _ => BuildInSubqueryRowLookupState(sq, row, ctes));
@@ -247,6 +238,20 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             return false;
         }
 
+        if (_indexHelper is not null)
+        {
+            if (_indexHelper.TryCountRowsFromIndex(
+                src,
+                query.Table,
+                query.Where,
+                hasOrderBy: query.OrderBy.Count > 0,
+                hasGroupBy: false,
+                out count))
+            {
+                return true;
+            }
+        }
+
         return _context.TryCountRows(src, equalsByColumn, out count);
     }
 
@@ -274,13 +279,15 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         EvalRow row,
         IDictionary<string, Source> ctes)
     {
-        var subqueryResult = _executeSelect(
-            sq.Parsed ?? throw new InvalidOperationException(
-                $"{operation}: SubqueryExpr sem AST parseado (Parsed vazio)."),
-            ctes,
-            row);
+        var query = sq.Parsed ?? throw new InvalidOperationException(
+            $"{operation}: SubqueryExpr sem AST parseado (Parsed vazio).");
+
+        if (TryEvaluateSimpleFirstColumnValues(query, row, ctes, out var values))
+            return values;
+
+        var subqueryResult = _executeSelect(query, ctes, row);
         var rowCount = subqueryResult.Count;
-        var values = new List<object?>(rowCount);
+        values = new List<object?>(rowCount);
         for (var i = 0; i < rowCount; i++)
         {
             var resultRow = subqueryResult[i];
@@ -288,6 +295,79 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         }
 
         return values;
+    }
+
+    private bool TryEvaluateSimpleFirstColumnValues(
+        SqlSelectQuery query,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        out List<object?> values)
+    {
+        if (row is not null
+            || query.Table is null
+            || query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.Distinct
+            || query.GroupBy.Count > 0
+            || query.Having is not null
+            || query.RowLimit is not null
+            || query.ForJson is not null
+            || query.SelectItems.Count != 1)
+        {
+            values = [];
+            return false;
+        }
+
+        var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        SqlExpr selectExpr;
+        try
+        {
+            selectExpr = _parseExpr(exprRaw);
+        }
+        catch
+        {
+            values = [];
+            return false;
+        }
+
+        if (selectExpr is not ColumnExpr && selectExpr is not IdentifierExpr)
+        {
+            values = [];
+            return false;
+        }
+
+        var rows = BuildFromResolvedSource(
+            _resolveSource(query.Table, ctes),
+            query.Table,
+            ctes,
+            query.Where,
+            query.OrderBy.Count > 0,
+            false);
+
+        if (rows is ICollection<EvalRow> collection)
+            values = new List<object?>(collection.Count);
+        else
+            values = [];
+
+        foreach (var candidate in rows)
+        {
+            values.Add(_eval(selectExpr, candidate, null, ctes));
+        }
+
+        return true;
+    }
+
+    private IEnumerable<EvalRow> BuildFromResolvedSource(
+        Source src,
+        SqlTableSource? from,
+        IDictionary<string, Source> ctes,
+        SqlExpr? where,
+        bool hasOrderBy,
+        bool hasGroupBy)
+    {
+        var sourceRows = _indexHelper?.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
+        foreach (var row in sourceRows)
+            yield return AstQueryRowSourceHelper.CreateSourceEvalRow(src, row);
     }
 
     private List<object?[]> EvaluateSubqueryRowValues(

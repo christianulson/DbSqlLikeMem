@@ -31,14 +31,27 @@ internal static class SqlInsertValuesParserHelper
             var rawBlock = ctx.ReadBalancedParenRawTokens();
             var rowValuesRaw = SqlRawCommaSplitterHelper.SplitRawByComma(rawBlock);
 
-            if (rowValuesRaw.Any(v => string.IsNullOrWhiteSpace(v)))
-                throw new InvalidOperationException("INSERT VALUES row has an empty expression between commas.");
+            var rowValueCount = rowValuesRaw.Count;
+            for (var i = 0; i < rowValueCount; i++)
+            {
+                if (string.IsNullOrWhiteSpace(rowValuesRaw[i]))
+                    throw new InvalidOperationException("INSERT VALUES row has an empty expression between commas.");
+            }
 
             var rowValues = rowValuesRaw;
             var rowNumber = valuesRaw.Count + 1;
 
-            valuesRaw.Add([.. rowValues.Select(raw => NormalizeInsertValueRaw(raw, ctx.Dialect))]);
-            valuesExpr.Add(ParseInsertValuesRowExpressions(rowValues, rowNumber, ctx.ParseScalar));
+            var normalizedValues = new List<string>(rowValueCount);
+            var parsedValues = new List<SqlExpr?>(rowValueCount);
+            for (var i = 0; i < rowValueCount; i++)
+            {
+                var raw = rowValues[i];
+                normalizedValues.Add(SqlSimpleValueParserHelper.NormalizeSimpleSqlValueRawTrimmed(raw, ctx.Dialect));
+                parsedValues.Add(ParseInsertValueExpression(raw, ctx.Dialect, rowNumber, i + 1, ctx.ParseScalar));
+            }
+
+            valuesRaw.Add(normalizedValues);
+            valuesExpr.Add(parsedValues);
 
             if (ctx.IsSymbol(","))
             {
@@ -57,45 +70,39 @@ internal static class SqlInsertValuesParserHelper
         }
     }
 
-    private static List<SqlExpr?> ParseInsertValuesRowExpressions(
-        IReadOnlyList<string> rowValues,
+    private static SqlExpr ParseInsertValueExpression(
+        string raw,
+        ISqlDialect dialect,
         int rowNumber,
+        int exprNumber,
         Func<string, SqlExpr> parseScalar)
     {
-        var parsed = new List<SqlExpr?>(rowValues.Count);
+        if (HasDanglingTrailingOperator(raw))
+            throw new InvalidOperationException(
+                $"INSERT VALUES row {rowNumber} expression {exprNumber} is invalid.");
 
-        for (var exprIndex = 0; exprIndex < rowValues.Count; exprIndex++)
+        if (SqlSimpleValueParserHelper.TryParseSimpleSqlValueExpressionTrimmed(raw, dialect, out var simpleExpr))
+            return simpleExpr;
+
+        try
         {
-            var raw = rowValues[exprIndex];
-            try
-            {
-                parsed.Add(parseScalar(raw));
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new InvalidOperationException(
-                    $"INSERT VALUES row {rowNumber} expression {exprIndex + 1} is invalid.",
-                    ex);
-            }
+            return parseScalar(raw);
         }
-
-        return parsed;
+        catch (InvalidOperationException ex)
+        {
+            throw new InvalidOperationException(
+                $"INSERT VALUES row {rowNumber} expression {exprNumber} is invalid.",
+                ex);
+        }
     }
 
-    private static string NormalizeInsertValueRaw(string raw, ISqlDialect dialect)
+    private static bool HasDanglingTrailingOperator(string raw)
     {
-        raw = raw.Trim();
-        if (string.IsNullOrWhiteSpace(raw))
-            return raw;
+        var trimmed = raw.TrimEnd();
+        if (trimmed.Length == 0)
+            return true;
 
-        var tokens = new SqlTokenizer(raw, dialect).Tokenize();
-        if (tokens.Count == 2
-            && tokens[0].Kind == SqlTokenKind.String
-            && tokens[1].Kind == SqlTokenKind.EndOfFile)
-        {
-            return tokens[0].Text;
-        }
-
-        return raw;
+        return trimmed[^1] is '+' or '-' or '*' or '/' or '%' or '&' or '|' or '^' or '=' or '<' or '>' or '!';
     }
+
 }

@@ -212,7 +212,9 @@ public static class DbSeedExtensions
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
         if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
             throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
-        var orderedCols = tb.Columns.Values.OrderBy(c => c.Index).ToList();
+        IReadOnlyList<ColumnDef> orderedCols = tb is TableMock tableMock
+            ? tableMock.ColumnsByOrdinal
+            : tb.Columns.Values.OrderBy(c => c.Index).ToList();
         var materializedRows = new List<Dictionary<int, object?>>(rows.Length);
         foreach (var arr in rows)
         {

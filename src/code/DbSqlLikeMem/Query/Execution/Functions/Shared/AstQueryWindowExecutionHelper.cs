@@ -222,9 +222,16 @@ internal static class AstQueryWindowExecutionHelper
     {
         var slotCount = slots.Count;
         var groups = new Dictionary<string, List<WindowSlot>>(Math.Max(1, slotCount), StringComparer.Ordinal);
+        var keyCache = new Dictionary<WindowSpec, string>(ReferenceEqualityComparer<WindowSpec>.Instance);
         foreach (var slot in slots)
         {
-            var key = BuildWindowSpecCacheKey(slot.Expr.Spec);
+            var spec = slot.Expr.Spec;
+            if (!keyCache.TryGetValue(spec, out var key))
+            {
+                key = BuildWindowSpecCacheKey(spec);
+                keyCache[spec] = key;
+            }
+
             if (!groups.TryGetValue(key, out var group))
             {
                 group = new List<WindowSlot>();
@@ -243,12 +250,16 @@ internal static class AstQueryWindowExecutionHelper
 
     internal static string BuildWindowSpecCacheKey(WindowSpec spec)
     {
-        var sb = new StringBuilder();
         var partitionBy = spec.PartitionBy;
         var orderBy = spec.OrderBy;
         var partitionByCount = partitionBy.Count;
         var orderByCount = orderBy.Count;
         var frame = spec.Frame;
+        var estimatedCapacity = 32 + (partitionByCount * 24) + (orderByCount * 24);
+        if (frame is not null)
+            estimatedCapacity += 48;
+
+        var sb = new StringBuilder(estimatedCapacity);
 
         sb.Append("PART:");
         for (var i = 0; i < partitionByCount; i++)
