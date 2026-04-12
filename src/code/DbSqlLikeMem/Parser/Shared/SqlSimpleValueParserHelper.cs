@@ -61,6 +61,12 @@ internal static class SqlSimpleValueParserHelper
             return true;
         }
 
+        if (SqlTemporalFunctionEvaluator.IsKnownTemporalTokenName(raw))
+        {
+            expr = new IdentifierExpr(raw);
+            return true;
+        }
+
         return false;
     }
 

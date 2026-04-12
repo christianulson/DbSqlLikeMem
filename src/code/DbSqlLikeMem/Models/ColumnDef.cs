@@ -138,11 +138,33 @@ public sealed class ColumnDef
     /// EN: Value generator for computed/derived columns.
     /// PT: Função geradora de valor calculado para colunas derivadas.
     /// </summary>
-    public Func<IReadOnlyDictionary<int, object?>, ITableMock, object?>? GetGenValue { get; set; }
+    public Func<IReadOnlyDictionary<int, object?>, ITableMock, object?>? GetGenValue
+    {
+        get => _getGenValue;
+        set
+        {
+            _getGenValue = value;
+            MetadataChanged?.Invoke();
+        }
+    }
+
+    private Func<IReadOnlyDictionary<int, object?>, ITableMock, object?>? _getGenValue;
 
     /// <summary>
     /// EN: When true, stores the generated value in the row and keeps it updated on writes.
     /// PT: Quando true, armazena o valor calculado na linha e o mantém atualizado em escritas.
     /// </summary>
-    public bool PersistComputedValue { get; set; }
+    public bool PersistComputedValue
+    {
+        get => _persistComputedValue;
+        set
+        {
+            _persistComputedValue = value;
+            MetadataChanged?.Invoke();
+        }
+    }
+
+    private bool _persistComputedValue;
+
+    internal Action? MetadataChanged { get; set; }
 }

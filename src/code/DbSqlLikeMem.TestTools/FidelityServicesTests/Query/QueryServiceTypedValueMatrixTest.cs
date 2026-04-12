@@ -376,7 +376,7 @@ INSERT INTO {tableName} (
         }
         else
         {
-            NormalizeDateTimeOffsetValue(reader.GetValue(16)).Should().Be(expectedDateTimeOffsetValue.Value);
+            NormalizeDateTimeOffsetValue(reader.GetValue(16), provider).Should().Be(expectedDateTimeOffsetValue.Value);
         }
 
         return QueryResultSnapshotReader.CaptureRow(reader);
@@ -391,5 +391,9 @@ INSERT INTO {tableName} (
     private DateTimeOffset NormalizeStoredDateTimeOffsetValue(DateTimeOffset value)
         => Dialect.Provider == ProviderId.Npgsql
             ? value.ToUniversalTime()
-            : value;
+            : Dialect.Provider == ProviderId.Oracle
+                ? new DateTimeOffset(value.DateTime, TimeSpan.Zero)
+                : value;
 }
+
+

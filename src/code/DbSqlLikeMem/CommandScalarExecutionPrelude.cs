@@ -100,7 +100,7 @@ internal static class CommandScalarExecutionPrelude
             return true;
         }
 
-        if (q is not SqlSelectQuery selectQuery || selectQuery.SelectItems.Count != 1)
+        if (q is not SqlSelectQuery selectQuery || selectQuery.SelectItems.Count == 0)
             return false;
 
         if (TryEvaluateSimpleCountStarScalar(context, selectQuery, out scalar))
@@ -159,6 +159,9 @@ internal static class CommandScalarExecutionPrelude
         scalar = DBNull.Value;
         context.ResetPositionalParameterCursor();
 
+        if (query.SelectItems.Count == 0)
+            return false;
+
         if (query.Ctes.Count > 0
             || query.Joins.Count > 0
             || query.Where is not null
@@ -172,55 +175,42 @@ internal static class CommandScalarExecutionPrelude
             return false;
         }
 
-        SqlExpr expr;
-        try
+        object? firstScalar = null;
+        for (var i = 0; i < query.SelectItems.Count; i++)
         {
-            expr = SqlExpressionParser.ParseScalar(
-                query.SelectItems[0].Raw,
-                context.Connection.Db,
-                context.Dialect,
-                null,
-                customFunctionSupported);
-        }
-        catch
-        {
-            return false;
+            var rawItem = query.SelectItems[i].Raw.Trim();
+            object? itemValue;
+            if (context.TryResolveParameter(rawItem, out itemValue))
+            {
+                // Fast path for parameter projection: return bound parameters without parsing.
+            }
+            else
+            {
+                SqlExpr expr;
+                try
+                {
+                    expr = SqlExpressionParser.ParseScalar(
+                        rawItem,
+                        context.Connection.Db,
+                        context.Dialect,
+                        null,
+                        customFunctionSupported);
+                }
+                catch
+                {
+                    return false;
+                }
+
+                if (!TryEvaluateSelectItemScalarExpression(context, expr, out itemValue))
+                    return false;
+            }
+
+            if (i == 0)
+                firstScalar = itemValue ?? DBNull.Value;
         }
 
-        if (TryEvaluateConstantScalarExpression(context, expr, out scalar))
-        {
-            scalar ??= DBNull.Value;
-            return true;
-        }
-
-        switch (expr)
-        {
-            case LiteralExpr literal:
-                scalar = literal.Value ?? DBNull.Value;
-                return true;
-            case ParameterExpr parameter:
-                scalar = QueryRowValueHelper.ResolveParam(context, parameter.Name) ?? DBNull.Value;
-                return true;
-            case IdentifierExpr identifier when context.TryEvaluateZeroArgIdentifier(identifier.Name, out var temporalIdentifierValue):
-                scalar = temporalIdentifierValue ?? DBNull.Value;
-                return true;
-            case FunctionCallExpr functionCall when functionCall.Args.Count == 0
-                && context.TryEvaluateZeroArgCall(functionCall.Name, out var temporalCallValue):
-                scalar = temporalCallValue ?? DBNull.Value;
-                return true;
-            case CallExpr call when call.Args.Count == 0
-                && context.TryEvaluateZeroArgCall(call.Name, out var temporalCallValue):
-                scalar = temporalCallValue ?? DBNull.Value;
-                return true;
-            case FunctionCallExpr functionCall when TryEvaluateSequenceScalarExpression(context, functionCall.Name, functionCall.Args, out var sequenceFunctionValue):
-                scalar = sequenceFunctionValue ?? DBNull.Value;
-                return true;
-            case CallExpr call when TryEvaluateSequenceScalarExpression(context, call.Name, call.Args, out var sequenceCallValue):
-                scalar = sequenceCallValue ?? DBNull.Value;
-                return true;
-            default:
-                return false;
-        }
+        scalar = firstScalar ?? DBNull.Value;
+        return true;
     }
 
     private static bool TryEvaluateSequenceScalarExpression(
@@ -239,6 +229,30 @@ internal static class CommandScalarExecutionPrelude
             args,
             expr => TryEvaluateConstantScalarExpression(context, expr, out var argValue) ? argValue : null,
             out value);
+    }
+
+    private static bool TryEvaluateSelectItemScalarExpression(
+        QueryExecutionContext context,
+        SqlExpr expr,
+        out object? value)
+    {
+        if (TryEvaluateConstantScalarExpression(context, expr, out value))
+            return true;
+
+        return expr switch
+        {
+            FunctionCallExpr functionCall when TryEvaluateSequenceScalarExpression(context, functionCall.Name, functionCall.Args, out var sequenceFunctionValue)
+                => SetScalarValue(sequenceFunctionValue, out value),
+            CallExpr call when TryEvaluateSequenceScalarExpression(context, call.Name, call.Args, out var sequenceCallValue)
+                => SetScalarValue(sequenceCallValue, out value),
+            _ => false
+        };
+    }
+
+    private static bool SetScalarValue(object? sourceValue, out object? value)
+    {
+        value = sourceValue;
+        return true;
     }
 
     private static bool IsSequenceFunctionName(string functionName)

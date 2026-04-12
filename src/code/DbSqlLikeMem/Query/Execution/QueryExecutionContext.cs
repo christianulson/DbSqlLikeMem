@@ -106,6 +106,10 @@ internal sealed class QueryExecutionContext
 
     private readonly Dictionary<string, object?> _temporalZeroArgIdentifierCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, object?> _temporalZeroArgCallCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly bool _oracleEmptyStringAsNull;
+    private readonly bool _sqliteDecimalRoundTrip;
+    private readonly Dictionary<string, object?> _namedParameterValues;
+    private readonly object?[] _positionalParameterValues;
 
     /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
@@ -136,6 +140,10 @@ internal sealed class QueryExecutionContext
         HasActiveTransaction = connection.HasActiveTransaction;
         EvaluationLocalNow = DateTime.Now;
         EvaluationUtcNow = DateTime.UtcNow;
+        var providerName = connection.ProviderExecutionDialect.Name;
+        _oracleEmptyStringAsNull = string.Equals(providerName, "oracle", StringComparison.OrdinalIgnoreCase);
+        _sqliteDecimalRoundTrip = string.Equals(providerName, "sqlite", StringComparison.OrdinalIgnoreCase);
+        BuildParameterLookupCaches(parameters, out _namedParameterValues, out _positionalParameterValues);
     }
 
     private QueryExecutionContext(
@@ -160,6 +168,10 @@ internal sealed class QueryExecutionContext
         EvaluationUtcNow = source.EvaluationUtcNow;
         _temporalZeroArgIdentifierCache = source._temporalZeroArgIdentifierCache;
         _temporalZeroArgCallCache = source._temporalZeroArgCallCache;
+        _oracleEmptyStringAsNull = source._oracleEmptyStringAsNull;
+        _sqliteDecimalRoundTrip = source._sqliteDecimalRoundTrip;
+        _namedParameterValues = source._namedParameterValues;
+        _positionalParameterValues = source._positionalParameterValues;
         _positionalParameterCursor = positionalParameterCursor;
     }
 
@@ -223,22 +235,14 @@ internal sealed class QueryExecutionContext
     /// <returns>EN: True when a positional parameter was consumed. PT: Verdadeiro quando um parametro posicional foi consumido.</returns>
     internal bool TryResolveNextPositionalParameter(out object? value)
     {
-        var positionalIndex = 0;
-        foreach (IDataParameter parameter in Parameters)
+        if ((uint)_positionalParameterCursor >= (uint)_positionalParameterValues.Length)
         {
-            if (!IsPositionalParameter(parameter.ParameterName))
-                continue;
-
-            if (positionalIndex++ != _positionalParameterCursor)
-                continue;
-
-            _positionalParameterCursor++;
-            value = NormalizeResolvedValue(parameter.Value);
-            return true;
+            value = null;
+            return false;
         }
 
-        value = null;
-        return false;
+        value = _positionalParameterValues[_positionalParameterCursor++];
+        return true;
     }
 
     /// <summary>
@@ -255,21 +259,96 @@ internal sealed class QueryExecutionContext
         if (parameterToken == "?")
             return TryResolveNextPositionalParameter(out value);
 
+        if (_namedParameterValues.TryGetValue(parameterToken, out value))
+            return true;
+
         var normalized = parameterToken.TrimStart('@', ':', '?');
         if (normalized.Length == 0)
             return false;
 
-        foreach (IDataParameter parameter in Parameters)
+        if (normalized.Length != parameterToken.Length
+            && _namedParameterValues.TryGetValue(normalized.ToString(), out value))
         {
-            var candidate = parameter.ParameterName?.TrimStart('@', ':', '?');
-            if (string.Equals(candidate, normalized, StringComparison.OrdinalIgnoreCase))
-            {
-                value = NormalizeResolvedValue(parameter.Value);
-                return true;
-            }
+            return true;
         }
 
         return false;
+    }
+
+    private void BuildParameterLookupCaches(
+        IDataParameterCollection parameters,
+        out Dictionary<string, object?> namedParameterValues,
+        out object?[] positionalParameterValues)
+    {
+        var parameterCount = parameters.Count;
+        Dictionary<string, object?>? namedValues = parameterCount > 0
+            ? new Dictionary<string, object?>(parameterCount * 4, StringComparer.OrdinalIgnoreCase)
+            : null;
+        List<object?>? positionalValues = parameterCount > 0
+            ? new List<object?>(parameterCount)
+            : null;
+
+        foreach (IDataParameter parameter in parameters)
+        {
+            var resolvedValue = NormalizeResolvedValue(parameter.Value);
+
+            if (IsPositionalParameter(parameter.ParameterName))
+            {
+                if (positionalValues is null)
+                    positionalValues = new List<object?>(parameterCount);
+
+                positionalValues.Add(resolvedValue);
+            }
+
+            if (!string.IsNullOrWhiteSpace(parameter.ParameterName))
+            {
+                if (namedValues is null)
+                    namedValues = new Dictionary<string, object?>(parameterCount * 5, StringComparer.OrdinalIgnoreCase);
+
+                AddNamedParameterValueVariants(namedValues, parameter.ParameterName!, resolvedValue);
+            }
+        }
+
+        namedParameterValues = namedValues ?? new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        positionalParameterValues = positionalValues is null ? Array.Empty<object?>() : [.. positionalValues];
+    }
+
+    private static void AddNamedParameterValueVariants(
+        Dictionary<string, object?> namedValues,
+        string parameterName,
+        object? value)
+    {
+        AddNamedParameterValue(namedValues, parameterName, value);
+
+        var normalizedName = TrimParameterPrefix(parameterName);
+        if (normalizedName.Length == 0)
+            return;
+
+        var canonicalName = normalizedName.Length == parameterName.Length
+            ? parameterName
+            : normalizedName.ToString();
+
+        AddNamedParameterValue(namedValues, canonicalName, value);
+        AddNamedParameterValue(namedValues, string.Concat("@", canonicalName), value);
+        AddNamedParameterValue(namedValues, string.Concat(":", canonicalName), value);
+        AddNamedParameterValue(namedValues, string.Concat("?", canonicalName), value);
+    }
+
+    private static void AddNamedParameterValue(
+        Dictionary<string, object?> namedValues,
+        string parameterName,
+        object? value)
+    {
+        namedValues.TryAdd(parameterName, value);
+    }
+
+    private static ReadOnlySpan<char> TrimParameterPrefix(string parameterName)
+    {
+        var span = parameterName.AsSpan();
+        while (span.Length > 0 && span[0] is '@' or ':' or '?')
+            span = span[1..];
+
+        return span;
     }
 
     private static bool IsPositionalParameter(string? parameterName)
@@ -309,14 +388,14 @@ internal sealed class QueryExecutionContext
         if (value is DBNull)
             return null;
 
-        if (string.Equals(Connection.ProviderExecutionDialect.Name, "oracle", StringComparison.OrdinalIgnoreCase)
+        if (_oracleEmptyStringAsNull
             && value is string text
             && text.Length == 0)
         {
             return null;
         }
 
-        if (string.Equals(Connection.ProviderExecutionDialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase)
+        if (_sqliteDecimalRoundTrip
             && value is decimal decimalValue)
         {
             return Convert.ToDecimal(Convert.ToDouble(decimalValue, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);

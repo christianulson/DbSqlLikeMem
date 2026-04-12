@@ -3,6 +3,7 @@ using DbSqlLikeMem.Benchmarks.Sessions.External;
 using DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 using DbSqlLikeMem.Npgsql.TestTools;
 using DbSqlLikeMem.TestTools;
+using Microsoft.Data.Sqlite;
 using System.Data.Common;
 using Xunit;
 
@@ -83,17 +84,57 @@ public sealed class BenchmarkCatalogValidationTests(
     {
         var dialect = new NpgsqlProviderSqlDialect();
         var session = new ThrowingBenchmarkSession(dialect);
-        var logFile = Path.Combine(
-            AppContext.BaseDirectory,
-            "Logs",
-            SanitizeFileName($"{session.GetType().FullName}-{dialect.DisplayName}-errors.log"));
+        var logDirectory = BenchmarkLogPath.GetDirectory();
+        var logFile = BenchmarkLogPath.GetFilePath($"{session.GetType().FullName}-{dialect.DisplayName}-errors.log");
 
         try
         {
+            Assert.True(
+                logDirectory.EndsWith(
+                    Path.Combine("src", "benchmark", "DbSqlLikeMem.Benchmarks", "Logs"),
+                    StringComparison.OrdinalIgnoreCase),
+                $"Expected benchmark log directory '{logDirectory}' to end with the benchmark project Logs folder.");
+
             if (File.Exists(logFile))
                 File.Delete(logFile);
 
             session.Execute(BenchmarkFeatureId.ConnectionOpen);
+
+            Assert.True(File.Exists(logFile), $"Expected benchmark log file '{logFile}' to be created.");
+        }
+        finally
+        {
+            session.Dispose();
+            if (File.Exists(logFile))
+                File.Delete(logFile);
+        }
+    }
+
+    /// <summary>
+    /// EN: Ensures cleanup failures write benchmark issue logs to the benchmark project Logs directory.
+    /// PT: Garante que falhas de cleanup gravem logs de benchmark na pasta Logs do projeto de benchmark.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void SafeExecute_ShouldWriteBenchmarkIssueLogForMissingTableCleanup()
+    {
+        var dialect = new NpgsqlProviderSqlDialect();
+        var session = new CleanupLoggingBenchmarkSession(dialect);
+        var logDirectory = BenchmarkLogPath.GetDirectory();
+        var logFile = BenchmarkLogPath.GetFilePath($"{session.GetType().FullName}-{dialect.DisplayName}-errors.log");
+
+        try
+        {
+            Assert.True(
+                logDirectory.EndsWith(
+                    Path.Combine("src", "benchmark", "DbSqlLikeMem.Benchmarks", "Logs"),
+                    StringComparison.OrdinalIgnoreCase),
+                $"Expected benchmark log directory '{logDirectory}' to end with the benchmark project Logs folder.");
+
+            if (File.Exists(logFile))
+                File.Delete(logFile);
+
+            session.TriggerCleanupFailure();
 
             Assert.True(File.Exists(logFile), $"Expected benchmark log file '{logFile}' to be created.");
         }
@@ -114,16 +155,17 @@ public sealed class BenchmarkCatalogValidationTests(
             => throw new NotSupportedException("Benchmark logging regression.");
     }
 
-    private static string SanitizeFileName(string fileName)
+    private sealed class CleanupLoggingBenchmarkSession(ProviderSqlDialect dialect)
+        : BenchmarkSessionBase(dialect, BenchmarkEngine.NativeAdoNet)
     {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sanitized = new char[fileName.Length];
+        protected override DbConnection CreateConnection() => new SqliteConnection("Data Source=:memory:");
 
-        for (var i = 0; i < fileName.Length; i++)
+        public void TriggerCleanupFailure()
         {
-            sanitized[i] = Array.IndexOf(invalidChars, fileName[i]) >= 0 ? '_' : fileName[i];
-        }
+            using var connection = new SqliteConnection("Data Source=:memory:");
+            connection.Open();
 
-        return new string(sanitized).Trim();
+            SafeExecute(connection, "DROP TABLE usr_4b899215_0003d8f7_0003d8f6");
+        }
     }
 }

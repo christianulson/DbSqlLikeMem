@@ -541,29 +541,14 @@ public abstract partial class BenchmarkSessionBase(
             }
             Errors.GetOrAdd(errorKey, 0);
 
-            var directory = GetLogDirectory();
+            var directory = BenchmarkLogPath.GetDirectory();
             Directory.CreateDirectory(directory);
 
-            var file = Path.Combine(directory, GetSafeLogFileName($"{GetType().FullName}-{Dialect.DisplayName}-errors.log"));
+            var file = BenchmarkLogPath.GetFilePath($"{GetType().FullName}-{Dialect.DisplayName}-errors.log");
             File.AppendAllText(
                 file,
                 message + Environment.NewLine);
         }
-    }
-
-    private static string GetLogDirectory() => Path.Combine(AppContext.BaseDirectory, "Logs");
-
-    private static string GetSafeLogFileName(string fileName)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sanitized = new char[fileName.Length];
-
-        for (var i = 0; i < fileName.Length; i++)
-        {
-            sanitized[i] = Array.IndexOf(invalidChars, fileName[i]) >= 0 ? '_' : fileName[i];
-        }
-
-        return new string(sanitized).Trim();
     }
 
     /// <summary>
@@ -1182,7 +1167,7 @@ public abstract partial class BenchmarkSessionBase(
     /// </summary>
     /// <param name="connection">EN: The database connection used to execute the operation. PT-br: A conexão de banco de dados usada para executar a operação.</param>
     /// <param name="sql">EN: The SQL command text to execute. PT-br: O texto do comando SQL a ser executado.</param>
-    protected static void SafeExecute(DbConnection connection, string sql)
+    protected void SafeExecute(DbConnection connection, string sql)
     {
         try
         {
@@ -1192,7 +1177,30 @@ public abstract partial class BenchmarkSessionBase(
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Benchmark error: {ex.Message}");
+            var root = ex.GetBaseException();
+            var message = root is NotSupportedException
+                ? $"[SAFE-{root.GetType().Name}] {sql}: {root.Message}{Environment.NewLine}{Environment.NewLine}"
+                : $"[SAFE-{root.GetType().Name}] {sql}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+
+            Console.WriteLine(message);
+
+            lock (_logSync)
+            {
+                var errorKey = $"{GetType().FullName}|{Dialect.DisplayName}|SAFE|{sql}|{root.GetType().FullName}|{root.Message}";
+                if (Errors.TryGetValue(errorKey, out int value))
+                {
+                    Errors[errorKey] = value + 1;
+                    return;
+                }
+
+                Errors.GetOrAdd(errorKey, 0);
+
+                var file = BenchmarkLogPath.GetFilePath($"{GetType().FullName}-{Dialect.DisplayName}-errors.log");
+                Directory.CreateDirectory(BenchmarkLogPath.GetDirectory());
+                File.AppendAllText(
+                    file,
+                    message + Environment.NewLine);
+            }
         }
     }
 

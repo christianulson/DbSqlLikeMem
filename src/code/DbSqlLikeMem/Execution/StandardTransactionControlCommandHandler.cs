@@ -48,14 +48,14 @@ internal static class StandardTransactionControlCommandHandler
 
         if (sqlRaw.StartsWith("rollback to savepoint ", StringComparison.OrdinalIgnoreCase))
         {
-            connection.RollbackTransaction(sqlRaw[22..].Trim());
+            connection.RollbackTransaction(ExtractSavepointName(sqlRaw, "rollback to savepoint ".Length));
             return true;
         }
 
         if (sqlRaw.StartsWith("release savepoint ", StringComparison.OrdinalIgnoreCase))
         {
             if (!releaseSavepointAsNoOp)
-                connection.ReleaseSavepoint(sqlRaw[18..].Trim());
+                connection.ReleaseSavepoint(ExtractSavepointName(sqlRaw, "release savepoint ".Length));
             return true;
         }
 
@@ -85,16 +85,23 @@ internal static class StandardTransactionControlCommandHandler
 
         return false;
     }
+
     private static string ExtractSavepointName(string sqlRaw, int prefixLength)
     {
-        var remainder = sqlRaw[prefixLength..].Trim();
-        if (string.IsNullOrWhiteSpace(remainder))
-            return remainder;
+        var remainder = sqlRaw.AsSpan(prefixLength).Trim();
+        var end = 0;
+        while (end < remainder.Length)
+        {
+            var ch = remainder[end];
+            if (ch is ' ' or '\t' or '\r' or '\n')
+                break;
 
-        var end = remainder.IndexOfAny([' ', '\t', '\r', '\n']);
-        return end < 0
-            ? remainder
-            : remainder[..end];
+            end++;
+        }
+
+        return end == remainder.Length
+            ? remainder.ToString()
+            : remainder[..end].ToString();
     }
 }
 

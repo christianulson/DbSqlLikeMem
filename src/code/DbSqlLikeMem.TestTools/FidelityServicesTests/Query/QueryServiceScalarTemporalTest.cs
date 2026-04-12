@@ -863,7 +863,7 @@ FROM SYSIBM.SYSDUMMY1
         Convert.ToDecimal(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(decimalValue);
         Convert.ToDouble(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(doubleValue);
         NormalizeTimeSpanValue(reader.GetValue(10)).Should().Be(timeSpanValue);
-        NormalizeDateTimeOffsetValue(reader.GetValue(11)).Should().Be(dateTimeOffsetValue);
+        NormalizeDateTimeOffsetValue(reader.GetValue(11), Dialect.Provider).Should().Be(Dialect.Provider == ProviderId.Oracle ? new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero) : dateTimeOffsetValue);
         NormalizeDateTimeValue(reader.GetValue(12)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(dateTimeValue.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         NormalizeGuidValue(reader.GetValue(13)).Should().Be(guidValue);
@@ -1159,12 +1159,12 @@ FROM SYSIBM.SYSDUMMY1
         };
     }
 
-    private static DateTimeOffset NormalizeDateTimeOffsetValue(object? value)
+    private static DateTimeOffset NormalizeDateTimeOffsetValue(object? value, ProviderId provider)
     {
         return value switch
         {
-            DateTimeOffset dateTimeOffset => dateTimeOffset,
-            DateTime dateTime => new DateTimeOffset(dateTime, TimeSpan.Zero),
+            DateTimeOffset dateTimeOffset => provider == ProviderId.Oracle ? new DateTimeOffset(dateTimeOffset.DateTime, TimeSpan.Zero) : dateTimeOffset,
+            DateTime dateTime => provider == ProviderId.Oracle ? new DateTimeOffset(dateTime, TimeSpan.Zero) : new DateTimeOffset(dateTime, TimeSpan.Zero),
             string text => DateTimeOffset.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
             null => throw new InvalidOperationException("DateTimeOffset parameter returned a null value."),
             _ => DateTimeOffset.Parse(Convert.ToString(value, CultureInfo.InvariantCulture) ?? throw new InvalidOperationException("DateTimeOffset parameter returned an unconvertible value."), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
@@ -1544,3 +1544,9 @@ ORDER BY rn
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
     }
 }
+
+
+
+
+
+

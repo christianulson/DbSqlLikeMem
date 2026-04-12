@@ -60,7 +60,7 @@ public class InsertUsersServiceTest<T>(
                 var id = startId + offset;
                 using var parallelConnection = factory();
                 parallelConnection.Open();
-                ExecuteNonQueryOnConnection(parallelConnection, Dialect.InsertUser(tableName, id, $"User-{id}"));
+                ExecuteParameterizedInsertOnConnection(parallelConnection, tableName, id);
             }))
             .ToArray();
 
@@ -170,6 +170,25 @@ WHERE Id = {Dialect.Parameter("id")}
         }
 
         return command.ExecuteNonQuery();
+    }
+
+    private void ExecuteParameterizedInsertOnConnection(DbConnection connection, string tableName, int id)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"""
+INSERT INTO {tableName} (
+    Id,
+    Name
+)
+VALUES (
+    {Dialect.Parameter("id")},
+    {Dialect.Parameter("name")}
+)
+""";
+
+        AddParameter(command, "id", DbType.Int32, id);
+        AddParameter(command, "name", DbType.String, $"User-{id}");
+        command.ExecuteNonQuery();
     }
 
     private static object? ExecuteScalarOnConnection(

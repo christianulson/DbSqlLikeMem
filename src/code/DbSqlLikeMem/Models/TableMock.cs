@@ -346,6 +346,8 @@ public abstract class TableMock
     private readonly ReadOnlyDictionary<string, IndexDef> _indexesView;
     private readonly List<IndexDef> _uniqueIndexes = [];
     private bool _hasSelfReferencingForeignKey;
+    private bool _hasPersistedComputedColumns;
+    private bool _hasPersistedComputedColumnsInitialized;
     private int _indexVersion;
     private IReadOnlyHashSet<int> _primaryKeyIndexesView;
 
@@ -773,6 +775,8 @@ public abstract class TableMock
         _columns.Add(normalizedName, col);
         _columnsByIndex[col.Index] = normalizedName;
         _columnsByOrdinal.Add(col);
+        col.MetadataChanged = InvalidatePersistedComputedColumnsCache;
+        InvalidatePersistedComputedColumnsCache();
         if (identity && _identityColumn is null)
             _identityColumn = col;
         BackfillAddedColumn(col);
@@ -816,6 +820,11 @@ public abstract class TableMock
             if (!column.Nullable && row[column.Index] == null)
                 throw ColumnCannotBeNull(column.Name);
         }
+    }
+
+    private void InvalidatePersistedComputedColumnsCache()
+    {
+        _hasPersistedComputedColumnsInitialized = false;
     }
 
     /// <summary>
@@ -1290,12 +1299,18 @@ public abstract class TableMock
         if (valueCount == 0)
             return this;
 
+        var hasForeignKeys = _foreignKeys.Count > 0;
+        var hasPersistedComputedColumns = HasPersistedComputedColumns();
+        var hasExistingRows = Count > 0;
         if (valueCount == 1 || HasSelfReferencingForeignKey())
         {
             foreach (var value in values)
                 Add(value);
             return this;
         }
+
+        if (_indexes.Count == 0 && _uniqueIndexes.Count == 0)
+            return AddBatchWithoutSecondaryIndexes(values, hasForeignKeys);
 
         var allIndexes = _indexes.Values.ToArray();
         var allIndexCount = allIndexes.Length;
@@ -1340,14 +1355,16 @@ public abstract class TableMock
                 previousNextIdentities![valueIndex] = NextIdentity;
 
             ApplyDefaultValues(row);
-            RefreshPersistedComputedValues(row);
-            ValidateForeignKeysOnRow(row);
+            if (hasPersistedComputedColumns)
+                RefreshPersistedComputedValues(row);
+            if (hasForeignKeys)
+                ValidateForeignKeysOnRow(row);
 
             if (pkKeys is not null)
             {
                 var pkKey = BuildPkKey(row);
                 pkKeys[valueIndex] = pkKey;
-                if (_pkIndex.ContainsKey(pkKey) || !batchPrimaryKeys!.Add(pkKey))
+                if ((hasExistingRows && _pkIndex.ContainsKey(pkKey)) || !batchPrimaryKeys!.Add(pkKey))
                 {
                     throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(row));
                 }
@@ -1404,6 +1421,65 @@ public abstract class TableMock
         return this;
     }
 
+    private ITableMock AddBatchWithoutSecondaryIndexes(
+        IReadOnlyList<Dictionary<int, object?>> values,
+        bool hasForeignKeys)
+    {
+        var valueCount = values.Count;
+        var hasMutationApplied = MutationApplied is not null;
+        var previousNextIdentities = hasMutationApplied ? new int[valueCount] : null;
+        var hasPersistedComputedColumns = HasPersistedComputedColumns();
+        var hasExistingRows = Count > 0;
+        var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
+            ? new HashSet<IndexKey>()
+            : null;
+        var pkKeys = batchPrimaryKeys is null ? null : new IndexKey[valueCount];
+
+        for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
+        {
+            var row = values[valueIndex];
+            if (hasMutationApplied)
+                previousNextIdentities![valueIndex] = NextIdentity;
+
+            ApplyDefaultValues(row);
+            if (hasPersistedComputedColumns)
+                RefreshPersistedComputedValues(row);
+            if (hasForeignKeys)
+                ValidateForeignKeysOnRow(row);
+
+            if (pkKeys is null)
+                continue;
+
+            var pkKey = BuildPkKey(row);
+            pkKeys[valueIndex] = pkKey;
+            if ((hasExistingRows && _pkIndex.ContainsKey(pkKey)) || !batchPrimaryKeys!.Add(pkKey))
+                throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(row));
+        }
+
+        var startIndex = _items.Count;
+        _items.AddRange(values);
+
+        if (pkKeys is not null)
+        {
+            for (var rowOffset = 0; rowOffset < valueCount; rowOffset++)
+                _pkIndex[pkKeys[rowOffset]] = startIndex + rowOffset;
+        }
+
+        if (hasMutationApplied)
+        {
+            for (var rowOffset = 0; rowOffset < valueCount; rowOffset++)
+            {
+                NotifyMutationApplied(
+                    TableMutationKind.Insert,
+                    startIndex + rowOffset,
+                    values[rowOffset],
+                    previousNextIdentity: previousNextIdentities![rowOffset]);
+            }
+        }
+
+        return this;
+    }
+
     private bool HasSelfReferencingForeignKey()
         => _hasSelfReferencingForeignKey;
 
@@ -1416,18 +1492,21 @@ public abstract class TableMock
     {
         var hasMutationApplied = MutationApplied is not null;
         var previousNextIdentity = hasMutationApplied ? NextIdentity : 0;
+        var hasPersistedComputedColumns = HasPersistedComputedColumns();
         ApplyDefaultValues(value);
-        RefreshPersistedComputedValues(value);
-        ValidateForeignKeysOnRow(value);
-        EnsureUniqueOnInsert(value);
+        if (hasPersistedComputedColumns)
+            RefreshPersistedComputedValues(value);
+        if (_foreignKeys.Count > 0)
+            ValidateForeignKeysOnRow(value);
+        var primaryKeyValue = _primaryKeyIndexes.Count > 0 ? BuildPkKey(value) : default(IndexKey?);
+        EnsureUniqueOnInsert(value, primaryKeyValue, _items.Count > 0);
         _items.Add(value);
         // Update _indexes with the new row
         int newIdx = Count - 1;
         UpdateIndexesWithRow(newIdx);
         // Update PK index
-        if (_primaryKeyIndexes.Count > 0)
+        if (primaryKeyValue is { } pkKey)
         {
-            var pkKey = BuildPkKey(value);
             _pkIndex[pkKey] = newIdx;
         }
         if (hasMutationApplied)
@@ -1525,6 +1604,25 @@ public abstract class TableMock
         }
     }
 
+    private bool HasPersistedComputedColumns()
+    {
+        if (_hasPersistedComputedColumnsInitialized)
+            return _hasPersistedComputedColumns;
+
+        _hasPersistedComputedColumns = false;
+        foreach (var col in _columnsByOrdinal)
+        {
+            if (col.GetGenValue != null && col.PersistComputedValue)
+            {
+                _hasPersistedComputedColumns = true;
+                break;
+            }
+        }
+
+        _hasPersistedComputedColumnsInitialized = true;
+        return _hasPersistedComputedColumns;
+    }
+
     private bool TryFindPrimaryConflictByIndex(
         IReadOnlyDictionary<int, object?> newRow,
         out int rowIndex)
@@ -1583,8 +1681,14 @@ public abstract class TableMock
     }
 
     internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow)
+        => EnsureUniqueOnInsert(newRow, null, _items.Count > 0);
+
+    internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow, IndexKey? pkKey)
+        => EnsureUniqueOnInsert(newRow, pkKey, _items.Count > 0);
+
+    internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow, IndexKey? pkKey, bool hasExistingRows)
     {
-        CheckUniquePrimary(newRow);
+        CheckUniquePrimary(newRow, pkKey, hasExistingRows);
 
         foreach (var idx in _uniqueIndexes)
         {
@@ -1595,16 +1699,16 @@ public abstract class TableMock
         }
     }
 
-    private void CheckUniquePrimary(Dictionary<int, object?> newRow)
+    private void CheckUniquePrimary(Dictionary<int, object?> newRow, IndexKey? pkKey = null, bool hasExistingRows = true)
     {
         if (_primaryKeyIndexes.Count <= 0)
             return;
 
         // Fast path: use PK index dictionary for O(1) conflict detection
-        if (_pkIndex.Count > 0)
+        if (hasExistingRows && _pkIndex.Count > 0)
         {
-            var pkKey = BuildPkKey(newRow);
-            if (_pkIndex.ContainsKey(pkKey))
+            var primaryKey = pkKey ?? BuildPkKey(newRow);
+            if (_pkIndex.ContainsKey(primaryKey))
             {
                 throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(newRow));
             }
@@ -1959,6 +2063,9 @@ public abstract class TableMock
         if (conditions.Count == 0 || table.PrimaryKeyIndexes.Count == 0)
             return false;
 
+        if (TryFindSinglePkConditionShortcut(table, context, pars, conditions, out rowIndex))
+            return true;
+
         var eqConditionsByName = BuildEqualityConditionLookup(conditions, out var eqConditionCount);
         if (eqConditionCount < table.PrimaryKeyIndexes.Count)
             return false;
@@ -2085,6 +2192,9 @@ public abstract class TableMock
         rowIndex = -1;
         if (conditions.Count == 0 || table.PrimaryKeyIndexes.Count == 0)
             return false;
+
+        if (TryFindSinglePkConditionShortcut(table, null, pars, conditions, out rowIndex))
+            return true;
 
         var eqConditionsByName = BuildEqualityConditionLookup(conditions, out var eqConditionCount);
         if (eqConditionCount < table.PrimaryKeyIndexes.Count)
@@ -2213,6 +2323,58 @@ public abstract class TableMock
 
         var syntheticMatchedRow = table[rowIndex];
         return IsMatchSimple(table, pars, conditions, syntheticMatchedRow);
+    }
+
+    private static bool TryFindSinglePkConditionShortcut(
+        ITableMock table,
+        QueryExecutionContext? context,
+        DbParameterCollection? pars,
+        List<(string C, string Op, string V)> conditions,
+        out int rowIndex)
+    {
+        rowIndex = -1;
+        if (conditions.Count != 1 || table.PrimaryKeyIndexes.Count != 1)
+            return false;
+
+        var condition = conditions[0];
+        if (condition.Op != "=")
+            return false;
+
+        if (table is TableMock tableMock)
+        {
+            if (tableMock.PkIndexArray.Length != 1)
+                return false;
+
+            var pkIdx1 = tableMock.PkIndexArray[0];
+            var pkColumn1 = tableMock.GetColumnByIndex(pkIdx1);
+            if (!string.Equals(condition.C.NormalizeName(), pkColumn1.Name.NormalizeName(), StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var pkValue1 = ResolveConditionValue(table, context, pars, condition.V, pkColumn1.DbType, pkColumn1.Nullable);
+            return tableMock.TryFindRowByPkValues(pkValue1, out rowIndex);
+        }
+
+        var pkIdx = -1;
+        foreach (var index in table.PrimaryKeyIndexes)
+        {
+            pkIdx = index;
+            break;
+        }
+
+        if (pkIdx < 0)
+            return false;
+
+        var pkColumn = GetColumnByIndex(table, pkIdx);
+        if (!string.Equals(condition.C.NormalizeName(), pkColumn.Name.NormalizeName(), StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var pkValue = ResolveConditionValue(table, context, pars, condition.V, pkColumn.DbType, pkColumn.Nullable);
+        var syntheticRow = new Dictionary<int, object?>(1)
+        {
+            [pkIdx] = pkValue
+        };
+
+        return table.TryFindRowByPk(syntheticRow, out rowIndex);
     }
 
     private static ColumnDef GetColumnByIndex(ITableMock table, int index)

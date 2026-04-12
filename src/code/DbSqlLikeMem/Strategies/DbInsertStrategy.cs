@@ -105,6 +105,7 @@ internal static class DbInsertStrategy
         var supportsTriggers = dialect.SupportsTriggers;
         var hasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
         var hasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
+        var hasForeignKeys = tableMock.ForeignKeys.Count > 0;
         ValidateInsertPartitions(query, tableMock);
         ValidatePartitionedInsertRows(query, tableMock, newRows);
         var canUseBatchInsert = CanUseBatchInsert(context, table, tableName, query.Table.DbName, tableMock);
@@ -225,7 +226,8 @@ internal static class DbInsertStrategy
                         query.OnDupAssignsParsed,
                         context,
                         simulatedUpdated);
-                    tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
+                    if (hasForeignKeys)
+                        tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
 
                     if (hasBeforeUpdateTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
@@ -269,7 +271,8 @@ internal static class DbInsertStrategy
                         }
                     }
 
-                    tableMock.ValidateForeignKeysOnRow(newRow);
+                    if (hasForeignKeys)
+                        tableMock.ValidateForeignKeysOnRow(newRow);
                     if (hasBeforeInsertTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
@@ -289,7 +292,8 @@ internal static class DbInsertStrategy
                 if (conflictIdx is null)
                 {
                     // Sem conflito -> Insere
-                    tableMock.ValidateForeignKeysOnRow(newRow);
+                    if (hasForeignKeys)
+                        tableMock.ValidateForeignKeysOnRow(newRow);
                     if (hasBeforeInsertTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
@@ -321,7 +325,8 @@ internal static class DbInsertStrategy
                         query.OnDupAssignsParsed,
                         context,
                         simulatedUpdated);
-                    tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
+                    if (hasForeignKeys)
+                        tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
 
                     if (hasBeforeUpdateTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
@@ -402,6 +407,7 @@ internal static class DbInsertStrategy
         var hasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
         var hasBeforeDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeDelete);
         var hasAfterDeleteTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterDelete);
+        var hasForeignKeys = tableMock.ForeignKeys.Count > 0;
         var affectedIndexes = new List<int>();
         List<IReadOnlyDictionary<int, object?>>? affectedRowsData = null;
         var insertedCount = 0;
@@ -437,7 +443,8 @@ internal static class DbInsertStrategy
                 }
             }
 
-            tableMock.ValidateForeignKeysOnRow(newRow);
+            if (hasForeignKeys)
+                tableMock.ValidateForeignKeysOnRow(newRow);
             if (hasBeforeInsertTrigger)
                 TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
@@ -832,6 +839,9 @@ internal static class DbInsertStrategy
         SqlInsertQuery query,
         ITableMock table)
     {
+        if (query.ValuesRaw.Count == 1)
+            return [CreateSingleRowFromValues(context, query, table)];
+
         var dialect = context.Dialect;
         var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
         var colNames = query.Columns; // Lista de colunas do Insert
@@ -912,6 +922,82 @@ internal static class DbInsertStrategy
             rows.Add(newRow);
         }
         return rows;
+    }
+
+    private static Dictionary<int, object?> CreateSingleRowFromValues(
+        QueryExecutionContext context,
+        SqlInsertQuery query,
+        ITableMock table)
+    {
+        var dialect = context.Dialect;
+        var colNames = query.Columns;
+        var colNamesCount = colNames.Count;
+        var valueBlock = query.ValuesRaw[0];
+        var valueCount = valueBlock.Count;
+        var parsedExprBlock = query.ValuesExpr.Count > 0 ? query.ValuesExpr[0] : null;
+        var parsedExprCount = parsedExprBlock?.Count ?? 0;
+
+        if (colNamesCount > 0 && colNamesCount != valueCount)
+            throw new InvalidOperationException($"Column count ({colNamesCount}) does not match value count ({valueCount}).");
+
+        ColumnDef[]? explicitTargetColumns = null;
+        IReadOnlyList<ColumnDef>? orderedTableColumns = null;
+        List<ColumnDef>? nonIdentityColumns = null;
+        IReadOnlyList<ColumnDef> targetColumns;
+        var targetColumnCount = 0;
+
+        var firstValueCount = valueCount;
+        if (colNamesCount > 0)
+        {
+            explicitTargetColumns = new ColumnDef[colNamesCount];
+            for (var i = 0; i < colNamesCount; i++)
+                explicitTargetColumns[i] = ResolveInsertColumn(table, colNames[i], dialect);
+            targetColumns = explicitTargetColumns;
+            targetColumnCount = explicitTargetColumns.Length;
+        }
+        else
+        {
+            orderedTableColumns = table is TableMock tableMock
+                ? tableMock.ColumnsByOrdinal
+                : [.. table.Columns.Values.OrderBy(c => c.Index)];
+            var orderedCount = orderedTableColumns.Count;
+            nonIdentityColumns = new List<ColumnDef>(orderedCount);
+            for (var i = 0; i < orderedCount; i++)
+            {
+                var col = orderedTableColumns[i];
+                if (!col.Identity)
+                    nonIdentityColumns.Add(col);
+            }
+
+            targetColumns = firstValueCount == orderedTableColumns.Count
+                ? orderedTableColumns
+                : firstValueCount == nonIdentityColumns.Count
+                    ? nonIdentityColumns
+                    : orderedTableColumns;
+            targetColumnCount = firstValueCount < targetColumns.Count
+                ? firstValueCount
+                : targetColumns.Count;
+        }
+
+        var newRow = new Dictionary<int, object?>(Math.Max(1, valueCount));
+        if (targetColumnCount > 0)
+        {
+            var limit = colNamesCount > 0
+                ? targetColumnCount
+                : valueCount < targetColumnCount
+                    ? valueCount
+                    : targetColumnCount;
+
+            for (var i = 0; i < limit; i++)
+            {
+                var parsedExpr = parsedExprBlock is not null && i < parsedExprCount
+                    ? parsedExprBlock[i]
+                    : null;
+                SetColValue(context, table, targetColumns[i], valueBlock[i], parsedExpr, newRow);
+            }
+        }
+
+        return newRow;
     }
 
     private static ColumnDef ResolveInsertColumn(ITableMock table, string columnName, ISqlDialect dialect)
@@ -1122,45 +1208,37 @@ internal static class DbInsertStrategy
         Dictionary<int, object?> row)
     {
         object? resolved;
-        try
+        if (parsedExpr is LiteralExpr literalExpr)
         {
-            if (parsedExpr is LiteralExpr literalExpr)
-            {
-                resolved = literalExpr.Value;
-            }
-            else if (parsedExpr is ParameterExpr parameterExpr
-                && context.TryResolveParameter(parameterExpr.Name, out var parameterValue))
-            {
-                resolved = parameterValue;
-            }
-            else if (TryResolveCastAsJsonValue(parsedExpr, context, out var castJsonValue))
-            {
-                resolved = castJsonValue;
-            }
-            else if (TryResolveParsedSpecialValue(context, table, parsedExpr, out var parsedValue))
-            {
-                resolved = parsedValue;
-            }
-            else
-            {
-                table.CurrentColumn = colDef.Name;
-                var trimmedRawValue = rawValue;
-                if (trimmedRawValue.Length > 0
-                    && (char.IsWhiteSpace(trimmedRawValue[0]) || char.IsWhiteSpace(trimmedRawValue[^1])))
-                {
-                    trimmedRawValue = trimmedRawValue.Trim();
-                }
-
-                resolved = TryResolveTemporalValue(trimmedRawValue, context, out var temporalValue)
-                    ? temporalValue
-                    : context.TryResolveParameter(trimmedRawValue, out var rawParameterValue)
-                        ? rawParameterValue
-                        : table.Resolve(rawValue, colDef.DbType, colDef.Nullable, context.DbParameters, table.Columns);
-            }
+            resolved = literalExpr.Value;
         }
-        finally
+        else if (parsedExpr is ParameterExpr parameterExpr
+            && context.TryResolveParameter(parameterExpr.Name, out var parameterValue))
         {
-            table.CurrentColumn = null;
+            resolved = parameterValue;
+        }
+        else if (TryResolveCastAsJsonValue(parsedExpr, context, out var castJsonValue))
+        {
+            resolved = castJsonValue;
+        }
+        else if (TryResolveParsedSpecialValue(context, table, parsedExpr, out var parsedValue))
+        {
+            resolved = parsedValue;
+        }
+        else
+        {
+            var trimmedRawValue = rawValue;
+            if (trimmedRawValue.Length > 0
+                && (char.IsWhiteSpace(trimmedRawValue[0]) || char.IsWhiteSpace(trimmedRawValue[^1])))
+            {
+                trimmedRawValue = trimmedRawValue.Trim();
+            }
+
+            resolved = TryResolveTemporalValue(trimmedRawValue, context, out var temporalValue)
+                ? temporalValue
+                : context.TryResolveParameter(trimmedRawValue, out var rawParameterValue)
+                    ? rawParameterValue
+                    : ResolveInsertFallbackValue(table, colDef, rawValue, context);
         }
 
         resolved = context.NormalizeResolvedValue(resolved);
@@ -1169,6 +1247,23 @@ internal static class DbInsertStrategy
             throw table.ColumnCannotBeNull("Idx:" + colDef.Index);
 
         row[colDef.Index] = val;
+    }
+
+    private static object? ResolveInsertFallbackValue(
+        ITableMock table,
+        ColumnDef colDef,
+        string rawValue,
+        QueryExecutionContext context)
+    {
+        table.CurrentColumn = colDef.Name;
+        try
+        {
+            return table.Resolve(rawValue, colDef.DbType, colDef.Nullable, context.DbParameters, table.Columns);
+        }
+        finally
+        {
+            table.CurrentColumn = null;
+        }
     }
 
     private static object? NormalizeValueForColumn(DbType dbType, object? value)

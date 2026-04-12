@@ -2604,7 +2604,7 @@ public abstract class DbConnectionMockBase(
 
         var normalizedName = NormalizeSavepointName(savepointName);
         if (_savepoints.ContainsKey(normalizedName))
-            _savepointOrder.Remove(normalizedName);
+            RemoveSavepointOrderEntries(normalizedName);
         _savepoints[normalizedName] = _transactionJournal.Count;
         _savepointOrder.Add(normalizedName);
     }
@@ -2621,15 +2621,7 @@ public abstract class DbConnectionMockBase(
 
         RollbackJournalTo(journalPosition);
 
-        var savepointIndex = -1;
-        for (var i = 0; i < _savepointOrder.Count; i++)
-        {
-            if (_savepointOrder[i].Equals(normalizedName, StringComparison.OrdinalIgnoreCase))
-            {
-                savepointIndex = i;
-                break;
-            }
-        }
+        var savepointIndex = FindSavepointOrderIndex(normalizedName);
 
         if (savepointIndex >= 0)
         {
@@ -2651,11 +2643,7 @@ public abstract class DbConnectionMockBase(
         if (!_savepoints.Remove(normalizedName))
             throw SqlUnsupported.ForSavepointNotFound(savepointName);
 
-        for (var i = _savepointOrder.Count - 1; i >= 0; i--)
-        {
-            if (_savepointOrder[i].Equals(normalizedName, StringComparison.OrdinalIgnoreCase))
-                _savepointOrder.RemoveAt(i);
-        }
+        RemoveSavepointOrderEntries(normalizedName);
     }
 
     private static string NormalizeSavepointName(string savepointName)
@@ -2663,6 +2651,26 @@ public abstract class DbConnectionMockBase(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(savepointName, nameof(savepointName));
         var trimmed = savepointName.AsSpan().Trim();
         return trimmed.Length == savepointName.Length ? savepointName : trimmed.ToString();
+    }
+
+    private int FindSavepointOrderIndex(string savepointName)
+    {
+        for (var i = _savepointOrder.Count - 1; i >= 0; i--)
+        {
+            if (_savepointOrder[i].Equals(savepointName, StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+
+        return -1;
+    }
+
+    private void RemoveSavepointOrderEntries(string savepointName)
+    {
+        for (var i = _savepointOrder.Count - 1; i >= 0; i--)
+        {
+            if (_savepointOrder[i].Equals(savepointName, StringComparison.OrdinalIgnoreCase))
+                _savepointOrder.RemoveAt(i);
+        }
     }
 
     private void EnsureActiveTransaction()

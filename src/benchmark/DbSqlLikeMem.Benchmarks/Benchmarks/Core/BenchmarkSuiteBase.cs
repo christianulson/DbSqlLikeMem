@@ -415,31 +415,16 @@ public abstract class BenchmarkSuiteBase
 
         lock (_setupLogSync)
         {
-            var directory = GetLogDirectory();
+            var directory = BenchmarkLogPath.GetDirectory();
             Directory.CreateDirectory(directory);
 
-            var file = Path.Combine(directory, GetSafeLogFileName($"{GetType().FullName}-setup-errors.log"));
+            var file = BenchmarkLogPath.GetFilePath($"{GetType().FullName}-setup-errors.log");
             if (!File.Exists(file))
                 File.Create(file).Dispose();
             File.AppendAllText(
                 file,
                 logEntry);
         }
-    }
-
-    private static string GetLogDirectory() => Path.Combine(AppContext.BaseDirectory, "Logs");
-
-    private static string GetSafeLogFileName(string fileName)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sanitized = new char[fileName.Length];
-
-        for (var i = 0; i < fileName.Length; i++)
-        {
-            sanitized[i] = Array.IndexOf(invalidChars, fileName[i]) >= 0 ? '_' : fileName[i];
-        }
-
-        return new string(sanitized).Trim();
     }
 
     private static readonly object _logSync = new();
@@ -460,10 +445,10 @@ public abstract class BenchmarkSuiteBase
                 return;
             Errors.Add(errorKey);
 
-            var directory = GetLogDirectory();
+            var directory = BenchmarkLogPath.GetDirectory();
             Directory.CreateDirectory(directory);
 
-            var file = Path.Combine(directory, GetSafeLogFileName($"{GetType().FullName}-errors.log"));
+            var file = BenchmarkLogPath.GetFilePath($"{GetType().FullName}-errors.log");
             File.AppendAllText(
                 file,
                 message + Environment.NewLine);
