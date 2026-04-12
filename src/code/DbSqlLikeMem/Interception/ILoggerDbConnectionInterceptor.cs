@@ -174,11 +174,28 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
             _commandSnapshots[command] = mock.Metrics.CapturePerformanceSnapshot();
     }
 
+    private static DbInterceptionEvent SanitizeForLogging(DbInterceptionEvent interceptionEvent)
+        => new()
+        {
+            EventKind = interceptionEvent.EventKind,
+            TimestampUtc = interceptionEvent.TimestampUtc,
+            ConnectionState = interceptionEvent.ConnectionState,
+            CommandText = string.IsNullOrWhiteSpace(interceptionEvent.CommandText) ? interceptionEvent.CommandText : "[REDACTED]",
+            CommandExecutionKind = interceptionEvent.CommandExecutionKind,
+            Result = interceptionEvent.Result,
+            PerformanceMetrics = interceptionEvent.PerformanceMetrics,
+            PerformanceMetricsDelta = interceptionEvent.PerformanceMetricsDelta,
+            TransactionOperationKind = interceptionEvent.TransactionOperationKind,
+            IsolationLevel = interceptionEvent.IsolationLevel,
+            Exception = interceptionEvent.Exception
+        };
+
     private void Log(DbInterceptionEvent interceptionEvent)
     {
-        var message = DbInterceptionEventFormatter.Format(interceptionEvent);
-        if (interceptionEvent.Exception is not null)
-            _logger.LogError(interceptionEvent.Exception, "{Message}", message);
+        var safeEvent = SanitizeForLogging(interceptionEvent);
+        var message = DbInterceptionEventFormatter.Format(safeEvent);
+        if (safeEvent.Exception is not null)
+            _logger.LogError(safeEvent.Exception, "{Message}", message);
         else
             _logger.LogInformation("{Message}", message);
     }
