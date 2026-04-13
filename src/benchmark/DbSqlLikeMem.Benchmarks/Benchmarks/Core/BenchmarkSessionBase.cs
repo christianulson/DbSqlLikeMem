@@ -828,7 +828,7 @@ public abstract partial class BenchmarkSessionBase(
             (3, "Charlie"),
             (4, "Delta"),
             (5, "Echo"));
-        var value = state.RunParameterSelectByNameMatrix();
+        var value = state.Service.RunParameterSelectByNameMatrix(state.UsersTable);
         GC.KeepAlive(value);
     }
 
@@ -845,7 +845,7 @@ public abstract partial class BenchmarkSessionBase(
             (3, "Charlie"),
             (4, "Delta"),
             (5, "Echo"));
-        var value = state.RunParameterSelectByIdMatrix();
+        var value = state.Service.RunParameterSelectByIdMatrix(state.UsersTable);
         GC.KeepAlive(value);
     }
 
@@ -1178,6 +1178,11 @@ public abstract partial class BenchmarkSessionBase(
         catch (Exception ex)
         {
             var root = ex.GetBaseException();
+            if (IsDb2MissingObjectException(root))
+            {
+                return;
+            }
+
             var message = root is NotSupportedException
                 ? $"[SAFE-{root.GetType().Name}] {sql}: {root.Message}{Environment.NewLine}{Environment.NewLine}"
                 : $"[SAFE-{root.GetType().Name}] {sql}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
@@ -1203,6 +1208,13 @@ public abstract partial class BenchmarkSessionBase(
             }
         }
     }
+
+    private static bool IsDb2MissingObjectException(Exception ex)
+        => ex is DB2Exception
+            && (ex.Message.Contains("SQL0204N", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("42704", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
+                || ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase));
 
 
     protected virtual void RunNestedSavepointFlow()
@@ -1563,7 +1575,7 @@ public abstract partial class BenchmarkSessionBase(
             "UsersOrdersThreeRows",
             [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
             [(1, 1, "o-1"), (2, 1, "o-2"), (3, 2, "o-3")]);
-        var value = state.RunSelectLeftJoinAntiJoin();
+        var value = state.Service.RunSelectLeftJoinAntiJoin(state.UsersTable, state.OrdersTable);
         GC.KeepAlive(value);
     }
 
@@ -1669,7 +1681,7 @@ public abstract partial class BenchmarkSessionBase(
             (3, "Bob"),
             (4, "Charlie"),
             (5, "Delta"));
-        var value = state.RunBetweenLikeOrderByMatrix();
+        var value = state.Service.RunBetweenLikeOrderByMatrix(state.UsersTable);
         GC.KeepAlive(value);
     }
 
@@ -1702,7 +1714,7 @@ public abstract partial class BenchmarkSessionBase(
             (3, "Alice"),
             (4, "Delta"),
             (5, "Echo"));
-        var count = CountReaderRows(state.Connection, Dialect.PagedNameProjection(state.UsersTable, 1, 2));
+        var count = state.Service.RunPagedNameProjection(state.UsersTable);
         GC.KeepAlive(count);
     }
 
@@ -1745,7 +1757,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunDebugTraceBatch()
     {
         var state = GetPreparedDebugTraceBatchState("DebugTraceBatch");
-        var trace = state.RunDebugTraceBatch();
+        var trace = state.Service.RunDebugTraceBatch(state.UsersTable);
         GC.KeepAlive(trace);
     }
 
@@ -1765,20 +1777,20 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunTempTableCreateAndUse()
     {
         var state = GetPreparedTemporaryTableSourceState("TempTableSource");
-        var rows = state.RunCreateTemporaryTableAsSelectThenSelect();
+        var rows = state.Service.RunCreateTemporaryTableAsSelectThenSelect(state.Users, state.UId);
         GC.KeepAlive(rows);
     }
 
     protected virtual void RunTempTableRollback()
     {
         var state = GetPreparedTemporaryUsersState("TempUsers");
-        state.RunTempTableRollback();
+        state.Service.RunTempTableRollback(state.Users);
     }
 
     protected virtual void RunTempTableCrossConnectionIsolation()
     {
         var state = GetPreparedTemporaryUsersState("TempUsersIsolation");
-        var value = state.RunTemporaryTableCrossConnectionIsolation();
+        var value = state.Service.RunTemporaryTableCrossConnectionIsolation(state.Users);
         GC.KeepAlive(value);
     }
 

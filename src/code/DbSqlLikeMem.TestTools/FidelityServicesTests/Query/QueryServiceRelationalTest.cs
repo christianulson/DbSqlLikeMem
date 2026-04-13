@@ -1140,6 +1140,21 @@ ORDER BY u.Id, o.Id
     }
 
     /// <summary>
+    /// EN: Executes a LEFT JOIN anti-join query against the configured users and orders tables.
+    /// PT: Executa uma consulta anti-join com LEFT JOIN nas tabelas de usuarios e pedidos configuradas.
+    /// </summary>
+    public int RunSelectLeftJoinAntiJoin(params object[] pars)
+    {
+        var users = (string)pars[0];
+        var orders = (string)pars[1];
+        var usersTable = ResolveScenarioTableName(users);
+        var ordersTable = ResolveScenarioTableName(orders);
+        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectLeftJoinAntiJoin(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        GC.KeepAlive(value);
+        return value;
+    }
+
+    /// <summary>
     /// EN: Executes a correlated count query against the configured users and orders tables.
     /// PT: Executa uma consulta de contagem correlacionada nas tabelas de usuarios e pedidos configuradas.
     /// </summary>

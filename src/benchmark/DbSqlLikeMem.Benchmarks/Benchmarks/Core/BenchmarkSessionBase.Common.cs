@@ -25,6 +25,13 @@ public abstract partial class BenchmarkSessionBase
     protected virtual string NewUsersTableName() => $"USR_{_scopeToken}_{NextToken()}";
 
     /// <summary>
+    /// EN: Generates a unique temporary users table name for rollback and isolation benchmark flows.
+    /// PT-br: Gera um nome único de tabela temporaria de usuarios para fluxos de rollback e isolamento de benchmark.
+    /// </summary>
+    /// <returns>EN: A unique temporary users table name. PT-br: Um nome único de tabela temporaria de usuarios.</returns>
+    protected virtual string NewTemporaryUsersTableName() => $"temp_users_{NextToken()}";
+
+    /// <summary>
     /// EN: Generates a unique temporary table name for the orders table used by a benchmark run.
     /// PT-br: Gera um nome único de tabela temporária para a tabela de pedidos usada em uma execução de benchmark.
     /// </summary>
@@ -398,7 +405,7 @@ public abstract partial class BenchmarkSessionBase
             key,
             () =>
             {
-                var users = NewUsersTableName();
+                var users = NewTemporaryUsersTableName();
                 var connection = CreateConnection();
                 connection.Open();
                 var service = CreateTemporaryTableService(
@@ -406,7 +413,7 @@ public abstract partial class BenchmarkSessionBase
                     BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect),
                     CreateConnection);
                 service.CreateScenario(users);
-                return new PreparedTemporaryUsersState(connection, service, Dialect, CreateConnection, users);
+                return new PreparedTemporaryUsersState(connection, service, Dialect, users);
             });
 
     private PreparedSchemaSnapshotState GetPreparedSchemaSnapshotState(string key)
@@ -610,28 +617,6 @@ public abstract partial class BenchmarkSessionBase
 
         configureCommand(command);
         return command.ExecuteScalar();
-    }
-
-    protected static int CountReaderRows(
-        DbConnection connection,
-        string sql,
-        DbTransaction? transaction = null)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        if (transaction is not null)
-        {
-            command.Transaction = transaction;
-        }
-
-        using var reader = command.ExecuteReader();
-        var count = 0;
-        while (reader.Read())
-        {
-            count++;
-        }
-
-        return count;
     }
 
     /// <summary>
@@ -2269,7 +2254,29 @@ WHERE Id = {service.Dialect.Parameter("id")}
                 return _command;
 
             var command = connection.CreateCommand();
-            command.CommandText = _dialect.SelectParameterProjection($@"
+            command.CommandText = _dialect.Provider == ProviderId.Db2
+                ? $"""
+SELECT
+    CAST({_dialect.Parameter("textValue")} AS VARCHAR(100)) AS TextValue,
+    CAST({_dialect.Parameter("ansiTextValue")} AS VARCHAR(100)) AS AnsiTextValue,
+    CAST({_dialect.Parameter("ansiFixedTextValue")} AS CHAR(20)) AS AnsiFixedTextValue,
+    CAST({_dialect.Parameter("fixedTextValue")} AS CHAR(20)) AS FixedTextValue,
+    CAST({_dialect.Parameter("int16Value")} AS SMALLINT) AS Int16Value,
+    CAST({_dialect.Parameter("int32Value")} AS INTEGER) AS Int32Value,
+    CAST({_dialect.Parameter("int64Value")} AS BIGINT) AS Int64Value,
+    CAST({_dialect.Parameter("boolValue")} AS BOOLEAN) AS BoolValue,
+    CAST({_dialect.Parameter("decimalValue")} AS DECIMAL(19,4)) AS DecimalValue,
+    CAST({_dialect.Parameter("doubleValue")} AS DOUBLE) AS DoubleValue,
+    CAST({_dialect.Parameter("timeSpanValue")} AS VARCHAR(32)) AS TimeSpanValue,
+    CAST({_dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
+    CAST({_dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
+    CAST({_dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
+    CAST({_dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue,
+    CAST({_dialect.Parameter("dateValue")} AS DATE) AS DateValue,
+    CAST({_dialect.Parameter("currencyValue")} AS DECIMAL(19,2)) AS CurrencyValue
+FROM SYSIBM.SYSDUMMY1
+"""
+                : _dialect.SelectParameterProjection($@"
     {_dialect.Parameter("textValue")} AS TextValue,
     {_dialect.Parameter("ansiTextValue")} AS AnsiTextValue,
     {_dialect.Parameter("ansiFixedTextValue")} AS AnsiFixedTextValue,
@@ -3230,11 +3237,11 @@ WHERE Id = 2
         string users,
         string uId) : IDisposable
     {
-        public List<int> RunCreateTemporaryTableAsSelectThenSelect()
-        {
-            var rows = service.RunCreateTemporaryTableAsSelectThenSelect(users, uId);
-            return rows;
-        }
+        public TemporaryTableServiceTest<DbConnection> Service => service;
+
+        public string Users => users;
+
+        public string UId => uId;
 
         public void Dispose()
         {
@@ -3264,73 +3271,13 @@ WHERE Id = 2
         DbConnection connection,
         TemporaryTableServiceTest<DbConnection> service,
         ProviderSqlDialect dialect,
-        Func<DbConnection> secondaryConnectionFactory,
         string users) : IDisposable
     {
         private readonly ProviderSqlDialect _dialect = dialect;
 
-        public void RunTempTableRollback()
-        {
-            var usersTable = _dialect.TemporaryUsersTableName(users);
-            using var tx = connection.BeginTransaction();
-            ExecuteNonQuery(connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (1, 'Alice')", tx);
-            ExecuteNonQuery(connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (2, 'Bob')", tx);
-            tx.Rollback();
+        public TemporaryTableServiceTest<DbConnection> Service => service;
 
-            var count = Convert.ToInt32(ExecuteScalar(connection, $"SELECT COUNT(*) FROM {usersTable}"), CultureInfo.InvariantCulture);
-            if (count != 0)
-            {
-                throw new InvalidOperationException($"Unexpected temporary-table rollback rowcount for {_dialect.DisplayName}: {count}.");
-            }
-        }
-
-        public int RunTemporaryTableCrossConnectionIsolation()
-        {
-            var usersTable = _dialect.TemporaryUsersTableName(users);
-            using var tx = connection.BeginTransaction();
-            ExecuteNonQuery(connection, $"INSERT INTO {usersTable} (Id, Name) VALUES (1, 'Alice')", tx);
-
-            using var secondaryConnection = secondaryConnectionFactory();
-            secondaryConnection.Open();
-
-            try
-            {
-                var count = Convert.ToInt32(ExecuteScalar(secondaryConnection, _dialect.CountRows(usersTable)), CultureInfo.InvariantCulture);
-                if (count != 0)
-                {
-                    throw new InvalidOperationException($"Unexpected temporary-table isolation rowcount for {_dialect.DisplayName}: {count}.");
-                }
-
-                tx.Rollback();
-                return count;
-            }
-            catch (Exception ex)
-            {
-                tx.Rollback();
-                if (IsMissingTemporaryTableException(ex))
-                {
-                    return 0;
-                }
-
-                throw;
-            }
-        }
-
-        private static bool IsMissingTemporaryTableException(Exception ex)
-        {
-            if (ex is KeyNotFoundException)
-            {
-                return true;
-            }
-
-            var message = ex.GetBaseException().Message;
-            return message.Contains("no such table", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("not found", StringComparison.OrdinalIgnoreCase);
-        }
+        public string Users => users;
 
         public void Dispose()
         {
@@ -3360,8 +3307,6 @@ WHERE Id = 2
         DbConnection connection,
         SchemaSnapshotServiceTest<DbConnection> service) : IDisposable
     {
-        public DbConnection Connection => connection;
-
         public SchemaSnapshotServiceTest<DbConnection> Service => service;
 
         public void Dispose()
@@ -3376,13 +3321,6 @@ WHERE Id = 2
         string users,
         string uId) : IDisposable
     {
-        private DbCommand? _parameterSelectByNameCommand;
-        private DbParameter? _parameterSelectByNameParameter;
-        private DbCommand? _parameterSelectByIdCommand;
-        private DbParameter? _parameterSelectByIdParameter;
-
-        public DbConnection Connection => connection;
-
         public QueryServiceTest<DbConnection> Service => service;
 
         public string Users => users;
@@ -3391,124 +3329,8 @@ WHERE Id = 2
 
         public string UsersTable => $"{users}_{uId}";
 
-        public int RunBetweenLikeOrderByMatrix()
-        {
-            var count = CountReaderRows(
-                connection,
-                $"""
-SELECT Name
-FROM {UsersTable}
-WHERE Id BETWEEN 1 AND 4
-  AND Name LIKE 'A%'
-ORDER BY Name
-""");
-            if (count != 2)
-            {
-                throw new InvalidOperationException($"Unexpected BETWEEN/LIKE/ORDER BY benchmark rowcount for {service.Dialect.DisplayName}: {count}.");
-            }
-
-            return count;
-        }
-
-        public string? RunParameterSelectByNameMatrix()
-        {
-            var command = GetOrCreateParameterSelectByNameCommand();
-            _parameterSelectByNameParameter!.Value = "Bob";
-
-            var result = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
-            if (!string.Equals(result, "Bob", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException($"Unexpected parameter select-by-name benchmark result for {service.Dialect.DisplayName}: {result}.");
-            }
-
-            GC.KeepAlive(result);
-            GC.KeepAlive(UsersTable);
-            GC.KeepAlive("Bob");
-            return result;
-        }
-
-        public string? RunParameterSelectByIdMatrix()
-        {
-            var command = GetOrCreateParameterSelectByIdCommand();
-            _parameterSelectByIdParameter!.Value = 3;
-
-            var result = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
-            if (!string.Equals(result, "Charlie", StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException($"Unexpected parameter select-by-id benchmark result for {service.Dialect.DisplayName}: {result}.");
-            }
-
-            GC.KeepAlive(result);
-            GC.KeepAlive(UsersTable);
-            GC.KeepAlive(3);
-            GC.KeepAlive("Charlie");
-            return result;
-        }
-
-        private DbCommand GetOrCreateParameterSelectByNameCommand()
-        {
-            if (_parameterSelectByNameCommand is not null)
-                return _parameterSelectByNameCommand;
-
-            var command = connection.CreateCommand();
-            command.CommandText = $"""
-SELECT Name
-FROM {UsersTable}
-WHERE Name = {service.Dialect.Parameter("name")}
-""";
-
-            _parameterSelectByNameParameter = CreateParameter(command, "name", DbType.String);
-            _parameterSelectByNameCommand = command;
-            return command;
-        }
-
-        private DbCommand GetOrCreateParameterSelectByIdCommand()
-        {
-            if (_parameterSelectByIdCommand is not null)
-                return _parameterSelectByIdCommand;
-
-            var command = connection.CreateCommand();
-            command.CommandText = $"""
-SELECT Name
-FROM {UsersTable}
-WHERE Id = {service.Dialect.Parameter("id")}
-""";
-
-            _parameterSelectByIdParameter = CreateParameter(command, "id", DbType.Int32);
-            _parameterSelectByIdCommand = command;
-            return command;
-        }
-
-        private static DbParameter CreateParameter(DbCommand command, string name, DbType dbType)
-        {
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = name;
-            parameter.DbType = dbType;
-            parameter.Value = DBNull.Value;
-            command.Parameters.Add(parameter);
-            return parameter;
-        }
-
         public void Dispose()
         {
-            try
-            {
-                _parameterSelectByNameCommand?.Dispose();
-            }
-            catch
-            {
-                // Ignore cleanup failures during benchmark teardown.
-            }
-
-            try
-            {
-                _parameterSelectByIdCommand?.Dispose();
-            }
-            catch
-            {
-                // Ignore cleanup failures during benchmark teardown.
-            }
-
             try
             {
                 service.DropScenario(users, uId);
@@ -3549,19 +3371,6 @@ WHERE Id = {service.Dialect.Parameter("id")}
         public string UsersTable => $"{users}_{uId}";
 
         public string OrdersTable => $"{orders}_{uId}";
-
-        public int RunSelectLeftJoinAntiJoin()
-        {
-            var count = Convert.ToInt32(
-                ExecuteScalar(connection, service.Dialect.SelectLeftJoinAntiJoin(UsersTable, OrdersTable)),
-                CultureInfo.InvariantCulture);
-            if (count != 1)
-            {
-                throw new InvalidOperationException($"Unexpected LEFT JOIN anti-join benchmark count for {service.Dialect.DisplayName}: {count}.");
-            }
-
-            return count;
-        }
 
         public void Dispose()
         {
@@ -3755,15 +3564,9 @@ WHERE Id = {service.Dialect.Parameter("id")}
         string users,
         string uId) : IDisposable
     {
-        private int _nextInsertId = 1;
+        public DebugTraceServiceTest<DbConnection> Service => service;
 
-        public object? RunDebugTraceBatch()
-        {
-            var usersTable = $"{users}_{uId}";
-            var trace = service.RunDebugTraceBatch(usersTable, _nextInsertId, _nextInsertId + 1);
-            _nextInsertId += 2;
-            return trace;
-        }
+        public string UsersTable => $"{users}_{uId}";
 
         public void Dispose()
         {

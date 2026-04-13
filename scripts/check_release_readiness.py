@@ -152,6 +152,13 @@ def parse_directory_build_props(path: Path) -> tuple[str | None, str | None]:
     return version, repository_url
 
 
+def resolve_nuget_props_path(root: Path) -> Path | None:
+    return resolve_first_existing_path(
+        root / "src" / "code" / "Directory.Build.props",
+        root / "src" / "Directory.Build.props",
+    )
+
+
 def parse_minimum_visual_studio_version(path: Path) -> str | None:
     content = load_text(path)
     match = MINIMUM_VISUAL_STUDIO_VERSION_RE.search(content)
@@ -1041,11 +1048,17 @@ def main() -> int:
 
     failures.extend(check_required_files(root))
 
-    props_path = root / "src" / "Directory.Build.props"
-    version, repository_url = parse_directory_build_props(props_path)
-    failures.extend(validate_semver("src/Directory.Build.props", version))
-    if not repository_url:
-        failures.append("src/Directory.Build.props: missing RepositoryUrl")
+    props_path = resolve_nuget_props_path(root)
+    if props_path is None:
+        failures.append("src/code/Directory.Build.props: missing version source file")
+        version = None
+        repository_url = None
+    else:
+        version, repository_url = parse_directory_build_props(props_path)
+        props_label = props_path.relative_to(root).as_posix()
+        failures.extend(validate_semver(props_label, version))
+        if not repository_url:
+            failures.append(f"{props_label}: missing RepositoryUrl")
 
     failures.extend(check_snapshots(root))
     failures.extend(check_docs(root))

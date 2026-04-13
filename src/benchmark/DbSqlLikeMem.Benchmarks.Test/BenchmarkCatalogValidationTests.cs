@@ -84,8 +84,8 @@ public sealed class BenchmarkCatalogValidationTests(
     {
         var dialect = new NpgsqlProviderSqlDialect();
         var session = new ThrowingBenchmarkSession(dialect);
-        var logDirectory = BenchmarkLogPath.GetDirectory();
-        var logFile = BenchmarkLogPath.GetFilePath($"{session.GetType().FullName}-{dialect.DisplayName}-errors.log");
+        var logDirectory = DbSqlLikeMem.Benchmarks.Core.BenchmarkLogPath.GetDirectory();
+        var logFile = DbSqlLikeMem.Benchmarks.Core.BenchmarkLogPath.GetFilePath($"{session.GetType().FullName}-{dialect.DisplayName}-errors.log");
 
         try
         {
@@ -120,8 +120,8 @@ public sealed class BenchmarkCatalogValidationTests(
     {
         var dialect = new NpgsqlProviderSqlDialect();
         var session = new CleanupLoggingBenchmarkSession(dialect);
-        var logDirectory = BenchmarkLogPath.GetDirectory();
-        var logFile = BenchmarkLogPath.GetFilePath($"{session.GetType().FullName}-{dialect.DisplayName}-errors.log");
+        var logDirectory = DbSqlLikeMem.Benchmarks.Core.BenchmarkLogPath.GetDirectory();
+        var logFile = DbSqlLikeMem.Benchmarks.Core.BenchmarkLogPath.GetFilePath($"{session.GetType().FullName}-{dialect.DisplayName}-errors.log");
 
         try
         {

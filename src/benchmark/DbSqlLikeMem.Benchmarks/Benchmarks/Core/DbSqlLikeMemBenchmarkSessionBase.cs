@@ -50,7 +50,7 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
             throw new NotSupportedException($"{Dialect.DisplayName} does not support temp-table rollback benchmark.");
         }
 
-        var users = NewUsersTableName();
+        var users = NewTemporaryUsersTableName();
         using var connection = CreateConnection();
         connection.Open();
         var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect));
@@ -72,7 +72,7 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
     /// </summary>
     protected override void RunTempTableCrossConnectionIsolation()
     {
-        var users = NewUsersTableName();
+        var users = NewTemporaryUsersTableName();
         using var connection1 = CreateConnection();
         connection1.Open();
         var service = CreateTemporaryTableService(connection1, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect), CreateConnection);

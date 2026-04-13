@@ -955,7 +955,9 @@ SELECT
     CAST({Dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
     CAST({Dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
     CAST({Dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
-    CAST({Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue
+    CAST({Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue,
+    CAST({Dialect.Parameter("dateValue")} AS DATE) AS DateValue,
+    CAST({Dialect.Parameter("currencyValue")} AS DECIMAL(19,2)) AS CurrencyValue
 FROM SYSIBM.SYSDUMMY1
 """
             : Dialect.SelectParameterProjection($"""
@@ -1476,6 +1478,13 @@ ORDER BY rn
         GC.KeepAlive(users);
         return 2;
     }
+
+    /// <summary>
+    /// EN: Executes the benchmark paged-name projection query for the configured users table.
+    /// PT: Executa a consulta de projecao paginada por nome para a tabela de usuarios configurada.
+    /// </summary>
+    public int RunPagedNameProjection(params object[] pars)
+        => RunPagedNameProjectionMatrix(pars);
 
     /// <summary>
     /// EN: Reads a current-time predicate query result from the configured users table.

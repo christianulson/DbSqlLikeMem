@@ -40,6 +40,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
                 throw new InvalidOperationException("Db2 temporary table mock flow requires a mock connection.");
             }
 
+            TryDropTemporaryTable(tempTable);
             var tempTableMock = mockConnection.AddTemporaryTable(tempTable);
             tempTableMock.AddColumn("Id", DbType.Int32, false);
             tempTableMock.AddColumn("Name", DbType.String, false);
