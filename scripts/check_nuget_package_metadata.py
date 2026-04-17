@@ -237,9 +237,11 @@ def main() -> int:
 
     requested_props = Path(args.props)
     props_candidates = [Path(args.props)]
+    legacy_props = Path("src") / "Directory.Build.props"
     if args.props == "src/code/Directory.Build.props":
-        props_candidates.append(Path("src/Directory.Build.props"))
-    elif args.props == "src/Directory.Build.props":
+        props_candidates.append(Path("src/code/Directory.Build.props"))
+        props_candidates.append(legacy_props)
+    elif args.props == str(legacy_props):
         props_candidates.append(Path("src/code/Directory.Build.props"))
 
     props_path = resolve_first_existing_path(*props_candidates)

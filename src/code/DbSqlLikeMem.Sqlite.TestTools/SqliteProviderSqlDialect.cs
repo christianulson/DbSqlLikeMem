@@ -18,17 +18,18 @@ public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsUpsert => true;
 
     /// <inheritdoc />
-    public override string CreateTemporaryUsersTable(string tableName) =>
-        $@"
-CREATE TEMPORARY TABLE {TemporaryUsersTableName(tableName)} AS
-SELECT CAST(NULL AS INTEGER) AS Id, CAST(NULL AS TEXT) AS Name
+    public override string CreateTemporaryUsersTable(FidelityTestContext context) => $@"
+CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} AS
+SELECT CAST(NULL AS INTEGER) AS Id
+     , CAST(NULL AS TEXT) AS Name
+     , CAST(NULL AS INTEGER) AS TenantId
 WHERE 1 = 0
 ";
 
     /// <inheritdoc />
-    public override string CreateUsersTable(string tableName, string uId) =>
+    public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
-CREATE TABLE {tableName}_{uId} (
+CREATE TABLE {context.TbUsersFullName} (
     Id INTEGER NOT NULL PRIMARY KEY,
     Name TEXT NOT NULL,
     Email TEXT NULL,
@@ -50,11 +51,11 @@ CREATE TABLE {tableName}_{uId} (
 )";
 
     /// <inheritdoc />
-    public override string CreateOrdersTable(string tableName, string usersTableName, string uId) =>
+    public override string CreateOrdersTable(FidelityTestContext context) =>
         $@"
-CREATE TABLE {tableName}_{uId} (
+CREATE TABLE {context.TbOrdersFullName} (
     Id INTEGER NOT NULL PRIMARY KEY,
-    {usersTableName}Id INTEGER NOT NULL,
+    {context.TbUsers}Id INTEGER NOT NULL,
     Note TEXT NOT NULL,
     OrderNumber TEXT NOT NULL,
     Amount NUMERIC NOT NULL DEFAULT 0.00,
@@ -63,19 +64,18 @@ CREATE TABLE {tableName}_{uId} (
     OrderedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     DeliveredAt TEXT NULL,
     ExtraJson TEXT NULL,
-    CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}(Id)
+    CONSTRAINT FK_{context.TbOrdersFullName}_{context.TbUsers}Id_{context.TbUsersFullName} FOREIGN KEY ({context.TbUsers}Id) REFERENCES {context.TbUsersFullName}(Id)
 );
-CREATE INDEX IX_{tableName}_{uId}_{usersTableName}Id ON {tableName}_{uId} ({usersTableName}Id);
-CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (OrderNumber)";
+CREATE INDEX IX_{context.TbOrdersFullName}_{context.TbUsers}Id ON {context.TbOrdersFullName} ({context.TbUsers}Id);
+CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrdersFullName} (OrderNumber)";
 
     /// <inheritdoc />
-    public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP)";
+    public override string InsertUser(FidelityTestContext context, int id, string name) =>
+        $"INSERT INTO {context.TbUsersFullName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
-    public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        BuildInsertUsers(tableName, values);
-
+    public override string InsertUsers(FidelityTestContext context, params (int id, string name)[] values) =>
+        BuildInsertUsers(context.TbUsersFullName, values);
     private static string BuildInsertUsers(string tableName, (int id, string name)[] values)
     {
         var sb = new StringBuilder(64 + values.Length * 16);
@@ -100,8 +100,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string InsertOrder(
-        string tableName,
-        string usersTableName,
+        FidelityTestContext context,
         int id,
         int userId,
         string note,
@@ -110,23 +109,22 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         int quantity,
         bool isPaid,
         string orderedAtLiteral) =>
-        $"INSERT INTO {tableName} (Id, {usersTableName}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
+        $"INSERT INTO {context.TbOrdersFullName} (Id, {context.TbUsers}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
 
     /// <inheritdoc />
-    public override string SelectUserNameById(string tableName, int id) =>
-        $"SELECT Name FROM {tableName} WHERE Id = {id}";
+    public override string SelectUserNameById(FidelityTestContext context, int id) =>
+        $"SELECT Name FROM {context.TbUsersFullName} WHERE Id = {id}";
+    /// <inheritdoc />
+    public override string CountJoinForUser(FidelityTestContext context, int userId) =>
+        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u INNER JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE u.Id = {userId}";
 
     /// <inheritdoc />
-    public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
-        $"SELECT COUNT(*) FROM {usersTable} u INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id WHERE u.Id = {userId}";
+    public override string UpdateUserNameById(FidelityTestContext context, int id, string newName) =>
+        $"UPDATE {context.TbUsersFullName} SET Name = '{newName}' WHERE Id = {id}";
 
     /// <inheritdoc />
-    public override string UpdateUserNameById(string tableName, int id, string newName) =>
-        $"UPDATE {tableName} SET Name = '{newName}' WHERE Id = {id}";
-
-    /// <inheritdoc />
-    public override string DeleteUserById(string tableName, int id) =>
-        $"DELETE FROM {tableName} WHERE Id = {id}";
+    public override string DeleteUserById(FidelityTestContext context, int id) =>
+        $"DELETE FROM {context.TbUsersFullName} WHERE Id = {id}";
 
     /// <inheritdoc />
     public override string CountRows(string tableName) =>
@@ -137,20 +135,20 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         "SELECT CURRENT_TIMESTAMP";
 
     /// <inheritdoc />
-    public override string StringAggregate(string tableName) =>
-        $"SELECT GROUP_CONCAT(Name, ',') FROM {tableName}";
+    public override string StringAggregate(FidelityTestContext context) =>
+        $"SELECT GROUP_CONCAT(Name, ',') FROM {context.TbUsersFullName}";
 
     /// <inheritdoc />
-    public override string Upsert(string tableName, int id, string newName) =>
-        $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{newName}') ON CONFLICT(Id) DO UPDATE SET Name = excluded.Name";
+    public override string Upsert(FidelityTestContext context, int id, string newName) =>
+        $"INSERT INTO {context.TbUsersFullName} (Id, Name) VALUES ({id}, '{newName}') ON CONFLICT(Id) DO UPDATE SET Name = excluded.Name";
 
     /// <inheritdoc />
-    public override string DropTable(string tableName, string uId) =>
-        $"DROP TABLE IF EXISTS {tableName}_{uId}";
+    public override string DropTable(string tableName) =>
+        $"DROP TABLE IF EXISTS {tableName}";
 
     /// <inheritdoc />
-    public override string StringAggregateOrdered(string tableName) =>
-        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT Name FROM {tableName} ORDER BY Name)";
+    public override string StringAggregateOrdered(FidelityTestContext context) =>
+        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT Name FROM {context.TbUsersFullName} ORDER BY Name)";
 
     /// <inheritdoc />
     public override bool SupportsJsonScalarRead => true;
@@ -160,16 +158,16 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         $"SELECT json_extract('{jsonLiteral}', '$.name')";
 
     /// <inheritdoc />
-    public override string StringAggregateDistinct(string tableName) =>
-        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT DISTINCT Name FROM {tableName} ORDER BY Name) t";
+    public override string StringAggregateDistinct(FidelityTestContext context) =>
+        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT DISTINCT Name FROM {context.TbUsersFullName} ORDER BY Name) t";
 
     /// <inheritdoc />
-    public override string StringAggregateCustomSeparator(string tableName, string separator) =>
-        $"SELECT GROUP_CONCAT(Name, '{separator}') FROM (SELECT Name FROM {tableName} ORDER BY Name) t";
+    public override string StringAggregateCustomSeparator(FidelityTestContext context, string separator) =>
+        $"SELECT GROUP_CONCAT(Name, '{separator}') FROM (SELECT Name FROM {context.TbUsersFullName} ORDER BY Name) t";
 
     /// <inheritdoc />
-    public override string StringAggregateLargeGroup(string tableName) =>
-        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT Name FROM {tableName} ORDER BY Name) t";
+    public override string StringAggregateLargeGroup(FidelityTestContext context) =>
+        $"SELECT GROUP_CONCAT(Name, ',') FROM (SELECT Name FROM {context.TbUsersFullName} ORDER BY Name) t";
 
     /// <inheritdoc />
     public override string JsonPathRead(string jsonLiteral) =>
@@ -203,12 +201,12 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         $"SUBSTR({expression}, 1, {length})";
 
     /// <inheritdoc />
-    public override string TemporalNowWhere(string tableName) =>
-        $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
+    public override string TemporalNowWhere(FidelityTestContext context) =>
+        $"SELECT COUNT(*) FROM {context.TbUsersFullName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
 
     /// <inheritdoc />
-    public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT Name FROM {tableName} ORDER BY Name, CURRENT_TIMESTAMP LIMIT 1";
+    public override string TemporalNowOrderBy(FidelityTestContext context) =>
+        $"SELECT Name FROM {context.TbUsersFullName} ORDER BY Name, CURRENT_TIMESTAMP LIMIT 1";
 
     /// <inheritdoc />
     public override string PagedNameProjection(string tableName, int offset, int fetch) =>

@@ -7,12 +7,10 @@ namespace DbSqlLikeMem.TestTools.Performance;
 /// EN: Describes shared reflection helpers for benchmark services that inspect provider diagnostics.
 /// PT: Descreve helpers de reflexao compartilhados para services de benchmark que inspecionam diagnosticos do provedor.
 /// </summary>
-public abstract class PerformanceServiceBase<T>(
-    T connection,
-    ITestScenario<T> testScenario,
-    ProviderSqlDialect dialect
-    ) : BaseServiceTest<T>(connection, testScenario, dialect)
-    where T : DbConnection
+public abstract class PerformanceServiceBase(
+        RepoService repo,
+        FidelityTestContext context
+    ) : BaseServiceTest(repo, context)
 {
     private static readonly ConcurrentDictionary<(Type Type, string MemberName), MemberInfo?> DiagnosticMemberCache = [];
     private static readonly ConcurrentDictionary<(Type Type, string MethodName, int ParameterCount), MethodInfo?> DiagnosticMethodCache = [];

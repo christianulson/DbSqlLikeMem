@@ -4,305 +4,43 @@ namespace DbSqlLikeMem.TestTools;
 /// EN: Describes shared connection and SQL execution helpers for scenario-based tests.
 /// PT: Descreve helpers compartilhados de conexao e execucao SQL para testes baseados em cenarios.
 /// </summary>
-public abstract class BaseServiceTest<T>(
-    T connection,
-    ITestScenario<T> testScenario,
-    ProviderSqlDialect dialect)
-    where T : DbConnection
+public abstract class BaseServiceTest(
+        RepoService repo,
+        FidelityTestContext context)
 {
-    private object[]? currentScenarioArgs;
-    private bool rewriteScenarioSql = true;
-
     /// <summary>
     /// EN: Gets the connection used by the current scenario.
     /// PT: Obtem a conexao usada pelo cenario atual.
     /// </summary>
-    public T Connection => connection;
+    public RepoService Repo => repo;
 
     /// <summary>
-    /// EN: Gets the dialect used to build provider-specific SQL.
-    /// PT: Obtem o dialeto usado para montar SQL especifica do provedor.
+    /// EN: Provides access to the SQL dialect used by the provider for formatting and executing SQL statements within the scenario.
+    /// PT: Fornece acesso ao dialeto SQL usado pelo provedor para formatar e executar instruções SQL dentro do cenário.
     /// </summary>
-    public ProviderSqlDialect Dialect => dialect;
+    public FidelityTestContext Context = context;
 
     /// <summary>
-    /// EN: Creates the scenario data using the configured scenario object.
-    /// PT: Cria os dados do cenario usando o objeto de cenario configurado.
+    /// EN: Adds a parameter to the provided command with the appropriate formatting for the current provider's SQL dialect.
+    /// PT: Adiciona um parâmetro ao comando fornecido com a formatação apropriada para o dialeto SQL do provedor atual.
     /// </summary>
-    protected IReadOnlyList<object>? CurrentScenarioArgs => currentScenarioArgs;
-
-    /// <summary>
-    /// EN: Resolves a logical scenario table name to the physical table name used in the current run.
-    /// PT: Resolve um nome logico de tabela de cenario para o nome fisico usado na execucao atual.
-    /// </summary>
-    /// <param name="tableName">EN: Logical table name. PT: Nome logico da tabela.</param>
-    protected string ResolveScenarioTableName(string tableName)
+    /// <param name="command"></param>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    protected virtual void AddParameter(
+        DbCommand command,
+        string name,
+        DbType dbType,
+        object? value)
     {
-        var scenarioArgs = CurrentScenarioArgs;
-        if (scenarioArgs is null || scenarioArgs.Count < 2)
-            return tableName;
-
-        var uId = scenarioArgs[scenarioArgs.Count - 1]?.ToString();
-        if (string.IsNullOrWhiteSpace(uId))
-            return tableName;
-
-        if (tableName.EndsWith($"_{uId}", StringComparison.OrdinalIgnoreCase))
-            return Dialect.Provider == ProviderId.Oracle
-                ? tableName.ToLowerInvariant()
-                : tableName;
-
-        return Dialect.Provider == ProviderId.Oracle
-            ? $"{tableName}_{uId}".ToLowerInvariant()
-            : $"{tableName}_{uId}";
-    }
-
-    /// <summary>
-    /// EN: Creates the scenario data using the configured scenario object.
-    /// PT: Cria os dados do cenario usando o objeto de cenario configurado.
-    /// </summary>
-    public virtual void CreateScenario(params object[] pars)
-    {
-        currentScenarioArgs = [.. pars];
-        rewriteScenarioSql = false;
-        try
-        {
-            testScenario.CreateScenario(this, pars);
-        }
-        finally
-        {
-            rewriteScenarioSql = true;
-        }
-    }
-
-    /// <summary>
-    /// EN: Removes the scenario data using the configured scenario object.
-    /// PT: Remove os dados do cenario usando o objeto de cenario configurado.
-    /// </summary>
-    public virtual void DropScenario(params object[] pars)
-    {
-        rewriteScenarioSql = false;
-        try
-        {
-            testScenario.DropScenario(this, pars);
-        }
-        finally
-        {
-            currentScenarioArgs = null;
-            rewriteScenarioSql = true;
-        }
-    }
-
-    /// <summary>
-    /// EN: Executes a SQL command that does not return a result set.
-    /// PT: Executa um comando SQL que nao retorna um conjunto de resultados.
-    /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
-    internal int ExecuteNonQuery(
-        string sql,
-        DbTransaction? transaction = null)
-    {
-        EnsureConnectionOpen();
-        using var gate = ProviderExecutionGate.Acquire(Connection, dialect.Provider);
-        var total = 0;
-        foreach (var statement in SplitSqlStatements(NormalizeScenarioSql(sql)))
-        {
-            using var command = Connection.CreateCommand();
-            command.CommandText = PrepareStatementForExecution(statement);
-            command.Transaction = transaction;
-            total += command.ExecuteNonQuery();
-        }
-
-        return total;
-    }
-
-    /// <summary>
-    /// EN: Executes a SQL command that does not return a result set.
-    /// PT: Executa um comando SQL que nao retorna um conjunto de resultados.
-    /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
-    internal Task<int> ExecuteNonQueryAsync(
-        string sql,
-        DbTransaction? transaction = null)
-    {
-        EnsureConnectionOpen();
-        using var gate = ProviderExecutionGate.Acquire(Connection, dialect.Provider);
-        var total = 0;
-        foreach (var statement in SplitSqlStatements(NormalizeScenarioSql(sql)))
-        {
-            using var command = Connection.CreateCommand();
-            command.CommandText = PrepareStatementForExecution(statement);
-            command.Transaction = transaction;
-            total += command.ExecuteNonQuery();
-        }
-
-        return Task.FromResult(total);
-    }
-
-    /// <summary>
-    /// EN: Executes a SQL command and returns its scalar result.
-    /// PT: Executa um comando SQL e retorna o seu resultado escalar.
-    /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
-    /// <returns>EN: The scalar value returned by the SQL command. PT: O valor escalar retornado pelo comando SQL.</returns>
-    internal object? ExecuteScalar(
-        string sql,
-        DbTransaction? transaction = null)
-    {
-        EnsureConnectionOpen();
-        sql = NormalizeScenarioSql(sql);
-        using var command = Connection.CreateCommand();
-        command.CommandText = sql;
-        command.Transaction = transaction;
-        var value = command.ExecuteScalar();
-        if (value is not DBNull || dialect.Provider != ProviderId.Firebird)
-            return value;
-
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
-            return value;
-
-        return reader.IsDBNull(0) ? DBNull.Value : reader.GetValue(0);
-    }
-
-    /// <summary>
-    /// EN: Executes a SQL command and returns its scalar result.
-    /// PT: Executa um comando SQL e retorna o seu resultado escalar.
-    /// </summary>
-    /// <param name="sql">EN: The SQL command text to execute. PT: O texto do comando SQL a ser executado.</param>
-    /// <param name="transaction">EN: The optional transaction associated with the command execution. PT: A transacao opcional associada a execucao do comando.</param>
-    /// <returns>EN: The scalar value returned by the SQL command. PT: O valor escalar retornado pelo comando SQL.</returns>
-    internal async Task<object?> ExecuteScalarAsync(
-        string sql,
-        DbTransaction? transaction = null)
-    {
-        EnsureConnectionOpen();
-        sql = NormalizeScenarioSql(sql);
-        using var command = Connection.CreateCommand();
-        command.CommandText = sql;
-        command.Transaction = transaction;
-        return await command.ExecuteScalarAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// EN: Rewrites logical scenario table names in SQL to the physical names created for the current run.
-    /// PT: Reescreve nomes logicos de tabelas de cenario no SQL para os nomes fisicos criados na execucao atual.
-    /// </summary>
-    protected string NormalizeScenarioSql(string sql)
-    {
-        if (!rewriteScenarioSql)
-            return sql;
-
-        var scenarioArgs = currentScenarioArgs;
-        if (scenarioArgs is null || scenarioArgs.Length < 2)
-            return sql;
-
-        var uId = scenarioArgs[scenarioArgs.Length - 1]?.ToString();
-        if (string.IsNullOrWhiteSpace(uId))
-            return sql;
-
-        for (var i = 0; i < scenarioArgs.Length - 1; i++)
-        {
-            if (scenarioArgs[i] is not string tableName || string.IsNullOrWhiteSpace(tableName))
-                continue;
-
-            var resolved = Dialect.Provider == ProviderId.Oracle
-                ? $"{tableName}_{uId}".ToLowerInvariant()
-                : $"{tableName}_{uId}";
-
-            if (!string.Equals(tableName, resolved, StringComparison.Ordinal))
-            {
-                if (sql.Contains(resolved, StringComparison.Ordinal))
-                    continue;
-
-                if (sql.Contains(tableName, StringComparison.Ordinal))
-                {
-                    sql = sql.Replace(tableName, resolved);
-                    continue;
-                }
-
-                if (Dialect.Provider == ProviderId.Oracle)
-                {
-                    var lowerTableName = tableName.ToLowerInvariant();
-                    if (!string.Equals(lowerTableName, tableName, StringComparison.Ordinal)
-                        && sql.Contains(lowerTableName, StringComparison.Ordinal))
-                    {
-                        sql = sql.Replace(lowerTableName, resolved);
-                    }
-                }
-            }
-        }
-
-        return sql;
-    }
-
-    private void EnsureConnectionOpen()
-    {
-        if (Connection.State != ConnectionState.Open)
-        {
-            Connection.Open();
-        }
-    }
-
-    private static IReadOnlyList<string> SplitSqlStatements(string sql)
-    {
-        var statements = new List<string>();
-        var current = new System.Text.StringBuilder(sql.Length);
-        var inSingleQuote = false;
-
-        for (var i = 0; i < sql.Length; i++)
-        {
-            var ch = sql[i];
-
-            if (ch == '\'')
-            {
-                current.Append(ch);
-
-                if (inSingleQuote && i + 1 < sql.Length && sql[i + 1] == '\'')
-                {
-                    current.Append(sql[++i]);
-                    continue;
-                }
-
-                inSingleQuote = !inSingleQuote;
-                continue;
-            }
-
-            if (ch == ';' && !inSingleQuote)
-            {
-                AddStatement(statements, current);
-                continue;
-            }
-
-            current.Append(ch);
-        }
-
-        AddStatement(statements, current);
-        return statements;
-    }
-
-    private string PrepareStatementForExecution(string statement)
-    {
-        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
-            && statement.TrimStart().StartsWith("MERGE", StringComparison.OrdinalIgnoreCase)
-            && !statement.TrimEnd().EndsWith(";"))
-        {
-            return statement + ";";
-        }
-
-        return statement;
-    }
-
-    private static void AddStatement(
-        ICollection<string> statements,
-        System.Text.StringBuilder current)
-    {
-        var statement = current.ToString().Trim();
-        if (statement.Length != 0)
-            statements.Add(statement);
-
-        current.Clear();
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = Repo.Dialect.Parameter(name);
+        parameter.DbType = dbType;
+        parameter.Value = value ?? DBNull.Value;
+        if (Repo.Dialect.Provider == ProviderId.Db2
+            && value is string stringValue)
+            parameter.Size = stringValue.Length;
+        command.Parameters.Add(parameter);
     }
 }

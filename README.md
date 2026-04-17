@@ -134,8 +134,8 @@ var plan = cnn.LastExecutionPlan;
 
 ## Requirements | Requisitos
 
-- **EN:** Production core and provider packages follow the central targets in `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`**, and **`net8.0`**.  
-  **PT-BR:** Os pacotes de produção do núcleo e dos provedores seguem os alvos centrais de `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`** e **`net8.0`**.
+- **EN:** Production core and provider packages follow the central targets in `src/code/Directory.Build.props`: **`net462`**, **`netstandard2.0`**, and **`net8.0`**.
+  **PT-BR:** Os pacotes de produção do núcleo e dos provedores seguem os alvos centrais de `src/code/Directory.Build.props`: **`net462`**, **`netstandard2.0`** e **`net8.0`**.
 - **EN:** Test and test-tools projects use the dedicated override target set: **`net462`**, **`net6.0`**, and **`net8.0`**.  
   **PT-BR:** Os projetos de teste e test-tools usam o conjunto de alvos do override dedicado: **`net462`**, **`net6.0`** e **`net8.0`**.
 - **EN:** Some tooling or integration-specific projects may use narrower target sets (for example, extension/tooling projects outside the main NuGet package flow).  

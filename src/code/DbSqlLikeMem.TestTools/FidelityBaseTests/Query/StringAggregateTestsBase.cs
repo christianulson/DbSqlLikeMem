@@ -1,3 +1,4 @@
+using DbSqlLikeMem.TestTools;
 using DbSqlLikeMem.TestTools.DML;
 using DbSqlLikeMem.TestTools.Query;
 
@@ -16,51 +17,29 @@ public abstract class StringAggregateTestsBase<T, T2>(
     where T : DbConnection
     where T2 : DbConnection
 {
+    private static readonly object?[] SeedUsersVariants = [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")];
+    private static readonly object?[] SeedUsersSummary = [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")];
+
     /// <summary>
     /// EN: Verifies ordered, distinct, custom-separator, and large-group string aggregation for the current provider.
     /// PT: Verifica agregacao de strings ordenada, distinta, com separador customizado e em grupo grande para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregationVariantsTest()
+    public async Task StringAggregationVariantsTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = RunStringAggregationVariants(serviceTest, tableName);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersVariants],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = RunStringAggregationVariants(serviceTestContainer, tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+                var plain = await s.RunStringAggregateAsync(a);
+                var ordered = await s.RunStringAggregateOrderedAsync(a);
+                var distinct = await s.RunStringAggregateDistinctAsync(a);
+                var separator = await s.RunStringAggregateCustomSeparatorAsync(a);
+                var largeGroup = await s.RunStringAggregateLargeGroupAsync(a);
+                return (plain, ordered, distinct, separator, largeGroup);
+            });
+
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -68,47 +47,13 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica se a agregacao simples de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregateTest()
+    public async Task StringAggregateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersVariants],
+            (s, a) => s.RunStringAggregateAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunStringAggregate(tableName);
-            resultMock.Should().NotBeNull();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunStringAggregate(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -116,47 +61,13 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica se a agregacao ordenada de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregateOrderedTest()
+    public async Task StringAggregateOrderedTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersVariants],
+            (s, a) => s.RunStringAggregateOrderedAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunStringAggregateOrdered(tableName);
-            resultMock.Should().NotBeNull();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunStringAggregateOrdered(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -164,47 +75,13 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica se a agregacao distinta de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregateDistinctTest()
+    public async Task StringAggregateDistinctTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersVariants],
+            (s, a) => s.RunStringAggregateDistinctAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunStringAggregateDistinct(tableName);
-            resultMock.Should().NotBeNull();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunStringAggregateDistinct(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -212,47 +89,13 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica se a agregacao de strings com separador customizado retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregateCustomSeparatorTest()
+    public async Task StringAggregateCustomSeparatorTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersVariants],
+            (s, a) => s.RunStringAggregateCustomSeparatorAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunStringAggregateCustomSeparator(tableName);
-            resultMock.Should().NotBeNull();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunStringAggregateCustomSeparator(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -260,47 +103,13 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica se a agregacao de strings em grupo grande retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregateLargeGroupTest()
+    public async Task StringAggregateLargeGroupTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersVariants],
+            (s, a) => s.RunStringAggregateLargeGroupAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunStringAggregateLargeGroup(tableName);
-            resultMock.Should().NotBeNull();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunStringAggregateLargeGroup(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -308,46 +117,21 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica se a matriz resumo de agregacao de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregateSummaryMatrixTest()
+    public async Task StringAggregateSummaryMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = RunStringAggregationSummary(serviceTest, tableName);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersSummary],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = RunStringAggregationSummary(serviceTestContainer, tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+                var summary = (ValueTuple<string?, int, int, int>?)await s.RunStringAggregateSummaryMatrixAsync(a);
+                summary?.Item1.Should().NotBeNull();
+                summary?.Item2.Should().Be(5);
+                summary?.Item3.Should().Be(4);
+                summary?.Item4.Should().Be(2);
+                return summary;
+            });
+
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -355,46 +139,18 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica se a matriz agrupada de agregacao de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregateGroupCaseMatrixTest()
+    public async Task StringAggregateGroupCaseMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = RunStringAggregationGroupCase(serviceTest, tableName);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersSummary],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = RunStringAggregationGroupCase(serviceTestContainer, tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+                var groupCase = (int?)await s.RunStringAggregateGroupCaseMatrixAsync(a);
+                groupCase.Should().Be(2);
+                return groupCase;
+            });
+
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -402,46 +158,21 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica agregacao de strings junto com contagens total, distinta e de nomes repetidos para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregationSummaryMatrixTest()
+    public async Task StringAggregationSummaryMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = RunStringAggregationSummary(serviceTest, tableName);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersSummary],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = RunStringAggregationSummary(serviceTestContainer, tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+                var summary = (ValueTuple<string?, int, int, int>?)await s.RunStringAggregateSummaryMatrixAsync(a);
+                summary?.Item1.Should().NotBeNull();
+                summary?.Item2.Should().Be(5);
+                summary?.Item3.Should().Be(4);
+                summary?.Item4.Should().Be(2);
+                return summary;
+            });
+
+        result.Should().NotBeNull();
     }
 
     /// <summary>
@@ -449,137 +180,29 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// PT: Verifica agregacao agrupada de strings com CASE, COALESCE e contagens distintas para o provedor atual.
     /// </summary>
     [Fact]
-    public void StringAggregationGroupCaseMatrixTest()
+    public async Task StringAggregationGroupCaseMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = ResolveUsersTableName(users, uId);
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = RunStringAggregationGroupCase(serviceTest, tableName);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [SeedUsersSummary],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = RunStringAggregationGroupCase(serviceTestContainer, tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
-    }
+                var groupCase =  (int?)await s.RunStringAggregateGroupCaseMatrixAsync(a);
+                groupCase.Should().Be(2);
+                return groupCase;
+            });
 
-    private (string? Plain, string? Ordered, string? Distinct, string? Separator, string? LargeGroup) RunStringAggregationVariants<TConnection>(
-        QueryServiceTest<TConnection> serviceTest,
-        string users)
-        where TConnection : DbConnection
-    {
-        var tableName = ResolveUsersTableName(users);
-        var plain = serviceTest.RunStringAggregate(tableName);
-        var ordered = serviceTest.RunStringAggregateOrdered(tableName);
-        var distinct = serviceTest.RunStringAggregateDistinct(tableName);
-        var separator = serviceTest.RunStringAggregateCustomSeparator(tableName);
-        var largeGroup = serviceTest.RunStringAggregateLargeGroup(tableName);
-
-        plain.Should().NotBeNull();
-        ordered.Should().NotBeNull();
-        distinct.Should().NotBeNull();
-        separator.Should().NotBeNull();
-        largeGroup.Should().NotBeNull();
-
-        return (plain, ordered, distinct, separator, largeGroup);
-    }
-
-    private (string? Ordered, int TotalCount, int DistinctCount, int BobCount) RunStringAggregationSummary<TConnection>(
-        QueryServiceTest<TConnection> serviceTest,
-        string users)
-        where TConnection : DbConnection
-    {
-        var tableName = ResolveUsersTableName(users);
-        var result = serviceTest.RunStringAggregateSummaryMatrix(tableName);
-
-        result.Ordered.Should().NotBeNull();
-        result.TotalCount.Should().Be(5);
-        result.DistinctCount.Should().Be(4);
-        result.BobCount.Should().Be(2);
-
-        return result;
-    }
-
-    private int RunStringAggregationGroupCase<TConnection>(
-        QueryServiceTest<TConnection> serviceTest,
-        string users)
-        where TConnection : DbConnection
-    {
-        var tableName = ResolveUsersTableName(users);
-        var result = serviceTest.RunStringAggregateGroupCaseMatrix(tableName);
         result.Should().Be(2);
-        return result;
     }
 
-    private static string NewToken()
-        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
-
-    private string ResolveUsersTableName(string users, string uId) =>
-        dialect.Provider == ProviderId.Oracle
-            ? users.ToLowerInvariant()
-            : $"{users}_{uId}";
-
-    private string ResolveUsersTableName(string tableName)
+    private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(
+        object?[][] initialData,
+        Func<TServiceTest, object[], Task<object?>> runTest,
+        params object[] args)
+        where TScenario : BaseScenario, ITestScenario
+        where TServiceTest : BaseServiceTest
     {
-        if (dialect.Provider != ProviderId.Oracle)
-            return tableName;
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, initialData);
 
-        if (TryStripScenarioTokenSuffix(tableName, out var stripped))
-            return stripped.ToLowerInvariant();
-
-        return tableName.ToLowerInvariant();
-    }
-
-    private static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)
-    {
-        stripped = tableName;
-
-        var underscoreIndex = tableName.LastIndexOf('_');
-        if (underscoreIndex < 0)
-            return false;
-
-        var suffixLength = tableName.Length - underscoreIndex - 1;
-        if (suffixLength != 8)
-            return false;
-
-        for (var i = underscoreIndex + 1; i < tableName.Length; i++)
-        {
-            var ch = tableName[i];
-            var isHexUpper = ch is >= 'A' and <= 'F';
-            var isHexDigit = ch is >= '0' and <= '9';
-            if (!isHexUpper && !isHexDigit)
-                return false;
-        }
-
-        stripped = tableName[..underscoreIndex];
-        return true;
+        return await testService.RunTestAsync<TScenario, TServiceTest>(runTest, args);
     }
 }

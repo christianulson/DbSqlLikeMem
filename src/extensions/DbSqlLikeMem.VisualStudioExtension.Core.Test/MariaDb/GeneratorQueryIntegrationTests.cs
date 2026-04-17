@@ -21,7 +21,7 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
     [Trait("Category", "GeneratorQuery")]
     public async Task ListObjectsAndObjectMetadata_ShouldReadFromBenchmarkDatabase()
     {
-        if (!TryResolveContainerConnectionString(ProviderId.MariaDb, out var connectionString))
+        if (!ProviderConnectionStringResolver.TryResolve(ProviderId.MariaDb, out var connectionString))
         {
             return;
         }

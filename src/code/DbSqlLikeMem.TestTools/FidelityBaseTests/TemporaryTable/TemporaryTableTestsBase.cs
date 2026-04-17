@@ -1,3 +1,4 @@
+using DbSqlLikeMem.TestTools;
 using DbSqlLikeMem.TestTools.TemporaryTable;
 
 namespace DbSqlLikeMem.TestTools.Tests.TemporaryTable;
@@ -20,42 +21,12 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// PT: Verifica se criar uma tabela temporaria a partir de uma consulta filtrada retorna as linhas projetadas esperadas.
     /// </summary>
     [Fact]
-    public void CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
+    public async Task CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
-        var uId = NewToken();
+        var result = (List<int>?)await RunFidelityTestAsync<TemporaryTableScenario>(
+            (s, a) => s.RunCreateTemporaryTableAsSelectThenSelect(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new TemporaryTableScenario<T>(dialect);
-        var serviceTest = new TemporaryTableServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario("Users", uId);
-        try
-        {
-            var resultMock = serviceTest.RunCreateTemporaryTableAsSelectThenSelect("Users", uId);
-            if (IsTemporaryTableContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new TemporaryTableScenario<T2>(dialect);
-                var serviceTestContainer = new TemporaryTableServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario("Users", uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunCreateTemporaryTableAsSelectThenSelect("Users", uId);
-                    resultMock.Should().BeEquivalentTo(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario("Users", uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario("Users", uId);
-        }
+        result.Should().Equal([1, 2]);
     }
 
     /// <summary>
@@ -63,7 +34,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// PT: Verifica se criar uma tabela temporaria a partir de uma consulta filtrada retorna as linhas projetadas esperadas.
     /// </summary>
     [Fact]
-    public void TempTableCreateAndUseTest()
+    public Task TempTableCreateAndUseTest()
         => CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows();
 
     /// <summary>
@@ -71,41 +42,16 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// PT: Verifica se o rollback de uma transacao limpa as linhas gravadas em uma tabela temporaria de usuarios.
     /// </summary>
     [Fact]
-    public void CreateTemporaryUsersTable_Rollback_ShouldClearRows()
+    public async Task CreateTemporaryUsersTable_Rollback_ShouldClearRows()
     {
-        var tableName = $"temp_users_{NewToken()}";
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new TemporaryUsersScenario<T>(dialect);
-        var serviceTest = new TemporaryTableServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(tableName);
-        try
-        {
-            serviceTest.RunTempTableRollback(tableName);
-            if (IsTemporaryTableContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<TemporaryUsersScenario>(
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new TemporaryUsersScenario<T2>(dialect);
-                var serviceTestContainer = new TemporaryTableServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(tableName);
-                try
-                {
-                    serviceTestContainer.RunTempTableRollback(tableName);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(tableName);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(tableName);
-        }
+                await s.RunTempTableRollback();
+                return null;
+            });
+
+        result.Should().BeNull();
     }
 
     /// <summary>
@@ -113,7 +59,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// PT: Verifica se o rollback de uma transacao limpa as linhas gravadas em uma tabela temporaria de usuarios.
     /// </summary>
     [Fact]
-    public void TempTableRollbackTest()
+    public Task TempTableRollbackTest()
         => CreateTemporaryUsersTable_Rollback_ShouldClearRows();
 
     /// <summary>
@@ -121,42 +67,12 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// PT: Verifica se uma tabela temporaria de usuarios aceita inserts e retorna a contagem esperada de linhas.
     /// </summary>
     [Fact]
-    public void CreateTemporaryUsersTable_CreateAndUse_ShouldReturnOne()
+    public async Task CreateTemporaryUsersTable_CreateAndUse_ShouldReturnOne()
     {
-        var tableName = $"temp_users_{NewToken()}";
+        var result = (int?)await RunFidelityTestAsync<TemporaryUsersScenario>(
+            (s, a) => s.RunTempTableCreateAndUse(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new TemporaryUsersScenario<T>(dialect);
-        var serviceTest = new TemporaryTableServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(tableName);
-        try
-        {
-            var resultMock = serviceTest.RunTempTableCreateAndUse(tableName);
-            if (IsTemporaryTableContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new TemporaryUsersScenario<T2>(dialect);
-                var serviceTestContainer = new TemporaryTableServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(tableName);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTempTableCreateAndUse(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(tableName);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(tableName);
-        }
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -164,46 +80,12 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// PT: Verifica se uma tabela temporaria de usuarios nao fica visivel a partir de uma conexao secundaria.
     /// </summary>
     [Fact]
-    public void CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero()
+    public async Task CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero()
     {
-        var tableName = $"temp_users_{NewToken()}";
+        var result = (int?)await RunFidelityTestAsync<TemporaryUsersScenario>(
+            (s, a) => s.RunTemporaryTableCrossConnectionIsolation(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new TemporaryUsersScenario<T>(dialect);
-        var serviceTest = new TemporaryTableServiceTest<T>(connMock, testScenario, dialect, connectionMock);
-        serviceTest.CreateScenario(tableName);
-        try
-        {
-            var resultMock = serviceTest.RunTemporaryTableCrossConnectionIsolation(tableName);
-            if (IsTemporaryTableContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new TemporaryUsersScenario<T2>(dialect);
-                var serviceTestContainer = new TemporaryTableServiceTest<T2>(
-                    connContainer,
-                    testScenarioContainer,
-                    dialect,
-                    () => connectionContainer(connectionString));
-                serviceTestContainer.CreateScenario(tableName);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTemporaryTableCrossConnectionIsolation(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(tableName);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(tableName);
-        }
+        result.Should().Be(0);
     }
 
     /// <summary>
@@ -211,9 +93,16 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// PT: Verifica se uma tabela temporaria de usuarios nao fica visivel a partir de uma conexao secundaria.
     /// </summary>
     [Fact]
-    public void TempTableCrossConnectionIsolationTest()
+    public Task TempTableCrossConnectionIsolationTest()
         => CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero();
 
-    private static string NewToken()
-        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+    private async Task<object?> RunFidelityTestAsync<TScenario>(
+        Func<TemporaryTableServiceOpsTest, object[], Task<object?>> runTest,
+        params object[] args)
+        where TScenario : BaseScenario, ITestScenario
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        return await testService.RunTestAsync<TScenario, TemporaryTableServiceOpsTest>(runTest, args);
+    }
 }

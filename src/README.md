@@ -85,7 +85,7 @@ using (var select = cnn.CreateCommand())
 
 ### Target frameworks
 
-Core and provider packages follow the central production targets from `src/Directory.Build.props`: `net462`, `netstandard2.0`, and `net8.0`.
+Core and provider packages follow the central production targets from `src/code/Directory.Build.props`: `net462`, `netstandard2.0`, and `net8.0`.
 Test and test-tools projects use the dedicated override target set: `net462`, `net6.0`, and `net8.0`.
 
 ### Documentation and contribution
@@ -187,7 +187,7 @@ using (var select = cnn.CreateCommand())
 
 ### Frameworks alvo
 
-Os pacotes core e de provedores seguem os alvos de produção centrais de `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+Os pacotes core e de provedores seguem os alvos de produção centrais de `src/code/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
 Os projetos de teste e test-tools usam o conjunto de override dedicado: `net462`, `net6.0` e `net8.0`.
 
 ### Documentação e contribuição

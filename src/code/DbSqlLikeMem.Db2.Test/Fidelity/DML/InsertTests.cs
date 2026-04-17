@@ -1,4 +1,3 @@
-using DbSqlLikeMem.Db2;
 using DbSqlLikeMem.Db2.TestTools;
 using DbSqlLikeMem.TestTools.Tests.DML;
 #if NET462

@@ -4,22 +4,20 @@ namespace DbSqlLikeMem.TestTools.DDL;
 /// EN: Executes the users-table creation command for DDL scenarios.
 /// PT: Executa o comando de criacao da tabela de usuarios para cenarios DDL.
 /// </summary>
-public class CreateTableServiceTest<T>(
-        T connection,
-        ITestScenario<T> testScenario,
-        ProviderSqlDialect dialect
-    ) : BaseServiceTest<T>(connection, testScenario, dialect),
+public class CreateTableServiceTest(
+        RepoService repo,
+        FidelityTestContext context
+    ) : BaseServiceTest(repo, context),
         IBaseServiceTest
-    where T : DbConnection
 {
     /// <summary>
     /// EN: Creates the users table used by the scenario.
     /// PT: Cria a tabela de usuarios usada pelo cenario.
     /// </summary>
-    /// <param name="pars"></param>
-    public virtual void RunTest(params object[] pars)
+    /// <param name="args"></param>
+    public virtual async Task<object?> RunTestAsync(params object[] args)
     {
-        var sql = Dialect.CreateUsersTable((string)pars[0], (string)pars[1]);
-        ExecuteNonQuery(sql);
+        var sql = Repo.Dialect.CreateUsersTable(Context);
+        return await Repo.ExecuteNonQueryAsync(sql);
     }
 }

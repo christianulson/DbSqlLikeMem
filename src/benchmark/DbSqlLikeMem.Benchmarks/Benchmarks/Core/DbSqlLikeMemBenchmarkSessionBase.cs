@@ -1,5 +1,3 @@
-using DbSqlLikeMem.TestTools.Benchmarks;
-
 namespace DbSqlLikeMem.Benchmarks.Core;
 
 /// <summary>
@@ -15,27 +13,16 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
     /// </summary>
     protected override void RunTempTableCreateAndUse()
     {
-        var uId = NextToken();
-        var users = NewUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryTableScenario<DbConnection>(Dialect));
+        using var scope = CreateTemporaryTableScope();
         try
         {
-            service.CreateScenario(users, uId);
-            var rows = service.RunCreateTemporaryTableAsSelectThenSelect(users, uId);
+            var rows = scope.Service.RunCreateTemporaryTableAsSelectThenSelect(
+                scope.Context);
             GC.KeepAlive(rows);
         }
         finally
         {
-            try
-            {
-                service.DropScenario(users, uId);
-            }
-            catch
-            {
-                SafeDropTable(connection, users, uId);
-            }
+            scope.Dispose();
         }
     }
 
@@ -50,19 +37,15 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
             throw new NotSupportedException($"{Dialect.DisplayName} does not support temp-table rollback benchmark.");
         }
 
-        var users = NewTemporaryUsersTableName();
-        using var connection = CreateConnection();
-        connection.Open();
-        var service = CreateTemporaryTableService(connection, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect));
-        service.CreateScenario(users);
+        using var scope = CreateTemporaryUsersScope();
 
         try
         {
-            service.RunTempTableRollback(users);
+            scope.Service.RunTempTableRollback().GetAwaiter().GetResult();
         }
         finally
         {
-            service.DropScenario(users);
+            scope.Dispose();
         }
     }
 
@@ -72,27 +55,16 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
     /// </summary>
     protected override void RunTempTableCrossConnectionIsolation()
     {
-        var users = NewTemporaryUsersTableName();
-        using var connection1 = CreateConnection();
-        connection1.Open();
-        var service = CreateTemporaryTableService(connection1, BenchmarkScenarioFactory.CreateTemporaryUsersScenario<DbConnection>(Dialect), CreateConnection);
-        service.CreateScenario(users);
+        using var scope = CreateTemporaryUsersScope();
 
         try
         {
-            var value = service.RunTemporaryTableCrossConnectionIsolation(users);
+            var value = scope.Service.RunTemporaryTableCrossConnectionIsolation().GetAwaiter().GetResult();
             GC.KeepAlive(value);
         }
         finally
         {
-            try
-            {
-                service.DropScenario(users);
-            }
-            catch
-            {
-                SafeDropTemporaryTable(connection1, users);
-            }
+            scope.Dispose();
         }
     }
 

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -29,6 +29,7 @@
 		<ProjectReference Include="..\..\code\DbSqlLikeMem.Firebird.TestTools\DbSqlLikeMem.Firebird.TestTools.csproj" />
 		<ProjectReference Include="..\..\code\DbSqlLikeMem.MariaDb\DbSqlLikeMem.MariaDb.csproj" />
 		<ProjectReference Include="..\..\code\DbSqlLikeMem.Db2.TestTools\DbSqlLikeMem.Db2.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
 		<ProjectReference Include="..\..\code\DbSqlLikeMem.MariaDb.TestTools\DbSqlLikeMem.MariaDb.TestTools.csproj" />
 		<ProjectReference Include="..\..\code\DbSqlLikeMem.MySql.TestTools\DbSqlLikeMem.MySql.TestTools.csproj" />
 		<ProjectReference Include="..\..\code\DbSqlLikeMem.Npgsql\DbSqlLikeMem.Npgsql.csproj" />

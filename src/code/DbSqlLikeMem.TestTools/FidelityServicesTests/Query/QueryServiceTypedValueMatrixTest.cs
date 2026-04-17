@@ -1,15 +1,13 @@
 namespace DbSqlLikeMem.TestTools.Query;
 
-public partial class QueryServiceTest<T>
+public partial class QueryServiceTest
 {
     /// <summary>
     /// EN: Inserts text, boolean, integer, exact and approximate numeric, fixed-length text, bigint, GUID, binary, time, DateTimeOffset, and boundary values into the users table and reads them back for fidelity checks.
     /// PT: Insere valores de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, GUID, binario, time, DateTimeOffset e valores de borda na tabela de usuarios e os le de volta para verificacoes de fidelidade.
     /// </summary>
-    internal QueryResultSnapshot RunTypedFieldStorageMatrix(params object[] pars)
+    internal async Task<object?> RunTypedFieldStorageMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var tableName = ResolveScenarioTableName(users);
         var firstCreatedAt = new DateTime(2026, 1, 15, 10, 30, 0, DateTimeKind.Utc);
         var firstUpdatedAt = new DateTime(2026, 1, 16, 11, 45, 0, DateTimeKind.Utc);
         var firstBirthDate = new DateTime(2026, 1, 18);
@@ -25,7 +23,7 @@ public partial class QueryServiceTest<T>
         var thirdExpectedDateTimeOffsetValue = NormalizeStoredDateTimeOffsetValue(thirdDateTimeOffsetValue);
         var thirdName = new string('N', 100);
         var thirdEmail = new string('E', 150);
-        var thirdExpectedPrecisionValue = Dialect.Provider == ProviderId.Sqlite
+        var thirdExpectedPrecisionValue = Repo.Dialect.Provider == ProviderId.Sqlite
             ? 100000000000000m
             : 99999999999999.9999m;
         var thirdBinaryValue = new byte[]
@@ -45,7 +43,6 @@ public partial class QueryServiceTest<T>
         var fourthExpectedDateTimeOffsetValue = NormalizeStoredDateTimeOffsetValue(fourthDateTimeOffsetValue);
 
         InsertTypedStorageRow(
-            tableName,
             1,
             "Alice",
             "alice@example.com",
@@ -64,7 +61,6 @@ public partial class QueryServiceTest<T>
             firstTimeValue,
             firstDateTimeOffsetValue);
         InsertTypedStorageRow(
-            tableName,
             2,
             "Bob",
             null,
@@ -83,7 +79,6 @@ public partial class QueryServiceTest<T>
             null,
             null);
         InsertTypedStorageRow(
-            tableName,
             3,
             thirdName,
             thirdEmail,
@@ -102,7 +97,6 @@ public partial class QueryServiceTest<T>
             thirdTimeValue,
             thirdDateTimeOffsetValue);
         InsertTypedStorageRow(
-            tableName,
             4,
             "Delta",
             fourthEmail,
@@ -121,7 +115,7 @@ public partial class QueryServiceTest<T>
             TimeSpan.Zero,
             fourthDateTimeOffsetValue);
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     Id,
@@ -141,28 +135,27 @@ SELECT
     BinaryValue,
     TimeValue,
     DateTimeOffsetValue
-FROM {tableName}
+FROM {Context.TbUsersFullName}
 ORDER BY Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
         var rows = new List<QueryResultRowSnapshot>(4);
 
-        reader.Read().Should().BeTrue();
-        rows.Add(ValidateTypedStorageRow(reader, Dialect.Provider, 1, "Alice", "alice@example.com", true, 31, 123.45m, firstCreatedAt, firstUpdatedAt, firstBirthDate, "AB", 1234567890123L, 9876.5432m, 12.5d, Guid.Parse("11111111-2222-3333-4444-555555555555"), new byte[] { 1, 2, 3, 4 }, firstTimeValue, firstExpectedDateTimeOffsetValue));
+        (await reader.ReadAsync()).Should().BeTrue();
+        rows.Add(ValidateTypedStorageRow(reader, Repo.Dialect.Provider, 1, "Alice", "alice@example.com", true, 31, 123.45m, firstCreatedAt, firstUpdatedAt, firstBirthDate, "AB", 1234567890123L, 9876.5432m, 12.5d, Guid.Parse("11111111-2222-3333-4444-555555555555"), new byte[] { 1, 2, 3, 4 }, firstTimeValue, firstExpectedDateTimeOffsetValue));
 
-        reader.Read().Should().BeTrue();
-        rows.Add(ValidateTypedStorageRow(reader, Dialect.Provider, 2, "Bob", null, false, null, 0.00m, secondCreatedAt, null, null, null, -42L, null, null, null, null, null, null));
+        (await reader.ReadAsync()).Should().BeTrue();
+        rows.Add(ValidateTypedStorageRow(reader, Repo.Dialect.Provider, 2, "Bob", null, false, null, 0.00m, secondCreatedAt, null, null, null, -42L, null, null, null, null, null, null));
 
-        reader.Read().Should().BeTrue();
-        rows.Add(ValidateTypedStorageRow(reader, Dialect.Provider, 3, thirdName, thirdEmail, true, short.MaxValue, 9999999999.99m, thirdCreatedAt, thirdUpdatedAt, thirdBirthDate, "ZZ", long.MaxValue, thirdExpectedPrecisionValue, 1234567.5d, Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), thirdBinaryValue, thirdTimeValue, thirdExpectedDateTimeOffsetValue));
+        (await reader.ReadAsync()).Should().BeTrue();
+        rows.Add(ValidateTypedStorageRow(reader, Repo.Dialect.Provider, 3, thirdName, thirdEmail, true, short.MaxValue, 9999999999.99m, thirdCreatedAt, thirdUpdatedAt, thirdBirthDate, "ZZ", long.MaxValue, thirdExpectedPrecisionValue, 1234567.5d, Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), thirdBinaryValue, thirdTimeValue, thirdExpectedDateTimeOffsetValue));
 
-        reader.Read().Should().BeTrue();
-        rows.Add(ValidateTypedStorageRow(reader, Dialect.Provider, 4, "Delta", fourthExpectedEmail, false, 0, 1.00m, fourthCreatedAt, null, null, fourthExpectedFixedCode, 0L, 0.0001m, 0.0d, Guid.Empty, fourthBinaryValue, TimeSpan.Zero, fourthExpectedDateTimeOffsetValue));
+        (await reader.ReadAsync()).Should().BeTrue();
+        rows.Add(ValidateTypedStorageRow(reader, Repo.Dialect.Provider, 4, "Delta", fourthExpectedEmail, false, 0, 1.00m, fourthCreatedAt, null, null, fourthExpectedFixedCode, 0L, 0.0001m, 0.0d, Guid.Empty, fourthBinaryValue, TimeSpan.Zero, fourthExpectedDateTimeOffsetValue));
 
-        reader.Read().Should().BeFalse();
+        (await reader.ReadAsync()).Should().BeFalse();
 
-        GC.KeepAlive(tableName);
         return new QueryResultSnapshot
         {
             ColumnNames = ["Id", "Name", "Email", "IsActive", "Age", "Balance", "CreatedAt", "UpdatedAt", "BirthDate", "FixedCode", "BigCount", "PrecisionValue", "DoubleValue", "GuidValue", "BinaryValue", "TimeValue", "DateTimeOffsetValue"],
@@ -171,7 +164,6 @@ ORDER BY Id
     }
 
     private void InsertTypedStorageRow(
-        string tableName,
         int id,
         string name,
         string? email,
@@ -190,9 +182,9 @@ ORDER BY Id
         TimeSpan? timeValue,
         DateTimeOffset? dateTimeOffsetValue)
     {
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
-INSERT INTO {tableName} (
+INSERT INTO {Context.TbUsersFullName} (
     Id,
     Name,
     Email,
@@ -211,23 +203,23 @@ INSERT INTO {tableName} (
     TimeValue,
     DateTimeOffsetValue
 ) VALUES (
-    {Dialect.Parameter("id")},
-    {Dialect.Parameter("name")},
-    {Dialect.Parameter("email")},
-    {Dialect.Parameter("isActive")},
-    {Dialect.Parameter("age")},
-    {Dialect.Parameter("balance")},
-    {Dialect.Parameter("createdAt")},
-    {Dialect.Parameter("updatedAt")},
-    {Dialect.Parameter("birthDate")},
-    {Dialect.Parameter("fixedCode")},
-    {Dialect.Parameter("bigCount")},
-    {Dialect.Parameter("precisionValue")},
-    {Dialect.Parameter("doubleValue")},
-    {Dialect.Parameter("guidValue")},
-    {Dialect.Parameter("binaryValue")},
-    {Dialect.Parameter("timeValue")},
-    {Dialect.Parameter("dateTimeOffsetValue")}
+    {Repo.Dialect.Parameter("id")},
+    {Repo.Dialect.Parameter("name")},
+    {Repo.Dialect.Parameter("email")},
+    {Repo.Dialect.Parameter("isActive")},
+    {Repo.Dialect.Parameter("age")},
+    {Repo.Dialect.Parameter("balance")},
+    {Repo.Dialect.Parameter("createdAt")},
+    {Repo.Dialect.Parameter("updatedAt")},
+    {Repo.Dialect.Parameter("birthDate")},
+    {Repo.Dialect.Parameter("fixedCode")},
+    {Repo.Dialect.Parameter("bigCount")},
+    {Repo.Dialect.Parameter("precisionValue")},
+    {Repo.Dialect.Parameter("doubleValue")},
+    {Repo.Dialect.Parameter("guidValue")},
+    {Repo.Dialect.Parameter("binaryValue")},
+    {Repo.Dialect.Parameter("timeValue")},
+    {Repo.Dialect.Parameter("dateTimeOffsetValue")}
 )
 """;
 
@@ -255,7 +247,7 @@ INSERT INTO {tableName} (
             dateTimeOffsetValue is null
                 ? DBNull.Value
                 : supportsNativeDateTimeOffsetStorage
-                    ? Dialect.Provider == ProviderId.Npgsql
+                    ? Repo.Dialect.Provider == ProviderId.Npgsql
                         ? dateTimeOffsetValue.Value.ToUniversalTime()
                         : dateTimeOffsetValue.Value
                     : dateTimeOffsetValue.Value.ToString("O", CultureInfo.InvariantCulture));
@@ -383,15 +375,15 @@ INSERT INTO {tableName} (
     }
 
     private bool SupportsNativeDateTimeOffsetStorage()
-        => Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Npgsql or ProviderId.Oracle;
+        => Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Npgsql or ProviderId.Oracle;
 
     private string? NormalizeOracleNullableText(string? value)
-        => Dialect.Provider == ProviderId.Oracle && string.IsNullOrEmpty(value) ? null : value;
+        => Repo.Dialect.Provider == ProviderId.Oracle && string.IsNullOrEmpty(value) ? null : value;
 
     private DateTimeOffset NormalizeStoredDateTimeOffsetValue(DateTimeOffset value)
-        => Dialect.Provider == ProviderId.Npgsql
+        => Repo.Dialect.Provider == ProviderId.Npgsql
             ? value.ToUniversalTime()
-            : Dialect.Provider == ProviderId.Oracle
+            : Repo.Dialect.Provider == ProviderId.Oracle
                 ? new DateTimeOffset(value.DateTime, TimeSpan.Zero)
                 : value;
 }

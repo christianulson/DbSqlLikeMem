@@ -28,7 +28,7 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
     [Trait("Category", "GeneratorQuery")]
     public async Task ListObjectsAndObjectMetadata_ShouldReadFromBenchmarkDatabase()
     {
-        if (!TryResolveContainerConnectionString(ProviderId.Firebird, out var connectionString))
+        if (!ProviderConnectionStringResolver.TryResolve(ProviderId.Firebird, out var connectionString))
         {
             return;
         }

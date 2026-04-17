@@ -55,6 +55,27 @@ public abstract class BenchmarkSuiteBase
     }
 
     /// <summary>
+    /// EN: Prepares the benchmark session before the runs start.
+    /// PT: Prepara a sessao de benchmark antes do inicio das execucoes.
+    /// </summary>
+    [IterationSetup]
+    public Task IterationSetup()
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// EN: Releases the benchmark session after the runs finish.
+    /// PT: Libera a sessao de benchmark depois que as execucoes terminam.
+    /// </summary>
+    [IterationCleanup]
+    public Task IterationCleanup()
+    {
+        return Task.CompletedTask;
+    }
+
+
+    /// <summary>
     /// EN: Executes one benchmark feature through the current session.
     /// PT: Executa um recurso de benchmark pela sessao atual.
     /// </summary>

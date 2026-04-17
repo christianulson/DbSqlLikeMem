@@ -1,25 +1,86 @@
 namespace DbSqlLikeMem.TestTools.DML;
 
-public partial class DmlMutationServiceTest<T>
+/// <summary>
+/// EN: Executes transaction and savepoint workflows over the shared test infrastructure.
+/// PT: Executa fluxos de transacao e savepoint sobre a infraestrutura compartilhada de testes.
+/// </summary>
+public partial class DmlMutationServiceTest : BaseServiceTest
 {
+    /// <summary>
+    /// EN: Creates a transaction service wrapper for the current fidelity test run.
+    /// PT: Cria um wrapper de servico de transacao para a execucao atual do teste de fidelidade.
+    /// </summary>
+    /// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
+    /// <param name="context">EN: Scenario context with the current parameters. PT: Contexto do cenario com os parametros atuais.</param>
+    public DmlMutationServiceTest(RepoService repo, FidelityTestContext context)
+        : base(repo, context)
+    {
+    }
+
+    /// <summary>
+    /// EN: Gets the active database connection for the current run.
+    /// PT: Obtem a conexao de banco de dados ativa da execucao atual.
+    /// </summary>
+    protected DbConnection Connection
+    {
+        get
+        {
+            if (Repo.Cnn.State != ConnectionState.Open)
+            {
+                Repo.Cnn.Open();
+            }
+
+            return Repo.Cnn;
+        }
+    }
+
+    /// <summary>
+    /// EN: Gets the active SQL dialect for the current run.
+    /// PT: Obtem o dialeto SQL ativo da execucao atual.
+    /// </summary>
+    protected ProviderSqlDialect Dialect => Repo.Dialect;
+
+    /// <summary>
+    /// EN: Executes a non-query SQL command synchronously against the active connection.
+    /// PT: Executa um comando SQL sem resultado de forma sincronizada na conexao ativa.
+    /// </summary>
+    /// <param name="sql">EN: SQL command text. PT: Texto do comando SQL.</param>
+    /// <param name="transaction">EN: Optional transaction to enlist. PT: Transacao opcional para associar.</param>
+    /// <returns>EN: Affected row count. PT: Quantidade de linhas afetadas.</returns>
+    protected int ExecuteNonQuery(string sql, DbTransaction? transaction = null)
+    {
+        using var command = Connection.CreateCommand();
+        command.CommandText = sql;
+        command.Transaction = transaction;
+        return command.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// EN: Executes a scalar SQL command synchronously against the active connection.
+    /// PT: Executa um comando SQL escalar de forma sincronizada na conexao ativa.
+    /// </summary>
+    /// <param name="sql">EN: SQL command text. PT: Texto do comando SQL.</param>
+    /// <param name="transaction">EN: Optional transaction to enlist. PT: Transacao opcional para associar.</param>
+    /// <returns>EN: Scalar value returned by the command. PT: Valor escalar retornado pelo comando.</returns>
+    protected object? ExecuteScalar(string sql, DbTransaction? transaction = null)
+    {
+        using var command = Connection.CreateCommand();
+        command.CommandText = sql;
+        command.Transaction = transaction;
+        return command.ExecuteScalar();
+    }
+
     /// <summary>
     /// EN: Inserts a row inside a transaction, commits it, and validates the persisted count.
     /// PT: Insere uma linha dentro de uma transação, confirma a operação e valida a contagem persistida.
     /// </summary>
     public int RunTransactionCommit(params object[] pars)
-        => RunTransactionCommit((string)GetScenarioTableName(pars));
-
-    /// <summary>
-    /// EN: Inserts a row inside a transaction, commits it, and validates the persisted count.
-    /// PT: Insere uma linha dentro de uma transação, confirma a operação e valida a contagem persistida.
-    /// </summary>
-    public int RunTransactionCommit(string tableName)
     {
         using var transaction = Connection.BeginTransaction();
-        ExecuteNonQuery(Dialect.InsertUser(tableName, 1, "Alice"), transaction);
+        ExecuteNonQuery(Dialect.InsertUser(Context, 1, "Alice"), transaction);
         transaction.Commit();
 
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(tableName)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected commit count for {Dialect.DisplayName}: {count}.");
@@ -33,19 +94,12 @@ public partial class DmlMutationServiceTest<T>
     /// PT: Insere uma linha dentro de uma transação, desfaz a operação e valida que nenhuma linha permaneceu.
     /// </summary>
     public int RunTransactionRollback(params object[] pars)
-        => RunTransactionRollback((string)GetScenarioTableName(pars));
-
-    /// <summary>
-    /// EN: Inserts a row inside a transaction, rolls it back, and validates that no rows remain.
-    /// PT: Insere uma linha dentro de uma transação, desfaz a operação e valida que nenhuma linha permaneceu.
-    /// </summary>
-    public int RunTransactionRollback(string tableName)
     {
         using var transaction = Connection.BeginTransaction();
-        ExecuteNonQuery(Dialect.InsertUser(tableName, 1, "Alice"), transaction);
+        ExecuteNonQuery(Dialect.InsertUser(Context, 1, "Alice"), transaction);
         transaction.Rollback();
 
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(tableName)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
         if (count != 0)
         {
             throw new InvalidOperationException($"Unexpected rollback count for {Dialect.DisplayName}: {count}.");
@@ -76,13 +130,6 @@ public partial class DmlMutationServiceTest<T>
     /// PT: Faz rollback para um savepoint e valida a contagem de linhas restante.
     /// </summary>
     public int RunRollbackToSavepoint(params object[] pars)
-        => RunRollbackToSavepoint((string)GetScenarioTableName(pars));
-
-    /// <summary>
-    /// EN: Rolls back to a savepoint and validates the remaining row count.
-    /// PT: Faz rollback para um savepoint e valida a contagem de linhas restante.
-    /// </summary>
-    public int RunRollbackToSavepoint(string tableName)
     {
         if (!Dialect.SupportsSavepoints)
         {
@@ -90,14 +137,14 @@ public partial class DmlMutationServiceTest<T>
         }
 
         using var transaction = Connection.BeginTransaction();
-        ExecuteNonQuery(Dialect.InsertUser(tableName, 1, "Alice"), transaction);
+        ExecuteNonQuery(Dialect.InsertUser(Context, 1, "Alice"), transaction);
         var savepoint = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteSavepoint(transaction, savepoint);
-        ExecuteNonQuery(Dialect.InsertUser(tableName, 2, "Bob"), transaction);
+        ExecuteNonQuery(Dialect.InsertUser(Context, 2, "Bob"), transaction);
         ExecuteRollbackToSavepoint(transaction, savepoint);
         transaction.Commit();
 
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(tableName)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
             throw new InvalidOperationException($"Unexpected rollback-to-savepoint count for {Dialect.DisplayName}: {count}.");
@@ -129,13 +176,6 @@ public partial class DmlMutationServiceTest<T>
     /// PT: Executa um fluxo aninhado de savepoints e valida a contagem final de linhas.
     /// </summary>
     public int RunNestedSavepointFlow(params object[] pars)
-        => RunNestedSavepointFlow((string)GetScenarioTableName(pars));
-
-    /// <summary>
-    /// EN: Executes a nested savepoint flow and validates the resulting row count.
-    /// PT: Executa um fluxo aninhado de savepoints e valida a contagem final de linhas.
-    /// </summary>
-    public int RunNestedSavepointFlow(string tableName)
     {
         if (!Dialect.SupportsSavepoints)
         {
@@ -143,13 +183,13 @@ public partial class DmlMutationServiceTest<T>
         }
 
         using var transaction = Connection.BeginTransaction();
-        ExecuteNonQuery(Dialect.InsertUser(tableName, 1, "Alice"), transaction);
+        ExecuteNonQuery(Dialect.InsertUser(Context, 1, "Alice"), transaction);
         var sp1 = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteSavepoint(transaction, sp1);
-        ExecuteNonQuery(Dialect.InsertUser(tableName, 2, "Bob"), transaction);
+        ExecuteNonQuery(Dialect.InsertUser(Context, 2, "Bob"), transaction);
         var sp2 = $"sp_{Guid.NewGuid():N}"[..11];
         ExecuteSavepoint(transaction, sp2);
-        ExecuteNonQuery(Dialect.InsertUser(tableName, 3, "Charlie"), transaction);
+        ExecuteNonQuery(Dialect.InsertUser(Context, 3, "Charlie"), transaction);
         ExecuteRollbackToSavepoint(transaction, sp2);
         if (SupportsReleaseSavepointWorkflow())
         {
@@ -157,7 +197,7 @@ public partial class DmlMutationServiceTest<T>
         }
         transaction.Commit();
 
-        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(tableName)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(ExecuteScalar(Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
         if (count != 2)
         {
             throw new InvalidOperationException($"Unexpected nested-savepoint count for {Dialect.DisplayName}: {count}.");
@@ -165,11 +205,6 @@ public partial class DmlMutationServiceTest<T>
 
         return count;
     }
-
-    private static string GetScenarioTableName(IReadOnlyList<object> pars)
-        => pars.Count >= 3
-            ? (string)pars[2]
-            : $"{(string)pars[0]}_{(string)pars[1]}";
 
     private void ExecuteDialectCommand(string sql, DbTransaction? transaction = null)
     {
@@ -219,11 +254,11 @@ public partial class DmlMutationServiceTest<T>
         string methodName,
         string savepoint)
     {
-        var method = transaction.GetType().GetMethod(methodName, new[] { typeof(string) });
+        var method = transaction.GetType().GetMethod(methodName, [typeof(string)]);
         if (method is null)
             return false;
 
-        method.Invoke(transaction, new object[] { savepoint });
+        method.Invoke(transaction, [savepoint]);
         return true;
     }
 }

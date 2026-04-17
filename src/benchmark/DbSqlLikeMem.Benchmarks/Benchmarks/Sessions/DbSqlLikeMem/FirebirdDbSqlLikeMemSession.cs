@@ -1,3 +1,8 @@
+using DbSqlLikeMem.Firebird;
+using DbSqlLikeMem.Firebird.TestTools;
+using DbSqlLikeMem.TestTools.DML;
+using DbSqlLikeMem.TestTools.Performance;
+
 namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
 /// <summary>
@@ -7,31 +12,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 public sealed class FirebirdDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new FirebirdProviderSqlDialect())
 {
-    private const string ExecuteBlockSqlState23000UsersTable = "FB_EXEC_BLOCK_SQLSTATE_23000";
-
     private readonly FirebirdDbMock Db = new() { ThreadSafe = true };
-
-    /// <summary>
-    /// EN: Prepares the Firebird mock database used by the benchmark session.
-    /// PT: Prepara o banco mock de Firebird usado pela sessao de benchmark.
-    /// </summary>
-    public override void Initialize()
-    {
-        using var connection = CreateConnection();
-        connection.Open();
-
-        ExecuteNonQuery(connection, $"""
-CREATE TABLE {ExecuteBlockSqlState23000UsersTable} (
-    Id INTEGER NOT NULL,
-    Name VARCHAR(100) NOT NULL,
-    CONSTRAINT PK_{ExecuteBlockSqlState23000UsersTable} PRIMARY KEY (Id)
-)
-""");
-
-        ExecuteNonQuery(
-            connection,
-            $"""INSERT INTO {ExecuteBlockSqlState23000UsersTable} (Id, Name) VALUES (1, 'Seed')""");
-    }
 
     /// <summary>
     /// EN: Executes the Firebird EXECUTE BLOCK benchmark that traps SQLSTATE 23000.
@@ -39,25 +20,8 @@ CREATE TABLE {ExecuteBlockSqlState23000UsersTable} (
     /// </summary>
     private void RunExecuteBlockSqlState23000()
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        using var transaction = connection.BeginTransaction();
-
-        ExecuteNonQuery(
-            connection,
-            $"""
-EXECUTE BLOCK AS
-BEGIN
-    EXECUTE STATEMENT 'INSERT INTO {ExecuteBlockSqlState23000UsersTable} (Id, Name) VALUES (1, ''Fail'')';
-    WHEN SQLSTATE '23000' DO
-    BEGIN
-        INSERT INTO {ExecuteBlockSqlState23000UsersTable} (Id, Name) VALUES (2, 'SqlState23000');
-    END
-END
-""",
-            transaction);
-
-        transaction.Rollback();
+        using var runner = new NotFidelityTestService<DbConnection>(CreateConnection, Dialect);
+        _ = runner.RunTestAsync<NoopScenario, FirebirdExecuteBlockSqlState23000ServiceTest>().GetAwaiter().GetResult();
     }
 
     /// <summary>

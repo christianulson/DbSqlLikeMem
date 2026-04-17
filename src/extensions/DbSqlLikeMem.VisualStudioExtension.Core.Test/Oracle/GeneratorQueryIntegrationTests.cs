@@ -21,7 +21,7 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
     [Trait("Category", "GeneratorQuery")]
     public async Task ListObjectsAndObjectMetadata_ShouldReadFromBenchmarkDatabase()
     {
-        if (!TryResolveContainerConnectionString(ProviderId.Oracle, out var connectionString))
+        if (!ProviderConnectionStringResolver.TryResolve(ProviderId.Oracle, out var connectionString))
         {
             return;
         }

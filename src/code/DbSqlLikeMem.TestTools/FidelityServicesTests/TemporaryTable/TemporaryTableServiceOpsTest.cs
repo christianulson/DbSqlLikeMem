@@ -1,107 +1,111 @@
 namespace DbSqlLikeMem.TestTools.TemporaryTable;
 
-public partial class TemporaryTableServiceTest<T>
+/// <summary>
+/// EN: Executes temporary-table workflows used by the fidelity tests.
+/// PT: Executa fluxos de tabela temporaria usados pelos testes de fidelidade.
+/// </summary>
+public class TemporaryTableServiceOpsTest(
+        RepoService repo,
+        FidelityTestContext context
+    ) : BaseServiceTest(repo, context)
 {
     /// <summary>
     /// EN: Creates a temporary table from the source users table and returns the projected row identifiers.
     /// PT: Cria uma tabela temporaria a partir da tabela fonte de usuarios e retorna os identificadores projetados das linhas.
     /// </summary>
-    public List<int> RunCreateTemporaryTableAsSelectThenSelect(params object[] pars)
+    public async Task<object?> RunCreateTemporaryTableAsSelectThenSelect(params object[] pars)
     {
-        var users = (string)pars[0];
-        var uId = (string)pars[1];
-        var sourceUsersTable = ResolveSourceUsersTableName(users, uId);
-        var isMockConnection = Connection is DbConnectionMockBase;
-        var tempTable = BuildTemporaryTableName(uId, isMockConnection);
-        var sessionTempTable = Dialect.Provider == ProviderId.Db2 && !isMockConnection
+        var isMockConnection = Repo.Cnn is DbConnectionMockBase;
+        var tempTable = BuildTemporaryTableName(Context.UId, isMockConnection);
+        var sessionTempTable = Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection
             ? $"SESSION.{tempTable}"
             : tempTable;
-        if (Dialect.Provider == ProviderId.Npgsql)
+        if (Repo.Dialect.Provider == ProviderId.Npgsql)
         {
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 CREATE TEMP TABLE {tempTable} AS
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
         }
-        else if (Dialect.Provider == ProviderId.Db2 && !isMockConnection)
+        else if (Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection)
         {
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
     Id INT,
     Name VARCHAR(100)
 ) ON COMMIT PRESERVE ROWS NOT LOGGED");
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 INSERT INTO SESSION.{tempTable} (Id, Name)
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
         }
-        else if (Dialect.Provider == ProviderId.Db2)
+        else if (Repo.Dialect.Provider == ProviderId.Db2)
         {
-            if (Connection is not DbConnectionMockBase mockConnection)
+            if (Repo.Cnn is not DbConnectionMockBase mockConnection)
             {
                 throw new InvalidOperationException("Db2 temporary table mock flow requires a mock connection.");
             }
 
-            TryDropTemporaryTable(tempTable);
+            await TryDropTemporaryTable();
             var tempTableMock = mockConnection.AddTemporaryTable(tempTable);
             tempTableMock.AddColumn("Id", DbType.Int32, false);
             tempTableMock.AddColumn("Name", DbType.String, false);
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 INSERT INTO {tempTable} (Id, Name)
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
         }
-        else if ((Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure) && isMockConnection)
+        else if ((Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure) && isMockConnection)
         {
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 CREATE TEMPORARY TABLE {tempTable} AS
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
         }
-        else if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        else if (Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
         {
-            ExecuteNonQuery($@"
-SELECT Id, Name INTO {tempTable} FROM {sourceUsersTable} WHERE TenantId = 10");
+            await Repo.ExecuteNonQueryAsync($@"
+SELECT Id, Name INTO {tempTable} FROM {Context.TempTbFullName} WHERE TenantId = 10");
         }
-        else if (Dialect.Provider == ProviderId.Oracle
-            && Connection is not DbSqlLikeMem.DbConnectionMockBase)
+        else if (Repo.Dialect.Provider == ProviderId.Oracle
+            && Repo.Cnn is not DbConnectionMockBase)
         {
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 CREATE GLOBAL TEMPORARY TABLE {tempTable}
 ON COMMIT PRESERVE ROWS
 AS SELECT Id, Name
-FROM {sourceUsersTable}
+FROM {Context.TempTbFullName}
 WHERE TenantId = 10");
         }
-        else if (Dialect.Provider == ProviderId.Firebird
-            && Connection is not DbConnectionMockBase)
+        else if (Repo.Dialect.Provider == ProviderId.Firebird
+            && Repo.Cnn is not DbConnectionMockBase)
         {
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 CREATE GLOBAL TEMPORARY TABLE {tempTable} (
     Id INTEGER,
     Name VARCHAR(100)
 ) ON COMMIT PRESERVE ROWS");
-            ExecuteNonQuery($@"
+            await Repo.ExecuteNonQueryAsync($@"
 INSERT INTO {tempTable} (Id, Name)
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
         }
         else
         {
-            var createSql = BuildCreateTemporaryTableSql(tempTable, sourceUsersTable);
-            ExecuteNonQuery(createSql);
+            var createSql = BuildCreateTemporaryTableSql(tempTable, Context.TempTbFullName);
+            await Repo.ExecuteNonQueryAsync(createSql);
         }
 
         var ids = new List<int>();
         try
         {
-            using var command = Connection.CreateCommand();
+            using var command = Repo.Cnn.CreateCommand();
             command.CommandText = $"SELECT Id FROM {sessionTempTable} ORDER BY Id";
 
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
                 ids.Add(reader.GetInt32(0));
             }
 
             if (ids.Count != 2 || ids[0] != 1 || ids[1] != 2)
             {
-                throw new InvalidOperationException($"Unexpected temporary-table projected rows for {Dialect.DisplayName}: [{string.Join(",", ids)}].");
+                throw new InvalidOperationException($"Unexpected temporary-table projected rows for {Repo.Dialect.DisplayName}: [{string.Join(",", ids)}].");
             }
 
             GC.KeepAlive(ids);
@@ -109,18 +113,18 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         finally
         {
-            TryDropTemporaryTable(tempTable);
+            await TryDropTemporaryTable();
         }
     }
 
     private string BuildTemporaryTableName(string uId, bool isMockConnection)
     {
-        if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        if (Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
         {
             return isMockConnection ? $"tmp_users_{uId}" : $"#tmp_users_{uId}";
         }
 
-        return Dialect.Provider == ProviderId.Npgsql
+        return Repo.Dialect.Provider == ProviderId.Npgsql
             ? $"pg_temp.tmp_users_{uId}"
             : $"tmp_users_{uId}";
     }
@@ -131,24 +135,26 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
     {
         return $@"
 CREATE TEMPORARY TABLE {tempTable} AS
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
+SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10";
     }
 
     /// <summary>
     /// EN: Counts the rows available in the temporary-table scenario.
     /// PT: Conta as linhas disponiveis no cenario de tabela temporaria.
     /// </summary>
-    public int RunTempTableCreateAndUse(params object[] pars)
+    public async Task<object?> RunTempTableCreateAndUse(params object[] pars)
     {
-        var users = ResolveTemporaryUsersTableName((string)pars[0]);
-        var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
+        var users = pars.Length > 0
+            ? (string)pars[0]
+            : Context.TempTbFullName;
+        var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbSqlLikeMem.DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
-        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
-        var count = Convert.ToInt32(ExecuteScalar(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
+        var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
-            throw new InvalidOperationException($"Unexpected temporary-table rowcount for {Dialect.DisplayName}: {count}.");
+            throw new InvalidOperationException($"Unexpected temporary-table rowcount for {Repo.Dialect.DisplayName}: {count}.");
         }
 
         GC.KeepAlive(count);
@@ -159,21 +165,23 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
     /// EN: Opens a transaction, uses a savepoint, and rolls the work back for the temporary-table scenario.
     /// PT: Abre uma transacao, usa um savepoint e desfaz o trabalho para o cenario de tabela temporaria.
     /// </summary>
-    public void RunTempTableRollback(params object[] pars)
+    public async Task RunTempTableRollback(params object[] pars)
     {
-        var users = ResolveTemporaryUsersTableName((string)pars[0]);
-        var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
+        var users = pars.Length > 0
+            ? (string)pars[0]
+            : Context.TempTbFullName;
+        var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbSqlLikeMem.DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
-        using var tx = Connection.BeginTransaction();
-        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 1, "Alice"), tx);
-        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 2, "Bob"), tx);
+        using var tx = Repo.BeginTransaction();
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice"), tx);
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 2, "Bob"), tx);
         tx.Rollback();
 
-        var count = Convert.ToInt32(ExecuteScalar(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
+        var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
         if (count != 0)
         {
-            throw new InvalidOperationException($"Unexpected temporary-table rollback rowcount for {Dialect.DisplayName}: {count}.");
+            throw new InvalidOperationException($"Unexpected temporary-table rollback rowcount for {Repo.Dialect.DisplayName}: {count}.");
         }
     }
 
@@ -183,28 +191,24 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
     /// </summary>
     /// <param name="pars">EN: The temporary users table name. PT: O nome da tabela temporaria de usuarios.</param>
     /// <returns>EN: Zero when the secondary connection cannot observe the inserted temporary-table row. PT: Zero quando a conexao secundaria nao consegue observar a linha inserida na tabela temporaria.</returns>
-    public int RunTemporaryTableCrossConnectionIsolation(params object[] pars)
+    public async Task<object?> RunTemporaryTableCrossConnectionIsolation(params object[] pars)
     {
-        if (connectionFactory is null)
-        {
-            throw new InvalidOperationException($"Cross-connection temporary-table workflows require a connection factory for {Dialect.DisplayName}.");
-        }
-
-        var users = ResolveTemporaryUsersTableName((string)pars[0]);
-        var sessionUsers = Dialect.Provider == ProviderId.Db2 && Connection is not DbSqlLikeMem.DbConnectionMockBase
+        var users = pars.Length > 0
+            ? (string)pars[0]
+            : Context.TempTbFullName;
+        var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
-        ExecuteNonQuery(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
 
-        using var secondaryConnection = connectionFactory();
-        secondaryConnection.Open();
+        using var repo = Repo.Clone();
 
         try
         {
-            var count = Convert.ToInt32(ExecuteScalarOnConnection(secondaryConnection, CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
+            var count = Convert.ToInt32(await repo.ExecuteScalarAsync(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
             if (count != 0)
             {
-                throw new InvalidOperationException($"Unexpected temporary-table isolation rowcount for {Dialect.DisplayName}: {count}.");
+                throw new InvalidOperationException($"Unexpected temporary-table isolation rowcount for {Repo.Dialect.DisplayName}: {count}.");
             }
 
             GC.KeepAlive(count);
@@ -219,31 +223,27 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
 
             throw;
         }
-    }
-
-    private static object? ExecuteScalarOnConnection(
-        T connection,
-        string sql,
-        DbTransaction? transaction = null)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        if (transaction is not null)
+        finally
         {
-            command.Transaction = transaction;
+            try
+            {
+                await Repo.ExecuteNonQueryAsync($"DELETE FROM {sessionUsers} WHERE Id = 1");
+            }
+            catch
+            {
+                // Ignore cleanup failures during benchmark teardown.
+            }
         }
-
-        return command.ExecuteScalar();
     }
 
     private static string CountRowsSql(string tableName)
         => $"SELECT COUNT(*) FROM {tableName}";
 
-    private void TryDropTemporaryTable(string tempTable)
+    private async Task TryDropTemporaryTable()
     {
         try
         {
-            ExecuteNonQuery(Dialect.DropTemporaryUsersTable(tempTable));
+            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTemporaryUsersTable(Context));
         }
         catch
         {
@@ -267,13 +267,4 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
 
     private static string InsertTemporaryRowSql(string tableName, int id, string name)
         => $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
-
-    private string ResolveSourceUsersTableName(string users, string uId)
-        => $"{users}_{uId}".ToLowerInvariant();
-
-    private string ResolveTemporaryUsersTableName(string rawTableName)
-        => (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
-            && Connection is DbConnectionMockBase
-            ? rawTableName
-            : Dialect.TemporaryUsersTableName(rawTableName);
 }

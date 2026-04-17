@@ -1,8 +1,18 @@
+using DbSqlLikeMem.TestTools.Performance;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.TestTools.Schema;
 
-public partial class SchemaSnapshotServiceTest<T>
+/// <summary>
+/// EN: Provides fidelity tests for provider schema snapshot export, serialization, parsing, and application operations.
+/// PT: Fornece testes de fidelidade para operações de exportação, serialização, análise e aplicação de snapshots de schema do provedor.
+/// </summary>
+/// <param name="repo"></param>
+/// <param name="context"></param>
+public class SchemaSnapshotServiceOpsTest(
+        RepoService repo,
+        FidelityTestContext context
+    ) : PerformanceServiceBase(repo, context)
 {
     /// <summary>
     /// EN: Reads a schema snapshot from the provider when the feature exists.
@@ -10,7 +20,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// </summary>
     public object? RunSchemaSnapshotExport()
     {
-        var snapshot = GetSchemaSnapshot(Connection);
+        var snapshot = GetSchemaSnapshot(Repo.Cnn);
         GC.KeepAlive(snapshot);
         return snapshot;
     }
@@ -21,7 +31,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// </summary>
     public string RunSchemaSnapshotToJson()
     {
-        var json = BuildCanonicalSchemaSnapshotEnvelope(Connection);
+        var json = BuildCanonicalSchemaSnapshotEnvelope(Repo.Cnn);
         GC.KeepAlive(json);
         return json;
     }
@@ -32,7 +42,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// </summary>
     public JsonDocument RunSchemaSnapshotLoadJson()
     {
-        var obj = RunSchemaSnapshotLoadJson(Dialect.DisplayName);
+        var obj = RunSchemaSnapshotLoadJson(Repo.Dialect.DisplayName);
         GC.KeepAlive(obj);
         return obj;
     }
@@ -53,8 +63,8 @@ public partial class SchemaSnapshotServiceTest<T>
     /// </summary>
     public object? RunSchemaSnapshotApply()
     {
-        var snapshot = GetSchemaSnapshot(Connection);
-        var applied = TryInvokeWithArgIfExists(Connection, "ApplySchemaSnapshot", snapshot);
+        var snapshot = GetSchemaSnapshot(Repo.Cnn);
+        var applied = TryInvokeWithArgIfExists(Repo.Cnn, "ApplySchemaSnapshot", snapshot);
         GC.KeepAlive(applied);
         return applied;
     }
@@ -65,7 +75,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// </summary>
     public JsonDocument RunSchemaSnapshotRoundTrip()
     {
-        var snapshot = GetSchemaSnapshot(Connection);
+        var snapshot = GetSchemaSnapshot(Repo.Cnn);
         var json = snapshot.ToJson();
         var obj = System.Text.Json.JsonDocument.Parse(json);
         GC.KeepAlive(obj);
@@ -78,7 +88,7 @@ public partial class SchemaSnapshotServiceTest<T>
     /// </summary>
     public bool RunSchemaSnapshotCompare()
     {
-        var snapshot = GetSchemaSnapshot(Connection);
+        var snapshot = GetSchemaSnapshot(Repo.Cnn);
         var comparison = snapshot.Matches(snapshot);
         GC.KeepAlive(comparison);
         return comparison;
@@ -93,7 +103,7 @@ public partial class SchemaSnapshotServiceTest<T>
 
         return new SchemaSnapshot
         {
-            DialectName = GetSchemaDialectName(Dialect.Provider),
+            DialectName = GetSchemaDialectName(Repo.Dialect.Provider),
             Version = InferFallbackVersion(connection),
             Schemas = [],
         };
@@ -102,7 +112,7 @@ public partial class SchemaSnapshotServiceTest<T>
     private string BuildCanonicalSchemaSnapshotEnvelope(DbConnection connection)
         => JsonSerializer.Serialize(new
         {
-            DialectName = GetSchemaDialectName(Dialect.Provider),
+            DialectName = GetSchemaDialectName(Repo.Dialect.Provider),
             Version = InferFallbackVersion(connection),
         });
 
@@ -125,7 +135,7 @@ public partial class SchemaSnapshotServiceTest<T>
         var serverVersion = connection.ServerVersion;
         var (major, minor) = ReadVersionParts(serverVersion);
 
-        return Dialect.Provider switch
+        return Repo.Dialect.Provider switch
         {
             ProviderId.SqlServer or ProviderId.SqlAzure when major >= 16 => 2022,
             ProviderId.SqlServer or ProviderId.SqlAzure when major >= 15 => 2019,

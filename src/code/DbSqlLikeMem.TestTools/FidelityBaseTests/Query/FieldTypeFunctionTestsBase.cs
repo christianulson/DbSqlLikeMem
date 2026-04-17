@@ -21,45 +21,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica se colunas tipadas e funcoes SQL comuns mantem resultados consistentes para o provedor atual.
     /// </summary>
     [Fact]
-    public void TypedFieldAndFunctionBlendTest()
+    public async Task TypedFieldAndFunctionBlendTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTypedFieldAndFunctionBlend(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTypedFieldAndFunctionBlend(users, uId);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, a) => s.RunTypedFieldAndFunctionBlendAsync(a));
     }
 
     /// <summary>
@@ -67,45 +34,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma unica consulta grande sobre colunas tipadas e funcoes SQL comuns para o provedor atual.
     /// </summary>
     [Fact]
-    public void TypedFieldFunctionMatrixTest()
+    public async Task TypedFieldFunctionMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTypedFieldFunctionMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTypedFieldFunctionMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, a) => s.RunTypedFieldFunctionMatrixAsync(a));
     }
 
     /// <summary>
@@ -113,45 +47,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma segunda consulta grande sobre colunas tipadas com casts, aritmetica e predicados para o provedor atual.
     /// </summary>
     [Fact]
-    public void TypedFieldCalculationMatrixTest()
+    public async Task TypedFieldCalculationMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTypedFieldCalculationMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTypedFieldCalculationMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, a) => s.RunTypedFieldCalculationMatrixAsync(a));
     }
 
     /// <summary>
@@ -159,45 +60,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica se colunas de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, GUID, binario, time, DateTimeOffset e colunas temporais retornam valores consistentes para o provedor atual, incluindo valores de borda como strings vazias e binarios de tamanho zero.
     /// </summary>
     [Fact]
-    public void TypedFieldStorageMatrixTest()
+    public async Task TypedFieldStorageMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTypedFieldStorageMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTypedFieldStorageMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, a) => s.RunTypedFieldStorageMatrixAsync(a));
     }
 
     /// <summary>
@@ -205,50 +73,14 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta grande de JSON sobre colunas tipadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void JsonTypedFieldMatrixTest()
+    public async Task JsonTypedFieldMatrixTest()
     {
-        if (!dialect.SupportsJsonScalarRead)
-        {
-            return;
-        }
+        if (!dialect.SupportsJsonScalarRead) return;
 
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunJsonTypedFieldMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunJsonTypedFieldMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, a) => s.RunJsonTypedFieldMatrixAsync(a));
     }
 
     /// <summary>
@@ -256,29 +88,16 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica se leituras escalares de JSON retornam o texto esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void JsonScalarReadTest()
+    public async Task JsonScalarReadTest()
     {
-        if (!dialect.SupportsJsonScalarRead)
-        {
-            return;
-        }
+        if (!dialect.SupportsJsonScalarRead) return;
+        
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunJsonScalarReadAsync());
 
-        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
-        var resultMock = NormalizeScalarText(serviceTest.RunJsonScalarRead());
-        resultMock.Should().Be("Alice");
-
-        if (IsSelectContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
-            var resultContainer = NormalizeScalarText(serviceTestContainer.RunJsonScalarRead());
-            resultMock.Should().Be(resultContainer);
-        }
+        result.Should().Be("Alice");
     }
 
     /// <summary>
@@ -286,29 +105,16 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica se leituras de caminho JSON aninhado retornam o texto esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void JsonPathReadTest()
+    public async Task JsonPathReadTest()
     {
-        if (!dialect.SupportsJsonScalarRead)
-        {
-            return;
-        }
+        if (!dialect.SupportsJsonScalarRead) return;
 
-        using var connMock = connectionMock();
-        connMock.Open();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
-        var resultMock = NormalizeScalarText(serviceTest.RunJsonPathRead());
-        resultMock.Should().Be("Alice");
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunJsonPathReadAsync());
 
-        if (IsSelectContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
-            var resultContainer = NormalizeScalarText(serviceTestContainer.RunJsonPathRead());
-            resultMock.Should().Be(resultContainer);
-        }
+        result.Should().Be("Alice");
     }
 
     /// <summary>
@@ -316,29 +122,16 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica se um caminho JSON ausente retorna um valor nulo para o provedor atual.
     /// </summary>
     [Fact]
-    public void JsonMissingPathReturnsNullTest()
+    public async Task JsonMissingPathReturnsNullTest()
     {
-        if (!dialect.SupportsJsonScalarRead)
-        {
-            return;
-        }
+        if (!dialect.SupportsJsonScalarRead) return;
 
-        using var connMock = connectionMock();
-        connMock.Open();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
-        var resultMock = NormalizeScalarText(serviceTest.RunJsonInsertCast());
-        resultMock.Should().BeNull();
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunJsonInsertCastAsync());
 
-        if (IsSelectContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
-            var resultContainer = NormalizeScalarText(serviceTestContainer.RunJsonInsertCast());
-            resultMock.Should().Be(resultContainer);
-        }
+        result.Should().Be("Alice");
     }
 
     /// <summary>
@@ -346,45 +139,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta temporal grande sobre colunas tipadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void TemporalFieldMatrixTest()
+    public async Task TemporalFieldMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTemporalFieldMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTemporalFieldMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunTemporalFieldMatrixAsync());
     }
 
     /// <summary>
@@ -392,45 +152,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta temporal grande que mistura comparacoes de timestamp e logica de fallback para o provedor atual.
     /// </summary>
     [Fact]
-    public void TemporalComparisonMatrixTest()
+    public async Task TemporalComparisonMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTemporalComparisonMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTemporalComparisonMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunTemporalComparisonMatrixAsync());
     }
 
     /// <summary>
@@ -438,45 +165,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma matriz maior de aritmetica temporal sobre colunas tipadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void TemporalArithmeticMatrixTest()
+    public async Task TemporalArithmeticMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTemporalArithmeticMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTemporalArithmeticMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunTemporalArithmeticMatrixAsync());
     }
 
     /// <summary>
@@ -484,45 +178,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta grande que mistura casts, aritmetica e formatacao textual sobre colunas tipadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void CastCalculationMatrixTest()
+    public async Task CastCalculationMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunCastCalculationMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunCastCalculationMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunCastCalculationMatrixAsync());
     }
 
     /// <summary>
@@ -530,45 +191,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta grande que mistura tratamento de null e comparacoes sobre colunas tipadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void NullComparisonMatrixTest()
+    public async Task NullComparisonMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunNullComparisonMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunNullComparisonMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunNullComparisonMatrixAsync());
     }
 
     /// <summary>
@@ -576,45 +204,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta grande de predicados em campos tipados que mistura LIKE, NOT LIKE, BETWEEN e verificacoes de null para o provedor atual.
     /// </summary>
     [Fact]
-    public void TypedFieldPredicateMatrixTest()
+    public async Task TypedFieldPredicateMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTypedFieldPredicateMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTypedFieldPredicateMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunTypedFieldPredicateMatrixAsync());
     }
 
     /// <summary>
@@ -622,46 +217,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta de predicado composto em campos tipados que mistura OR, AND, LIKE e verificacoes de null para o provedor atual.
     /// </summary>
     [Fact]
-    public void TypedFieldCompoundPredicateMatrixTest()
+    public async Task TypedFieldCompoundPredicateMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTypedFieldCompoundPredicateMatrix(users, uId);
-            resultMock.Should().Be(2);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTypedFieldCompoundPredicateMatrix(users, uId);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunTypedFieldCompoundPredicateMatrixAsync());
     }
 
     /// <summary>
@@ -669,45 +230,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta grande que mistura comprimentos de texto, trim e comparacoes sobre colunas tipadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void TextLengthMatrixTest()
+    public async Task TextLengthMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTextLengthMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTextLengthMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunTextLengthMatrixAsync());
     }
 
     /// <summary>
@@ -715,52 +243,11 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT: Verifica uma consulta grande que mistura conversao de caixa, trim, extracao de prefixo e predicados de texto sobre colunas tipadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void TextCaseMatrixTest()
+    public async Task TextCaseMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunTextCaseMatrix(users, uId);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTextCaseMatrix(users, uId);
-                    resultMock.ShouldMatch(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunTextCaseMatrixAsync());
     }
-
-    private static string NewToken()
-        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
-
-    private static string? NormalizeScalarText(object? value)
-        => value is null or DBNull
-            ? null
-            : Convert.ToString(value, CultureInfo.InvariantCulture);
 }

@@ -4,37 +4,33 @@ namespace DbSqlLikeMem.TestTools.Query;
 /// EN: Executes the primary-key select command for the shared query scenario.
 /// PT: Executa o comando de selecao por chave primaria para o cenario de consulta compartilhado.
 /// </summary>
-public class SelectByPKServiceTest<T>(
-        T connection,
-        ITestScenario<T> testScenario,
-        ProviderSqlDialect dialect
-    ) : BaseServiceTest<T>(connection, testScenario, dialect),
-        IBaseServiceWithReturnTest<string>
-    where T : DbConnection
+public class SelectByPKServiceTest(
+        RepoService repo,
+        FidelityTestContext context
+    ) : BaseServiceTest(repo, context),
+        IBaseServiceTest
 {
     /// <summary>
     /// EN: Reads the seeded row by primary key and validates the returned value.
     /// PT: Lê a linha inserida pela chave primaria e valida o valor retornado.
     /// </summary>
-    /// <param name="pars">EN: Scenario arguments that include the users table name. PT: Argumentos do cenario que incluem o nome da tabela de usuarios.</param>
-    public string RunTest(params object[] pars)
+    /// <param name="args">EN: Scenario arguments that include the users table name. PT: Argumentos do cenario que incluem o nome da tabela de usuarios.</param>
+    public async Task<object?> RunTestAsync(params object[] args)
     {
-        var users = (string)pars[0];
-        var tableName = ResolveScenarioTableName(users);
         string? value;
 
-        var sql = Dialect.SelectUserNameById(tableName, 1);
-        var rawValue = ExecuteScalar(sql);
+        var sql = Repo.Dialect.SelectUserNameById(Context, 1);
+        var rawValue = await Repo. ExecuteScalarAsync(sql);
         value = Convert.ToString(rawValue);
 
         if (!string.Equals(value, "Alice", StringComparison.Ordinal)
-            && Dialect.Provider == ProviderId.Oracle)
+            && Repo.Dialect.Provider == ProviderId.Oracle)
         {
-            using var command = Connection.CreateCommand();
-            command.CommandText = NormalizeScenarioSql(sql);
+            using var command = Repo.Cnn.CreateCommand();
+            command.CommandText = sql;
 
-            using var reader = command.ExecuteReader();
-            if (reader.Read())
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
             {
                 var nameValue = reader.GetValue(0);
                 value = Convert.ToString(nameValue);
@@ -42,7 +38,7 @@ public class SelectByPKServiceTest<T>(
         }
 
         if (!string.Equals(value, "Alice", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Unexpected select result for {Dialect.DisplayName}: {value ?? "<null>"}.");
+            throw new InvalidOperationException($"Unexpected select result for {Repo.Dialect.DisplayName}: {value ?? "<null>"}.");
         return value!;
     }
 }

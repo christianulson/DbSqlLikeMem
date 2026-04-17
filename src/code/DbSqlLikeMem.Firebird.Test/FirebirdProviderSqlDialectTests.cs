@@ -32,11 +32,13 @@ public sealed class FirebirdProviderSqlDialectTests
     {
         var dialect = new FirebirdProviderSqlDialect();
 
-        var usersTable = dialect.CreateUsersTable("Users", "ABCD1234");
-        var tempTable = dialect.CreateTemporaryUsersTable("Users");
-        var sequenceSql = dialect.NextSequenceValue("SEQ_USERS");
-        var sequenceSelectSql = dialect.SelectNextSequenceValue("SEQ_USERS");
-        var batchInsertSql = dialect.InsertUsers("Users", (1, "Ana"), (2, "Beto"));
+        var context = new FidelityTestContext();
+
+        var usersTable = dialect.CreateUsersTable(context);
+        var tempTable = dialect.CreateTemporaryUsersTable(context);
+        var sequenceSql = dialect.NextSequenceValue(context);
+        var sequenceSelectSql = dialect.SelectNextSequenceValue(context);
+        var batchInsertSql = dialect.InsertUsers(context, (1, "Ana"), (2, "Beto"));
 
         Assert.Contains("CREATE TABLE Users_ABCD1234", usersTable);
         Assert.Contains("BLOB SUB_TYPE TEXT", usersTable);

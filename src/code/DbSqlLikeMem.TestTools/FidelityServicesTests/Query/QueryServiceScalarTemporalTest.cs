@@ -1,16 +1,17 @@
 using System.Text;
+using System.Xml.Linq;
 
 namespace DbSqlLikeMem.TestTools.Query;
 
-public partial class QueryServiceTest<T>
+public partial class QueryServiceTest
 {
     /// <summary>
     /// EN: Executes a scalar date query and keeps the provider result alive.
     /// PT: Executa uma consulta escalar de data e mantém o resultado do provedor vivo.
     /// </summary>
-    public object? RunDateScalar()
+    public async Task<object?> RunDateScalarAsync()
     {
-        var value = ExecuteScalar(Dialect.DateScalar());
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.DateScalar());
         GC.KeepAlive(value);
         return value;
     }
@@ -19,14 +20,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the JSON scalar benchmark when the provider supports it.
     /// PT: Executa o benchmark escalar de JSON quando o provedor suporta isso.
     /// </summary>
-    public object? RunJsonScalarRead()
+    public async Task<object?> RunJsonScalarReadAsync()
     {
-        if (!Dialect.SupportsJsonScalarRead)
+        if (!Repo.Dialect.SupportsJsonScalarRead)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the JSON scalar benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON scalar benchmark.");
         }
 
-        var value = ExecuteScalar(Dialect.JsonScalarRead("{\"name\":\"Alice\"}"));
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"name\":\"Alice\"}"));
         GC.KeepAlive(value);
         return value;
     }
@@ -35,14 +36,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the nested JSON path benchmark when the provider supports it.
     /// PT: Executa o benchmark de caminho JSON aninhado quando o provedor suporta isso.
     /// </summary>
-    public object? RunJsonPathRead()
+    public async Task<object?> RunJsonPathReadAsync()
     {
-        if (!Dialect.SupportsJsonScalarRead)
+        if (!Repo.Dialect.SupportsJsonScalarRead)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the JSON path benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON path benchmark.");
         }
 
-        var value = ExecuteScalar(Dialect.JsonPathRead("{\"user\":{\"name\":\"Alice\"}}"));
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonPathRead("{\"user\":{\"name\":\"Alice\"}}"));
         GC.KeepAlive(value);
         return value;
     }
@@ -51,14 +52,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the JSON insert and cast benchmark when the provider supports JSON reads.
     /// PT: Executa o benchmark de insert e cast de JSON quando o provedor suporta leituras JSON.
     /// </summary>
-    public object? RunJsonInsertCast()
+    public async Task<object?> RunJsonInsertCastAsync()
     {
-        if (!Dialect.SupportsJsonScalarRead)
+        if (!Repo.Dialect.SupportsJsonScalarRead)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the JSON insert/cast benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON insert/cast benchmark.");
         }
 
-        var value = ExecuteScalar(Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
         GC.KeepAlive(value);
         return value;
     }
@@ -67,9 +68,9 @@ public partial class QueryServiceTest<T>
     /// EN: Executes a current timestamp scalar query and keeps the provider result alive.
     /// PT: Executa uma consulta escalar de timestamp atual e mantém o resultado do provedor vivo.
     /// </summary>
-    public object? RunTemporalCurrentTimestamp()
+    public async Task<object?> RunTemporalCurrentTimestampAsync()
     {
-        var value = ExecuteScalar(Dialect.TemporalCurrentTimestamp());
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalCurrentTimestamp());
         GC.KeepAlive(value);
         return value;
     }
@@ -78,9 +79,9 @@ public partial class QueryServiceTest<T>
     /// EN: Executes a temporal date-add query and keeps the provider result alive.
     /// PT: Executa uma consulta temporal de soma de data e mantém o resultado do provedor vivo.
     /// </summary>
-    public object? RunTemporalDateAdd()
+    public async Task<object?> RunTemporalDateAddAsync()
     {
-        var value = ExecuteScalar(Dialect.TemporalDateAdd());
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalDateAdd());
         GC.KeepAlive(value);
         return value;
     }
@@ -89,15 +90,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the provider string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao de strings do provedor sobre nomes de usuarios de exemplo.
     /// </summary>
-    public string? RunStringAggregate(params object[] pars)
+    public async Task<object?> RunStringAggregateAsync(params object[] pars)
     {
-        if (!Dialect.SupportsStringAggregate)
+        if (!Repo.Dialect.SupportsStringAggregate)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
-        var users = (string)pars[0];
-        var value = Convert.ToString(ExecuteScalar(Dialect.StringAggregate(users)), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.StringAggregate(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -106,15 +106,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the ordered string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao ordenada de strings sobre nomes de usuarios de exemplo.
     /// </summary>
-    public string? RunStringAggregateOrdered(params object[] pars)
+    public async Task<object?> RunStringAggregateOrderedAsync(params object[] pars)
     {
-        if (!Dialect.SupportsStringAggregate)
+        if (!Repo.Dialect.SupportsStringAggregate)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
-        var users = (string)pars[0];
-        var value = Convert.ToString(ExecuteScalar(Dialect.StringAggregateOrdered(users)), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.StringAggregateOrdered(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -123,15 +122,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the distinct string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao distinta de strings sobre nomes de usuarios de exemplo.
     /// </summary>
-    public string? RunStringAggregateDistinct(params object[] pars)
+    public async Task<object?> RunStringAggregateDistinctAsync(params object[] pars)
     {
-        if (!Dialect.SupportsStringAggregate)
+        if (!Repo.Dialect.SupportsStringAggregate)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
-        var users = (string)pars[0];
-        var value = Convert.ToString(ExecuteScalar(Dialect.StringAggregateDistinct(users)), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.StringAggregateDistinct(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -140,15 +138,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the custom-separator string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao com separador customizado sobre nomes de usuarios de exemplo.
     /// </summary>
-    public string? RunStringAggregateCustomSeparator(params object[] pars)
+    public async Task<object?> RunStringAggregateCustomSeparatorAsync(params object[] pars)
     {
-        if (!Dialect.SupportsStringAggregate)
+        if (!Repo.Dialect.SupportsStringAggregate)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
-        var users = (string)pars[0];
-        var value = Convert.ToString(ExecuteScalar(Dialect.StringAggregateCustomSeparator(users, ";")), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.StringAggregateCustomSeparator(Context, ";")), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -157,15 +154,14 @@ public partial class QueryServiceTest<T>
     /// EN: Executes the large-group string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao de strings em grupo grande sobre nomes de usuarios de exemplo.
     /// </summary>
-    public string? RunStringAggregateLargeGroup(params object[] pars)
+    public async Task<object?> RunStringAggregateLargeGroupAsync(params object[] pars)
     {
-        if (!Dialect.SupportsStringAggregate)
+        if (!Repo.Dialect.SupportsStringAggregate)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
-        var users = (string)pars[0];
-        var value = Convert.ToString(ExecuteScalar(Dialect.StringAggregateLargeGroup(users)), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.StringAggregateLargeGroup(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -174,18 +170,17 @@ public partial class QueryServiceTest<T>
     /// EN: Executes a string-aggregation summary query with total, distinct, and repeated-name counts over sample user names.
     /// PT: Executa uma consulta resumo de agregacao de strings com contagens total, distinta e de nomes repetidos sobre nomes de usuarios de exemplo.
     /// </summary>
-    public (string? Ordered, int TotalCount, int DistinctCount, int BobCount) RunStringAggregateSummaryMatrix(params object[] pars)
+    public async Task<object?> RunStringAggregateSummaryMatrixAsync(params object[] pars)
     {
-        if (!Dialect.SupportsStringAggregate)
+        if (!Repo.Dialect.SupportsStringAggregate)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
-        var users = (string)pars[0];
-        var ordered = Convert.ToString(ExecuteScalar(Dialect.StringAggregateOrdered(users)), CultureInfo.InvariantCulture);
-        var totalCount = Convert.ToInt32(ExecuteScalar($"SELECT COUNT(*) FROM {users}"), CultureInfo.InvariantCulture);
-        var distinctCount = Convert.ToInt32(ExecuteScalar($"SELECT COUNT(DISTINCT Name) FROM {users}"), CultureInfo.InvariantCulture);
-        var bobCount = Convert.ToInt32(ExecuteScalar($"SELECT COUNT(*) FROM {users} WHERE Name = 'Bob'"), CultureInfo.InvariantCulture);
+        var ordered = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.StringAggregateOrdered(Context)), CultureInfo.InvariantCulture);
+        var totalCount = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COUNT(*) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var distinctCount = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COUNT(DISTINCT Name) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var bobCount = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COUNT(*) FROM {Context.TbUsersFullName} WHERE Name = 'Bob'"), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(ordered);
         GC.KeepAlive(totalCount);
@@ -198,37 +193,36 @@ public partial class QueryServiceTest<T>
     /// EN: Executes a grouped string report with CASE and COALESCE over sample user names.
     /// PT: Executa um relatorio agrupado de strings com CASE e COALESCE sobre nomes de usuarios de exemplo.
     /// </summary>
-    public int RunStringAggregateGroupCaseMatrix(params object[] pars)
+    public async Task<object?> RunStringAggregateGroupCaseMatrixAsync(params object[] pars)
     {
-        if (!Dialect.SupportsStringAggregate)
+        if (!Repo.Dialect.SupportsStringAggregate)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support the string aggregate benchmark.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
-        var users = (string)pars[0];
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT
     CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END AS NameGroup,
     COUNT(*) AS TotalCount,
     COUNT(DISTINCT Name) AS DistinctCount,
     COALESCE(MIN(Name), 'none') AS FirstName,
     COALESCE(MAX(Name), 'none') AS LastName
-FROM {users}
+FROM {Context.TbUsersFullName}
 GROUP BY CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END
 ORDER BY NameGroup
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "B", 2, 1, "Bob", "Bob");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "Other", 3, 3, "Alice", "Delta");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 2;
     }
 
@@ -236,13 +230,12 @@ ORDER BY NameGroup
     /// EN: Executes a grouped name-initial report with distinct counts and HAVING filtering over the configured users table.
     /// PT: Executa um relatorio agrupado por inicial do nome com contagens distintas e filtro HAVING na tabela de usuarios configurada.
     /// </summary>
-    public int RunGroupByNameInitialMatrix(params object[] pars)
+    public async Task<object?> RunGroupByNameInitialMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var initialExpr = $"UPPER({Dialect.StringPrefixExpression("Name", 1)})";
+        var initialExpr = $"UPPER({Repo.Dialect.StringPrefixExpression("Name", 1)})";
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT
     {initialExpr} AS NameInitial,
     COUNT(*) AS TotalCount,
@@ -252,25 +245,25 @@ SELECT
     COALESCE(MIN(Name), 'none') AS FirstName,
     COALESCE(MAX(Name), 'none') AS LastName,
     CASE WHEN COUNT(*) >= 2 THEN 1 ELSE 0 END AS HasAtLeastTwo
-FROM {users}
+FROM {Context.TbUsersFullName}
 GROUP BY {initialExpr}
 HAVING COUNT(*) >= 2
 ORDER BY {initialExpr}
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "A", 3, 2, 2, 0, "Adam", "Alice", 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "B", 3, 2, 0, 2, "Bob", "Brian", 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "C", 2, 2, 0, 0, "Carla", "Chris", 1);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -278,33 +271,31 @@ ORDER BY {initialExpr}
     /// EN: Executes a grouped name report with HAVING filtering over the configured users table.
     /// PT: Executa um relatorio agrupado por nome com filtro HAVING na tabela de usuarios configurada.
     /// </summary>
-    public int RunGroupByNameHavingMatrix(params object[] pars)
+    public async Task<object?> RunGroupByNameHavingMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT
     Name,
     COUNT(*) AS TotalCount
-FROM {users}
+FROM {Context.TbUsersFullName}
 GROUP BY Name
 HAVING COUNT(*) >= 2
 ORDER BY Name
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 2;
     }
 
@@ -312,43 +303,42 @@ ORDER BY Name
     /// EN: Executes a GROUP BY ordinal query over the configured users table and validates grouped counts.
     /// PT: Executa uma consulta GROUP BY ordinal na tabela de usuarios configurada e valida as contagens agrupadas.
     /// </summary>
-    public int RunGroupByOrdinalMatrix(params object[] pars)
+    public async Task<object?> RunGroupByOrdinalMatrixAsync(params object[] pars)
     {
-        if (Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Oracle or ProviderId.Db2)
+        if (Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Oracle or ProviderId.Db2)
         {
-            throw new NotSupportedException($"{Dialect.DisplayName} does not support GROUP BY ordinal benchmarks.");
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support GROUP BY ordinal benchmarks.");
         }
 
-        var users = (string)pars[0];
-        var initialExpr = $"UPPER({Dialect.StringPrefixExpression("Name", 1)})";
+        var initialExpr = $"UPPER({Repo.Dialect.StringPrefixExpression("Name", 1)})";
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT
     {initialExpr} AS NameInitial,
     COUNT(*) AS TotalCount
-FROM {users}
+FROM {Context.TbUsersFullName}
 GROUP BY 1
 HAVING COUNT(*) >= 2
 ORDER BY 1
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("A");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("B");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("C");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -356,35 +346,33 @@ ORDER BY 1
     /// EN: Executes an ORDER BY ordinal query over the configured users table and validates the output order.
     /// PT: Executa uma consulta ORDER BY ordinal na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
-    public int RunOrderByOrdinalMatrix(params object[] pars)
+    public async Task<object?> RunOrderByOrdinalMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT
     Name,
     Id
-FROM {users}
+FROM {Context.TbUsersFullName}
 ORDER BY 2 DESC
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bravo");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alpha");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(1);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -392,34 +380,32 @@ ORDER BY 2 DESC
     /// EN: Executes a DISTINCT query ordered by ordinal and validates the projected names.
     /// PT: Executa uma consulta DISTINCT ordenada por ordinal e valida os nomes projetados.
     /// </summary>
-    public int RunDistinctOrderByOrdinalMatrix(params object[] pars)
+    public async Task<object?> RunDistinctOrderByOrdinalMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT DISTINCT
     Name
-FROM {users}
+FROM {Context.TbUsersFullName}
 ORDER BY 1
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Delta");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 4;
     }
 
@@ -427,32 +413,30 @@ ORDER BY 1
     /// EN: Executes a DISTINCT query with a text filter ordered by ordinal and validates the projected names.
     /// PT: Executa uma consulta DISTINCT com filtro de texto ordenada por ordinal e valida os nomes projetados.
     /// </summary>
-    public int RunDistinctLikeOrderByOrdinalMatrix(params object[] pars)
+    public async Task<object?> RunDistinctLikeOrderByOrdinalMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT DISTINCT
     UPPER(Name)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE UPPER(Name) LIKE '%A%'
 ORDER BY 1
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("ALICE");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("CHARLIE");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("DELTA");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -460,18 +444,16 @@ ORDER BY 1
     /// EN: Executes an IN-list predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado IN com lista na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunInListPredicateMatrix(params object[] pars)
+    public async Task<object?> RunInListPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Name IN ('Alice', 'Charlie')
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(2);
-        GC.KeepAlive(users);
+
         return value;
     }
 
@@ -479,18 +461,16 @@ WHERE Name IN ('Alice', 'Charlie')
     /// EN: Executes a BETWEEN predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado BETWEEN na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunBetweenPredicateMatrix(params object[] pars)
+    public async Task<object?> RunBetweenPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Id BETWEEN 2 AND 4
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(3);
-        GC.KeepAlive(users);
+
         return value;
     }
 
@@ -498,18 +478,16 @@ WHERE Id BETWEEN 2 AND 4
     /// EN: Executes a LIKE predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado LIKE na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunLikePredicateMatrix(params object[] pars)
+    public async Task<object?> RunLikePredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Name LIKE 'A%'
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(1);
-        GC.KeepAlive(users);
+
         return value;
     }
 
@@ -517,29 +495,27 @@ WHERE Name LIKE 'A%'
     /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY query over the configured users table and returns the matching row count.
     /// PT: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunBetweenLikeOrderByMatrix(params object[] pars)
+    public async Task<object?> RunBetweenLikeOrderByMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT Name
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Id BETWEEN 1 AND 4
   AND Name LIKE 'A%'
 ORDER BY Name
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Aaron");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 2;
     }
 
@@ -547,18 +523,16 @@ ORDER BY Name
     /// EN: Executes a NOT LIKE predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado NOT LIKE na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunNotLikePredicateMatrix(params object[] pars)
+    public async Task<object?> RunNotLikePredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Name NOT LIKE 'A%'
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(4);
-        GC.KeepAlive(users);
+
         return value;
     }
 
@@ -566,18 +540,16 @@ WHERE Name NOT LIKE 'A%'
     /// EN: Executes a not-equal predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado diferente de na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunNotEqualPredicateMatrix(params object[] pars)
+    public async Task<object?> RunNotEqualPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Name <> 'Bob'
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(4);
-        GC.KeepAlive(users);
+
         return value;
     }
 
@@ -585,18 +557,15 @@ WHERE Name <> 'Bob'
     /// EN: Executes an equality predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado de igualdade na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunEqualPredicateMatrix(params object[] pars)
+    public async Task<object?> RunEqualPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Name = 'Bob'
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(1);
-        GC.KeepAlive(users);
         return value;
     }
 
@@ -604,28 +573,26 @@ WHERE Name = 'Bob'
     /// EN: Executes a parameterized name lookup over the configured users table and returns the matched name.
     /// PT: Executa uma consulta parametrizada por nome na tabela de usuarios configurada e retorna o nome correspondente.
     /// </summary>
-    public string? RunParameterSelectByNameMatrix(params object[] pars)
+    public async Task<object?> RunParameterSelectByNameMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
         var name = (string)pars[1];
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT Name
-FROM {users}
-WHERE Name = {Dialect.Parameter("name")}
-""");
+FROM {Context.TbUsersFullName}
+WHERE Name = {Repo.Dialect.Parameter("name")}
+""";
 
         var parameter = command.CreateParameter();
-        parameter.ParameterName = "name";
+        parameter.ParameterName = Repo.Dialect.Provider == ProviderId.Db2 ? "?" : "name";
         parameter.DbType = DbType.String;
         parameter.Value = name;
-        command.Parameters.Add(parameter);
+        AddParameterToCollection(command, parameter);
 
-        var result = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        var result = Convert.ToString(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
         result.Should().Be(name);
         GC.KeepAlive(result);
-        GC.KeepAlive(users);
         GC.KeepAlive(name);
         return result;
     }
@@ -634,29 +601,27 @@ WHERE Name = {Dialect.Parameter("name")}
     /// EN: Executes a parameterized id lookup over the configured users table and returns the matched name.
     /// PT: Executa uma consulta parametrizada por id na tabela de usuarios configurada e retorna o nome correspondente.
     /// </summary>
-    public string? RunParameterSelectByIdMatrix(params object[] pars)
+    public async Task<object?> RunParameterSelectByIdMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
         var id = (int)pars[1];
         var expectedName = (string)pars[2];
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT Name
-FROM {users}
-WHERE Id = {Dialect.Parameter("id")}
-""");
+FROM {Context.TbUsersFullName}
+WHERE Id = {Repo.Dialect.Parameter("id")}
+""";
 
         var parameter = command.CreateParameter();
-        parameter.ParameterName = "id";
+        parameter.ParameterName = Repo.Dialect.Provider == ProviderId.Db2 ? "?" : "id";
         parameter.DbType = DbType.Int32;
         parameter.Value = id;
-        command.Parameters.Add(parameter);
+        AddParameterToCollection(command, parameter);
 
-        var result = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        var result = Convert.ToString(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
         result.Should().Be(expectedName);
         GC.KeepAlive(result);
-        GC.KeepAlive(users);
         GC.KeepAlive(id);
         GC.KeepAlive(expectedName);
         return result;
@@ -666,24 +631,21 @@ WHERE Id = {Dialect.Parameter("id")}
     /// EN: Executes a parameter roundtrip over typed user columns and validates string, numeric, boolean, date, and null parameters.
     /// PT: Executa um roundtrip de parametros sobre colunas tipadas de usuarios e valida parametros de texto, numericos, booleanos, data e nulos.
     /// </summary>
-    public int RunParameterRoundTripMatrix(params object[] pars)
+    public async Task<object?> RunParameterRoundTripMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var uId = (string)pars[1];
-        var tableName = ResolveScenarioTableName(users);
-        var id = (int)pars[2];
-        var name = (string)pars[3];
-        var email = pars[4] is DBNull ? null : (string?)pars[4];
-        var isActive = (bool)pars[5];
-        var age = (short)pars[6];
-        var balance = (decimal)pars[7];
-        var createdAt = (DateTime)pars[8];
-        var updatedAt = pars[9] is DBNull ? (DateTime?)null : (DateTime)pars[9];
-        var profileJson = pars[10] is DBNull ? null : (string?)pars[10];
+        var id = (int)pars[0];
+        var name = (string)pars[1];
+        var email = pars[2] is DBNull ? null : (string?)pars[2];
+        var isActive = (bool)pars[3];
+        var age = (short)pars[4];
+        var balance = (decimal)pars[5];
+        var createdAt = (DateTime)pars[6];
+        var updatedAt = pars[7] is DBNull ? (DateTime?)null : (DateTime)pars[7];
+        var profileJson = pars[8] is DBNull ? null : (string?)pars[8];
 
-        using var insertCommand = Connection.CreateCommand();
-        insertCommand.CommandText = NormalizeScenarioSql($"""
-INSERT INTO {tableName} (
+        using var insertCommand = Repo.Cnn.CreateCommand();
+        insertCommand.CommandText = $"""
+INSERT INTO {Context.TbUsersFullName} (
     Id,
     Name,
     Email,
@@ -694,17 +656,17 @@ INSERT INTO {tableName} (
     UpdatedAt,
     ProfileJson
 ) VALUES (
-    {Dialect.Parameter("id")},
-    {Dialect.Parameter("name")},
-    {Dialect.Parameter("email")},
-    {Dialect.Parameter("isActive")},
-    {Dialect.Parameter("age")},
-    {Dialect.Parameter("balance")},
-    {Dialect.Parameter("createdAt")},
-    {Dialect.Parameter("updatedAt")},
-    {Dialect.JsonParameter("profileJson")}
+    {Repo.Dialect.Parameter("id")},
+    {Repo.Dialect.Parameter("name")},
+    {Repo.Dialect.Parameter("email")},
+    {Repo.Dialect.Parameter("isActive")},
+    {Repo.Dialect.Parameter("age")},
+    {Repo.Dialect.Parameter("balance")},
+    {Repo.Dialect.Parameter("createdAt")},
+    {Repo.Dialect.Parameter("updatedAt")},
+    {Repo.Dialect.JsonParameter("profileJson")}
 )
-""");
+""";
 
         AddParameter(insertCommand, "id", DbType.Int32, id);
         AddParameter(insertCommand, "name", DbType.String, name);
@@ -719,10 +681,10 @@ INSERT INTO {tableName} (
         AddParameter(insertCommand, "updatedAt", DbType.DateTime, updatedAtParameter);
         AddParameter(insertCommand, "profileJson", DbType.String, profileJson is null ? DBNull.Value : profileJson);
 
-        insertCommand.ExecuteNonQuery().Should().Be(1);
+        (await insertCommand.ExecuteNonQueryAsync()).Should().Be(1);
 
-        using var selectCommand = Connection.CreateCommand();
-        selectCommand.CommandText = NormalizeScenarioSql($"""
+        using var selectCommand = Repo.Cnn.CreateCommand();
+        selectCommand.CommandText = $"""
 SELECT
     Name,
     Email,
@@ -732,34 +694,33 @@ SELECT
     CreatedAt,
     UpdatedAt,
     ProfileJson
-FROM {tableName}
-WHERE Id = {Dialect.Parameter("id")}
-""");
+FROM {Context.TbUsersFullName}
+WHERE Id = {Repo.Dialect.Parameter("id")}
+""";
 
         AddParameter(selectCommand, "id", DbType.Int32, id);
 
-        using var reader = selectCommand.ExecuteReader();
-        reader.Read().Should().BeTrue();
+        using var reader = await selectCommand.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
 
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(name);
-        (reader.IsDBNull(1) ? null : Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)).Should().Be(email);
+        (await reader.IsDBNullAsync(1) ? null : Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture)).Should().Be(email);
         Convert.ToBoolean(reader.GetValue(2), CultureInfo.InvariantCulture).Should().Be(isActive);
         Convert.ToInt16(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(age);
         Convert.ToDecimal(reader.GetValue(4), CultureInfo.InvariantCulture).Should().Be(balance);
         NormalizeDateTimeValue(reader.GetValue(5)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
 
-        var updatedAtText = reader.IsDBNull(6)
+        var updatedAtText = await reader.IsDBNullAsync(6)
             ? null
             : NormalizeDateTimeValue(reader.GetValue(6)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
         (updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)).Should().Be(updatedAtText);
         DbSqlLikeMem.TestTools.Json.JsonTextAssertions.ShouldMatchJsonText(
-            reader.IsDBNull(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture),
+            await reader.IsDBNullAsync(7) ? null : Convert.ToString(reader.GetValue(7), CultureInfo.InvariantCulture),
             profileJson);
 
-        reader.Read().Should().BeFalse();
+        (await reader.ReadAsync()).Should().BeFalse();
 
-        GC.KeepAlive(tableName);
         GC.KeepAlive(id);
         GC.KeepAlive(name);
         GC.KeepAlive(email);
@@ -776,7 +737,7 @@ WHERE Id = {Dialect.Parameter("id")}
     /// EN: Executes a typed parameter projection and validates ANSI text, fixed-length text, numeric, temporal, GUID, and binary values returned by provider-specific parameter objects.
     /// PT: Executa uma projeção de parametros tipados e valida valores de texto ANSI, texto de comprimento fixo, numericos, temporais, GUID e binario retornados pelos objetos de parametro especificos do provedor.
     /// </summary>
-    public int RunParameterTypeMatrix(params object[] pars)
+    public async Task<object?> RunParameterTypeMatrixAsync(params object[] pars)
     {
         var text = (string)pars[0];
         var ansiText = (string)pars[1];
@@ -794,43 +755,43 @@ WHERE Id = {Dialect.Parameter("id")}
         var guidValue = (Guid)pars[13];
         var binaryValue = (byte[])pars[14];
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = Dialect.Provider == ProviderId.Db2
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = Repo.Dialect.Provider == ProviderId.Db2
             ? $"""
 SELECT
-    CAST({Dialect.Parameter("text")} AS VARCHAR(100)) AS TextValue,
-    CAST({Dialect.Parameter("ansiText")} AS VARCHAR(100)) AS AnsiTextValue,
-    CAST({Dialect.Parameter("ansiFixedText")} AS CHAR(20)) AS AnsiFixedTextValue,
-    CAST({Dialect.Parameter("fixedText")} AS CHAR(20)) AS FixedTextValue,
-    CAST({Dialect.Parameter("int16Value")} AS SMALLINT) AS Int16Value,
-    CAST({Dialect.Parameter("int32Value")} AS INTEGER) AS Int32Value,
-    CAST({Dialect.Parameter("int64Value")} AS BIGINT) AS Int64Value,
-    CAST({Dialect.Parameter("boolValue")} AS BOOLEAN) AS BoolValue,
-    CAST({Dialect.Parameter("decimalValue")} AS DECIMAL(19,4)) AS DecimalValue,
-    CAST({Dialect.Parameter("doubleValue")} AS DOUBLE) AS DoubleValue,
-    CAST({Dialect.Parameter("timeSpanValue")} AS VARCHAR(32)) AS TimeSpanValue,
-    CAST({Dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
-    CAST({Dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
-    CAST({Dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
-    CAST({Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue
+    CAST({Repo.Dialect.Parameter("text")} AS VARCHAR(100)) AS TextValue,
+    CAST({Repo.Dialect.Parameter("ansiText")} AS VARCHAR(100)) AS AnsiTextValue,
+    CAST({Repo.Dialect.Parameter("ansiFixedText")} AS CHAR(20)) AS AnsiFixedTextValue,
+    CAST({Repo.Dialect.Parameter("fixedText")} AS CHAR(20)) AS FixedTextValue,
+    CAST({Repo.Dialect.Parameter("int16Value")} AS SMALLINT) AS Int16Value,
+    CAST({Repo.Dialect.Parameter("int32Value")} AS INTEGER) AS Int32Value,
+    CAST({Repo.Dialect.Parameter("int64Value")} AS BIGINT) AS Int64Value,
+    CAST({Repo.Dialect.Parameter("boolValue")} AS BOOLEAN) AS BoolValue,
+    CAST({Repo.Dialect.Parameter("decimalValue")} AS DECIMAL(19,4)) AS DecimalValue,
+    CAST({Repo.Dialect.Parameter("doubleValue")} AS DOUBLE) AS DoubleValue,
+    CAST({Repo.Dialect.Parameter("timeSpanValue")} AS VARCHAR(32)) AS TimeSpanValue,
+    CAST({Repo.Dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
+    CAST({Repo.Dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
+    CAST({Repo.Dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
+    CAST({Repo.Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue
 FROM SYSIBM.SYSDUMMY1
 """
-            : Dialect.SelectParameterProjection($"""
-    {Dialect.Parameter("text")} AS TextValue,
-    {Dialect.Parameter("ansiText")} AS AnsiTextValue,
-    {Dialect.Parameter("ansiFixedText")} AS AnsiFixedTextValue,
-    {Dialect.Parameter("fixedText")} AS FixedTextValue,
-    {Dialect.Parameter("int16Value")} AS Int16Value,
-    {Dialect.Parameter("int32Value")} AS Int32Value,
-    {Dialect.Parameter("int64Value")} AS Int64Value,
-    {Dialect.Parameter("boolValue")} AS BoolValue,
-    {Dialect.Parameter("decimalValue")} AS DecimalValue,
-    {Dialect.Parameter("doubleValue")} AS DoubleValue,
-    {Dialect.Parameter("timeSpanValue")} AS TimeSpanValue,
-    {Dialect.Parameter("dateTimeOffsetValue")} AS DateTimeOffsetValue,
-    {Dialect.Parameter("dateTimeValue")} AS DateTimeValue,
-    {Dialect.Parameter("guidValue")} AS GuidValue,
-    {Dialect.Parameter("binaryValue")} AS BinaryValue
+            : Repo.Dialect.SelectParameterProjection($"""
+    {Repo.Dialect.Parameter("text")} AS TextValue,
+    {Repo.Dialect.Parameter("ansiText")} AS AnsiTextValue,
+    {Repo.Dialect.Parameter("ansiFixedText")} AS AnsiFixedTextValue,
+    {Repo.Dialect.Parameter("fixedText")} AS FixedTextValue,
+    {Repo.Dialect.Parameter("int16Value")} AS Int16Value,
+    {Repo.Dialect.Parameter("int32Value")} AS Int32Value,
+    {Repo.Dialect.Parameter("int64Value")} AS Int64Value,
+    {Repo.Dialect.Parameter("boolValue")} AS BoolValue,
+    {Repo.Dialect.Parameter("decimalValue")} AS DecimalValue,
+    {Repo.Dialect.Parameter("doubleValue")} AS DoubleValue,
+    {Repo.Dialect.Parameter("timeSpanValue")} AS TimeSpanValue,
+    {Repo.Dialect.Parameter("dateTimeOffsetValue")} AS DateTimeOffsetValue,
+    {Repo.Dialect.Parameter("dateTimeValue")} AS DateTimeValue,
+    {Repo.Dialect.Parameter("guidValue")} AS GuidValue,
+    {Repo.Dialect.Parameter("binaryValue")} AS BinaryValue
 """);
 
         AddParameter(command, "text", DbType.String, text);
@@ -849,8 +810,8 @@ FROM SYSIBM.SYSDUMMY1
         AddParameter(command, "guidValue", DbType.Guid, guidValue);
         AddParameter(command, "binaryValue", DbType.Binary, binaryValue);
 
-        using var reader = command.ExecuteReader();
-        reader.Read().Should().BeTrue();
+        using var reader = await command.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
 
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(text);
         Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(ansiText);
@@ -863,13 +824,13 @@ FROM SYSIBM.SYSDUMMY1
         Convert.ToDecimal(reader.GetValue(8), CultureInfo.InvariantCulture).Should().Be(decimalValue);
         Convert.ToDouble(reader.GetValue(9), CultureInfo.InvariantCulture).Should().Be(doubleValue);
         NormalizeTimeSpanValue(reader.GetValue(10)).Should().Be(timeSpanValue);
-        NormalizeDateTimeOffsetValue(reader.GetValue(11), Dialect.Provider).Should().Be(Dialect.Provider == ProviderId.Oracle ? new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero) : dateTimeOffsetValue);
+        NormalizeDateTimeOffsetValue(reader.GetValue(11), Repo.Dialect.Provider).Should().Be(Repo.Dialect.Provider == ProviderId.Oracle ? new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero) : dateTimeOffsetValue);
         NormalizeDateTimeValue(reader.GetValue(12)).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(dateTimeValue.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         NormalizeGuidValue(reader.GetValue(13)).Should().Be(guidValue);
-        NormalizeBinaryValue(reader.GetValue(14), Dialect.Provider).Should().Equal(binaryValue);
+        NormalizeBinaryValue(reader.GetValue(14), Repo.Dialect.Provider).Should().Equal(binaryValue);
 
-        reader.Read().Should().BeFalse();
+        (await reader.ReadAsync()).Should().BeFalse();
 
         GC.KeepAlive(text);
         GC.KeepAlive(ansiText);
@@ -893,35 +854,35 @@ FROM SYSIBM.SYSDUMMY1
     /// EN: Executes a compact typed parameter projection for date and currency values returned by provider-specific parameter objects.
     /// PT: Executa uma projeção compacta de parametros tipados para valores de data e moeda retornados pelos objetos de parametro especificos do provedor.
     /// </summary>
-    public int RunParameterDateCurrencyMatrix(params object[] pars)
+    public async Task<object?> RunParameterDateCurrencyMatrixAsync(params object[] pars)
     {
         var dateValue = (DateTime)pars[0];
         var currencyValue = (decimal)pars[1];
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = Dialect.Provider == ProviderId.Db2
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = Repo.Dialect.Provider == ProviderId.Db2
             ? $"""
 SELECT
-    CAST({Dialect.Parameter("dateValue")} AS DATE) AS DateValue,
-    CAST({Dialect.Parameter("currencyValue")} AS DECIMAL(19,2)) AS CurrencyValue
+    CAST({Repo.Dialect.Parameter("dateValue")} AS DATE) AS DateValue,
+    CAST({Repo.Dialect.Parameter("currencyValue")} AS DECIMAL(19,2)) AS CurrencyValue
 FROM SYSIBM.SYSDUMMY1
 """
-            : Dialect.SelectParameterProjection($"""
-    {Dialect.Parameter("dateValue")} AS DateValue,
-    {Dialect.Parameter("currencyValue")} AS CurrencyValue
+            : Repo.Dialect.SelectParameterProjection($"""
+    {Repo.Dialect.Parameter("dateValue")} AS DateValue,
+    {Repo.Dialect.Parameter("currencyValue")} AS CurrencyValue
 """);
 
         AddParameter(command, "dateValue", DbType.Date, dateValue);
         AddParameter(command, "currencyValue", DbType.Currency, currencyValue);
 
-        using var reader = command.ExecuteReader();
-        reader.Read().Should().BeTrue();
+        using var reader = await command.ExecuteReaderAsync();
+        (await reader.ReadAsync()).Should().BeTrue();
 
         NormalizeDateTimeValue(reader.GetValue(0)).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             .Should().Be(dateValue.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         Convert.ToDecimal(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(currencyValue);
 
-        reader.Read().Should().BeFalse();
+        (await reader.ReadAsync()).Should().BeFalse();
         GC.KeepAlive(dateValue);
         GC.KeepAlive(currencyValue);
         return 1;
@@ -933,49 +894,51 @@ FROM SYSIBM.SYSDUMMY1
     /// </summary>
     public string? RunParameterProjection()
     {
-        var createdAt = Dialect.Provider == ProviderId.Npgsql
+        var createdAt = Repo.Dialect.Provider == ProviderId.Npgsql
             ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
             : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+        var dateValue = createdAt.Date;
+        var currencyValue = 123.45m;
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = Dialect.Provider == ProviderId.Db2
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = Repo.Dialect.Provider == ProviderId.Db2
             ? $"""
 SELECT
-    CAST({Dialect.Parameter("textValue")} AS VARCHAR(100)) AS TextValue,
-    CAST({Dialect.Parameter("ansiTextValue")} AS VARCHAR(100)) AS AnsiTextValue,
-    CAST({Dialect.Parameter("ansiFixedTextValue")} AS CHAR(20)) AS AnsiFixedTextValue,
-    CAST({Dialect.Parameter("fixedTextValue")} AS CHAR(20)) AS FixedTextValue,
-    CAST({Dialect.Parameter("int16Value")} AS SMALLINT) AS Int16Value,
-    CAST({Dialect.Parameter("int32Value")} AS INTEGER) AS Int32Value,
-    CAST({Dialect.Parameter("int64Value")} AS BIGINT) AS Int64Value,
-    CAST({Dialect.Parameter("boolValue")} AS BOOLEAN) AS BoolValue,
-    CAST({Dialect.Parameter("decimalValue")} AS DECIMAL(19,4)) AS DecimalValue,
-    CAST({Dialect.Parameter("doubleValue")} AS DOUBLE) AS DoubleValue,
-    CAST({Dialect.Parameter("timeSpanValue")} AS VARCHAR(32)) AS TimeSpanValue,
-    CAST({Dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
-    CAST({Dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
-    CAST({Dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
-    CAST({Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue,
-    CAST({Dialect.Parameter("dateValue")} AS DATE) AS DateValue,
-    CAST({Dialect.Parameter("currencyValue")} AS DECIMAL(19,2)) AS CurrencyValue
+    CAST({Repo.Dialect.Parameter("textValue")} AS VARCHAR(100)) AS TextValue,
+    CAST({Repo.Dialect.Parameter("ansiTextValue")} AS VARCHAR(100)) AS AnsiTextValue,
+    CAST({Repo.Dialect.Parameter("ansiFixedTextValue")} AS CHAR(20)) AS AnsiFixedTextValue,
+    CAST({Repo.Dialect.Parameter("fixedTextValue")} AS CHAR(20)) AS FixedTextValue,
+    CAST({Repo.Dialect.Parameter("int16Value")} AS SMALLINT) AS Int16Value,
+    CAST({Repo.Dialect.Parameter("int32Value")} AS INTEGER) AS Int32Value,
+    CAST({Repo.Dialect.Parameter("int64Value")} AS BIGINT) AS Int64Value,
+    CAST({Repo.Dialect.Parameter("boolValue")} AS BOOLEAN) AS BoolValue,
+    CAST({Repo.Dialect.Parameter("decimalValue")} AS DECIMAL(19,4)) AS DecimalValue,
+    CAST({Repo.Dialect.Parameter("doubleValue")} AS DOUBLE) AS DoubleValue,
+    CAST({Repo.Dialect.Parameter("timeSpanValue")} AS VARCHAR(32)) AS TimeSpanValue,
+    CAST({Repo.Dialect.Parameter("dateTimeOffsetValue")} AS VARCHAR(40)) AS DateTimeOffsetValue,
+    CAST({Repo.Dialect.Parameter("dateTimeValue")} AS TIMESTAMP) AS DateTimeValue,
+    CAST({Repo.Dialect.Parameter("guidValue")} AS VARCHAR(36)) AS GuidValue,
+    CAST({Repo.Dialect.Parameter("binaryValue")} AS VARCHAR(4) FOR BIT DATA) AS BinaryValue,
+    CAST({Repo.Dialect.Parameter("dateValue")} AS DATE) AS DateValue,
+    CAST({Repo.Dialect.Parameter("currencyValue")} AS DECIMAL(19,2)) AS CurrencyValue
 FROM SYSIBM.SYSDUMMY1
 """
-            : Dialect.SelectParameterProjection($"""
-    {Dialect.Parameter("textValue")} AS TextValue,
-    {Dialect.Parameter("ansiTextValue")} AS AnsiTextValue,
-    {Dialect.Parameter("ansiFixedTextValue")} AS AnsiFixedTextValue,
-    {Dialect.Parameter("fixedTextValue")} AS FixedTextValue,
-    {Dialect.Parameter("int16Value")} AS Int16Value,
-    {Dialect.Parameter("int32Value")} AS Int32Value,
-    {Dialect.Parameter("int64Value")} AS Int64Value,
-    {Dialect.Parameter("boolValue")} AS BoolValue,
-    {Dialect.Parameter("decimalValue")} AS DecimalValue,
-    {Dialect.Parameter("doubleValue")} AS DoubleValue,
-    {Dialect.Parameter("timeSpanValue")} AS TimeSpanValue,
-    {Dialect.Parameter("dateTimeOffsetValue")} AS DateTimeOffsetValue,
-    {Dialect.Parameter("dateTimeValue")} AS DateTimeValue,
-    {Dialect.Parameter("guidValue")} AS GuidValue,
-    {Dialect.Parameter("binaryValue")} AS BinaryValue
+            : Repo.Dialect.SelectParameterProjection($"""
+    {Repo.Dialect.Parameter("textValue")} AS TextValue,
+    {Repo.Dialect.Parameter("ansiTextValue")} AS AnsiTextValue,
+    {Repo.Dialect.Parameter("ansiFixedTextValue")} AS AnsiFixedTextValue,
+    {Repo.Dialect.Parameter("fixedTextValue")} AS FixedTextValue,
+    {Repo.Dialect.Parameter("int16Value")} AS Int16Value,
+    {Repo.Dialect.Parameter("int32Value")} AS Int32Value,
+    {Repo.Dialect.Parameter("int64Value")} AS Int64Value,
+    {Repo.Dialect.Parameter("boolValue")} AS BoolValue,
+    {Repo.Dialect.Parameter("decimalValue")} AS DecimalValue,
+    {Repo.Dialect.Parameter("doubleValue")} AS DoubleValue,
+    {Repo.Dialect.Parameter("timeSpanValue")} AS TimeSpanValue,
+    {Repo.Dialect.Parameter("dateTimeOffsetValue")} AS DateTimeOffsetValue,
+    {Repo.Dialect.Parameter("dateTimeValue")} AS DateTimeValue,
+    {Repo.Dialect.Parameter("guidValue")} AS GuidValue,
+    {Repo.Dialect.Parameter("binaryValue")} AS BinaryValue
 """);
 
         AddParameter(command, "textValue", DbType.String, "benchmark");
@@ -993,35 +956,50 @@ FROM SYSIBM.SYSDUMMY1
         AddParameter(command, "dateTimeValue", DbType.DateTime, NormalizeNpgsqlDateTimeInput(createdAt));
         AddParameter(command, "guidValue", DbType.Guid, Guid.Parse("11111111-2222-3333-4444-555555555555"));
         AddParameter(command, "binaryValue", DbType.Binary, new byte[] { 1, 2, 3, 4 });
+        if (Repo.Dialect.Provider == ProviderId.Db2)
+        {
+            AddParameter(command, "dateValue", DbType.Date, dateValue);
+            AddParameter(command, "currencyValue", DbType.Currency, currencyValue);
+        }
 
         var value = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
         value.Should().Be("benchmark");
         GC.KeepAlive(value);
         GC.KeepAlive(createdAt);
+        GC.KeepAlive(dateValue);
+        GC.KeepAlive(currencyValue);
         return value;
     }
 
-    private void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+    /// <summary>
+    /// EN: Adds a parameter to the given command with provider-specific handling for Db2, Oracle, and Firebird, including normalization of parameter values and conditional setting of DbType and Size properties.
+    /// PT: Adiciona um parametro ao comando fornecido com tratamento especifico para Db2, Oracle e Firebird, incluindo normalizacao dos valores de parametro e definicao condicional das propriedades DbType e Size.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    protected override void AddParameter(DbCommand command, string name, DbType dbType, object? value)
     {
+        if (Repo.Dialect.Provider == ProviderId.Db2 && dbType == DbType.Currency)
+        {
+            AddDb2CurrencyParameter(command, name, value);
+            return;
+        }
+
         var parameter = command.CreateParameter();
-        parameter.ParameterName = name;
-        var isOracleParameter = parameter.GetType().FullName == "Oracle.ManagedDataAccess.Client.OracleParameter";
-        var parameterTypeName = parameter.GetType().FullName;
-        var isFirebirdParameter = parameterTypeName == "FirebirdSql.Data.FirebirdClient.FbParameter";
-        var isDb2Parameter = parameterTypeName is "IBM.Data.Db2.DB2Parameter"
-            or "IBM.Data.DB2.Core.DB2Parameter"
-            or "IBM.Data.DB2.iSeries.iDB2Parameter";
-        if (isOracleParameter)
+        parameter.ParameterName = Repo.Dialect.Provider == ProviderId.Db2 ? "?" : name;
+        if (Repo.Dialect.Provider == ProviderId.Oracle)
         {
             // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
             // Keep the default DbType and normalize the value payload for this shared test helper.
         }
-        else if (isFirebirdParameter && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
+        else if (Repo.Dialect.Provider == ProviderId.Firebird && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
         {
             // Firebird's parameter implementation rejects these DbType values in this path.
             // Keep the payload-based flow and let the provider infer the storage type.
         }
-        else if (isDb2Parameter && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset || dbType == DbType.Time || dbType == DbType.DateTime))
+        else if (Repo.Dialect.Provider == ProviderId.Db2 && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset || dbType == DbType.Time || dbType == DbType.DateTime))
         {
             parameter.DbType = DbType.String;
         }
@@ -1029,21 +1007,60 @@ FROM SYSIBM.SYSDUMMY1
         {
             parameter.DbType = dbType;
         }
-        if (Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTime && value is DateTime dateTime && dateTime.Kind == DateTimeKind.Unspecified)
+        if (Repo.Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTime && value is DateTime dateTime && dateTime.Kind == DateTimeKind.Unspecified)
         {
             value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
         }
-        if (Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTimeOffset && value is DateTimeOffset dateTimeOffset && dateTimeOffset.Offset != TimeSpan.Zero)
+        if (Repo.Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTimeOffset && value is DateTimeOffset dateTimeOffset && dateTimeOffset.Offset != TimeSpan.Zero)
         {
             value = dateTimeOffset.ToUniversalTime();
         }
-        parameter.Value = isOracleParameter
-            ? NormalizeOracleParameterValue(value)
-            : isDb2Parameter
-                ? NormalizeDb2ParameterValue(dbType, value)
-                : isFirebirdParameter
-                    ? NormalizeFirebirdParameterValue(dbType, value)
-                : value ?? DBNull.Value;
+        parameter.Value = Repo.Dialect.Provider switch
+        {
+            ProviderId.Oracle => NormalizeOracleParameterValue(value),
+            ProviderId.Db2 => NormalizeDb2ParameterValue(dbType, value),
+            ProviderId.Firebird => NormalizeFirebirdParameterValue(dbType, value),
+            _ => value
+        } ?? DBNull.Value;
+        if (Repo.Dialect.Provider == ProviderId.Db2)
+        {
+            SetDb2ParameterSize(parameter, parameter.Value);
+        }
+        AddParameterToCollection(command, parameter);
+    }
+
+    private static void AddDb2CurrencyParameter(DbCommand command, string name, object? value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "?";
+        parameter.DbType = DbType.Decimal;
+        parameter.Value = value ?? DBNull.Value;
+        AddParameterToCollection(command, parameter);
+    }
+
+    private static void SetDb2ParameterSize(DbParameter parameter, object? value)
+    {
+        if (value is string stringValue)
+        {
+            parameter.Size = stringValue.Length;
+            return;
+        }
+
+        if (value is byte[] binaryValue)
+        {
+            parameter.Size = binaryValue.Length;
+        }
+    }
+
+    private static void AddParameterToCollection(DbCommand command, DbParameter parameter)
+    {
+        var addMethod = command.Parameters.GetType().GetMethod(nameof(DbParameterCollection.Add), [parameter.GetType()]);
+        if (addMethod is not null)
+        {
+            addMethod.Invoke(command.Parameters, [parameter]);
+            return;
+        }
+
         command.Parameters.Add(parameter);
     }
 
@@ -1143,7 +1160,7 @@ FROM SYSIBM.SYSDUMMY1
 
     private DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
     {
-        if (Dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)
+        if (Repo.Dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)
             return DateTime.SpecifyKind(value, DateTimeKind.Utc);
 
         return value;
@@ -1286,18 +1303,15 @@ FROM SYSIBM.SYSDUMMY1
     /// EN: Executes a greater-than predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado maior que na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunGreaterThanPredicateMatrix(params object[] pars)
+    public async Task<object?> RunGreaterThanPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Id > 3
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(2);
-        GC.KeepAlive(users);
         return value;
     }
 
@@ -1305,18 +1319,15 @@ WHERE Id > 3
     /// EN: Executes a less-than predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado menor que na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunLessThanPredicateMatrix(params object[] pars)
+    public async Task<object?> RunLessThanPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Id < 3
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(2);
-        GC.KeepAlive(users);
         return value;
     }
 
@@ -1324,18 +1335,15 @@ WHERE Id < 3
     /// EN: Executes a greater-than-or-equal predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado maior ou igual na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunGreaterThanOrEqualPredicateMatrix(params object[] pars)
+    public async Task<object?> RunGreaterThanOrEqualPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Id >= 3
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(3);
-        GC.KeepAlive(users);
         return value;
     }
 
@@ -1343,18 +1351,15 @@ WHERE Id >= 3
     /// EN: Executes a less-than-or-equal predicate over the configured users table and returns the matching row count.
     /// PT: Executa um predicado menor ou igual na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
     /// </summary>
-    public int RunLessThanOrEqualPredicateMatrix(params object[] pars)
+    public async Task<object?> RunLessThanOrEqualPredicateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        var value = Convert.ToInt32(ExecuteScalar($"""
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
 SELECT COUNT(*)
-FROM {users}
+FROM {Context.TbUsersFullName}
 WHERE Id <= 3
 """), CultureInfo.InvariantCulture);
 
         value.Should().Be(3);
-        GC.KeepAlive(users);
         return value;
     }
 
@@ -1362,30 +1367,28 @@ WHERE Id <= 3
     /// EN: Executes an ORDER BY Name query over the configured users table and validates the output order.
     /// PT: Executa uma consulta ORDER BY Name na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
-    public int RunOrderByNameMatrix(params object[] pars)
+    public async Task<object?> RunOrderByNameMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT Name
-FROM {users}
+FROM {Context.TbUsersFullName}
 ORDER BY Name
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -1393,30 +1396,28 @@ ORDER BY Name
     /// EN: Executes an ORDER BY Name descending query over the configured users table and validates the output order.
     /// PT: Executa uma consulta ORDER BY Name descendente na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
-    public int RunOrderByNameDescendingMatrix(params object[] pars)
+    public async Task<object?> RunOrderByNameDescendingMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT Name
-FROM {users}
+FROM {Context.TbUsersFullName}
 ORDER BY Name DESC
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -1424,34 +1425,32 @@ ORDER BY Name DESC
     /// EN: Executes a paged name query using ROW_NUMBER and validates the selected page rows.
     /// PT: Executa uma consulta paginada por nome usando ROW_NUMBER e valida as linhas da pagina selecionada.
     /// </summary>
-    public int RunNamePaginationMatrix(params object[] pars)
+    public async Task<object?> RunNamePaginationMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql($"""
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
 SELECT Name
 FROM (
     SELECT Name, ROW_NUMBER() OVER (ORDER BY Name) AS rn
-    FROM {users}
+    FROM {Context.TbUsersFullName}
 ) q
 WHERE rn BETWEEN 2 AND 4
 ORDER BY rn
-""");
+""";
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Bravo");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Charlie");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Delta");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -1459,42 +1458,31 @@ ORDER BY rn
     /// EN: Executes a native paged name query and validates the selected page rows for the configured users table.
     /// PT: Executa uma consulta nativa paginada por nome e valida as linhas da pagina selecionada na tabela de usuarios configurada.
     /// </summary>
-    public int RunPagedNameProjectionMatrix(params object[] pars)
+    public async Task<object?> RunPagedNameProjectionMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = Repo.Dialect.PagedNameProjection(Context.TbUsersFullName, 1, 2);
 
-        using var command = Connection.CreateCommand();
-        command.CommandText = NormalizeScenarioSql(Dialect.PagedNameProjection(users, 1, 2));
+        using var reader = await command.ExecuteReaderAsync();
 
-        using var reader = command.ExecuteReader();
-
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Bravo");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Charlie");
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(users);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 2;
     }
-
-    /// <summary>
-    /// EN: Executes the benchmark paged-name projection query for the configured users table.
-    /// PT: Executa a consulta de projecao paginada por nome para a tabela de usuarios configurada.
-    /// </summary>
-    public int RunPagedNameProjection(params object[] pars)
-        => RunPagedNameProjectionMatrix(pars);
 
     /// <summary>
     /// EN: Reads a current-time predicate query result from the configured users table.
     /// PT: Lê o resultado de uma consulta com predicado de tempo atual na tabela de usuarios configurada.
     /// </summary>
-    public object? RunTemporalNowWhere(params object[] pars)
+    public async Task<object?> RunTemporalNowWhereAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var tableName = ResolveScenarioTableName(users);
-        var value = ExecuteScalar(Dialect.TemporalNowWhere(tableName));
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalNowWhere(Context));
         GC.KeepAlive(value);
         return value;
     }
@@ -1503,11 +1491,9 @@ ORDER BY rn
     /// EN: Reads a current-time ordering query result from the configured users table.
     /// PT: Lê o resultado de uma consulta com ordenação por tempo atual na tabela de usuarios configurada.
     /// </summary>
-    public object? RunTemporalNowOrderBy(params object[] pars)
+    public async Task<object?> RunTemporalNowOrderByAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var tableName = ResolveScenarioTableName(users);
-        var value = ExecuteScalar(Dialect.TemporalNowOrderBy(tableName));
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalNowOrderBy(Context));
         GC.KeepAlive(value);
         return value;
     }

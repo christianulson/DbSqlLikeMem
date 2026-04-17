@@ -16,3 +16,12 @@ public class Sqlite_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
 
 }
 
+///// <summary>
+///// EN: Defines the DbSqlLikeMem benchmark suite for SQLite.
+///// PT: Define a suite de benchmark DbSqlLikeMem para SQLite.
+///// </summary>
+//public class Sqlite_DbSqlLikeMem_Benchmarks2 : BenchmarkSuiteBaseNew<>
+//{
+
+
+//}

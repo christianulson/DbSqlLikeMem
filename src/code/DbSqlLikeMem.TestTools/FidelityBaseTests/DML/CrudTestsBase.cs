@@ -20,46 +20,15 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se um update seguido de delete mantem a contagem esperada de linhas e o valor restante para o provedor atual.
     /// </summary>
     [Fact]
-    public void UpdateDeleteRoundTripTest()
+    public async Task UpdateDeleteRoundTripTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = $"{users}_{uId}";
-            var resultMock = serviceTest.RunUpdateDeleteRoundTrip(tableName);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunUpdateDeleteRoundTrip(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        (await testService.RunTestAsync<UsersScenario, DmlMutationUpdateDeleteRoundTripServiceTest>()).Should().Be(1);
     }
 
     /// <summary>
@@ -67,46 +36,15 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se acoes de update e delete confirmadas dentro de uma transacao mantem o estado final esperado.
     /// </summary>
     [Fact]
-    public void TransactionalUpdateDeleteCommitTest()
+    public async Task TransactionalUpdateDeleteCommitTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = $"{users}_{uId}";
-            var resultMock = serviceTest.RunTransactionalUpdateDeleteCommit(tableName);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunTransactionalUpdateDeleteCommit(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        (await testService.RunTestAsync<UsersScenario, DmlMutationTransactionalUpdateDeleteCommitServiceTest>()).Should().Be(1);
     }
 
     /// <summary>
@@ -114,53 +52,15 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se a atualizacao de uma unica linha de usuario persiste o valor esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void UpdateByPkTest()
+    public async Task UpdateByPkTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunUpdateByPk(tableName);
-            resultMock.Should().Be("Alice-v2");
-
-            var persistedNameMock = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
-            persistedNameMock.Should().Be("Alice-v2");
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunUpdateByPk(tableName);
-                    resultMock.Should().Be(resultContainer);
-
-                    var persistedNameContainer = Convert.ToString(serviceTestContainer.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
-                    persistedNameMock.Should().Be(persistedNameContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        (await testService.RunTestAsync<UsersScenario, DmlMutationUpdateByPkServiceTest>()).Should().Be(1);
     }
 
     /// <summary>
@@ -168,53 +68,20 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se a exclusao de uma unica linha de usuario mantem a linha restante esperada para o provedor atual.
     /// </summary>
     [Fact]
-    public void DeleteByPkTest()
+    public async Task DeleteByPkTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
+        (await testService.RunTestAsync<UsersScenario, DmlMutationDeleteByPkServiceTest>()).Should().BeEquivalentTo(new List<List<object[]>>
         {
-            var resultMock = serviceTest.RunDeleteByPk(tableName);
-            resultMock.Should().Be(1);
-
-            var remainingNameMock = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 2)), CultureInfo.InvariantCulture);
-            remainingNameMock.Should().Be("Bob");
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunDeleteByPk(tableName);
-                    resultMock.Should().Be(resultContainer);
-
-                    var remainingNameContainer = Convert.ToString(serviceTestContainer.ExecuteScalar(dialect.SelectUserNameById(tableName, 2)), CultureInfo.InvariantCulture);
-                    remainingNameMock.Should().Be(remainingNameContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
+            new() {
+                new object[] { 2, "Bob" }
             }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        });
     }
 
     /// <summary>
@@ -222,134 +89,40 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se uma atualizacao retorna uma contagem valida de linhas afetadas e persiste o novo valor para o provedor atual.
     /// </summary>
     [Fact]
-    public void RowCountAfterUpdateTest()
+    public async Task RowCountAfterUpdateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunRowCountAfterUpdate(tableName);
-            resultMock.Should().BeGreaterThan(0);
-
-            var updatedNameMock = Convert.ToString(serviceTest.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
-            updatedNameMock.Should().Be("Alice-v2");
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunRowCountAfterUpdate(tableName);
-                    resultMock.Should().Be(resultContainer);
-
-                    var updatedNameContainer = Convert.ToString(serviceTestContainer.ExecuteScalar(dialect.SelectUserNameById(tableName, 1)), CultureInfo.InvariantCulture);
-                    updatedNameMock.Should().Be(updatedNameContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        (await testService.RunTestAsync<UsersScenario, DmlMutationRowCountAfterUpdateServiceTest>()).Should().Be(1);
     }
-
-    /// <summary>
-    /// EN: Verifies that the returning-update benchmark updates the same row as the primary-key update path for the current provider.
-    /// PT: Verifica se o benchmark de returning update atualiza a mesma linha do caminho de update por chave primaria para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void ReturningUpdateTest()
-        => UpdateByPkTest();
 
     /// <summary>
     /// EN: Verifies typed provider parameters update and delete rows correctly in the users table for the current provider, including Oracle empty-string normalization in the updated email column.
     /// PT: Verifica se parametros tipados do provedor atualizam e excluem linhas corretamente na tabela de usuarios do provedor atual, incluindo a normalizacao de string vazia no email atualizado para Oracle.
     /// </summary>
     [Fact]
-    public void ParameterUpdateDeleteRoundTripTest()
+    public async Task ParameterUpdateDeleteRoundTripTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect);
         var updatedAt = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 1, "Alice"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-
-            var resultMock = serviceTest.RunParameterUpdateDeleteRoundTrip(
-                tableName,
-                "Alice-v2",
-                string.Empty,
-                true,
-                (short)31,
-                123.45m,
-                updatedAt,
-                "{\"theme\":\"dark\"}",
-                2);
-            resultMock.Should().Be(2);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(tableName, 1, "Alice"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-
-                    var resultContainer = serviceTestContainer.RunParameterUpdateDeleteRoundTrip(
-                        tableName,
-                        "Alice-v2",
-                        string.Empty,
-                        true,
-                        (short)31,
-                        123.45m,
-                        updatedAt,
-                        "{\"theme\":\"dark\"}",
-                        2);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterUpdateDeleteRoundTripServiceTest>(
+            "Alice-v2",
+            string.Empty,
+            true,
+            (short)31,
+            123.45m,
+            updatedAt,
+            "{\"theme\":\"dark\"}",
+            2);
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -357,28 +130,20 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se parametros tipados do provedor inserem linhas corretamente na tabela de usuarios do provedor atual.
     /// </summary>
     [Fact]
-    public void ParameterInsertRoundTripTest()
+    public async Task ParameterInsertRoundTripTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
         var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
         var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
         var updatedAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Unspecified));
         var updatedAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 4, 5, 6, 7, 8, DateTimeKind.Unspecified));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterInsertRoundTrip(
-                tableName,
-                "Alice-v2",
+        var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterInsertRoundTripServiceTest>(
+            "Alice-v2",
                 "Bob-v2",
                 "alice@example.com",
                 "bob@example.com",
@@ -394,48 +159,7 @@ public abstract class CrudTestsBase<T, T2>(
                 updatedAt2,
                 "{\"theme\":\"dark\"}",
                 "{\"theme\":\"light\"}");
-            resultMock.Should().Be(2);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterInsertRoundTrip(
-                        tableName,
-                        "Alice-v2",
-                        "Bob-v2",
-                        "alice@example.com",
-                        "bob@example.com",
-                        true,
-                        false,
-                        (short)31,
-                        (short)22,
-                        123.45m,
-                        67.89m,
-                        createdAt1,
-                        createdAt2,
-                        updatedAt1,
-                        updatedAt2,
-                        "{\"theme\":\"dark\"}",
-                        "{\"theme\":\"light\"}");
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -443,66 +167,24 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se parametros tipados do provedor inserem valores anulaveis corretamente na tabela de usuarios do provedor atual.
     /// </summary>
     [Fact]
-    public void ParameterInsertNullRoundTripTest()
+    public async Task ParameterInsertNullRoundTripTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect);
         var createdAt = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterInsertNullRoundTrip(
-                tableName,
-                "Alice-v2",
-                (string?)null,
-                true,
-                (short)31,
-                123.45m,
-                createdAt,
-                (DateTime?)null,
-                (string?)null);
-            resultMock.Should().Be(1);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterInsertNullRoundTrip(
-                        tableName,
-                        "Alice-v2",
-                        (string?)null,
-                        true,
-                        (short)31,
-                        123.45m,
-                        createdAt,
-                        (DateTime?)null,
-                        (string?)null);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterInsertNullRoundTripServiceTest>(
+            "Alice-v2",
+            null!,
+            true,
+            (short)31,
+            123.45m,
+            createdAt,
+            null!,
+            null!);
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -510,63 +192,23 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se parametros tipados do provedor inserem linhas corretamente dentro de uma transacao confirmada para o provedor atual.
     /// </summary>
     [Fact]
-    public void ParameterTransactionCommitTest()
+    public async Task ParameterTransactionCommitTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect);
         var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
         var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterTransactionCommit(
-                tableName,
-                "Alice-v2",
-                "Bob-v2",
-                "alice@example.com",
-                "bob@example.com",
-                createdAt1,
-                createdAt2);
-            resultMock.Should().Be(2);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterTransactionCommit(
-                        tableName,
-                        "Alice-v2",
-                        "Bob-v2",
-                        "alice@example.com",
-                        "bob@example.com",
-                        createdAt1,
-                        createdAt2);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterTransactionCommitServiceTest>(
+            "Alice-v2",
+            "Bob-v2",
+            "alice@example.com",
+            "bob@example.com",
+            createdAt1,
+            createdAt2);
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -574,68 +216,26 @@ public abstract class CrudTestsBase<T, T2>(
     /// PT: Verifica se parametros tipados do provedor fazem rollback corretamente dentro de uma transacao para o provedor atual.
     /// </summary>
     [Fact]
-    public void ParameterTransactionRollbackTest()
+    public async Task ParameterTransactionRollbackTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-        var tableName = $"{users}_{uId}";
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect);
         var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
         var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterTransactionRollback(
-                tableName,
-                "Alice-v2",
-                "Bob-v2",
-                "alice@example.com",
-                "bob@example.com",
-                createdAt1,
-                createdAt2);
-            resultMock.Should().Be(0);
-
-            if (IsInsertContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterTransactionRollback(
-                        tableName,
-                        "Alice-v2",
-                        "Bob-v2",
-                        "alice@example.com",
-                        "bob@example.com",
-                        createdAt1,
-                        createdAt2);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterTransactionRollbackServiceTest>(
+            "Alice-v2",
+            "Bob-v2",
+            "alice@example.com",
+            "bob@example.com",
+            createdAt1,
+            createdAt2);
+        result.Should().Be(1);
     }
 
-    private static string NewToken()
-        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
-
+    //TODO: Criar método asbtrado para os filhos
     private DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
     {
         if (dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)

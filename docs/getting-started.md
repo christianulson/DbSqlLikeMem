@@ -49,7 +49,7 @@ Dica: escolha **um provider por projeto de teste** (ou por suíte), conforme o d
 
 ## Compatibilidade de frameworks
 
-Os pacotes de produção seguem os alvos centrais de `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+Os pacotes de produção seguem os alvos centrais de `src/code/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
 
 Os projetos de teste e test-tools usam o override dedicado: `net462`, `net6.0` e `net8.0`.
 

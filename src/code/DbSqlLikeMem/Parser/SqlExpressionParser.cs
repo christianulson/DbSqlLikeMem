@@ -877,17 +877,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.EXISTS))
             return false;
 
-        _context.Consume(); // EXISTS
-        _context.ExpectSymbol("(");
-
-        var subSql = ReadRawUntilMatchingParen();
-
-        _context.ExpectSymbol(")");
-
-        // ✅ use o token t
-        expr = new ExistsExpr(
-            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, t, SqlConst.EXISTS, _context.Db, _context.Dialect)
-        );
+        expr = ParseExistsExpr(t);
 
         return true;
     }
@@ -955,6 +945,14 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             return false;
 
         _context.Consume();
+
+        if (_context.IsKeywordOrIdentifierWord(SqlConst.EXISTS))
+        {
+            var existsToken = _context.Peek();
+            expr = new UnaryExpr(SqlUnaryOp.Not, ParseExistsExpr(existsToken));
+            return true;
+        }
+
         var rhs = ParseExpression(60);
         expr = new UnaryExpr(SqlUnaryOp.Not, rhs);
         return true;
@@ -978,6 +976,20 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         // unary minus: 0 - rhs (keeps AST simple)
         expr = new BinaryExpr(SqlBinaryOp.Subtract, new LiteralExpr(0m), rhs);
         return true;
+    }
+
+    private SqlExpr ParseExistsExpr(SqlToken contextToken)
+    {
+        _context.Consume(); // EXISTS
+        _context.ExpectSymbol("(");
+
+        var subSql = ReadRawUntilMatchingParen();
+
+        _context.ExpectSymbol(")");
+
+        return new ExistsExpr(
+            SqlQueryParser.ParseSubqueryExprOrThrow(subSql, contextToken, SqlConst.EXISTS, _context.Db, _context.Dialect)
+        );
     }
 
     private bool TryParseIntervalLiteral(SqlToken t, out SqlExpr expr)

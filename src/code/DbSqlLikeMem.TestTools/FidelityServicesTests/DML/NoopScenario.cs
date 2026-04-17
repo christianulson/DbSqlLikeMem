@@ -4,26 +4,22 @@ namespace DbSqlLikeMem.TestTools.DML;
 /// EN: Describes a no-op scenario setup for workflows that only need an open connection.
 /// PT: Descreve uma configuracao de cenario sem operacao para fluxos que precisam apenas de uma conexao aberta.
 /// </summary>
-public sealed class NoopScenario<T> : ITestScenario<T>
-    where T : DbConnection
+public sealed class NoopScenario(
+    RepoService repo,
+       FidelityTestContext context
+    ) : BaseScenario(repo, context), ITestScenario
 {
     /// <summary>
     /// EN: Leaves scenario creation empty.
     /// PT: Deixa a criação do cenário vazia.
     /// </summary>
-    public void CreateScenario(
-        BaseServiceTest<T> service,
-        params object[] pars)
-    {
-    }
+    public Task CreateScenarioAsync()
+    => Task.CompletedTask;
 
     /// <summary>
     /// EN: Leaves scenario cleanup empty.
     /// PT: Deixa a limpeza do cenário vazia.
     /// </summary>
-    public void DropScenario(
-        BaseServiceTest<T> service,
-        params object[] pars)
-    {
-    }
+    public Task DropScenarioAsync()
+    => Task.CompletedTask;
 }

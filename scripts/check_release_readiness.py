@@ -144,6 +144,9 @@ def get_wiki_doc_paths(root: Path) -> dict[str, Path | None]:
 
 
 def parse_directory_build_props(path: Path) -> tuple[str | None, str | None]:
+    if not path.is_file():
+        return None, None
+
     content = load_text(path)
     version_match = VERSION_RE.search(content)
     repository_match = REPOSITORY_URL_RE.search(content)
@@ -371,7 +374,7 @@ def check_docs(root: Path) -> list[str]:
             ".github/workflows/nuget-publish.yml",
             ".github/workflows/vsix-publish.yml",
             ".github/workflows/vscode-extension-publish.yml",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
             "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
             "src/DbSqlLikeMem.VsCodeExtension/package.json",
             "v<versao>",
@@ -400,12 +403,12 @@ def check_docs(root: Path) -> list[str]:
             "netstandard2.0",
             "net8.0",
             "net6.0",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
             "docs/publishing.md",
             "Wiki/Home.md",
         ],
         root / "docs" / "old" / "providers-and-features.md": [
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
             "net462",
             "netstandard2.0",
             "net8.0",
@@ -436,14 +439,14 @@ def check_docs(root: Path) -> list[str]:
             "netstandard2.0",
             "net8.0",
             "net6.0",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
         ],
         root / "src" / "README.md": [
             "net462",
             "netstandard2.0",
             "net8.0",
             "net6.0",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
         ],
         root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md": [
             ".github/workflows/vscode-extension-publish.yml",
@@ -476,7 +479,7 @@ def check_docs(root: Path) -> list[str]:
     if historical_multi_target_audit.exists():
         checks[historical_multi_target_audit] = [
             "artefato histórico",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
             "README.md",
             "docs/getting-started.md",
         ]
@@ -497,7 +500,7 @@ def check_docs(root: Path) -> list[str]:
             "netstandard2.0",
             "net8.0",
             "net6.0",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
             "docs/publishing.md",
         ]
 
@@ -509,7 +512,7 @@ def check_docs(root: Path) -> list[str]:
             ".github/workflows/vscode-extension-publish.yml",
             "scripts/check_release_readiness.py",
             "scripts/check_nuget_package_metadata.py",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
             "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
             "src/DbSqlLikeMem.VsCodeExtension/package.json",
             "v*",
@@ -557,7 +560,7 @@ def check_workflows(root: Path) -> list[str]:
             "NUGET_API_KEY",
             "vars.NUGET_PUBLISH_ENVIRONMENT",
             "scripts/check_release_readiness.py",
-            "src/Directory.Build.props",
+            "src/code/Directory.Build.props",
             "scripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts",
         ],
         root / ".github" / "workflows" / "vsix-publish.yml": [
@@ -1051,6 +1054,10 @@ def main() -> int:
     props_path = resolve_nuget_props_path(root)
     if props_path is None:
         failures.append("src/code/Directory.Build.props: missing version source file")
+        version = None
+        repository_url = None
+    elif not props_path.is_file():
+        failures.append(f"{props_path.relative_to(root).as_posix()}: missing version source file")
         version = None
         repository_url = None
     else:

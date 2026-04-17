@@ -31,24 +31,21 @@ public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
     public override bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
 
     /// <inheritdoc />
-    public override string TemporaryUsersTableName(string tableName) => tableName;
-
-    /// <inheritdoc />
-    public override string CreateTemporaryUsersTable(string tableName) =>
-        $@"
-CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(tableName)} (
+    public override string CreateTemporaryUsersTable(FidelityTestContext context) => $@"
+CREATE GLOBAL TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     Id INTEGER,
-    Name VARCHAR(100)
+    Name VARCHAR(100),
+    TenantId INTEGER
 ) ON COMMIT PRESERVE ROWS";
 
     /// <inheritdoc />
-    public override string DropTemporaryUsersTable(string tableName) =>
-        $"DROP TABLE {TemporaryUsersTableName(tableName)}";
+    public override string DropTemporaryUsersTable(FidelityTestContext context) =>
+        $"DROP TABLE {TemporaryUsersTableName(context)}";
 
     /// <inheritdoc />
-    public override string CreateUsersTable(string tableName, string uId) =>
+    public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
-CREATE TABLE {tableName}_{uId} (
+CREATE TABLE {context.TbUsersFullName} (
     Id INTEGER NOT NULL PRIMARY KEY,
     Name VARCHAR(100) NOT NULL,
     Email VARCHAR(150),
@@ -70,11 +67,11 @@ CREATE TABLE {tableName}_{uId} (
 )";
 
     /// <inheritdoc />
-    public override string CreateOrdersTable(string tableName, string usersTableName, string uId) =>
+    public override string CreateOrdersTable(FidelityTestContext context) =>
         $@"
-CREATE TABLE {tableName}_{uId} (
+CREATE TABLE {context.TbOrdersFullName} (
     Id INTEGER NOT NULL PRIMARY KEY,
-    {usersTableName}Id INTEGER NOT NULL,
+    {context.TbUsers}Id INTEGER NOT NULL,
     Note VARCHAR(100) NOT NULL,
     OrderNumber VARCHAR(40) NOT NULL,
     Amount DECIMAL(12,2) DEFAULT 0.00 NOT NULL,
@@ -83,23 +80,22 @@ CREATE TABLE {tableName}_{uId} (
     OrderedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     DeliveredAt TIMESTAMP,
     ExtraJson BLOB SUB_TYPE TEXT,
-    CONSTRAINT FK_{tableName}_{uId}_{usersTableName} FOREIGN KEY ({usersTableName}Id) REFERENCES {usersTableName}(Id)
+    CONSTRAINT FK_{context.TbOrdersFullName}_{context.TbUsersFullName} FOREIGN KEY ({context.TbUsers}Id) REFERENCES {context.TbUsersFullName}(Id)
 );
-CREATE INDEX IX_{tableName}_{uId}_{usersTableName}Id ON {tableName}_{uId} ({usersTableName}Id);
-CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (OrderNumber)";
+CREATE INDEX IX_{context.TbOrdersFullName}_{context.TbUsers}Id ON {context.TbOrdersFullName} ({context.TbUsers}Id);
+CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrdersFullName} (OrderNumber)";
 
     /// <inheritdoc />
-    public override string InsertUser(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP)";
+    public override string InsertUser(FidelityTestContext context, int id, string name) =>
+        $"INSERT INTO {context.TbUsersFullName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
-    public override string InsertUserReturning(string tableName, int id, string name) =>
-        $"INSERT INTO {tableName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP) RETURNING Id";
+    public override string InsertUserReturning(FidelityTestContext context, int id, string name) =>
+        $"INSERT INTO {context.TbUsersFullName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP) RETURNING Id";
 
     /// <inheritdoc />
-    public override string InsertUsers(string tableName, params (int id, string name)[] values) =>
-        BuildInsertUsers(tableName, values);
-
+    public override string InsertUsers(FidelityTestContext context, params (int id, string name)[] values) =>
+        BuildInsertUsers(context.TbUsersFullName, values);
     private static string BuildInsertUsers(string tableName, (int id, string name)[] values)
     {
         var sb = new System.Text.StringBuilder();
@@ -132,8 +128,7 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
 
     /// <inheritdoc />
     public override string InsertOrder(
-        string tableName,
-        string usersTableName,
+        FidelityTestContext context,
         int id,
         int userId,
         string note,
@@ -142,19 +137,18 @@ CREATE UNIQUE INDEX UX_{tableName}_{uId}_OrderNumber ON {tableName}_{uId} (Order
         int quantity,
         bool isPaid,
         string orderedAtLiteral) =>
-        $"INSERT INTO {tableName} (Id, {usersTableName}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
+        $"INSERT INTO {context.TbOrdersFullName} (Id, {context.TbUsers}Id, Note, OrderNumber, Amount, Quantity, IsPaid, OrderedAt) VALUES ({id}, {userId}, '{note}', '{orderNumber}', {amount.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}, {quantity}, {(isPaid ? "1" : "0")}, {orderedAtLiteral})";
 
     /// <inheritdoc />
-    public override string SelectUserNameById(string tableName, int id) =>
-        $"SELECT Name FROM {tableName} WHERE Id = {id}";
-
+    public override string SelectUserNameById(FidelityTestContext context, int id) =>
+        $"SELECT Name FROM {context.TbUsersFullName} WHERE Id = {id}";
     /// <inheritdoc />
-    public override string SelectScalarSubquery(string usersTable, string ordersTable) =>
+    public override string SelectScalarSubquery(FidelityTestContext context) =>
         $"""
 SELECT (
     SELECT COUNT(*)
-    FROM {ordersTable} o
-    WHERE o.{usersTable}Id = 1
+    FROM {context.TbOrdersFullName} o
+    WHERE o.{context.TbUsers}Id = 1
 )
 FROM RDB$DATABASE
 """;
@@ -167,17 +161,16 @@ SELECT
 FROM RDB$DATABASE";
 
     /// <inheritdoc />
-    public override string CountJoinForUser(string usersTable, string ordersTable, int userId) =>
-        $"SELECT COUNT(*) FROM {usersTable} u INNER JOIN {ordersTable} o ON o.{usersTable}Id = u.Id WHERE u.Id = {userId}";
+    public override string CountJoinForUser(FidelityTestContext context, int userId) =>
+        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u INNER JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE u.Id = {userId}";
 
     /// <inheritdoc />
-    public override string UpdateUserNameById(string tableName, int id, string newName) =>
-        $"UPDATE {tableName} SET Name = '{newName}' WHERE Id = {id}";
+    public override string UpdateUserNameById(FidelityTestContext context, int id, string newName) =>
+        $"UPDATE {context.TbUsersFullName} SET Name = '{newName}' WHERE Id = {id}";
 
     /// <inheritdoc />
-    public override string DeleteUserById(string tableName, int id) =>
-        $"DELETE FROM {tableName} WHERE Id = {id}";
-
+    public override string DeleteUserById(FidelityTestContext context, int id) =>
+        $"DELETE FROM {context.TbUsersFullName} WHERE Id = {id}";
     /// <inheritdoc />
     public override string CountRows(string tableName) =>
         $"SELECT COUNT(*) FROM {tableName}";
@@ -187,60 +180,59 @@ FROM RDB$DATABASE";
         "SELECT CURRENT_TIMESTAMP FROM RDB$DATABASE";
 
     /// <inheritdoc />
-    public override string StringAggregate(string tableName) =>
-        $"SELECT LIST(Name, ',') FROM {tableName}";
+    public override string StringAggregate(FidelityTestContext context) =>
+        $"SELECT LIST(Name, ',') FROM {context.TbUsersFullName}";
 
     /// <inheritdoc />
-    public override string Upsert(string tableName, int id, string newName) => $@"
-MERGE INTO {tableName} target
+    public override string Upsert(FidelityTestContext context, int id, string newName) => $@"
+MERGE INTO {context.TbUsersFullName} target
 USING (SELECT {id} AS Id, '{newName}' AS Name FROM RDB$DATABASE) source
 ON target.Id = source.Id
 WHEN MATCHED THEN UPDATE SET Name = source.Name
 WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
-    public override string CreateSequence(string sequenceName) =>
-        $"CREATE SEQUENCE {sequenceName} START WITH 10 INCREMENT BY 1";
+    public override string CreateSequence(FidelityTestContext context) =>
+        $"CREATE SEQUENCE {context.Seq} START WITH 10 INCREMENT BY 1";
 
     /// <inheritdoc />
-    public override string NextSequenceValue(string sequenceName) =>
-        $"SELECT NEXT VALUE FOR {sequenceName} FROM RDB$DATABASE";
+    public override string NextSequenceValue(FidelityTestContext context) =>
+        $"SELECT NEXT VALUE FOR {context.Seq} FROM RDB$DATABASE";
 
     /// <inheritdoc />
-    public override string NextSequenceValueExpression(string sequenceName) =>
-        $"NEXT VALUE FOR {sequenceName}";
+    public override string NextSequenceValueExpression(FidelityTestContext context) =>
+        $"NEXT VALUE FOR {context.Seq}";
 
     /// <inheritdoc />
-    public override string SelectNextSequenceValue(string sequenceName) =>
-        $"SELECT NEXT VALUE FOR {sequenceName} AS SeqValue FROM RDB$DATABASE";
+    public override string SelectNextSequenceValue(FidelityTestContext context) =>
+        $"SELECT NEXT VALUE FOR {context.Seq} AS SeqValue FROM RDB$DATABASE";
 
     /// <inheritdoc />
-    public override string CurrentSequenceValue(string sequenceName) =>
-        $"SELECT GEN_ID({sequenceName}, 0) FROM RDB$DATABASE";
+    public override string CurrentSequenceValue(FidelityTestContext context) =>
+        $"SELECT GEN_ID({context.Seq}, 0) FROM RDB$DATABASE";
 
     /// <inheritdoc />
-    public override string DropTable(string tableName, string uId) =>
-        $"DROP TABLE {tableName}_{uId}";
+    public override string DropTable(string tableName) =>
+        $"DROP TABLE {tableName}";
 
     /// <inheritdoc />
-    public override string DropSequence(string sequenceName) =>
-        $"DROP SEQUENCE {sequenceName}";
+    public override string DropSequence(FidelityTestContext context) =>
+        $"DROP SEQUENCE {context.Seq}";
 
     /// <inheritdoc />
-    public override string StringAggregateOrdered(string tableName) =>
-        $"SELECT LIST(Name, ',') FROM {tableName}";
+    public override string StringAggregateOrdered(FidelityTestContext context) =>
+        $"SELECT LIST(Name, ',') FROM {context.TbUsersFullName}";
 
     /// <inheritdoc />
-    public override string StringAggregateDistinct(string tableName) =>
-        $"SELECT LIST(Name, ',') FROM (SELECT DISTINCT Name FROM {tableName} ORDER BY Name) q";
+    public override string StringAggregateDistinct(FidelityTestContext context) =>
+        $"SELECT LIST(Name, ',') FROM (SELECT DISTINCT Name FROM {context.TbUsersFullName} ORDER BY Name) q";
 
     /// <inheritdoc />
-    public override string StringAggregateCustomSeparator(string tableName, string separator) =>
-        $"SELECT LIST(Name, '{separator}') FROM {tableName}";
-
+    public override string StringAggregateCustomSeparator(FidelityTestContext context, string separator) =>
+        $"SELECT LIST(Name, '{separator}') FROM {context.TbUsersFullName}";
     /// <inheritdoc />
-    public override string StringAggregateLargeGroup(string tableName) =>
-        $"SELECT LIST(Name, ',') FROM {tableName}";
+    public override string StringAggregateLargeGroup(FidelityTestContext context) =>
+        $"SELECT LIST(Name, ',') FROM {context.TbUsersFullName}";
 
     /// <inheritdoc />
     public override string StringPrefixExpression(string expression, int length) =>
@@ -262,18 +254,18 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         "DATEADD(1 DAY TO CURRENT_TIMESTAMP)";
 
     /// <inheritdoc />
-    public override string TemporalNowWhere(string tableName) =>
-        $"SELECT COUNT(*) FROM {tableName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
+    public override string TemporalNowWhere(FidelityTestContext context) =>
+        $"SELECT COUNT(*) FROM {context.TempTbFullName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
 
     /// <inheritdoc />
-    public override string TemporalNowOrderBy(string tableName) =>
-        $"SELECT FIRST 1 Name FROM {tableName} ORDER BY Name";
+    public override string TemporalNowOrderBy(FidelityTestContext context) =>
+        $"SELECT FIRST 1 Name FROM {context.TempTbFullName} ORDER BY Name";
 
     /// <inheritdoc />
-    public override string CrossApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u WHERE EXISTS (SELECT 1 FROM {ordersTable} o WHERE o.{usersTable}Id = u.Id)";
+    public override string CrossApplyProjection(FidelityTestContext context) =>
+        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)";
 
     /// <inheritdoc />
-    public override string OuterApplyProjection(string usersTable, string ordersTable) =>
-        $"SELECT COUNT(*) FROM {usersTable} u";
+    public override string OuterApplyProjection(FidelityTestContext context) =>
+        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u";
 }

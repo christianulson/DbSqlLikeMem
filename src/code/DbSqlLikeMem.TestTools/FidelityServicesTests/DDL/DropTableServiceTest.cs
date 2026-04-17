@@ -4,22 +4,19 @@ namespace DbSqlLikeMem.TestTools.DDL;
 /// EN: Executes the table-drop command for DDL scenarios.
 /// PT: Executa o comando de remocao de tabela para cenarios DDL.
 /// </summary>
-public class DropTableServiceTest<T>(
-        T connection,
-        ITestScenario<T> testScenario,
-        ProviderSqlDialect dialect
-    ) : BaseServiceTest<T>(connection, testScenario, dialect),
+public class DropTableServiceTest(
+       RepoService repo,
+       FidelityTestContext context
+    ) : BaseServiceTest(repo, context),
         IBaseServiceTest
-    where T : DbConnection
 {
     /// <summary>
     /// EN: Drops the requested table for the current provider.
     /// PT: Remove a tabela solicitada para o provedor atual.
     /// </summary>
-    /// <param name="pars"></param>
-    public void RunTest(params object[] pars)
+    public virtual async Task<object?> RunTestAsync(params object[] args)
     {
-        var sql = Dialect.DropTable((string)pars[0], (string)pars[1]);
-        ExecuteNonQuery(sql);
+        var sql = Repo.Dialect.DropTable(Context.TbUsersFullName);
+        return await Repo.ExecuteNonQueryAsync(sql);
     }
 }

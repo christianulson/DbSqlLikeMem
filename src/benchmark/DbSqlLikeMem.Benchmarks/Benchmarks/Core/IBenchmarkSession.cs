@@ -7,10 +7,10 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 public interface IBenchmarkSession : IDisposable
 {
     /// <summary>
-    /// EN: Gets the provider being exercised by the benchmark session.
-    /// PT-br: Obtém o provedor exercitado pela sessão de benchmark.
+    /// EN: Gets the provider-specific SQL dialect used to generate benchmark commands.
+    /// PT: Obtém o dialeto SQL específico do provedor usado para gerar os comandos de benchmark.
     /// </summary>
-    ProviderId Provider { get; }
+    ProviderSqlDialect Dialect { get; }
 
     /// <summary>
     /// EN: Gets the engine or runtime used by the benchmark session.

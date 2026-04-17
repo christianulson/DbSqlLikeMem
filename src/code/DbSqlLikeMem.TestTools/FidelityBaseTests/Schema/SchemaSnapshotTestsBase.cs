@@ -1,3 +1,4 @@
+using DbSqlLikeMem.TestTools.DML;
 using System.Text.Json;
 using DbSqlLikeMem.TestTools.Schema;
 
@@ -21,160 +22,81 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     /// PT: Verifica se a exportacao do snapshot do provedor produz a mesma estrutura serializada nas execucoes com mock e container.
     /// </summary>
     [Fact]
-    public void SchemaSnapshotExportTest()
-        => RunSchemaSnapshotExportTest();
+    public async Task SchemaSnapshotExportTest()
+    {
+        var result = (string?)await RunFidelityTestAsync(
+            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotExport(), s.Repo.Cnn, dialect)));
+
+        result.Should().NotBeNullOrWhiteSpace();
+    }
 
     /// <summary>
     /// EN: Verifies that the provider snapshot JSON serialization remains stable for mock and container runs.
     /// PT: Verifica se a serializacao JSON do snapshot do provedor permanece estavel nas execucoes com mock e container.
     /// </summary>
     [Fact]
-    public void SchemaSnapshotToJsonTest()
-        => RunSchemaSnapshotToJsonTest();
+    public async Task SchemaSnapshotToJsonTest()
+    {
+        var result = (string?)await RunFidelityTestAsync(
+            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotToJson(), s.Repo.Cnn, dialect)));
+
+        result.Should().NotBeNullOrWhiteSpace();
+    }
 
     /// <summary>
     /// EN: Verifies that the representative snapshot JSON payload parses the same way for mock and container runs.
     /// PT: Verifica se o payload JSON representativo do snapshot eh interpretado da mesma forma nas execucoes com mock e container.
     /// </summary>
     [Fact]
-    public void SchemaSnapshotLoadJsonTest()
-        => RunSchemaSnapshotLoadJsonTest();
+    public async Task SchemaSnapshotLoadJsonTest()
+    {
+        var result = (string?)await RunFidelityTestAsync(
+            (s, a) =>
+            {
+                using var document = s.RunSchemaSnapshotLoadJson();
+                return Task.FromResult<object?>(document.RootElement.GetRawText());
+            });
+
+        result.Should().NotBeNullOrWhiteSpace();
+    }
 
     /// <summary>
     /// EN: Verifies that the snapshot compare workflow stays consistent for mock and container runs.
     /// PT: Verifica se o fluxo de comparacao de snapshot permanece consistente nas execucoes com mock e container.
     /// </summary>
     [Fact]
-    public void SchemaSnapshotCompareTest()
-        => RunSchemaSnapshotCompareTest();
+    public async Task SchemaSnapshotCompareTest()
+    {
+        var result = (bool?)await RunFidelityTestAsync(
+            (s, a) => Task.FromResult<object?>(s.RunSchemaSnapshotCompare()));
+
+        result.Should().BeTrue();
+    }
 
     /// <summary>
     /// EN: Verifies that exporting, serializing, loading, and applying a schema snapshot stays stable for mock and container runs.
     /// PT: Verifica se exportar, serializar, carregar e aplicar um snapshot de schema permanece estavel nas execucoes com mock e container.
     /// </summary>
     [Fact]
-    public void SchemaSnapshotRoundTripTest()
-        => RunSchemaSnapshotRoundTripTest();
-
-    private void RunSchemaSnapshotExportTest()
+    public async Task SchemaSnapshotRoundTripTest()
     {
-        using var connMock = connectionMock();
-        connMock.Open();
-        var resultMock = RunSchemaSnapshotExportScenario(connMock);
+        var result = (string?)await RunFidelityTestAsync(
+            (s, a) =>
+            {
+                using var document = s.RunSchemaSnapshotRoundTrip();
+                return Task.FromResult<object?>(document.RootElement.GetRawText());
+            });
 
-        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var resultContainer = RunSchemaSnapshotExportScenario(connContainer);
-            NormalizeSchemaSnapshotJson(resultMock, connMock, dialect)
-                .Should()
-                .Be(NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
-        }
+        result.Should().NotBeNullOrWhiteSpace();
     }
 
-    private void RunSchemaSnapshotToJsonTest()
+    private async Task<object?> RunFidelityTestAsync(
+        Func<SchemaSnapshotServiceOpsTest, object[], Task<object?>> runTest,
+        params object[] args)
     {
-        using var connMock = connectionMock();
-        connMock.Open();
-        var resultMock = RunSchemaSnapshotToJsonScenario(connMock);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var resultContainer = RunSchemaSnapshotToJsonScenario(connContainer);
-            NormalizeSchemaSnapshotJson(resultMock, connMock, dialect)
-                .Should()
-                .Be(NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
-        }
-    }
-
-    private void RunSchemaSnapshotLoadJsonTest()
-    {
-        using var connMock = connectionMock();
-        connMock.Open();
-        using var resultMock = RunSchemaSnapshotLoadJsonScenario(connMock);
-
-        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            using var resultContainer = RunSchemaSnapshotLoadJsonScenario(connContainer);
-            resultMock.RootElement.GetRawText().Should().Be(resultContainer.RootElement.GetRawText());
-        }
-    }
-
-    private void RunSchemaSnapshotCompareTest()
-    {
-        using var connMock = connectionMock();
-        connMock.Open();
-        var resultMock = RunSchemaSnapshotCompareScenario(connMock);
-
-        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var resultContainer = RunSchemaSnapshotCompareScenario(connContainer);
-            resultMock.Should().Be(resultContainer);
-        }
-    }
-
-    private void RunSchemaSnapshotRoundTripTest()
-    {
-        using var connMock = connectionMock();
-        connMock.Open();
-        using var resultMock = RunSchemaSnapshotRoundTripScenario(connMock);
-
-        if (IsSchemaContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            using var resultContainer = RunSchemaSnapshotRoundTripScenario(connContainer);
-            NormalizeSchemaSnapshotJson(resultMock, connMock, dialect)
-                .Should()
-                .Be(NormalizeSchemaSnapshotJson(resultContainer, connContainer, dialect));
-        }
-    }
-
-    private object? RunSchemaSnapshotExportScenario<TConnection>(TConnection connection)
-        where TConnection : DbConnection
-    {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
-        return service.RunSchemaSnapshotExport();
-    }
-
-    private string RunSchemaSnapshotToJsonScenario<TConnection>(TConnection connection)
-        where TConnection : DbConnection
-    {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
-        return service.RunSchemaSnapshotToJson();
-    }
-
-    private JsonDocument RunSchemaSnapshotLoadJsonScenario<TConnection>(TConnection connection)
-        where TConnection : DbConnection
-    {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
-        return service.RunSchemaSnapshotLoadJson();
-    }
-
-    private bool RunSchemaSnapshotCompareScenario<TConnection>(TConnection connection)
-        where TConnection : DbConnection
-    {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
-        return service.RunSchemaSnapshotCompare();
-    }
-
-    private JsonDocument RunSchemaSnapshotRoundTripScenario<TConnection>(TConnection connection)
-        where TConnection : DbConnection
-    {
-        var service = new SchemaSnapshotServiceTest<TConnection>(connection, new TestTools.DML.NoopScenario<TConnection>(), dialect);
-        return service.RunSchemaSnapshotRoundTrip();
+        return await testService.RunTestAsync<NoopScenario, SchemaSnapshotServiceOpsTest>(runTest, args);
     }
 
     private static string NormalizeSchemaSnapshotJson(object? value, DbConnection connection, ProviderSqlDialect dialect)
@@ -203,31 +125,6 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             ProviderId.Firebird => "firebird",
             _ => provider.ToString().ToLowerInvariant(),
         };
-
-    private static bool TryReadLegacySchemaSnapshot(string json, out string? provider)
-    {
-        provider = null;
-        try
-        {
-            using var document = JsonDocument.Parse(json);
-            var root = document.RootElement;
-            if (root.ValueKind != JsonValueKind.Object)
-            {
-                return false;
-            }
-
-            if (root.TryGetProperty("Provider", out var providerElement))
-            {
-                provider = providerElement.GetString();
-            }
-
-            return root.TryGetProperty("Engine", out _);
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
-    }
 
     private static int InferSnapshotVersion(DbConnection connection, ProviderSqlDialect dialect)
     {

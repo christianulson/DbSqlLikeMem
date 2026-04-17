@@ -20,69 +20,10 @@ public abstract class BatchReturningTestsBase<T, T2>(
     /// PT: Verifica se um batch INSERT RETURNING persiste uma linha e retorna uma linha no reader para o provedor atual.
     /// </summary>
     [Fact]
-    public void BatchReturningInsertTest()
-        => RunReturningComparison(
-            (service, tableName) => service.RunReturningInsert(tableName),
-            (service, tableName) => service.RunReturningInsert(tableName)).Should().Be(1);
-
-    /// <summary>
-    /// EN: Verifies that an INSERT RETURNING workflow persists one row and returns one reader row for the current provider.
-    /// PT: Verifica se um fluxo INSERT RETURNING persiste uma linha e retorna uma linha no reader para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void ReturningInsertTest()
-        => RunReturningComparison(
-            (service, tableName) => service.RunReturningInsert(tableName),
-            (service, tableName) => service.RunReturningInsert(tableName)).Should().Be(1);
-
-    private TResult RunReturningComparison<TResult>(
-        Func<BatchServiceTest<T>, string, TResult> runMock,
-        Func<BatchServiceTest<T2>, string, TResult> runContainer)
+    public async Task BatchReturningInsertTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-        var resultMock = RunReturningScenario(connMock, users, uId, runMock);
-
-        if (IsInsertContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var resultContainer = RunReturningScenario(connContainer, users, uId, runContainer);
-            resultMock.Should().Be(resultContainer);
-        }
-
-        return resultMock;
+        await testService.RunTestAsync<InsertUsersScenario, BatchInsertReturningServiceTest>();
     }
-
-    private TResult RunReturningScenario<TConnection, TResult>(
-        TConnection connection,
-        string users,
-        string uId,
-        Func<BatchServiceTest<TConnection>, string, TResult> runner)
-        where TConnection : DbConnection
-    {
-        var testScenario = new InsertUsersScenario<TConnection>(dialect);
-        var serviceTest = new BatchServiceTest<TConnection>(connection, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = BuildTableName(users, uId);
-            return runner(serviceTest, tableName);
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
-    }
-
-    private string BuildTableName(string users, string uId)
-        => $"{users}_{uId}";
-
-    private static string NewToken()
-        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 }

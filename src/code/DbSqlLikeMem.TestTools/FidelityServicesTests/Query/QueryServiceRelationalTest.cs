@@ -1,86 +1,69 @@
 namespace DbSqlLikeMem.TestTools.Query;
 
-public partial class QueryServiceTest<T>
+public partial class QueryServiceTest
 {
-    private string GetOrderUserIdColumn(string usersTable)
-        => Dialect.Provider == ProviderId.Oracle
-            ? "userid"
-            : $"{usersTable}Id";
-
-    private string BuildFirstNoteSubquery(string ordersTable, string usersTable, string orderByDirection)
+    private string BuildFirstNoteSubquery(string orderByDirection) => Repo.Dialect.Provider switch
     {
-        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
-
-        return Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
-            ? $"""
+        ProviderId.SqlServer
+        or ProviderId.SqlAzure => $"""
     SELECT TOP 1 o2.Note
-    FROM {ordersTable} o2
-    WHERE o2.{orderUserIdColumn} = u.Id
+    FROM {Context.TbOrdersFullName} o2
+    WHERE o2.{Context.TbUsers}Id = u.Id
     ORDER BY o2.Note {orderByDirection}
-"""
-            : Dialect.Provider == ProviderId.Oracle
-                ? orderByDirection.Equals("ASC", StringComparison.OrdinalIgnoreCase)
-                    ? $"""
+""",
+        ProviderId.Oracle => orderByDirection.Equals("ASC", StringComparison.OrdinalIgnoreCase)
+                ? $"""
     SELECT MIN(o2.Note)
-    FROM {ordersTable} o2
-    WHERE o2.{orderUserIdColumn} = u.Id
+    FROM {Context.TbOrdersFullName} o2
+    WHERE o2.{Context.TbUsers}Id = u.Id
 """
-                    : $"""
+                : $"""
     SELECT MAX(o2.Note)
-    FROM {ordersTable} o2
-    WHERE o2.{orderUserIdColumn} = u.Id
-"""
-            : Dialect.Provider == ProviderId.Firebird
-                ? orderByDirection.Equals("ASC", StringComparison.OrdinalIgnoreCase)
-                    ? $"""
+    FROM {Context.TbOrdersFullName} o2
+    WHERE o2.{Context.TbUsers}Id = u.Id
+""",
+        ProviderId.Firebird => orderByDirection.Equals("ASC", StringComparison.OrdinalIgnoreCase)
+                ? $"""
     SELECT MIN(o2.Note)
-    FROM {ordersTable} o2
-    WHERE o2.{orderUserIdColumn} = u.Id
+    FROM {Context.TbOrdersFullName} o2
+    WHERE o2.{Context.TbUsers}Id = u.Id
 """
-                    : $"""
+                : $"""
     SELECT MAX(o2.Note)
-    FROM {ordersTable} o2
-    WHERE o2.{orderUserIdColumn} = u.Id
-"""
-            : $"""
+    FROM {Context.TbOrdersFullName} o2
+    WHERE o2.{Context.TbUsers}Id = u.Id
+""",
+        _ => $"""
     SELECT o2.Note
-    FROM {ordersTable} o2
-    WHERE o2.{orderUserIdColumn} = u.Id
+    FROM {Context.TbOrdersFullName} o2
+    WHERE o2.{Context.TbUsers}Id = u.Id
     ORDER BY o2.Note {orderByDirection}
     LIMIT 1
-""";
-    }
-
-    private string BuildOrderCountExpression(string ordersTable, string usersTable)
-    {
-        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
-
-        return Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
-            ? $"COUNT(o.{orderUserIdColumn})"
-            : Dialect.Provider == ProviderId.Oracle
-                ? $"""
-(SELECT COUNT(*)
- FROM {ordersTable} o2
- WHERE o2.{orderUserIdColumn} = u.Id)
 """
-            : Dialect.Provider == ProviderId.Db2
-                ? $"COUNT(o.{orderUserIdColumn})"
-            : "COUNT(o.Id)";
-    }
+    };
+
+    private string BuildOrderCountExpression() => Repo.Dialect.Provider switch
+    {
+        ProviderId.SqlServer
+        or ProviderId.SqlAzure => $"COUNT(o.{Context.TbUsers}Id)",
+        ProviderId.Oracle => $"""
+(SELECT COUNT(*)
+ FROM {Context.TbOrdersFullName} o2
+ WHERE o2.{Context.TbUsers}Id = u.Id)
+""",
+        ProviderId.Db2 => $"COUNT(o.{Context.TbUsers}Id)",
+        _ => "COUNT(o.Id)"
+    };
 
     /// <summary>
     /// EN: Executes a large grouped join query over users and orders and validates the projected rows.
     /// PT: Executa uma consulta grande com junção agrupada entre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public int RunJoinTypedExpressionMatrix(params object[] pars)
+    public async Task<object?> RunJoinTypedExpressionMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -90,27 +73,25 @@ SELECT
     SUM(o.Quantity) AS TotalQuantity,
     ROUND(SUM(o.Amount), 2) AS TotalAmount,
     ROUND(AVG(o.Amount), 2) AS AvgAmount,
-    COALESCE(({BuildFirstNoteSubquery(ordersTable, usersTable, "ASC")}), 'none') AS FirstNote,
-    ({BuildFirstNoteSubquery(ordersTable, usersTable, "DESC")}) AS LastNote,
+    COALESCE(({BuildFirstNoteSubquery("ASC")}), 'none') AS FirstNote,
+    ({BuildFirstNoteSubquery("DESC")}) AS LastNote,
     CASE WHEN {orderCountExpr} > 1 THEN 1 ELSE 0 END AS HasMultipleOrders,
     CASE WHEN SUM(o.Amount) >= 3 THEN 1 ELSE 0 END AS AmountAtLeastThree
-FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+INNER JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTypedRow(reader, 1, "ALICE", "alice", 2, 3, 4.00m, 2.00m, "A", "B", 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTypedRow(reader, 2, "BOB", "bob", 1, 4, 5.50m, 5.50m, "C", "C", 0, 1);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
         return 2;
     }
 
@@ -118,15 +99,12 @@ ORDER BY u.Id
     /// EN: Executes a left join aggregate query that keeps users without orders and validates null-handling behavior.
     /// PT: Executa uma consulta agregada com left join que preserva usuarios sem pedidos e valida o tratamento de null.
     /// </summary>
-    public int RunJoinNullAggregateMatrix(params object[] pars)
+    public async Task<object?> RunJoinNullAggregateMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
 
-        using var command = Connection.CreateCommand();
+        var orderCountExpr = BuildOrderCountExpression();
+
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -134,30 +112,28 @@ SELECT
     {orderCountExpr} AS OrderCount,
     COALESCE(SUM(o.Quantity), 0) AS TotalQuantity,
     COALESCE(ROUND(SUM(o.Amount), 2), 0) AS TotalAmount,
-    COALESCE(({BuildFirstNoteSubquery(ordersTable, usersTable, "ASC")}), 'none') AS FirstNote,
+    COALESCE(({BuildFirstNoteSubquery("ASC")}), 'none') AS FirstNote,
     CASE WHEN {orderCountExpr} = 0 THEN 1 ELSE 0 END AS HasNoOrders,
     CASE WHEN SUM(o.Amount) IS NULL THEN 1 ELSE 0 END AS AmountIsNull,
     CASE WHEN MAX(o.Quantity) > 1 THEN 1 ELSE 0 END AS HasLargeQuantity
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 1, "Alice", 2, 3, 4.00m, "A", 0, 0, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 2, "Bob", 1, 4, 5.50m, "C", 0, 0, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 3, "Carla", 0, 0, 0.00m, "none", 1, 1, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
         return 3;
     }
 
@@ -165,46 +141,41 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join query that combines casts, null handling, and aggregate formatting.
     /// PT: Executa uma consulta agrupada com left join que combina casts, tratamento de null e formatacao de agregados.
     /// </summary>
-    public int RunJoinCastNullMatrix(params object[] pars)
+    public async Task<object?> RunJoinCastNullMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
-    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
-    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    TRIM({Repo.Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
     CASE WHEN {orderCountExpr} = 0 THEN 1 ELSE 0 END AS HasNoOrders,
     CASE WHEN {orderCountExpr} = 0 THEN 1 ELSE 0 END AS NotesAreNull,
     CASE WHEN {orderCountExpr} > 0 THEN 1 ELSE 0 END AS HasNote,
     CASE WHEN SUM(o.Amount) >= 3 THEN 1 ELSE 0 END AS MeetsAmountThreshold
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastNullRow(reader, 1, "Alice", "2", "3", "4.00", 0, 0, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastNullRow(reader, 2, "Bob", "1", "4", "5.50", 0, 0, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastNullRow(reader, 3, "Carla", "0", "0", "0.00", 1, 1, 0, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -212,46 +183,41 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join query that casts numeric aggregates to text and combines them with comparisons.
     /// PT: Executa uma consulta agrupada com left join que converte agregados numericos para texto e os combina com comparacoes.
     /// </summary>
-    public int RunJoinCastTextComparisonMatrix(params object[] pars)
+    public async Task<object?> RunJoinCastTextComparisonMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
-    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
-    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
-    CASE WHEN TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) = '0' THEN 1 ELSE 0 END AS CountTextIsZero,
-    CASE WHEN TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) <> '0' THEN 1 ELSE 0 END AS QuantityTextNonZero,
+    TRIM({Repo.Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    CASE WHEN TRIM({Repo.Dialect.StringCastExpression(orderCountExpr, 10)}) = '0' THEN 1 ELSE 0 END AS CountTextIsZero,
+    CASE WHEN TRIM({Repo.Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) <> '0' THEN 1 ELSE 0 END AS QuantityTextNonZero,
     CASE WHEN COALESCE(MIN(o.Note), 'none') = 'none' THEN 1 ELSE 0 END AS NotesAreMissing,
     CASE WHEN MAX(o.Note) IS NOT NULL THEN 1 ELSE 0 END AS HasAnyNote
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastTextRow(reader, 1, "Alice", "2", "3", "4.00", 0, 1, 0, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastTextRow(reader, 2, "Bob", "1", "4", "5.50", 0, 1, 0, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastTextRow(reader, 3, "Carla", "0", "0", "0.00", 1, 0, 1, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -259,41 +225,36 @@ ORDER BY u.Id
     /// EN: Executes a grouped join query with HAVING filters and validates casted aggregate outputs.
     /// PT: Executa uma consulta agrupada com filtros HAVING e valida saidas agregadas convertidas.
     /// </summary>
-    public int RunJoinHavingCastMatrix(params object[] pars)
+    public async Task<object?> RunJoinHavingCastMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    TRIM({Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
-    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
-    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    TRIM({Repo.Dialect.StringCastExpression(orderCountExpr, 10)}) AS OrderCountText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
     CASE WHEN {orderCountExpr} >= 2 THEN 1 ELSE 0 END AS HasTwoOrMoreOrders,
     CASE WHEN SUM(o.Amount) >= 4 THEN 1 ELSE 0 END AS AmountAtLeastFour,
     CASE WHEN MIN(o.Note) = 'A' THEN 1 ELSE 0 END AS StartsAtA
-FROM {usersTable} u
-INNER JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+INNER JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.Name
 HAVING {orderCountExpr} >= 2
    AND SUM(o.Amount) >= 4
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinHavingCastRow(reader, 1, "Alice", "2", "3", "4.00", 1, 1, 1);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 1;
     }
 
@@ -301,53 +262,46 @@ ORDER BY u.Id
     /// EN: Executes a grouped join query that mixes string-length expressions with numeric conversions and aggregates.
     /// PT: Executa uma consulta agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados.
     /// </summary>
-    public int RunJoinLengthNumericMatrix(params object[] pars)
+    public async Task<object?> RunJoinLengthNumericMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-
-        var nameLenExpr = Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
+        var nameLenExpr = Repo.Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
             ? "MAX(LENGTH(u.Name))"
-            : $"MAX({Dialect.StringLengthExpression("u.Name")})";
-        var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
-        var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
-        var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
-        var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
-        using var command = Connection.CreateCommand();
+            : $"MAX({Repo.Dialect.StringLengthExpression("u.Name")})";
+        var noteLenSource = Repo.Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
+        var noteLenExpr = Repo.Dialect.StringLengthExpression(noteLenSource);
+        var nameLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression(nameLenExpr, 10)})";
+        var noteLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
     {nameLenTextExpr} AS NameLenText,
-    TRIM({Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
-    TRIM({Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(SUM(o.Quantity), 0)", 10)}) AS TotalQuantityText,
+    TRIM({Repo.Dialect.StringCastExpression("COALESCE(ROUND(SUM(o.Amount), 2), 0)", 20)}) AS TotalAmountText,
     {noteLenTextExpr} AS MaxNoteLenText,
     CASE WHEN {nameLenExpr} >= 4 THEN 1 ELSE 0 END AS NameLenGe4,
     CASE WHEN COALESCE(SUM(o.Quantity), 0) >= 3 THEN 1 ELSE 0 END AS QuantityGe3,
     CASE WHEN COALESCE(ROUND(SUM(o.Amount), 2), 0) >= 4 THEN 1 ELSE 0 END AS AmountGe4,
     CASE WHEN COALESCE(MAX({noteLenExpr}), 0) >= 1 THEN 1 ELSE 0 END AS HasNotes
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 1, "Alice", "5", "3", "4.00", "1", 1, 1, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 2, "Bob", "3", "4", "5.50", "1", 0, 1, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 3, "Carla", "5", "0", "0.00", "0", 1, 0, 0, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
         return 3;
     }
 
@@ -355,23 +309,19 @@ ORDER BY u.Id
     /// EN: Executes a grouped join query that blends string case, string length, and aggregate comparisons.
     /// PT: Executa uma consulta agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas.
     /// </summary>
-    public int RunJoinTextCaseLengthMatrix(params object[] pars)
+    public async Task<object?> RunJoinTextCaseLengthMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
 
-        var nameLenExpr = Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
+        var nameLenExpr = Repo.Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
             ? "MAX(LENGTH(u.Name))"
-            : $"MAX({Dialect.StringLengthExpression("u.Name")})";
-        var noteLenSource = Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
-        var noteLenExpr = Dialect.StringLengthExpression(noteLenSource);
-        var nameLenTextExpr = $"TRIM({Dialect.StringCastExpression(nameLenExpr, 10)})";
-        var noteLenTextExpr = $"TRIM({Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
-        var textMatchAlready = Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0 : 1;
-        using var command = Connection.CreateCommand();
+            : $"MAX({Repo.Dialect.StringLengthExpression("u.Name")})";
+        var noteLenSource = Repo.Dialect.Provider == ProviderId.Db2 ? "Note" : "o.Note";
+        var noteLenExpr = Repo.Dialect.StringLengthExpression(noteLenSource);
+        var nameLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression(nameLenExpr, 10)})";
+        var noteLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
+        var textMatchAlready = Repo.Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0 : 1;
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -385,26 +335,25 @@ SELECT
     CASE WHEN LOWER(u.Name) = u.Name THEN 1 ELSE 0 END AS IsLowerAlready,
     CASE WHEN {orderCountExpr} >= 2 THEN 1 ELSE 0 END AS TwoOrMoreOrders,
     CASE WHEN SUM(o.Quantity) >= 3 THEN 1 ELSE 0 END AS QuantityGe3
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.Name
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, textMatchAlready, textMatchAlready, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, textMatchAlready, textMatchAlready, 0, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, textMatchAlready, textMatchAlready, 0, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -412,15 +361,11 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join report that combines distinct counts, CASE expressions, and repeated values.
     /// PT: Executa um relatorio agrupado com left join que combina contagens distintas, expressoes CASE e valores repetidos.
     /// </summary>
-    public int RunJoinDistinctCaseMatrix(params object[] pars)
+    public async Task<object?> RunJoinDistinctCaseMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -429,26 +374,25 @@ SELECT
     SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) AS NoteACount,
     CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes,
     CASE WHEN SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) >= 2 THEN 1 ELSE 0 END AS HasRepeatedNoteA
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 1, 3, 2, 2, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 2, 1, 1, 0, 0, 0);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 3, 0, 0, 0, 0, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -456,15 +400,11 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join report with HAVING and distinct note counts.
     /// PT: Executa um relatorio agrupado com left join, HAVING e contagens distintas de notas.
     /// </summary>
-    public int RunJoinDistinctHavingMatrix(params object[] pars)
+    public async Task<object?> RunJoinDistinctHavingMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -473,24 +413,23 @@ SELECT
     SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) AS NoteACount,
     CASE WHEN COUNT(DISTINCT o.Note) >= 2 THEN 1 ELSE 0 END AS HasMultipleDistinctNotes,
     CASE WHEN SUM(CASE WHEN o.Note = 'A' THEN 1 ELSE 0 END) >= 2 THEN 1 ELSE 0 END AS HasRepeatedNoteA
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id
     HAVING COUNT(DISTINCT o.Note) >= 2 OR {orderCountExpr} = 0
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 1, 3, 2, 2, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 3, 0, 0, 0, 0, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 2;
     }
 
@@ -498,19 +437,15 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join query that blends temporal comparisons with aggregate counts.
     /// PT: Executa uma consulta agrupada com left join que mistura comparacoes temporais com contagens agregadas.
     /// </summary>
-    public int RunJoinTemporalMatrix(params object[] pars)
+    public async Task<object?> RunJoinTemporalMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderCountExpr = BuildOrderCountExpression(ordersTable, usersTable);
+        var orderCountExpr = BuildOrderCountExpression();
         var expectedNextDayAfterOrder = 1;
 
-        var nowExpr = Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Dialect.TemporalDateAddExpression();
+        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
+        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -520,26 +455,25 @@ SELECT
     CASE WHEN COALESCE(MAX(o.OrderedAt), u.CreatedAt) < {nextDayExpr} THEN 1 ELSE 0 END AS MaxOrderedBeforeNextDay,
     SUM(CASE WHEN o.DeliveredAt IS NULL THEN 1 ELSE 0 END) AS PendingDeliveries,
     CASE WHEN u.CreatedAt <= {nowExpr} THEN 1 ELSE 0 END AS UserCreatedBeforeNow
-FROM {usersTable} u
-LEFT JOIN {ordersTable} o ON o.{GetOrderUserIdColumn(usersTable)} = u.Id
+FROM {Context.TbUsersFullName} u
+LEFT JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 GROUP BY u.Id, u.CreatedAt
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTemporalRow(reader, 1, 2, 0, 1, expectedNextDayAfterOrder, 2, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTemporalRow(reader, 2, 1, 0, 1, expectedNextDayAfterOrder, 1, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTemporalRow(reader, 3, 0, 1, 1, expectedNextDayAfterOrder, 1, 1);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -547,16 +481,11 @@ ORDER BY u.Id
     /// EN: Executes a joined window-function query over users and orders and validates the projected rows.
     /// PT: Executa uma consulta com funcoes de janela em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public int RunJoinWindowMatrix(params object[] pars)
+    public async Task<object?> RunJoinWindowMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
         var orderCountExpr = "COUNT(*)";
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -564,25 +493,24 @@ SELECT
     ROW_NUMBER() OVER (PARTITION BY u.Id ORDER BY o.Id) AS RowNumberInUser,
     {orderCountExpr} OVER (PARTITION BY u.Id) AS OrdersPerUser,
     LAG(o.Note) OVER (PARTITION BY u.Id ORDER BY o.Id) AS PreviousNote
-FROM {usersTable} u
-    INNER JOIN {ordersTable} o ON o.{orderUserIdColumn} = u.Id
+FROM {Context.TbUsersFullName} u
+JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 ORDER BY u.Id, o.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowRow(reader, 1, 10, 1, 2, null);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowRow(reader, 1, 11, 2, 2, "A");
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowRow(reader, 2, 12, 1, 1, null);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -590,20 +518,15 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a joined window-function query with temporal comparisons over users and orders and validates the projected rows.
     /// PT: Executa uma consulta com funcoes de janela e comparacoes temporais em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public int RunJoinWindowTemporalMatrix(params object[] pars)
+    public async Task<object?> RunJoinWindowTemporalMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
         var orderCountExpr = "COUNT(*)";
         var expectedNextDayAfterOrder = 1;
 
-        var nowExpr = Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Dialect.TemporalDateAddExpression();
+        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
+        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -614,25 +537,24 @@ SELECT
     CASE WHEN o.OrderedAt <= {nowExpr} THEN 1 ELSE 0 END AS OrderedBeforeNow,
     CASE WHEN {nextDayExpr} > o.OrderedAt THEN 1 ELSE 0 END AS NextDayAfterOrder,
     CASE WHEN u.CreatedAt <= {nowExpr} THEN 1 ELSE 0 END AS UserCreatedBeforeNow
-FROM {usersTable} u
-    INNER JOIN {ordersTable} o ON o.{orderUserIdColumn} = u.Id
+FROM {Context.TbUsersFullName} u
+JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 ORDER BY u.Id, o.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 1, 10, 1, 2, null, 1, expectedNextDayAfterOrder, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 1, 11, 2, 2, "A", 1, expectedNextDayAfterOrder, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 2, 12, 1, 1, null, 1, expectedNextDayAfterOrder, 1);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -640,20 +562,15 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a joined window-function query with temporal and aggregate comparisons over users and orders and validates the projected rows.
     /// PT: Executa uma consulta com funcoes de janela, comparacoes temporais e agregadas em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public int RunJoinWindowAggregateTemporalMatrix(params object[] pars)
+    public async Task<object?> RunJoinWindowAggregateTemporalMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var orderUserIdColumn = GetOrderUserIdColumn(usersTable);
         var orderCountExpr = "COUNT(*)";
         var expectedNextDayAfterOrder = 1;
 
-        var nowExpr = Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Dialect.TemporalDateAddExpression();
+        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
+        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
 
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
@@ -666,25 +583,24 @@ SELECT
     CASE WHEN o.OrderedAt <= {nowExpr} THEN 1 ELSE 0 END AS OrderedBeforeNow,
     CASE WHEN {nextDayExpr} > o.OrderedAt THEN 1 ELSE 0 END AS NextDayAfterOrder,
     CASE WHEN u.CreatedAt <= {nowExpr} THEN 1 ELSE 0 END AS UserCreatedBeforeNow
-FROM {usersTable} u
-    INNER JOIN {ordersTable} o ON o.{orderUserIdColumn} = u.Id
+FROM {Context.TbUsersFullName} u
+JOIN {Context.TbOrdersFullName} o ON o.{Context.TbUsers}Id = u.Id
 ORDER BY u.Id, o.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowAggregateTemporalRow(reader, 1, 10, 1, 2, 2, 0.00m, null, 1, expectedNextDayAfterOrder, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowAggregateTemporalRow(reader, 1, 11, 2, 2, 2, 0.00m, "A", 1, expectedNextDayAfterOrder, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowAggregateTemporalRow(reader, 2, 12, 1, 1, 1, 0.00m, null, 1, expectedNextDayAfterOrder, 1);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
+
         return 3;
     }
 
@@ -1040,14 +956,12 @@ ORDER BY u.Id, o.Id
     /// EN: Counts the rows returned by a select over the configured users table.
     /// PT: Conta as linhas retornadas por um select na tabela de usuarios configurada.
     /// </summary>
-    public int RunRowCountAfterSelect(params object[] pars)
+    public async Task<object?> RunRowCountAfterSelectAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var count = CountReaderRows($"SELECT * FROM {usersTable}");
+        var count = await CountReaderRowsAsync($"SELECT * FROM {Context.TbUsersFullName}");
         if (count != 2)
         {
-            throw new InvalidOperationException($"Unexpected select rowcount for {Dialect.DisplayName}: {count}.");
+            throw new InvalidOperationException($"Unexpected select rowcount for {Repo.Dialect.DisplayName}: {count}.");
         }
 
         return count;
@@ -1057,14 +971,12 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a simple CTE query against the configured users table.
     /// PT: Executa uma consulta CTE simples na tabela de usuarios configurada.
     /// </summary>
-    public int RunCteSimple(params object[] pars)
+    public async Task<object?> RunCteSimpleAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.CteSimple(usersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CteSimple(Context)), CultureInfo.InvariantCulture);
         if (value != 1)
         {
-            throw new InvalidOperationException($"Unexpected CTE result for {Dialect.DisplayName}: {value}.");
+            throw new InvalidOperationException($"Unexpected CTE result for {Repo.Dialect.DisplayName}: {value}.");
         }
 
         return value;
@@ -1074,11 +986,9 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a ROW_NUMBER window query against the configured users table.
     /// PT: Executa uma consulta de janela ROW_NUMBER na tabela de usuarios configurada.
     /// </summary>
-    public int RunWindowRowNumber(params object[] pars)
+    public async Task<object?> RunWindowRowNumberAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowRowNumber(usersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.WindowRowNumber(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1087,11 +997,9 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a LAG window query against the configured users table.
     /// PT: Executa uma consulta de janela LAG na tabela de usuarios configurada.
     /// </summary>
-    public int RunWindowLag(params object[] pars)
+    public async Task<object?> RunWindowLagAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowLag(usersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.WindowLag(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1100,11 +1008,9 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a LEAD window query against the configured users table.
     /// PT: Executa uma consulta de janela LEAD na tabela de usuarios configurada.
     /// </summary>
-    public int RunWindowLead(params object[] pars)
+    public async Task<object?> RunWindowLeadAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.WindowLead(usersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.WindowLead(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1113,13 +1019,9 @@ ORDER BY u.Id, o.Id
     /// EN: Executes an EXISTS predicate query against the configured users and orders tables.
     /// PT: Executa uma consulta com predicado EXISTS nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunSelectExistsPredicate(params object[] pars)
+    public async Task<object?> RunSelectExistsPredicateAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectExistsPredicate(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectExistsPredicate(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1128,13 +1030,9 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a NOT EXISTS predicate query against the configured users and orders tables.
     /// PT: Executa uma consulta com predicado NOT EXISTS nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunSelectNotExistsPredicate(params object[] pars)
+    public async Task<object?> RunSelectNotExistsPredicateAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectNotExistsPredicate(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectNotExistsPredicate(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1143,13 +1041,9 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a LEFT JOIN anti-join query against the configured users and orders tables.
     /// PT: Executa uma consulta anti-join com LEFT JOIN nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunSelectLeftJoinAntiJoin(params object[] pars)
+    public async Task<object?> RunSelectLeftJoinAntiJoinAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectLeftJoinAntiJoin(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectLeftJoinAntiJoin(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1158,13 +1052,9 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a correlated count query against the configured users and orders tables.
     /// PT: Executa uma consulta de contagem correlacionada nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunSelectCorrelatedCount(params object[] pars)
+    public async Task<object?> RunSelectCorrelatedCountAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectCorrelatedCount(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectCorrelatedCount(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1173,39 +1063,32 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a per-row scalar subquery report with CASE expressions against the configured users and orders tables.
     /// PT: Executa um relatorio com subconsulta escalar por linha e expressoes CASE nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunSelectScalarCaseMatrix(params object[] pars)
+    public async Task<object?> RunSelectScalarCaseMatrixAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{GetOrderUserIdColumn(usersTable)} = u.Id) AS OrderCount,
-    CASE WHEN (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{GetOrderUserIdColumn(usersTable)} = u.Id) = 0 THEN 1 ELSE 0 END AS HasNoOrders,
-    CASE WHEN (SELECT COUNT(*) FROM {ordersTable} o WHERE o.{GetOrderUserIdColumn(usersTable)} = u.Id) >= 2 THEN 1 ELSE 0 END AS HasManyOrders
-FROM {usersTable} u
+    (SELECT COUNT(*) FROM {Context.TbOrdersFullName} o WHERE o.{Context.TbUsers}Id = u.Id) AS OrderCount,
+    CASE WHEN (SELECT COUNT(*) FROM {Context.TbOrdersFullName} o WHERE o.{Context.TbUsers}Id = u.Id) = 0 THEN 1 ELSE 0 END AS HasNoOrders,
+    CASE WHEN (SELECT COUNT(*) FROM {Context.TbOrdersFullName} o WHERE o.{Context.TbUsers}Id = u.Id) >= 2 THEN 1 ELSE 0 END AS HasManyOrders
+FROM {Context.TbUsersFullName} u
 ORDER BY u.Id
 """;
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 1, "Alice", 3, 0, 1);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 2, "Bob", 1, 0, 0);
 
-        reader.Read().Should().BeTrue();
+        (await reader.ReadAsync()).Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 3, "Carla", 0, 1, 0);
 
-        reader.Read().Should().BeFalse();
-        GC.KeepAlive(usersTable);
-        GC.KeepAlive(ordersTable);
+        (await reader.ReadAsync()).Should().BeFalse();
         return 3;
     }
 
@@ -1213,13 +1096,9 @@ ORDER BY u.Id
     /// EN: Executes a GROUP BY HAVING query against the configured users and orders tables.
     /// PT: Executa uma consulta GROUP BY HAVING nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunGroupByHaving(params object[] pars)
+    public async Task<object?> RunGroupByHavingAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.GroupByHaving(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.GroupByHaving(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1228,11 +1107,9 @@ ORDER BY u.Id
     /// EN: Executes a UNION ALL projection query against the configured users table.
     /// PT: Executa uma consulta de projeção UNION ALL na tabela de usuarios configurada.
     /// </summary>
-    public int RunUnionAllProjection(params object[] pars)
+    public async Task<object?> RunUnionAllProjectionAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.UnionAllProjection(usersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.UnionAllProjection(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1241,11 +1118,9 @@ ORDER BY u.Id
     /// EN: Executes a UNION projection query against the configured users table.
     /// PT: Executa uma consulta de projeção UNION na tabela de usuarios configurada.
     /// </summary>
-    public int RunUnionDistinctProjection(params object[] pars)
+    public async Task<object?> RunUnionDistinctProjectionAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.UnionDistinctProjection(usersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.UnionDistinctProjection(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1254,11 +1129,9 @@ ORDER BY u.Id
     /// EN: Executes a DISTINCT projection query against the configured users table.
     /// PT: Executa uma consulta de projeção DISTINCT na tabela de usuarios configurada.
     /// </summary>
-    public int RunDistinctProjection(params object[] pars)
+    public async Task<object?> RunDistinctProjectionAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.DistinctProjection(usersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.DistinctProjection(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1267,13 +1140,9 @@ ORDER BY u.Id
     /// EN: Executes a multi-join aggregate query against the configured users and orders tables.
     /// PT: Executa uma consulta agregada com multiplos joins nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunMultiJoinAggregate(params object[] pars)
+    public async Task<object?> RunMultiJoinAggregateAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.MultiJoinAggregate(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.MultiJoinAggregate(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1282,13 +1151,9 @@ ORDER BY u.Id
     /// EN: Executes a scalar subquery projection against the configured users and orders tables.
     /// PT: Executa uma projeção com subconsulta escalar nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public object? RunSelectScalarSubquery(params object[] pars)
+    public async Task<object?> RunSelectScalarSubqueryAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = ExecuteScalar(Dialect.SelectScalarSubquery(usersTable, ordersTable));
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.SelectScalarSubquery(Context));
         GC.KeepAlive(value);
         return value;
     }
@@ -1297,13 +1162,9 @@ ORDER BY u.Id
     /// EN: Executes an IN subquery predicate against the configured users and orders tables.
     /// PT: Executa um predicado IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunSelectInSubquery(params object[] pars)
+    public async Task<object?> RunSelectInSubqueryAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectInSubquery(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectInSubquery(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1312,13 +1173,9 @@ ORDER BY u.Id
     /// EN: Executes a NOT IN subquery predicate against the configured users and orders tables.
     /// PT: Executa um predicado NOT IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunSelectNotInSubquery(params object[] pars)
+    public async Task<object?> RunSelectNotInSubqueryAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.SelectNotInSubquery(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectNotInSubquery(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1327,13 +1184,9 @@ ORDER BY u.Id
     /// EN: Executes a CROSS APPLY style projection against the configured users and orders tables.
     /// PT: Executa uma projeção no estilo CROSS APPLY nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunCrossApplyProjection(params object[] pars)
+    public async Task<object?> RunCrossApplyProjectionAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.CrossApplyProjection(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CrossApplyProjection(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1342,13 +1195,9 @@ ORDER BY u.Id
     /// EN: Executes an OUTER APPLY style projection against the configured users and orders tables.
     /// PT: Executa uma projeção no estilo OUTER APPLY nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public int RunOuterApplyProjection(params object[] pars)
+    public async Task<object?> RunOuterApplyProjectionAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var orders = (string)pars[1];
-        var usersTable = ResolveScenarioTableName(users);
-        var ordersTable = ResolveScenarioTableName(orders);
-        var value = Convert.ToInt32(ExecuteScalar(Dialect.OuterApplyProjection(usersTable, ordersTable)), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.OuterApplyProjection(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1357,11 +1206,9 @@ ORDER BY u.Id
     /// EN: Executes a partition-pruning style select against the configured users table.
     /// PT: Executa um select no estilo partition pruning na tabela de usuarios configurada.
     /// </summary>
-    public int RunPartitionPruningSelect(params object[] pars)
+    public async Task<object?> RunPartitionPruningSelectAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var value = Convert.ToInt32(ExecuteScalar($"SELECT COUNT(*) FROM {usersTable} WHERE Id BETWEEN 5 AND 10"), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COUNT(*) FROM {Context.TbUsersFullName} WHERE Id BETWEEN 5 AND 10"), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
@@ -1370,28 +1217,26 @@ ORDER BY u.Id
     /// EN: Executes a pivot-style count query against the configured users table.
     /// PT: Executa uma consulta de contagem no estilo pivot na tabela de usuarios configurada.
     /// </summary>
-    public int RunPivotCount(params object[] pars)
+    public async Task<object?> RunPivotCountAsync(params object[] pars)
     {
-        var users = (string)pars[0];
-        var usersTable = ResolveScenarioTableName(users);
-        var sql = $"SELECT COUNT(*) FROM {usersTable} WHERE Name LIKE 'A%' OR Name LIKE 'B%'";
-        var value = Convert.ToInt32(ExecuteScalar(sql), CultureInfo.InvariantCulture);
+        var sql = $"SELECT COUNT(*) FROM {Context.TbUsersFullName} WHERE Name LIKE 'A%' OR Name LIKE 'B%'";
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(sql), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
     }
 
-    private int CountReaderRows(string sql, DbTransaction? transaction = null)
+    private async Task<int> CountReaderRowsAsync(string sql, DbTransaction? transaction = null)
     {
-        using var command = Connection.CreateCommand();
+        using var command = Repo.Cnn.CreateCommand();
         command.CommandText = sql;
         if (transaction is not null)
         {
             command.Transaction = transaction;
         }
 
-        using var reader = command.ExecuteReader();
+        using var reader = await command.ExecuteReaderAsync();
         var count = 0;
-        while (reader.Read())
+        while (await reader.ReadAsync())
         {
             count++;
         }

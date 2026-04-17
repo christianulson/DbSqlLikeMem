@@ -16,37 +16,20 @@ public abstract class SelectTestsBase<T, T2>(
     where T : DbConnection
     where T2 : DbConnection
 {
+    private static readonly object?[] InicialData = [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")];
+    private static readonly object?[] InicialData2 = [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")];
+    private static readonly object?[] seedUsers = [(1, "Alice"), (2, "Bob"), (3, "Carla")];
+
     /// <summary>
     /// EN: Verifies that primary-key selection returns the expected row for the current provider.
     /// PT: Verifica se a selecao por chave primaria retorna a linha esperada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectByPkTest()
+    public async Task SelectByPkTest()
     {
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new SelectByPKServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario("Users", uId);
-        var resultMock = serviceTest.RunTest("Users", uId);
-        serviceTest.DropScenario("Users", uId);
-
-        if (IsSelectContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-            var serviceTestContainer = new SelectByPKServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTestContainer.CreateScenario("Users", uId);
-            var resultContainer = serviceTestContainer.RunTest("Users", uId);
-            serviceTestContainer.DropScenario("Users", uId);
-
-            resultMock.Should().Be(resultContainer);
-        }
+        await testService.RunTestAsync<SelectTableScenario, SelectByPKServiceTest>();
     }
 
     /// <summary>
@@ -54,148 +37,38 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se o select de todas as linhas retorna a contagem esperada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectAllRowsCountTest()
+    public async Task SelectAllRowsCountTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-            var resultMock = serviceTest.RunRowCountAfterSelect(tableName);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
-                    var resultContainer = serviceTestContainer.RunRowCountAfterSelect(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+                await s.Repo.ExecuteNonQueryAsync(dialect.InsertUser(s.Context, 2, "Bob"));
+                return await s.RunRowCountAfterSelectAsync(a);
+            });
     }
-
-    /// <summary>
-    /// EN: Verifies row counts after select against the configured users table.
-    /// PT: Verifica a contagem de linhas apos select na tabela de usuarios configurada.
-    /// </summary>
-    [Fact]
-    public void RowCountAfterSelectTest()
-        => SelectAllRowsCountTest();
 
     /// <summary>
     /// EN: Verifies that a simple CTE query returns the expected result for the current provider.
     /// PT: Verifica se uma consulta CTE simples retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectCteSimpleTest()
+    public async Task SelectCteSimpleTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunCteSimple(tableName);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunCteSimple(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+            (s, a) => s.RunCteSimpleAsync(a));
     }
-
-    /// <summary>
-    /// EN: Verifies a simple CTE query returns the expected result for the current provider.
-    /// PT: Verifica se uma consulta CTE simples retorna o resultado esperado para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void CteSimpleTest()
-        => SelectCteSimpleTest();
 
     /// <summary>
     /// EN: Verifies correlated scalar subqueries with CASE expressions for the current provider.
     /// PT: Verifica subconsultas escalares correlacionadas com expressoes CASE para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectScalarSubqueryCaseMatrixTest()
+    public async Task SelectScalarSubqueryCaseMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -204,52 +77,12 @@ public abstract class SelectTestsBase<T, T2>(
             (13, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunSelectScalarCaseMatrix(usersTableName, ordersTableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-                    var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{orders}_{uId}".ToLowerInvariant()
-                        : $"{orders}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunSelectScalarCaseMatrix(usersTableNameContainer, ordersTableNameContainer);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            //TODO: validar se este é o método correto para o teste, pois esta duplicado
+            (s, a) => s.RunSelectScalarCaseMatrixAsync(a));
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -257,22 +90,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se a matriz de CASE escalar nas tabelas de usuarios e pedidos coincide com o comportamento do provedor atual.
     /// </summary>
     [Fact]
-    public void SelectScalarCaseMatrixTest()
+    public async Task SelectScalarCaseMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -281,52 +100,11 @@ public abstract class SelectTestsBase<T, T2>(
             (13, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunSelectScalarCaseMatrix(usersTableName, ordersTableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-                    var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{orders}_{uId}".ToLowerInvariant()
-                        : $"{orders}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunSelectScalarCaseMatrix(usersTableNameContainer, ordersTableNameContainer);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectScalarCaseMatrixAsync(a));
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -334,22 +112,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado NOT EXISTS retorna a contagem esperada de anti-join para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectNotExistsPredicateTest()
+    public async Task SelectNotExistsPredicateTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -357,52 +121,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunSelectNotExistsPredicate(usersTableName, ordersTableName);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-                    var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{orders}_{uId}".ToLowerInvariant()
-                        : $"{orders}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunSelectNotExistsPredicate(usersTableNameContainer, ordersTableNameContainer);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectNotExistsPredicateAsync(a));
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -410,22 +133,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um anti-join com LEFT JOIN retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectLeftJoinAntiJoinTest()
+    public async Task SelectLeftJoinAntiJoinTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -433,49 +142,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = Convert.ToInt32(
-                serviceTest.ExecuteScalar(dialect.SelectLeftJoinAntiJoin(usersTableName, ordersTableName)),
-                CultureInfo.InvariantCulture);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = Convert.ToInt32(
-                        serviceTestContainer.ExecuteScalar(dialect.SelectLeftJoinAntiJoin(usersTableName, ordersTableName)),
-                        CultureInfo.InvariantCulture);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectLeftJoinAntiJoinAsync(a));
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -483,22 +154,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma subconsulta NOT IN retorna a contagem esperada de anti-join para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectNotInSubqueryTest()
+    public async Task SelectNotInSubqueryTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -506,52 +163,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunSelectNotInSubquery(usersTableName, ordersTableName);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-                    var ordersTableNameContainer = dialect.Provider == ProviderId.Oracle
-                        ? $"{orders}_{uId}".ToLowerInvariant()
-                        : $"{orders}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunSelectNotInSubquery(usersTableNameContainer, ordersTableNameContainer);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectNotInSubqueryAsync(a));
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -559,22 +175,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado EXISTS retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectExistsPredicateTest()
+    public async Task SelectExistsPredicateTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -582,45 +184,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunSelectExistsPredicate(usersTableName, ordersTableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunSelectExistsPredicate(usersTableName, ordersTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectExistsPredicateAsync(a));
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -628,22 +196,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado de contagem correlacionada retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectCorrelatedCountTest()
+    public async Task SelectCorrelatedCountTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -651,45 +205,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunSelectCorrelatedCount(usersTableName, ordersTableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunSelectCorrelatedCount(usersTableName, ordersTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectCorrelatedCountAsync(a));
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -697,22 +217,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma subconsulta IN retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectInSubqueryTest()
+    public async Task SelectInSubqueryTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -720,45 +226,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunSelectInSubquery(usersTableName, ordersTableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunSelectInSubquery(usersTableName, ordersTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectInSubqueryAsync(a));
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -766,22 +238,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma subconsulta escalar retorna o resultado esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectScalarSubqueryTest()
+    public async Task SelectScalarSubqueryTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -789,49 +247,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = Convert.ToInt64(
-                serviceTest.RunSelectScalarSubquery(usersTableName, ordersTableName),
-                CultureInfo.InvariantCulture);
-            resultMock.Should().Be(2L);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = Convert.ToInt64(
-                        serviceTestContainer.RunSelectScalarSubquery(usersTableName, ordersTableName),
-                        CultureInfo.InvariantCulture);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunSelectScalarSubqueryAsync(a));
+        result.Should().Be(2L);
     }
 
     /// <summary>
@@ -839,22 +259,8 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma consulta GROUP BY HAVING retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectGroupByHavingTest()
+    public async Task SelectGroupByHavingTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -862,45 +268,11 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunGroupByHaving(usersTableName, ordersTableName);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunGroupByHaving(usersTableName, ordersTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunGroupByHavingAsync(a));
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -908,140 +280,36 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma projecao UNION ALL retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectUnionAllProjectionTest()
+    public async Task SelectUnionAllProjectionTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Alice"), (2, "Bob")]]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunUnionAllProjection(tableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunUnionAllProjection(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunUnionAllProjectionAsync(a));
+        result.Should().Be(2);
     }
-
-    /// <summary>
-    /// EN: Verifies a UNION ALL projection returns the expected row count for the current provider.
-    /// PT: Verifica se uma projeção UNION ALL retorna a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void UnionAllProjectionTest()
-        => SelectUnionAllProjectionTest();
 
     /// <summary>
     /// EN: Verifies that a DISTINCT projection returns the expected row count for the current provider.
     /// PT: Verifica se uma projecao DISTINCT retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectDistinctProjectionTest()
+    public async Task SelectDistinctProjectionTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Alice"), (2, "Alice"), (3, "Bob")]]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Alice"), (3, "Bob")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunDistinctProjection(tableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Alice"), (3, "Bob")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunDistinctProjection(tableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunDistinctProjectionAsync(a));
+        result.Should().Be(2);
     }
-
-    /// <summary>
-    /// EN: Verifies a DISTINCT projection returns the expected row count for the current provider.
-    /// PT: Verifica se uma projecao DISTINCT retorna a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void DistinctProjectionTest()
-        => SelectDistinctProjectionTest();
 
     /// <summary>
     /// EN: Verifies that a multi-join aggregate returns the expected row count for the current provider.
     /// PT: Verifica se uma agregacao com multiplos joins retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectMultiJoinAggregateTest()
+    public async Task SelectMultiJoinAggregateTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
         var seedOrders = new (int id, int userId, string note)[]
         {
             (10, 1, "A"),
@@ -1049,108 +317,25 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTableName = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultMock = serviceTest.RunMultiJoinAggregate(usersTableName, ordersTableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunMultiJoinAggregate(usersTableName, ordersTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => s.RunMultiJoinAggregateAsync(a));
+        result.Should().Be(4);
     }
-
-    /// <summary>
-    /// EN: Verifies a multi-join aggregate returns the expected row count for the current provider.
-    /// PT: Verifica se uma agregacao com multiplos joins retorna a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void MultiJoinAggregateTest()
-        => SelectMultiJoinAggregateTest();
 
     /// <summary>
     /// EN: Verifies an IN-list predicate returns the expected row count for the current provider.
     /// PT: Verifica se um predicado IN com lista retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectInListPredicateTest()
+    public async Task SelectInListPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Alice"), (2, "Bob"), (3, "Charlie")]]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunInListPredicateMatrix(tableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunInListPredicateMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunInListPredicateMatrixAsync(a));
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -1158,54 +343,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado BETWEEN retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectBetweenPredicateTest()
+    public async Task SelectBetweenPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunBetweenPredicateMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunBetweenPredicateMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunBetweenPredicateMatrixAsync(a));
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -1213,54 +357,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado LIKE retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectLikePredicateTest()
+    public async Task SelectLikePredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunLikePredicateMatrix(tableName);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunLikePredicateMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunLikePredicateMatrixAsync(a));
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -1268,54 +371,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma consulta combinada com BETWEEN, LIKE e ORDER BY retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectBetweenLikeOrderByTest()
+    public async Task SelectBetweenLikeOrderByTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunBetweenLikeOrderByMatrix(tableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunBetweenLikeOrderByMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunBetweenLikeOrderByMatrixAsync(a));
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -1323,54 +385,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica a matriz combinada de BETWEEN, LIKE e ORDER BY contra o comportamento do provedor atual.
     /// </summary>
     [Fact]
-    public void SelectBetweenLikeOrderByMatrixTest()
+    public async Task SelectBetweenLikeOrderByMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData2]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunBetweenLikeOrderByMatrix(tableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunBetweenLikeOrderByMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunBetweenLikeOrderByMatrixAsync(a));
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -1378,54 +399,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado NOT LIKE retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectNotLikePredicateTest()
+    public async Task SelectNotLikePredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunNotLikePredicateMatrix(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunNotLikePredicateMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunNotLikePredicateMatrixAsync(a));
+        result.Should().Be(4);
     }
 
     /// <summary>
@@ -1433,54 +413,14 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado diferente de retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectNotEqualPredicateTest()
+    public async Task SelectNotEqualPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunNotEqualPredicateMatrixAsync(a));
+        result.Should().Be(4);
 
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunNotEqualPredicateMatrix(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunNotEqualPredicateMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
     }
 
     /// <summary>
@@ -1488,54 +428,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado de igualdade retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectEqualPredicateTest()
+    public async Task SelectEqualPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunEqualPredicateMatrix(tableName);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunEqualPredicateMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunEqualPredicateMatrixAsync(a));
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -1543,46 +442,14 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma consulta parametrizada por nome retorna a linha esperada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectParameterByNameTest()
+    public async Task SelectParameterByNameTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterSelectByNameMatrix(users, "Bob");
-            resultMock.Should().Be("Bob");
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterSelectByNameMatrix(users, "Bob");
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunParameterSelectByNameMatrixAsync(a),
+            "Bob");
+        result.Should().Be("Bob");
     }
 
     /// <summary>
@@ -1590,46 +457,14 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma consulta parametrizada por id retorna a linha esperada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectParameterByIdTest()
+    public async Task SelectParameterByIdTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterSelectByIdMatrix(users, 3, "Charlie");
-            resultMock.Should().Be("Charlie");
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterSelectByIdMatrix(users, 3, "Charlie");
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunParameterSelectByIdMatrixAsync(a),
+            "Charlie");
+        result.Should().Be("Charlie");
     }
 
     /// <summary>
@@ -1637,27 +472,17 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica roundtrips de parametros sobre colunas tipadas de usuario para valores de texto, numericos, booleanos, data e nulos.
     /// </summary>
     [Fact]
-    public void SelectParameterRoundTripMatrixTest()
+    public async Task SelectParameterRoundTripMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
         var createdAt = dialect.Provider == ProviderId.Npgsql
             ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
             : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
 
-        using var connMock = connectionMock();
-        connMock.Open();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        var testScenario = new InsertUsersScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterRoundTripMatrix(
-                users,
-                uId,
-                1,
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, a) => s.RunParameterRoundTripMatrixAsync(a),
+            1,
                 "Param Alice",
                 DBNull.Value,
                 true,
@@ -1666,42 +491,7 @@ public abstract class SelectTestsBase<T, T2>(
                 createdAt,
                 DBNull.Value,
                 DBNull.Value);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new InsertUsersScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterRoundTripMatrix(
-                        users,
-                        uId,
-                        1,
-                        "Param Alice",
-                        DBNull.Value,
-                        true,
-                        (short)31,
-                        12.34m,
-                        createdAt,
-                        DBNull.Value,
-                        DBNull.Value);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -1709,25 +499,18 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, GUID, binario e nulos.
     /// </summary>
     [Fact]
-    public void SelectParameterTypeMatrixTest()
+    public async Task SelectParameterTypeMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
         var createdAt = dialect.Provider == ProviderId.Npgsql
             ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
             : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
         var ansiFixedText = "Fixed ANSI";
         var fixedText = "Fixed Text";
 
-        using var connMock = connectionMock();
-        connMock.Open();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
 
-        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterTypeMatrix(
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, a) => s.RunParameterTypeMatrixAsync(a),
                 "Typed param",
                 "Ansi param",
                 ansiFixedText,
@@ -1743,45 +526,7 @@ public abstract class SelectTestsBase<T, T2>(
                 createdAt,
                 Guid.Parse("11111111-2222-3333-4444-555555555555"),
                 new byte[] { 1, 2, 3, 4 });
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterTypeMatrix(
-                        "Typed param",
-                        "Ansi param",
-                        ansiFixedText,
-                        fixedText,
-                        (short)12,
-                        34,
-                        56L,
-                        true,
-                        78.90m,
-                        12.5d,
-                        TimeSpan.FromHours(1.5),
-                        new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero),
-                        createdAt,
-                        Guid.Parse("11111111-2222-3333-4444-555555555555"),
-                        new byte[] { 1, 2, 3, 4 });
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -1789,46 +534,18 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para valores de data e moeda.
     /// </summary>
     [Fact]
-    public void SelectParameterDateCurrencyMatrixTest()
+    public async Task SelectParameterDateCurrencyMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
         var dateValue = new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Unspecified);
         var currencyValue = 123.45m;
 
-        using var connMock = connectionMock();
-        connMock.Open();
+        var result = await RunFidelityTestAsync<InsertUsersScenario, QueryServiceTest>(
+            [],
+            (s, a) => s.RunParameterDateCurrencyMatrixAsync(a),
+            dateValue,
+            currencyValue);
 
-        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunParameterDateCurrencyMatrix(dateValue, currencyValue);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunParameterDateCurrencyMatrix(dateValue, currencyValue);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -1836,25 +553,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se o benchmark amplo de projeção de parametros retorna o valor escalar esperado para o provedor atual.
     /// </summary>
     [Fact]
-    public void ParameterProjectionTest()
+    public async Task ParameterProjectionTest()
     {
-        using var connMock = connectionMock();
-        connMock.Open();
+        var result = await RunFidelityTestAsync<InsertUsersScenario, QueryServiceTest>(
+            [],
+            (s, a) => s.RunParameterProjection());
 
-        var serviceTest = new QueryServiceTest<T>(connMock, new InsertUsersScenario<T>(dialect), dialect);
-
-        var resultMock = serviceTest.RunParameterProjection();
-        resultMock.Should().Be("benchmark");
-
-        if (IsSelectContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var serviceTestContainer = new QueryServiceTest<T2>(connContainer, new InsertUsersScenario<T2>(dialect), dialect);
-            var resultContainer = serviceTestContainer.RunParameterProjection();
-            resultMock.Should().Be(resultContainer);
-        }
+        result.Should().Be("benchmark");
     }
 
     /// <summary>
@@ -1862,46 +567,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado maior que retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectGreaterThanPredicateTest()
+    public async Task SelectGreaterThanPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [InicialData],
+            (s, a) => s.RunGreaterThanPredicateMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunGreaterThanPredicateMatrix(users);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunGreaterThanPredicateMatrix(users);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -1909,46 +581,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado menor que retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectLessThanPredicateTest()
+    public async Task SelectLessThanPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [InicialData],
+            (s, a) => s.RunLessThanPredicateMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunLessThanPredicateMatrix(users);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunLessThanPredicateMatrix(users);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -1956,46 +595,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado maior ou igual retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectGreaterThanOrEqualPredicateTest()
+    public async Task SelectGreaterThanOrEqualPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [InicialData],
+            (s, a) => s.RunGreaterThanOrEqualPredicateMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunGreaterThanOrEqualPredicateMatrix(users);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunGreaterThanOrEqualPredicateMatrix(users);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2003,54 +609,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se um predicado menor ou igual retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectLessThanOrEqualPredicateTest()
+    public async Task SelectLessThanOrEqualPredicateTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [InicialData],
+            (s, a) => s.RunLessThanOrEqualPredicateMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunLessThanOrEqualPredicateMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunLessThanOrEqualPredicateMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2058,54 +623,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se a ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectOrderByNameTest()
+    public async Task SelectOrderByNameTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
+            (s, a) => s.RunOrderByNameMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunOrderByNameMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunOrderByNameMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2113,54 +637,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se a matriz de ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectOrderByNameMatrixTest()
+    public async Task SelectOrderByNameMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
+            (s, a) => s.RunOrderByNameMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunOrderByNameMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunOrderByNameMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2168,123 +651,32 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma projecao UNION retorna a contagem distinta esperada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectUnionDistinctProjectionTest()
+    public async Task SelectUnionDistinctProjectionTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Carla"));
-
-            var resultMock = serviceTest.RunUnionDistinctProjection(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bob"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Carla"));
+                return await s.RunUnionDistinctProjectionAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Carla"));
-
-                    var resultContainer = serviceTestContainer.RunUnionDistinctProjection(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
-
-    /// <summary>
-    /// EN: Verifies a UNION projection returns the expected distinct row count for the current provider.
-    /// PT: Verifica se uma projecao UNION retorna a contagem distinta esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void UnionDistinctProjectionTest()
-        => SelectUnionDistinctProjectionTest();
 
     /// <summary>
     /// EN: Verifies grouped names by initial with distinct counts and HAVING filtering for the current provider.
     /// PT: Verifica nomes agrupados por inicial com contagens distintas e filtro HAVING para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectGroupByNameInitialMatrixTest()
+    public async Task SelectGroupByNameInitialMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]],
+            (s, a) => s.RunGroupByNameInitialMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunGroupByNameInitialMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunGroupByNameInitialMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2292,121 +684,41 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica GROUP BY Name com filtro HAVING na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectGroupByNameHavingTest()
+    public async Task SelectGroupByNameHavingTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Alice"), (2, "Alice"), (3, "Bob"), (4, "Bob"), (5, "Bob"), (6, "Charlie")]],
+            (s, a) => s.RunGroupByNameHavingMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Alice"), (3, "Bob"), (4, "Bob"), (5, "Bob"), (6, "Charlie")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var resultMock = serviceTest.RunGroupByNameHavingMatrix(users);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Alice"), (3, "Bob"), (4, "Bob"), (5, "Bob"), (6, "Charlie")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunGroupByNameHavingMatrix(users);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(2);
     }
-
-    /// <summary>
-    /// EN: Verifies GROUP BY HAVING returns the expected row count for the current provider.
-    /// PT: Verifica se GROUP BY HAVING retorna a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void GroupByHavingTest()
-        => SelectGroupByNameHavingTest();
 
     /// <summary>
     /// EN: Verifies GROUP BY ordinal resolution over the configured users table for the current provider.
     /// PT: Verifica a resolucao de GROUP BY ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectGroupByOrdinalTest()
+    public async Task SelectGroupByOrdinalTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        object?[][] initialData = [[(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]];
         var supportsGroupByOrdinal = dialect.Provider is not ProviderId.SqlServer
             and not ProviderId.SqlAzure
             and not ProviderId.Oracle
             and not ProviderId.Db2;
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
+        if (!supportsGroupByOrdinal)
         {
-            if (!supportsGroupByOrdinal)
-            {
-                FluentActions.Invoking(() => serviceTest.RunGroupByOrdinalMatrix(users))
-                    .Should().Throw<NotSupportedException>();
-            }
-            else
-            {
-                var resultMock = serviceTest.RunGroupByOrdinalMatrix(users);
-                resultMock.Should().Be(3);
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+                initialData,
+                (s, a) => s.RunGroupByOrdinalMatrixAsync(a))).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
 
-                if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                    && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-                {
-                    using var connContainer = connectionContainer(connectionString);
-                    connContainer.Open();
-                    var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]);
-                    var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                    serviceTestContainer.CreateScenario(users, uId);
-                    try
-                    {
-                        if (supportsGroupByOrdinal)
-                        {
-                            var resultContainer = serviceTestContainer.RunGroupByOrdinalMatrix(users);
-                            resultMock.Should().Be(resultContainer);
-                        }
-                        else
-                        {
-                            FluentActions.Invoking(() => serviceTestContainer.RunGroupByOrdinalMatrix(users))
-                                .Should().Throw<NotSupportedException>();
-                        }
-                    }
-                    finally
-                    {
-                        serviceTestContainer.DropScenario(users, uId);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            initialData,
+            (s, a) => s.RunGroupByOrdinalMatrixAsync(a));
+
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2414,54 +726,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica a resolucao de ORDER BY ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectOrderByOrdinalTest()
+    public async Task SelectOrderByOrdinalTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]],
+            (s, a) => s.RunOrderByOrdinalMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunOrderByOrdinalMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunOrderByOrdinalMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2469,54 +740,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se a matriz de ordenacao por ordinal retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectOrderByOrdinalMatrixTest()
+    public async Task SelectOrderByOrdinalMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]],
+            (s, a) => s.RunOrderByOrdinalMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunOrderByOrdinalMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunOrderByOrdinalMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2524,54 +754,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica a ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectDistinctOrderByOrdinalTest()
+    public async Task SelectDistinctOrderByOrdinalTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            (s, a) => s.RunDistinctOrderByOrdinalMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunDistinctOrderByOrdinalMatrix(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunDistinctOrderByOrdinalMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(4);
     }
 
     /// <summary>
@@ -2579,54 +768,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica a matriz de ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectDistinctOrderByOrdinalMatrixTest()
+    public async Task SelectDistinctOrderByOrdinalMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            (s, a) => s.RunDistinctOrderByOrdinalMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunDistinctOrderByOrdinalMatrix(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunDistinctOrderByOrdinalMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(4);
     }
 
     /// <summary>
@@ -2634,54 +782,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectDistinctLikeOrderByOrdinalTest()
+    public async Task SelectDistinctLikeOrderByOrdinalTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            (s, a) => s.RunDistinctLikeOrderByOrdinalMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunDistinctLikeOrderByOrdinalMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunDistinctLikeOrderByOrdinalMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2689,54 +796,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica a matriz DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectDistinctLikeOrderByOrdinalMatrixTest()
+    public async Task SelectDistinctLikeOrderByOrdinalMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            (s, a) => s.RunDistinctLikeOrderByOrdinalMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunDistinctLikeOrderByOrdinalMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunDistinctLikeOrderByOrdinalMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2744,54 +810,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se a ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectOrderByNameDescendingTest()
+    public async Task SelectOrderByNameDescendingTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
+            (s, a) => s.RunOrderByNameDescendingMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunOrderByNameDescendingMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunOrderByNameDescendingMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2799,54 +824,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se a matriz de ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectOrderByNameDescendingMatrixTest()
+    public async Task SelectOrderByNameDescendingMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
+            (s, a) => s.RunOrderByNameDescendingMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunOrderByNameDescendingMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Charlie"), (2, "Bob"), (3, "Alice")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunOrderByNameDescendingMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2854,54 +838,13 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma consulta ordenada e paginada construida com ROW_NUMBER para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectNamePaginationMatrixTest()
+    public async Task SelectNamePaginationMatrixTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+            [[(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]],
+            (s, a) => s.RunNamePaginationMatrixAsync(a));
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunNamePaginationMatrix(tableName);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunNamePaginationMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -2909,78 +852,22 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica sintaxe nativa de paginação sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectPagedNameProjectionTest()
+    public async Task SelectPagedNameProjectionTest()
     {
-        var users = "Users";
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]]);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new UsersScenario<T>(dialect, [(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            var resultMock = serviceTest.RunPagedNameProjectionMatrix(tableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersScenario<T2>(dialect, [(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? $"{users}_{uId}".ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    var resultContainer = serviceTestContainer.RunPagedNameProjectionMatrix(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            (s, a) => s.RunPagedNameProjectionMatrixAsync());
+        result.Should().Be(2);
     }
-
-    /// <summary>
-    /// EN: Verifies ordered pagination returns the expected row count for the current provider.
-    /// PT: Verifica se a paginacao ordenada retorna a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void PagedNameProjectionTest()
-        => SelectPagedNameProjectionTest();
 
     /// <summary>
     /// EN: Verifies a relational query bundle across users and orders tables for the current provider.
     /// PT: Verifica um conjunto de consultas relacionais nas tabelas de usuarios e pedidos para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectRelationalCompositeTest()
+    public async Task SelectRelationalCompositeTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
         var seedUsers = new (int id, string name)[]
         {
             (1, "Alice"),
@@ -2994,44 +881,10 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
 
-        try
-        {
-            var usersTable = dialect.Provider == ProviderId.Oracle
-                ? $"{users}_{uId}".ToLowerInvariant()
-                : $"{users}_{uId}";
-            var ordersTable = dialect.Provider == ProviderId.Oracle
-                ? $"{orders}_{uId}".ToLowerInvariant()
-                : $"{orders}_{uId}";
-
-            var resultsMock = RunRelationalCompositeAssertions(serviceTest, usersTable, ordersTable);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultsContainer = RunRelationalCompositeAssertions(serviceTestContainer, usersTable, ordersTable);
-                    resultsMock.Should().Be(resultsContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            (s, a) => RunRelationalCompositeAssertionsAsync(s));
     }
 
     /// <summary>
@@ -3039,236 +892,63 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se funcoes de janela comuns retornam a contagem esperada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectWindowFunctionsTest()
+    public async Task SelectWindowFunctionsTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Charlie"));
-
-            var rowNumberMock = serviceTest.RunWindowRowNumber(tableName);
-            var lagMock = serviceTest.RunWindowLag(tableName);
-            var leadMock = serviceTest.RunWindowLead(tableName);
-            rowNumberMock.Should().Be(3);
-            lagMock.Should().Be(3);
-            leadMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bob"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Charlie"));
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Charlie"));
+                var rowNumber = await s.RunWindowRowNumberAsync(a);
+                var lag = await s.RunWindowLagAsync(a);
+                var lead = await s.RunWindowLeadAsync(a);
+                return (rowNumber, lag, lead);
+            });
 
-                    var rowNumberContainer = serviceTestContainer.RunWindowRowNumber(containerTableName);
-                    var lagContainer = serviceTestContainer.RunWindowLag(containerTableName);
-                    var leadContainer = serviceTestContainer.RunWindowLead(containerTableName);
-
-                    rowNumberMock.Should().Be(rowNumberContainer);
-                    lagMock.Should().Be(lagContainer);
-                    leadMock.Should().Be(leadContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().BeEquivalentTo((3, 3, 2));
     }
-
-    /// <summary>
-    /// EN: Verifies the ROW_NUMBER window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela ROW_NUMBER retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowRowNumberTest()
-        => SelectWindowFunctionsTest();
-
-    /// <summary>
-    /// EN: Verifies the LAG window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela LAG retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowLagTest()
-        => SelectWindowFunctionsTest();
-
-    /// <summary>
-    /// EN: Verifies the LEAD window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela LEAD retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowLeadTest()
-        => SelectWindowFunctionsTest();
 
     /// <summary>
     /// EN: Verifies ranking window functions with duplicate names for the current provider.
     /// PT: Verifica funcoes de janela de ranking com nomes duplicados para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectWindowRankDenseRankTest()
+    public async Task SelectWindowRankDenseRankTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
-
-            var resultMock = serviceTest.RunWindowRankDenseRank(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
+                return await s.RunWindowRankDenseRank(a.Length > 0 ? a : ["Users"]);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
-
-                    var resultContainer = serviceTestContainer.RunWindowRankDenseRank(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(4);
     }
-
-    /// <summary>
-    /// EN: Verifies the RANK and DENSE_RANK window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela RANK e DENSE_RANK retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowRankDenseRankTest()
-        => SelectWindowRankDenseRankTest();
 
     /// <summary>
     /// EN: Verifies FIRST_VALUE and LAST_VALUE window projections for the current provider.
     /// PT: Verifica projeções FIRST_VALUE e LAST_VALUE de janela para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectWindowFirstLastValueTest()
+    public async Task SelectWindowFirstLastValueTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
-
-            var resultMock = serviceTest.RunWindowFirstLastValue(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
+                return await s.RunWindowFirstLastValue(a.Length > 0 ? a : ["Users"]);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
-
-                    var resultContainer = serviceTestContainer.RunWindowFirstLastValue(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(4);
     }
-
-    /// <summary>
-    /// EN: Verifies the FIRST_VALUE and LAST_VALUE window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela FIRST_VALUE e LAST_VALUE retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowFirstLastValueTest()
-        => SelectWindowFirstLastValueTest();
 
 
     /// <summary>
@@ -3276,302 +956,101 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica a distribuicao NTILE sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectWindowNtileTest()
+    public async Task SelectWindowNtileTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
-
-            var resultMock = serviceTest.RunWindowNtile(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
+                return await s.RunWindowNtile(a.Length > 0 ? a : ["Users"]);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
-
-                    var resultContainer = serviceTestContainer.RunWindowNtile(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(4);
     }
-
-    /// <summary>
-    /// EN: Verifies the NTILE window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela NTILE retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowNtileTest()
-        => SelectWindowNtileTest();
-
 
     /// <summary>
     /// EN: Verifies PERCENT_RANK and CUME_DIST window projections for the current provider.
     /// PT: Verifica projeções de janela PERCENT_RANK e CUME_DIST para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectWindowPercentRankCumeDistTest()
+    public async Task SelectWindowPercentRankCumeDistTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
-
-            var resultMock = serviceTest.RunWindowPercentRankCumeDist(tableName);
-            resultMock.Should().Be(4);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
+                return await s.RunWindowPercentRankCumeDist(a.Length > 0 ? a : ["Users"]);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Bravo"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
-
-                    var resultContainer = serviceTestContainer.RunWindowPercentRankCumeDist(containerTableName);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+        result.Should().Be(4);
     }
-
-    /// <summary>
-    /// EN: Verifies the PERCENT_RANK and CUME_DIST window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela PERCENT_RANK e CUME_DIST retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowPercentRankCumeDistTest()
-        => SelectWindowPercentRankCumeDistTest();
-
 
     /// <summary>
     /// EN: Verifies NTH_VALUE over an ordered users table for the current provider.
     /// PT: Verifica NTH_VALUE sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectWindowNthValueTest()
+    public async Task SelectWindowNthValueTest()
     {
-        var users = "Users";
-        var uId = NewToken();
         var supportsNthValue = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
+        if (!supportsNthValue)
         {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 3, "Bravo"));
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 4, "Charlie"));
-
-            if (!supportsNthValue)
-            {
-                FluentActions.Invoking(() => serviceTest.RunWindowNthValue(tableName))
-                    .Should().Throw<NotSupportedException>();
-            }
-            else
-            {
-                var resultMock = serviceTest.RunWindowNthValue(tableName);
-                resultMock.Should().Be(4);
-
-                if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                    && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+                [],
+                async (s, a) =>
                 {
-                    using var connContainer = connectionContainer(connectionString);
-                    connContainer.Open();
-                    var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                    var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                    serviceTestContainer.CreateScenario(users, uId);
-                    try
-                    {
-                        var containerTableName = dialect.Provider == ProviderId.Oracle
-                            ? users.ToLowerInvariant()
-                            : $"{users}_{uId}";
-
-                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bravo"));
-                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 3, "Bravo"));
-                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 4, "Charlie"));
-
-                        if (supportsNthValue)
-                        {
-                            var resultContainer = serviceTestContainer.RunWindowNthValue(containerTableName);
-                            resultMock.Should().Be(resultContainer);
-                        }
-                        else
-                        {
-                            FluentActions.Invoking(() => serviceTestContainer.RunWindowNthValue(containerTableName))
-                                .Should().Throw<NotSupportedException>();
-                        }
-                    }
-                    finally
-                    {
-                        serviceTestContainer.DropScenario(users, uId);
-                    }
-                }
-            }
+                    await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
+                    await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
+                    await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
+                    return await s.RunWindowNthValue(a.Length > 0 ? a : ["Users"]);
+                }, "Users")).Should().ThrowAsync<NotSupportedException>();
+            return;
         }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
+            {
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
+                return await s.RunWindowNthValue(a.Length > 0 ? a : ["Users"]);
+            },
+            "Users");
+
+        result.Should().Be(4);
     }
-
-    /// <summary>
-    /// EN: Verifies the NTH_VALUE window benchmark returns the expected row count for the current provider.
-    /// PT: Verifica se o benchmark de janela NTH_VALUE retorna a contagem esperada para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void WindowNthValueTest()
-        => SelectWindowNthValueTest();
 
     /// <summary>
     /// EN: Verifies range filtering and pivot-style aggregation for the current provider.
     /// PT: Verifica filtragem por faixa e agregacao no estilo pivot para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectRangeAndPivotTest()
+    public async Task SelectRangeAndPivotTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-            for (var id = 3; id <= 12; id++)
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, id, $"User-{id}"));
-            }
-
-            var partitionCountMock = serviceTest.RunPartitionPruningSelect(tableName);
-            var pivotCountMock = serviceTest.RunPivotCount(tableName);
-            partitionCountMock.Should().Be(6);
-            pivotCountMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bob"));
+                for (var id = 3; id <= 12; id++)
                 {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
-                    for (var id = 3; id <= 12; id++)
-                    {
-                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, id, $"User-{id}"));
-                    }
-
-                    var partitionCountContainer = serviceTestContainer.RunPartitionPruningSelect(containerTableName);
-                    var pivotCountContainer = serviceTestContainer.RunPivotCount(containerTableName);
-                    partitionCountMock.Should().Be(partitionCountContainer);
-                    pivotCountMock.Should().Be(pivotCountContainer);
+                    await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, id, $"User-{id}"));
                 }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+
+                var partitionCount = await s.RunPartitionPruningSelectAsync(a);
+                var pivotCount = await s.RunPivotCountAsync(a);
+                return (partitionCount, pivotCount);
+            });
+
+        result.Should().BeEquivalentTo((6, 2));
     }
 
     /// <summary>
@@ -3579,219 +1058,69 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se uma consulta no estilo partition pruning retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectPartitionPruningTest()
+    public async Task SelectPartitionPruningTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-            for (var id = 3; id <= 12; id++)
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, id, $"User-{id}"));
-            }
-
-            var resultMock = serviceTest.RunPartitionPruningSelect(tableName);
-            resultMock.Should().Be(6);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bob"));
+                for (var id = 3; id <= 12; id++)
                 {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
-                    for (var id = 3; id <= 12; id++)
-                    {
-                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, id, $"User-{id}"));
-                    }
-
-                    var resultContainer = serviceTestContainer.RunPartitionPruningSelect(containerTableName);
-                    resultMock.Should().Be(resultContainer);
+                    await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, id, $"User-{id}"));
                 }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+
+                return await s.RunPartitionPruningSelectAsync(a);
+            });
+
+        result.Should().Be(6);
     }
-
-    /// <summary>
-    /// EN: Verifies partition-pruned selects return the expected row count for the current provider.
-    /// PT: Verifica se selects com particionamento retornam a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void PartitionPruningSelectTest()
-        => SelectPartitionPruningTest();
 
     /// <summary>
     /// EN: Verifies that a pivot-style count query returns the expected row count for the current provider.
     /// PT: Verifica se uma consulta de contagem no estilo pivot retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectPivotCountTest()
+    public async Task SelectPivotCountTest()
     {
-        var users = "Users";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new SelectTableScenario<T>(dialect);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            var tableName = dialect.Provider == ProviderId.Oracle
-                ? users.ToLowerInvariant()
-                : $"{users}_{uId}";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, 2, "Bob"));
-            for (var id = 3; id <= 12; id++)
+        var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, a) =>
             {
-                serviceTest.ExecuteNonQuery(dialect.InsertUser(tableName, id, $"User-{id}"));
-            }
-
-            var resultMock = serviceTest.RunPivotCount(tableName);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new SelectTableScenario<T2>(dialect);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
+                await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bob"));
+                for (var id = 3; id <= 12; id++)
                 {
-                    var containerTableName = dialect.Provider == ProviderId.Oracle
-                        ? users.ToLowerInvariant()
-                        : $"{users}_{uId}";
-
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, 2, "Bob"));
-                    for (var id = 3; id <= 12; id++)
-                    {
-                        serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(containerTableName, id, $"User-{id}"));
-                    }
-
-                    var resultContainer = serviceTestContainer.RunPivotCount(containerTableName);
-                    resultMock.Should().Be(resultContainer);
+                    await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, id, $"User-{id}"));
                 }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, uId);
-        }
+
+                return await s.RunPivotCountAsync(a);
+            });
+
+        result.Should().Be(2);
     }
-
-    /// <summary>
-    /// EN: Verifies PIVOT count returns the expected row count for the current provider.
-    /// PT: Verifica se o count com PIVOT retorna a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void PivotCountTest()
-        => SelectPivotCountTest();
 
     /// <summary>
     /// EN: Verifies a grouped join projection that combines typed columns, aggregates, and calculations for the current provider.
     /// PT: Verifica uma projecao com junção agrupada que combina colunas tipadas, agregacoes e calculos para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinTypedExpressionMatrixTest()
+    public async Task SelectJoinTypedExpressionMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
+        object?[] seedUsers2 =
+        [
             (1, "Alice"),
             (2, "Bob")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var usersTableName = $"{users}_{uId}";
-            var ordersTableName = $"{orders}_{uId}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
-
-            var resultMock = serviceTest.RunJoinTypedExpressionMatrix(users, orders);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers2],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = $"{users}_{uId}";
-                    var ordersTableNameContainer = $"{orders}_{uId}";
-                    var orderedAtContainer = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+                await SeedJoinOrdersAsync(s);
+                return await s.RunJoinTypedExpressionMatrixAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
-
-                    var resultContainer = serviceTestContainer.RunJoinTypedExpressionMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -3799,70 +1128,17 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma projeção agregada com left join que preserva usuarios sem pedidos para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinNullAggregateMatrixTest()
+    public async Task SelectJoinNullAggregateMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var usersTableName = $"{users}_{uId}";
-            var ordersTableName = $"{orders}_{uId}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
-
-            var resultMock = serviceTest.RunJoinNullAggregateMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = $"{users}_{uId}";
-                    var ordersTableNameContainer = $"{orders}_{uId}";
-                    var orderedAtContainer = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+                await SeedJoinOrdersAsync(s);
+                return await s.RunJoinNullAggregateMatrixAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
-
-                    var resultContainer = serviceTestContainer.RunJoinNullAggregateMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -3870,70 +1146,17 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma projeção agrupada com left join que mistura casts, tratamento de null e formatacao de agregados para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinCastNullMatrixTest()
+    public async Task SelectJoinCastNullMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var usersTableName = $"{users}_{uId}";
-            var ordersTableName = $"{orders}_{uId}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
-
-            var resultMock = serviceTest.RunJoinCastNullMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = $"{users}_{uId}";
-                    var ordersTableNameContainer = $"{orders}_{uId}";
-                    var orderedAtContainer = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+                await SeedJoinOrdersAsync(s);
+                return await s.RunJoinCastNullMatrixAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
-
-                    var resultContainer = serviceTestContainer.RunJoinCastNullMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -3941,70 +1164,17 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma projeção agrupada com left join que converte agregados para texto e os compara para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinCastTextComparisonMatrixTest()
+    public async Task SelectJoinCastTextComparisonMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var usersTableName = $"{users}_{uId}";
-            var ordersTableName = $"{orders}_{uId}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
-
-            var resultMock = serviceTest.RunJoinCastTextComparisonMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = $"{users}_{uId}";
-                    var ordersTableNameContainer = $"{orders}_{uId}";
-                    var orderedAtContainer = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+                await SeedJoinOrdersAsync(s);
+                return await s.RunJoinCastTextComparisonMatrixAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
-
-                    var resultContainer = serviceTestContainer.RunJoinCastTextComparisonMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4012,70 +1182,17 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma consulta agrupada com filtros HAVING e saidas agregadas convertidas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinHavingCastMatrixTest()
+    public async Task SelectJoinHavingCastMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var usersTableName = $"{users}_{uId}";
-            var ordersTableName = $"{orders}_{uId}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
-
-            var resultMock = serviceTest.RunJoinHavingCastMatrix(users, orders);
-            resultMock.Should().Be(1);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = $"{users}_{uId}";
-                    var ordersTableNameContainer = $"{orders}_{uId}";
-                    var orderedAtContainer = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+                await SeedJoinOrdersAsync(s);
+                return await s.RunJoinHavingCastMatrixAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
-
-                    var resultContainer = serviceTestContainer.RunJoinHavingCastMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -4083,70 +1200,17 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma projeção agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinLengthNumericMatrixTest()
+    public async Task SelectJoinLengthNumericMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var usersTableName = $"{users}_{uId}";
-            var ordersTableName = $"{orders}_{uId}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
-
-            var resultMock = serviceTest.RunJoinLengthNumericMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = $"{users}_{uId}";
-                    var ordersTableNameContainer = $"{orders}_{uId}";
-                    var orderedAtContainer = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+                await SeedJoinOrdersAsync(s);
+                return await s.RunJoinLengthNumericMatrixAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
-
-                    var resultContainer = serviceTestContainer.RunJoinLengthNumericMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4154,70 +1218,17 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma projeção agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinTextCaseLengthMatrixTest()
+    public async Task SelectJoinTextCaseLengthMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var usersTableName = $"{users}_{uId}";
-            var ordersTableName = $"{orders}_{uId}";
-            var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
-
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAt));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTableName, usersTableName, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAt));
-
-            var resultMock = serviceTest.RunJoinTextCaseLengthMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, Array.Empty<(int id, int userId, string note)>());
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var usersTableNameContainer = $"{users}_{uId}";
-                    var ordersTableNameContainer = $"{orders}_{uId}";
-                    var orderedAtContainer = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+                await SeedJoinOrdersAsync(s);
+                return await s.RunJoinTextCaseLengthMatrixAsync(a);
+            });
 
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 10, 1, "A", "o-10", 1.25m, 2, false, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 11, 1, "B", "o-11", 2.75m, 1, true, orderedAtContainer));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTableNameContainer, usersTableNameContainer, 12, 2, "C", "o-12", 5.50m, 4, false, orderedAtContainer));
-
-                    var resultContainer = serviceTestContainer.RunJoinTextCaseLengthMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4225,62 +1236,20 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica um relatorio agrupado com left join, contagens distintas, valores repetidos e expressoes CASE para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinDistinctCaseMatrixTest()
+    public async Task SelectJoinDistinctCaseMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "A"),
             (12, 1, "B"),
             (13, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunJoinDistinctCaseMatrixAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunJoinDistinctCaseMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunJoinDistinctCaseMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4288,62 +1257,20 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica filtragem agrupada com left join, HAVING e contagens distintas de notas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinDistinctHavingMatrixTest()
+    public async Task SelectJoinDistinctHavingMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "A"),
             (12, 1, "B"),
             (13, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunJoinDistinctHavingMatrixAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunJoinDistinctHavingMatrix(users, orders);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunJoinDistinctHavingMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -4351,61 +1278,19 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica se a junção entre usuarios e pedidos retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinCountTest()
+    public async Task SelectJoinCountTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, DmlMutationSelectJoinServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunTestAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunSelectJoin(users, orders);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunSelectJoin(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -4413,80 +1298,34 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica o join basico entre usuarios e pedidos contra o comportamento do provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinTest()
+    public async Task SelectJoinTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new DmlMutationServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, DmlMutationSelectJoinServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunTestAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunSelectJoin(users, orders);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new DmlMutationServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunSelectJoin(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(2);
     }
 
-    private static (int Cte, int Exists, int Correlated, int GroupBy, int UnionAll, int Distinct, int MultiJoin, long ScalarSubquery, int InSubquery, int Pivot) RunRelationalCompositeAssertions<TConnection>(
-        QueryServiceTest<TConnection> serviceTest,
-        string usersTable,
-        string ordersTable)
-        where TConnection : DbConnection
+    private static async Task<object?> RunRelationalCompositeAssertionsAsync(
+        QueryServiceTest serviceTest)
     {
-        var cte = serviceTest.RunCteSimple(usersTable, ordersTable);
-        var existsPredicate = serviceTest.RunSelectExistsPredicate(usersTable, ordersTable);
-        var correlatedCount = serviceTest.RunSelectCorrelatedCount(usersTable, ordersTable);
-        var groupByHaving = serviceTest.RunGroupByHaving(usersTable, ordersTable);
-        var unionAll = serviceTest.RunUnionAllProjection(usersTable);
-        var distinct = serviceTest.RunDistinctProjection(usersTable);
-        var multiJoin = serviceTest.RunMultiJoinAggregate(usersTable, ordersTable);
-        var scalarSubquery = Convert.ToInt64(serviceTest.RunSelectScalarSubquery(usersTable, ordersTable), CultureInfo.InvariantCulture);
-        var inSubquery = serviceTest.RunSelectInSubquery(usersTable, ordersTable);
-        var pivot = serviceTest.RunPivotCount(usersTable);
-
+        var cte = await serviceTest.RunCteSimpleAsync();
+        var existsPredicate = await serviceTest.RunSelectExistsPredicateAsync();
+        var correlatedCount = await serviceTest.RunSelectCorrelatedCountAsync();
+        var groupByHaving = await serviceTest.RunGroupByHavingAsync();
+        var unionAll = await serviceTest.RunUnionAllProjectionAsync();
+        var distinct = await serviceTest.RunDistinctProjectionAsync();
+        var multiJoin = await serviceTest.RunMultiJoinAggregateAsync();
+        var scalarSubquery = Convert.ToInt64(await serviceTest.RunSelectScalarSubqueryAsync(), CultureInfo.InvariantCulture);
+        var inSubquery = await serviceTest.RunSelectInSubqueryAsync();
+        var pivot = await serviceTest.RunPivotCountAsync();
         cte.Should().Be(1);
         existsPredicate.Should().Be(2);
         correlatedCount.Should().Be(2);
@@ -4506,60 +1345,19 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma projeção agrupada que mistura comparacoes temporais com contagens agregadas para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinTemporalMatrixTest()
+    public async Task SelectJoinTemporalMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunJoinTemporalMatrixAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunJoinTemporalMatrix(users, orders);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunJoinTemporalMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4567,61 +1365,19 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica uma projeção com funcoes de janela em join no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectJoinWindowMatrixTest()
+    public async Task SelectJoinWindowMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunJoinWindowMatrixAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunJoinWindowMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunJoinWindowMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4629,61 +1385,19 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica projecoes com janela em join junto com comparacoes temporais no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [Fact]
-    public void SelectJoinWindowTemporalMatrixTest()
+    public async Task SelectJoinWindowTemporalMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunJoinWindowTemporalMatrixAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunJoinWindowTemporalMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunJoinWindowTemporalMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4691,61 +1405,19 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica projecoes com janela em join junto com comparacoes agregadas e temporais no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [Fact]
-    public void SelectJoinWindowAggregateTemporalMatrixTest()
+    public async Task SelectJoinWindowAggregateTemporalMatrixTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunJoinWindowAggregateTemporalMatrixAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunJoinWindowAggregateTemporalMatrix(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunJoinWindowAggregateTemporalMatrix(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
 
     /// <summary>
@@ -4753,68 +1425,24 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica projeções CROSS APPLY e OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectApplyProjectionTest()
+    public async Task SelectApplyProjectionTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var resultCrossApplyMock = serviceTest.RunCrossApplyProjection(users, orders);
-            var resultOuterApplyMock = serviceTest.RunOuterApplyProjection(users, orders);
-
-            resultCrossApplyMock.Should().Be(2);
-            resultOuterApplyMock.Should().Be(3);
-            (resultOuterApplyMock >= resultCrossApplyMock).Should().BeTrue();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultCrossApplyContainer = serviceTestContainer.RunCrossApplyProjection(users, orders);
-                    var resultOuterApplyContainer = serviceTestContainer.RunOuterApplyProjection(users, orders);
+                var crossApply = await s.RunCrossApplyProjectionAsync(a);
+                var outerApply = await s.RunOuterApplyProjectionAsync(a);
+                return (crossApply, outerApply);
+            });
 
-                    resultCrossApplyMock.Should().Be(resultCrossApplyContainer);
-                    resultOuterApplyMock.Should().Be(resultOuterApplyContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().BeEquivalentTo((2, 3));
     }
 
     /// <summary>
@@ -4822,212 +1450,65 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica projeção CROSS APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectCrossApplyProjectionTest()
+    public async Task SelectCrossApplyProjectionTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunCrossApplyProjectionAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunCrossApplyProjection(users, orders);
-            resultMock.Should().Be(2);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunCrossApplyProjection(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(2);
     }
-
-    /// <summary>
-    /// EN: Verifies CROSS APPLY projections return the expected row count for the current provider.
-    /// PT: Verifica se projeções CROSS APPLY retornam a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void CrossApplyProjectionTest()
-        => SelectCrossApplyProjectionTest();
 
     /// <summary>
     /// EN: Verifies OUTER APPLY projection against the shared users and orders scenario for the current provider.
     /// PT: Verifica projeção OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [Fact]
-    public void SelectOuterApplyProjectionTest()
+    public async Task SelectOuterApplyProjectionTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            (s, a) => s.RunOuterApplyProjectionAsync(a));
 
-        try
-        {
-            var resultMock = serviceTest.RunOuterApplyProjection(users, orders);
-            resultMock.Should().Be(3);
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var resultContainer = serviceTestContainer.RunOuterApplyProjection(users, orders);
-                    resultMock.Should().Be(resultContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().Be(3);
     }
-
-    /// <summary>
-    /// EN: Verifies OUTER APPLY projections return the expected row count for the current provider.
-    /// PT: Verifica se projeções OUTER APPLY retornam a contagem esperada de linhas para o provedor atual.
-    /// </summary>
-    [Fact]
-    public void OuterApplyProjectionTest()
-        => SelectOuterApplyProjectionTest();
 
     /// <summary>
     /// EN: Verifies APPLY projections together with temporal join comparisons for the shared users and orders scenario.
     /// PT: Verifica projeções APPLY junto com comparacoes temporais em join no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [Fact]
-    public void SelectApplyTemporalCompositeTest()
+    public async Task SelectApplyTemporalCompositeTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var crossApplyMock = serviceTest.RunCrossApplyProjection(users, orders);
-            var outerApplyMock = serviceTest.RunOuterApplyProjection(users, orders);
-            var temporalMock = serviceTest.RunJoinTemporalMatrix(users, orders);
-
-            crossApplyMock.Should().Be(2);
-            outerApplyMock.Should().Be(3);
-            temporalMock.Should().Be(3);
-            (outerApplyMock >= crossApplyMock).Should().BeTrue();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var crossApplyContainer = serviceTestContainer.RunCrossApplyProjection(users, orders);
-                    var outerApplyContainer = serviceTestContainer.RunOuterApplyProjection(users, orders);
-                    var temporalContainer = serviceTestContainer.RunJoinTemporalMatrix(users, orders);
+                var crossApply = await s.RunCrossApplyProjectionAsync(a);
+                var outerApply = await s.RunOuterApplyProjectionAsync(a);
+                var temporal = await s.RunJoinTemporalMatrixAsync(a);
+                return (crossApply, outerApply, temporal);
+            });
 
-                    crossApplyMock.Should().Be(crossApplyContainer);
-                    outerApplyMock.Should().Be(outerApplyContainer);
-                    temporalMock.Should().Be(temporalContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().BeEquivalentTo((2, 3, 3));
     }
 
     /// <summary>
@@ -5035,79 +1516,59 @@ public abstract class SelectTestsBase<T, T2>(
     /// PT: Verifica APPLY, funcoes de janela e comparacoes temporais em join juntas no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [Fact]
-    public void SelectApplyWindowTemporalCompositeTest()
+    public async Task SelectApplyWindowTemporalCompositeTest()
     {
-        var users = "Users";
-        var orders = "Orders";
-        var uId = NewToken();
-
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob"),
-            (3, "Carla")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
+        object?[] seedOrders = [
             (10, 1, "A"),
             (11, 1, "B"),
             (12, 2, "C")
-        };
+        ];
 
-        var testScenario = new UsersOrdersScenario<T>(dialect, seedUsers, seedOrders);
-        var serviceTest = new QueryServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, orders, uId);
-
-        try
-        {
-            var crossApplyMock = serviceTest.RunCrossApplyProjection(users, orders);
-            var outerApplyMock = serviceTest.RunOuterApplyProjection(users, orders);
-            var windowMock = serviceTest.RunJoinWindowMatrix(users, orders);
-            var temporalMock = serviceTest.RunJoinWindowTemporalMatrix(users, orders);
-
-            crossApplyMock.Should().Be(2);
-            outerApplyMock.Should().Be(3);
-            windowMock.Should().Be(3);
-            temporalMock.Should().Be(3);
-            (outerApplyMock >= crossApplyMock).Should().BeTrue();
-
-            if (IsSelectContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [seedUsers, seedOrders],
+            async (s, a) =>
             {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new UsersOrdersScenario<T2>(dialect, seedUsers, seedOrders);
-                var serviceTestContainer = new QueryServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, orders, uId);
-                try
-                {
-                    var crossApplyContainer = serviceTestContainer.RunCrossApplyProjection(users, orders);
-                    var outerApplyContainer = serviceTestContainer.RunOuterApplyProjection(users, orders);
-                    var windowContainer = serviceTestContainer.RunJoinWindowMatrix(users, orders);
-                    var temporalContainer = serviceTestContainer.RunJoinWindowTemporalMatrix(users, orders);
+                var crossApply = await s.RunCrossApplyProjectionAsync(a);
+                var outerApply = await s.RunOuterApplyProjectionAsync(a);
+                var window = await s.RunJoinWindowMatrixAsync(a);
+                var temporal = await s.RunJoinWindowTemporalMatrixAsync(a);
+                return (crossApply, outerApply, window, temporal);
+            });
 
-                    crossApplyMock.Should().Be(crossApplyContainer);
-                    outerApplyMock.Should().Be(outerApplyContainer);
-                    windowMock.Should().Be(windowContainer);
-                    temporalMock.Should().Be(temporalContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        result.Should().BeEquivalentTo((2, 3, 3, 3));
     }
 
-    private static string NewToken()
-        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+    private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(
+        object?[][] initialData,
+        Func<TServiceTest, object[], object?> runTest,
+        params object[] args)
+        where TScenario : BaseScenario, ITestScenario
+        where TServiceTest : BaseServiceTest
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, initialData);
+
+        return await testService.RunTestAsync<TScenario, TServiceTest>(
+            (serviceTest, runArgs) => Task.FromResult(runTest(serviceTest, runArgs)),
+            args);
+    }
+
+    private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(
+        object?[][] initialData,
+        Func<TServiceTest, object[], Task<object?>> runTest,
+        params object[] args)
+        where TScenario : BaseScenario, ITestScenario
+        where TServiceTest : BaseServiceTest
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, initialData);
+
+        return await testService.RunTestAsync<TScenario, TServiceTest>(runTest, args);
+    }
+
+    private static async Task SeedJoinOrdersAsync(BaseServiceTest serviceTest)
+    {
+        await serviceTest.Repo.ExecuteNonQueryAsync(serviceTest.Repo.Dialect.InsertOrder(serviceTest.Context, 10, 1, "A", "o-10", 1.25m, 2, false, serviceTest.Repo.Dialect.TemporalCurrentTimestampExpression()));
+        await serviceTest.Repo.ExecuteNonQueryAsync(serviceTest.Repo.Dialect.InsertOrder(serviceTest.Context, 11, 1, "B", "o-11", 2.75m, 1, true, serviceTest.Repo.Dialect.TemporalCurrentTimestampExpression()));
+        await serviceTest.Repo.ExecuteNonQueryAsync(serviceTest.Repo.Dialect.InsertOrder(serviceTest.Context, 12, 2, "C", "o-12", 5.50m, 4, false, serviceTest.Repo.Dialect.TemporalCurrentTimestampExpression()));
+    }
 }
 

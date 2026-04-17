@@ -20,30 +20,11 @@ public abstract class TableTestsBase<T, T2>(
     /// PT: Verifica se a criacao de tabela funciona para o provedor atual.
     /// </summary>
     [Fact]
-    public void CreateTableTest()
+    public async Task CreateTableTest()
     {
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new CreateTableScenario<T>();
-        var serviceTest = new CreateTableServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario("Users", uId);
-        serviceTest.RunTest("Users", uId);
-        serviceTest.DropScenario("Users", uId);
-
-        if (IsTableContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var testScenarioContainer = new CreateTableScenario<T2>();
-            var serviceTestContainer = new CreateTableServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTestContainer.CreateScenario("Users", uId);
-            serviceTestContainer.RunTest("Users", uId);
-            serviceTestContainer.DropScenario("Users", uId);
-        }
+        await testService.RunTestAsync<CreateTableScenario, CreateTableServiceTest>();
     }
 
     /// <summary>
@@ -51,32 +32,11 @@ public abstract class TableTestsBase<T, T2>(
     /// PT: Verifica se a criacao de tabela com chave estrangeira funciona para o provedor atual.
     /// </summary>
     [Fact]
-    public void CreateTableWithFKTest()
+    public async Task CreateTableWithFKTest()
     {
-        var uId = NewToken();
-        var users = "Users";
-        var orders = "Orders";
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new CreateTableWithFKScenario<T>();
-        var serviceTest = new CreateTableWithFKServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-        serviceTest.RunTest(users, orders, uId);
-        serviceTest.DropScenario(users, orders, uId);
-
-        if (IsTableContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var testScenarioContainer = new CreateTableWithFKScenario<T2>();
-            var serviceTestContainer = new CreateTableWithFKServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTestContainer.CreateScenario(users, uId);
-            serviceTestContainer.RunTest(users, orders, uId);
-            serviceTestContainer.DropScenario(users, orders, uId);
-        }
+        await testService.RunTestAsync<CreateTableWithFKScenario, CreateTableWithFKServiceTest>();
     }
 
     /// <summary>
@@ -84,58 +44,11 @@ public abstract class TableTestsBase<T, T2>(
     /// PT: Verifica se uma tabela criada com chave estrangeira aceita um insert referenciado valido para o provedor atual.
     /// </summary>
     [Fact]
-    public void CreateTableWithFKInsertTest()
+    public async Task InsertInTableWithFKTest()
     {
-        var uId = NewToken();
-        var users = "Users";
-        var orders = "Orders";
-        var usersTable = $"{users}_{uId}";
-        var ordersTable = $"{orders}_{uId}";
-        var orderedAt = dialect.Provider == ProviderId.Db2 ? "CURRENT TIMESTAMP" : "CURRENT_TIMESTAMP";
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new CreateTableWithFKScenario<T>();
-        var serviceTest = new CreateTableWithFKServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario(users, uId);
-
-        try
-        {
-            serviceTest.RunTest(users, orders, uId);
-            serviceTest.ExecuteNonQuery(dialect.InsertUser(usersTable, 1, "Ana"));
-            serviceTest.ExecuteNonQuery(dialect.InsertOrder(ordersTable, usersTable, 10, 1, "first", "o-10", 12.34m, 2, true, orderedAt));
-
-            var joinCount = Convert.ToInt32(serviceTest.ExecuteScalar(dialect.CountJoinForUser(usersTable, ordersTable, 1)));
-            joinCount.Should().Be(1);
-
-            if (IsTableContainerComparisonEnabled(dialect.Provider)
-                && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-            {
-                using var connContainer = connectionContainer(connectionString);
-                connContainer.Open();
-                var testScenarioContainer = new CreateTableWithFKScenario<T2>();
-                var serviceTestContainer = new CreateTableWithFKServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-                serviceTestContainer.CreateScenario(users, uId);
-                try
-                {
-                    serviceTestContainer.RunTest(users, orders, uId);
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertUser(usersTable, 1, "Ana"));
-                    serviceTestContainer.ExecuteNonQuery(dialect.InsertOrder(ordersTable, usersTable, 10, 1, "first", "o-10", 12.34m, 2, true, orderedAt));
-
-                    var joinCountContainer = Convert.ToInt32(serviceTestContainer.ExecuteScalar(dialect.CountJoinForUser(usersTable, ordersTable, 1)));
-                    joinCount.Should().Be(joinCountContainer);
-                }
-                finally
-                {
-                    serviceTestContainer.DropScenario(users, orders, uId);
-                }
-            }
-        }
-        finally
-        {
-            serviceTest.DropScenario(users, orders, uId);
-        }
+        await testService.RunTestAsync<TableWithFKScenario, InsertInTableWithFKServiceTest>();
     }
 
     /// <summary>
@@ -143,30 +56,10 @@ public abstract class TableTestsBase<T, T2>(
     /// PT: Verifica se a remocao de tabela funciona para o provedor atual.
     /// </summary>
     [Fact]
-    public void DropTableTest()
+    public async Task DropTableTest()
     {
-        var uId = NewToken();
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        using var connMock = connectionMock();
-        connMock.Open();
-
-        var testScenario = new DropTableScenario<T>();
-        var serviceTest = new DropTableServiceTest<T>(connMock, testScenario, dialect);
-        serviceTest.CreateScenario("Users", "Orders", uId);
-        serviceTest.RunTest("Users", uId);
-
-        if (IsTableContainerComparisonEnabled(dialect.Provider)
-            && TryResolveContainerConnectionString(dialect.Provider, out var connectionString))
-        {
-            using var connContainer = connectionContainer(connectionString);
-            connContainer.Open();
-            var testScenarioContainer = new DropTableScenario<T2>();
-            var serviceTestContainer = new DropTableServiceTest<T2>(connContainer, testScenarioContainer, dialect);
-            serviceTestContainer.CreateScenario("Users", "Orders", uId);
-            serviceTestContainer.RunTest("Users", uId);
-        }
+        await testService.RunTestAsync<DropTableScenario, DropTableServiceTest>();
     }
-
-    private static string NewToken()
-        => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 }

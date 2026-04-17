@@ -70,59 +70,50 @@ public sealed class ProviderConnectionStringResolverTests
         {
             ProviderId.MySql,
             BuildEnvironment(
-                ("DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING", "Server=127.0.0.1;Port=13306;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"),
                 ("MYSQL_CONNECTION_STRING", "Server=127.0.0.1;Port=13306;Database=benchmark;Uid=root;Pwd=root;Pooling=false;")),
-            "DBSQLLIKEMEM_BENCH_MYSQL_CONNECTION_STRING",
+            "MYSQL_CONNECTION_STRING",
             "Server=127.0.0.1;Port=13306;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"
         },
         {
             ProviderId.MariaDb,
             BuildEnvironment(
-                ("DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING", "Server=127.0.0.1;Port=13307;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"),
                 ("MARIADB_CONNECTION_STRING", "Server=127.0.0.1;Port=13307;Database=benchmark;Uid=root;Pwd=root;Pooling=false;")),
-            "DBSQLLIKEMEM_BENCH_MARIADB_CONNECTION_STRING",
+            "MARIADB_CONNECTION_STRING",
             "Server=127.0.0.1;Port=13307;Database=benchmark;Uid=root;Pwd=root;Pooling=false;"
         },
         {
             ProviderId.Npgsql,
             BuildEnvironment(
-                ("DBSQLLIKEMEM_BENCH_NPGSQL_CONNECTION_STRING", "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"),
-                ("DBSQLLIKEMEM_BENCH_POSTGRES_CONNECTION_STRING", "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"),
-                ("NPGSQL_CONNECTION_STRING", "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"),
                 ("POSTGRES_CONNECTION_STRING", "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;")),
-            "DBSQLLIKEMEM_BENCH_NPGSQL_CONNECTION_STRING",
+            "POSTGRES_CONNECTION_STRING",
             "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"
         },
         {
             ProviderId.SqlServer,
             BuildEnvironment(
-                ("DBSQLLIKEMEM_BENCH_SQLSERVER_CONNECTION_STRING", "Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;Encrypt=False;TrustServerCertificate=True;Pooling=false;"),
                 ("SQLSERVER_CONNECTION_STRING", "Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;Encrypt=False;TrustServerCertificate=True;Pooling=false;")),
-            "DBSQLLIKEMEM_BENCH_SQLSERVER_CONNECTION_STRING",
+            "SQLSERVER_CONNECTION_STRING",
             "Server=127.0.0.1,11433;Database=master;User Id=sa;Password=Your_password123;Encrypt=False;TrustServerCertificate=True;Pooling=false;"
         },
         {
             ProviderId.Oracle,
             BuildEnvironment(
-                ("DBSQLLIKEMEM_BENCH_ORACLE_CONNECTION_STRING", "User Id=benchmark;Password=benchmark;Data Source=127.0.0.1:15211/FREEPDB1;Pooling=false;"),
                 ("ORACLE_CONNECTION_STRING", "User Id=benchmark;Password=benchmark;Data Source=127.0.0.1:15211/FREEPDB1;Pooling=false;")),
-            "DBSQLLIKEMEM_BENCH_ORACLE_CONNECTION_STRING",
+            "ORACLE_CONNECTION_STRING",
             "User Id=benchmark;Password=benchmark;Data Source=127.0.0.1:15211/FREEPDB1;Pooling=false;"
         },
         {
             ProviderId.Db2,
             BuildEnvironment(
-                ("DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING", "DATABASE=BENCH;SERVER=127.0.0.1:15000;USER_ID=db2inst1;PASSWORD=db2inst1;POOLING=False;"),
                 ("DB2_CONNECTION_STRING", "DATABASE=BENCH;SERVER=127.0.0.1:15000;USER_ID=db2inst1;PASSWORD=db2inst1;POOLING=False;")),
-            "DBSQLLIKEMEM_BENCH_DB2_CONNECTION_STRING",
+            "DB2_CONNECTION_STRING",
             "DATABASE=BENCH;SERVER=127.0.0.1:15000;USER_ID=db2inst1;PASSWORD=db2inst1;POOLING=False;"
         },
         {
             ProviderId.Firebird,
             BuildEnvironment(
-                ("DBSQLLIKEMEM_BENCH_FIREBIRD_CONNECTION_STRING", "User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;"),
-                ("FIREBIRD_CONNECTION_STRING", "User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;")),
-            "DBSQLLIKEMEM_BENCH_FIREBIRD_CONNECTION_STRING",
+                 ("FIREBIRD_CONNECTION_STRING", "User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;")),
+            "FIREBIRD_CONNECTION_STRING",
             "User=benchmark;Password=benchmark;Database=127.0.0.1/13050:/var/lib/firebird/data/benchmark.fdb;Dialect=3;Charset=UTF8;Pooling=false;"
         }
     };

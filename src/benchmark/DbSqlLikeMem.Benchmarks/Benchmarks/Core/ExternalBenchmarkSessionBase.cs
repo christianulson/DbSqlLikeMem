@@ -124,7 +124,7 @@ public abstract class ExternalBenchmarkSessionBase(
     }
 
     private (string ConnectionString, string SourceName) TryGetConfiguredConnectionString()
-        => DbSqlLikeMem.TestTools.ProviderConnectionStringResolver.TryResolve(Provider, out var connectionString, out var sourceName)
+        => ProviderConnectionStringResolver.TryResolve(Dialect.Provider, out var connectionString, out var sourceName)
             ? (connectionString, sourceName)
             : (string.Empty, string.Empty);
 }

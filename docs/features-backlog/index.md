@@ -1369,13 +1369,13 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 #### 6.1.1 Bibliotecas de provedores
 
 - Implementação estimada: **100%**.
-- Alvos configurados centralmente em `src/Directory.Build.props`: `.NET Framework 4.6.2`, `.NET Standard 2.0` e `.NET 8.0`.
+- Alvos configurados centralmente em `src/code/Directory.Build.props`: `.NET Framework 4.6.2`, `.NET Standard 2.0` e `.NET 8.0`.
 - `net6.0` aparece no override para projetos `.Test` e `.TestTools`, não como target das bibliotecas de produção.
 
 #### 6.1.2 Núcleo DbSqlLikeMem
 
 - Implementação estimada: **100%**.
-- Alvos configurados centralmente em `src/Directory.Build.props`: `.NET Framework 4.6.2`, `.NET Standard 2.0` e `.NET 8.0`.
+- Alvos configurados centralmente em `src/code/Directory.Build.props`: `.NET Framework 4.6.2`, `.NET Standard 2.0` e `.NET 8.0`.
 - Estratégia atual maximiza reuso entre legado (`net462`), compatibilidade ampla (`netstandard2.0`) e runtime moderno (`net8.0`); `net6.0` fica concentrado na malha de testes conforme o override central.
 
 #### 6.1.3 Implicações para consumidores
@@ -1400,8 +1400,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Controle de versão semântica para evolução previsível.
 - Incremento desta sessão: validação de metadados dos `.nupkg` foi extraída para `scripts/check_nuget_package_metadata.py`, removendo lógica inline duplicada do workflow `nuget-publish.yml` e permitindo auditoria local pós-pack.
 - Incremento desta sessão: `docs/nuget-readiness-validation-report.md` foi alinhado ao estado atual do `Directory.Build.props`, incluindo presença de `PackageLicenseExpression` e trilha explícita de auditoria pós-pack.
-- Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a usar `src/Directory.Build.props` como fonte de verdade para validar `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes` e licença do `.nuspec`, além da presença física do `README.md` dentro do pacote.
-- Incremento desta sessão: o mesmo gate pós-pack passou a validar também `requireLicenseAcceptance` no `.nuspec`, reaproveitando `PackageRequireLicenseAcceptance` do `src/Directory.Build.props` e cobrindo esse contrato com `unittest` dedicado.
+- Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a usar `src/code/Directory.Build.props` como fonte de verdade para validar `authors`, `repository`, `projectUrl`, `readme`, `tags`, `releaseNotes` e licença do `.nuspec`, além da presença física do `README.md` dentro do pacote.
+- Incremento desta sessão: o mesmo gate pós-pack passou a validar também `requireLicenseAcceptance` no `.nuspec`, reaproveitando `PackageRequireLicenseAcceptance` do `src/code/Directory.Build.props` e cobrindo esse contrato com `unittest` dedicado.
 - Incremento desta sessão: o workflow `nuget-publish.yml` passou a respeitar opcionalmente `vars.NUGET_PUBLISH_ENVIRONMENT` com fallback para `nuget-publish`, alinhando o contrato documentado de Environment ao YAML real e ao auditor de readiness.
 - Incremento desta sessão: o workflow `nuget-publish.yml` passou a executar também `scripts/check_release_readiness.py` antes do `restore`, levando o gate documental/operacional do release para o próprio fluxo de publicação NuGet e prendendo isso no `unittest` do auditor.
 - TODO: ampliar o gate NuGet para símbolos/source metadata e demais artefatos opcionais de publicação quando essa trilha entrar no processo oficial de release.
@@ -1519,10 +1519,10 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento major para quebras comportamentais/documentadas.
 - Incremento minor para novos recursos compatíveis.
 - Incremento patch para correções sem alteração contratual.
-- Auditoria operacional agora valida presença centralizada da versão em `src/Directory.Build.props`, reduzindo risco de release documental sem referência de versão.
+- Auditoria operacional agora valida presença centralizada da versão em `src/code/Directory.Build.props`, reduzindo risco de release documental sem referência de versão.
 - Incremento desta sessão: `scripts/check_release_readiness.py` passou a validar formato SemVer no núcleo e nas extensões (VS Code/VSIX), endurecendo a trilha de versionamento sem forçar igualdade artificial entre artefatos distintos.
 - Incremento desta sessão: `docs/publishing.md`, wiki e READMEs das extensões passaram a explicitar também a fonte de verdade da versão por artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`) e o prefixo de tag correspondente; o auditor agora vigia esse contrato.
-- Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a validar também a versão efetivamente publicada no `.nuspec` contra `src/Directory.Build.props` e o sufixo do arquivo `.nupkg`, reduzindo risco de pacote NuGet sair com SemVer divergente da fonte de verdade central.
+- Incremento desta sessão: `scripts/check_nuget_package_metadata.py` passou a validar também a versão efetivamente publicada no `.nuspec` contra `src/code/Directory.Build.props` e o sufixo do arquivo `.nupkg`, reduzindo risco de pacote NuGet sair com SemVer divergente da fonte de verdade central.
 - Incremento desta sessão: os workflows de publish passaram a validar explicitamente a presença da fonte de versão de cada artefato (`Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`), e o auditor agora exige esse contrato para manter tag, arquivo-fonte e publish sob a mesma trilha verificável.
 - Incremento desta sessão: o auditor de release passou a emitir uma sugestão de impacto SemVer a partir das notas de `CHANGELOG.md` em `## [Unreleased]`, reduzindo subjetividade na triagem entre `PATCH`, `MINOR` e `MAJOR`.
 
