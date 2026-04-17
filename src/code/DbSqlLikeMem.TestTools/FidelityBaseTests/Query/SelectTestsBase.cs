@@ -16,9 +16,6 @@ public abstract class SelectTestsBase<T, T2>(
     where T : DbConnection
     where T2 : DbConnection
 {
-    private static readonly object?[] InicialData = [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo")];
-    private static readonly object?[] InicialData2 = [(1, "Aaron"), (2, "Alice"), (3, "Bob"), (4, "Charlie"), (5, "Delta")];
-    private static readonly object?[] seedUsers = [(1, "Alice"), (2, "Bob"), (3, "Carla")];
 
     /// <summary>
     /// EN: Verifies that primary-key selection returns the expected row for the current provider.
@@ -69,15 +66,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectScalarSubqueryCaseMatrixTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "A"),
-            (12, 1, "B"),
-            (13, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             //TODO: validar se este é o método correto para o teste, pois esta duplicado
@@ -92,15 +82,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectScalarCaseMatrixTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "A"),
-            (12, 1, "B"),
-            (13, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectScalarCaseMatrixAsync(a));
@@ -114,14 +97,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectNotExistsPredicateTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectNotExistsPredicateAsync(a));
@@ -135,14 +112,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectLeftJoinAntiJoinTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectLeftJoinAntiJoinAsync(a));
@@ -156,14 +127,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectNotInSubqueryTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectNotInSubqueryAsync(a));
@@ -177,14 +142,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectExistsPredicateTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectExistsPredicateAsync(a));
@@ -198,14 +157,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectCorrelatedCountTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectCorrelatedCountAsync(a));
@@ -219,14 +172,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectInSubqueryTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectInSubqueryAsync(a));
@@ -247,7 +194,7 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.seedUsers, seedOrders]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectScalarSubqueryAsync(a));
@@ -268,7 +215,7 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.seedUsers, seedOrders]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunGroupByHavingAsync(a));
@@ -317,7 +264,7 @@ public abstract class SelectTestsBase<T, T2>(
             (12, 2, "C")
         };
 
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.seedUsers, seedOrders]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunMultiJoinAggregateAsync(a));
@@ -345,7 +292,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectBetweenPredicateTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunBetweenPredicateMatrixAsync(a));
@@ -359,7 +307,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectLikePredicateTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunLikePredicateMatrixAsync(a));
@@ -373,7 +321,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectBetweenLikeOrderByTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunBetweenLikeOrderByMatrixAsync(a));
@@ -387,7 +335,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectBetweenLikeOrderByMatrixTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData2]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData2]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunBetweenLikeOrderByMatrixAsync(a));
@@ -401,7 +349,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectNotLikePredicateTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunNotLikePredicateMatrixAsync(a));
@@ -415,7 +363,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectNotEqualPredicateTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunNotEqualPredicateMatrixAsync(a));
@@ -430,7 +378,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectEqualPredicateTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunEqualPredicateMatrixAsync(a));
@@ -444,7 +392,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectParameterByNameTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunParameterSelectByNameMatrixAsync(a),
@@ -459,7 +407,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectParameterByIdTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunParameterSelectByIdMatrixAsync(a),
@@ -478,7 +426,7 @@ public abstract class SelectTestsBase<T, T2>(
             ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
             : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
 
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, a) => s.RunParameterRoundTripMatrixAsync(a),
@@ -507,7 +455,7 @@ public abstract class SelectTestsBase<T, T2>(
         var ansiFixedText = "Fixed ANSI";
         var fixedText = "Fixed Text";
 
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, a) => s.RunParameterTypeMatrixAsync(a),
@@ -570,7 +518,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectGreaterThanPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [InicialData],
+            [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunGreaterThanPredicateMatrixAsync(a));
 
         result.Should().Be(2);
@@ -584,7 +532,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectLessThanPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [InicialData],
+            [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunLessThanPredicateMatrixAsync(a));
 
         result.Should().Be(2);
@@ -598,7 +546,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectGreaterThanOrEqualPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [InicialData],
+            [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunGreaterThanOrEqualPredicateMatrixAsync(a));
 
         result.Should().Be(3);
@@ -612,7 +560,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectLessThanOrEqualPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [InicialData],
+            [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunLessThanOrEqualPredicateMatrixAsync(a));
 
         result.Should().Be(3);
@@ -757,7 +705,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectDistinctOrderByOrdinalTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctOrderByOrdinalMatrixAsync(a));
 
         result.Should().Be(4);
@@ -771,7 +719,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectDistinctOrderByOrdinalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctOrderByOrdinalMatrixAsync(a));
 
         result.Should().Be(4);
@@ -785,7 +733,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectDistinctLikeOrderByOrdinalTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctLikeOrderByOrdinalMatrixAsync(a));
 
         result.Should().Be(3);
@@ -799,7 +747,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectDistinctLikeOrderByOrdinalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
-            [[(1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta")]],
+            [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctLikeOrderByOrdinalMatrixAsync(a));
 
         result.Should().Be(3);
@@ -868,20 +816,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectRelationalCompositeTest()
     {
-        var seedUsers = new (int id, string name)[]
-        {
-            (1, "Alice"),
-            (2, "Bob")
-        };
-
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers2, SelectTestsBaseSeeds.seedOrders2]);
 
         await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => RunRelationalCompositeAssertionsAsync(s));
@@ -1106,14 +1042,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinTypedExpressionMatrixTest()
     {
-        object?[] seedUsers2 =
-        [
-            (1, "Alice"),
-            (2, "Bob")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers2],
+            [SelectTestsBaseSeeds.seedUsers2],
             async (s, a) =>
             {
                 await SeedJoinOrdersAsync(s);
@@ -1131,7 +1061,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectJoinNullAggregateMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers],
+            [SelectTestsBaseSeeds.seedUsers],
             async (s, a) =>
             {
                 await SeedJoinOrdersAsync(s);
@@ -1149,7 +1079,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectJoinCastNullMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers],
+            [SelectTestsBaseSeeds.seedUsers],
             async (s, a) =>
             {
                 await SeedJoinOrdersAsync(s);
@@ -1167,7 +1097,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectJoinCastTextComparisonMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers],
+            [SelectTestsBaseSeeds.seedUsers],
             async (s, a) =>
             {
                 await SeedJoinOrdersAsync(s);
@@ -1185,7 +1115,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectJoinHavingCastMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers],
+            [SelectTestsBaseSeeds.seedUsers],
             async (s, a) =>
             {
                 await SeedJoinOrdersAsync(s);
@@ -1203,7 +1133,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectJoinLengthNumericMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers],
+            [SelectTestsBaseSeeds.seedUsers],
             async (s, a) =>
             {
                 await SeedJoinOrdersAsync(s);
@@ -1221,7 +1151,7 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectJoinTextCaseLengthMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers],
+            [SelectTestsBaseSeeds.seedUsers],
             async (s, a) =>
             {
                 await SeedJoinOrdersAsync(s);
@@ -1238,15 +1168,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinDistinctCaseMatrixTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "A"),
-            (12, 1, "B"),
-            (13, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders],
             (s, a) => s.RunJoinDistinctCaseMatrixAsync(a));
 
         result.Should().Be(3);
@@ -1259,15 +1182,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinDistinctHavingMatrixTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "A"),
-            (12, 1, "B"),
-            (13, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders],
             (s, a) => s.RunJoinDistinctHavingMatrixAsync(a));
 
         result.Should().Be(2);
@@ -1280,14 +1196,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinCountTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, DmlMutationSelectJoinServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunTestAsync(a));
 
         result.Should().Be(2);
@@ -1300,14 +1210,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, DmlMutationSelectJoinServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunTestAsync(a));
 
         result.Should().Be(2);
@@ -1347,14 +1251,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinTemporalMatrixTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinTemporalMatrixAsync(a));
 
         result.Should().Be(3);
@@ -1367,14 +1265,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinWindowMatrixTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowMatrixAsync(a));
 
         result.Should().Be(3);
@@ -1387,14 +1279,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinWindowTemporalMatrixTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowTemporalMatrixAsync(a));
 
         result.Should().Be(3);
@@ -1407,14 +1293,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectJoinWindowAggregateTemporalMatrixTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowAggregateTemporalMatrixAsync(a));
 
         result.Should().Be(3);
@@ -1427,14 +1307,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectApplyProjectionTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
             {
                 var crossApply = await s.RunCrossApplyProjectionAsync(a);
@@ -1452,14 +1326,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectCrossApplyProjectionTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunCrossApplyProjectionAsync(a));
 
         result.Should().Be(2);
@@ -1472,14 +1340,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectOuterApplyProjectionTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunOuterApplyProjectionAsync(a));
 
         result.Should().Be(3);
@@ -1492,14 +1354,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectApplyTemporalCompositeTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
             {
                 var crossApply = await s.RunCrossApplyProjectionAsync(a);
@@ -1518,14 +1374,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectApplyWindowTemporalCompositeTest()
     {
-        object?[] seedOrders = [
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        ];
-
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            [seedUsers, seedOrders],
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
             {
                 var crossApply = await s.RunCrossApplyProjectionAsync(a);

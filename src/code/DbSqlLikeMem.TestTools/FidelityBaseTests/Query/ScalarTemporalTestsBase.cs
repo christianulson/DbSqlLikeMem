@@ -33,6 +33,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => RunScalarTemporalMatrixAsync(s));
+        //TODO: Re-enable detailed assertions once providers are validated to meet the expected temporal semantics.
         //(result.DateAdd > result.DateScalar).Should().BeTrue();
         //(result.DateAdd > result.CurrentTimestamp).Should().BeTrue();
         //result.WhereCount.Should().Be(3);

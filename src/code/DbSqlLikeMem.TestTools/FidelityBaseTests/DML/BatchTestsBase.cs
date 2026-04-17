@@ -72,7 +72,9 @@ public abstract class BatchTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        (await testService.RunTestAsync<InsertUsersScenario, BatchScalarServiceTest>()).Should().Be("Bob");
+        (await testService.RunTestAsync<InsertUsersScenario, BatchScalarServiceTest>())
+            .Should()
+            .BeEquivalentTo(new object?[] { 2, "Bob" });
     }
 
     /// <summary>

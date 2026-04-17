@@ -42,7 +42,7 @@ public class NotFidelityTestService<TCnn1>(
         params object[] args
     ) where TScenario : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest, IBaseServiceTest
-    => Execute<TScenario, TServiceTest>(args, RepoMock, InitialData);
+    => Execute<TScenario, TServiceTest>(args, RepoMock, InitialData, new FidelityTestContext());
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
@@ -57,7 +57,7 @@ public class NotFidelityTestService<TCnn1>(
     ) where TScenario : BaseScenario, ITestScenario
         where TScenario2 : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest, IBaseServiceTest
-    => Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData);
+    => Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData, new FidelityTestContext());
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
@@ -71,7 +71,7 @@ public class NotFidelityTestService<TCnn1>(
         params object[] args
     ) where TScenario : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest
-    => Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData);
+    => Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData, new FidelityTestContext());
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
@@ -87,7 +87,7 @@ public class NotFidelityTestService<TCnn1>(
     ) where TScenario : BaseScenario, ITestScenario
         where TScenario2 : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest
-    => Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData);
+    => Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData, new FidelityTestContext());
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
@@ -98,17 +98,18 @@ public class NotFidelityTestService<TCnn1>(
     /// <param name="args"></param>
     /// <param name="repo"></param>
     /// <param name="initialData"></param>
+    /// <param name="context"></param>
     /// <returns></returns>
     protected static async Task<object?> Execute<TScenario, TServiceTest>(
         object[] args,
         RepoService repo,
-        object?[][] initialData
+        object?[][] initialData,
+        FidelityTestContext context
     )
     where TScenario : BaseScenario, ITestScenario
     where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
         object? objResult = null;
-        var context = new FidelityTestContext();
         var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
@@ -137,18 +138,19 @@ public class NotFidelityTestService<TCnn1>(
     /// <param name="args"></param>
     /// <param name="repo"></param>
     /// <param name="initialData"></param>
+    /// <param name="context"></param>
     /// <returns></returns>
     protected static async Task<object?> Execute<TScenario, TScenario2, TServiceTest>(
         object[] args,
         RepoService repo,
-        object?[][] initialData
+        object?[][] initialData,
+        FidelityTestContext context
     )
         where TScenario : BaseScenario, ITestScenario
         where TScenario2 : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
         object? objResult = null;
-        var context = new FidelityTestContext();
         var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var testScenario2 = Activator.CreateInstance(typeof(TScenario2), [repo, context, .. initialData]) as TScenario2;
@@ -180,18 +182,19 @@ public class NotFidelityTestService<TCnn1>(
     /// <param name="args"></param>
     /// <param name="repo"></param>
     /// <param name="initialData"></param>
+    /// <param name="context"></param>
     /// <returns></returns>
     protected static async Task<object?> Execute<TScenario, TServiceTest>(
         Func<TServiceTest, object[], Task<object?>> fnRunTest,
         object[] args,
         RepoService repo,
-        object?[][] initialData
+        object?[][] initialData,
+        FidelityTestContext context
     )
     where TScenario : BaseScenario, ITestScenario
     where TServiceTest : BaseServiceTest
     {
         object? objResult = null;
-        var context = new FidelityTestContext();
         var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
@@ -220,19 +223,20 @@ public class NotFidelityTestService<TCnn1>(
     /// <param name="args"></param>
     /// <param name="repo"></param>
     /// <param name="initialData"></param>
+    /// <param name="context"></param>
     /// <returns></returns>
     protected static async Task<object?> Execute<TScenario, TScenario2, TServiceTest>(
         Func<TServiceTest, object[], Task<object?>> fnRunTest,
         object[] args,
         RepoService repo,
-        object?[][] initialData
+        object?[][] initialData,
+        FidelityTestContext context
     )
         where TScenario : BaseScenario, ITestScenario
         where TScenario2 : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest
     {
         object? objResult = null;
-        var context = new FidelityTestContext();
         var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var testScenario2 = Activator.CreateInstance(typeof(TScenario2), [repo, context, .. initialData]) as TScenario2;

@@ -42,15 +42,16 @@ public class FidelityTestService<TCnn1, TCnn2>
     /// <returns></returns>
     public override async Task<object?> RunTestAsync<TScenario, TServiceTest>(params object[] args)
     {
+        var context = new FidelityTestContext();
         object? objResultContainer = null;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
-            objResultContainer = await Execute<TScenario, TServiceTest>(args, repoContainer, InitialData);
+            objResultContainer = await Execute<TScenario, TServiceTest>(args, repoContainer, InitialData, context);
         }
 
-        var objResultMock = await Execute<TScenario, TServiceTest>(args, RepoMock, InitialData);
+        var objResultMock = await Execute<TScenario, TServiceTest>(args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
             objResultMock.Should().BeEquivalentTo(objResultContainer
@@ -73,15 +74,16 @@ public class FidelityTestService<TCnn1, TCnn2>
     /// <returns></returns>
     public override async Task<object?> RunTestAsync<TScenario, TScenario2, TServiceTest>(params object[] args)
     {
+        var context = new FidelityTestContext();
         object? objResultContainer = null;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
-            objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(args, repoContainer, InitialData);
+            objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(args, repoContainer, InitialData, context);
         }
 
-        var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData);
+        var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
             objResultMock.Should().BeEquivalentTo(objResultContainer
@@ -106,15 +108,16 @@ public class FidelityTestService<TCnn1, TCnn2>
         Func<TServiceTest, object[], Task<object?>> fnRunTest,
         params object[] args)
     {
+        var context = new FidelityTestContext();
         object? objResultContainer = null;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
-            objResultContainer = await Execute<TScenario, TServiceTest>(fnRunTest, args, repoContainer, InitialData);
+            objResultContainer = await Execute<TScenario, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
         }
 
-        var objResultMock = await Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData);
+        var objResultMock = await Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
             objResultMock.Should().BeEquivalentTo(objResultContainer
@@ -139,15 +142,16 @@ public class FidelityTestService<TCnn1, TCnn2>
         Func<TServiceTest, object[], Task<object?>> fnRunTest,
         params object[] args)
     {
+        var context = new FidelityTestContext();
         object? objResultContainer = null;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
-            objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, repoContainer, InitialData);
+            objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
         }
 
-        var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData);
+        var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
             objResultMock.Should().BeEquivalentTo(objResultContainer
