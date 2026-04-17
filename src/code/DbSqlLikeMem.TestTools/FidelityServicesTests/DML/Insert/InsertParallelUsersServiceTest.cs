@@ -50,11 +50,17 @@ public class InsertParallelUsersServiceTest(
     => parallelRepo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (
     Id,
-    Name
+    Name,
+    IsActive,
+    Balance,
+    CreatedAt
 )
 VALUES (
     {Repo.Dialect.Parameter("id")},
-    {Repo.Dialect.Parameter("name")}
+    {Repo.Dialect.Parameter("name")},
+    1,
+    0.00,
+    {Repo.Dialect.TemporalCurrentTimestampExpression()}
 )
 """, addParameters: command =>
         {

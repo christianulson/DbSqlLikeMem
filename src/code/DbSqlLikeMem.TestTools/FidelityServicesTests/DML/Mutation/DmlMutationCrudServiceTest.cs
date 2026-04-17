@@ -421,8 +421,8 @@ public class DmlMutationUpdateByPkServiceTest(
 }
 
 /// <summary>
-/// EN: Deletes one user row and validates the remaining row count.
-/// PT: Exclui uma linha de usuario e valida a contagem de linhas restante.
+/// EN: Deletes one user row and validates the remaining row projection.
+/// PT: Exclui uma linha de usuario e valida a projeção da linha restante.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -433,14 +433,17 @@ public class DmlMutationDeleteByPkServiceTest(
     IBaseServiceTest
 {
     /// <summary>
-    /// EN: Deletes one user row and validates the remaining row count.
-    /// PT: Exclui uma linha de usuario e valida a contagem de linhas restante.
+    /// EN: Deletes one user row and validates the remaining row projection.
+    /// PT: Exclui uma linha de usuario e valida a projeção da linha restante.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
 
         await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, 1));
-        var lst = await Repo.ExecuteReaderAsync(Repo.Dialect.SelectAll(Context.TbUsersFullName));
+        var lst = await Repo.ExecuteReaderAsync($"""
+SELECT Id, Name
+FROM {Context.TbUsersFullName}
+""");
         if (lst.Count != 1
             || lst[0].Count != 1)
         {

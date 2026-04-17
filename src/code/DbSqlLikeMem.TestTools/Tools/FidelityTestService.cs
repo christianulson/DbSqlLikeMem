@@ -30,7 +30,15 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         if (TestEnv.RunContainerTests.Value
             && ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
+        {
+            if (dialect.Provider == ProviderId.Sqlite && string.IsNullOrWhiteSpace(connectionString))
+            {
+                // Keep SQLite clones pointed at the same shared in-memory database for this test run.
+                connectionString = $"Data Source=file:dbsqllikemem_{Guid.NewGuid():N}?mode=memory&cache=shared";
+            }
+
             repoContainer = new RepoService(() => connectionContainer(connectionString), dialect);
+        }
     }
 
     /// <summary>
