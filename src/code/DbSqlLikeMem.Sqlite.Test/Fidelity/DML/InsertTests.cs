@@ -21,7 +21,7 @@ public class InsertTests(
 
     private static int InitializeBootstrap()
     {
-        Sqlite.Test.SqliteBootstrap.Initialize();
+        SqliteBootstrap.Initialize();
         return 0;
     }
 }

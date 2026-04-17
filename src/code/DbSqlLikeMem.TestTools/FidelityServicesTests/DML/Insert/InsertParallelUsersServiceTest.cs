@@ -16,13 +16,13 @@ public class InsertParallelUsersServiceTest(
     /// EN: Inserts the requested number of user rows in parallel and validates the final count.
     /// PT: Insere a quantidade solicitada de linhas de usuario em paralelo e valida a contagem final.
     /// </summary>
-    /// <param name="args">EN: The row count, optional starting id, and optional expected total count. PT: O nome da tabela de usuarios, o token do cenario, a contagem de linhas, o id inicial opcional e a contagem total esperada opcional.</param>
+    /// <param name="args">EN: The row count and optional start id. PT: A contagem de linhas e o id inicial opcional.</param>
     /// <returns>EN: The final row count. PT: A contagem final de linhas.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
-        var rowCount = (int)args[2];
-        var startId = args.Length > 3 ? (int)args[3] : 1;
-        var expectedCount = args.Length > 4 ? (int)args[4] : rowCount;
+        var rowCount = (int)args[0];
+        var startId = args.Length > 1 ? (int)args[1] : 1;
+        var expectedCount = args.Length > 2 ? (int)args[2] : rowCount;
 
         var tasks = Enumerable.Range(0, rowCount)
             .Select(async offset =>
