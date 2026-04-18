@@ -1,4 +1,6 @@
-﻿namespace DbSqlLikeMem.TestTools;
+using System.Reflection;
+
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: FidelityTestService is a generic class designed to facilitate the execution of fidelity tests across different database providers. It abstracts the testing logic, allowing for the comparison of results between a mock implementation and a real containerized database connection. The class is parameterized with two types, TCnn1 and TCnn2, representing the connection types for the mock and container scenarios, respectively. This design promotes code reuse and consistency in testing across various database providers and scenarios.
@@ -110,7 +112,7 @@ public class NotFidelityTestService<TCnn1>(
     where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
         object? objResult = null;
-        var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -151,9 +153,9 @@ public class NotFidelityTestService<TCnn1>(
         where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
         object? objResult = null;
-        var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
-        var testScenario2 = Activator.CreateInstance(typeof(TScenario2), [repo, context, .. initialData]) as TScenario2;
+        var testScenario2 = CreateScenarioInstance<TScenario2>(repo, context, initialData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario2, nameof(testScenario2));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -195,7 +197,7 @@ public class NotFidelityTestService<TCnn1>(
     where TServiceTest : BaseServiceTest
     {
         object? objResult = null;
-        var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -237,9 +239,9 @@ public class NotFidelityTestService<TCnn1>(
         where TServiceTest : BaseServiceTest
     {
         object? objResult = null;
-        var testScenario = Activator.CreateInstance(typeof(TScenario), [repo, context, .. initialData]) as TScenario;
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
-        var testScenario2 = Activator.CreateInstance(typeof(TScenario2), [repo, context, .. initialData]) as TScenario2;
+        var testScenario2 = CreateScenarioInstance<TScenario2>(repo, context, initialData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario2, nameof(testScenario2));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -299,4 +301,80 @@ public class NotFidelityTestService<TCnn1>(
     }
 
     #endregion
+
+private static TScenario CreateScenarioInstance<TScenario>(
+        RepoService repo,
+        FidelityTestContext context,
+        object?[][] initialData
+    )
+        where TScenario : BaseScenario, ITestScenario
+    {
+        var type = typeof(TScenario);
+        var ctors = type.GetConstructors();
+        foreach (var ctor in ctors)
+        {
+            var ps = ctor.GetParameters();
+            if (ps.Length == 2)
+            {
+                return (TScenario)ctor.Invoke([repo, context]);
+            }
+            if (ps.Length == 3)
+            {
+                var arr = TryConvertToArray(initialData, 0, typeof((int, string)[]));
+                if (arr != null)
+                    return (TScenario)ctor.Invoke([repo, context, arr]);
+                arr = TryConvertToArray(initialData, 0, typeof((int, int, string)[]));
+                if (arr != null)
+                    return (TScenario)ctor.Invoke([repo, context, arr]);
+                if (initialData.Length == 0)
+                    return (TScenario)ctor.Invoke([repo, context, Array.Empty<object?[]>()]);
+            }
+            if (ps.Length == 4 && initialData.Length >= 2)
+            {
+                var arr1 = TryConvertToArray(initialData, 0, typeof((int, string)[]));
+                var arr2 = TryConvertToArray(initialData, 1, typeof((int, int, string)[]));
+                if (arr1 != null && arr2 != null)
+                    return (TScenario)ctor.Invoke([repo, context, arr1, arr2]);
+            }
+        }
+        throw new MissingMethodException($"Constructor on type '{type.Name}' not found.");
+    }
+
+    private static object? TryConvertToArray(object?[][] initialData, int index, Type targetType)
+    {
+        if (index >= initialData.Length)
+            return null;
+        var data = initialData[index];
+        if (data == null || data.Length == 0)
+            return null;
+        if (targetType == typeof((int, string)[]))
+        {
+            var arr = new (int, string)[data.Length];
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (data[i] is ValueTuple<int, string> vt)
+                    arr[i] = vt;
+                else if (data[i] is Tuple<int, string> t)
+                    arr[i] = (t.Item1, t.Item2);
+                else if (data[i] is object[] oa && oa.Length >= 2)
+                    arr[i] = (Convert.ToInt32(oa[0]), oa[1]?.ToString() ?? "");
+            }
+            return arr;
+        }
+        if (targetType == typeof((int, int, string)[]))
+        {
+            var arr = new (int, int, string)[data.Length];
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (data[i] is ValueTuple<int, int, string> vt)
+                    arr[i] = vt;
+                else if (data[i] is Tuple<int, int, string> t)
+                    arr[i] = (t.Item1, t.Item2, t.Item3);
+                else if (data[i] is object[] oa && oa.Length >= 3)
+                    arr[i] = (Convert.ToInt32(oa[0]), Convert.ToInt32(oa[1]), oa[2]?.ToString() ?? "");
+            }
+            return arr;
+        }
+        return null;
+    }
 }

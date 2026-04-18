@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools.Performance;
+namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes the connection reset volatile data workflow for the lifecycle benchmark and validates the observed provider behavior.
@@ -20,7 +20,9 @@ public class ConnectionLifecycleResetVolatileDataServiceTest(
     /// <returns></returns>
     public Task<object?> RunTestAsync(params object[] args)
     {
+        Repo.Cnn.Open();
         TryInvokeIfExists(Repo.Cnn, "ResetVolatileData");
+        Repo.Cnn.State.Should().Be(ConnectionState.Open);
         GC.KeepAlive(Repo.Cnn.State);
         return Task.FromResult<object?>(1);
     }

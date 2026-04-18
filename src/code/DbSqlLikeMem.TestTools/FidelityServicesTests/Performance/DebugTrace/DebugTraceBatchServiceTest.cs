@@ -14,11 +14,11 @@ public class DebugTraceBatchServiceTest(
     /// EN: Executes a batch and reads the provider debug SQL batch trace when available.
     /// PT: Executa um lote e lê o rastreamento do lote SQL de debug do provedor quando disponivel.
     /// </summary>
-    /// <param name="args">EN: The users table name and optional insert ids. PT: O nome da tabela de usuarios e os ids de insert opcionais.</param>
+    /// <param name="args">EN: Optional insert ids for the batch rows. PT: IDs opcionais de insert para as linhas do lote.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        var id1 = args.Length > 0 ? (int)args[1] : 1;
-        var id2 = args.Length > 1 ? (int)args[2] : 2;
+        var id1 = args.Length > 0 ? (int)args[0] : 1;
+        var id2 = args.Length > 1 ? (int)args[1] : 2;
         try
         {
             await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id1, "Alice"));

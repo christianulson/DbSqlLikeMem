@@ -153,7 +153,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
         _ = command.ExecuteScalar();
 
         logger.Messages.Should().Contain(x => x.Contains("event=CommandExecuted", StringComparison.Ordinal));
-        logger.Messages.Should().Contain(x => x.Contains("sql=select 77", StringComparison.Ordinal));
+        logger.Messages.Should().Contain(x => x.Contains("sql=[REDACTED]", StringComparison.Ordinal));
     }
 
     /// <summary>

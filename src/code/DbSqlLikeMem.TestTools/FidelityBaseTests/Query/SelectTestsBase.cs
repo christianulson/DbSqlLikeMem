@@ -70,8 +70,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            //TODO: validar se este é o método correto para o teste, pois esta duplicado
-            (s, a) => s.RunSelectScalarCaseMatrixAsync(a));
+            (s, a) => s.RunSelectScalarSubqueryCaseMatrixAsync(a));
         result.Should().Be(3);
     }
 

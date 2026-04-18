@@ -29,15 +29,23 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     [Fact]
     public async Task ScalarTemporalMatrixTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            TemporalComparisonTolerance,
+            [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => RunScalarTemporalMatrixAsync(s));
-        //TODO: Re-enable detailed assertions once providers are validated to meet the expected temporal semantics.
-        //(result.DateAdd > result.DateScalar).Should().BeTrue();
-        //(result.DateAdd > result.CurrentTimestamp).Should().BeTrue();
-        //result.WhereCount.Should().Be(3);
-        //result.OrderedName.Should().Be("Aaron");
+
+        var (dateScalar, currentTimestamp, dateAdd, whereCount, orderedName) =
+            ((DateTime dateScalar, DateTime currentTimestamp, DateTime dateAdd, int whereCount, string orderedName))result!;
+
+        dateAdd.Should().BeCloseTo(dateScalar, TemporalComparisonTolerance);
+        dateAdd.Should().BeCloseTo(currentTimestamp, TemporalComparisonTolerance);
+        whereCount.Should().Be(3);
+        orderedName.Should().Be("Aaron");
     }
 
     /// <summary>
@@ -47,7 +55,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     [Fact]
     public async Task DateScalarTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunDateScalarAsync());
@@ -61,7 +69,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     [Fact]
     public async Task TemporalCurrentTimestampTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunTemporalCurrentTimestampAsync());
@@ -75,7 +83,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     [Fact]
     public async Task TemporalDateAddTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunTemporalDateAddAsync());
@@ -89,7 +97,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     [Fact]
     public async Task TemporalNowWhereTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            TemporalComparisonTolerance,
+            [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunTemporalNowWhereAsync(a));
@@ -103,7 +116,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     [Fact]
     public async Task TemporalNowOrderByTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            TemporalComparisonTolerance,
+            [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunTemporalNowOrderByAsync(a));

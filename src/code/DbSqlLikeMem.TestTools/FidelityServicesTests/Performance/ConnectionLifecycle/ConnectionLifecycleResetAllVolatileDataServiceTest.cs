@@ -16,6 +16,7 @@ public class ConnectionLifecycleResetAllVolatileDataServiceTest(
     /// </summary>
     public Task<object?> RunTestAsync(params object[] args)
     {
+        Repo.Cnn.Open();
         if (!TryInvokeIfExists(Repo.Cnn, "ResetAllVolatileData"))
             TryInvokeIfExists(Repo.Cnn, "ResetVolatileData");
 

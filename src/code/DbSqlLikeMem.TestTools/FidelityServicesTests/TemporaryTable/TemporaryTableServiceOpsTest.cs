@@ -44,7 +44,7 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
                 throw new InvalidOperationException("Db2 temporary table mock flow requires a mock connection.");
             }
 
-            await TryDropTemporaryTable();
+            await TryDropTemporaryTable(tempTable);
             var tempTableMock = mockConnection.AddTemporaryTable(tempTable);
             tempTableMock.AddColumn("Id", DbType.Int32, false);
             tempTableMock.AddColumn("Name", DbType.String, false);
@@ -113,7 +113,7 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
         }
         finally
         {
-            await TryDropTemporaryTable();
+            await TryDropTemporaryTable(tempTable);
         }
     }
 
@@ -239,11 +239,11 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10";
     private static string CountRowsSql(string tableName)
         => $"SELECT COUNT(*) FROM {tableName}";
 
-    private async Task TryDropTemporaryTable()
+    private async Task TryDropTemporaryTable(string tempTable)
     {
         try
         {
-            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTemporaryUsersTable(Context));
+            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(tempTable));
         }
         catch
         {

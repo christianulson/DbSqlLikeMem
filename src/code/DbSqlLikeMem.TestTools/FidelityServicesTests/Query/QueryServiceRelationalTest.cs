@@ -1093,6 +1093,13 @@ ORDER BY u.Id
     }
 
     /// <summary>
+    /// EN: Executes the scalar subquery case matrix against the configured users and orders tables.
+    /// PT: Executa a matriz de subconsulta escalar com CASE nas tabelas de usuarios e pedidos configuradas.
+    /// </summary>
+    public Task<object?> RunSelectScalarSubqueryCaseMatrixAsync(params object[] pars)
+        => RunSelectScalarCaseMatrixAsync(pars);
+
+    /// <summary>
     /// EN: Executes a GROUP BY HAVING query against the configured users and orders tables.
     /// PT: Executa uma consulta GROUP BY HAVING nas tabelas de usuarios e pedidos configuradas.
     /// </summary>

@@ -235,8 +235,13 @@ public abstract class CrudTestsBase<T, T2>(
         result.Should().BeEquivalentTo(new { count = 2, count2 = 1 });
     }
 
-    //TODO: Criar método asbtrado para os filhos
-    private DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
+    /// <summary>
+    /// EN: Normalizes unspecified DateTime values for providers that require UTC input handling.
+    /// PT: Normaliza valores DateTime sem Kind definido para provedores que exigem tratamento UTC na entrada.
+    /// </summary>
+    /// <param name="value">EN: The input DateTime value. PT: O valor DateTime de entrada.</param>
+    /// <returns>EN: The normalized DateTime value. PT: O valor DateTime normalizado.</returns>
+    protected virtual DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
     {
         if (dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)
             return DateTime.SpecifyKind(value, DateTimeKind.Utc);

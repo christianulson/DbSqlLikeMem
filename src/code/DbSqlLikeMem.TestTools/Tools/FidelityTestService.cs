@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: FidelityTestService is a generic class designed to facilitate the execution of fidelity tests across different database providers. It abstracts the testing logic, allowing for the comparison of results between a mock implementation and a real containerized database connection. The class is parameterized with two types, TCnn1 and TCnn2, representing the connection types for the mock and container scenarios, respectively. This design promotes code reuse and consistency in testing across various database providers and scenarios.
@@ -12,6 +12,7 @@ public class FidelityTestService<TCnn1, TCnn2>
     where TCnn2 : DbConnection
 {
     private readonly RepoService? repoContainer;
+    private readonly TimeSpan temporalComparisonTolerance;
 
     /// <summary>
     /// EN: Initializes a new instance of the FidelityTestService class using the specified connection factory.
@@ -26,8 +27,34 @@ public class FidelityTestService<TCnn1, TCnn2>
         Func<string, TCnn2> connectionContainer,
         ProviderSqlDialect dialect,
         params object?[][] initialData
+        ) : this(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            GetTemporalComparisonTolerance(dialect.Provider),
+            initialData)
+    {
+    }
+
+    /// <summary>
+    /// EN: Initializes a new instance of the FidelityTestService class using a custom temporal comparison tolerance.
+    /// PT: Inicializa uma nova instância da classe FidelityTestService usando uma tolerância temporal personalizada para comparação.
+    /// </summary>
+    /// <param name="connectionMock">EN: Delegate that creates the mock connection. PT: Delegado que cria a conexão mock.</param>
+    /// <param name="connectionContainer">EN: Delegate that creates the container connection. PT: Delegado que cria a conexão do container.</param>
+    /// <param name="dialect">EN: SQL dialect used by the service. PT: Dialeto SQL usado pelo serviço.</param>
+    /// <param name="temporalComparisonTolerance">EN: Tolerance applied when comparing DateTime and DateTimeOffset values. PT: Tolerância aplicada na comparação de valores DateTime e DateTimeOffset.</param>
+    /// <param name="initialData">EN: Initial scenario rows. PT: Linhas iniciais do cenário.</param>
+    public FidelityTestService(
+        Func<TCnn1> connectionMock,
+        Func<string, TCnn2> connectionContainer,
+        ProviderSqlDialect dialect,
+        TimeSpan temporalComparisonTolerance,
+        params object?[][] initialData
         ) : base(connectionMock, dialect, initialData)
     {
+        this.temporalComparisonTolerance = temporalComparisonTolerance;
+
         if (TestEnv.RunContainerTests.Value
             && ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
         {
@@ -62,12 +89,7 @@ public class FidelityTestService<TCnn1, TCnn2>
         var objResultMock = await Execute<TScenario, TServiceTest>(args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
-            objResultMock.Should().BeEquivalentTo(objResultContainer
-                //TODO: Terminar essa parte, talvez seja necessário criar um equivalency step customizado para lidar com as diferenças de precisão de DateTime entre os provedores
-                //, options => options
-                //.Using(new DateTimePrecisionEquivalencyStep(RepoMock.Dialect))
-                //.WhenTypeIs<DateTime>()
-                );
+            AssertEquivalentResults(objResultMock, objResultContainer);
 
         return objResultMock;
     }
@@ -94,12 +116,7 @@ public class FidelityTestService<TCnn1, TCnn2>
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
-            objResultMock.Should().BeEquivalentTo(objResultContainer
-                //TODO: Terminar essa parte, talvez seja necessário criar um equivalency step customizado para lidar com as diferenças de precisão de DateTime entre os provedores
-                //, options => options
-                //.Using(new DateTimePrecisionEquivalencyStep(RepoMock.Dialect))
-                //.WhenTypeIs<DateTime>()
-                );
+            AssertEquivalentResults(objResultMock, objResultContainer);
 
         return objResultMock;
     }
@@ -128,12 +145,7 @@ public class FidelityTestService<TCnn1, TCnn2>
         var objResultMock = await Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
-            objResultMock.Should().BeEquivalentTo(objResultContainer
-                //TODO: Terminar essa parte, talvez seja necessário criar um equivalency step customizado para lidar com as diferenças de precisão de DateTime entre os provedores
-                //, options => options
-                //.Using(new DateTimePrecisionEquivalencyStep(RepoMock.Dialect))
-                //.WhenTypeIs<DateTime>()
-                );
+            AssertEquivalentResults(objResultMock, objResultContainer);
 
         return objResultMock;
     }
@@ -162,15 +174,27 @@ public class FidelityTestService<TCnn1, TCnn2>
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
-            objResultMock.Should().BeEquivalentTo(objResultContainer
-                //TODO: Terminar essa parte, talvez seja necessário criar um equivalency step customizado para lidar com as diferenças de precisão de DateTime entre os provedores
-                //, options => options
-                //.Using(new DateTimePrecisionEquivalencyStep(RepoMock.Dialect))
-                //.WhenTypeIs<DateTime>()
-                );
+            AssertEquivalentResults(objResultMock, objResultContainer);
 
         return objResultMock;
     }
+
+    private void AssertEquivalentResults(object? actual, object? expected)
+        => actual.Should().BeEquivalentTo(expected, options => options
+            .Using<DateTime>(context => context.Subject.Should().BeCloseTo(context.Expectation, temporalComparisonTolerance))
+            .WhenTypeIs<DateTime>()
+            .Using<DateTimeOffset>(context => context.Subject.Should().BeCloseTo(context.Expectation, temporalComparisonTolerance))
+            .WhenTypeIs<DateTimeOffset>());
+
+    private static TimeSpan GetTemporalComparisonTolerance(ProviderId provider)
+        => provider switch
+        {
+            ProviderId.Db2
+            or ProviderId.MySql
+            or ProviderId.MariaDb
+            or ProviderId.Oracle => TimeSpan.FromSeconds(60),
+            _ => TimeSpan.FromSeconds(10)
+        };
 
     /// <summary>
     /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.

@@ -47,24 +47,5 @@ public class InsertParallelUsersServiceTest(
     private Task<int> ExecuteParameterizedInsertOnConnectionAsync(
         RepoService parallelRepo,
         int id)
-    => parallelRepo.ExecuteNonQueryAsync($"""
-INSERT INTO {Context.TbUsersFullName} (
-    Id,
-    Name,
-    IsActive,
-    Balance,
-    CreatedAt
-)
-VALUES (
-    {Repo.Dialect.Parameter("id")},
-    {Repo.Dialect.Parameter("name")},
-    1,
-    0.00,
-    {Repo.Dialect.TemporalCurrentTimestampExpression()}
-)
-""", addParameters: command =>
-        {
-            AddParameter(command, "id", DbType.Int32, id);
-            AddParameter(command, "name", DbType.String, $"User-{id}");
-        });
+        => parallelRepo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id, $"User-{id}"));
 }
