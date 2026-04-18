@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.Npgsql.TestTools;
+﻿namespace DbSqlLikeMem.Npgsql.TestTools;
 
 /// <summary>
 /// EN: Provides PostgreSQL-specific SQL snippets used by the shared benchmark and fidelity helpers.
@@ -24,6 +24,26 @@ public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
     /// <inheritdoc />
     public override string JsonParameter(string name) =>
         $"CAST({Parameter(name)} AS JSONB)";
+
+    /// <inheritdoc />
+    protected override object? NormalizeParameterValue(DbType dbType, object? value)
+    {
+        if (dbType == DbType.DateTime
+            && value is DateTime dateTime
+            && dateTime.Kind == DateTimeKind.Unspecified)
+        {
+            value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        }
+
+        if (dbType == DbType.DateTimeOffset
+            && value is DateTimeOffset dateTimeOffset
+            && dateTimeOffset.Offset != TimeSpan.Zero)
+        {
+            value = dateTimeOffset.ToUniversalTime();
+        }
+
+        return value;
+    }
 
     /// <inheritdoc />
     public override string CreateTemporaryUsersTable(FidelityTestContext context) => $@"

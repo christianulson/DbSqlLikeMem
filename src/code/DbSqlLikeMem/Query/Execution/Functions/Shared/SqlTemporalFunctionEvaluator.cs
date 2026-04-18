@@ -198,10 +198,10 @@ internal static class SqlTemporalFunctionEvaluator
             var sqliteNow = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, utcNow.Second, DateTimeKind.Unspecified);
             value = kind switch
             {
-                SqlTemporalFunctionKind.Date => sqliteNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                SqlTemporalFunctionKind.Time => sqliteNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
-                SqlTemporalFunctionKind.DateTimeOffset => sqliteNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-                _ => sqliteNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                SqlTemporalFunctionKind.Date => sqliteNow.Date,
+                SqlTemporalFunctionKind.Time => sqliteNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(sqliteNow, TimeSpan.Zero),
+                _ => sqliteNow,
             };
 
             return true;

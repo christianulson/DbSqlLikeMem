@@ -1,4 +1,4 @@
-namespace DbSqlLikeMem.TestTools;
+﻿namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Describes provider-specific SQL snippets used by the benchmark session workflows.
@@ -117,6 +117,129 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// </summary>
     public virtual string JsonParameter(string name) =>
         Parameter(name);
+
+    /// <summary>
+    /// EN: Returns the parameter name used when binding command parameters outside SQL text.
+    /// PT: Retorna o nome de parametro usado ao vincular parametros de comando fora do texto SQL.
+    /// </summary>
+    public virtual string CommandParameter(string name) =>
+        name;
+
+    /// <summary>
+    /// EN: Creates a provider-specific parameter for the non-directional command path when special handling is required.
+    /// PT: Cria um parametro especifico do provedor para o caminho de comando sem direcao quando um tratamento especial for necessario.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    /// <param name="parameter"></param>
+    /// <returns></returns>
+    protected virtual bool TryCreateSpecialParameter(DbCommand command, string name, DbType dbType, object? value, out DbParameter parameter)
+    {
+        parameter = null!;
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Creates a provider-specific parameter for the directional command path when special handling is required.
+    /// PT: Cria um parametro especifico do provedor para o caminho de comando com direcao quando um tratamento especial for necessario.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    /// <param name="direction"></param>
+    /// <param name="parameter"></param>
+    /// <returns></returns>
+    protected virtual bool TryCreateSpecialParameter(DbCommand command, string name, DbType dbType, object? value, ParameterDirection direction, out DbParameter parameter)
+    {
+        parameter = null!;
+        return false;
+    }
+
+    /// <summary>
+    /// EN: Configures the ADO.NET type for a parameter before the value is assigned.
+    /// PT: Configura o tipo ADO.NET de um parametro antes que o valor seja atribuido.
+    /// </summary>
+    /// <param name="parameter"></param>
+    /// <param name="dbType"></param>
+    protected virtual void ConfigureParameter(DbParameter parameter, DbType dbType) =>
+        parameter.DbType = dbType;
+
+    /// <summary>
+    /// EN: Normalizes a parameter value before it is assigned to the command parameter.
+    /// PT: Normaliza um valor de parametro antes que ele seja atribuido ao parametro do comando.
+    /// </summary>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    protected virtual object? NormalizeParameterValue(DbType dbType, object? value) =>
+        value;
+
+    /// <summary>
+    /// EN: Applies provider-specific size metadata to a parameter after its value is normalized.
+    /// PT: Aplica metadados de tamanho especificos do provedor a um parametro depois que seu valor eh normalizado.
+    /// </summary>
+    /// <param name="parameter"></param>
+    /// <param name="value"></param>
+    protected virtual void ApplyParameterSize(DbParameter parameter, object? value)
+    {
+    }
+
+    /// <summary>
+    /// EN: Adds a parameter to a command using provider-specific naming, DbType handling, and value normalization.
+    /// PT: Adiciona um parametro a um comando usando nomeacao, tratamento de DbType e normalizacao de valor especificos do provedor.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    public virtual void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+    {
+        if (TryCreateSpecialParameter(command, name, dbType, value, out var specialParameter))
+        {
+            AddParameterToCollection(command, specialParameter);
+            return;
+        }
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = Parameter(name);
+        ConfigureParameter(parameter, dbType);
+        parameter.Value = NormalizeParameterValue(dbType, value) ?? DBNull.Value;
+        ApplyParameterSize(parameter, parameter.Value);
+
+        AddParameterToCollection(command, parameter);
+    }
+
+    /// <summary>
+    /// EN: Adds a parameter to a command using provider-specific naming, DbType handling, value normalization, and direction.
+    /// PT: Adiciona um parametro a um comando usando nomeacao, tratamento de DbType, normalizacao de valor e direcao especificos do provedor.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="name"></param>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    /// <param name="direction"></param>
+    /// <returns></returns>
+    public virtual bool AddParameter(DbCommand command, string name, DbType dbType, object? value, ParameterDirection direction)
+    {
+        if (TryCreateSpecialParameter(command, name, dbType, value, direction, out var specialParameter))
+        {
+            AddParameterToCollection(command, specialParameter);
+            return true;
+        }
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = CommandParameter(name);
+        ConfigureParameter(parameter, dbType);
+        var directionApplied = TrySetDirection(parameter, direction);
+        parameter.Value = NormalizeParameterValue(dbType, value) ?? DBNull.Value;
+        ApplyParameterSize(parameter, parameter.Value);
+
+        AddParameterToCollection(command, parameter);
+        return directionApplied;
+    }
 
     /// <summary>
     /// EN: Returns a scalar SELECT projection statement for parameter roundtrip tests.
@@ -529,4 +652,146 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// PT: Retorna a instrucao DROP SEQUENCE para uma sequencia.
     /// </summary>
     public virtual string DropSequence(FidelityTestContext context) => $"DROP SEQUENCE {context.Seq}";
+
+    /// <summary>
+    /// EN: Normalizes a parameter value for Oracle, which does not have native types for DateTimeOffset, TimeSpan, or Guid.
+    /// PT: Normaliza um valor de parametro para Oracle, que nao tem tipos nativos para DateTimeOffset, TimeSpan ou Guid.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    protected static object? NormalizeOracleParameterValue(object? value) =>
+        value switch
+        {
+            null => DBNull.Value,
+            DateTimeOffset dateTimeOffset => dateTimeOffset,
+            DateTime dateTime => dateTime,
+            TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+            Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
+            _ => value
+        };
+
+    /// <summary>
+    /// EN: Normalizes DB2 parameter values that need provider-specific text conversions.
+    /// PT: Normaliza valores de parametro do DB2 que precisam de conversoes textuais especificas do provedor.
+    /// </summary>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    protected static object? NormalizeDb2ParameterValue(DbType dbType, object? value)
+    {
+        if (value is null)
+            return DBNull.Value;
+
+        return (dbType, value) switch
+        {
+            (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+            (DbType.Time, TimeSpan timeSpan) => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+            (DbType.DateTime, DateTime dateTime) => dateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+            _ => value
+        };
+    }
+
+    /// <summary>
+    /// EN: Normalizes Firebird parameter values that need provider-specific text conversions.
+    /// PT: Normaliza valores de parametro do Firebird que precisam de conversoes textuais especificas do provedor.
+    /// </summary>
+    /// <param name="dbType"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    protected static object? NormalizeFirebirdParameterValue(DbType dbType, object? value)
+    {
+        if (value is null)
+            return DBNull.Value;
+
+        return (dbType, value) switch
+        {
+            (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
+            (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+            _ => value
+        };
+    }
+
+    /// <summary>
+    /// EN: Creates a DB2 currency parameter with the decimal mapping used by the shared test helpers.
+    /// PT: Cria um parametro de currency do DB2 com o mapeamento decimal usado pelos helpers compartilhados de teste.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="parameterName"></param>
+    /// <param name="value"></param>
+    /// <param name="direction"></param>
+    /// <returns></returns>
+    protected static DbParameter CreateDb2CurrencyParameter(DbCommand command, string parameterName, object? value, ParameterDirection? direction = null)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = parameterName;
+        parameter.DbType = DbType.Decimal;
+        if (direction.HasValue)
+        {
+            TrySetDirection(parameter, direction.Value);
+        }
+
+        parameter.Value = value ?? DBNull.Value;
+        return parameter;
+    }
+
+    /// <summary>
+    /// EN: Applies DB2 size metadata for text and binary parameter values.
+    /// PT: Aplica metadados de tamanho do DB2 para valores de parametro textuais e binarios.
+    /// </summary>
+    /// <param name="parameter"></param>
+    /// <param name="value"></param>
+    protected static void SetDb2ParameterSize(DbParameter parameter, object? value)
+    {
+        if (value is string stringValue)
+        {
+            parameter.Size = stringValue.Length;
+            return;
+        }
+
+        if (value is byte[] binaryValue)
+        {
+            parameter.Size = binaryValue.Length;
+        }
+    }
+
+    /// <summary>
+    /// EN: Adds a parameter instance to the command parameter collection using the concrete provider type when needed.
+    /// PT: Adiciona uma instancia de parametro a colecao de parametros do comando usando o tipo concreto do provedor quando necessario.
+    /// </summary>
+    /// <param name="command"></param>
+    /// <param name="parameter"></param>
+    protected static void AddParameterToCollection(DbCommand command, DbParameter parameter)
+    {
+        var addMethod = command.Parameters.GetType().GetMethod(nameof(DbParameterCollection.Add), [parameter.GetType()]);
+        if (addMethod is not null)
+        {
+            addMethod.Invoke(command.Parameters, [parameter]);
+            return;
+        }
+
+        command.Parameters.Add(parameter);
+    }
+
+    /// <summary>
+    /// EN: Tries to assign the requested parameter direction and ignores providers that only accept input parameters.
+    /// PT: Tenta atribuir a direcao de parametro solicitada e ignora provedores que aceitam apenas parametros de entrada.
+    /// </summary>
+    /// <param name="parameter"></param>
+    /// <param name="direction"></param>
+    /// <returns></returns>
+    protected static bool TrySetDirection(DbParameter parameter, ParameterDirection direction)
+    {
+        try
+        {
+            parameter.Direction = direction;
+            return true;
+        }
+        catch (ArgumentException) when (parameter.GetType().FullName == "Microsoft.Data.Sqlite.SqliteParameter")
+        {
+            // Microsoft.Data.Sqlite does not support non-input directions.
+            // Keep the default direction so shared signature tests can still run.
+            return false;
+        }
+    }
 }

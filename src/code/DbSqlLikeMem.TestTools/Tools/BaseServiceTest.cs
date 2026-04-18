@@ -21,8 +21,8 @@ public abstract class BaseServiceTest(
     public FidelityTestContext Context = context;
 
     /// <summary>
-    /// EN: Adds a parameter to the provided command with the appropriate formatting for the current provider's SQL dialect.
-    /// PT: Adiciona um parâmetro ao comando fornecido com a formatação apropriada para o dialeto SQL do provedor atual.
+    /// EN: Adds a parameter through the current provider dialect.
+    /// PT: Adiciona um parametro atraves do dialeto atual do provedor.
     /// </summary>
     /// <param name="command"></param>
     /// <param name="name"></param>
@@ -33,14 +33,5 @@ public abstract class BaseServiceTest(
         string name,
         DbType dbType,
         object? value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = Repo.Dialect.Parameter(name);
-        parameter.DbType = dbType;
-        parameter.Value = value ?? DBNull.Value;
-        if (Repo.Dialect.Provider == ProviderId.Db2
-            && value is string stringValue)
-            parameter.Size = stringValue.Length;
-        command.Parameters.Add(parameter);
-    }
+        => Repo.Dialect.AddParameter(command, name, dbType, value);
 }

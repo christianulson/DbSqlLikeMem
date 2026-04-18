@@ -133,127 +133,52 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
 
         reader.Should().NotBeEmpty();
 
-        var lst = reader[0];
+        var rows = reader[0];
+        rows.Should().HaveCount(1);
 
-        lst.Count.Should().Be(1);
+        var row = rows[0];
+        row.Length.Should().Be(8);
 
-        Convert.ToString(lst[0], CultureInfo.InvariantCulture).Should().Be(name);
-        Convert.ToString(lst[1], CultureInfo.InvariantCulture).Should().Be(email);
-        Convert.ToBoolean(lst[2], CultureInfo.InvariantCulture).Should().Be(isActive);
-        Convert.ToInt16(lst[3], CultureInfo.InvariantCulture).Should().Be(age);
-        Convert.ToDecimal(lst[4], CultureInfo.InvariantCulture).Should().Be(balance);
-        NormalizeDateTimeValue(lst[5]).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeNullableText(row[0]).Should().Be(name);
+        NormalizeNullableText(row[1]).Should().Be(email);
+        Convert.ToBoolean(row[2], CultureInfo.InvariantCulture).Should().Be(isActive);
+        Convert.ToInt16(row[3], CultureInfo.InvariantCulture).Should().Be(age);
+        Convert.ToDecimal(row[4], CultureInfo.InvariantCulture).Should().Be(balance);
+        NormalizeDateTimeValue(row[5]).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(createdAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        NormalizeDateTimeValue(lst[6]).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+        NormalizeDateTimeValue(row[6]).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
             .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         JsonTextAssertions.ShouldMatchJsonText(
-            Convert.ToString(lst[7], CultureInfo.InvariantCulture),
+            NormalizeNullableText(row[7]),
             profileJson);
-    }
-
-    /// <summary>
-    /// EN: Adds a parameter to the provided DbCommand with the specified name, data type, and value. This helper method abstracts away provider-specific nuances in parameter creation, such as handling of currency types for Db2 or special considerations for Npgsql when dealing with DateTime values. It ensures that parameters are added correctly to the command's parameter collection, accounting for any provider-specific requirements or limitations.
-    /// PT: Adiciona um parâmetro ao DbCommand fornecido com o nome, tipo de dados e valor especificados. Este método auxiliar abstrai as nuances específicas do provedor na criação de parâmetros, como o tratamento de tipos de moeda para Db2 ou considerações especiais para Npgsql ao lidar com valores DateTime. Ele garante que os parâmetros sejam adicionados corretamente à coleção de parâmetros do comando, levando em consideração quaisquer requisitos ou limitações específicos do provedor.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="name"></param>
-    /// <param name="dbType"></param>
-    /// <param name="value"></param>
-    protected override void AddParameter(DbCommand command, string name, DbType dbType, object? value)
-    {
-        if (Repo.Dialect.Provider == ProviderId.Db2 && dbType == DbType.Currency)
-        {
-            AddDb2CurrencyParameter(command, value);
-            return;
-        }
-
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = Repo.Dialect.Provider == ProviderId.Db2 ? "?" : name;
-        if (Repo.Dialect.Provider == ProviderId.Oracle)
-        {
-            // ODP.NET can reject DbType assignments for OracleParameter in this mock flow.
-            // Keep the default DbType and rely on the value payload for this shared test helper.
-        }
-        else if (Repo.Dialect.Provider == ProviderId.Firebird && dbType == DbType.Currency)
-        {
-            // Firebird parameters accept the decimal payload, but FbParameter rejects DbType.Currency.
-            // Keep the default DbType and let the value carry the numeric type.
-        }
-        else
-        {
-            parameter.DbType = dbType;
-        }
-        if (Repo.Dialect.Provider == ProviderId.Npgsql
-            && dbType == DbType.DateTime
-            && value is DateTime dateTime
-            && dateTime.Kind == DateTimeKind.Unspecified)
-        {
-            value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
-        }
-        parameter.Value = value ?? DBNull.Value;
-        if (Repo.Dialect.Provider == ProviderId.Db2)
-        {
-            SetDb2ParameterSize(parameter, parameter.Value);
-        }
-        AddParameterToCollection(command, parameter);
-    }
-
-    /// <summary>
-    /// EN: Adds a parameter specifically for Db2 when the data type is Currency. Db2 may have specific requirements for handling currency parameters, and this helper ensures that the parameter is created with the appropriate settings for Db2. The parameter name is set to "?" as a placeholder, and the DbType is set to Decimal since Db2 treats currency values as decimals. The value is assigned directly, allowing for proper handling of null values.
-    /// PT: Adiciona um parâmetro especificamente para Db2 quando o tipo de dados é Currency. O Db2 pode ter requisitos específicos para lidar com parâmetros de moeda, e este helper garante que o parâmetro seja criado com as configurações apropriadas para Db2. O nome do parâmetro é definido como "?" como um espaço reservado, e o DbType é definido como Decimal, pois o Db2 trata os valores de moeda como decimais. O valor é atribuído diretamente, permitindo o manuseio adequado de valores nulos.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="value"></param>
-    protected static void AddDb2CurrencyParameter(DbCommand command, object? value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = "?";
-        parameter.DbType = DbType.Decimal;
-        parameter.Value = value ?? DBNull.Value;
-        AddParameterToCollection(command, parameter);
-    }
-
-    /// <summary>
-    /// EN: Sets the Size property for Db2 parameters when the value is a string or byte array. This is necessary because Db2 may require the Size to be set for certain data types to ensure proper handling of the parameter value. For string values, the Size is set to the length of the string, and for byte arrays, it is set to the length of the array.
-    /// PT: Define a propriedade Size para parâmetros Db2 quando o valor for uma string ou array de bytes. Isso é necessário porque o Db2 pode exigir que o Size seja definido para certos tipos de dados para garantir o manuseio adequado do valor do parâmetro. Para valores de string, o Size é definido como o comprimento da string, e para arrays de bytes, é definido como o comprimento do array.
-    /// </summary>
-    /// <param name="parameter"></param>
-    /// <param name="value"></param>
-    protected static void SetDb2ParameterSize(DbParameter parameter, object? value)
-    {
-        if (value is string stringValue)
-        {
-            parameter.Size = stringValue.Length;
-            return;
-        }
-
-        if (value is byte[] binaryValue)
-        {
-            parameter.Size = binaryValue.Length;
-        }
-    }
-
-    /// <summary>
-    /// EN: Adds a parameter to the command's parameter collection using reflection to handle potential differences in how providers implement the Add method. Some providers may have specific overloads for their parameter types, and this helper attempts to invoke the most specific overload available. If no specific overload is found, it falls back to the general Add method.
-    /// PT: Adiciona um parâmetro à coleção de parâmetros do comando usando reflexão para lidar com possíveis diferenças em como os provedores implementam o método Add. Alguns provedores podem ter sobrecargas específicas para seus tipos de parâmetro, e este helper tenta invocar a sobrecarga mais específica disponível. Se nenhuma sobrecarga específica for encontrada, ele recorre ao método Add geral.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="parameter"></param>
-    protected static void AddParameterToCollection(DbCommand command, DbParameter parameter)
-    {
-        var addMethod = command.Parameters.GetType().GetMethod(nameof(DbParameterCollection.Add), [parameter.GetType()]);
-        if (addMethod is not null)
-        {
-            addMethod.Invoke(command.Parameters, [parameter]);
-            return;
-        }
-
-        command.Parameters.Add(parameter);
     }
 
     /// <summary>
     /// EN: Normalizes a value that may be returned from the database as part of a DateTime column. This helper accounts for potential variations in how different providers may return date/time values, such as returning DateTimeOffset instead of DateTime, or returning date-only values as DateOnly. The goal is to ensure that the value can be consistently compared to an expected DateTime value in tests, regardless of the provider's specific behavior.
     /// PT: Normaliza um valor que pode ser retornado do banco de dados como parte de uma coluna DateTime. Este helper leva em consideração as variações potenciais em como diferentes provedores podem retornar valores de data/hora, como retornar DateTimeOffset em vez de DateTime, ou retornar valores apenas de data como DateOnly. O objetivo é garantir que o valor possa ser comparado de forma consistente a um valor DateTime esperado em testes, independentemente do comportamento específico do provedor.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    protected static string? NormalizeNullableText(object? value)
+        => value is null or DBNull
+            ? null
+            : Convert.ToString(value, CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// EN: Normalizes a nullable DateTime value returned from the database into a readable string or null.
+    /// PT: Normaliza um valor DateTime anulavel retornado do banco em uma string legivel ou null.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    protected static string? NormalizeNullableDateTimeText(object? value)
+        => value is null or DBNull
+            ? null
+            : NormalizeDateTimeValue(value).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// EN: Normalizes a value that may be returned from the database as part of a DateTime column into a DateTime object. This helper accounts for potential variations in how different providers may return date/time values, such as returning DateTimeOffset instead of DateTime, or returning date-only values as DateOnly. The goal is to ensure that the value can be consistently compared to an expected DateTime value in tests, regardless of the provider's specific behavior.
+    /// PT: Normaliza um valor que pode ser retornado do banco de dados como parte de uma coluna DateTime em um objeto DateTime. Este helper leva em consideração as variações potenciais em como diferentes provedores podem retornar valores de data/hora, como retornar DateTimeOffset em vez de DateTime, ou retornar valores apenas de data como DateOnly. O objetivo é garantir que o valor possa ser comparado de forma consistente a um valor DateTime esperado em testes, independentemente do comportamento específico do provedor.
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>

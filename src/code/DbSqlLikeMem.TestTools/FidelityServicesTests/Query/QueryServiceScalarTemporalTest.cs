@@ -1,5 +1,4 @@
 using System.Text;
-using System.Xml.Linq;
 
 namespace DbSqlLikeMem.TestTools.Query;
 
@@ -584,11 +583,7 @@ FROM {Context.TbUsersFullName}
 WHERE Name = {Repo.Dialect.Parameter("name")}
 """;
 
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = Repo.Dialect.Provider == ProviderId.Db2 ? "?" : "name";
-        parameter.DbType = DbType.String;
-        parameter.Value = name;
-        AddParameterToCollection(command, parameter);
+        Repo.Dialect.AddParameter(command, "name", DbType.String, name);
 
         var result = Convert.ToString(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
         result.Should().Be(name);
@@ -613,11 +608,7 @@ FROM {Context.TbUsersFullName}
 WHERE Id = {Repo.Dialect.Parameter("id")}
 """;
 
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = Repo.Dialect.Provider == ProviderId.Db2 ? "?" : "id";
-        parameter.DbType = DbType.Int32;
-        parameter.Value = id;
-        AddParameterToCollection(command, parameter);
+        Repo.Dialect.AddParameter(command, "id", DbType.Int32, id);
 
         var result = Convert.ToString(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
         result.Should().Be(expectedName);
@@ -969,140 +960,6 @@ FROM SYSIBM.SYSDUMMY1
         GC.KeepAlive(dateValue);
         GC.KeepAlive(currencyValue);
         return value;
-    }
-
-    /// <summary>
-    /// EN: Adds a parameter to the given command with provider-specific handling for Db2, Oracle, and Firebird, including normalization of parameter values and conditional setting of DbType and Size properties.
-    /// PT: Adiciona um parametro ao comando fornecido com tratamento especifico para Db2, Oracle e Firebird, incluindo normalizacao dos valores de parametro e definicao condicional das propriedades DbType e Size.
-    /// </summary>
-    /// <param name="command"></param>
-    /// <param name="name"></param>
-    /// <param name="dbType"></param>
-    /// <param name="value"></param>
-    protected override void AddParameter(DbCommand command, string name, DbType dbType, object? value)
-    {
-        if (Repo.Dialect.Provider == ProviderId.Db2 && dbType == DbType.Currency)
-        {
-            AddDb2CurrencyParameter(command, name, value);
-            return;
-        }
-
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = Repo.Dialect.Provider == ProviderId.Db2 ? "?" : name;
-        if (Repo.Dialect.Provider == ProviderId.Oracle)
-        {
-            // ODP.NET and DB2 parameters can reject some DbType assignments in this mock flow.
-            // Keep the default DbType and normalize the value payload for this shared test helper.
-        }
-        else if (Repo.Dialect.Provider == ProviderId.Firebird && (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid))
-        {
-            // Firebird's parameter implementation rejects these DbType values in this path.
-            // Keep the payload-based flow and let the provider infer the storage type.
-        }
-        else if (Repo.Dialect.Provider == ProviderId.Db2 && (dbType == DbType.Guid || dbType == DbType.DateTimeOffset || dbType == DbType.Time || dbType == DbType.DateTime))
-        {
-            parameter.DbType = DbType.String;
-        }
-        else
-        {
-            parameter.DbType = dbType;
-        }
-        if (Repo.Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTime && value is DateTime dateTime && dateTime.Kind == DateTimeKind.Unspecified)
-        {
-            value = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
-        }
-        if (Repo.Dialect.Provider == ProviderId.Npgsql && dbType == DbType.DateTimeOffset && value is DateTimeOffset dateTimeOffset && dateTimeOffset.Offset != TimeSpan.Zero)
-        {
-            value = dateTimeOffset.ToUniversalTime();
-        }
-        parameter.Value = Repo.Dialect.Provider switch
-        {
-            ProviderId.Oracle => NormalizeOracleParameterValue(value),
-            ProviderId.Db2 => NormalizeDb2ParameterValue(dbType, value),
-            ProviderId.Firebird => NormalizeFirebirdParameterValue(dbType, value),
-            _ => value
-        } ?? DBNull.Value;
-        if (Repo.Dialect.Provider == ProviderId.Db2)
-        {
-            SetDb2ParameterSize(parameter, parameter.Value);
-        }
-        AddParameterToCollection(command, parameter);
-    }
-
-    private static void AddDb2CurrencyParameter(DbCommand command, string name, object? value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = "?";
-        parameter.DbType = DbType.Decimal;
-        parameter.Value = value ?? DBNull.Value;
-        AddParameterToCollection(command, parameter);
-    }
-
-    private static void SetDb2ParameterSize(DbParameter parameter, object? value)
-    {
-        if (value is string stringValue)
-        {
-            parameter.Size = stringValue.Length;
-            return;
-        }
-
-        if (value is byte[] binaryValue)
-        {
-            parameter.Size = binaryValue.Length;
-        }
-    }
-
-    private static void AddParameterToCollection(DbCommand command, DbParameter parameter)
-    {
-        var addMethod = command.Parameters.GetType().GetMethod(nameof(DbParameterCollection.Add), [parameter.GetType()]);
-        if (addMethod is not null)
-        {
-            addMethod.Invoke(command.Parameters, [parameter]);
-            return;
-        }
-
-        command.Parameters.Add(parameter);
-    }
-
-    private static object NormalizeOracleParameterValue(object? value)
-    {
-        return value switch
-        {
-            null => DBNull.Value,
-            DateTimeOffset dateTimeOffset => dateTimeOffset,
-            DateTime dateTime => dateTime,
-            TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
-            Guid guid => guid.ToString("D", CultureInfo.InvariantCulture),
-            _ => value
-        };
-    }
-
-    private static object NormalizeDb2ParameterValue(DbType dbType, object? value)
-    {
-        if (value is null)
-            return DBNull.Value;
-
-        return (dbType, value) switch
-        {
-            (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
-            (DbType.Time, TimeSpan timeSpan) => timeSpan.ToString("c", CultureInfo.InvariantCulture),
-            (DbType.DateTime, DateTime dateTime) => dateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-            (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
-            _ => value
-        };
-    }
-
-    private static object NormalizeFirebirdParameterValue(DbType dbType, object? value)
-    {
-        if (value is null)
-            return DBNull.Value;
-
-        return (dbType, value) switch
-        {
-            (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
-            (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
-            _ => value
-        };
     }
 
     private static DateTime NormalizeDateTimeValue(object? value)

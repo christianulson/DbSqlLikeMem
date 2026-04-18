@@ -172,6 +172,118 @@ public class FidelityTestService<TCnn1, TCnn2>
         return objResultMock;
     }
 
+    /// <summary>
+    /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
+    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// </summary>
+    /// <typeparam name="TScenario"></typeparam>
+    /// <typeparam name="TServiceTest"></typeparam>
+    /// <param name="connectionMock"></param>
+    /// <param name="connectionContainer"></param>
+    /// <param name="dialect"></param>
+    /// <param name="initialData"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    public static async Task<object?> RunAsync<TScenario, TServiceTest>(
+        Func<TCnn1> connectionMock,
+        Func<string, TCnn2> connectionContainer,
+        ProviderSqlDialect dialect,
+        object?[][] initialData,
+        params object[] args
+    ) where TScenario : BaseScenario, ITestScenario
+        where TServiceTest : BaseServiceTest, IBaseServiceTest
+    {
+        using var testService = new FidelityTestService<TCnn1, TCnn2>(connectionMock, connectionContainer, dialect, initialData);
+
+        return await testService.RunTestAsync<TScenario, TServiceTest>(args);
+    }
+
+    /// <summary>
+    /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
+    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// </summary>
+    /// <typeparam name="TScenario"></typeparam>
+    /// <typeparam name="TScenario2"></typeparam>
+    /// <typeparam name="TServiceTest"></typeparam>
+    /// <param name="connectionMock"></param>
+    /// <param name="connectionContainer"></param>
+    /// <param name="dialect"></param>
+    /// <param name="initialData"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    public static async Task<object?> RunAsync<TScenario, TScenario2, TServiceTest>(
+        Func<TCnn1> connectionMock,
+        Func<string, TCnn2> connectionContainer,
+        ProviderSqlDialect dialect,
+        object?[][] initialData,
+        params object[] args
+    ) where TScenario : BaseScenario, ITestScenario
+        where TScenario2 : BaseScenario, ITestScenario
+        where TServiceTest : BaseServiceTest, IBaseServiceTest
+    {
+        using var testService = new FidelityTestService<TCnn1, TCnn2>(connectionMock, connectionContainer, dialect, initialData);
+
+        return await testService.RunTestAsync<TScenario, TScenario2, TServiceTest>(args);
+    }
+
+    /// <summary>
+    /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
+    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// </summary>
+    /// <typeparam name="TScenario"></typeparam>
+    /// <typeparam name="TServiceTest"></typeparam>
+    /// <param name="connectionMock"></param>
+    /// <param name="connectionContainer"></param>
+    /// <param name="dialect"></param>
+    /// <param name="initialData"></param>
+    /// <param name="runTest"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    public static async Task<object?> RunAsync<TScenario, TServiceTest>(
+        Func<TCnn1> connectionMock,
+        Func<string, TCnn2> connectionContainer,
+        ProviderSqlDialect dialect,
+        object?[][] initialData,
+        Func<TServiceTest, object[], Task<object?>> runTest,
+        params object[] args
+    ) where TScenario : BaseScenario, ITestScenario
+        where TServiceTest : BaseServiceTest
+    {
+        using var testService = new FidelityTestService<TCnn1, TCnn2>(connectionMock, connectionContainer, dialect, initialData);
+
+        return await testService.RunTestAsync<TScenario, TServiceTest>(runTest, args);
+    }
+
+    /// <summary>
+    /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
+    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// </summary>
+    /// <typeparam name="TScenario"></typeparam>
+    /// <typeparam name="TScenario2"></typeparam>
+    /// <typeparam name="TServiceTest"></typeparam>
+    /// <param name="connectionMock"></param>
+    /// <param name="connectionContainer"></param>
+    /// <param name="dialect"></param>
+    /// <param name="initialData"></param>
+    /// <param name="runTest"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    public static async Task<object?> RunAsync<TScenario, TScenario2, TServiceTest>(
+        Func<TCnn1> connectionMock,
+        Func<string, TCnn2> connectionContainer,
+        ProviderSqlDialect dialect,
+        object?[][] initialData,
+        Func<TServiceTest, object[], Task<object?>> runTest,
+        params object[] args
+    ) where TScenario : BaseScenario, ITestScenario
+        where TScenario2 : BaseScenario, ITestScenario
+        where TServiceTest : BaseServiceTest
+    {
+        using var testService = new FidelityTestService<TCnn1, TCnn2>(connectionMock, connectionContainer, dialect, initialData);
+
+        return await testService.RunTestAsync<TScenario, TScenario2, TServiceTest>(runTest, args);
+    }
+
     #region Dispose 
 
     /// <summary>

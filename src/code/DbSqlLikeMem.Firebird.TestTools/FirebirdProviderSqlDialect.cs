@@ -1,3 +1,6 @@
+﻿using System.Data;
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Firebird.TestTools;
 
 /// <summary>
@@ -88,6 +91,21 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     /// <inheritdoc />
     public override string InsertUser(FidelityTestContext context, int id, string name) =>
         $"INSERT INTO {context.TbUsersFullName} (Id, Name, IsActive, Balance, CreatedAt) VALUES ({id}, '{name}', 1, 0.00, CURRENT_TIMESTAMP)";
+
+    /// <inheritdoc />
+    protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
+    {
+        if (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid)
+        {
+            return;
+        }
+
+        parameter.DbType = dbType;
+    }
+
+    /// <inheritdoc />
+    protected override object? NormalizeParameterValue(DbType dbType, object? value) =>
+        NormalizeFirebirdParameterValue(dbType, value);
 
     /// <inheritdoc />
     public override string InsertUserReturning(FidelityTestContext context, int id, string name) =>

@@ -1,4 +1,3 @@
-using DbSqlLikeMem.TestTools;
 using DbSqlLikeMem.TestTools.TemporaryTable;
 
 namespace DbSqlLikeMem.TestTools.Tests.TemporaryTable;

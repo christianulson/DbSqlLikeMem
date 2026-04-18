@@ -170,34 +170,35 @@ INSERT INTO {Context.TbUsersFullName} (
         }
 
         var reader = await Repo.ExecuteReaderAsync($"""
-SELECT
-    Name,
-    Email,
-    IsActive,
-    Age,
-    Balance,
-    CreatedAt,
-    UpdatedAt,
-    ProfileJson
-FROM {Context.TbUsersFullName}
-WHERE Id = 1
-""");
+        SELECT
+            Name,
+            Email,
+            IsActive,
+            Age,
+            Balance,
+            CreatedAt,
+            UpdatedAt,
+            ProfileJson
+        FROM {Context.TbUsersFullName}
+        WHERE Id = 1
+        """);
 
         reader.Should().NotBeEmpty();
-        var lst = reader[0];
-        lst.Count.Should().Be(1);
+        var rows = reader[0];
+        rows.Should().HaveCount(1);
 
-        Convert.ToString(lst[0], CultureInfo.InvariantCulture).Should().Be(name);
-        (lst[1] == null ? null : Convert.ToString(lst[1], CultureInfo.InvariantCulture)).Should().Be(email);
-        Convert.ToBoolean(lst[2], CultureInfo.InvariantCulture).Should().Be(isActive!.Value);
-        Convert.ToInt16(lst[3], CultureInfo.InvariantCulture).Should().Be(age);
-        Convert.ToDecimal(lst[4], CultureInfo.InvariantCulture).Should().Be(balance);
-        NormalizeDateTimeValue(lst[5]).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
-            .Should().Be(createdAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
-        (lst[6] == null ? null : NormalizeDateTimeValue(lst[6]).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture))
-            .Should().Be(updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        var row = rows[0];
+        row.Length.Should().Be(8);
+
+        NormalizeNullableText(row[0]).Should().Be(name);
+        NormalizeNullableText(row[1]).Should().Be(email);
+        Convert.ToBoolean(row[2], CultureInfo.InvariantCulture).Should().Be(isActive!.Value);
+        Convert.ToInt16(row[3], CultureInfo.InvariantCulture).Should().Be(age);
+        Convert.ToDecimal(row[4], CultureInfo.InvariantCulture).Should().Be(balance);
+        NormalizeNullableDateTimeText(row[5]).Should().Be(createdAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        NormalizeNullableDateTimeText(row[6]).Should().Be(updatedAt is null ? null : updatedAt.Value.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         JsonTextAssertions.ShouldMatchJsonText(
-        lst[7] == null ? null : Convert.ToString(lst[7], CultureInfo.InvariantCulture),
+            NormalizeNullableText(row[7]),
         profileJson);
 
         GC.KeepAlive(name);
@@ -303,7 +304,7 @@ public class DmlMutationParameterUpdateDeleteRoundTripServiceTest(
         var isActive = (bool)args[2];
         var age = (short)args[3];
         var balance = (decimal)args[4];
-        var updatedAt = (DateTime)args[5];
+        var updatedAt = (DateTime?)args[5];
         var profileJson = (string)args[6];
         var deleteId = (int)args[7];
         var emailSql = email.Length == 0 ? "''" : Repo.Dialect.Parameter("email");
@@ -349,32 +350,35 @@ WHERE Id = {Repo.Dialect.Parameter("deleteId")}
         }
 
         var reader = await Repo.ExecuteReaderAsync($"""
-SELECT
-    Name,
-    Email,
-    IsActive,
-    Age,
-    Balance,
-    UpdatedAt,
-    ProfileJson
-FROM {Context.TbUsersFullName}
-WHERE Id = 1
-""");
+        SELECT
+            Name,
+            Email,
+            IsActive,
+            Age,
+            Balance,
+            UpdatedAt,
+            ProfileJson
+        FROM {Context.TbUsersFullName}
+        WHERE Id = 1
+        """);
         reader.Should().NotBeEmpty();
 
-        var lst = reader[0];
-        lst.Count.Should().Be(1);
+        var rows = reader[0];
+        rows.Should().HaveCount(1);
 
-        Convert.ToString(lst[0], CultureInfo.InvariantCulture).Should().Be(name);
-        (lst[1] == null ? null : Convert.ToString(lst[1], CultureInfo.InvariantCulture)?.TrimEnd())
+        var row = rows[0];
+        row.Length.Should().Be(7);
+
+        NormalizeNullableText(row[0]).Should().Be(name);
+        NormalizeNullableText(row[1])?.TrimEnd()
             .Should().Be(NormalizeOracleNullableText(email));
-        Convert.ToBoolean(lst[2], CultureInfo.InvariantCulture).Should().Be(isActive);
-        Convert.ToInt16(lst[3], CultureInfo.InvariantCulture).Should().Be(age);
-        Convert.ToDecimal(lst[4], CultureInfo.InvariantCulture).Should().Be(balance);
-        NormalizeDateTimeValue(lst[5]).ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
-            .Should().Be(updatedAt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
+        Convert.ToBoolean(row[2], CultureInfo.InvariantCulture).Should().Be(isActive);
+        Convert.ToInt16(row[3], CultureInfo.InvariantCulture).Should().Be(age);
+        Convert.ToDecimal(row[4], CultureInfo.InvariantCulture).Should().Be(balance);
+        NormalizeNullableDateTimeText(row[5])
+            .Should().Be(updatedAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         JsonTextAssertions.ShouldMatchJsonText(
-            Convert.ToString(lst[6], CultureInfo.InvariantCulture)?.TrimEnd(),
+            NormalizeNullableText(row[6])?.TrimEnd(),
             profileJson);
 
         GC.KeepAlive(name);

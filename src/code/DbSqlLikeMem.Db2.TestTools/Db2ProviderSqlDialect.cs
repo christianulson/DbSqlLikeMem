@@ -1,3 +1,6 @@
+﻿using System.Data;
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Db2.TestTools;
 
 /// <summary>
@@ -99,6 +102,59 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{TemporaryUsersTableName(context)} (
     /// <inheritdoc />
     public override string Parameter(string name) =>
         "?";
+
+    /// <inheritdoc />
+    public override string CommandParameter(string name) =>
+        "@" + name;
+
+    /// <inheritdoc />
+    protected override bool TryCreateSpecialParameter(DbCommand command, string name, DbType dbType, object? value, out DbParameter parameter)
+    {
+        if (dbType == DbType.Currency)
+        {
+            parameter = CreateDb2CurrencyParameter(command, Parameter(name), value);
+            return true;
+        }
+
+        parameter = null!;
+        return false;
+    }
+
+    /// <inheritdoc />
+    protected override bool TryCreateSpecialParameter(DbCommand command, string name, DbType dbType, object? value, ParameterDirection direction, out DbParameter parameter)
+    {
+        if (dbType == DbType.Currency)
+        {
+            parameter = CreateDb2CurrencyParameter(command, CommandParameter(name), value, direction);
+            return true;
+        }
+
+        parameter = null!;
+        return false;
+    }
+
+    /// <inheritdoc />
+    protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
+    {
+        if (dbType == DbType.Guid
+            || dbType == DbType.DateTimeOffset
+            || dbType == DbType.Time
+            || dbType == DbType.DateTime)
+        {
+            parameter.DbType = DbType.String;
+            return;
+        }
+
+        parameter.DbType = dbType;
+    }
+
+    /// <inheritdoc />
+    protected override object? NormalizeParameterValue(DbType dbType, object? value) =>
+        NormalizeDb2ParameterValue(dbType, value);
+
+    /// <inheritdoc />
+    protected override void ApplyParameterSize(DbParameter parameter, object? value) =>
+        SetDb2ParameterSize(parameter, value);
 
     /// <inheritdoc />
     public override string SelectParameterProjection(string projectionList) =>

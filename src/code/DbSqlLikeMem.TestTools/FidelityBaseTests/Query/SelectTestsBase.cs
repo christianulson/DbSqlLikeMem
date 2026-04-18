@@ -187,14 +187,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectScalarSubqueryTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectScalarSubqueryAsync(a));
@@ -208,14 +202,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectGroupByHavingTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunGroupByHavingAsync(a));
@@ -257,14 +245,8 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectMultiJoinAggregateTest()
     {
-        var seedOrders = new (int id, int userId, string note)[]
-        {
-            (10, 1, "A"),
-            (11, 1, "B"),
-            (12, 2, "C")
-        };
-
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.seedUsers, seedOrders]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunMultiJoinAggregateAsync(a));

@@ -1,6 +1,4 @@
-using DbSqlLikeMem.TestTools;
 using DbSqlLikeMem.TestTools.DML;
-using System.Data.Common;
 
 namespace DbSqlLikeMem.TestTools.Tests.Transactions;
 
@@ -122,16 +120,18 @@ public abstract class TransactionTestsBase<T, T2>(
         result.Should().Be(2);
     }
 
-    private async Task<object?> RunFidelityTestAsync<TScenario>(
+    private Task<object?> RunFidelityTestAsync<TScenario>(
         object?[][] initialData,
         Func<DmlMutationServiceTest, object[], Task<object?>> runTest,
         params object[] args)
         where TScenario : BaseScenario, ITestScenario
-    {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, initialData);
-
-        return await testService.RunTestAsync<TScenario, DmlMutationServiceTest>(runTest, args);
-    }
+        => FidelityTestService<T, T2>.RunAsync<TScenario, DmlMutationServiceTest>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            initialData,
+            runTest,
+            args);
 
     private bool SupportsReleaseSavepointWorkflow()
         => dialect.Provider is not ProviderId.SqlServer

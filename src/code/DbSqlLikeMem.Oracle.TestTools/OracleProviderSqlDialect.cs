@@ -1,3 +1,6 @@
+﻿using System.Data;
+using System.Data.Common;
+
 namespace DbSqlLikeMem.Oracle.TestTools;
 
 /// <summary>
@@ -97,6 +100,17 @@ CREATE TABLE {context.TbOrdersFullName} (
     /// <inheritdoc />
     public override string JsonParameter(string name) =>
         $"TO_CLOB({Parameter(name)})";
+
+    /// <inheritdoc />
+    protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
+    {
+        _ = parameter;
+        _ = dbType;
+    }
+
+    /// <inheritdoc />
+    protected override object? NormalizeParameterValue(DbType dbType, object? value) =>
+        NormalizeOracleParameterValue(value);
 
     /// <inheritdoc />
     public override string SelectParameterProjection(string projectionList) =>

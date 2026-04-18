@@ -122,7 +122,7 @@ public abstract class CrudTestsBase<T, T2>(
             updatedAt,
             "{\"theme\":\"dark\"}",
             2);
-        result.Should().Be(1);
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -135,8 +135,7 @@ public abstract class CrudTestsBase<T, T2>(
         using var testService = new FidelityTestService<T, T2>(
             connectionMock,
             connectionContainer,
-            dialect,
-            [(1, "Alice"), (2, "Bob")]);
+            dialect);
         var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
         var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
         var updatedAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Unspecified));
