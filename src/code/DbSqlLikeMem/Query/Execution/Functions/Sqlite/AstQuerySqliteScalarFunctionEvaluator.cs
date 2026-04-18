@@ -1,8 +1,11 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 internal static class AstQuerySqliteScalarFunctionEvaluator
 {
     private static readonly Dictionary<string, AstQueryGeneralScalarFunctionHandler> _handlers = CreateHandlers();
+    private static readonly ConcurrentDictionary<string, Regex> _globRegexCache = new(StringComparer.Ordinal);
 
     internal static bool TryEvaluate(
         this QueryExecutionContext context,
@@ -210,39 +213,44 @@ internal static class AstQuerySqliteScalarFunctionEvaluator
 
     private static Regex GlobToRegex(string pattern)
     {
-        var builder = new StringBuilder("^");
-        for (var i = 0; i < pattern.Length; i++)
-        {
-            var ch = pattern[i];
-            switch (ch)
-            {
-                case '*':
-                    builder.Append(".*");
-                    break;
-                case '?':
-                    builder.Append(".");
-                    break;
-                case '[':
-                    var end = pattern.IndexOf(']', i + 1);
-                    if (end > i)
-                    {
-                        var content = pattern.Substring(i + 1, end - i - 1);
-                        builder.Append('[').Append(Regex.Escape(content).Replace("\\-", "-")).Append(']');
-                        i = end;
-                    }
-                    else
-                    {
-                        builder.Append("\\[");
-                    }
-                    break;
-                default:
-                    builder.Append(Regex.Escape(ch.ToString()));
-                    break;
-            }
-        }
+        return _globRegexCache.GetOrAdd(pattern, BuildGlobRegex);
 
-        builder.Append("$");
-        return new Regex(builder.ToString(), RegexOptions.CultureInvariant);
+        static Regex BuildGlobRegex(string pattern)
+        {
+            var builder = new StringBuilder(pattern.Length + 2);
+            for (var i = 0; i < pattern.Length; i++)
+            {
+                var ch = pattern[i];
+                switch (ch)
+                {
+                    case '*':
+                        builder.Append(".*");
+                        break;
+                    case '?':
+                        builder.Append(".");
+                        break;
+                    case '[':
+                        var end = pattern.IndexOf(']', i + 1);
+                        if (end > i)
+                        {
+                            var content = pattern.Substring(i + 1, end - i - 1);
+                            builder.Append('[').Append(Regex.Escape(content).Replace("\\-", "-")).Append(']');
+                            i = end;
+                        }
+                        else
+                        {
+                            builder.Append("\\[");
+                        }
+                        break;
+                    default:
+                        builder.Append(Regex.Escape(ch.ToString()));
+                        break;
+                }
+            }
+
+            builder.Append('$');
+            return new Regex(builder.ToString(), RegexOptions.CultureInvariant);
+        }
     }
 
     private static bool TryEvalPrintfFunction(

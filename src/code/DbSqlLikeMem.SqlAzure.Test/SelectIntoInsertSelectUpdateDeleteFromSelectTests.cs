@@ -22,25 +22,6 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override SqlAzureDbMock CreateDb() => [];
 
     /// <summary>
-    /// EN: Gets SQL Azure-specific SQL used to update rows from a derived select joined in FROM.
-    /// PT: Obtém o SQL específico de SQL Azure usado para atualizar linhas a partir de um select derivado com join no FROM.
-    /// </summary>
-    protected override string UpdateJoinDerivedSelectSql
-        => @"
-UPDATE u
-SET u.total = s.total
-FROM users u
-JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
-WHERE u.tenantid = 10";
-
-    /// <summary>
-    /// EN: Returns SQL Azure-specific syntax for delete with join over a derived select.
-    /// PT: Retorna a sintaxe especifica do SQL Azure para delete com join sobre subselect derivado.
-    /// </summary>
-    protected override string DeleteJoinDerivedSelectSql
-        => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
-
-    /// <summary>
     /// EN: Executes a non-query SQL statement against the provided SQL Azure mock database.
     /// PT: Executa um comando SQL sem retorno no banco simulado de SQL Azure informado.
     /// </summary>

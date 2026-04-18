@@ -22,7 +22,7 @@ internal sealed class SqlTokenizer
     /// </summary>
     public IReadOnlyList<SqlToken> Tokenize()
     {
-        var tokens = new List<SqlToken>();
+        var tokens = new List<SqlToken>(Math.Max(8, _sql.Length / 8));
 
         while (!Eof)
         {
@@ -174,7 +174,7 @@ internal sealed class SqlTokenizer
         var quote = Read();
         var startPos = _pos - 1;
 
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(16);
 
         while (!Eof)
         {
@@ -270,7 +270,7 @@ internal sealed class SqlTokenizer
             char close = pair.End;
 
             var start = _pos;
-            var sb = new StringBuilder();
+            var sb = new StringBuilder(Math.Max(16, _sql.Length - _pos));
             while (!Eof)
             {
                 var ch = Read();

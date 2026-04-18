@@ -62,6 +62,7 @@ public partial class QueryServiceTest
     public async Task<object?> RunJoinTypedExpressionMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
+        var rows = new List<QueryResultRowSnapshot>(2);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -87,12 +88,18 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTypedRow(reader, 1, "ALICE", "alice", 2, 3, 4.00m, 2.00m, "A", "B", 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTypedRow(reader, 2, "BOB", "bob", 1, 4, 5.50m, 5.50m, "C", "C", 0, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-        return 2;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "UserNameUpper", "UserNameLower", "OrderCount", "TotalQuantity", "TotalAmount", "AvgAmount", "FirstNote", "LastNote", "HasMultipleOrders", "AmountAtLeastThree"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -101,8 +108,8 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunJoinNullAggregateMatrixAsync(params object[] pars)
     {
-
         var orderCountExpr = BuildOrderCountExpression();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -126,15 +133,22 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 1, "Alice", 2, 3, 4.00m, "A", 0, 0, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 2, "Bob", 1, 4, 5.50m, "C", 0, 0, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinNullAggregateRow(reader, 3, "Carla", 0, 0, 0.00m, "none", 1, 1, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "UserName", "OrderCount", "TotalQuantity", "TotalAmount", "FirstNote", "HasNoOrders", "AmountIsNull", "HasLargeQuantity"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -144,6 +158,7 @@ ORDER BY u.Id
     public async Task<object?> RunJoinCastNullMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -167,16 +182,22 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastNullRow(reader, 1, "Alice", "2", "3", "4.00", 0, 0, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastNullRow(reader, 2, "Bob", "1", "4", "5.50", 0, 0, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastNullRow(reader, 3, "Carla", "0", "0", "0.00", 1, 1, 0, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasNoOrders", "NotesAreNull", "HasNote", "MeetsAmountThreshold"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -186,6 +207,7 @@ ORDER BY u.Id
     public async Task<object?> RunJoinCastTextComparisonMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -209,16 +231,22 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastTextRow(reader, 1, "Alice", "2", "3", "4.00", 0, 1, 0, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastTextRow(reader, 2, "Bob", "1", "4", "5.50", 0, 1, 0, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinCastTextRow(reader, 3, "Carla", "0", "0", "0.00", 1, 0, 1, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "CountTextIsZero", "QuantityTextNonZero", "NotesAreMissing", "HasAnyNote"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -228,6 +256,7 @@ ORDER BY u.Id
     public async Task<object?> RunJoinHavingCastMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
+        var rows = new List<QueryResultRowSnapshot>(1);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -252,10 +281,14 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinHavingCastRow(reader, 1, "Alice", "2", "3", "4.00", 1, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 1;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasTwoOrMoreOrders", "AmountAtLeastFour", "StartsAtA"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -271,6 +304,7 @@ ORDER BY u.Id
         var noteLenExpr = Repo.Dialect.StringLengthExpression(noteLenSource);
         var nameLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression(nameLenExpr, 10)})";
         var noteLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -294,15 +328,22 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 1, "Alice", "5", "3", "4.00", "1", 1, 1, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 2, "Bob", "3", "4", "5.50", "1", 0, 1, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinLengthNumericRow(reader, 3, "Carla", "5", "0", "0.00", "0", 1, 0, 0, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "UserName", "NameLenText", "TotalQuantityText", "TotalAmountText", "MaxNoteLenText", "NameLenGe4", "QuantityGe3", "AmountGe4", "HasNotes"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -321,6 +362,7 @@ ORDER BY u.Id
         var nameLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression(nameLenExpr, 10)})";
         var noteLenTextExpr = $"TRIM({Repo.Dialect.StringCastExpression($"COALESCE(MAX({noteLenExpr}), 0)", 10)})";
         var textMatchAlready = Repo.Dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0 : 1;
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -345,16 +387,22 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTextCaseLengthRow(reader, 1, "ALICE", "alice", "Alice", "5", "1", 1, textMatchAlready, textMatchAlready, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTextCaseLengthRow(reader, 2, "BOB", "bob", "Bob", "3", "1", 0, textMatchAlready, textMatchAlready, 0, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTextCaseLengthRow(reader, 3, "CARLA", "carla", "Carla", "5", "0", 1, textMatchAlready, textMatchAlready, 0, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "NameUpper", "NameLower", "NameTrimmed", "NameLenText", "MaxNoteLenText", "NameLenGe4", "IsUpperAlready", "IsLowerAlready", "TwoOrMoreOrders", "QuantityGe3"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -364,6 +412,7 @@ ORDER BY u.Id
     public async Task<object?> RunJoinDistinctCaseMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -384,16 +433,22 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 1, 3, 2, 2, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 2, 1, 1, 0, 0, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 3, 0, 0, 0, 0, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -403,6 +458,7 @@ ORDER BY u.Id
     public async Task<object?> RunJoinDistinctHavingMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
+        var rows = new List<QueryResultRowSnapshot>(2);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -424,13 +480,18 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 1, 3, 2, 2, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinDistinctCaseRow(reader, 3, 0, 0, 0, 0, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 2;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -441,6 +502,7 @@ ORDER BY u.Id
     {
         var orderCountExpr = BuildOrderCountExpression();
         var expectedNextDayAfterOrder = 1;
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
@@ -465,16 +527,23 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTemporalRow(reader, 1, 2, 0, 1, expectedNextDayAfterOrder, 2, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTemporalRow(reader, 2, 1, 0, 1, expectedNextDayAfterOrder, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinTemporalRow(reader, 3, 0, 1, 1, expectedNextDayAfterOrder, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -484,6 +553,7 @@ ORDER BY u.Id
     public async Task<object?> RunJoinWindowMatrixAsync(params object[] pars)
     {
         var orderCountExpr = "COUNT(*)";
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -502,16 +572,23 @@ ORDER BY u.Id, o.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowRow(reader, 1, 10, 1, 2, null);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowRow(reader, 1, 11, 2, 2, "A");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowRow(reader, 2, 12, 1, 1, null);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -522,6 +599,7 @@ ORDER BY u.Id, o.Id
     {
         var orderCountExpr = "COUNT(*)";
         var expectedNextDayAfterOrder = 1;
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
@@ -546,16 +624,23 @@ ORDER BY u.Id, o.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 1, 10, 1, 2, null, 1, expectedNextDayAfterOrder, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 1, 11, 2, 2, "A", 1, expectedNextDayAfterOrder, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowTemporalRow(reader, 2, 12, 1, 1, null, 1, expectedNextDayAfterOrder, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -566,6 +651,7 @@ ORDER BY u.Id, o.Id
     {
         var orderCountExpr = "COUNT(*)";
         var expectedNextDayAfterOrder = 1;
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
@@ -592,16 +678,23 @@ ORDER BY u.Id, o.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowAggregateTemporalRow(reader, 1, 10, 1, 2, 2, 0.00m, null, 1, expectedNextDayAfterOrder, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowAggregateTemporalRow(reader, 1, 11, 2, 2, 2, 0.00m, "A", 1, expectedNextDayAfterOrder, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateJoinWindowAggregateTemporalRow(reader, 2, 12, 1, 1, 1, 0.00m, null, 1, expectedNextDayAfterOrder, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "QuantityPerUser", "AmountPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+            Rows = rows,
+        };
     }
 
     private static void ValidateJoinTypedRow(
@@ -968,6 +1061,15 @@ ORDER BY u.Id, o.Id
     }
 
     /// <summary>
+    /// EN: Executes a select over all configured users and returns the full result snapshot.
+    /// PT: Executa um select sobre todos os usuarios configurados e retorna o snapshot completo do resultado.
+    /// </summary>
+    public async Task<object?> RunAllRowsSnapshotAsync(params object[] pars)
+    {
+        return await CaptureSnapshotAsync($"SELECT * FROM {Context.TbUsersFullName} ORDER BY Id");
+    }
+
+    /// <summary>
     /// EN: Executes a simple CTE query against the configured users table.
     /// PT: Executa uma consulta CTE simples na tabela de usuarios configurada.
     /// </summary>
@@ -977,36 +1079,30 @@ ORDER BY u.Id, o.Id
     }
 
     /// <summary>
-    /// EN: Executes a ROW_NUMBER window query against the configured users table.
-    /// PT: Executa uma consulta de janela ROW_NUMBER na tabela de usuarios configurada.
+    /// EN: Executes a ROW_NUMBER window query against the configured users table and returns the full rowset snapshot.
+    /// PT: Executa uma consulta de janela ROW_NUMBER na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
     public async Task<object?> RunWindowRowNumberAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.WindowRowNumber(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.WindowRowNumber(Context));
     }
 
     /// <summary>
-    /// EN: Executes a LAG window query against the configured users table.
-    /// PT: Executa uma consulta de janela LAG na tabela de usuarios configurada.
+    /// EN: Executes a LAG window query against the configured users table and returns the full rowset snapshot.
+    /// PT: Executa uma consulta de janela LAG na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
     public async Task<object?> RunWindowLagAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.WindowLag(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.WindowLag(Context));
     }
 
     /// <summary>
-    /// EN: Executes a LEAD window query against the configured users table.
-    /// PT: Executa uma consulta de janela LEAD na tabela de usuarios configurada.
+    /// EN: Executes a LEAD window query against the configured users table and returns the full rowset snapshot.
+    /// PT: Executa uma consulta de janela LEAD na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
     public async Task<object?> RunWindowLeadAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.WindowLead(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.WindowLead(Context));
     }
 
     /// <summary>
@@ -1051,6 +1147,7 @@ ORDER BY u.Id, o.Id
     /// </summary>
     public async Task<object?> RunSelectScalarCaseMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -1067,15 +1164,22 @@ ORDER BY u.Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 1, "Alice", 3, 0, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 2, "Bob", 1, 0, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateSelectScalarCaseRow(reader, 3, "Carla", 0, 1, 0);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UserId", "UserName", "OrderCount", "HasNoOrders", "HasManyOrders"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -1086,14 +1190,12 @@ ORDER BY u.Id
         => RunSelectScalarCaseMatrixAsync(pars);
 
     /// <summary>
-    /// EN: Executes a GROUP BY HAVING query against the configured users and orders tables.
-    /// PT: Executa uma consulta GROUP BY HAVING nas tabelas de usuarios e pedidos configuradas.
+    /// EN: Executes a GROUP BY HAVING query against the configured users and orders tables and returns the matching rowset.
+    /// PT: Executa uma consulta GROUP BY HAVING nas tabelas de usuarios e pedidos configuradas e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunGroupByHavingAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.GroupByHaving(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.GroupByHaving(Context));
     }
 
     /// <summary>

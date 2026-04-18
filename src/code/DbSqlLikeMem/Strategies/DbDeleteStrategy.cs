@@ -51,11 +51,11 @@ internal static class DbDeleteStrategy
         var conditions = TableMock.ParseWhereSimple(whereRaw);
         var whereHasPositionalParameters = HasPositionalParameters(conditions);
 
-        var rowsToDelete = new List<IReadOnlyDictionary<int, object?>>();
+        var rowsToDelete = new List<IReadOnlyDictionary<int, object?>>(4);
         List<IReadOnlyDictionary<int, object?>>? affectedRowsData = connection.CaptureAffectedRowSnapshots
-            ? new List<IReadOnlyDictionary<int, object?>>()
+            ? new List<IReadOnlyDictionary<int, object?>>(4)
             : null;
-        var indexesToDelete = new List<int>();
+        var indexesToDelete = new List<int>(4);
         var tableMock = table as TableMock;
         var whereContextBase = context.Fork();
         var supportsTriggers = dialect.SupportsTriggers;

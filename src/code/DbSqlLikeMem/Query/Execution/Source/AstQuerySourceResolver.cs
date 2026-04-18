@@ -87,11 +87,12 @@ internal sealed class AstQuerySourceResolver(
         if (tableSource.PartitionNames is { Count: > 0 } requestedPartitions
             && table is TableMock tableMock)
         {
+            var columnCount = tableMock.ColumnsByIndex.Count;
             var partitionedResult = new TableResultMock
             {
-                Columns = new List<TableResultColMock>(tableMock.Columns.Count)
+                Columns = new List<TableResultColMock>(columnCount)
             };
-            for (var columnIndex = 0; columnIndex < tableMock.ColumnsByIndex.Count; columnIndex++)
+            for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
             {
                 var columnName = tableMock.ColumnsByIndex[columnIndex];
                 var column = tableMock.Columns[columnName];
@@ -104,13 +105,14 @@ internal sealed class AstQuerySourceResolver(
                     column.Nullable));
             }
 
+            var filteredRow = new Dictionary<int, object?>(columnCount);
             foreach (var row in tableMock)
             {
                 if (!tableMock.MatchesRequestedPartitions(row, requestedPartitions))
                     continue;
 
-                var filteredRow = new Dictionary<int, object?>(tableMock.ColumnsByIndex.Count);
-                for (var columnIndex = 0; columnIndex < tableMock.ColumnsByIndex.Count; columnIndex++)
+                filteredRow.Clear();
+                for (var columnIndex = 0; columnIndex < columnCount; columnIndex++)
                 {
                     filteredRow[columnIndex] = row.TryGetValue(columnIndex, out var value) ? value : null;
                 }

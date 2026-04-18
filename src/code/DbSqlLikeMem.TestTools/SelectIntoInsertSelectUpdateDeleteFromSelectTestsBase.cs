@@ -30,24 +30,6 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
         string sql);
 
     /// <summary>
-    /// EN: Gets the SQL used to delete rows based on a derived select expression.
-    /// PT: Obtém o SQL usado para excluir linhas com base em uma expressão de subselect derivado.
-    /// </summary>
-    protected virtual string UpdateJoinDerivedSelectSql
-        => @"
-UPDATE users u
-JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
-SET u.total = s.total
-WHERE u.tenantid = 10";
-
-    /// <summary>
-    /// EN: Gets the SQL used to delete rows through a derived select-based join strategy.
-    /// PT: Obtém o SQL usado para excluir linhas por meio de uma estratégia de join baseada em select derivado.
-    /// </summary>
-    protected virtual string DeleteJoinDerivedSelectSql
-        => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
-
-    /// <summary>
     /// EN: Verifies CREATE TABLE AS SELECT creates a new table populated with the selected rows.
     /// PT: Verifica se CREATE TABLE AS SELECT cria uma nova tabela populada com as linhas selecionadas.
     /// </summary>
@@ -225,7 +207,7 @@ WHERE u.tenantid = 10";
         orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 5m } });
         orders.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 7m } });
 
-        var sql = UpdateJoinDerivedSelectSql;
+        var sql = Dialect.UpdateJoinDerivedSelectSql;
 
         if (!Dialect.SupportsUpdateDeleteJoinRuntime)
         {
@@ -262,14 +244,14 @@ WHERE u.tenantid = 10";
 
         if (!Dialect.SupportsUpdateDeleteJoinRuntime)
         {
-            var action = () => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql);
+            var action = () => ExecuteNonQuery(db, Dialect.DeleteJoinDerivedSelectSql);
             var ex = action.Should().Throw<InvalidOperationException>().Which;
             ex.Message.Should().Contain(SqlConst.DELETE);
             ex.Message.Should().Contain(SqlConst.FROM);
             return;
         }
 
-        var deleted = ExecuteNonQuery(db, DeleteJoinDerivedSelectSql);
+        var deleted = ExecuteNonQuery(db, Dialect.DeleteJoinDerivedSelectSql);
 
         deleted.Should().Be(2);
         users.Should().ContainSingle();

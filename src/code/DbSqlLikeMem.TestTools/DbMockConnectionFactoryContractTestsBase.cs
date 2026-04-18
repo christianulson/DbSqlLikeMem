@@ -24,11 +24,15 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
     /// </summary>
     protected abstract Type ExpectedConnectionType { get; }
     /// <summary>
+    /// EN: Gets the expected parameter runtime type for this provider contract.
+    /// PT: Obtem o tipo de runtime de parametro esperado para este contrato de provedor.
+    /// </summary>
+    protected abstract Type ExpectedParameterType { get; }
+    /// <summary>
     /// EN: Gets the provider aliases that must resolve to the same provider implementation.
     /// PT: Obtem os aliases de provedor que devem resolver para a mesma implementacao de provedor.
     /// </summary>
     protected abstract IReadOnlyList<string> ProviderAliases { get; }
-
     /// <summary>
     /// EN: Creates a DbMock and connection pair through the provider shortcut for contract validation.
     /// PT: Cria um par DbMock e conexao pelo atalho de provedor para validacao do contrato.
@@ -46,6 +50,22 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 
         db.Should().BeOfType(ExpectedDbType);
         connection.Should().BeOfType(ExpectedConnectionType);
+    }
+
+    /// <summary>
+    /// EN: Verifies that provider commands create the expected runtime parameter type.
+    /// PT: Verifica se os comandos do provedor criam o tipo de runtime esperado de parametro.
+    /// </summary>
+    [Fact]
+    public void CreateParameter_ShouldCreateExpectedParameterType()
+    {
+        var pair = CreateViaProviderShortcut();
+        using var connection = pair.Connection;
+
+        using var command = connection.CreateCommand();
+        var parameter = command.CreateParameter();
+
+        parameter.Should().BeOfType(ExpectedParameterType);
     }
 
     /// <summary>

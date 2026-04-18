@@ -395,8 +395,8 @@ internal sealed class AstQueryPartitionHelper(
 
         if (expr is BinaryExpr orExpr && orExpr.Op == SqlBinaryOp.Or)
         {
-            var leftRanges = new List<(int? Low, int? High)>();
-            var rightRanges = new List<(int? Low, int? High)>();
+            var leftRanges = new List<(int? Low, int? High)>(2);
+            var rightRanges = new List<(int? Low, int? High)>(2);
             var leftOk = TryCollectYearBound(orExpr.Left, src, partitionedColumnName, out var leftLow, out var leftHigh);
             var rightOk = TryCollectYearBound(orExpr.Right, src, partitionedColumnName, out var rightLow, out var rightHigh);
 

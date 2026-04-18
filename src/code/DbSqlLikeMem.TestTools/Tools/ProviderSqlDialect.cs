@@ -49,6 +49,24 @@ public abstract class ProviderSqlDialect
     public virtual bool SupportsUpdateDeleteJoinRuntime => false;
 
     /// <summary>
+    /// EN: Returns the SQL used to update rows through a derived select join.
+    /// PT: Retorna o SQL usado para atualizar linhas por meio de um join com select derivado.
+    /// </summary>
+    public virtual string UpdateJoinDerivedSelectSql =>
+        @"
+UPDATE users u
+JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
+SET u.total = s.total
+WHERE u.tenantid = 10";
+
+    /// <summary>
+    /// EN: Returns the SQL used to delete rows through a derived select join.
+    /// PT: Retorna o SQL usado para excluir linhas por meio de um join com select derivado.
+    /// </summary>
+    public virtual string DeleteJoinDerivedSelectSql =>
+        "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
+
+    /// <summary>
     /// EN: Indicates whether the provider supports GROUP BY ordinal in the benchmark flow.
     /// PT: Indica se o provedor suporta GROUP BY ordinal no fluxo de benchmark.
     /// </summary>
@@ -548,22 +566,22 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     public virtual string CteSimple(FidelityTestContext context) => $"WITH cte AS (SELECT Name FROM {context.TbUsersFullName} WHERE Id = 1) SELECT * FROM cte";
 
     /// <summary>
-    /// EN: Returns the SQL statement used for the ROW_NUMBER benchmark.
-    /// PT: Retorna a instrucao SQL usada no benchmark de ROW_NUMBER.
+    /// EN: Returns the SQL statement used for the ROW_NUMBER window benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de janela ROW_NUMBER.
     /// </summary>
-    public virtual string WindowRowNumber(FidelityTestContext context) => $"SELECT MAX(rn) FROM (SELECT ROW_NUMBER() OVER (ORDER BY Name) AS rn FROM {context.TbUsersFullName}) q";
+    public virtual string WindowRowNumber(FidelityTestContext context) => $"SELECT Name, ROW_NUMBER() OVER (ORDER BY Name) AS RowNumberValue FROM {context.TbUsersFullName} ORDER BY Name";
 
     /// <summary>
-    /// EN: Returns the SQL statement used for the LAG benchmark.
-    /// PT: Retorna a instrucao SQL usada no benchmark de LAG.
+    /// EN: Returns the SQL statement used for the LAG window benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de janela LAG.
     /// </summary>
-    public virtual string WindowLag(FidelityTestContext context) => $"SELECT COUNT(*) FROM (SELECT LAG(Name) OVER (ORDER BY Id) AS PrevName FROM {context.TbUsersFullName}) q";
+    public virtual string WindowLag(FidelityTestContext context) => $"SELECT Name, LAG(Name) OVER (ORDER BY Id) AS PrevName FROM {context.TbUsersFullName} ORDER BY Id";
 
     /// <summary>
-    /// EN: Returns the SQL statement used for the LEAD benchmark.
-    /// PT: Retorna a instrucao SQL usada no benchmark de LEAD.
+    /// EN: Returns the SQL statement used for the LEAD window benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de janela LEAD.
     /// </summary>
-    public virtual string WindowLead(FidelityTestContext context) => $"SELECT COUNT(*) FROM (SELECT LEAD(Name) OVER (ORDER BY Id) AS NextName FROM {context.TbUsersFullName}) q WHERE NextName IS NOT NULL";
+    public virtual string WindowLead(FidelityTestContext context) => $"SELECT Name, LEAD(Name) OVER (ORDER BY Id) AS NextName FROM {context.TbUsersFullName} ORDER BY Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the EXISTS benchmark.

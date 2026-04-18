@@ -19,7 +19,8 @@ internal static class AstQueryJsonObjectFunctionEvaluator
         if (fn.Args.Count % 2 != 0)
             throw new InvalidOperationException("JSON_OBJECT() espera um número par de argumentos.");
 
-        var pairs = new List<(string Key, object? Value)>();
+        var pairCount = fn.Args.Count / 2;
+        var pairs = new List<(string Key, object? Value)>(pairCount);
         for (var i = 0; i < fn.Args.Count; i += 2)
         {
             var key = evalArg(i)?.ToString() ?? string.Empty;

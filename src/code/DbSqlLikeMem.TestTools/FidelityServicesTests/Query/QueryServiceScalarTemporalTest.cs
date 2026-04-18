@@ -225,7 +225,17 @@ public partial class QueryServiceTest
         GC.KeepAlive(totalCount);
         GC.KeepAlive(distinctCount);
         GC.KeepAlive(bobCount);
-        return (ordered, totalCount, distinctCount, bobCount);
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Ordered", "TotalCount", "DistinctCount", "BobCount"],
+            Rows =
+            [
+                new QueryResultRowSnapshot
+                {
+                    Values = [ordered, totalCount, distinctCount, bobCount],
+                },
+            ],
+        };
     }
 
     /// <summary>
@@ -239,6 +249,7 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string aggregate benchmark.");
         }
 
+        var rows = new List<QueryResultRowSnapshot>(2);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -256,13 +267,18 @@ ORDER BY NameGroup
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "B", 2, 1, "Bob", "Bob");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "Other", 3, 3, "Alice", "Delta");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 2;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -272,6 +288,7 @@ ORDER BY NameGroup
     public async Task<object?> RunGroupByNameInitialMatrixAsync(params object[] pars)
     {
         var initialExpr = $"UPPER({Repo.Dialect.StringPrefixExpression("Name", 1)})";
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -294,16 +311,22 @@ ORDER BY {initialExpr}
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "A", 3, 2, 2, 0, "Adam", "Alice", 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "B", 3, 2, 0, 2, "Bob", "Brian", 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateGroupByNameInitialRow(reader, "C", 2, 2, 0, 0, "Carla", "Chris", 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["NameInitial", "TotalCount", "DistinctCount", "AliceCount", "BobCount", "FirstName", "LastName", "HasAtLeastTwo"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -312,6 +335,7 @@ ORDER BY {initialExpr}
     /// </summary>
     public async Task<object?> RunGroupByNameHavingMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(2);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -328,14 +352,19 @@ ORDER BY Name
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 2;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name", "TotalCount"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -350,6 +379,7 @@ ORDER BY Name
         }
 
         var initialExpr = $"UPPER({Repo.Dialect.StringPrefixExpression("Name", 1)})";
+        var rows = new List<QueryResultRowSnapshot>(3);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -367,18 +397,24 @@ ORDER BY 1
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("A");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("B");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("C");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["NameInitial", "TotalCount"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -387,6 +423,7 @@ ORDER BY 1
     /// </summary>
     public async Task<object?> RunOrderByOrdinalMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
@@ -401,18 +438,24 @@ ORDER BY 2 DESC
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(3);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bravo");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(2);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alpha");
         Convert.ToInt32(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name", "Id"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -421,6 +464,7 @@ ORDER BY 2 DESC
     /// </summary>
     public async Task<object?> RunDistinctOrderByOrdinalMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(4);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT DISTINCT
@@ -433,19 +477,26 @@ ORDER BY 1
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Delta");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 4;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -454,6 +505,7 @@ ORDER BY 1
     /// </summary>
     public async Task<object?> RunDistinctLikeOrderByOrdinalMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT DISTINCT
@@ -467,75 +519,73 @@ ORDER BY 1
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("ALICE");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("CHARLIE");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("DELTA");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["UPPER(Name)"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
-    /// EN: Executes an IN-list predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado IN com lista na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes an IN-list predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado IN com lista na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunInListPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name IN ('Alice', 'Charlie')
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(2);
-
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes a BETWEEN predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado BETWEEN na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a BETWEEN predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado BETWEEN na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunBetweenPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id BETWEEN 2 AND 4
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(3);
-
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes a LIKE predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado LIKE na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a LIKE predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunLikePredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name LIKE 'A%'
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(1);
-
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY query over the configured users table and returns the matching row count.
-    /// PT: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY query over the configured users table and returns the matching rowset.
+    /// PT: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunBetweenLikeOrderByMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(2);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT Name
@@ -549,63 +599,60 @@ ORDER BY Name
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Aaron");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 2;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
-    /// EN: Executes a NOT LIKE predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado NOT LIKE na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a NOT LIKE predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado NOT LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunNotLikePredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name NOT LIKE 'A%'
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(4);
-
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes a not-equal predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado diferente de na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a not-equal predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado diferente de na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunNotEqualPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name <> 'Bob'
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(4);
-
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes an equality predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado de igualdade na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes an equality predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado de igualdade na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunEqualPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name = 'Bob'
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(1);
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
@@ -1197,67 +1244,59 @@ FROM SYSIBM.SYSDUMMY1
     }
 
     /// <summary>
-    /// EN: Executes a greater-than predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado maior que na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a greater-than predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado maior que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunGreaterThanPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id > 3
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(2);
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes a less-than predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado menor que na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a less-than predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado menor que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunLessThanPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id < 3
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(2);
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes a greater-than-or-equal predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado maior ou igual na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a greater-than-or-equal predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado maior ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunGreaterThanOrEqualPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id >= 3
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(3);
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
-    /// EN: Executes a less-than-or-equal predicate over the configured users table and returns the matching row count.
-    /// PT: Executa um predicado menor ou igual na tabela de usuarios configurada e retorna a contagem de linhas correspondentes.
+    /// EN: Executes a less-than-or-equal predicate over the configured users table and returns the matching rowset.
+    /// PT: Executa um predicado menor ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<object?> RunLessThanOrEqualPredicateMatrixAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"""
-SELECT COUNT(*)
+        return await CaptureSnapshotAsync($"""
+SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id <= 3
-"""), CultureInfo.InvariantCulture);
-
-        value.Should().Be(3);
-        return value;
+ORDER BY Id
+""");
     }
 
     /// <summary>
@@ -1266,6 +1305,7 @@ WHERE Id <= 3
     /// </summary>
     public async Task<object?> RunOrderByNameMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT Name
@@ -1277,16 +1317,22 @@ ORDER BY Name
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -1295,6 +1341,7 @@ ORDER BY Name
     /// </summary>
     public async Task<object?> RunOrderByNameDescendingMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT Name
@@ -1306,16 +1353,22 @@ ORDER BY Name DESC
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Bob");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be("Alice");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -1324,6 +1377,7 @@ ORDER BY Name DESC
     /// </summary>
     public async Task<object?> RunNamePaginationMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT Name
@@ -1339,16 +1393,22 @@ ORDER BY rn
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Bravo");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Delta");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 3;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name"],
+            Rows = rows,
+        };
     }
 
     /// <summary>
@@ -1357,6 +1417,7 @@ ORDER BY rn
     /// </summary>
     public async Task<object?> RunPagedNameProjectionMatrixAsync(params object[] pars)
     {
+        var rows = new List<QueryResultRowSnapshot>(2);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = Repo.Dialect.PagedNameProjection(Context.TbUsersFullName, 1, 2);
 
@@ -1364,13 +1425,18 @@ ORDER BY rn
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Bravo");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateNamePaginationRow(reader, "Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
-
-        return 2;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name"],
+            Rows = rows,
+        };
     }
 
     /// <summary>

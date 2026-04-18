@@ -120,17 +120,9 @@ public abstract class StringAggregateTestsBase<T, T2>(
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
             [SeedUsersSummary],
-            async (s, a) =>
-            {
-                var summary = (ValueTuple<string?, int, int, int>?)await s.RunStringAggregateSummaryMatrixAsync(a);
-                summary?.Item1.Should().NotBeNull();
-                summary?.Item2.Should().Be(5);
-                summary?.Item3.Should().Be(4);
-                summary?.Item4.Should().Be(2);
-                return summary;
-            });
+            (s, a) => s.RunStringAggregateSummaryMatrixAsync(a));
 
-        result.Should().NotBeNull();
+        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregateSummaryMatrixTest)), ExpectedStringAggregateSummarySnapshot());
     }
 
     /// <summary>
@@ -144,12 +136,12 @@ public abstract class StringAggregateTestsBase<T, T2>(
             [SeedUsersSummary],
             async (s, a) =>
             {
-                var groupCase = (int?)await s.RunStringAggregateGroupCaseMatrixAsync(a);
-                groupCase.Should().Be(2);
-                return groupCase;
+                return await s.RunStringAggregateGroupCaseMatrixAsync(a);
             });
 
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregateGroupCaseMatrixTest)), Snapshot(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"],
+            Row("B", 2m, 1m, "Bob", "Bob"),
+            Row("Other", 3m, 3m, "Alice", "Delta")));
     }
 
     /// <summary>
@@ -161,17 +153,9 @@ public abstract class StringAggregateTestsBase<T, T2>(
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
             [SeedUsersSummary],
-            async (s, a) =>
-            {
-                var summary = (ValueTuple<string?, int, int, int>?)await s.RunStringAggregateSummaryMatrixAsync(a);
-                summary?.Item1.Should().NotBeNull();
-                summary?.Item2.Should().Be(5);
-                summary?.Item3.Should().Be(4);
-                summary?.Item4.Should().Be(2);
-                return summary;
-            });
+            (s, a) => s.RunStringAggregateSummaryMatrixAsync(a));
 
-        result.Should().NotBeNull();
+        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregationSummaryMatrixTest)), ExpectedStringAggregateSummarySnapshot());
     }
 
     /// <summary>
@@ -185,13 +169,47 @@ public abstract class StringAggregateTestsBase<T, T2>(
             [SeedUsersSummary],
             async (s, a) =>
             {
-                var groupCase =  (int?)await s.RunStringAggregateGroupCaseMatrixAsync(a);
-                groupCase.Should().Be(2);
-                return groupCase;
+                return await s.RunStringAggregateGroupCaseMatrixAsync(a);
             });
 
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregationGroupCaseMatrixTest)), Snapshot(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"],
+            Row("B", 2m, 1m, "Bob", "Bob"),
+            Row("Other", 3m, 3m, "Alice", "Delta")));
     }
+
+    private static QueryResultSnapshot RequireSnapshot(object? value, string label)
+        => value is QueryResultSnapshot snapshot
+            ? snapshot
+            : throw new InvalidOperationException($"{label} did not return a query snapshot.");
+
+    private static QueryResultSnapshot Snapshot(string[] columnNames, params object?[][] rows)
+    {
+        var snapshots = new QueryResultRowSnapshot[rows.Length];
+        for (var i = 0; i < rows.Length; i++)
+        {
+            snapshots[i] = new QueryResultRowSnapshot
+            {
+                Values = rows[i],
+            };
+        }
+
+        return new QueryResultSnapshot
+        {
+            ColumnNames = columnNames,
+            Rows = snapshots,
+        };
+    }
+
+    private static object?[] Row(params object?[] values) => values;
+
+    private static void AssertSnapshot(QueryResultSnapshot actual, QueryResultSnapshot expected)
+    {
+        actual.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
+    }
+
+    private static QueryResultSnapshot ExpectedStringAggregateSummarySnapshot()
+        => Snapshot(["Ordered", "TotalCount", "DistinctCount", "BobCount"],
+            Row("Alice,Bob,Bob,Charlie,Delta", 5, 4, 2));
 
     private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(
         object?[][] initialData,

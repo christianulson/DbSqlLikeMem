@@ -13,7 +13,7 @@ internal static class AstQueryCorrelatedExistsSupport
         keyPairs = [];
         innerFilterExpr = null;
 
-        var conjuncts = new List<SqlExpr>();
+        var conjuncts = new List<SqlExpr>(4);
         AstQuerySubqueryLookupSupport.FlattenConjuncts(where, conjuncts);
         var conjunctCount = conjuncts.Count;
         if (conjunctCount == 0)
@@ -137,13 +137,13 @@ internal static class AstQueryCorrelatedExistsSupport
 
         if (innerFilterExpr is not null)
         {
-            conjuncts = new List<SqlExpr>();
+            conjuncts = new List<SqlExpr>(4);
             AstQuerySubqueryLookupSupport.FlattenConjuncts(innerFilterExpr, conjuncts);
             var conjunctCount = conjuncts.Count;
             fragmentCapacity += conjunctCount;
         }
 
-        var fragments = new List<string>(fragmentCapacity);
+        var fragments = new List<string>(Math.Max(1, fragmentCapacity));
 
         for (var i = 0; i < keyPairCount; i++)
         {
@@ -194,13 +194,13 @@ internal static class AstQueryCorrelatedExistsSupport
         SqlExpr predicate,
         SqlTableSource source)
     {
-        var conjuncts = new List<SqlExpr>();
+        var conjuncts = new List<SqlExpr>(4);
         AstQuerySubqueryLookupSupport.FlattenConjuncts(predicate, conjuncts);
         var conjunctCount = conjuncts.Count;
         if (conjunctCount == 0)
             return string.Empty;
 
-        var segments = new List<string>(conjunctCount);
+        var segments = new List<string>(Math.Max(1, conjunctCount));
         for (var i = 0; i < conjunctCount; i++)
         {
             var segment = NormalizeCorrelatedExistsConjunctForCacheKey(conjuncts[i], source);

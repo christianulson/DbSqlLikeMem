@@ -1212,12 +1212,12 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             rows,
             ctes);
 
-        // columns
-        for (int i = 0; i < selectPlan.Columns.Count; i++)
+        var columnCount = selectPlan.Columns.Count;
+        var projectedColumnCount = selectPlan.Evaluators.Count;
+
+        for (int i = 0; i < columnCount; i++)
             res.Columns.Add(selectPlan.Columns[i]);
 
-        // rows
-        var projectedColumnCount = selectPlan.Evaluators.Count;
         foreach (var r in rows)
         {
             var outRow = new Dictionary<int, object?>(projectedColumnCount);
@@ -1264,12 +1264,12 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             Eval,
             QueryRowValueHelper.ResolveColumn);
 
-        // columns
-        for (int i = 0; i < selectPlan.Columns.Count; i++)
+        var columnCount = selectPlan.Columns.Count;
+        var groupedColumnCount = selectPlan.Evaluators.Count;
+
+        for (int i = 0; i < columnCount; i++)
             res.Columns.Add(selectPlan.Columns[i]);
 
-        // rows
-        var groupedColumnCount = selectPlan.Evaluators.Count;
         foreach (var g in groupsList)
         {
             var eg = new EvalGroup(g.Rows);

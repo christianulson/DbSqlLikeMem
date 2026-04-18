@@ -1119,7 +1119,7 @@ internal static class AstQueryAggregateEvaluator
         var hasValue = false;
         var estimatedCapacity = EstimateStringAggregateCapacity(rowCount, separator.Length);
         HashSet<string>? seen = fn.Distinct && rowCount > 1
-            ? new HashSet<string>(StringComparer.Ordinal)
+            ? HashSetCompatibilityExtensions.Create<string>(Math.Max(1, rowCount), StringComparer.Ordinal)
             : null;
 
         if (!hasDirectValueSelector)
@@ -1457,7 +1457,8 @@ internal static class AstQueryAggregateEvaluator
         }
 
         var distinct = fn.Distinct;
-        HashSet<string>? seen = distinct ? new HashSet<string>(StringComparer.Ordinal) : null;
+        var rowCount = group.Rows.Count;
+        HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.Create<string>(Math.Max(1, rowCount), StringComparer.Ordinal) : null;
         long c = 0;
         foreach (var r in group.Rows)
         {
@@ -1509,11 +1510,12 @@ internal static class AstQueryAggregateEvaluator
         if (fn.Args.Count == 0)
             return null;
 
-        var values = new List<object?>(group.Rows.Count);
+        var rowCount = group.Rows.Count;
+        var values = new List<object?>(rowCount);
         HashSet<string>? seen = null;
         if (fn.Distinct)
         {
-            seen = new HashSet<string>(StringComparer.Ordinal);
+            seen = HashSetCompatibilityExtensions.Create<string>(Math.Max(1, rowCount), StringComparer.Ordinal);
         }
         var traceGroupedCaseWhen = fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count > 0

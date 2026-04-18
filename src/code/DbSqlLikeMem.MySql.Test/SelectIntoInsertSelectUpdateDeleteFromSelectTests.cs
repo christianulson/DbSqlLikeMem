@@ -35,13 +35,6 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     }
 
     /// <summary>
-    /// EN: Gets the MySQL-specific SQL used to delete from a join with a derived select.
-    /// PT: Obtém o SQL específico de MySQL usado para deletar de um join com select derivado.
-    /// </summary>
-    protected override string DeleteJoinDerivedSelectSql
-        => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
-
-    /// <summary>
     /// EN: Verifies MySQL-style execution rejects UPDATE ... FROM ... JOIN syntax with an actionable unsupported message.
     /// PT: Verifica que a execução no estilo MySQL rejeita a sintaxe UPDATE ... FROM ... JOIN com mensagem acionável de não suportado.
     /// </summary>

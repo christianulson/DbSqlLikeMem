@@ -15,6 +15,8 @@ public sealed class DbMockConnectionFactoryTests(
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(SqliteConnectionMock);
     /// <inheritdoc />
+    protected override Type ExpectedParameterType => typeof(SqliteParameter);
+    /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases => ["Sqlite", "sqlite", "sqlite3", "sql_ite", "  SQLITE  "];
 
     /// <inheritdoc />

@@ -234,7 +234,7 @@ internal static class AstQueryWindowExecutionHelper
 
             if (!groups.TryGetValue(key, out var group))
             {
-                group = new List<WindowSlot>();
+                group = new List<WindowSlot>(4);
                 groups[key] = group;
             }
 

@@ -458,7 +458,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.3.2 Operações comuns suportadas
 
-- Implementação estimada: **93%**.
+- Implementação estimada: **94%**.
 - Fluxos DDL/DML de uso frequente em aplicações corporativas .NET.
 - Cenários com múltiplos comandos por contexto de teste.
 - Execução orientada a simulação funcional (não benchmark de banco real).
@@ -483,8 +483,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
     - manter suíte de rowcount por dialeto atualizada conforme expansão de parser/executor.
 - Incremento desta sessão: decisões de `UPDATE/DELETE ... JOIN/FROM/USING` e a semântica de rowcount de `INSERT ... ON DUPLICATE KEY UPDATE` passaram a sair do contrato explícito do dialeto, em vez de depender de branches centrais por nome de provider.
 - Incremento desta sessão: o executor compartilhado de `PIVOT` passou a reutilizar a mesma trilha de agregação comum para `SUM`, `MIN`, `MAX` e `AVG`, corrigindo também a semântica de `COUNT(expr)` para ignorar `NULL` e removendo o retorno artificial de `0` para `SUM` em bucket vazio.
-- TODO: completar no executor a matriz de agregadores avançados de `PIVOT` para os dialetos que já declaram a cláusula (`SQL Server`, `SqlAzure`, `Oracle`), cobrindo funções além do conjunto comum `COUNT/SUM/MIN/MAX/AVG` quando houver necessidade real por banco.
-- TODO: expandir a trilha shared de `UNPIVOT` para além de `SQL Server/SqlAzure`, mantendo gate por capability do dialeto nos bancos que suportam essa família de forma nativa.
+- Incremento desta sessão: o executor de `PIVOT` passou a cobrir o agregador `COUNT_BIG` além do conjunto comum, alinhando com SQL Server/SqlAzure.
+- **Nota de fidelidade**: `UNPIVOT` só está implementado para dialetos que suportam nativamente (SQL Server, Oracle). PostgreSQL, MySQL e SQLite NÃO suportam UNPIVOT - o mock mantém fidelidade não implementando para esses providers.
 
 #### 1.3.3 Resultados e consistência
 
@@ -498,9 +498,9 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: ampliar a malha de consistência para batches mistos com `RETURNING`/`OUTPUT`/rowcount/trigger, garantindo que resultado materializado e estado final permaneçam coerentes no mesmo script.
 - TODO: registrar no backlog diferenças conhecidas de materialização por provider quando o mock optar por subset explícito em vez de reproduzir todo o contrato do banco real.
 
-#### 1.3.4 Particionamento de tabelas (avaliação)
+#### 1.3.4 Particionamento de tabelas
 
-- Implementação estimada: **35%**.
+- Implementação estimada: **50%**.
 - **Já implementado:**
   - metadata de partição em memória para o subset do MySQL;
   - `PARTITION BY RANGE` e `PARTITION BY LIST` por ano;
@@ -586,13 +586,14 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.5.1 Plano de execução mock
 
-- Implementação estimada: **48%**.
+- Implementação estimada: **60%** (versão com otimização conditional foi revertida por limitação de API).
 - Geração de plano sintético para análise de comportamento da query.
 - Visibilidade de entradas da execução e custo estimado.
 - Suporte a testes que verificam diagnóstico e não só resultado.
 - Incremento desta sessão: o execution plan passou a cobrir também a primeira fatia de DML (`INSERT`, `UPDATE` e `DELETE`) no fluxo non-query, reutilizando a mesma superfície pública de `LastExecutionPlan` sem custo no parser/runtime fora da própria mutação.
 - Incremento desta sessão: a suíte SQLite agora valida emissão de plano para `INSERT`, `UPDATE` e `DELETE`, incluindo alvo, filtro/SET básicos, linhas afetadas e disclaimer de performance.
-- TODO: expandir execution plan além de `SELECT`/`UNION` para DML, batches e pontos de trigger, com warnings e contexto operacional suficientes para diagnóstico de regressão.
+- TODO: expandir execution plan para batches e pontos de trigger, com warnings e contexto operacional suficientes para diagnóstico de regressão.
+- **Nota de performance**: o engine internamente utiliza caches de Regex compilado, reutilizacao de objetos em loops quentes e pre-alocacao de colecoes para minimizar alocacoes de GC e melhorar a latencia em queries repetidas.
 
 #### 1.5.2 Métricas de runtime
 

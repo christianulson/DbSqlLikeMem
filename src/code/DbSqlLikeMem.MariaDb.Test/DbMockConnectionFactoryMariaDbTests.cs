@@ -15,6 +15,8 @@ public sealed class DbMockConnectionFactoryMariaDbTests(
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(MariaDbConnectionMock);
     /// <inheritdoc />
+    protected override Type ExpectedParameterType => typeof(MySqlParameter);
+    /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases => ["MariaDb", "mariadb", "maria-db", "maria_db", "  MARIADB  "];
 
     /// <inheritdoc />

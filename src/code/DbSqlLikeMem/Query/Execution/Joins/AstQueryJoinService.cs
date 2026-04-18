@@ -210,7 +210,7 @@ internal sealed class AstQueryJoinService(
             var key = AstQuerySubqueryLookupSupport.BuildLookupScalarKeyString(component);
             if (!rightRowsByKey.TryGetValue(key, out var bucket))
             {
-                bucket = new List<Dictionary<string, object?>>();
+                bucket = new List<Dictionary<string, object?>>(1);
                 rightRowsByKey[key] = bucket;
             }
 

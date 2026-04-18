@@ -12,9 +12,8 @@ public partial class QueryServiceTest
     /// </summary>
     public async Task<object?> RunWindowRankDenseRank(params object[] pars)
     {
-        var users = (string)pars[0];
         var expectedFirstName = pars.Length > 1 ? (string)pars[1] : "Alice";
-
+        var rows = new List<QueryResultRowSnapshot>(4);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -31,19 +30,27 @@ ORDER BY Name, Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowRankDenseRow(reader, expectedFirstName, 1, 1, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowRankDenseRow(reader, "Bravo", 2, 2, 2);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowRankDenseRow(reader, "Bravo", 2, 2, 3);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowRankDenseRow(reader, "Charlie", 4, 3, 4);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 4;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name", "RankValue", "DenseRankValue", "RowNumberValue"],
+            Rows = rows,
+        };
     }
 
     private static void ValidateWindowRankDenseRow(
@@ -66,6 +73,7 @@ ORDER BY Name, Id
     public async Task<object?> RunWindowFirstLastValue(params object[] pars)
     {
         var expectedFirstName = pars.Length > 0 ? (string)pars[0] : "Alice";
+        var rows = new List<QueryResultRowSnapshot>(4);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -81,19 +89,27 @@ ORDER BY Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowFirstLastRow(reader, expectedFirstName, expectedFirstName, "Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowFirstLastRow(reader, "Bravo", expectedFirstName, "Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowFirstLastRow(reader, "Bravo", expectedFirstName, "Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowFirstLastRow(reader, "Charlie", expectedFirstName, "Charlie");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 4;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name", "FirstName", "LastName"],
+            Rows = rows,
+        };
     }
 
     private static void ValidateWindowFirstLastRow(
@@ -114,6 +130,7 @@ ORDER BY Id
     public async Task<object?> RunWindowNtile(params object[] pars)
     {
         var expectedFirstName = pars.Length > 0 ? (string)pars[0] : "Alice";
+        var rows = new List<QueryResultRowSnapshot>(4);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -128,19 +145,27 @@ ORDER BY Name, Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNtileRow(reader, expectedFirstName, 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNtileRow(reader, "Bravo", 1);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNtileRow(reader, "Bravo", 2);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNtileRow(reader, "Charlie", 2);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 4;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name", "BucketValue"],
+            Rows = rows,
+        };
     }
 
     private static void ValidateWindowNtileRow(
@@ -159,6 +184,7 @@ ORDER BY Name, Id
     public async Task<object?> RunWindowPercentRankCumeDist(params object[] pars)
     {
         var expectedFirstName = pars.Length > 0 ? (string)pars[0] : "Alice";
+        var rows = new List<QueryResultRowSnapshot>(4);
         var percentRankExpr = Repo.Dialect.Provider == ProviderId.Firebird
             ? "ROUND(CASE WHEN COUNT(*) OVER () <= 1 THEN 0 ELSE 1.0 * (RANK() OVER (ORDER BY Name, Id) - 1) / (COUNT(*) OVER () - 1) END, 6)"
             : Repo.Dialect.Provider == ProviderId.Npgsql
@@ -184,19 +210,27 @@ ORDER BY Name, Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowPercentRankCumeDistRow(reader, expectedFirstName, 0.0m, 0.25m);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.333333m, 0.5m);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.666667m, 0.75m);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowPercentRankCumeDistRow(reader, "Charlie", 1.0m, 1.0m);
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 4;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name", "PercentRankValue", "CumeDistValue"],
+            Rows = rows,
+        };
     }
 
     private static void ValidateWindowPercentRankCumeDistRow(
@@ -222,6 +256,7 @@ ORDER BY Name, Id
         }
 
         var expectedFirstName = pars.Length > 0 ? (string)pars[0] : "Alice";
+        var rows = new List<QueryResultRowSnapshot>(4);
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -236,19 +271,27 @@ ORDER BY Id
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNthValueRow(reader, expectedFirstName, "Bravo");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNthValueRow(reader, "Bravo", "Bravo");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNthValueRow(reader, "Bravo", "Bravo");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateWindowNthValueRow(reader, "Charlie", "Bravo");
+        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();
 
-        return 4;
+        return new QueryResultSnapshot
+        {
+            ColumnNames = ["Name", "SecondName"],
+            Rows = rows,
+        };
     }
 
     private static void ValidateWindowNthValueRow(

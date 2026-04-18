@@ -717,15 +717,7 @@ public abstract class TableMock
     }
 
     internal bool HasRegisteredTriggers()
-    {
-        foreach (var handlers in _triggers.Values)
-        {
-            if (handlers.Count > 0)
-                return true;
-        }
-
-        return false;
-    }
+        => _triggers.Count > 0;
 
     /// <summary>
     /// EN: Add new Vollumn to Table
@@ -815,7 +807,7 @@ public abstract class TableMock
             row[column.Index] = value;
 
             if (column.GetGenValue != null && column.PersistComputedValue)
-                row[column.Index] = column.GetGenValue(new ReadOnlyDictionary<int, object?>(row), this);
+                row[column.Index] = column.GetGenValue(row, this);
 
             if (!column.Nullable && row[column.Index] == null)
                 throw ColumnCannotBeNull(column.Name);
@@ -862,7 +854,9 @@ public abstract class TableMock
         name = name.NormalizeName();
         if (_indexes.ContainsKey(name))
             throw new InvalidOperationException(SqlExceptionMessages.IndexAlreadyExists(name));
-        var normalizedKeyCols = new List<string>();
+        var normalizedKeyCols = keyCols is ICollection<string> keyColsCollection
+            ? new List<string>(keyColsCollection.Count)
+            : new List<string>();
         var seenKeyCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var keyCol in keyCols)
         {
@@ -879,7 +873,9 @@ public abstract class TableMock
         List<string>? normalizedIncludeCols = null;
         if (include is not null)
         {
-            normalizedIncludeCols = [];
+            normalizedIncludeCols = include is ICollection<string> includeCollection
+                ? new List<string>(includeCollection.Count)
+                : [];
             var seenIncludeCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var includeCol in include)
             {
@@ -981,8 +977,8 @@ public abstract class TableMock
         if (_indexes.Count == 0)
             return;
 
-        foreach (var it in _indexes)
-            it.Value.UpdateIndexesWithRow(rowIdx, this[rowIdx]);
+        foreach (var index in _indexes.Values)
+            index.UpdateIndexesWithRow(rowIdx, this[rowIdx]);
     }
 
     internal void UpdateIndexesWithRow(
@@ -993,8 +989,8 @@ public abstract class TableMock
         if (_indexes.Count == 0)
             return;
 
-        foreach (var it in _indexes)
-            it.Value.UpdateIndexesWithRow(rowIdx, oldRow, newRow);
+        foreach (var index in _indexes.Values)
+            index.UpdateIndexesWithRow(rowIdx, oldRow, newRow);
     }
 
     /// <summary>
@@ -1593,14 +1589,14 @@ public abstract class TableMock
         }
     }
 
-    private void RefreshPersistedComputedValues(IDictionary<int, object?> row)
+    private void RefreshPersistedComputedValues(Dictionary<int, object?> row)
     {
         foreach (var col in _columnsByOrdinal)
         {
             if (col.GetGenValue == null || !col.PersistComputedValue)
                 continue;
 
-            row[col.Index] = col.GetGenValue(new ReadOnlyDictionary<int, object?>(row), this);
+            row[col.Index] = col.GetGenValue(row, this);
         }
     }
 
@@ -1664,7 +1660,7 @@ public abstract class TableMock
         {
             var pkIdx = _pkIndexArray[i];
             var columnName = _columnsByOrdinal[pkIdx].Name;
-            valuesByColumn[columnName.NormalizeName()] = newRow.TryGetValue(pkIdx, out var val) ? val : null;
+            valuesByColumn[columnName] = newRow.TryGetValue(pkIdx, out var val) ? val : null;
         }
 
         var key = pkIndex.BuildIndexKeyFromValues(valuesByColumn);

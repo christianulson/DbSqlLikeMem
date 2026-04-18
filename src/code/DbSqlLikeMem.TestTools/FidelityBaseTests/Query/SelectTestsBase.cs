@@ -27,29 +27,32 @@ public abstract class SelectTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<SelectTableScenario, SelectByPKServiceTest>();
+        var result = await testService.RunTestAsync<SelectTableScenario, SelectByPKServiceTest>();
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectByPkTest)), Snapshot(["Name"], Row("Alice")));
     }
 
     /// <summary>
-    /// EN: Verifies that selecting all rows returns the expected row count for the current provider.
-    /// PT: Verifica se o select de todas as linhas retorna a contagem esperada para o provedor atual.
+    /// EN: Verifies that selecting all rows returns the expected rowset for the current provider.
+    /// PT: Verifica se o select de todas as linhas retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectAllRowsCountTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
             async (s, a) =>
             {
                 await s.Repo.ExecuteNonQueryAsync(dialect.InsertUser(s.Context, 2, "Bob"));
-                return await s.RunRowCountAfterSelectAsync(a);
+                return await s.RunAllRowsSnapshotAsync(a);
             });
+
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectAllRowsCountTest)), Snapshot(["Id", "Name"], Row(1m, "Alice"), Row(2m, "Bob")));
     }
 
     /// <summary>
-    /// EN: Verifies that a simple CTE query returns the expected result for the current provider.
-    /// PT: Verifica se uma consulta CTE simples retorna o resultado esperado para o provedor atual.
+    /// EN: Verifies that a simple CTE query returns the expected rowset for the current provider.
+    /// PT: Verifica se uma consulta CTE simples retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectCteSimpleTest()
@@ -58,7 +61,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
             (s, a) => s.RunCteSimpleAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectCteSimpleTest)), Snapshot(["Name"], Row("Alice")));
     }
 
     /// <summary>
@@ -73,7 +76,10 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectScalarSubqueryCaseMatrixAsync(a));
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectScalarSubqueryCaseMatrixTest)), Snapshot(["UserId", "UserName", "OrderCount", "HasNoOrders", "HasManyOrders"],
+            Row(1m, "Alice", 3m, 0m, 1m),
+            Row(2m, "Bob", 1m, 0m, 0m),
+            Row(3m, "Carla", 0m, 1m, 0m)));
     }
 
     /// <summary>
@@ -88,12 +94,15 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectScalarCaseMatrixAsync(a));
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectScalarCaseMatrixTest)), Snapshot(["UserId", "UserName", "OrderCount", "HasNoOrders", "HasManyOrders"],
+            Row(1m, "Alice", 3m, 0m, 1m),
+            Row(2m, "Bob", 1m, 0m, 0m),
+            Row(3m, "Carla", 0m, 1m, 0m)));
     }
 
     /// <summary>
-    /// EN: Verifies that a NOT EXISTS predicate returns the expected anti-join count for the current provider.
-    /// PT: Verifica se um predicado NOT EXISTS retorna a contagem esperada de anti-join para o provedor atual.
+    /// EN: Verifies that a NOT EXISTS predicate returns the expected anti-join rowset for the current provider.
+    /// PT: Verifica se um predicado NOT EXISTS retorna o conjunto de linhas esperado de anti-join para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectNotExistsPredicateTest()
@@ -103,12 +112,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectNotExistsPredicateAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectNotExistsPredicateTest)), Snapshot(["Id", "Name"], Row(3m, "Carla")));
     }
 
     /// <summary>
-    /// EN: Verifies that a LEFT JOIN anti-join returns the expected row count for the current provider.
-    /// PT: Verifica se um anti-join com LEFT JOIN retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that a LEFT JOIN anti-join returns the expected rowset for the current provider.
+    /// PT: Verifica se um anti-join com LEFT JOIN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectLeftJoinAntiJoinTest()
@@ -118,12 +127,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectLeftJoinAntiJoinAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectLeftJoinAntiJoinTest)), Snapshot(["Id", "Name"], Row(3m, "Carla")));
     }
 
     /// <summary>
-    /// EN: Verifies that a NOT IN subquery returns the expected anti-join count for the current provider.
-    /// PT: Verifica se uma subconsulta NOT IN retorna a contagem esperada de anti-join para o provedor atual.
+    /// EN: Verifies that a NOT IN subquery returns the expected anti-join rowset for the current provider.
+    /// PT: Verifica se uma subconsulta NOT IN retorna o conjunto de linhas esperado de anti-join para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectNotInSubqueryTest()
@@ -133,12 +142,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectNotInSubqueryAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectNotInSubqueryTest)), Snapshot(["Id", "Name"], Row(3m, "Carla")));
     }
 
     /// <summary>
-    /// EN: Verifies that an EXISTS predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado EXISTS retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that an EXISTS predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado EXISTS retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectExistsPredicateTest()
@@ -148,12 +157,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectExistsPredicateAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectExistsPredicateTest)), Snapshot(["Id", "Name"], Row(1m, "Alice"), Row(2m, "Bob")));
     }
 
     /// <summary>
-    /// EN: Verifies that a correlated count predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado de contagem correlacionada retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that a correlated count predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado de contagem correlacionada retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectCorrelatedCountTest()
@@ -163,12 +172,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectCorrelatedCountAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectCorrelatedCountTest)), Snapshot(["UserId", "UserName", "OrderCount"], Row(1m, "Alice", 2m), Row(2m, "Bob", 1m)));
     }
 
     /// <summary>
-    /// EN: Verifies that an IN subquery returns the expected row count for the current provider.
-    /// PT: Verifica se uma subconsulta IN retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that an IN subquery returns the expected rowset for the current provider.
+    /// PT: Verifica se uma subconsulta IN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectInSubqueryTest()
@@ -178,7 +187,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectInSubqueryAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectInSubqueryTest)), Snapshot(["Id", "Name"], Row(1m, "Alice"), Row(2m, "Bob")));
     }
 
     /// <summary>
@@ -197,8 +206,8 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies that a GROUP BY HAVING query returns the expected row count for the current provider.
-    /// PT: Verifica se uma consulta GROUP BY HAVING retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that a GROUP BY HAVING query returns the expected rowset for the current provider.
+    /// PT: Verifica se uma consulta GROUP BY HAVING retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectGroupByHavingTest()
@@ -208,12 +217,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunGroupByHavingAsync(a));
-        result.Should().Be(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectGroupByHavingTest)), Snapshot(["Id"], Row(1m)));
     }
 
     /// <summary>
-    /// EN: Verifies that a UNION ALL projection returns the expected row count for the current provider.
-    /// PT: Verifica se uma projecao UNION ALL retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that a UNION ALL projection returns the expected rowset for the current provider.
+    /// PT: Verifica se uma projecao UNION ALL retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectUnionAllProjectionTest()
@@ -222,12 +231,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunUnionAllProjectionAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectUnionAllProjectionTest)), Snapshot(["Name"], Row("Alice"), Row("Bob")));
     }
 
     /// <summary>
-    /// EN: Verifies that a DISTINCT projection returns the expected row count for the current provider.
-    /// PT: Verifica se uma projecao DISTINCT retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that a DISTINCT projection returns the expected rowset for the current provider.
+    /// PT: Verifica se uma projecao DISTINCT retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectDistinctProjectionTest()
@@ -236,12 +245,12 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunDistinctProjectionAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectDistinctProjectionTest)), Snapshot(["Name"], Row("Alice"), Row("Bob")));
     }
 
     /// <summary>
-    /// EN: Verifies that a multi-join aggregate returns the expected row count for the current provider.
-    /// PT: Verifica se uma agregacao com multiplos joins retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies that a multi-join aggregate returns the expected rowset for the current provider.
+    /// PT: Verifica se uma agregacao com multiplos joins retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectMultiJoinAggregateTest()
@@ -251,12 +260,16 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunMultiJoinAggregateAsync(a));
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectMultiJoinAggregateTest)), Snapshot(["UserId", "FirstOrderId", "SecondOrderId"],
+            Row(1m, 10m, 10m),
+            Row(1m, 10m, 11m),
+            Row(1m, 11m, 10m),
+            Row(1m, 11m, 11m)));
     }
 
     /// <summary>
-    /// EN: Verifies an IN-list predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado IN com lista retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies an IN-list predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado IN com lista retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectInListPredicateTest()
@@ -265,12 +278,14 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunInListPredicateMatrixAsync(a));
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectInListPredicateTest)), Snapshot(["Id", "Name"],
+            Row(1m, "Alice"),
+            Row(3m, "Charlie")));
     }
 
     /// <summary>
-    /// EN: Verifies a BETWEEN predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado BETWEEN retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a BETWEEN predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado BETWEEN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectBetweenPredicateTest()
@@ -280,12 +295,15 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunBetweenPredicateMatrixAsync(a));
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectBetweenPredicateTest)), Snapshot(["Id", "Name"],
+            Row(2m, "Bob"),
+            Row(3m, "Charlie"),
+            Row(4m, "Delta")));
     }
 
     /// <summary>
-    /// EN: Verifies a LIKE predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado LIKE retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a LIKE predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado LIKE retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectLikePredicateTest()
@@ -294,7 +312,8 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunLikePredicateMatrixAsync(a));
-        result.Should().Be(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectLikePredicateTest)), Snapshot(["Id", "Name"],
+            Row(1m, "Alice")));
     }
 
     /// <summary>
@@ -308,7 +327,9 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunBetweenLikeOrderByMatrixAsync(a));
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectBetweenLikeOrderByTest)), Snapshot(["Name"],
+            Row("Aaron"),
+            Row("Alice")));
     }
 
     /// <summary>
@@ -322,12 +343,14 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunBetweenLikeOrderByMatrixAsync(a));
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectBetweenLikeOrderByMatrixTest)), Snapshot(["Name"],
+            Row("Aaron"),
+            Row("Alice")));
     }
 
     /// <summary>
-    /// EN: Verifies a NOT LIKE predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado NOT LIKE retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a NOT LIKE predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado NOT LIKE retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectNotLikePredicateTest()
@@ -336,12 +359,16 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunNotLikePredicateMatrixAsync(a));
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectNotLikePredicateTest)), Snapshot(["Id", "Name"],
+            Row(2m, "Bob"),
+            Row(3m, "Charlie"),
+            Row(4m, "Delta"),
+            Row(5m, "Echo")));
     }
 
     /// <summary>
-    /// EN: Verifies a not-equal predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado diferente de retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a not-equal predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado diferente de retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectNotEqualPredicateTest()
@@ -350,13 +377,17 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunNotEqualPredicateMatrixAsync(a));
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectNotEqualPredicateTest)), Snapshot(["Id", "Name"],
+            Row(1m, "Alice"),
+            Row(3m, "Charlie"),
+            Row(4m, "Delta"),
+            Row(5m, "Echo")));
 
     }
 
     /// <summary>
-    /// EN: Verifies an equality predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado de igualdade retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies an equality predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado de igualdade retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectEqualPredicateTest()
@@ -365,7 +396,8 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunEqualPredicateMatrixAsync(a));
-        result.Should().Be(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectEqualPredicateTest)), Snapshot(["Id", "Name"],
+            Row(2m, "Bob")));
     }
 
     /// <summary>
@@ -495,8 +527,8 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies a greater-than predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado maior que retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a greater-than predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado maior que retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectGreaterThanPredicateTest()
@@ -505,12 +537,14 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunGreaterThanPredicateMatrixAsync(a));
 
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectGreaterThanPredicateTest)), Snapshot(["Id", "Name"],
+            Row(4m, "Delta"),
+            Row(5m, "Echo")));
     }
 
     /// <summary>
-    /// EN: Verifies a less-than predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado menor que retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a less-than predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado menor que retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectLessThanPredicateTest()
@@ -519,12 +553,14 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunLessThanPredicateMatrixAsync(a));
 
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectLessThanPredicateTest)), Snapshot(["Id", "Name"],
+            Row(1m, "Alice"),
+            Row(2m, "Bob")));
     }
 
     /// <summary>
-    /// EN: Verifies a greater-than-or-equal predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado maior ou igual retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a greater-than-or-equal predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado maior ou igual retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectGreaterThanOrEqualPredicateTest()
@@ -533,12 +569,15 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunGreaterThanOrEqualPredicateMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectGreaterThanOrEqualPredicateTest)), Snapshot(["Id", "Name"],
+            Row(3m, "Charlie"),
+            Row(4m, "Delta"),
+            Row(5m, "Echo")));
     }
 
     /// <summary>
-    /// EN: Verifies a less-than-or-equal predicate returns the expected row count for the current provider.
-    /// PT: Verifica se um predicado menor ou igual retorna a contagem esperada de linhas para o provedor atual.
+    /// EN: Verifies a less-than-or-equal predicate returns the expected rowset for the current provider.
+    /// PT: Verifica se um predicado menor ou igual retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectLessThanOrEqualPredicateTest()
@@ -547,7 +586,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData],
             (s, a) => s.RunLessThanOrEqualPredicateMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectLessThanOrEqualPredicateTest)), Snapshot(["Id", "Name"],
+            Row(1m, "Alice"),
+            Row(2m, "Bob"),
+            Row(3m, "Charlie")));
     }
 
     /// <summary>
@@ -561,7 +603,10 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
             (s, a) => s.RunOrderByNameMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOrderByNameTest)), Snapshot(["Name"],
+            Row("Alice"),
+            Row("Bob"),
+            Row("Charlie")));
     }
 
     /// <summary>
@@ -575,12 +620,15 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
             (s, a) => s.RunOrderByNameMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOrderByNameMatrixTest)), Snapshot(["Name"],
+            Row("Alice"),
+            Row("Bob"),
+            Row("Charlie")));
     }
 
     /// <summary>
-    /// EN: Verifies that a UNION projection returns the expected distinct row count for the current provider.
-    /// PT: Verifica se uma projecao UNION retorna a contagem distinta esperada para o provedor atual.
+    /// EN: Verifies that a UNION projection returns the expected distinct rowset for the current provider.
+    /// PT: Verifica se uma projecao UNION retorna o conjunto de linhas distinto esperado para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectUnionDistinctProjectionTest()
@@ -594,7 +642,7 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunUnionDistinctProjectionAsync(a);
             });
 
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectUnionDistinctProjectionTest)), Snapshot(["Name"], Row("Alice"), Row("Bob"), Row("Carla")));
     }
 
     /// <summary>
@@ -608,7 +656,10 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]],
             (s, a) => s.RunGroupByNameInitialMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectGroupByNameInitialMatrixTest)), Snapshot(["NameInitial", "TotalCount", "DistinctCount", "AliceCount", "BobCount", "FirstName", "LastName", "HasAtLeastTwo"],
+            Row("A", 3m, 2m, 2m, 0m, "Adam", "Alice", 1m),
+            Row("B", 3m, 2m, 0m, 2m, "Bob", "Brian", 1m),
+            Row("C", 2m, 2m, 0m, 0m, "Carla", "Chris", 1m)));
     }
 
     /// <summary>
@@ -622,7 +673,9 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Alice"), (2, "Alice"), (3, "Bob"), (4, "Bob"), (5, "Bob"), (6, "Charlie")]],
             (s, a) => s.RunGroupByNameHavingMatrixAsync(a));
 
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectGroupByNameHavingTest)), Snapshot(["Name", "TotalCount"],
+            Row("Alice", 2m),
+            Row("Bob", 3m)));
     }
 
     /// <summary>
@@ -646,7 +699,10 @@ public abstract class SelectTestsBase<T, T2>(
             initialData,
             (s, a) => s.RunGroupByOrdinalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectGroupByOrdinalTest)), Snapshot(["NameInitial", "TotalCount"],
+            Row("A", 3m),
+            Row("B", 3m),
+            Row("C", 2m)));
     }
 
     /// <summary>
@@ -660,7 +716,10 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]],
             (s, a) => s.RunOrderByOrdinalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOrderByOrdinalTest)), Snapshot(["Name", "Id"],
+            Row("Charlie", 3m),
+            Row("Bravo", 2m),
+            Row("Alpha", 1m)));
     }
 
     /// <summary>
@@ -674,7 +733,10 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Alpha"), (2, "Bravo"), (3, "Charlie")]],
             (s, a) => s.RunOrderByOrdinalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOrderByOrdinalMatrixTest)), Snapshot(["Name", "Id"],
+            Row("Charlie", 3m),
+            Row("Bravo", 2m),
+            Row("Alpha", 1m)));
     }
 
     /// <summary>
@@ -688,7 +750,11 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctOrderByOrdinalMatrixAsync(a));
 
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectDistinctOrderByOrdinalTest)), Snapshot(["Name"],
+            Row("Alice"),
+            Row("Bob"),
+            Row("Charlie"),
+            Row("Delta")));
     }
 
     /// <summary>
@@ -702,7 +768,11 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctOrderByOrdinalMatrixAsync(a));
 
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectDistinctOrderByOrdinalMatrixTest)), Snapshot(["Name"],
+            Row("Alice"),
+            Row("Bob"),
+            Row("Charlie"),
+            Row("Delta")));
     }
 
     /// <summary>
@@ -716,7 +786,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctLikeOrderByOrdinalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectDistinctLikeOrderByOrdinalTest)), Snapshot(["UPPER(Name)"],
+            Row("ALICE"),
+            Row("CHARLIE"),
+            Row("DELTA")));
     }
 
     /// <summary>
@@ -730,7 +803,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.InicialData3],
             (s, a) => s.RunDistinctLikeOrderByOrdinalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectDistinctLikeOrderByOrdinalMatrixTest)), Snapshot(["UPPER(Name)"],
+            Row("ALICE"),
+            Row("CHARLIE"),
+            Row("DELTA")));
     }
 
     /// <summary>
@@ -744,7 +820,10 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
             (s, a) => s.RunOrderByNameDescendingMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOrderByNameDescendingTest)), Snapshot(["Name"],
+            Row("Charlie"),
+            Row("Bob"),
+            Row("Alice")));
     }
 
     /// <summary>
@@ -758,7 +837,10 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Charlie"), (2, "Bob"), (3, "Alice")]],
             (s, a) => s.RunOrderByNameDescendingMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOrderByNameDescendingMatrixTest)), Snapshot(["Name"],
+            Row("Charlie"),
+            Row("Bob"),
+            Row("Alice")));
     }
 
     /// <summary>
@@ -772,7 +854,10 @@ public abstract class SelectTestsBase<T, T2>(
             [[(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]],
             (s, a) => s.RunNamePaginationMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectNamePaginationMatrixTest)), Snapshot(["Name"],
+            Row("Bravo"),
+            Row("Charlie"),
+            Row("Delta")));
     }
 
     /// <summary>
@@ -786,7 +871,9 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunPagedNameProjectionMatrixAsync());
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectPagedNameProjectionTest)), Snapshot(["Name"],
+            Row("Bravo"),
+            Row("Charlie")));
     }
 
     /// <summary>
@@ -804,8 +891,8 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies that common window functions return the expected row counts for the current provider.
-    /// PT: Verifica se funcoes de janela comuns retornam a contagem esperada para o provedor atual.
+    /// EN: Verifies that common window functions return the expected rowsets for the current provider.
+    /// PT: Verifica se funcoes de janela comuns retornam os conjuntos de linhas esperados para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectWindowFunctionsTest()
@@ -823,7 +910,19 @@ public abstract class SelectTestsBase<T, T2>(
                 return (rowNumber, lag, lead);
             });
 
-        result.Should().BeEquivalentTo((3, 3, 2));
+        var (rowNumber, lag, lead) = RequireSnapshotTriple(result, nameof(SelectWindowFunctionsTest));
+        AssertSnapshot(rowNumber, Snapshot(["Name", "RowNumberValue"],
+            Row("Alice", 1m),
+            Row("Bob", 2m),
+            Row("Charlie", 3m)));
+        AssertSnapshot(lag, Snapshot(["Name", "PrevName"],
+            Row("Alice", null),
+            Row("Bob", "Alice"),
+            Row("Charlie", "Bob")));
+        AssertSnapshot(lead, Snapshot(["Name", "NextName"],
+            Row("Alice", "Bob"),
+            Row("Bob", "Charlie"),
+            Row("Charlie", null)));
     }
 
     /// <summary>
@@ -843,7 +942,11 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunWindowRankDenseRank(a.Length > 0 ? a : ["Alice"]);
             });
 
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectWindowRankDenseRankTest)), Snapshot(["Name", "RankValue", "DenseRankValue", "RowNumberValue"],
+            Row("Alice", 1m, 1m, 1m),
+            Row("Bravo", 2m, 2m, 2m),
+            Row("Bravo", 2m, 2m, 3m),
+            Row("Charlie", 4m, 3m, 4m)));
     }
 
     /// <summary>
@@ -863,7 +966,11 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunWindowFirstLastValue(a.Length > 0 ? a : ["Alice"]);
             });
 
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectWindowFirstLastValueTest)), Snapshot(["Name", "FirstName", "LastName"],
+            Row("Alice", "Alice", "Charlie"),
+            Row("Bravo", "Alice", "Charlie"),
+            Row("Bravo", "Alice", "Charlie"),
+            Row("Charlie", "Alice", "Charlie")));
     }
 
 
@@ -884,7 +991,11 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunWindowNtile(a.Length > 0 ? a : ["Alice"]);
             });
 
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectWindowNtileTest)), Snapshot(["Name", "BucketValue"],
+            Row("Alice", 1m),
+            Row("Bravo", 1m),
+            Row("Bravo", 2m),
+            Row("Charlie", 2m)));
     }
 
     /// <summary>
@@ -904,7 +1015,11 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunWindowPercentRankCumeDist(a.Length > 0 ? a : ["Alice"]);
             });
 
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectWindowPercentRankCumeDistTest)), Snapshot(["Name", "PercentRankValue", "CumeDistValue"],
+            Row("Alice", 0.0m, 0.25m),
+            Row("Bravo", 0.333333m, 0.5m),
+            Row("Bravo", 0.666667m, 0.75m),
+            Row("Charlie", 1.0m, 1.0m)));
     }
 
     /// <summary>
@@ -939,7 +1054,11 @@ public abstract class SelectTestsBase<T, T2>(
             },
             "Alice");
 
-        result.Should().Be(4);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectWindowNthValueTest)), Snapshot(["Name", "SecondName"],
+            Row("Alice", "Bravo"),
+            Row("Bravo", "Bravo"),
+            Row("Bravo", "Bravo"),
+            Row("Charlie", "Bravo")));
     }
 
     /// <summary>
@@ -1028,7 +1147,9 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinTypedExpressionMatrixAsync(a);
             });
 
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTypedExpressionMatrixTest)), Snapshot(["UserId", "UserNameUpper", "UserNameLower", "OrderCount", "TotalQuantity", "TotalAmount", "AvgAmount", "FirstNote", "LastNote", "HasMultipleOrders", "AmountAtLeastThree"],
+            Row(1m, "ALICE", "alice", 2m, 3m, 4.00m, 2.00m, "A", "B", 1m, 1m),
+            Row(2m, "BOB", "bob", 1m, 4m, 5.50m, 5.50m, "C", "C", 0m, 1m)));
     }
 
     /// <summary>
@@ -1046,7 +1167,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinNullAggregateMatrixAsync(a);
             });
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinNullAggregateMatrixTest)), Snapshot(["UserId", "UserName", "OrderCount", "TotalQuantity", "TotalAmount", "FirstNote", "HasNoOrders", "AmountIsNull", "HasLargeQuantity"],
+            Row(1m, "Alice", 2m, 3m, 4.00m, "A", 0m, 0m, 1m),
+            Row(2m, "Bob", 1m, 4m, 5.50m, "C", 0m, 0m, 1m),
+            Row(3m, "Carla", 0m, 0m, 0.00m, "none", 1m, 1m, 0m)));
     }
 
     /// <summary>
@@ -1064,7 +1188,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinCastNullMatrixAsync(a);
             });
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinCastNullMatrixTest)), Snapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasNoOrders", "NotesAreNull", "HasNote", "MeetsAmountThreshold"],
+            Row(1m, "Alice", "2", "3", "4.00", 0m, 0m, 1m, 1m),
+            Row(2m, "Bob", "1", "4", "5.50", 0m, 0m, 1m, 1m),
+            Row(3m, "Carla", "0", "0", "0.00", 1m, 1m, 0m, 0m)));
     }
 
     /// <summary>
@@ -1082,7 +1209,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinCastTextComparisonMatrixAsync(a);
             });
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinCastTextComparisonMatrixTest)), Snapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "CountTextIsZero", "QuantityTextNonZero", "NotesAreMissing", "HasAnyNote"],
+            Row(1m, "Alice", "2", "3", "4.00", 0m, 1m, 0m, 1m),
+            Row(2m, "Bob", "1", "4", "5.50", 0m, 1m, 0m, 1m),
+            Row(3m, "Carla", "0", "0", "0.00", 1m, 0m, 1m, 0m)));
     }
 
     /// <summary>
@@ -1100,7 +1230,8 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinHavingCastMatrixAsync(a);
             });
 
-        result.Should().Be(1);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinHavingCastMatrixTest)), Snapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasTwoOrMoreOrders", "AmountAtLeastFour", "StartsAtA"],
+            Row(1m, "Alice", "2", "3", "4.00", 1m, 1m, 1m)));
     }
 
     /// <summary>
@@ -1118,7 +1249,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinLengthNumericMatrixAsync(a);
             });
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinLengthNumericMatrixTest)), Snapshot(["UserId", "UserName", "NameLenText", "TotalQuantityText", "TotalAmountText", "MaxNoteLenText", "NameLenGe4", "QuantityGe3", "AmountGe4", "HasNotes"],
+            Row(1m, "Alice", "5", "3", "4.00", "1", 1m, 1m, 1m, 1m),
+            Row(2m, "Bob", "3", "4", "5.50", "1", 0m, 1m, 1m, 1m),
+            Row(3m, "Carla", "5", "0", "0.00", "0", 1m, 0m, 0m, 0m)));
     }
 
     /// <summary>
@@ -1136,7 +1270,11 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinTextCaseLengthMatrixAsync(a);
             });
 
-        result.Should().Be(3);
+        var textMatchAlready = dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0m : 1m;
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTextCaseLengthMatrixTest)), Snapshot(["UserId", "NameUpper", "NameLower", "NameTrimmed", "NameLenText", "MaxNoteLenText", "NameLenGe4", "IsUpperAlready", "IsLowerAlready", "TwoOrMoreOrders", "QuantityGe3"],
+            Row(1m, "ALICE", "alice", "Alice", "5", "1", 1m, textMatchAlready, textMatchAlready, 1m, 1m),
+            Row(2m, "BOB", "bob", "Bob", "3", "1", 0m, textMatchAlready, textMatchAlready, 0m, 1m),
+            Row(3m, "CARLA", "carla", "Carla", "5", "0", 1m, textMatchAlready, textMatchAlready, 0m, 0m)));
     }
 
     /// <summary>
@@ -1150,7 +1288,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders],
             (s, a) => s.RunJoinDistinctCaseMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinDistinctCaseMatrixTest)), Snapshot(["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
+            Row(1m, 3m, 2m, 2m, 1m, 1m),
+            Row(2m, 1m, 1m, 0m, 0m, 0m),
+            Row(3m, 0m, 0m, 0m, 0m, 0m)));
     }
 
     /// <summary>
@@ -1164,7 +1305,9 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders],
             (s, a) => s.RunJoinDistinctHavingMatrixAsync(a));
 
-        result.Should().Be(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinDistinctHavingMatrixTest)), Snapshot(["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
+            Row(1m, 3m, 2m, 2m, 1m, 1m),
+            Row(3m, 0m, 0m, 0m, 0m, 0m)));
     }
 
     /// <summary>
@@ -1198,25 +1341,29 @@ public abstract class SelectTestsBase<T, T2>(
     private static async Task<object?> RunRelationalCompositeAssertionsAsync(
         QueryServiceTest serviceTest)
     {
-        var cte = (QueryResultSnapshot)await serviceTest.RunCteSimpleAsync();
-        var existsPredicate = (QueryResultSnapshot)await serviceTest.RunSelectExistsPredicateAsync();
-        var correlatedCount = (QueryResultSnapshot)await serviceTest.RunSelectCorrelatedCountAsync();
-        var groupByHaving = await serviceTest.RunGroupByHavingAsync();
-        var unionAll = (QueryResultSnapshot)await serviceTest.RunUnionAllProjectionAsync();
-        var distinct = (QueryResultSnapshot)await serviceTest.RunDistinctProjectionAsync();
-        var multiJoin = (QueryResultSnapshot)await serviceTest.RunMultiJoinAggregateAsync();
+        var cte = RequireSnapshot(await serviceTest.RunCteSimpleAsync(), nameof(serviceTest.RunCteSimpleAsync));
+        var existsPredicate = RequireSnapshot(await serviceTest.RunSelectExistsPredicateAsync(), nameof(serviceTest.RunSelectExistsPredicateAsync));
+        var correlatedCount = RequireSnapshot(await serviceTest.RunSelectCorrelatedCountAsync(), nameof(serviceTest.RunSelectCorrelatedCountAsync));
+        var groupByHaving = RequireSnapshot(await serviceTest.RunGroupByHavingAsync(), nameof(serviceTest.RunGroupByHavingAsync));
+        var unionAll = RequireSnapshot(await serviceTest.RunUnionAllProjectionAsync(), nameof(serviceTest.RunUnionAllProjectionAsync));
+        var distinct = RequireSnapshot(await serviceTest.RunDistinctProjectionAsync(), nameof(serviceTest.RunDistinctProjectionAsync));
+        var multiJoin = RequireSnapshot(await serviceTest.RunMultiJoinAggregateAsync(), nameof(serviceTest.RunMultiJoinAggregateAsync));
         var scalarSubquery = Convert.ToInt64(await serviceTest.RunSelectScalarSubqueryAsync(), CultureInfo.InvariantCulture);
-        var inSubquery = (QueryResultSnapshot)await serviceTest.RunSelectInSubqueryAsync();
+        var inSubquery = RequireSnapshot(await serviceTest.RunSelectInSubqueryAsync(), nameof(serviceTest.RunSelectInSubqueryAsync));
         var pivot = await serviceTest.RunPivotCountAsync();
-        cte.Rows.Should().HaveCount(1);
-        existsPredicate.Rows.Should().HaveCount(2);
-        correlatedCount.Rows.Should().HaveCount(2);
-        groupByHaving.Should().Be(1);
-        unionAll.Rows.Should().HaveCount(2);
-        distinct.Rows.Should().HaveCount(2);
-        multiJoin.Rows.Should().HaveCount(4);
+        AssertSnapshot(cte, Snapshot(["Name"], Row("Alice")));
+        AssertSnapshot(existsPredicate, Snapshot(["Id", "Name"], Row(1m, "Alice"), Row(2m, "Bob")));
+        AssertSnapshot(correlatedCount, Snapshot(["UserId", "UserName", "OrderCount"], Row(1m, "Alice", 2m), Row(2m, "Bob", 1m)));
+        AssertSnapshot(groupByHaving, Snapshot(["Id"], Row(1m)));
+        AssertSnapshot(unionAll, Snapshot(["Name"], Row("Alice"), Row("Bob")));
+        AssertSnapshot(distinct, Snapshot(["Name"], Row("Alice"), Row("Bob")));
+        AssertSnapshot(multiJoin, Snapshot(["UserId", "FirstOrderId", "SecondOrderId"],
+            Row(1m, 10m, 10m),
+            Row(1m, 10m, 11m),
+            Row(1m, 11m, 10m),
+            Row(1m, 11m, 11m)));
         scalarSubquery.Should().Be(2L);
-        inSubquery.Rows.Should().HaveCount(2);
+        AssertSnapshot(inSubquery, Snapshot(["Id", "Name"], Row(1m, "Alice"), Row(2m, "Bob")));
         pivot.Should().Be(2);
 
         return (cte, existsPredicate, correlatedCount, groupByHaving, unionAll, distinct, multiJoin, scalarSubquery, inSubquery, pivot);
@@ -1233,7 +1380,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinTemporalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTemporalMatrixTest)), Snapshot(["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
+            Row(1m, 2m, 0m, 1m, 1m, 2m, 1m),
+            Row(2m, 1m, 0m, 1m, 1m, 1m, 1m),
+            Row(3m, 0m, 1m, 1m, 1m, 1m, 1m)));
     }
 
     /// <summary>
@@ -1247,7 +1397,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowMatrixTest)), Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
+            Row(1m, 10m, 1m, 2m, null),
+            Row(1m, 11m, 2m, 2m, "A"),
+            Row(2m, 12m, 1m, 1m, null)));
     }
 
     /// <summary>
@@ -1261,7 +1414,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowTemporalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowTemporalMatrixTest)), Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+            Row(1m, 10m, 1m, 2m, null, 1m, 1m, 1m),
+            Row(1m, 11m, 2m, 2m, "A", 1m, 1m, 1m),
+            Row(2m, 12m, 1m, 1m, null, 1m, 1m, 1m)));
     }
 
     /// <summary>
@@ -1275,7 +1431,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowAggregateTemporalMatrixAsync(a));
 
-        result.Should().Be(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowAggregateTemporalMatrixTest)), Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "QuantityPerUser", "AmountPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+            Row(1m, 10m, 1m, 2m, 2m, 0m, null, 1m, 1m, 1m),
+            Row(1m, 11m, 2m, 2m, 2m, 0m, "A", 1m, 1m, 1m),
+            Row(2m, 12m, 1m, 1m, 1m, 0m, null, 1m, 1m, 1m)));
     }
 
     /// <summary>
@@ -1308,9 +1467,9 @@ public abstract class SelectTestsBase<T, T2>(
                 return (crossApply, outerApply);
             });
 
-        var (crossApplyResult, outerApplyResult) = ((QueryResultSnapshot, QueryResultSnapshot))result!;
-        crossApplyResult.Rows.Should().HaveCount(2);
-        outerApplyResult.Rows.Should().HaveCount(3);
+        var (crossApplyResult, outerApplyResult) = RequireSnapshotPair(result, nameof(SelectApplyProjectionTest));
+        AssertSnapshot(crossApplyResult, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
+        AssertSnapshot(outerApplyResult, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
     }
 
     /// <summary>
@@ -1324,7 +1483,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunCrossApplyProjectionAsync(a));
 
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectCrossApplyProjectionTest)), Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
     }
 
     /// <summary>
@@ -1347,7 +1506,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunOuterApplyProjectionAsync(a));
 
-        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(3);
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOuterApplyProjectionTest)), Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
     }
 
     /// <summary>
@@ -1382,10 +1541,13 @@ public abstract class SelectTestsBase<T, T2>(
                 return (crossApply, outerApply, temporal);
             });
 
-        var (applyCross, applyOuter, temporal) = ((QueryResultSnapshot, QueryResultSnapshot, int))result!;
-        applyCross.Rows.Should().HaveCount(2);
-        applyOuter.Rows.Should().HaveCount(3);
-        temporal.Should().Be(3);
+        var (applyCross, applyOuter, temporal) = RequireSnapshotTriple(result, nameof(SelectApplyTemporalCompositeTest));
+        AssertSnapshot(applyCross, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
+        AssertSnapshot(applyOuter, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
+        AssertSnapshot(temporal, Snapshot(["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
+            Row(1m, 2m, 0m, 1m, 1m, 2m, 1m),
+            Row(2m, 1m, 0m, 1m, 1m, 1m, 1m),
+            Row(3m, 0m, 1m, 1m, 1m, 1m, 1m)));
     }
 
     /// <summary>
@@ -1422,11 +1584,62 @@ public abstract class SelectTestsBase<T, T2>(
                 return (crossApply, outerApply, window, temporal);
             });
 
-        var (windowCross, windowOuter, windowCount, windowTemporal) = ((QueryResultSnapshot, QueryResultSnapshot, int, int))result!;
-        windowCross.Rows.Should().HaveCount(2);
-        windowOuter.Rows.Should().HaveCount(3);
-        windowCount.Should().Be(3);
-        windowTemporal.Should().Be(3);
+        var (windowCross, windowOuter, windowCount, windowTemporal) = RequireSnapshotQuad(result, nameof(SelectApplyWindowTemporalCompositeTest));
+        AssertSnapshot(windowCross, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
+        AssertSnapshot(windowOuter, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
+        AssertSnapshot(windowCount, Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
+            Row(1m, 10m, 1m, 2m, null),
+            Row(1m, 11m, 2m, 2m, "A"),
+            Row(2m, 12m, 1m, 1m, null)));
+        AssertSnapshot(windowTemporal, Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+            Row(1m, 10m, 1m, 2m, null, 1m, 1m, 1m),
+            Row(1m, 11m, 2m, 2m, "A", 1m, 1m, 1m),
+            Row(2m, 12m, 1m, 1m, null, 1m, 1m, 1m)));
+    }
+
+    private static QueryResultSnapshot RequireSnapshot(object? value, string label)
+        => value is QueryResultSnapshot snapshot
+            ? snapshot
+            : throw new InvalidOperationException($"{label} did not return a query snapshot.");
+
+    private static (QueryResultSnapshot First, QueryResultSnapshot Second) RequireSnapshotPair(object? value, string label)
+        => value is ValueTuple<QueryResultSnapshot, QueryResultSnapshot> tuple
+            ? tuple
+            : throw new InvalidOperationException($"{label} did not return two query snapshots.");
+
+    private static (QueryResultSnapshot First, QueryResultSnapshot Second, QueryResultSnapshot Third) RequireSnapshotTriple(object? value, string label)
+        => value is ValueTuple<QueryResultSnapshot, QueryResultSnapshot, QueryResultSnapshot> tuple
+            ? tuple
+            : throw new InvalidOperationException($"{label} did not return three query snapshots.");
+
+    private static (QueryResultSnapshot First, QueryResultSnapshot Second, QueryResultSnapshot Third, QueryResultSnapshot Fourth) RequireSnapshotQuad(object? value, string label)
+        => value is ValueTuple<QueryResultSnapshot, QueryResultSnapshot, QueryResultSnapshot, QueryResultSnapshot> tuple
+            ? tuple
+            : throw new InvalidOperationException($"{label} did not return four query snapshots.");
+
+    private static QueryResultSnapshot Snapshot(string[] columnNames, params object?[][] rows)
+    {
+        var snapshots = new QueryResultRowSnapshot[rows.Length];
+        for (var i = 0; i < rows.Length; i++)
+        {
+            snapshots[i] = new QueryResultRowSnapshot
+            {
+                Values = rows[i],
+            };
+        }
+
+        return new QueryResultSnapshot
+        {
+            ColumnNames = columnNames,
+            Rows = snapshots,
+        };
+    }
+
+    private static object?[] Row(params object?[] values) => values;
+
+    private static void AssertSnapshot(QueryResultSnapshot actual, QueryResultSnapshot expected)
+    {
+        actual.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
     }
 
     private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(

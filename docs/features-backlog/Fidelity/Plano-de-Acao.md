@@ -4,7 +4,33 @@
 
 Manter a fidelidade entre mock e container com prioridade para comportamento observável, tipos nativos, parser, estrutura de resultado e exceções.
 
-## Regra central
+## Estrutura De Acompanhamento
+
+- Cada fase deste plano deve ter um arquivo de acompanhamento na mesma pasta.
+- Nome sugerido: `Fase-XX-Nome-Da-Fase.md`.
+- Cada arquivo de fase deve registrar:
+  - o que foi feito
+  - o percentual de entrega da fase
+  - os próximos passos
+- O plano principal deve começar com todas as fases em `TODO`.
+- O percentual geral do plano deve ser atualizado conforme as fases avancarem.
+- A matriz de fidelidade por provider deve ficar em `Percentual-de-Fidelidade-por-Provider.md`.
+
+## Status Do Plano
+
+Percentual geral atual: 61%
+
+| Fase | Arquivo | Status | Entrega |
+| --- | --- | --- | --- |
+| Fase 1 - Inventário dos tipos nativos | [Fase-01-Parametros.md](./Fase-01-Parametros.md) | DONE | 100% |
+| Fase 2 - Expandir os testes de tipo DbParameter | [Fase-02-Tipos-Nativos.md](./Fase-02-Tipos-Nativos.md) | DONE | 100% |
+| Fase 3 - Cobrir o shape completo do resultado | [Fase-03-Formato-do-Resultado.md](./Fase-03-Formato-do-Resultado.md) | DONE | 100% |
+| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 10% |
+| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | TODO | 0% |
+| Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | TODO | 0% |
+| Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | TODO | 0% |
+
+## Regra Central
 
 - Se o banco real aceita, o mock deve aceitar.
 - Se o banco real rejeita, o mock deve rejeitar.
@@ -13,7 +39,7 @@ Manter a fidelidade entre mock e container com prioridade para comportamento obs
 - Nao normalizar input, output ou valores lidos do reader dentro do teste so para fazer mock e container parecerem iguais.
 - Se a forma do valor precisar ser igual nos dois lados, tratar isso no core da aplicacao ou no dialect.
 
-## Escopo prioritário
+## Escopo Prioritário
 
 1. Parâmetros.
 2. Tipos nativos por provider.
@@ -44,6 +70,15 @@ Cobertura adicional quando o provider expuser tipos específicos fora do contrat
 - tipos de reader nativos
 - wrappers/interceptors quando fizerem parte do contrato observável
 
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - levantar todos os tipos nativos por provider
+  - separar o que é contrato comum do que é contrato específico
+  - mapear gaps por provider e por wrapper
+
 ## Fase 2 - Expandir os testes de tipo
 
 Adicionar contratos de tipo para cada provider nativo, não só os cenários atuais de `DbParameter`.
@@ -58,6 +93,15 @@ Direção sugerida:
 - validar o runtime type do reader retornado por consulta
 - validar que o teste nao reescreve tipo, forma ou nulabilidade dos valores para compensar diferencas do provider
 
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - listar wrappers nativos existentes em cada provider
+  - criar contratos de tipo para conexão, comando, parâmetro, transação e reader
+  - ligar cada contrato ao dialect correspondente
+
 ## Fase 3 - Cobrir o shape completo do resultado
 
 Substituir testes que comprimem o resultado para `COUNT(*)` quando o contrato for relacional.
@@ -68,11 +112,29 @@ Padrão:
 - comparar linhas, colunas, aliases e ordem
 - normalizar apenas o que o provider real também normaliza
 
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - identificar os testes que ainda comprimem o resultado
+  - trocar comparações escalarizadas por snapshot quando o contrato for relacional
+  - manter apenas os casos realmente escalares como escalares
+
 ## Fase 4 - Parser e sintaxe
 
 - Criar testes negativos quando o banco real não suporta a sintaxe.
 - Evitar `skip` quando a falha for parte do contrato útil.
 - Centralizar a regra de suporte no `Dialect`.
+
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - inventariar sintaxes rejeitadas por provider
+  - mover suportes e restrições para o dialect
+  - transformar `skip` em validação negativa quando fizer sentido
 
 ## Fase 5 - Funções e semântica
 
@@ -80,16 +142,43 @@ Padrão:
 - Validar tipo e valor, não só texto formatado.
 - Ajustar normalização por provider quando o retorno nativo diferir.
 
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - separar funções por categoria
+  - cobrir tipos nativos de retorno e de parâmetro
+  - alinhar temporais, JSON e window functions com o banco real
+
 ## Fase 6 - Transações
 
 - Cobrir begin, commit, rollback, nested transactions, savepoint e release.
 - Validar o mesmo gatilho de falha do provider real.
+
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - mapear contratos por provider
+  - validar savepoints e nested flow
+  - confirmar mensagens e exceções esperadas
 
 ## Fase 7 - Exceções
 
 - Manter o mesmo tipo principal de falha do provider real.
 - Adicionar contexto somente quando não alterar o contrato.
 - Garantir consistência entre mock e container.
+
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - levantar exceções reais por cenário
+  - padronizar enriquecimento de debug sem mudar o gatilho
+  - revisar mensagens dependentes de parser, parâmetro e execução
 
 ## Definition of Done
 

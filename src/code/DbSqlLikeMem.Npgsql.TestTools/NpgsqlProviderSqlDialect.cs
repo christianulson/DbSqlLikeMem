@@ -22,6 +22,19 @@ public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <inheritdoc />
+    public override string UpdateJoinDerivedSelectSql =>
+        @"
+UPDATE u
+SET u.total = s.total
+FROM users u
+JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
+WHERE u.tenantid = 10";
+
+    /// <inheritdoc />
+    public override string DeleteJoinDerivedSelectSql =>
+        "DELETE FROM users u USING (SELECT id FROM users WHERE tenantid = 10) s WHERE s.id = u.id";
+
+    /// <inheritdoc />
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />

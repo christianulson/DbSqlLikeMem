@@ -1,6 +1,7 @@
 namespace DbSqlLikeMem;
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -16,6 +17,7 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
 {
     private static readonly IReadOnlyDictionary<string, AstQueryTryEvalPostgresRegexFunction> _handlers =
         CreateHandlers();
+    private static readonly ConcurrentDictionary<(string Pattern, RegexOptions Options), Regex> _regexCache = new();
 
     internal static bool TryEvaluate(
         this QueryExecutionContext context,
@@ -148,7 +150,7 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
 
             var startIndex = Math.Min(source.Length, Math.Max(0, start - 1));
             var segment = source[startIndex..];
-            var regex = new Regex(pattern, regexOptions);
+            var regex = _regexCache.GetOrAdd((pattern, regexOptions), static k => new Regex(k.Pattern, k.Options));
 
             if (replace)
             {

@@ -22,25 +22,6 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override NpgsqlDbMock CreateDb() => [];
 
     /// <summary>
-    /// EN: Gets PostgreSQL-specific SQL used to update target rows from a derived select joined in FROM.
-    /// PT: Obtém o SQL específico de PostgreSQL usado para atualizar linhas alvo a partir de um select derivado em join no FROM.
-    /// </summary>
-    protected override string UpdateJoinDerivedSelectSql
-        => @"
-UPDATE u
-SET u.total = s.total
-FROM users u
-JOIN (SELECT userid, SUM(amount) AS total FROM orders GROUP BY userid) s ON s.userid = u.id
-WHERE u.tenantid = 10";
-
-    /// <summary>
-    /// EN: Gets PostgreSQL-specific SQL used to delete rows using USING with a derived select source.
-    /// PT: Obtém o SQL específico de PostgreSQL usado para excluir linhas com USING e uma origem de select derivado.
-    /// </summary>
-    protected override string DeleteJoinDerivedSelectSql
-        => "DELETE FROM users u USING (SELECT id FROM users WHERE tenantid = 10) s WHERE s.id = u.id";
-
-    /// <summary>
     /// EN: Executes a non-query command using a PostgreSQL mock connection.
     /// PT: Executa um comando sem retorno usando uma conexão simulada de PostgreSQL.
     /// </summary>

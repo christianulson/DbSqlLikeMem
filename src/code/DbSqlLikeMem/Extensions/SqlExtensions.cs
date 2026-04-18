@@ -93,7 +93,7 @@ internal static class SqlExtensions
         pattern ??= "";
 
         var escapeChar = ResolveLikeEscapeCharacter(dialect, escape);
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(Math.Max(8, pattern.Length + 2));
         sb.Append('^');
 
         for (int i = 0; i < pattern.Length; i++)

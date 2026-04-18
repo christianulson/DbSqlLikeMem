@@ -15,6 +15,8 @@ public sealed class DbMockConnectionFactoryOracleTests(
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(OracleConnectionMock);
     /// <inheritdoc />
+    protected override Type ExpectedParameterType => typeof(OracleParameter);
+    /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases => ["Oracle", "oracle", "ora", "or_acle", "  ORACLE  "];
 
     /// <inheritdoc />

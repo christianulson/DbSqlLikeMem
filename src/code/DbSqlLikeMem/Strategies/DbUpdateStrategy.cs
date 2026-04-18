@@ -70,7 +70,7 @@ internal static class DbUpdateStrategy
 
         int updated = 0;
         var tableMock = (TableMock)table;
-        var affectedIndexes = new List<int>();
+        var affectedIndexes = new List<int>(4);
         var supportsTriggers = dialect.SupportsTriggers;
         var hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
         var hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);

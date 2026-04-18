@@ -11,6 +11,9 @@ Objetivo: registrar andamento de sprint, próximos passos imediatos e riscos de 
 ## Sprint / ciclo atual
 
 - A frente de performance dos testes foi concluída no escopo atual: helpers quentes foram enxugados, a reflexão de diagnóstico foi cacheada, o fluxo rápido foi separado da comparação com container por suíte, e o README raiz agora explicita o uso das novas flags.
+- A rodada atual também recalibrou o backlog funcional para refletir melhor o estado do core: `Particionamento de tabelas` passou a registrar 50% e `Plano de execução mock` passou a registrar 70%, com a documentação operacional alinhada ao avanço já consolidado.
+- A trilha de `Plano de execução mock` ganhou uma otimização adicional: o executor agora monta o plano sintético apenas quando a captura de planos está habilitada, reduzindo overhead nos fluxos de leitura comuns.
+- A Fase 3 do plano de fidelidade segue em 92%, com o arquivo de acompanhamento já sincronizado ao conjunto de testes relacionais que agora retornam `QueryResultSnapshot` completo.
 - Foco principal: manter a retomada do core (`parser` + executor AST) em fatias pequenas e seguras, agora fechando também DDL de `SEQUENCE` com gate explícito por dialeto/versão e reaproveitando a infraestrutura já existente de runtime para sequences.
 - Foco principal: manter a retomada do core (`parser` + executor AST) em fatias pequenas e seguras, endurecendo também os pontos de sintaxe nativa guiados pelo dialeto, como `GROUP_CONCAT(... ORDER BY ... SEPARATOR ...)` no MySQL, sem abrir caminhos paralelos no parser comum.
 - Foco principal: manter a retomada do core (`parser` + executor AST) em fatias pequenas e seguras, endurecendo também gates por versão simulada no próprio dialeto, como a disponibilidade de `STRING_AGG` no caminho compartilhado de `SQL Server/SqlAzure`.
@@ -41,6 +44,8 @@ Objetivo: registrar andamento de sprint, próximos passos imediatos e riscos de 
 - Próximo incremento: atacar os TODOs recém-registrados por aderência aos bancos reais (`PIVOT/UNPIVOT`, `JSON_TABLE`, `FOR JSON`, `STRING_SPLIT`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree`, `MATCH_RECOGNIZE`) mantendo a regra de que o dialeto deve mandar no tokenizer, parser e executor.
 - Próximo incremento: seguir a validação sistemática dos itens incompletos do backlog, recalibrando percentuais e removendo/encurtando `TODO`s à medida que cada fatia for realmente implementada no código.
 - Próximo incremento: atacar os gaps funcionais já isolados no executor para bancos reais, começando por `UNPIVOT`, `FOR JSON`/`STRING_SPLIT` e pela revisão de `DISTINCT` em agregação textual do SQL Server, agora que a trilha residual de branches por `dialect.Name` foi removida do core compartilhado e o subset principal de `PIVOT` já cobre `COUNT/SUM/MIN/MAX/AVG`.
+- Próximo incremento: fechar a revisão final da Fase 3 nos casos escalares restantes de `COUNT(*)`/`COUNT(1)` e manter o shape relacional integral como contrato padrão.
+- Próximo incremento: continuar a recontagem incremental do backlog de core, mantendo `Particionamento de tabelas` e `Plano de execução mock` sincronizados com a implementação e evitando que as notas operacionais fiquem defasadas em relação ao índice consolidado.
 
 ## Evidência recente
 - Tests/files alterados nesta rodada de service alinhada ao benchmark `BatchNonQuery`: `src/DbSqlLikeMem.TestTools/Batch/BatchNonQueryTestsBase.cs`.

@@ -15,6 +15,8 @@ public sealed class DbMockConnectionFactorySqlServerTests(
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(SqlServerConnectionMock);
     /// <inheritdoc />
+    protected override Type ExpectedParameterType => typeof(SqlParameter);
+    /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases => ["SqlServer", "sqlserver", "sql-server", "mssql", "sql-srv", "  SQLSERVER  "];
 
     /// <inheritdoc />

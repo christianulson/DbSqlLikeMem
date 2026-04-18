@@ -62,7 +62,7 @@ internal static class AstQueryExecutorForJsonHelper
         var projections = BuildAutoJsonProjections(result, query);
         var rootAlias = query.Table?.Alias ?? query.Table?.Name;
 
-        var grouped = new List<AutoJsonRootRow>();
+        var grouped = new List<AutoJsonRootRow>(Math.Max(1, result.Count));
         var groupedIndex = new Dictionary<string, int>(StringComparer.Ordinal);
 
         foreach (var row in result)

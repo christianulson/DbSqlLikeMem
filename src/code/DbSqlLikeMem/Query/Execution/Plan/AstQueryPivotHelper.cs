@@ -314,6 +314,7 @@ internal sealed class AstQueryPivotHelper(
         var unpivotValueDbType = ResolveUnpivotValueDbType(source, unpivot) ?? DbType.Object;
         result.Columns.Add(new TableResultColMock(source.Alias, unpivot.ValueColumnName, unpivot.ValueColumnName, groupColumns.Count + 1, unpivotValueDbType, false));
 
+var unpivotColumnCount = groupColumns.Count + 2;
         foreach (var row in inputRows)
         {
             foreach (var item in unpivot.InItems)
@@ -322,7 +323,7 @@ internal sealed class AstQueryPivotHelper(
                 if (IsNullish(value))
                     continue;
 
-                var outRow = new Dictionary<int, object?>();
+                var outRow = new Dictionary<int, object?>(unpivotColumnCount);
                 for (var index = 0; index < groupColumns.Count; index++)
                     outRow[index] = row.GetByName(groupColumns[index]);
 
@@ -389,7 +390,7 @@ internal sealed class AstQueryPivotHelper(
             return AggregatePivotMinMaxBucket(rows, aggArgExpr, ctes, context, useMax: aggregateFunction.Equals(SqlConst.MAX, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (aggregateFunction.Equals(SqlConst.STDEV, StringComparison.OrdinalIgnoreCase))
+if (aggregateFunction.Equals(SqlConst.STDEV, StringComparison.OrdinalIgnoreCase))
             return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: true, squareRoot: true);
 
         if (aggregateFunction.Equals(SqlConst.STDEVP, StringComparison.OrdinalIgnoreCase))
@@ -400,6 +401,9 @@ internal sealed class AstQueryPivotHelper(
 
         if (aggregateFunction.Equals(SqlConst.VARP, StringComparison.OrdinalIgnoreCase))
             return EvaluatePivotVarianceAggregate(rows, aggArgExpr, ctes, sample: false, squareRoot: false);
+
+        if (aggregateFunction.Equals(SqlConst.COUNT_BIG, StringComparison.OrdinalIgnoreCase))
+            return (long)rows.Count;
 
         throw new NotSupportedException($"PIVOT aggregate '{aggregateFunction}' not supported yet.");
     }

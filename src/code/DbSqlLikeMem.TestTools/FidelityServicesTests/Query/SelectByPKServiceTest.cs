@@ -11,34 +11,17 @@ public class SelectByPKServiceTest(
         IBaseServiceTest
 {
     /// <summary>
-    /// EN: Reads the seeded row by primary key and validates the returned value.
-    /// PT: Lê a linha inserida pela chave primaria e valida o valor retornado.
+    /// EN: Reads the seeded row by primary key and returns the full result snapshot.
+    /// PT: Lê a linha inserida pela chave primaria e retorna o snapshot completo do resultado.
     /// </summary>
     /// <param name="args">EN: Scenario arguments that include the users table name. PT: Argumentos do cenario que incluem o nome da tabela de usuarios.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        string? value;
-
         var sql = Repo.Dialect.SelectUserNameById(Context, 1);
-        var rawValue = await Repo. ExecuteScalarAsync(sql);
-        value = Convert.ToString(rawValue);
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = sql;
 
-        if (!string.Equals(value, "Alice", StringComparison.Ordinal)
-            && Repo.Dialect.Provider == ProviderId.Oracle)
-        {
-            using var command = Repo.Cnn.CreateCommand();
-            command.CommandText = sql;
-
-            using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                var nameValue = reader.GetValue(0);
-                value = Convert.ToString(nameValue);
-            }
-        }
-
-        if (!string.Equals(value, "Alice", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Unexpected select result for {Repo.Dialect.DisplayName}: {value ?? "<null>"}.");
-        return value!;
+        using var reader = await command.ExecuteReaderAsync();
+        return QueryResultSnapshotReader.Capture(reader);
     }
 }

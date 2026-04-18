@@ -18,6 +18,9 @@ public sealed class DbMockConnectionFactoryFirebirdTests(
     protected override Type ExpectedConnectionType => typeof(FirebirdConnectionMock);
 
     /// <inheritdoc />
+    protected override Type ExpectedParameterType => typeof(FbParameter);
+
+    /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases =>
         ["Firebird", "firebird", "FIREBIRD", "firebirdsql", "fire_bird", "fire-bird", "  firebird  "];
 

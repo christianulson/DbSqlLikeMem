@@ -1,3 +1,8 @@
+#if NET462
+using DB2Parameter = IBM.Data.DB2.iSeries.iDB2Parameter;
+#endif
+
+
 namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
@@ -14,6 +19,8 @@ public sealed class DbMockConnectionFactoryDb2Tests(
     protected override Type ExpectedDbType => typeof(Db2DbMock);
     /// <inheritdoc />
     protected override Type ExpectedConnectionType => typeof(Db2ConnectionMock);
+    /// <inheritdoc />
+    protected override Type ExpectedParameterType => typeof(DB2Parameter);
     /// <inheritdoc />
     protected override IReadOnlyList<string> ProviderAliases => ["Db2", "db2", "db-2", "ibm-db2", "ibmdb2", "  DB2  "];
 

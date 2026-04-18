@@ -607,7 +607,7 @@ public abstract class DbConnectionMockBase(
 
     private void ContextualizeDebugTraces(string sql)
     {
-        var statements = new List<string>();
+        var statements = new List<string>(4);
         foreach (var statement in SqlQueryParser.SplitStatements(sql, ExecutionDialect))
         {
             if (string.IsNullOrWhiteSpace(statement))
@@ -2780,7 +2780,7 @@ public abstract class DbConnectionMockBase(
                         }
                         else
                         {
-                            touchedTables = new HashSet<TableMock>();
+                            touchedTables = HashSetCompatibilityExtensions.Create<TableMock>(4);
                             touchedTables.Add(singleTouchedTable);
                             touchedTables.Add(secondTouchedTable);
                             touchedTables.Add(thirdTouchedTable);
