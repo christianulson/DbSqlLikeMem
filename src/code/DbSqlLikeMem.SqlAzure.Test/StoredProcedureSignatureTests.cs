@@ -12,6 +12,9 @@ public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : StoredProcedureSignatureTestsBase<SqlAzureMockException>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.SqlAzure.TestTools.SqlAzureProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a SQL Azure mock connection used by stored procedure signature tests.
     /// PT: Cria uma conexão simulada de SQL Azure usada pelos testes de assinatura de procedure.

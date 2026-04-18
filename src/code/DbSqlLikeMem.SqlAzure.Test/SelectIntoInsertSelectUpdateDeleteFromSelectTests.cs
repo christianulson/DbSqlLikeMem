@@ -12,17 +12,14 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<SqlAzureDbMock>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.SqlAzure.TestTools.SqlAzureProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a new SQL Azure mock database instance for each test.
     /// PT: Cria uma nova instância de banco simulado de SQL Azure para cada teste.
     /// </summary>
     protected override SqlAzureDbMock CreateDb() => [];
-
-    /// <summary>
-    /// EN: Indicates SQL Azure test runtime should execute UPDATE/DELETE scenarios that use JOIN-aware paths.
-    /// PT: Indica que o runtime de teste do SQL Azure deve executar cenários de UPDATE/DELETE que usam caminhos com JOIN.
-    /// </summary>
-    protected override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <summary>
     /// EN: Gets SQL Azure-specific SQL used to update rows from a derived select joined in FROM.

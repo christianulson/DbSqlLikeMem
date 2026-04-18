@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Npgsql.TestTools;
+namespace DbSqlLikeMem.Npgsql.TestTools;
 
 /// <summary>
 /// EN: Provides PostgreSQL-specific SQL snippets used by the shared benchmark and fidelity helpers.
@@ -17,6 +17,9 @@ public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsSequence => true;
+
+    /// <inheritdoc />
+    public override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <inheritdoc />
     public override bool SupportsJsonScalarRead => true;

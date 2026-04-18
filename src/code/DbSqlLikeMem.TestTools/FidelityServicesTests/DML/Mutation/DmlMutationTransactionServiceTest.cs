@@ -159,7 +159,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
     /// </summary>
     public void RunReleaseSavepoint()
     {
-        if (!SupportsReleaseSavepointWorkflow())
+        if (!Dialect.SupportsReleaseSavepoints)
         {
             throw new NotSupportedException($"{Dialect.DisplayName} does not support releasing savepoints.");
         }
@@ -191,7 +191,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
         ExecuteSavepoint(transaction, sp2);
         ExecuteNonQuery(Dialect.InsertUser(Context, 3, "Charlie"), transaction);
         ExecuteRollbackToSavepoint(transaction, sp2);
-        if (SupportsReleaseSavepointWorkflow())
+        if (Dialect.SupportsReleaseSavepoints)
         {
             ExecuteDialectCommand(Dialect.ReleaseSavepoint(sp1), transaction);
         }
@@ -239,11 +239,6 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
         ExecuteNonQuery(Dialect.RollbackToSavepoint(savepoint), transaction);
     }
-
-    private bool SupportsReleaseSavepointWorkflow()
-        => Dialect.Provider is not ProviderId.SqlServer
-            and not ProviderId.SqlAzure
-            and not ProviderId.Oracle;
 
     private bool UseNativeSavepointTransactionApi()
         => Dialect.Provider is ProviderId.SqlServer

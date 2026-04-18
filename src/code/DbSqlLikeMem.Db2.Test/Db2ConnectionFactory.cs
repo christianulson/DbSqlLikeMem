@@ -30,6 +30,8 @@ internal static class Db2ConnectionFactory
     /// <returns>EN: A connection instance ready for use by the fidelity tests. PT: Uma instancia de conexao pronta para uso pelos testes de fidelidade.</returns>
     internal static DB2Connection Create(string connectionString)
     {
+        EnsureNativeDb2ClientAvailable();
+
         var builder = new DB2ConnectionStringBuilder
         {
             Database = GetValue(connectionString, "DATABASE") ?? "BENCH",
@@ -93,4 +95,41 @@ internal static class Db2ConnectionFactory
 
         return null;
     }
+
+    private static void EnsureNativeDb2ClientAvailable()
+    {
+#if NET462
+        if (!IsNativeLibraryAvailable("db2app64.dll"))
+        {
+            throw new InvalidOperationException("Db2 native client 'db2app64.dll' is not available. Install the Db2 client/runtime or disable Db2 fidelity tests.");
+        }
+#else
+        if (!System.Runtime.InteropServices.NativeLibrary.TryLoad("db2app64.dll", out var handle))
+        {
+            throw new InvalidOperationException("Db2 native client 'db2app64.dll' is not available. Install the Db2 client/runtime or disable Db2 fidelity tests.");
+        }
+
+        System.Runtime.InteropServices.NativeLibrary.Free(handle);
+#endif
+    }
+
+#if NET462
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr LoadLibrary(string lpFileName);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool FreeLibrary(IntPtr hModule);
+
+    private static bool IsNativeLibraryAvailable(string libraryName)
+    {
+        var handle = LoadLibrary(libraryName);
+        if (handle == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        FreeLibrary(handle);
+        return true;
+    }
+#endif
 }

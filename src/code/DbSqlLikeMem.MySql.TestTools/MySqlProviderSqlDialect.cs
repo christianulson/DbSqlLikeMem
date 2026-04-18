@@ -16,6 +16,9 @@ public sealed class MySqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsUpsert => true;
 
     /// <inheritdoc />
+    public override bool SupportsUpdateDeleteJoinRuntime => true;
+
+    /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
 CREATE TABLE {context.TbUsersFullName} (

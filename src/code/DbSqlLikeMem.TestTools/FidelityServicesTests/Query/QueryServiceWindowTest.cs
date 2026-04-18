@@ -216,8 +216,7 @@ ORDER BY Name, Id
     /// </summary>
     public async Task<object?> RunWindowNthValue(params object[] pars)
     {
-        var isMockConnection = Repo.Cnn is DbSqlLikeMem.DbConnectionMockBase;
-        if (isMockConnection && Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        if (!Repo.Dialect.SupportsNthValueWindowFunction)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the NTH_VALUE window benchmark.");
         }

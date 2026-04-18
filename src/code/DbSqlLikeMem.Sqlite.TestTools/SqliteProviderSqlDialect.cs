@@ -154,6 +154,9 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsOuterApplyProjection => false;
+
+    /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>
         $"SELECT json_extract('{jsonLiteral}', '$.name')";
 

@@ -320,6 +320,9 @@ private static TScenario CreateScenarioInstance<TScenario>(
             }
             if (ps.Length == 3)
             {
+                if (IsObjectMatrixParameter(ps[2].ParameterType))
+                    return (TScenario)ctor.Invoke([repo, context, initialData]);
+
                 var arr = TryConvertToArray(initialData, 0, typeof((int, string)[]));
                 if (arr != null)
                     return (TScenario)ctor.Invoke([repo, context, arr]);
@@ -339,6 +342,10 @@ private static TScenario CreateScenarioInstance<TScenario>(
         }
         throw new MissingMethodException($"Constructor on type '{type.Name}' not found.");
     }
+
+    private static bool IsObjectMatrixParameter(Type parameterType)
+        => parameterType == typeof(object[][])
+            || parameterType == typeof(object?[][]);
 
     private static object? TryConvertToArray(object?[][] initialData, int index, Type targetType)
     {

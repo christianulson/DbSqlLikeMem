@@ -12,6 +12,9 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<SqliteDbMock>(helper)
 {
+    /// <inheritdoc />
+    protected override ProviderSqlDialect Dialect { get; } = new TestTools.SqliteProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a new SQLite mock database for each scenario.
     /// PT: Cria um novo banco simulado de SQLite para cada cenário.

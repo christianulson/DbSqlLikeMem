@@ -1,3 +1,4 @@
+using FluentAssertions;
 using DbSqlLikeMem.TestTools.DML;
 using DbSqlLikeMem.TestTools.Query;
 
@@ -630,12 +631,8 @@ public abstract class SelectTestsBase<T, T2>(
     public async Task SelectGroupByOrdinalTest()
     {
         object?[][] initialData = [[(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]];
-        var supportsGroupByOrdinal = dialect.Provider is not ProviderId.SqlServer
-            and not ProviderId.SqlAzure
-            and not ProviderId.Oracle
-            and not ProviderId.Db2;
 
-        if (!supportsGroupByOrdinal)
+        if (!dialect.SupportsGroupByOrdinal)
         {
             await FluentActions.Awaiting(() => RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
                 initialData,
@@ -915,9 +912,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectWindowNthValueTest()
     {
-        var supportsNthValue = dialect.Provider is not ProviderId.SqlServer and not ProviderId.SqlAzure;
-
-        if (!supportsNthValue)
+        if (!dialect.SupportsNthValueWindowFunction)
         {
             await FluentActions.Awaiting(() => RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
                 [],
@@ -1288,6 +1283,20 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectApplyProjectionTest()
     {
+        if (!dialect.SupportsOuterApplyProjection)
+        {
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+                [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
+                async (s, a) =>
+                {
+                    var crossApply = await s.RunCrossApplyProjectionAsync(a);
+                    var outerApply = await s.RunOuterApplyProjectionAsync(a);
+                    return (crossApply, outerApply);
+                })).Should().ThrowAsync<NotSupportedException>();
+
+            return;
+        }
+
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
@@ -1321,6 +1330,15 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectOuterApplyProjectionTest()
     {
+        if (!dialect.SupportsOuterApplyProjection)
+        {
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+                [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
+                (s, a) => s.RunOuterApplyProjectionAsync(a))).Should().ThrowAsync<NotSupportedException>();
+
+            return;
+        }
+
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunOuterApplyProjectionAsync(a));
@@ -1335,6 +1353,21 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectApplyTemporalCompositeTest()
     {
+        if (!dialect.SupportsOuterApplyProjection)
+        {
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+                [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
+                async (s, a) =>
+                {
+                    var crossApply = await s.RunCrossApplyProjectionAsync(a);
+                    var outerApply = await s.RunOuterApplyProjectionAsync(a);
+                    var temporal = await s.RunJoinTemporalMatrixAsync(a);
+                    return (crossApply, outerApply, temporal);
+                })).Should().ThrowAsync<NotSupportedException>();
+
+            return;
+        }
+
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
@@ -1355,6 +1388,22 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectApplyWindowTemporalCompositeTest()
     {
+        if (!dialect.SupportsOuterApplyProjection)
+        {
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+                [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
+                async (s, a) =>
+                {
+                    var crossApply = await s.RunCrossApplyProjectionAsync(a);
+                    var outerApply = await s.RunOuterApplyProjectionAsync(a);
+                    var window = await s.RunJoinWindowMatrixAsync(a);
+                    var temporal = await s.RunJoinWindowTemporalMatrixAsync(a);
+                    return (crossApply, outerApply, window, temporal);
+                })).Should().ThrowAsync<NotSupportedException>();
+
+            return;
+        }
+
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>

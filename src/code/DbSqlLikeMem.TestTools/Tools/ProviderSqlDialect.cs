@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Describes provider-specific SQL snippets used by the benchmark session workflows.
@@ -43,6 +43,18 @@ public abstract class ProviderSqlDialect
     public virtual bool SupportsSavepoints => true;
 
     /// <summary>
+    /// EN: Indicates whether the provider supports UPDATE/DELETE JOIN runtime paths in the benchmark flow.
+    /// PT: Indica se o provedor suporta fluxos de runtime de UPDATE/DELETE com JOIN no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsUpdateDeleteJoinRuntime => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports GROUP BY ordinal in the benchmark flow.
+    /// PT: Indica se o provedor suporta GROUP BY ordinal no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsGroupByOrdinal => true;
+
+    /// <summary>
     /// EN: Indicates whether global temporary table definitions are visible across connections.
     /// PT: Indica se as definicoes de tabelas temporarias globais ficam visiveis entre conexoes.
     /// </summary>
@@ -65,6 +77,30 @@ public abstract class ProviderSqlDialect
     /// PT: Indica se o provedor suporta leitura escalar de JSON no fluxo de benchmark.
     /// </summary>
     public virtual bool SupportsJsonScalarRead => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
+    /// PT: Indica se o provedor suporta parametros input-output Guid em assinaturas de procedure.
+    /// </summary>
+    public virtual bool SupportsGuidInputOutputParameters => true;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports DateTimeOffset input-output parameters in stored procedure signatures.
+    /// PT: Indica se o provedor suporta parametros input-output DateTimeOffset em assinaturas de procedure.
+    /// </summary>
+    public virtual bool SupportsDateTimeOffsetInputOutputParameters => true;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the NTH_VALUE window function in the benchmark flow.
+    /// PT: Indica se o provedor suporta a funcao de janela NTH_VALUE no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsNthValueWindowFunction => true;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports OUTER APPLY projections in the benchmark flow.
+    /// PT: Indica se o provedor suporta projeções OUTER APPLY no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsOuterApplyProjection => true;
 
     /// <summary>
     /// EN: Returns the CREATE TABLE statement for the users table.

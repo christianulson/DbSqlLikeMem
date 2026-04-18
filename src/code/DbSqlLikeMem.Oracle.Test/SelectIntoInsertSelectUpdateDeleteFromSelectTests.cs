@@ -12,6 +12,9 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<OracleDbMock>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Oracle.TestTools.OracleProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a new Oracle mock database instance for each test.
     /// PT: Cria uma nova instância de banco simulado de Oracle para cada teste.

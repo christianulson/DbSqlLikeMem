@@ -11,8 +11,9 @@ public partial class QueryServiceTest
     public async Task<object?> RunDateScalarAsync()
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.DateScalar());
-        GC.KeepAlive(value);
-        return value;
+        var normalized = NormalizeTemporalValue(value);
+        GC.KeepAlive(normalized);
+        return normalized;
     }
 
     /// <summary>
@@ -48,6 +49,22 @@ public partial class QueryServiceTest
     }
 
     /// <summary>
+    /// EN: Executes the JSON path benchmark with a missing path and keeps the provider result alive.
+    /// PT: Executa o benchmark de caminho JSON com caminho ausente e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunJsonMissingPathReadAsync()
+    {
+        if (!Repo.Dialect.SupportsJsonScalarRead)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON path benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonPathRead("{\"user\":{}}"));
+        GC.KeepAlive(value);
+        return value is DBNull ? null : value;
+    }
+
+    /// <summary>
     /// EN: Executes the JSON insert and cast benchmark when the provider supports JSON reads.
     /// PT: Executa o benchmark de insert e cast de JSON quando o provedor suporta leituras JSON.
     /// </summary>
@@ -70,8 +87,9 @@ public partial class QueryServiceTest
     public async Task<object?> RunTemporalCurrentTimestampAsync()
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalCurrentTimestamp());
-        GC.KeepAlive(value);
-        return value;
+        var normalized = NormalizeTemporalValue(value);
+        GC.KeepAlive(normalized);
+        return normalized;
     }
 
     /// <summary>
@@ -81,8 +99,9 @@ public partial class QueryServiceTest
     public async Task<object?> RunTemporalDateAddAsync()
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalDateAdd());
-        GC.KeepAlive(value);
-        return value;
+        var normalized = NormalizeTemporalValue(value);
+        GC.KeepAlive(normalized);
+        return normalized;
     }
 
     /// <summary>
@@ -99,6 +118,27 @@ public partial class QueryServiceTest
         var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.StringAggregate(Context)), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
         return value;
+    }
+
+    private static DateTime NormalizeTemporalValue(object? value)
+    {
+        var normalized = value switch
+        {
+            DateTime dateTime => dateTime,
+            DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
+            string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
+        };
+
+        return new DateTime(
+            normalized.Year,
+            normalized.Month,
+            normalized.Day,
+            normalized.Hour,
+            normalized.Minute,
+            normalized.Second,
+            normalized.Millisecond,
+            normalized.Kind);
     }
 
     /// <summary>
@@ -304,7 +344,7 @@ ORDER BY Name
     /// </summary>
     public async Task<object?> RunGroupByOrdinalMatrixAsync(params object[] pars)
     {
-        if (Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure or ProviderId.Oracle or ProviderId.Db2)
+        if (!Repo.Dialect.SupportsGroupByOrdinal)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support GROUP BY ordinal benchmarks.");
         }

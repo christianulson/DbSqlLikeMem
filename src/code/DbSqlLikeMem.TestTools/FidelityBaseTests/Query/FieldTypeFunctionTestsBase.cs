@@ -1,3 +1,4 @@
+using FluentAssertions;
 using DbSqlLikeMem.TestTools.DML;
 using DbSqlLikeMem.TestTools.Query;
 
@@ -75,9 +76,14 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     [Fact]
     public async Task JsonTypedFieldMatrixTest()
     {
-        if (!dialect.SupportsJsonScalarRead) return;
-
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+                (s, a) => s.RunJsonTypedFieldMatrixAsync(a))).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
 
         await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, a) => s.RunJsonTypedFieldMatrixAsync(a));
@@ -90,9 +96,14 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     [Fact]
     public async Task JsonScalarReadTest()
     {
-        if (!dialect.SupportsJsonScalarRead) return;
-        
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+                (s, _) => s.RunJsonScalarReadAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
 
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, _) => s.RunJsonScalarReadAsync());
@@ -107,9 +118,14 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     [Fact]
     public async Task JsonPathReadTest()
     {
-        if (!dialect.SupportsJsonScalarRead) return;
-
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+                (s, _) => s.RunJsonPathReadAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
 
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, _) => s.RunJsonPathReadAsync());
@@ -124,14 +140,19 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     [Fact]
     public async Task JsonMissingPathReturnsNullTest()
     {
-        if (!dialect.SupportsJsonScalarRead) return;
-
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            (s, _) => s.RunJsonInsertCastAsync());
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+                (s, _) => s.RunJsonMissingPathReadAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
 
-        result.Should().Be("Alice");
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunJsonMissingPathReadAsync());
+
+        result.Should().BeNull();
     }
 
     /// <summary>

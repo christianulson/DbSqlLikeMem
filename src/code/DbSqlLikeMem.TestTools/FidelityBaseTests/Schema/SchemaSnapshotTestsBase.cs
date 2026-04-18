@@ -81,11 +81,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     public async Task SchemaSnapshotRoundTripTest()
     {
         var result = (string?)await RunFidelityTestAsync(
-            (s, a) =>
-            {
-                using var document = s.RunSchemaSnapshotRoundTrip();
-                return Task.FromResult<object?>(document.RootElement.GetRawText());
-            });
+            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotRoundTrip(), s.Repo.Cnn, dialect)));
 
         result.Should().NotBeNullOrWhiteSpace();
     }

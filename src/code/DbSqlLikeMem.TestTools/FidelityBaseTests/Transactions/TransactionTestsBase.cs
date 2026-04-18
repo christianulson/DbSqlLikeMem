@@ -82,7 +82,7 @@ public abstract class TransactionTestsBase<T, T2>(
     [Fact]
     public async Task ReleaseSavepointTest()
     {
-        if (!SupportsReleaseSavepointWorkflow())
+        if (!dialect.SupportsReleaseSavepoints)
         {
             await FluentActions.Awaiting(() => RunFidelityTestAsync<NoopScenario>(
                 [],
@@ -133,8 +133,4 @@ public abstract class TransactionTestsBase<T, T2>(
             runTest,
             args);
 
-    private bool SupportsReleaseSavepointWorkflow()
-        => dialect.Provider is not ProviderId.SqlServer
-            and not ProviderId.SqlAzure
-            and not ProviderId.Oracle;
 }

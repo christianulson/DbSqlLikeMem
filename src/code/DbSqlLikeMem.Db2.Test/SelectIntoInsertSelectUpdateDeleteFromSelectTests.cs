@@ -12,6 +12,9 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<Db2DbMock>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Db2.TestTools.Db2ProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a new Db2 mock database instance for each test.
     /// PT: Cria uma nova instância de banco simulado de Db2 para cada teste.

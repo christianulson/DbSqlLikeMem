@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.Oracle.TestTools;
@@ -26,6 +26,12 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsReleaseSavepoints => false;
+
+    /// <inheritdoc />
+    public override bool SupportsGroupByOrdinal => false;
+
+    /// <inheritdoc />
+    public override bool SupportsGuidInputOutputParameters => false;
 
     /// <inheritdoc />
     public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;

@@ -12,12 +12,12 @@ public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : StoredProcedureSignatureTestsBase<FirebirdMockException>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Firebird.TestTools.FirebirdProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates the Firebird connection mock used in tests.
     /// PT: Cria o simulado de conexão Firebird usado nos testes.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new FirebirdConnectionMock();
-
-    /// <inheritdoc />
-    protected override bool SupportsDateTimeOffsetInputOutputParameters => false;
 }

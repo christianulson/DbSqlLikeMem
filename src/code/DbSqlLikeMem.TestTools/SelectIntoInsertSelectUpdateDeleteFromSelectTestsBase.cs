@@ -10,6 +10,12 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
     where TDbMock : DbMock
 {
     /// <summary>
+    /// EN: Gets the provider dialect used to evaluate SQL capability in these tests.
+    /// PT: Obtem o dialeto do provedor usado para avaliar capacidades SQL nestes testes.
+    /// </summary>
+    protected abstract ProviderSqlDialect Dialect { get; }
+
+    /// <summary>
     /// EN: Creates a provider-specific database mock used by shared select/insert/update/delete tests.
     /// PT: Cria um simulado de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
     /// </summary>
@@ -40,12 +46,6 @@ WHERE u.tenantid = 10";
     /// </summary>
     protected virtual string DeleteJoinDerivedSelectSql
         => "DELETE u FROM users u JOIN (SELECT id FROM users WHERE tenantid = 10) s ON s.id = u.id";
-
-    /// <summary>
-    /// EN: Indicates whether this provider should execute UPDATE/DELETE JOIN runtime paths.
-    /// PT: Indica se este provedor deve executar fluxos de runtime de UPDATE/DELETE com JOIN.
-    /// </summary>
-    protected virtual bool SupportsUpdateDeleteJoinRuntime => false;
 
     /// <summary>
     /// EN: Verifies CREATE TABLE AS SELECT creates a new table populated with the selected rows.
@@ -227,7 +227,7 @@ WHERE u.tenantid = 10";
 
         var sql = UpdateJoinDerivedSelectSql;
 
-        if (!SupportsUpdateDeleteJoinRuntime)
+        if (!Dialect.SupportsUpdateDeleteJoinRuntime)
         {
             var action = () => ExecuteNonQuery(db, sql);
             var ex = action.Should().Throw<NotSupportedException>().Which;
@@ -260,7 +260,7 @@ WHERE u.tenantid = 10";
         users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 10 } });
         users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, 20 } });
 
-        if (!SupportsUpdateDeleteJoinRuntime)
+        if (!Dialect.SupportsUpdateDeleteJoinRuntime)
         {
             var action = () => ExecuteNonQuery(db, DeleteJoinDerivedSelectSql);
             var ex = action.Should().Throw<InvalidOperationException>().Which;

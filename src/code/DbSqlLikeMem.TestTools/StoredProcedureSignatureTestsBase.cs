@@ -16,16 +16,10 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     protected abstract DbConnectionMockBase CreateConnection();
 
     /// <summary>
-    /// EN: Indicates whether the provider supports DateTimeOffset input-output parameters in stored procedure signatures.
-    /// PT: Indica se o provedor suporta parametros input-output DateTimeOffset em assinaturas de procedure.
+    /// EN: Gets the provider dialect used by stored procedure signature tests.
+    /// PT: Obtem o dialeto do provedor usado pelos testes de assinatura de procedure.
     /// </summary>
-    protected virtual bool SupportsDateTimeOffsetInputOutputParameters => true;
-
-    /// <summary>
-    /// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
-    /// PT: Indica se o provedor suporta parametros input-output Guid em assinaturas de procedure.
-    /// </summary>
-    protected virtual bool SupportsGuidInputOutputParameters => true;
+    protected abstract ProviderSqlDialect Dialect { get; }
 
     /// <summary>
     /// EN: Verifies stored procedure calls validate required input and output parameters.
@@ -76,7 +70,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     public void StoredProcedure_ShouldPopulateMixedTypedOutParams()
     {
         using var c = CreateConnection();
-        var tokenDbType = SupportsGuidInputOutputParameters ? DbType.Guid : DbType.String;
+        var tokenDbType = Dialect.SupportsGuidInputOutputParameters ? DbType.Guid : DbType.String;
         c.AddProdecure(new ProcedureDef(Name: "sp_demo",
             RequiredIn: [new ProcParam("tenantId", DbType.Int32, Required: true)],
             OptionalIn: [new ProcParam("note", DbType.String, Required: false)],
@@ -106,7 +100,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         var n = cmd.ExecuteNonQuery();
         n.Should().Be(0);
         Convert.ToInt32(cmd.Parameters["resultCode"].Value, CultureInfo.InvariantCulture).Should().Be(0);
-        if (SupportsGuidInputOutputParameters)
+        if (Dialect.SupportsGuidInputOutputParameters)
         {
             cmd.Parameters["token"].Value.Should().Be(Guid.Empty);
         }
@@ -207,7 +201,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     [Trait("Category", "StoredProcedureSignature")]
     public void StoredProcedure_ShouldPopulateGuidInputOutputParam()
     {
-        if (!SupportsGuidInputOutputParameters)
+        if (!Dialect.SupportsGuidInputOutputParameters)
         {
             using var cnn = CreateConnection();
             cnn.AddProdecure(new ProcedureDef(Name: "sp_demo",
@@ -371,7 +365,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
     [Trait("Category", "StoredProcedureSignature")]
     public void StoredProcedure_ShouldPopulateDateTimeOffsetInputOutputParam()
     {
-        if (!SupportsDateTimeOffsetInputOutputParameters)
+        if (!Dialect.SupportsDateTimeOffsetInputOutputParameters)
         {
             using var cnn = CreateConnection();
             cnn.AddProdecure(new ProcedureDef(Name: "sp_demo",
@@ -576,7 +570,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         {
             // Firebird's parameter implementation rejects DbType.DateTimeOffset, so keep the payload-based flow.
         }
-        if (!SupportsGuidInputOutputParameters
+        if (!Dialect.SupportsGuidInputOutputParameters
             && dbType == DbType.Guid
             && direction != ParameterDirection.Input)
         {

@@ -12,6 +12,9 @@ public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : StoredProcedureSignatureTestsBase<MySqlMockException>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.MySql.TestTools.MySqlProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates the MySQL connection mock used in tests.
     /// PT: Cria o simulado de conexão MySQL usado nos testes.

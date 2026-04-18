@@ -41,7 +41,7 @@ public class InsertParallelUsersServiceTest(
             || lst[0].Count != expectedCount)
             throw new InvalidOperationException($"Expected {expectedCount} rows for {Repo.Dialect.DisplayName}, got {JsonSerializer.Serialize(lst)}.");
 
-        return lst;
+        return lst[0].Count;
     }
 
     private Task<int> ExecuteParameterizedInsertOnConnectionAsync(

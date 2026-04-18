@@ -12,21 +12,12 @@ public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : StoredProcedureSignatureTestsBase<Db2MockException>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Db2.TestTools.Db2ProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a Db2 mock connection used by stored procedure signature tests.
     /// PT: Cria uma conexão simulada de Db2 usada pelos testes de assinatura de procedure.
     /// </summary>
     protected override DbConnectionMockBase CreateConnection() => new Db2ConnectionMock();
-
-    /// <summary>
-    /// EN: Indicates that the Db2 mock supports DateTimeOffset input-output parameters in stored procedure signatures.
-    /// PT: Indica que o mock Db2 suporta parâmetros input-output DateTimeOffset em assinaturas de procedure.
-    /// </summary>
-    protected override bool SupportsDateTimeOffsetInputOutputParameters => true;
-
-    /// <summary>
-    /// EN: Indicates that the Db2 mock does not support Guid input-output parameters in stored procedure signatures.
-    /// PT: Indica que o mock Db2 nao suporta parametros input-output Guid em assinaturas de procedure.
-    /// </summary>
-    protected override bool SupportsGuidInputOutputParameters => false;
 }

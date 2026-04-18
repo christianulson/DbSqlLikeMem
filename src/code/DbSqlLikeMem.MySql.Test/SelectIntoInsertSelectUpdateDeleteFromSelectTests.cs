@@ -12,17 +12,14 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<MySqlDbMock>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.MySql.TestTools.MySqlProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a new MySQL mock database for each scenario.
     /// PT: Cria um novo banco simulado de MySQL para cada cenário.
     /// </summary>
     protected override MySqlDbMock CreateDb() => [];
-
-    /// <summary>
-    /// EN: Indicates MySQL test runtime should execute UPDATE/DELETE scenarios with JOIN support toggled on.
-    /// PT: Indica que o runtime de teste do MySQL deve executar cenários de UPDATE/DELETE com suporte a JOIN habilitado.
-    /// </summary>
-    protected override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <summary>
     /// EN: Executes a non-query command using a MySQL mock connection.

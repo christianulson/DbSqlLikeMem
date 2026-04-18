@@ -57,6 +57,15 @@ internal static class QueryResultSnapshotReader
         if (IsGuidColumn(columnName))
             return NormalizeGuidValue(value);
 
+        if (IsTimeOnlyColumn(columnName))
+            return NormalizeTimeOnlyValue(value);
+
+        if (IsDateTimeOffsetColumn(columnName))
+            return NormalizeDateTimeOffsetColumnValue(value);
+
+        if (IsDateTimeLikeColumn(columnName))
+            return NormalizeDateTimeOffsetColumnValue(value);
+
         if (value is string or char)
         {
             var text = value.ToString();
@@ -158,6 +167,83 @@ internal static class QueryResultSnapshotReader
 
     private static bool IsGuidColumn(string columnName)
         => columnName.Contains("Guid", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTimeOnlyColumn(string columnName)
+        => columnName.Contains("TimeValue", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDateTimeOffsetColumn(string columnName)
+        => columnName.Contains("DateTimeOffsetValue", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDateTimeLikeColumn(string columnName)
+        => columnName.EndsWith("At", StringComparison.OrdinalIgnoreCase)
+            || columnName.Contains("DateTime", StringComparison.OrdinalIgnoreCase);
+
+    private static object? NormalizeTimeOnlyValue(object? value)
+    {
+        if (value is null || value is DBNull)
+            return null;
+
+        if (value is TimeSpan timeSpan)
+            return timeSpan.ToString("c", CultureInfo.InvariantCulture);
+
+        if (value is DateTimeOffset dateTimeOffset)
+            return dateTimeOffset.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+
+        if (value is DateTime dateTime)
+            return dateTime.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+
+        if (value is string or char)
+        {
+            var text = value.ToString();
+            if (!string.IsNullOrEmpty(text))
+            {
+                if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var timeSpanValue))
+                    return timeSpanValue.ToString("c", CultureInfo.InvariantCulture);
+
+                if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
+                    return dateTimeOffsetValue.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+
+                if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
+                    return dateTimeValue.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+            }
+
+            return text;
+        }
+
+        if (TryNormalizeTimeOnlyValue(value, out var normalizedTime))
+            return normalizedTime.ToString("c", CultureInfo.InvariantCulture);
+
+        return value;
+    }
+
+    private static object? NormalizeDateTimeOffsetColumnValue(object? value)
+    {
+        if (value is null || value is DBNull)
+            return null;
+
+        if (value is DateTimeOffset dateTimeOffset)
+            return new DateTimeOffset(dateTimeOffset.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+
+        if (value is DateTime dateTime)
+            return new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+
+        if (value is string or char)
+        {
+            var text = value.ToString();
+            if (!string.IsNullOrEmpty(text))
+            {
+                if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
+                    return new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+
+                if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
+                    return new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+            }
+
+            return text;
+        }
+
+        return value;
+    }
 
     private static string? NormalizeGuidValue(object? value)
     {
@@ -261,7 +347,13 @@ internal static class QueryResultSnapshotAssertions
         if (IsGuidColumn(columnName))
             return NormalizeGuidComparisonValue(value);
 
+        if (IsTimeOnlyColumn(columnName))
+            return NormalizeTimeOnlyComparisonValue(value);
+
         if (columnName.Contains("DateTimeOffset", StringComparison.OrdinalIgnoreCase))
+            return NormalizeDateTimeOffsetComparisonValue(value);
+
+        if (IsDateTimeLikeColumn(columnName))
             return NormalizeDateTimeOffsetComparisonValue(value);
 
         if (value is string or char)
@@ -354,6 +446,41 @@ internal static class QueryResultSnapshotAssertions
         return NormalizeComparisonValue(string.Empty, value);
     }
 
+    private static object? NormalizeTimeOnlyComparisonValue(object value)
+    {
+        if (value is TimeSpan timeSpan)
+            return timeSpan.ToString("c", CultureInfo.InvariantCulture);
+
+        if (value is DateTimeOffset dateTimeOffset)
+            return dateTimeOffset.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+
+        if (value is DateTime dateTime)
+            return dateTime.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+
+        if (value is string or char)
+        {
+            var text = value.ToString();
+            if (string.IsNullOrEmpty(text))
+                return text;
+
+            if (TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out var timeSpanValue))
+                return timeSpanValue.ToString("c", CultureInfo.InvariantCulture);
+
+            if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
+                return dateTimeOffsetValue.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+
+            if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
+                return dateTimeValue.TimeOfDay.ToString("c", CultureInfo.InvariantCulture);
+
+            return text;
+        }
+
+        if (TryNormalizeTimeOnlyValue(value, out var normalizedTime))
+            return normalizedTime.ToString("c", CultureInfo.InvariantCulture);
+
+        return NormalizeComparisonValue(string.Empty, value);
+    }
+
     private static object? NormalizeJsonElement(JsonElement jsonElement)
         => jsonElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined
             ? null
@@ -364,6 +491,13 @@ internal static class QueryResultSnapshotAssertions
 
     private static bool IsGuidColumn(string columnName)
         => columnName.Contains("Guid", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTimeOnlyColumn(string columnName)
+        => columnName.Contains("TimeValue", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDateTimeLikeColumn(string columnName)
+        => columnName.EndsWith("At", StringComparison.OrdinalIgnoreCase)
+            || columnName.Contains("DateTime", StringComparison.OrdinalIgnoreCase);
 
     private static string? NormalizeGuidValue(object? value)
     {

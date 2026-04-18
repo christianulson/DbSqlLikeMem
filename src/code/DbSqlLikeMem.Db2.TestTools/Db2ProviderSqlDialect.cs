@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.Db2.TestTools;
@@ -20,6 +20,12 @@ public sealed class Db2ProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsSequence => true;
+
+    /// <inheritdoc />
+    public override bool SupportsGroupByOrdinal => false;
+
+    /// <inheritdoc />
+    public override bool SupportsGuidInputOutputParameters => false;
 
     /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>

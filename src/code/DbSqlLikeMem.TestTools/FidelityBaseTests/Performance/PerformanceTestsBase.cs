@@ -123,7 +123,7 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new NotFidelityTestService<T>(connectionMock, dialect);
 
-        await testService.RunTestAsync<CreateTableScenario, DebugTraceBatchServiceTest>();
+        await testService.RunTestAsync<UsersScenario, DebugTraceBatchServiceTest>();
     }
 
     /// <summary>

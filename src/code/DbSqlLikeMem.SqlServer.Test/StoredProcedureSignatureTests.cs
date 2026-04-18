@@ -12,6 +12,9 @@ public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : StoredProcedureSignatureTestsBase<SqlServerMockException>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.SqlServer.TestTools.SqlServerProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a SQL Server mock connection used by stored procedure signature tests.
     /// PT: Cria uma conexão simulada de SQL Server usada pelos testes de assinatura de procedure.

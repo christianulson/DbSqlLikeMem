@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.Firebird.TestTools;
@@ -26,6 +26,9 @@ public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsReleaseSavepoints => true;
+
+    /// <inheritdoc />
+    public override bool SupportsDateTimeOffsetInputOutputParameters => false;
 
     /// <inheritdoc />
     public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;

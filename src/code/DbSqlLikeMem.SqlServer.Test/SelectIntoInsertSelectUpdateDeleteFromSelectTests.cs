@@ -12,17 +12,14 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<SqlServerDbMock>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.SqlServer.TestTools.SqlServerProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a new SQL Server mock database instance for each test.
     /// PT: Cria uma nova instância de banco simulado de SQL Server para cada teste.
     /// </summary>
     protected override SqlServerDbMock CreateDb() => [];
-
-    /// <summary>
-    /// EN: Indicates SQL Server test runtime should execute UPDATE/DELETE scenarios that use JOIN-aware paths.
-    /// PT: Indica que o runtime de teste do SQL Server deve executar cenários de UPDATE/DELETE que usam caminhos com JOIN.
-    /// </summary>
-    protected override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <summary>
     /// EN: Gets SQL Server-specific SQL used to update rows from a derived select joined in FROM.

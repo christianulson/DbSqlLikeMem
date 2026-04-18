@@ -42,8 +42,8 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
         var (dateScalar, currentTimestamp, dateAdd, whereCount, orderedName) =
             ((DateTime dateScalar, DateTime currentTimestamp, DateTime dateAdd, int whereCount, string orderedName))result!;
 
-        dateAdd.Should().BeCloseTo(dateScalar, TemporalComparisonTolerance);
-        dateAdd.Should().BeCloseTo(currentTimestamp, TemporalComparisonTolerance);
+        dateAdd.Should().BeCloseTo(dateScalar.AddDays(1), TemporalComparisonTolerance);
+        dateAdd.Should().BeCloseTo(currentTimestamp.AddDays(1), TemporalComparisonTolerance);
         whereCount.Should().Be(3);
         orderedName.Should().Be("Aaron");
     }

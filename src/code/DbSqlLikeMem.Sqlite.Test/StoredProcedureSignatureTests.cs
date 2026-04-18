@@ -12,6 +12,9 @@ public sealed class StoredProcedureSignatureTests(
         ITestOutputHelper helper
     ) : StoredProcedureSignatureTestsBase<SqliteMockException>(helper)
 {
+    /// <inheritdoc />
+    protected override ProviderSqlDialect Dialect { get; } = new TestTools.SqliteProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates the SQLite connection mock used in tests.
     /// PT: Cria o simulado de conexão SQLite usado nos testes.

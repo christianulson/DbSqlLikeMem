@@ -22,6 +22,15 @@ public class SqlServerProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsReleaseSavepoints => false;
 
     /// <inheritdoc />
+    public override bool SupportsUpdateDeleteJoinRuntime => true;
+
+    /// <inheritdoc />
+    public override bool SupportsGroupByOrdinal => false;
+
+    /// <inheritdoc />
+    public override bool SupportsNthValueWindowFunction => false;
+
+    /// <inheritdoc />
     public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
 
     /// <inheritdoc />

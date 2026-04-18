@@ -12,17 +12,14 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
     ) : SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<NpgsqlDbMock>(helper)
 {
+    /// <inheritdoc />
+    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Npgsql.TestTools.NpgsqlProviderSqlDialect();
+
     /// <summary>
     /// EN: Creates a new PostgreSQL mock database for each scenario.
     /// PT: Cria um novo banco simulado de PostgreSQL para cada cenário.
     /// </summary>
     protected override NpgsqlDbMock CreateDb() => [];
-
-    /// <summary>
-    /// EN: Indicates PostgreSQL test runtime should execute UPDATE/DELETE scenarios that rely on JOIN support.
-    /// PT: Indica que o runtime de teste do PostgreSQL deve executar cenários de UPDATE/DELETE que dependem de suporte a JOIN.
-    /// </summary>
-    protected override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <summary>
     /// EN: Gets PostgreSQL-specific SQL used to update target rows from a derived select joined in FROM.
