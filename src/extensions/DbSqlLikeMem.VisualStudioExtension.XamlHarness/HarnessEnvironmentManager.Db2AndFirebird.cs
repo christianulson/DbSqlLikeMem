@@ -1,5 +1,4 @@
-﻿using System;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Data.Common;
 
 namespace DbSqlLikeMem.VisualStudioExtension.XamlHarness;

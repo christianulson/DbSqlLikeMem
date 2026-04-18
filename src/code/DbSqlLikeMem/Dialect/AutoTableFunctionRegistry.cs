@@ -20,7 +20,21 @@ internal static class AutoTableFunctionRegistry
             TableExecutor = static (executor, tableSource, ctes, outerRow)
                 => executor.ExecuteStringSplitTableFunction(tableSource, ctes, outerRow)
         };
-        dialect.AddTableFunctions(openJsonFunction, stringSplitFunction);
+        var jsonEachFunction = DbFunctionDef.CreateTable(
+            "json_each",
+            signatures: new DbFunctionSignature([], 1, 1)) with
+        {
+            TableExecutor = static (executor, tableSource, ctes, outerRow)
+                => executor.ExecuteJsonEachTableFunction(tableSource, ctes, outerRow)
+        };
+        var jsonTreeFunction = DbFunctionDef.CreateTable(
+            "json_tree",
+            signatures: new DbFunctionSignature([], 1, 1)) with
+        {
+            TableExecutor = static (executor, tableSource, ctes, outerRow)
+                => executor.ExecuteJsonTreeTableFunction(tableSource, ctes, outerRow)
+        };
+        dialect.AddTableFunctions(openJsonFunction, stringSplitFunction, jsonEachFunction, jsonTreeFunction);
 
         SqlSharedTableFunctionRegistry.RegisterJsonTable(dialect);
     }

@@ -25,10 +25,11 @@ Percentual geral atual: 61%
 | Fase 1 - Inventário dos tipos nativos | [Fase-01-Parametros.md](./Fase-01-Parametros.md) | DONE | 100% |
 | Fase 2 - Expandir os testes de tipo DbParameter | [Fase-02-Tipos-Nativos.md](./Fase-02-Tipos-Nativos.md) | DONE | 100% |
 | Fase 3 - Cobrir o shape completo do resultado | [Fase-03-Formato-do-Resultado.md](./Fase-03-Formato-do-Resultado.md) | DONE | 100% |
-| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 10% |
-| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | TODO | 0% |
+| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 30% |
+| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 5% |
 | Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | TODO | 0% |
 | Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | TODO | 0% |
+| Fase 8 - Testes faltantes do banco real | [Fase-08-Testes-Faltantes.md](./Fase-08-Testes-Faltantes.md) | TODO | 0% |
 
 ## Regra Central
 
@@ -48,6 +49,7 @@ Percentual geral atual: 61%
 5. Funções e semântica.
 6. Transações e savepoints.
 7. Exceções e mensagens.
+8. Testes faltantes do banco real.
 
 ## Fase 1 - Inventário dos tipos nativos
 
@@ -123,14 +125,14 @@ Padrão:
 
 ## Fase 4 - Parser e sintaxe
 
-- Criar testes negativos quando o banco real não suporta a sintaxe.
-- Evitar `skip` quando a falha for parte do contrato útil.
-- Centralizar a regra de suporte no `Dialect`.
+## Acompanhamento Da Fase
 
-### Acompanhamento Da Fase
-
-- Status: TODO
-- Percentual de entrega: 0%
+- Status: IN PROGRESS
+- Percentual de entrega: 30%
+- O que foi feito:
+  - movidos os trechos SQL de `UPDATE/DELETE JOIN` para o `Dialect` base e para os dialects específicos de SQL Server e PostgreSQL
+  - eliminado o `skip` para `json_each` e `json_tree` e substituido por validacao negativa quando o provider nao suporta funcoes JSON tabulares
+  - tornado `INSERT RETURNING` uma capability explicita no dialect e restringido o teste compartilhado aos providers que realmente suportam essa sintaxe
 - Próximos passos:
   - inventariar sintaxes rejeitadas por provider
   - mover suportes e restrições para o dialect
@@ -144,8 +146,13 @@ Padrão:
 
 ### Acompanhamento Da Fase
 
-- Status: TODO
-- Percentual de entrega: 0%
+- Status: IN PROGRESS
+- Percentual de entrega: 5%
+- O que foi feito:
+  - adicionado o primeiro wrapper de `JsonTableFunctionTestsBase` na suite de fidelidade
+  - iniciado o coverage de `json_each` e `json_tree`
+  - ligados os handlers de `json_each` e `json_tree` ao executor de table functions do mock
+  - mantida a validacao negativa quando o provider nao suporta funcoes JSON tabulares
 - Próximos passos:
   - separar funções por categoria
   - cobrir tipos nativos de retorno e de parâmetro
@@ -179,6 +186,21 @@ Padrão:
   - levantar exceções reais por cenário
   - padronizar enriquecimento de debug sem mudar o gatilho
   - revisar mensagens dependentes de parser, parâmetro e execução
+
+## Fase 8 - Testes faltantes do banco real
+
+- Criar testes para funcionalidades que existem no banco real mas ainda não têm cobertura.
+- Não importa se a funcionalidade existe no mock, o que importa é que deve existir teste.
+- Cada teste criado serve de base para futura implementação no código.
+
+### Acompanhamento Da Fase
+
+- Status: TODO
+- Percentual de entrega: 0%
+- Próximos passos:
+  - inventariar funcionalidades faltantes por provider
+  - criar testes even if unimplemented
+  - documentar gaps no acompanhamento
 
 ## Definition of Done
 

@@ -22,6 +22,8 @@ public abstract class BatchReturningTestsBase<T, T2>(
     [Fact]
     public async Task BatchReturningInsertTest()
     {
+        Assert.True(dialect.SupportsInsertReturning, $"{dialect.DisplayName} does not support INSERT RETURNING.");
+
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
         await testService.RunTestAsync<InsertUsersScenario, BatchInsertReturningServiceTest>();

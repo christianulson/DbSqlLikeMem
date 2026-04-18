@@ -1,4 +1,3 @@
-using DbSqlLikeMem.Firebird;
 using DbSqlLikeMem.TestTools.Tests.DML;
 
 namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;

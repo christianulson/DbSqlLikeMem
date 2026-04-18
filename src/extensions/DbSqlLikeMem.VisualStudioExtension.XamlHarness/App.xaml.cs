@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
 using DbSqlLikeMem.VisualStudioExtension.Core.Models;
-using System.Threading;
 
 namespace DbSqlLikeMem.VisualStudioExtension.XamlHarness;
 

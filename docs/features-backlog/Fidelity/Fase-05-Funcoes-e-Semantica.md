@@ -1,16 +1,18 @@
-﻿# Fase 5 - Funções e semântica
+# Fase 5 - Funções e semântica
 
 ## Status
 
-TODO
+IN PROGRESS
 
 ## Percentual de entrega
 
-0%
+5%
 
 ## O que foi feito
 
-- Nenhum item concluído ainda.
+- Adicionado o primeiro wrapper de `JsonTableFunctionTestsBase` na suite de fidelidade e iniciado o coverage de `json_each` e `json_tree`.
+- Ligados os handlers de `json_each` e `json_tree` ao executor de table functions do mock.
+- Mantida a validacao negativa quando o provider nao suporta funcoes JSON tabulares.
 
 ## Próximos passos
 

@@ -22,6 +22,9 @@ public sealed class MariaDbProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsInsertReturning => true;
+
+    /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
 CREATE TABLE {context.TbUsersFullName} (

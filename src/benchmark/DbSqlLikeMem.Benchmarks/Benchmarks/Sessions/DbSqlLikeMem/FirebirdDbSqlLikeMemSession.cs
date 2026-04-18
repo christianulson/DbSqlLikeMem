@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Firebird;
-using DbSqlLikeMem.Firebird.TestTools;
 using DbSqlLikeMem.TestTools.DML;
 using DbSqlLikeMem.TestTools.Performance;
 

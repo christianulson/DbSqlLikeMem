@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>

@@ -25,6 +25,12 @@ public abstract class ProviderSqlDialect
     public virtual bool SupportsUpsert => false;
 
     /// <summary>
+    /// EN: Indicates whether the provider supports INSERT RETURNING in the benchmark flow.
+    /// PT: Indica se o provedor suporta INSERT RETURNING no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsInsertReturning => false;
+
+    /// <summary>
     /// EN: Indicates whether the provider supports sequences in the benchmark flow.
     /// PT: Indica se o provedor suporta sequencias no fluxo de benchmark.
     /// </summary>
@@ -90,14 +96,20 @@ WHERE u.tenantid = 10";
     /// </summary>
     public virtual bool SupportsReleaseSavepoints => true;
 
-    /// <summary>
-    /// EN: Indicates whether the provider supports JSON scalar reads in the benchmark flow.
-    /// PT: Indica se o provedor suporta leitura escalar de JSON no fluxo de benchmark.
-    /// </summary>
-    public virtual bool SupportsJsonScalarRead => false;
+/// <summary>
+/// EN: Indicates whether the provider supports JSON scalar reads in the benchmark flow.
+/// PT: Indica se o provedor suporta leitura escalar de JSON no fluxo de benchmark.
+/// </summary>
+public virtual bool SupportsJsonScalarRead => false;
 
-    /// <summary>
-    /// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
+/// <summary>
+/// EN: Indicates whether the provider supports table-valued JSON functions (json_each, json_tree) in FROM clause.
+/// PT: Indica se o provedor suporta funções JSON tabulares (json_each, json_tree) na cláusulas FROM.
+/// </summary>
+public virtual bool SupportsJsonTableFunctions => false;
+
+/// <summary>
+/// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
     /// PT: Indica se o provedor suporta parametros input-output Guid em assinaturas de procedure.
     /// </summary>
     public virtual bool SupportsGuidInputOutputParameters => true;
@@ -316,9 +328,10 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
 
     /// <summary>
     /// EN: Returns the INSERT statement used by the returning benchmark when the provider supports returning rows.
-    /// PT-br: Retorna a instrução INSERT usada pelo benchmark de returning quando o provider suporta linhas retornadas.
+    /// PT: Retorna a instrucao INSERT usada pelo benchmark de returning quando o provedor suporta linhas retornadas.
     /// </summary>
-    public virtual string InsertUserReturning(FidelityTestContext context, int id, string name) => InsertUser(context, id, name);
+    public virtual string InsertUserReturning(FidelityTestContext context, int id, string name) =>
+        throw new NotSupportedException($"{DisplayName} does not support INSERT RETURNING.");
 
     /// <summary>
     /// EN: Returns the INSERT statement used to add multiple user rows.
@@ -480,6 +493,20 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// </summary>
     public virtual string JsonPathRead(string jsonLiteral) =>
         throw new NotSupportedException($"{DisplayName} does not support the JSON path benchmark.");
+
+    /// <summary>
+    /// EN: Returns the SQL statement for json_each table-valued function.
+    /// PT: Retorna a instrucao SQL para a função tabular json_each.
+    /// </summary>
+    public virtual string JsonEachFunction(string jsonColumn) =>
+        throw new NotSupportedException($"{DisplayName} does not support json_each.");
+
+    /// <summary>
+    /// EN: Returns the SQL statement for json_tree table-valued function.
+    /// PT: Retorna a instrucao SQL para a função tabular json_tree.
+    /// </summary>
+    public virtual string JsonTreeFunction(string jsonColumn) =>
+        throw new NotSupportedException($"{DisplayName} does not support json_tree.");
 
     /// <summary>
     /// EN: Returns the SQL expression used to read the profile name from a JSON column.

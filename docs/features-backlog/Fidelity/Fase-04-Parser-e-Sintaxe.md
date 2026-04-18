@@ -6,13 +6,16 @@ IN PROGRESS
 
 ## Percentual de entrega
 
-10%
+30%
 
 ## O que foi feito
 
 - Mapeado um primeiro bloco de sintaxe DML dependente do provider.
 - Movidos os trechos SQL de `UPDATE/DELETE JOIN` para o `Dialect` base e para os dialects específicos de SQL Server e PostgreSQL.
 - Mantido o fallback padrão do MySQL para o mesmo contrato, sem hardcode no teste base.
+- Eliminado o `skip` para `json_each` e `json_tree` e substituido por validacao negativa quando o provider nao suporta funcoes JSON tabulares.
+- Confirmado o suporte positivo de SQLite para funcoes JSON tabulares no dialect especifico.
+- Tornado `INSERT RETURNING` uma capability explicita no dialect e restringido o teste compartilhado aos providers que realmente suportam essa sintaxe.
 
 ## Próximos passos
 

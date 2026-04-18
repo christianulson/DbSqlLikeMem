@@ -75,13 +75,101 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON insert/cast benchmark.");
         }
 
-        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
+var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
         GC.KeepAlive(value);
         return value;
     }
 
     /// <summary>
-    /// EN: Executes a current timestamp scalar query and keeps the provider result alive.
+    /// EN: Executes json_each over JSON array and returns all rows for fidelity comparison.
+    /// PT: Executa json_each sobre array JSON e retorna todas as linhas para comparação de fidelidade.
+    /// </summary>
+    public async Task<List<Dictionary<string, object?>>> RunJsonEachFromArrayAsync()
+    {
+        if (!Repo.Dialect.SupportsJsonTableFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support json_each.");
+        }
+
+        var json = "{\"items\":[{\"name\":\"Alice\"},{\"name\":\"Bob\"}]}";
+        using var cmd = Repo.Cnn.CreateCommand();
+        cmd.CommandText = $"SELECT key, value FROM json_each('{json}')";
+        using var reader = await cmd.ExecuteReaderAsync();
+        var results = new List<Dictionary<string, object?>>();
+        while (await reader.ReadAsync())
+        {
+            results.Add(new Dictionary<string, object?>
+            {
+                ["key"] = reader["key"],
+                ["value"] = reader["value"]
+            });
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// EN: Executes json_each over JSON object and returns all rows for fidelity comparison.
+    /// PT: Executa json_each sobre objeto JSON e retorna todas as linhas para comparação de fidelidade.
+    /// </summary>
+    public async Task<List<Dictionary<string, object?>>> RunJsonEachFromObjectAsync()
+    {
+        if (!Repo.Dialect.SupportsJsonTableFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support json_each.");
+        }
+
+        var json = "{\"name\":\"Alice\",\"age\":30}";
+        using var cmd = Repo.Cnn.CreateCommand();
+        cmd.CommandText = $"SELECT key, value FROM json_each('{json}')";
+        using var reader = await cmd.ExecuteReaderAsync();
+        var results = new List<Dictionary<string, object?>>();
+        while (await reader.ReadAsync())
+        {
+            results.Add(new Dictionary<string, object?>
+            {
+                ["key"] = reader["key"],
+                ["value"] = reader["value"]
+            });
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// EN: Executes json_tree over JSON and returns full tree structure for fidelity comparison.
+    /// PT: Executa json_tree sobre JSON e retorna estrutura completa para comparação de fidelidade.
+    /// </summary>
+    public async Task<List<Dictionary<string, object?>>> RunJsonTreeStructureAsync()
+    {
+        if (!Repo.Dialect.SupportsJsonTableFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support json_tree.");
+        }
+
+        var json = "{\"user\":{\"name\":\"Alice\"}}";
+        using var cmd = Repo.Cnn.CreateCommand();
+        cmd.CommandText = $"SELECT key, value, type, id, parent, path FROM json_tree('{json}')";
+        using var reader = await cmd.ExecuteReaderAsync();
+        var results = new List<Dictionary<string, object?>>();
+        while (await reader.ReadAsync())
+        {
+            results.Add(new Dictionary<string, object?>
+            {
+                ["key"] = reader["key"],
+                ["value"] = reader["value"],
+                ["type"] = reader["type"],
+                ["id"] = reader["id"],
+                ["parent"] = reader["parent"],
+                ["path"] = reader["path"]
+            });
+        }
+
+        return results;
+    }
+
+    /// <summary>
+/// EN: Executes a current timestamp scalar query and keeps the provider result alive.
     /// PT: Executa uma consulta escalar de timestamp atual e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<object?> RunTemporalCurrentTimestampAsync()
