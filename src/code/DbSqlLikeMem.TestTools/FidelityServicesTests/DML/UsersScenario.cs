@@ -9,24 +9,10 @@ namespace DbSqlLikeMem.TestTools.DML;
 public sealed class UsersScenario(
         RepoService repo,
         FidelityTestContext context,
-        params (int id, string name)[] seedRows
+        params object?[][] seedRows
     ) : BaseScenario(repo, context),
         ITestScenario
 {
-    /// <summary>
-    /// EN: Creates the users table scenario from generic seed rows supplied by reflection-based test helpers.
-    /// PT: Cria o cenario da tabela de usuarios a partir de linhas iniciais genericas fornecidas por helpers de teste baseados em reflexao.
-    /// </summary>
-    /// <param name="repo">EN: The repository used by the scenario. PT: O repositório usado pelo cenário.</param>
-    /// <param name="context">EN: The fidelity context used by the scenario. PT: O contexto de fidelidade usado pelo cenário.</param>
-    /// <param name="seedRows">EN: The seed rows to convert into typed user tuples. PT: As linhas iniciais a converter em tuplas tipadas de usuario.</param>
-    public UsersScenario(
-        RepoService repo,
-        FidelityTestContext context,
-        params object?[][] seedRows
-    ) : this(repo, context, ConvertSeedRows(seedRows))
-    {
-    }
 
     /// <summary>
     /// EN: Creates the users table and seeds the configured rows.
@@ -36,10 +22,11 @@ public sealed class UsersScenario(
     {
 
         await Repo.ExecuteNonQueryAsync(Repo.Dialect.CreateUsersTable(Context));
-        foreach (var (id, name) in seedRows)
-        {
-            await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id, name));
-        }
+        if (seedRows != null)
+            foreach (var (id, name) in ConvertSeedRows(seedRows))
+            {
+                await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id, name));
+            }
     }
 
     /// <summary>
@@ -57,7 +44,7 @@ public sealed class UsersScenario(
             AddSeedRow(seedRow, rows);
         }
 
-        return rows.ToArray();
+        return [.. rows];
     }
 
     private static void AddSeedRow(object? value, ICollection<(int id, string name)> rows)

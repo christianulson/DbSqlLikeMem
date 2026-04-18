@@ -71,7 +71,7 @@ public static class BenchmarkScenarioFactory
         RepoService repo,
         FidelityTestContext context,
         params (int id, string name)[] seedRows)
-        => new(repo, context, seedRows);
+        => new(repo, context, [seedRows.Cast<object?>()]);
 
     /// <summary>
     /// EN: Creates the insert-users scenario used by batch and execution-plan benchmarks.

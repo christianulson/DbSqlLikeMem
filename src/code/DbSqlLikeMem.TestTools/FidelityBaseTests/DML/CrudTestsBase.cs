@@ -60,7 +60,7 @@ public abstract class CrudTestsBase<T, T2>(
             dialect,
             [(1, "Alice"), (2, "Bob")]);
 
-        (await testService.RunTestAsync<UsersScenario, DmlMutationUpdateByPkServiceTest>()).Should().Be(1);
+        (await testService.RunTestAsync<UsersScenario, DmlMutationUpdateByPkServiceTest>()).Should().BeEquivalentTo("Alice-v2");
     }
 
     /// <summary>
@@ -110,10 +110,11 @@ public abstract class CrudTestsBase<T, T2>(
         using var testService = new FidelityTestService<T, T2>(
             connectionMock,
             connectionContainer,
-            dialect);
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
         var updatedAt = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterUpdateDeleteRoundTripServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, DmlMutationParameterUpdateDeleteRoundTripServiceTest>(
             "Alice-v2",
             string.Empty,
             true,
@@ -122,7 +123,7 @@ public abstract class CrudTestsBase<T, T2>(
             updatedAt,
             "{\"theme\":\"dark\"}",
             2);
-        result.Should().Be(2);
+        result.Should().Be(1);
     }
 
     /// <summary>
@@ -158,7 +159,7 @@ public abstract class CrudTestsBase<T, T2>(
                 updatedAt2,
                 "{\"theme\":\"dark\"}",
                 "{\"theme\":\"light\"}");
-        result.Should().Be(1);
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -207,7 +208,7 @@ public abstract class CrudTestsBase<T, T2>(
             "bob@example.com",
             createdAt1,
             createdAt2);
-        result.Should().Be(1);
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -231,7 +232,7 @@ public abstract class CrudTestsBase<T, T2>(
             "bob@example.com",
             createdAt1,
             createdAt2);
-        result.Should().Be(1);
+        result.Should().BeEquivalentTo(new { count = 2, count2 = 1 });
     }
 
     //TODO: Criar método asbtrado para os filhos

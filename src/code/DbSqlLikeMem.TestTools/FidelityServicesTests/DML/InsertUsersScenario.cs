@@ -6,8 +6,9 @@ namespace DbSqlLikeMem.TestTools.DML;
 /// </summary>
 public class InsertUsersScenario(
     RepoService repo,
-       FidelityTestContext context
-    ) : BaseScenario(repo, context), ITestScenario
+    FidelityTestContext context
+) : BaseScenario(repo, context),
+    ITestScenario
 {
     /// <summary>
     /// EN: Creates the users table required by the insert workflow.

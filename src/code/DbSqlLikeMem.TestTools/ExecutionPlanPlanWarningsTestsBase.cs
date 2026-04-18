@@ -531,9 +531,9 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
         }
 
         if (nextCodeOffset >= 0)
-            return lines.Skip(start).Take(nextCodeOffset).ToArray();
+            return [.. lines.Skip(start).Take(nextCodeOffset)];
 
-        return lines.Skip(start).ToArray();
+        return [.. lines.Skip(start)];
     }
 
 

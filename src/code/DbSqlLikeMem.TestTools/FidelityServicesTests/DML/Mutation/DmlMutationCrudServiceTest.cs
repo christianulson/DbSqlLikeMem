@@ -29,15 +29,23 @@ public class DmlMutationParameterTransactionRollbackServiceTest(
         var firstCreatedAt = (DateTime)args[4];
         var secondCreatedAt = (DateTime)args[5];
 
+        await InsertTypedUserAsync(1, firstName, firstEmail, true, 31, 123.45m, firstCreatedAt, firstCreatedAt, "{\"theme\":\"dark\"}");
+
         using var transaction = Repo.BeginTransaction();
-        await InsertTypedUserAsync(1, firstName, firstEmail, true, 31, 123.45m, firstCreatedAt, firstCreatedAt, "{\"theme\":\"dark\"}", transaction);
         await InsertTypedUserAsync(2, secondName, secondEmail, false, 22, 67.89m, secondCreatedAt, secondCreatedAt, "{\"theme\":\"light\"}", transaction);
+
+        var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountRows(Context.TbUsersFullName), transaction), CultureInfo.InvariantCulture);
+        if (count != 2)
+        {
+            throw new InvalidOperationException($"Unexpected transactional parameter uncommited count for {Repo.Dialect.DisplayName}: {count}.");
+        }
+
         transaction.Rollback();
 
-        var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
-        if (count != 0)
+        var count2 = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
+        if (count2 != 1)
         {
-            throw new InvalidOperationException($"Unexpected transactional parameter rollback count for {Repo.Dialect.DisplayName}: {count}.");
+            throw new InvalidOperationException($"Unexpected transactional parameter rollback count for {Repo.Dialect.DisplayName}: {count2}.");
         }
 
         GC.KeepAlive(Context.TbUsersFullName);
@@ -47,7 +55,7 @@ public class DmlMutationParameterTransactionRollbackServiceTest(
         GC.KeepAlive(secondEmail);
         GC.KeepAlive(firstCreatedAt);
         GC.KeepAlive(secondCreatedAt);
-        return count;
+        return new { count, count2 };
     }
 
 }
