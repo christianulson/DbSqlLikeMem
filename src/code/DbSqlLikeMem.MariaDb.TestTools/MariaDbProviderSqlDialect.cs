@@ -218,5 +218,37 @@ CREATE TABLE {context.TbOrdersFullName} (
 
     /// <inheritdoc />
     public override string CrossApplyProjection(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)";
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    (
+        SELECT o.Note
+        FROM {context.TbOrdersFullName} o
+        WHERE o.{context.TbUsers}Id = u.Id
+        ORDER BY o.Id DESC
+        LIMIT 1
+    ) AS Note
+FROM {context.TbUsersFullName} u
+WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)
+ORDER BY u.Id
+""";
+
+    /// <inheritdoc />
+    public override string OuterApplyProjection(FidelityTestContext context) =>
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    x.Note AS Note
+FROM {context.TbUsersFullName} u
+LEFT JOIN LATERAL (
+    SELECT o.Note
+    FROM {context.TbOrdersFullName} o
+    WHERE o.{context.TbUsers}Id = u.Id
+    ORDER BY o.Id DESC
+    LIMIT 1
+) x ON TRUE
+ORDER BY u.Id
+""";
 }

@@ -284,9 +284,34 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string CrossApplyProjection(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)";
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    (
+        SELECT FIRST 1 o.Note
+        FROM {context.TbOrdersFullName} o
+        WHERE o.{context.TbUsers}Id = u.Id
+        ORDER BY o.Id DESC
+    ) AS Note
+FROM {context.TbUsersFullName} u
+WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)
+ORDER BY u.Id
+""";
 
     /// <inheritdoc />
     public override string OuterApplyProjection(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u";
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    (
+        SELECT FIRST 1 o.Note
+        FROM {context.TbOrdersFullName} o
+        WHERE o.{context.TbUsers}Id = u.Id
+        ORDER BY o.Id DESC
+    ) AS Note
+FROM {context.TbUsersFullName} u
+ORDER BY u.Id
+""";
 }

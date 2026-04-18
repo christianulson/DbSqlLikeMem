@@ -56,8 +56,9 @@ public abstract class SelectTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
             (s, a) => s.RunCteSimpleAsync(a));
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
     }
 
     /// <summary>
@@ -102,7 +103,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectNotExistsPredicateAsync(a));
-        result.Should().Be(1);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
     }
 
     /// <summary>
@@ -117,7 +118,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectLeftJoinAntiJoinAsync(a));
-        result.Should().Be(1);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
     }
 
     /// <summary>
@@ -132,7 +133,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectNotInSubqueryAsync(a));
-        result.Should().Be(1);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(1);
     }
 
     /// <summary>
@@ -147,7 +148,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectExistsPredicateAsync(a));
-        result.Should().Be(2);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
     }
 
     /// <summary>
@@ -162,7 +163,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectCorrelatedCountAsync(a));
-        result.Should().Be(2);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
     }
 
     /// <summary>
@@ -177,7 +178,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectInSubqueryAsync(a));
-        result.Should().Be(2);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
     }
 
     /// <summary>
@@ -221,7 +222,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunUnionAllProjectionAsync(a));
-        result.Should().Be(2);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
     }
 
     /// <summary>
@@ -235,7 +236,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunDistinctProjectionAsync(a));
-        result.Should().Be(2);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
     }
 
     /// <summary>
@@ -250,7 +251,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunMultiJoinAggregateAsync(a));
-        result.Should().Be(4);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(4);
     }
 
     /// <summary>
@@ -303,7 +304,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectBetweenLikeOrderByTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData2]);
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunBetweenLikeOrderByMatrixAsync(a));
@@ -393,6 +394,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunParameterSelectByIdMatrixAsync(a),
+            3,
             "Charlie");
         result.Should().Be("Charlie");
     }
@@ -592,7 +594,7 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunUnionDistinctProjectionAsync(a);
             });
 
-        result.Should().Be(3);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(3);
     }
 
     /// <summary>
@@ -838,7 +840,7 @@ public abstract class SelectTestsBase<T, T2>(
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
-                return await s.RunWindowRankDenseRank(a.Length > 0 ? a : ["Users"]);
+                return await s.RunWindowRankDenseRank(a.Length > 0 ? a : ["Alice"]);
             });
 
         result.Should().Be(4);
@@ -858,7 +860,7 @@ public abstract class SelectTestsBase<T, T2>(
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
-                return await s.RunWindowFirstLastValue(a.Length > 0 ? a : ["Users"]);
+                return await s.RunWindowFirstLastValue(a.Length > 0 ? a : ["Alice"]);
             });
 
         result.Should().Be(4);
@@ -879,7 +881,7 @@ public abstract class SelectTestsBase<T, T2>(
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
-                return await s.RunWindowNtile(a.Length > 0 ? a : ["Users"]);
+                return await s.RunWindowNtile(a.Length > 0 ? a : ["Alice"]);
             });
 
         result.Should().Be(4);
@@ -899,7 +901,7 @@ public abstract class SelectTestsBase<T, T2>(
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
-                return await s.RunWindowPercentRankCumeDist(a.Length > 0 ? a : ["Users"]);
+                return await s.RunWindowPercentRankCumeDist(a.Length > 0 ? a : ["Alice"]);
             });
 
         result.Should().Be(4);
@@ -921,8 +923,8 @@ public abstract class SelectTestsBase<T, T2>(
                     await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
                     await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
                     await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
-                    return await s.RunWindowNthValue(a.Length > 0 ? a : ["Users"]);
-                }, "Users")).Should().ThrowAsync<NotSupportedException>();
+                    return await s.RunWindowNthValue(a.Length > 0 ? a : ["Alice"]);
+                }, "Alice")).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
@@ -933,9 +935,9 @@ public abstract class SelectTestsBase<T, T2>(
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Bravo"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 4, "Charlie"));
-                return await s.RunWindowNthValue(a.Length > 0 ? a : ["Users"]);
+                return await s.RunWindowNthValue(a.Length > 0 ? a : ["Alice"]);
             },
-            "Users");
+            "Alice");
 
         result.Should().Be(4);
     }
@@ -1196,25 +1198,25 @@ public abstract class SelectTestsBase<T, T2>(
     private static async Task<object?> RunRelationalCompositeAssertionsAsync(
         QueryServiceTest serviceTest)
     {
-        var cte = await serviceTest.RunCteSimpleAsync();
-        var existsPredicate = await serviceTest.RunSelectExistsPredicateAsync();
-        var correlatedCount = await serviceTest.RunSelectCorrelatedCountAsync();
+        var cte = (QueryResultSnapshot)await serviceTest.RunCteSimpleAsync();
+        var existsPredicate = (QueryResultSnapshot)await serviceTest.RunSelectExistsPredicateAsync();
+        var correlatedCount = (QueryResultSnapshot)await serviceTest.RunSelectCorrelatedCountAsync();
         var groupByHaving = await serviceTest.RunGroupByHavingAsync();
-        var unionAll = await serviceTest.RunUnionAllProjectionAsync();
-        var distinct = await serviceTest.RunDistinctProjectionAsync();
-        var multiJoin = await serviceTest.RunMultiJoinAggregateAsync();
+        var unionAll = (QueryResultSnapshot)await serviceTest.RunUnionAllProjectionAsync();
+        var distinct = (QueryResultSnapshot)await serviceTest.RunDistinctProjectionAsync();
+        var multiJoin = (QueryResultSnapshot)await serviceTest.RunMultiJoinAggregateAsync();
         var scalarSubquery = Convert.ToInt64(await serviceTest.RunSelectScalarSubqueryAsync(), CultureInfo.InvariantCulture);
-        var inSubquery = await serviceTest.RunSelectInSubqueryAsync();
+        var inSubquery = (QueryResultSnapshot)await serviceTest.RunSelectInSubqueryAsync();
         var pivot = await serviceTest.RunPivotCountAsync();
-        cte.Should().Be(1);
-        existsPredicate.Should().Be(2);
-        correlatedCount.Should().Be(2);
+        cte.Rows.Should().HaveCount(1);
+        existsPredicate.Rows.Should().HaveCount(2);
+        correlatedCount.Rows.Should().HaveCount(2);
         groupByHaving.Should().Be(1);
-        unionAll.Should().Be(2);
-        distinct.Should().Be(2);
-        multiJoin.Should().Be(4);
+        unionAll.Rows.Should().HaveCount(2);
+        distinct.Rows.Should().HaveCount(2);
+        multiJoin.Rows.Should().HaveCount(4);
         scalarSubquery.Should().Be(2L);
-        inSubquery.Should().Be(2);
+        inSubquery.Rows.Should().HaveCount(2);
         pivot.Should().Be(2);
 
         return (cte, existsPredicate, correlatedCount, groupByHaving, unionAll, distinct, multiJoin, scalarSubquery, inSubquery, pivot);
@@ -1306,7 +1308,9 @@ public abstract class SelectTestsBase<T, T2>(
                 return (crossApply, outerApply);
             });
 
-        result.Should().BeEquivalentTo((2, 3));
+        var (crossApplyResult, outerApplyResult) = ((QueryResultSnapshot, QueryResultSnapshot))result!;
+        crossApplyResult.Rows.Should().HaveCount(2);
+        outerApplyResult.Rows.Should().HaveCount(3);
     }
 
     /// <summary>
@@ -1320,7 +1324,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunCrossApplyProjectionAsync(a));
 
-        result.Should().Be(2);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(2);
     }
 
     /// <summary>
@@ -1343,7 +1347,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunOuterApplyProjectionAsync(a));
 
-        result.Should().Be(3);
+        ((QueryResultSnapshot)result!).Rows.Should().HaveCount(3);
     }
 
     /// <summary>
@@ -1378,7 +1382,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return (crossApply, outerApply, temporal);
             });
 
-        result.Should().BeEquivalentTo((2, 3, 3));
+        var (applyCross, applyOuter, temporal) = ((QueryResultSnapshot, QueryResultSnapshot, int))result!;
+        applyCross.Rows.Should().HaveCount(2);
+        applyOuter.Rows.Should().HaveCount(3);
+        temporal.Should().Be(3);
     }
 
     /// <summary>
@@ -1415,7 +1422,11 @@ public abstract class SelectTestsBase<T, T2>(
                 return (crossApply, outerApply, window, temporal);
             });
 
-        result.Should().BeEquivalentTo((2, 3, 3, 3));
+        var (windowCross, windowOuter, windowCount, windowTemporal) = ((QueryResultSnapshot, QueryResultSnapshot, int, int))result!;
+        windowCross.Rows.Should().HaveCount(2);
+        windowOuter.Rows.Should().HaveCount(3);
+        windowCount.Should().Be(3);
+        windowTemporal.Should().Be(3);
     }
 
     private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(
@@ -1451,4 +1462,3 @@ public abstract class SelectTestsBase<T, T2>(
         await serviceTest.Repo.ExecuteNonQueryAsync(serviceTest.Repo.Dialect.InsertOrder(serviceTest.Context, 12, 2, "C", "o-12", 5.50m, 4, false, serviceTest.Repo.Dialect.TemporalCurrentTimestampExpression()));
     }
 }
-

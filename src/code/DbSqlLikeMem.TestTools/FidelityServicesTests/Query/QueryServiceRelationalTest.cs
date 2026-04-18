@@ -973,13 +973,7 @@ ORDER BY u.Id, o.Id
     /// </summary>
     public async Task<object?> RunCteSimpleAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CteSimple(Context)), CultureInfo.InvariantCulture);
-        if (value != 1)
-        {
-            throw new InvalidOperationException($"Unexpected CTE result for {Repo.Dialect.DisplayName}: {value}.");
-        }
-
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.CteSimple(Context));
     }
 
     /// <summary>
@@ -1021,9 +1015,7 @@ ORDER BY u.Id, o.Id
     /// </summary>
     public async Task<object?> RunSelectExistsPredicateAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectExistsPredicate(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.SelectExistsPredicate(Context));
     }
 
     /// <summary>
@@ -1032,9 +1024,7 @@ ORDER BY u.Id, o.Id
     /// </summary>
     public async Task<object?> RunSelectNotExistsPredicateAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectNotExistsPredicate(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.SelectNotExistsPredicate(Context));
     }
 
     /// <summary>
@@ -1043,9 +1033,7 @@ ORDER BY u.Id, o.Id
     /// </summary>
     public async Task<object?> RunSelectLeftJoinAntiJoinAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectLeftJoinAntiJoin(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.SelectLeftJoinAntiJoin(Context));
     }
 
     /// <summary>
@@ -1054,9 +1042,7 @@ ORDER BY u.Id, o.Id
     /// </summary>
     public async Task<object?> RunSelectCorrelatedCountAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectCorrelatedCount(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.SelectCorrelatedCount(Context));
     }
 
     /// <summary>
@@ -1116,9 +1102,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunUnionAllProjectionAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.UnionAllProjection(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.UnionAllProjection(Context));
     }
 
     /// <summary>
@@ -1127,9 +1111,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunUnionDistinctProjectionAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.UnionDistinctProjection(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.UnionDistinctProjection(Context));
     }
 
     /// <summary>
@@ -1138,9 +1120,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunDistinctProjectionAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.DistinctProjection(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.DistinctProjection(Context));
     }
 
     /// <summary>
@@ -1149,9 +1129,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunMultiJoinAggregateAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.MultiJoinAggregate(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.MultiJoinAggregate(Context));
     }
 
     /// <summary>
@@ -1171,9 +1149,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunSelectInSubqueryAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectInSubquery(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.SelectInSubquery(Context));
     }
 
     /// <summary>
@@ -1182,9 +1158,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunSelectNotInSubqueryAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectNotInSubquery(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.SelectNotInSubquery(Context));
     }
 
     /// <summary>
@@ -1193,9 +1167,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunCrossApplyProjectionAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CrossApplyProjection(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.CrossApplyProjection(Context));
     }
 
     /// <summary>
@@ -1204,9 +1176,7 @@ ORDER BY u.Id
     /// </summary>
     public async Task<object?> RunOuterApplyProjectionAsync(params object[] pars)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.OuterApplyProjection(Context)), CultureInfo.InvariantCulture);
-        GC.KeepAlive(value);
-        return value;
+        return await CaptureSnapshotAsync(Repo.Dialect.OuterApplyProjection(Context));
     }
 
     /// <summary>
@@ -1249,5 +1219,14 @@ ORDER BY u.Id
         }
 
         return count;
+    }
+
+    private async Task<QueryResultSnapshot> CaptureSnapshotAsync(string sql)
+    {
+        using var command = Repo.Cnn.CreateCommand();
+        command.CommandText = sql;
+
+        using var reader = await command.ExecuteReaderAsync();
+        return QueryResultSnapshotReader.Capture(reader);
     }
 }

@@ -289,9 +289,37 @@ WHEN NOT MATCHED THEN
 
     /// <inheritdoc />
     public override string CrossApplyProjection(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u JOIN LATERAL (SELECT o.Note FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    x.Note AS Note
+FROM {context.TbUsersFullName} u
+JOIN LATERAL (
+    SELECT o.Note
+    FROM {context.TbOrdersFullName} o
+    WHERE o.{context.TbUsers}Id = u.Id
+    ORDER BY o.Id DESC
+    FETCH FIRST 1 ROW ONLY
+) x ON 1 = 1
+ORDER BY u.Id
+""";
 
     /// <inheritdoc />
     public override string OuterApplyProjection(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM {context.TbUsersFullName} u LEFT JOIN LATERAL (SELECT o.Note FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id ORDER BY o.Id DESC FETCH FIRST 1 ROW ONLY) x ON 1 = 1";
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    x.Note AS Note
+FROM {context.TbUsersFullName} u
+LEFT JOIN LATERAL (
+    SELECT o.Note
+    FROM {context.TbOrdersFullName} o
+    WHERE o.{context.TbUsers}Id = u.Id
+    ORDER BY o.Id DESC
+    FETCH FIRST 1 ROW ONLY
+) x ON 1 = 1
+ORDER BY u.Id
+""";
 }

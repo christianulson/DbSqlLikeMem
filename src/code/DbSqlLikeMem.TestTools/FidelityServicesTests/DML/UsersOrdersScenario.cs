@@ -12,6 +12,18 @@ public sealed class UsersOrdersScenario(
     ) : BaseScenario(repo, context), ITestScenario
 {
     /// <summary>
+    /// EN: Creates a users-and-orders scenario with custom users and default empty orders.
+    /// PT: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
+    /// </summary>
+    public UsersOrdersScenario(
+        RepoService repo,
+        FidelityTestContext context,
+        (int id, string name)[]? seedUsers)
+        : this(repo, context, seedUsers, Array.Empty<(int id, int userId, string note)>())
+    {
+    }
+
+    /// <summary>
     /// EN: Creates the users and orders tables and seeds the join data.
     /// PT: Cria as tabelas de usuarios e pedidos e preenche os dados da junção.
     /// </summary>

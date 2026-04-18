@@ -557,41 +557,49 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// EN: Returns the SQL statement used for the LAG benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de LAG.
     /// </summary>
-    public virtual string WindowLag(FidelityTestContext context) => $"SELECT * FROM (SELECT LAG(Name) OVER (ORDER BY Id) AS PrevName FROM {context.TbUsersFullName}) q";
+    public virtual string WindowLag(FidelityTestContext context) => $"SELECT COUNT(*) FROM (SELECT LAG(Name) OVER (ORDER BY Id) AS PrevName FROM {context.TbUsersFullName}) q";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the LEAD benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de LEAD.
     /// </summary>
-    public virtual string WindowLead(FidelityTestContext context) => $"SELECT * FROM (SELECT LEAD(Name) OVER (ORDER BY Id) AS NextName FROM {context.TbUsersFullName}) q WHERE NextName IS NOT NULL";
+    public virtual string WindowLead(FidelityTestContext context) => $"SELECT COUNT(*) FROM (SELECT LEAD(Name) OVER (ORDER BY Id) AS NextName FROM {context.TbUsersFullName}) q WHERE NextName IS NOT NULL";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the EXISTS benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de EXISTS.
     /// </summary>
     public virtual string SelectExistsPredicate(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)";
+        $"SELECT u.* FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the NOT EXISTS benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de NOT EXISTS.
     /// </summary>
     public virtual string SelectNotExistsPredicate(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} u WHERE NOT EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)";
+        $"SELECT u.* FROM {context.TbUsersFullName} u WHERE NOT EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the LEFT JOIN anti-join benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de anti-join com LEFT JOIN.
     /// </summary>
     public virtual string SelectLeftJoinAntiJoin(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} u LEFT JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE o.{context.TbUsers}Id IS NULL";
+        $"SELECT u.* FROM {context.TbUsersFullName} u LEFT JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE o.{context.TbUsers}Id IS NULL ORDER BY u.Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the correlated COUNT benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de COUNT correlacionado.
     /// </summary>
     public virtual string SelectCorrelatedCount(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} u WHERE (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) > 0";
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) AS OrderCount
+FROM {context.TbUsersFullName} u
+WHERE (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) > 0
+ORDER BY u.Id
+""";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the GROUP BY HAVING benchmark.
@@ -605,49 +613,73 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// PT: Retorna a instrucao SQL usada no benchmark de projecao UNION ALL.
     /// </summary>
     public virtual string UnionAllProjection(FidelityTestContext context) =>
-        $"SELECT * FROM (SELECT Name FROM {context.TbUsersFullName} WHERE Id = 1 UNION ALL SELECT Name FROM {context.TbUsersFullName} WHERE Id = 2) q";
+        $"""
+SELECT * FROM (
+    SELECT Name FROM {context.TbUsersFullName} WHERE Id = 1
+    UNION ALL
+    SELECT Name FROM {context.TbUsersFullName} WHERE Id = 2
+) q
+ORDER BY Name
+""";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the UNION projection benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de projecao UNION.
     /// </summary>
     public virtual string UnionDistinctProjection(FidelityTestContext context) =>
-        $"SELECT * FROM (SELECT Name FROM {context.TbUsersFullName} WHERE Id IN (1, 2) UNION SELECT Name FROM {context.TbUsersFullName} WHERE Id IN (2, 3)) q";
+        $"""
+SELECT * FROM (
+    SELECT Name FROM {context.TbUsersFullName} WHERE Id IN (1, 2)
+    UNION
+    SELECT Name FROM {context.TbUsersFullName} WHERE Id IN (2, 3)
+) q
+ORDER BY Name
+""";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the DISTINCT projection benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de projecao DISTINCT.
     /// </summary>
     public virtual string DistinctProjection(FidelityTestContext context) =>
-        $"SELECT * FROM (SELECT DISTINCT Name FROM {context.TbUsersFullName}) q";
+        $"SELECT DISTINCT Name FROM {context.TbUsersFullName} ORDER BY Name";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the multi-join aggregate benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de agregacao com multiplos joins.
     /// </summary>
     public virtual string MultiJoinAggregate(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} u INNER JOIN {context.TbOrdersFullName} o1 ON o1.{context.TbUsers}Id = u.Id INNER JOIN {context.TbOrdersFullName} o2 ON o2.{context.TbUsers}Id = u.Id WHERE u.Id = 1";
+        $"""
+SELECT
+    u.Id AS UserId,
+    o1.Id AS FirstOrderId,
+    o2.Id AS SecondOrderId
+FROM {context.TbUsersFullName} u
+INNER JOIN {context.TbOrdersFullName} o1 ON o1.{context.TbUsers}Id = u.Id
+INNER JOIN {context.TbOrdersFullName} o2 ON o2.{context.TbUsers}Id = u.Id
+WHERE u.Id = 1
+ORDER BY o1.Id, o2.Id
+""";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the scalar subquery benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de subconsulta escalar.
     /// </summary>
     public virtual string SelectScalarSubquery(FidelityTestContext context) =>
-        $"SELECT (SELECT * FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = 1)";
+        $"SELECT (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = 1)";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the IN subquery benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de subconsulta IN.
     /// </summary>
     public virtual string SelectInSubquery(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} WHERE Id IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName})";
+        $"SELECT * FROM {context.TbUsersFullName} WHERE Id IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the NOT IN subquery benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de subconsulta NOT IN.
     /// </summary>
     public virtual string SelectNotInSubquery(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} WHERE Id NOT IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName})";
+        $"SELECT * FROM {context.TbUsersFullName} WHERE Id NOT IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the SELECT * benchmark.
@@ -668,7 +700,21 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// PT: Retorna a instrucao SQL usada no benchmark de CROSS APPLY.
     /// </summary>
     public virtual string CrossApplyProjection(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)";
+        $"""
+SELECT
+    u.Id AS UserId,
+    u.Name AS UserName,
+    (
+        SELECT o.Note
+        FROM {context.TbOrdersFullName} o
+        WHERE o.{context.TbUsers}Id = u.Id
+        ORDER BY o.Id DESC
+        LIMIT 1
+    ) AS Note
+FROM {context.TbUsersFullName} u
+WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id)
+ORDER BY u.Id
+""";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the OUTER APPLY benchmark.

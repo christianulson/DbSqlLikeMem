@@ -614,7 +614,7 @@ WHERE Name = 'Bob'
     /// </summary>
     public async Task<object?> RunParameterSelectByNameMatrixAsync(params object[] pars)
     {
-        var name = (string)pars[1];
+        var name = (string)pars[0];
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -638,8 +638,8 @@ WHERE Name = {Repo.Dialect.Parameter("name")}
     /// </summary>
     public async Task<object?> RunParameterSelectByIdMatrixAsync(params object[] pars)
     {
-        var id = (int)pars[1];
-        var expectedName = (string)pars[2];
+        var id = Convert.ToInt32(pars[0], CultureInfo.InvariantCulture);
+        var expectedName = (string)pars[1];
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -1436,9 +1436,3 @@ ORDER BY rn
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
     }
 }
-
-
-
-
-
-

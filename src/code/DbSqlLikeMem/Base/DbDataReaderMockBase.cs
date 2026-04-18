@@ -8,8 +8,11 @@ public abstract class DbDataReaderMockBase(
     IList<TableResultMock> tables
     ) : DbDataReader
 {
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object, object>> _converters = new();
+
     private readonly List<TableResultMock> _resultSets = CopyResultSets(tables);
     private readonly List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> _columnsDic = BuildColumnsByResultSet(tables);
+    private readonly List<Dictionary<string, int>> _columnOrdinalByNormalizedName = BuildOrdinalIndexByNormalizedName(tables);
 
     private int _currentResultSetIndex;
     private int _currentIndex = -1;
@@ -23,7 +26,7 @@ public abstract class DbDataReaderMockBase(
         return result;
     }
 
-    private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> BuildColumnsByResultSet(IList<TableResultMock> tables)
+private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> BuildColumnsByResultSet(IList<TableResultMock> tables)
     {
         var result = new List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>>(tables.Count);
         for (var i = 0; i < tables.Count; i++)
@@ -39,6 +42,24 @@ public abstract class DbDataReaderMockBase(
             result.Add(dict);
         }
 
+        return result;
+    }
+
+    private static List<Dictionary<string, int>> BuildOrdinalIndexByNormalizedName(IList<TableResultMock> tables)
+    {
+        var result = new List<Dictionary<string, int>>(tables.Count);
+        for (var i = 0; i < tables.Count; i++)
+        {
+            var cols = tables[i].Columns;
+            var index = new Dictionary<string, int>(cols.Count, StringComparer.OrdinalIgnoreCase);
+            for (var c = 0; c < cols.Count; c++)
+            {
+                var col = cols[c];
+                var normalized = NormalizeColumnName(col.ColumnAlias);
+                index[normalized] = col.ColumIndex;
+            }
+            result.Add(index);
+        }
         return result;
     }
 
@@ -267,16 +288,12 @@ public abstract class DbDataReaderMockBase(
     public override int GetOrdinal(string name)
     {
         name = NormalizeColumnName(name);
+        var index = _columnOrdinalByNormalizedName[_currentResultSetIndex];
+
+        if (index.TryGetValue(name, out var ordinal))
+            return ordinal;
+
         var cols = _columnsDic[_currentResultSetIndex];
-
-        // 1) exact/normalized match (case-insensitive)
-        foreach (var kv in cols)
-        {
-            if (NormalizeColumnName(kv.Value.ColumName).Equals(name, StringComparison.OrdinalIgnoreCase))
-                return kv.Key;
-        }
-
-        // 2) fallback: allow asking for unqualified name when stored is qualified (t.col)
         foreach (var kv in cols)
         {
             var stored = kv.Value.ColumName ?? string.Empty;
@@ -354,7 +371,7 @@ public abstract class DbDataReaderMockBase(
         if (value is T typed)
             return typed;
 
-        return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+        return (T)GetConverter<T>()(value);
     }
     /// <summary>
     /// EN: Copies the values of the current row into the provided array.
@@ -475,5 +492,22 @@ public abstract class DbDataReaderMockBase(
 
         disposedValue = true;
         base.Dispose(disposing);
+    }
+
+    private static Func<object, object> CreateConverter(Type targetType)
+    {
+        var method = typeof(Convert).GetMethod("ChangeType", [typeof(object), typeof(Type), typeof(IFormatProvider)]);
+        if (method is null)
+            return v => v!;
+
+        var invariant = CultureInfo.InvariantCulture;
+        var targetTypeLocal = targetType;
+        return v => method.Invoke(null, [v, targetTypeLocal, invariant])!;
+    }
+
+    private static Func<object, object> GetConverter<T>()
+    {
+        var type = typeof(T);
+        return _converters.GetOrAdd(type, _ => CreateConverter(type));
     }
 }

@@ -323,14 +323,15 @@ private static TScenario CreateScenarioInstance<TScenario>(
                 if (IsObjectMatrixParameter(ps[2].ParameterType))
                     return (TScenario)ctor.Invoke([repo, context, initialData]);
 
-                var arr = TryConvertToArray(initialData, 0, typeof((int, string)[]));
-                if (arr != null)
-                    return (TScenario)ctor.Invoke([repo, context, arr]);
-                arr = TryConvertToArray(initialData, 0, typeof((int, int, string)[]));
-                if (arr != null)
-                    return (TScenario)ctor.Invoke([repo, context, arr]);
-                if (initialData.Length == 0)
-                    return (TScenario)ctor.Invoke([repo, context, Array.Empty<object?[]>()]);
+                if (initialData.Length <= 1)
+                {
+                    var arr = TryConvertToArray(initialData, 0, typeof((int, string)[]));
+                    if (arr != null)
+                        return (TScenario)ctor.Invoke([repo, context, arr]);
+                    arr = TryConvertToArray(initialData, 0, typeof((int, int, string)[]));
+                    if (arr != null)
+                        return (TScenario)ctor.Invoke([repo, context, arr]);
+                }
             }
             if (ps.Length == 4 && initialData.Length >= 2)
             {

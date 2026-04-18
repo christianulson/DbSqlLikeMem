@@ -4,6 +4,17 @@ internal static class SqlExtensions
 {
     private static readonly SqlExtensionsDefaultDialect _defaultDialect = new();
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(string Pattern, bool IgnoreCase), Regex> _likeRegexCache = new();
+
+    private static Regex GetOrCreateLikeRegex(string pattern, bool ignoreCase)
+    {
+        var key = (pattern, ignoreCase);
+        return _likeRegexCache.GetOrAdd(key, k => new Regex(
+            k.Pattern,
+            RegexOptions.CultureInvariant | (k.IgnoreCase ? RegexOptions.IgnoreCase : RegexOptions.None),
+            TimeSpan.FromMilliseconds(100)));
+    }
+
     internal static decimal ToDec(this object? v)
     {
         if (v is null || v is DBNull) return 0m;
@@ -114,7 +125,9 @@ internal static class SqlExtensions
         if (forceCaseInsensitive ?? dialect.LikeIsCaseInsensitive)
             options |= RegexOptions.IgnoreCase;
 
-        return Regex.IsMatch(input, sb.ToString(), options);
+        var ignoreCase = (forceCaseInsensitive ?? dialect.LikeIsCaseInsensitive);
+        var regex = GetOrCreateLikeRegex(sb.ToString(), ignoreCase);
+        return regex.IsMatch(input);
     }
 
     internal static int PatIndex(

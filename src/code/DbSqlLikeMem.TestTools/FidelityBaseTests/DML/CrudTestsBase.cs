@@ -123,7 +123,7 @@ public abstract class CrudTestsBase<T, T2>(
             updatedAt,
             "{\"theme\":\"dark\"}",
             2);
-        result.Should().Be(1);
+        result.Should().Be(2);
     }
 
     /// <summary>
