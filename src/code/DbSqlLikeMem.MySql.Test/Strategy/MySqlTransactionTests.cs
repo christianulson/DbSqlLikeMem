@@ -296,6 +296,126 @@ public sealed class MySqlTransactionTests(
     }
 
     /// <summary>
+    /// EN: Ensures releasing a savepoint without an active transaction keeps the actionable runtime message in MySQL.
+    /// PT: Garante que liberar um savepoint sem uma transação ativa mantenha a mensagem acionável em runtime no MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void ReleaseSavepoint_WithoutActiveTransaction_ShouldProvideActionableMessage()
+    {
+        var db = new MySqlDbMock();
+        db.AddTable("users");
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => connection.ReleaseSavepoint("sp_no_tx"));
+
+        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures creating a savepoint without an active transaction keeps the actionable runtime message in MySQL.
+    /// PT: Garante que criar um savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void CreateSavepoint_WithoutActiveTransaction_ShouldProvideActionableMessage()
+    {
+        var db = new MySqlDbMock();
+        db.AddTable("users");
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => connection.CreateSavepoint("sp_no_tx"));
+
+        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures rollback to savepoint without an active transaction keeps the actionable runtime message in MySQL.
+    /// PT: Garante que rollback para savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void RollbackSavepoint_WithoutActiveTransaction_ShouldProvideActionableMessage()
+    {
+        var db = new MySqlDbMock();
+        db.AddTable("users");
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => connection.RollbackTransaction("sp_no_tx"));
+
+        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures releasing an unknown savepoint keeps the actionable runtime message in MySQL.
+    /// PT: Garante que liberar um savepoint desconhecido mantenha a mensagem acionavel em runtime no MySQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void ReleaseUnknownSavepoint_ShouldProvideActionableMessage()
+    {
+        var db = new MySqlDbMock();
+        db.AddTable("users");
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        connection.CreateSavepoint("sp_known");
+
+        var ex = Assert.Throws<InvalidOperationException>(() => connection.ReleaseSavepoint("sp_missing"));
+
+        Assert.Contains("Savepoint", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("was not found", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures creating a savepoint with an empty name keeps the existing parameter validation message.
+    /// PT: Garante que criar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void CreateSavepoint_WithBlankName_ShouldProvideParameterValidationMessage()
+    {
+        var db = new MySqlDbMock();
+        db.AddTable("users");
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        var ex = Assert.Throws<ArgumentException>(() => connection.CreateSavepoint(" "));
+
+        Assert.Contains("savepointName", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures releasing a savepoint with an empty name keeps the existing parameter validation message.
+    /// PT: Garante que liberar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void ReleaseSavepoint_WithBlankName_ShouldProvideParameterValidationMessage()
+    {
+        var db = new MySqlDbMock();
+        db.AddTable("users");
+
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        var ex = Assert.Throws<ArgumentException>(() => connection.ReleaseSavepoint(" "));
+
+        Assert.Contains("savepointName", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures rollback restores multiple tables correctly when the database runs in thread-safe mode.
     /// PT: Garante que rollback restaure varias tabelas corretamente quando o banco executa em modo thread-safe.
     /// </summary>
@@ -406,6 +526,56 @@ public sealed class MySqlTransactionTests(
 
         // Act
         connection.RollbackTransaction("sp_temp");
+        transaction.Commit();
+
+        // Assert
+        temp.Should().ContainSingle();
+        temp[0][0].Should().Be(1);
+        temp[0][1].Should().Be("Ana");
+    }
+
+    /// <summary>
+    /// EN: Ensures nested savepoints restore the transaction snapshot from the selected outer point.
+    /// PT: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void NestedSavepoints_ShouldRollbackToSelectedOuterSnapshot()
+    {
+        // Arrange
+        var db = new MySqlDbMock();
+        using var connection = new MySqlConnectionMock(db);
+        connection.Open();
+
+        var temp = connection.AddTemporaryTable("temp_users");
+        temp.AddColumn("id", DbType.Int32, false);
+        temp.AddColumn("name", DbType.String, false);
+
+        using var transaction = connection.BeginTransaction();
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 1,
+            [1] = "Ana"
+        });
+
+        connection.CreateSavepoint("sp_outer");
+
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 2,
+            [1] = "Bob"
+        });
+
+        connection.CreateSavepoint("sp_inner");
+
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 3,
+            [1] = "Cara"
+        });
+
+        // Act
+        connection.RollbackTransaction("sp_outer");
         transaction.Commit();
 
         // Assert

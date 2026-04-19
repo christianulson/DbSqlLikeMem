@@ -364,6 +364,56 @@ public sealed class SqlServerTransactionTests(
     }
 
     /// <summary>
+    /// EN: Ensures nested savepoints restore the transaction snapshot from the selected outer point.
+    /// PT: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void NestedSavepoints_ShouldRollbackToSelectedOuterSnapshot()
+    {
+        // Arrange
+        var db = new SqlServerDbMock();
+        using var connection = new SqlServerConnectionMock(db);
+        connection.Open();
+
+        var temp = connection.AddTemporaryTable("temp_users");
+        temp.AddColumn("id", DbType.Int32, false);
+        temp.AddColumn("name", DbType.String, false);
+
+        using var transaction = connection.BeginTransaction();
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 1,
+            [1] = "Ana"
+        });
+
+        connection.CreateSavepoint("sp_outer");
+
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 2,
+            [1] = "Bob"
+        });
+
+        connection.CreateSavepoint("sp_inner");
+
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 3,
+            [1] = "Cara"
+        });
+
+        // Act
+        connection.RollbackTransaction("sp_outer");
+        transaction.Commit();
+
+        // Assert
+        Assert.Single(temp);
+        Assert.Equal(1, temp[0][0]);
+        Assert.Equal("Ana", temp[0][1]);
+    }
+
+    /// <summary>
     /// EN: Ensures full volatile reset clears permanent and temporary data and resets identity counters.
     /// PT: Garante que reset volátil completo limpe dados permanentes/temporários e resete contadores de identidade.
     /// </summary>
@@ -763,6 +813,46 @@ public sealed class SqlServerTransactionTests(
         var ex = Assert.Throws<InvalidOperationException>(() => connection.ReleaseSavepoint("sp_no_tx"));
 
         Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures creating a savepoint with an empty name keeps the existing parameter validation message.
+    /// PT: Garante que criar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void CreateSavepoint_WithBlankName_ShouldProvideParameterValidationMessage()
+    {
+        var db = new SqlServerDbMock();
+        db.AddTable("users");
+
+        using var connection = new SqlServerConnectionMock(db);
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        var ex = Assert.Throws<ArgumentException>(() => connection.CreateSavepoint(" "));
+
+        Assert.Contains("savepointName", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures releasing a savepoint with an empty name keeps the existing parameter validation message.
+    /// PT: Garante que liberar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void ReleaseSavepoint_WithBlankName_ShouldProvideParameterValidationMessage()
+    {
+        var db = new SqlServerDbMock();
+        db.AddTable("users");
+
+        using var connection = new SqlServerConnectionMock(db);
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+
+        var ex = Assert.Throws<ArgumentException>(() => connection.ReleaseSavepoint(" "));
+
+        Assert.Contains("savepointName", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class UnsupportedSavepointSqlServerConnectionMock(SqlServerDbMock db)

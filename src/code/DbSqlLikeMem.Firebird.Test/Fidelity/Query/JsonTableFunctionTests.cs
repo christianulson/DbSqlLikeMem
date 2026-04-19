@@ -1,4 +1,3 @@
-using DbSqlLikeMem.Firebird.TestTools;
 using DbSqlLikeMem.TestTools.Tests.Query;
 
 namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;

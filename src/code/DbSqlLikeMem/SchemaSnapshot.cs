@@ -460,6 +460,12 @@ public sealed record SchemaSnapshot
                     startValue: sequenceSnapshot.StartValue,
                     incrementBy: sequenceSnapshot.IncrementBy,
                     currentValue: sequenceSnapshot.CurrentValue,
+                    minValue: sequenceSnapshot.MinValue,
+                    maxValue: sequenceSnapshot.MaxValue,
+                    isCycle: sequenceSnapshot.IsCycle,
+                    ownedBySchema: sequenceSnapshot.OwnedBySchema,
+                    ownedByTable: sequenceSnapshot.OwnedByTable,
+                    ownedByColumn: sequenceSnapshot.OwnedByColumn,
                     schemaName: schemaSnapshot.Name);
             }
 
@@ -1035,10 +1041,46 @@ public sealed record SchemaSnapshotSequence
     public required long IncrementBy { get; init; }
 
     /// <summary>
+    /// EN: Minimum allowed value when the sequence is bounded.
+    /// PT: Valor minimo permitido quando a sequence e limitada.
+    /// </summary>
+    public long? MinValue { get; init; }
+
+    /// <summary>
+    /// EN: Maximum allowed value when the sequence is bounded.
+    /// PT: Valor maximo permitido quando a sequence e limitada.
+    /// </summary>
+    public long? MaxValue { get; init; }
+
+    /// <summary>
+    /// EN: Whether the sequence wraps around when it reaches a bound.
+    /// PT: Se a sequence reinicia ao atingir um limite.
+    /// </summary>
+    public bool IsCycle { get; init; }
+
+    /// <summary>
     /// EN: Current sequence value when already initialized.
     /// PT: Valor atual da sequence quando ja inicializada.
     /// </summary>
     public long? CurrentValue { get; init; }
+
+    /// <summary>
+    /// EN: Schema of the owning table when the sequence is attached to a column.
+    /// PT: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.
+    /// </summary>
+    public string? OwnedBySchema { get; init; }
+
+    /// <summary>
+    /// EN: Owning table name when the sequence is attached to a column.
+    /// PT: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.
+    /// </summary>
+    public string? OwnedByTable { get; init; }
+
+    /// <summary>
+    /// EN: Owning column name when the sequence is attached to a column.
+    /// PT: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.
+    /// </summary>
+    public string? OwnedByColumn { get; init; }
 
     internal static SchemaSnapshotSequence FromSequence(SequenceDef sequence)
         => new()
@@ -1046,7 +1088,13 @@ public sealed record SchemaSnapshotSequence
             Name = sequence.Name,
             StartValue = sequence.StartValue,
             IncrementBy = sequence.IncrementBy,
-            CurrentValue = sequence.CurrentValue
+            CurrentValue = sequence.CurrentValue,
+            MinValue = sequence.MinValue,
+            MaxValue = sequence.MaxValue,
+            IsCycle = sequence.IsCycle,
+            OwnedBySchema = sequence.OwnedBySchema,
+            OwnedByTable = sequence.OwnedByTable,
+            OwnedByColumn = sequence.OwnedByColumn
         };
 }
 

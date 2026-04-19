@@ -7,8 +7,9 @@ namespace DbSqlLikeMem.SqlAzure;
 /// </summary>
 public class SqlAzureCommandMock(
     SqlAzureConnectionMock? connection,
-    SqlServerTransactionMock? transaction = null
-    ) : SqlServerCommandMock(connection, transaction)
+    SqlServerTransactionMock? transaction = null,
+    bool suppressNoCountNormalization = false
+    ) : SqlServerCommandMock(connection, transaction, suppressNoCountNormalization)
 {
     private readonly SqlAzureDataParameterCollectionMock collectionMock = [];
 

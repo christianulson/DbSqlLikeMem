@@ -104,18 +104,28 @@ public class Db2CommandMock(
         // 1. Stored Procedure (sem parse SQL)
         if (CommandType == CommandType.StoredProcedure)
         {
-            var affected = connection.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(affected.AffectedRows);
-            return affected.AffectedRows;
+            var affected2 = connection.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected2.AffectedRows);
+            return affected2.AffectedRows;
         }
 
-        return connection.ExecuteNonQueryWithPipeline(
+        var affected = connection.ExecuteNonQueryWithPipeline(
             CommandText.NormalizeString(),
             Parameters,
             allowMerge: true,
             unionUsesSelectMessage: true,
-            tryExecuteTransactionControl: TryExecuteTransactionControlCommand);
+            tryExecuteTransactionControl: TryExecuteTransactionControlCommand
+        );
+
+        return Db2NonQueryResultHelper.NormalizeSingleCommandResult(CommandText, affected);
     }
+
+    /// <summary>
+    /// EN: Executes the command asynchronously and returns affected rows.
+    /// PT: Executa o comando assincronamente e retorna as linhas afetadas.
+    /// </summary>
+    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
+        => Task.FromResult(ExecuteNonQuery());
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.

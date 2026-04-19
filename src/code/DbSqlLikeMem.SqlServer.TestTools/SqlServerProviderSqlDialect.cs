@@ -183,7 +183,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
 
     /// <inheritdoc />
     public override string CurrentSequenceValue(FidelityTestContext context) =>
-        $"SELECT CURRENT VALUE FOR {context.Seq}";
+        $"SELECT CONVERT(BIGINT, current_value) FROM sys.sequences WHERE name = N'{context.Seq}'";
 
     /// <inheritdoc />
     public override string DropTable(string tableName) =>
@@ -203,7 +203,10 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
     /// <inheritdoc />
     public override string RollbackToSavepoint(string savepointName) => $"ROLLBACK TRANSACTION {savepointName}";
 
-    /// <inheritdoc />
+    /// <summary>
+    /// EN: Returns the SQL Server no-op command used when release-savepoint handling is exercised.
+    /// PT: Retorna o comando sem efeito do SQL Server usado quando o tratamento de release-savepoint eh exercitado.
+    /// </summary>
     public override string ReleaseSavepoint(string savepointName) => "SELECT 1";
 
     /// <inheritdoc />

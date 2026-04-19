@@ -26,6 +26,15 @@ public sealed class Db2TransactionReliabilityTests(
         => AssertSavepointRollbackRestoresIntermediateState();
 
     /// <summary>
+    /// EN: Ensures nested savepoints roll back to the selected outer snapshot.
+    /// PT: Garante que savepoints aninhados façam rollback para o snapshot externo selecionado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2TransactionReliability")]
+    public void NestedSavepointsShouldRollbackToOuterSnapshot()
+        => AssertNestedSavepointsRollbackToOuterSnapshot();
+
+    /// <summary>
     /// EN: Verifies that the transaction isolation level is exposed in a deterministic way.
     /// PT: Verifica se o nível de isolamento da transação é exposto de forma determinística.
     /// </summary>

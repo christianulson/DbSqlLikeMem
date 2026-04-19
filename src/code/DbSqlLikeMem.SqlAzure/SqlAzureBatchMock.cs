@@ -102,10 +102,15 @@ public sealed class SqlAzureBatchMock : DbBatch
     public override int ExecuteNonQuery()
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchSyncExecutionRunner.ExecuteNonQueryCommands(
+        var affected = BatchSyncExecutionRunner.ExecuteNonQueryCommands(
             connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+
+        return SqlServerNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affected,
+            connection.ExecutionDialect);
     }
 
     /// <summary>
@@ -140,16 +145,21 @@ public sealed class SqlAzureBatchMock : DbBatch
     /// EN: Asynchronously executes all batch commands as non-query operations.
     /// PT: Executa assincronamente todos os comandos do lote como operacoes sem consulta.
     /// </summary>
-    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
+    public override async Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchAsyncExecutionRunner
+        var affected = await BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 connection,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-;
+            .ConfigureAwait(false);
+
+        return SqlServerNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affected,
+            connection.ExecutionDialect);
     }
 
     /// <summary>
@@ -189,7 +199,7 @@ public sealed class SqlAzureBatchMock : DbBatch
         var connection = BatchExecutionGuards.RequireConnection(Connection);
         return BatchCommandFactory.Create(
             connection,
-            () => new SqlAzureCommandMock(connection, Transaction),
+            () => new SqlAzureCommandMock(connection, Transaction, suppressNoCountNormalization: true),
             batchCommand,
             Timeout);
     }

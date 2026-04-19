@@ -279,7 +279,7 @@ INSERT INTO {Context.TbUsersFullName} (
         Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedId);
         Convert.ToString(reader.GetValue(1), CultureInfo.InvariantCulture).Should().Be(expectedName);
         GetStringOrNull(reader, 2).Should().Be(expectedEmail);
-        Convert.ToInt32(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedIsActive ? 1 : 0);
+        Convert.ToBoolean(reader.GetValue(3), CultureInfo.InvariantCulture).Should().Be(expectedIsActive);
 
         if (expectedAge is null)
         {

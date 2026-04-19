@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Xunit.Sdk;
 
 namespace DbSqlLikeMem.TestTools;
 
@@ -86,7 +87,9 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
+                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TServiceTest>(args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;
             sw.Restart();
@@ -121,7 +124,9 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
+                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;
             sw.Restart();
@@ -158,7 +163,9 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
+                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;
             sw.Restart();
@@ -195,7 +202,9 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
+                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;
             sw.Restart();
@@ -219,6 +228,25 @@ public class FidelityTestService<TCnn1, TCnn2>
             .WhenTypeIs<DateTime>()
             .Using<DateTimeOffset>(context => context.Subject.Should().BeCloseTo(context.Expectation, temporalComparisonTolerance))
             .WhenTypeIs<DateTimeOffset>());
+
+    private async Task EnsureContainerConnectionAvailableAsync()
+    {
+        if (repoContainer == null)
+            return;
+
+        try
+        {
+            await repoContainer.EnsureConnectionOpenAsync();
+        }
+        catch (DbException ex)
+        {
+            throw SkipException.ForSkip($"Container connection for provider {RepoMock.Dialect.Provider} is not available: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            throw SkipException.ForSkip($"Container connection for provider {RepoMock.Dialect.Provider} is not available: {ex.Message}");
+        }
+    }
 
     private static TimeSpan GetTemporalComparisonTolerance(ProviderId provider)
         => provider switch

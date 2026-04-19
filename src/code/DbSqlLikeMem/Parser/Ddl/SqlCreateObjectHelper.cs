@@ -40,8 +40,18 @@ internal static class SqlCreateObjectHelper
         var sequence = ctx.ParseQualifiedObjectName();
         var startValue = 1L;
         var incrementBy = 1L;
+        long? minValue = null;
+        long? maxValue = null;
+        var isCycle = false;
+        var isOwnedByNone = false;
+        SqlTableSource? ownedByTable = null;
+        string? ownedByColumn = null;
         var parsedStart = false;
         var parsedIncrement = false;
+        var parsedMinValue = false;
+        var parsedMaxValue = false;
+        var parsedCycle = false;
+        var parsedOwnership = false;
 
         while (!ctx.IsEnd() && !ctx.IsSymbol(";"))
         {
@@ -76,6 +86,102 @@ internal static class SqlCreateObjectHelper
                 continue;
             }
 
+            if (ctx.IsWord(SqlConst.NO))
+            {
+                ctx.Consume();
+                if (ctx.IsWord(SqlConst.CYCLE))
+                {
+                    if (parsedCycle)
+                        throw new InvalidOperationException("CREATE SEQUENCE CYCLE can only be specified once.");
+
+                    ctx.Consume();
+                    isCycle = false;
+                    parsedCycle = true;
+                    continue;
+                }
+
+                if (ctx.IsWord(SqlConst.MINVALUE))
+                {
+                    if (parsedMinValue)
+                        throw new InvalidOperationException("CREATE SEQUENCE MINVALUE can only be specified once.");
+
+                    ctx.Consume();
+                    minValue = null;
+                    parsedMinValue = true;
+                    continue;
+                }
+
+                if (ctx.IsWord(SqlConst.MAXVALUE))
+                {
+                    if (parsedMaxValue)
+                        throw new InvalidOperationException("CREATE SEQUENCE MAXVALUE can only be specified once.");
+
+                    ctx.Consume();
+                    maxValue = null;
+                    parsedMaxValue = true;
+                    continue;
+                }
+
+                throw new InvalidOperationException("CREATE SEQUENCE NO must be followed by CYCLE, MINVALUE, or MAXVALUE.");
+            }
+
+            if (ctx.IsWord(SqlConst.MINVALUE))
+            {
+                if (parsedMinValue)
+                    throw new InvalidOperationException("CREATE SEQUENCE MINVALUE can only be specified once.");
+
+                ctx.Consume();
+                minValue = ctx.ExpectSignedNumberLong("CREATE SEQUENCE MINVALUE");
+                parsedMinValue = true;
+                continue;
+            }
+
+            if (ctx.IsWord(SqlConst.MAXVALUE))
+            {
+                if (parsedMaxValue)
+                    throw new InvalidOperationException("CREATE SEQUENCE MAXVALUE can only be specified once.");
+
+                ctx.Consume();
+                maxValue = ctx.ExpectSignedNumberLong("CREATE SEQUENCE MAXVALUE");
+                parsedMaxValue = true;
+                continue;
+            }
+
+            if (ctx.IsWord(SqlConst.CYCLE))
+            {
+                if (parsedCycle)
+                    throw new InvalidOperationException("CREATE SEQUENCE CYCLE can only be specified once.");
+
+                ctx.Consume();
+                isCycle = true;
+                parsedCycle = true;
+                continue;
+            }
+
+            if (ctx.IsWord(SqlConst.OWNED))
+            {
+                if (parsedOwnership)
+                    throw new InvalidOperationException("CREATE SEQUENCE OWNED BY can only be specified once.");
+
+                ctx.Consume(); // OWNED
+                ctx.ExpectWord(SqlConst.BY);
+
+                if (ctx.IsWord(SqlConst.NONE))
+                {
+                    ctx.Consume();
+                    isOwnedByNone = true;
+                }
+                else
+                {
+                    ownedByTable = ctx.ParseQualifiedObjectName();
+                    ctx.ExpectSymbol(".");
+                    ownedByColumn = ctx.ExpectIdentifier();
+                }
+
+                parsedOwnership = true;
+                continue;
+            }
+
             var unexpected = ctx.Peek();
             throw new InvalidOperationException(
                 $"Unexpected token after CREATE SEQUENCE: {unexpected.Kind} '{unexpected.Text}'");
@@ -88,6 +194,12 @@ internal static class SqlCreateObjectHelper
             IfNotExists = ifNotExists,
             StartValue = startValue,
             IncrementBy = incrementBy,
+            MinValue = minValue,
+            MaxValue = maxValue,
+            IsCycle = isCycle,
+            IsOwnedByNone = isOwnedByNone,
+            OwnedByTable = ownedByTable,
+            OwnedByColumn = ownedByColumn,
             Table = sequence
         };
     }

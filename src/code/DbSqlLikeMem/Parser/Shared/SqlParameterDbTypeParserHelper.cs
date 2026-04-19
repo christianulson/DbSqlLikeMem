@@ -28,6 +28,7 @@ internal static class SqlParameterDbTypeParserHelper
             "DECIMAL" or "NUMERIC" => DbType.Decimal,
             "NUMBER" => DbType.Decimal,
             "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
+            "BIT" => DbType.Boolean,
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,

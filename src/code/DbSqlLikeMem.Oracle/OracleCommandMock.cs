@@ -114,13 +114,17 @@ public class OracleCommandMock(
         if (TryExecuteOracleFunctionDdl(normalizedCommandText, out var functionDdlAffectedRows))
             return functionDdlAffectedRows.AffectedRows;
 
-        return connection.ExecuteNonQueryWithPipeline(
+        var affectedRows = connection.ExecuteNonQueryWithPipeline(
             normalizedCommandText,
             Parameters,
             allowMerge: true,
             unionUsesSelectMessage: false,
             tryExecuteTransactionControl: TryExecuteTransactionControlCommand,
             tryExecuteSpecialCommand: TryExecuteNonQuerySpecialCommand);
+        return OracleNonQueryResultHelper.NormalizeSingleCommandResult(
+            normalizedCommandText,
+            affectedRows,
+            connection.ExecutionDialect);
     }
 
     private bool TryExecuteOracleFunctionDdl(string sqlRaw, out DmlExecutionResult affectedRows)

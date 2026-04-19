@@ -108,17 +108,19 @@ public class NpgsqlCommandMock(
 
         if (CommandType == CommandType.StoredProcedure)
         {
-            var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(affected.AffectedRows);
-            return affected.AffectedRows;
+            var affected2 = connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected2.AffectedRows);
+            return affected2.AffectedRows;
         }
 
-        return connection.ExecuteNonQueryWithPipeline(
+        var affected = connection.ExecuteNonQueryWithPipeline(
             CommandText.NormalizeString(),
             Parameters,
             allowMerge: true,
             unionUsesSelectMessage: false,
             tryExecuteTransactionControl: TryExecuteTransactionControlCommand);
+
+        return NpgsqlNonQueryResultHelper.NormalizeSingleCommandResult(CommandText, affected);
     }
 
     /// <summary>

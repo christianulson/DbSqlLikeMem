@@ -1,5 +1,4 @@
 using DbSqlLikeMem.TestTools.Performance;
-using System.Data;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.TestTools.Schema;

@@ -47,7 +47,8 @@ internal static class SqlFunctionCallSupportValidator
         if (name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
             return;
 
-        if (name.Equals("CAST", StringComparison.OrdinalIgnoreCase))
+        if (name.Equals("CAST", StringComparison.OrdinalIgnoreCase)
+            || name.Equals("CONVERT", StringComparison.OrdinalIgnoreCase))
             return;
 
         if (name.Equals("EXTRACT", StringComparison.OrdinalIgnoreCase))

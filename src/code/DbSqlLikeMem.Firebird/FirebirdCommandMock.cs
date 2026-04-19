@@ -118,12 +118,16 @@ public class FirebirdCommandMock(
             return affected.AffectedRows;
         }
 
-        return connection.ExecuteNonQueryWithPipeline(
+        var result = connection.ExecuteNonQueryWithPipeline(
             CommandText.NormalizeString(),
             Parameters,
             allowMerge: true,
             unionUsesSelectMessage: false,
             tryExecuteTransactionControl: TryExecuteTransactionControlCommand);
+        return FirebirdNonQueryResultHelper.NormalizeSingleCommandResult(
+            CommandText,
+            affectedRows: result,
+            connection.ExecutionDialect);
     }
 
     /// <summary>

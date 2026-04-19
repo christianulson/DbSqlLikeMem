@@ -213,6 +213,51 @@ public sealed class SqlAzureTransactionStrategyTests
     }
 
     /// <summary>
+    /// EN: Ensures nested savepoints restore the transaction snapshot from the selected outer point on SQL Azure.
+    /// PT: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado no SQL Azure.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void NestedSavepoints_ShouldRollbackToSelectedOuterSnapshot()
+    {
+        using var connection = CreateOpenConnection();
+
+        var temp = connection.AddTemporaryTable("temp_users");
+        temp.AddColumn("id", DbType.Int32, false);
+        temp.AddColumn("name", DbType.String, false);
+
+        using var transaction = connection.BeginTransaction();
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 1,
+            [1] = "Ana"
+        });
+
+        connection.CreateSavepoint("sp_outer");
+
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 2,
+            [1] = "Bob"
+        });
+
+        connection.CreateSavepoint("sp_inner");
+
+        temp.Add(new Dictionary<int, object?>
+        {
+            [0] = 3,
+            [1] = "Cara"
+        });
+
+        connection.RollbackTransaction("sp_outer");
+        transaction.Commit();
+
+        Assert.Single(temp);
+        Assert.Equal(1, temp[0][0]);
+        Assert.Equal("Ana", temp[0][1]);
+    }
+
+    /// <summary>
     /// EN: Ensures volatile reset clears active savepoints by dropping transaction state in SQL Azure.
     /// PT: Garante que o reset volatil limpe savepoints ativos ao descartar o estado transacional no SQL Azure.
     /// </summary>
@@ -251,6 +296,55 @@ public sealed class SqlAzureTransactionStrategyTests
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("RELEASE SAVEPOINT", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures releasing a savepoint without an active transaction keeps the actionable runtime message on SQL Azure.
+    /// PT: Garante que liberar um savepoint sem uma transação ativa mantenha a mensagem acionável em runtime no SQL Azure.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void ReleaseSavepoint_WithoutActiveTransaction_ShouldProvideActionableMessage()
+    {
+        using var connection = CreateOpenConnection();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => connection.ReleaseSavepoint("sp_no_tx"));
+
+        Assert.Contains("No active transaction", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures creating a savepoint with a blank name keeps the parameter validation message on SQL Azure.
+    /// PT: Garante que criar um savepoint com nome em branco mantenha a mensagem de validacao de parametro no SQL Azure.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void CreateSavepoint_WithBlankName_ShouldProvideParameterValidationMessage()
+    {
+        using var connection = CreateOpenConnection();
+
+        using var transaction = connection.BeginTransaction();
+
+        var ex = Assert.Throws<ArgumentException>(() => connection.CreateSavepoint(" "));
+
+        Assert.Contains("savepointName", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures rolling back to a savepoint with a blank name keeps the parameter validation message on SQL Azure.
+    /// PT: Garante que executar rollback para um savepoint com nome em branco mantenha a mensagem de validacao de parametro no SQL Azure.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void RollbackSavepoint_WithBlankName_ShouldProvideParameterValidationMessage()
+    {
+        using var connection = CreateOpenConnection();
+
+        using var transaction = connection.BeginTransaction();
+
+        var ex = Assert.Throws<ArgumentException>(() => connection.RollbackTransaction(" "));
+
+        Assert.Contains("savepointName", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static SqlAzureConnectionMock CreateOpenConnection(SqlAzureDbMock? db = null)

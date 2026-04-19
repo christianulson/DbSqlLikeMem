@@ -75,9 +75,9 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON insert/cast benchmark.");
         }
 
-var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
         GC.KeepAlive(value);
-        return value;
+        return value is DBNull ? null : value;
     }
 
     /// <summary>

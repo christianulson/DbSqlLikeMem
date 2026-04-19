@@ -48,6 +48,30 @@ public abstract class DapperTransactionConcurrencyTestsBase(
     }
 
     /// <summary>
+    /// EN: Verifies nested savepoints roll back to the selected outer snapshot.
+    /// PT: Verifica se savepoints aninhados fazem rollback para o snapshot externo selecionado.
+    /// </summary>
+    protected void AssertNestedSavepointsRollbackToOuterSnapshot()
+    {
+        var openConnection = CreateOpenConnectionFactory(threadSafe: false);
+        using var connection = openConnection();
+        connection.Execute("CREATE TABLE Users (Id INT PRIMARY KEY, Name VARCHAR(100))");
+
+        using var transaction = connection.BeginTransaction();
+        connection.Execute("INSERT INTO Users (Id, Name) VALUES (1, 'John')", transaction: transaction);
+        connection.CreateSavepoint("sp_outer");
+        connection.Execute("INSERT INTO Users (Id, Name) VALUES (2, 'Mary')", transaction: transaction);
+        connection.CreateSavepoint("sp_inner");
+        connection.Execute("INSERT INTO Users (Id, Name) VALUES (3, 'Cara')", transaction: transaction);
+
+        connection.RollbackTransaction("sp_outer");
+        transaction.Commit();
+
+        var ids = connection.Query<int>("SELECT Id FROM Users ORDER BY Id").ToList();
+        ids.Should().Equal(new[] { 1 });
+    }
+
+    /// <summary>
     /// EN: Verifies deterministic isolation level exposure.
     /// PT: Verifica exposição determinística do nível de isolamento.
     /// </summary>

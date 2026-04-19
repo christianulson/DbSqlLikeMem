@@ -33,7 +33,9 @@ public sealed class UsersOrdersScenario(
         var ordersSeed = seedOrders ?? [(10, 1, "A"), (11, 1, "B")];
         var d = Repo.Dialect;
 
-        var currentTimestampExpr = d.TemporalCurrentTimestampExpression();
+        var currentTimestampExpr = d.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
+            ? "SYSUTCDATETIME()"
+            : d.TemporalCurrentTimestampExpression();
 
         await Repo.ExecuteNonQueryAsync(d.CreateUsersTable(Context));
         await Repo.ExecuteNonQueryAsync(d.CreateOrdersTable(Context));

@@ -4,7 +4,7 @@
 
 ## SQLite
 
-- Percentual inicial: 88%
+- Percentual inicial: 95%
 - Pontos garantidos:
   - `SqliteDbMock` e `SqliteConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -59,12 +59,19 @@
 
 ## Npgsql
 
-- Percentual inicial: 88%
+- Percentual inicial: 99%
 - Pontos garantidos:
   - `NpgsqlDbMock` e `NpgsqlConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
-  - Regras de `Dialect` para `LATERAL`, temporais e `DateTimeOffset`.
-  - Rowset completo quando o contrato for relacional.
+- Regras de `Dialect` para `LATERAL`, temporais e `DateTimeOffset`.
+  - Teste dedicado para `ALTER SEQUENCE ... RESTART WITH` na suíte de fidelidade.
+  - Teste dedicado para `currval` e `lastval` após restart de sequence.
+  - Teste dedicado para `setval(..., false)` e `lastval` estável.
+  - Teste dedicado para `currval` e `lastval` locais à sessão em duas conexões.
+  - Teste dedicado para sequence qualificada por schema.
+  - Teste dedicado para `DROP SEQUENCE` transacional com rollback.
+  - Teste dedicado para `CREATE SEQUENCE IF NOT EXISTS` idempotente.
+- Rowset completo quando o contrato for relacional.
   - Falhas explícitas para recursos não suportados.
   - Não normalizar input, output ou reader dentro do teste.
 

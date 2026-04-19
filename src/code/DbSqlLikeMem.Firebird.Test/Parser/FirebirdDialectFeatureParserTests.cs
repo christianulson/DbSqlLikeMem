@@ -9,6 +9,24 @@ public sealed class FirebirdDialectFeatureParserTests(
     ) : XUnitTestBase(helper)
 {
     /// <summary>
+    /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
+    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [InlineData(0)]
+    [InlineData(4)]
+    public void Parse_BlankSql_ShouldProvideParameterValidationMessage(int version)
+    {
+        var dialect = new FirebirdDialect(version);
+        var db = new FirebirdDbMock(version);
+
+        var ex = Assert.Throws<ArgumentException>(() => SqlQueryParser.Parse(" ", db, dialect));
+
+        Assert.Contains("sql", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures Firebird parses the supported CREATE FUNCTION and DROP FUNCTION subset.
     /// PT: Garante que o Firebird interprete o subset suportado de CREATE FUNCTION e DROP FUNCTION.
     /// </summary>

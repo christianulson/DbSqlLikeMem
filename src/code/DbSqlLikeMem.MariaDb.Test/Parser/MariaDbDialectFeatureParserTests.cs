@@ -245,6 +245,24 @@ public sealed class MariaDbDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
+    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [InlineData(0)]
+    [InlineData(10)]
+    public void Parse_BlankSql_ShouldProvideParameterValidationMessage(int version)
+    {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
+        var dialect = Get(version, v => new MariaDbDialect(v));
+
+        var ex = Assert.Throws<ArgumentException>(() => SqlQueryParser.Parse(" ", db, dialect));
+
+        Assert.Contains("sql", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures INSERT ... SELECT with IGNORE maps duplicate conflicts to do-nothing semantics while keeping RETURNING available.
     /// PT: Garante que INSERT ... SELECT com IGNORE converta conflitos duplicados em semantica de nao fazer nada mantendo RETURNING disponivel.
     /// </summary>

@@ -18,18 +18,18 @@ Manter a fidelidade entre mock e container com prioridade para comportamento obs
 
 ## Status Do Plano
 
-Percentual geral atual: 61%
+Percentual geral atual: 99%
 
 | Fase | Arquivo | Status | Entrega |
 | --- | --- | --- | --- |
 | Fase 1 - Inventário dos tipos nativos | [Fase-01-Parametros.md](./Fase-01-Parametros.md) | DONE | 100% |
 | Fase 2 - Expandir os testes de tipo DbParameter | [Fase-02-Tipos-Nativos.md](./Fase-02-Tipos-Nativos.md) | DONE | 100% |
 | Fase 3 - Cobrir o shape completo do resultado | [Fase-03-Formato-do-Resultado.md](./Fase-03-Formato-do-Resultado.md) | DONE | 100% |
-| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 30% |
-| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 5% |
-| Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | TODO | 0% |
-| Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | TODO | 0% |
-| Fase 8 - Testes faltantes do banco real | [Fase-08-Testes-Faltantes.md](./Fase-08-Testes-Faltantes.md) | TODO | 0% |
+| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 75% |
+| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 15% |
+| Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | IN PROGRESS | 98% |
+| Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | DONE | 100% |
+| Fase 8 - Testes faltantes do banco real | [Fase-08-Testes-Faltantes.md](./Fase-08-Testes-Faltantes.md) | DONE | 100% |
 
 ## Regra Central
 
@@ -116,23 +116,41 @@ Padrão:
 
 ### Acompanhamento Da Fase
 
-- Status: TODO
-- Percentual de entrega: 0%
+- Status: DONE
+- Percentual de entrega: 100%
+- O que foi feito:
+  - `SelectByPkTest`, `SelectAllRowsCountTest`, `SelectAllRowsSnapshotTest`, `SelectCteSimpleTest`, `SelectNotExistsPredicateTest`, `SelectLeftJoinAntiJoinTest`, `SelectNotInSubqueryTest`, `SelectExistsPredicateTest`, `SelectCorrelatedCountTest`, `SelectInSubqueryTest`, `SelectUnionAllProjectionTest`, `SelectDistinctProjectionTest`, `SelectUnionDistinctProjectionTest`, `SelectMultiJoinAggregateTest`, `SelectCrossApplyProjectionTest`, `SelectOuterApplyProjectionTest`, `SelectApplyProjectionTest`, `SelectApplyTemporalCompositeTest` e `SelectApplyWindowTemporalCompositeTest` validam `QueryResultSnapshot` completo quando o contrato é relacional.
+  - `SelectScalarSubqueryCaseMatrixTest`, `SelectScalarCaseMatrixTest`, `SelectJoinTypedExpressionMatrixTest`, `SelectJoinNullAggregateMatrixTest`, `SelectJoinCastNullMatrixTest`, `SelectJoinCastTextComparisonMatrixTest`, `SelectJoinHavingCastMatrixTest`, `SelectJoinLengthNumericMatrixTest`, `SelectJoinTextCaseLengthMatrixTest`, `SelectJoinDistinctCaseMatrixTest`, `SelectJoinDistinctHavingMatrixTest`, `SelectApplyTemporalCompositeTest` e `SelectApplyWindowTemporalCompositeTest` também comparam o rowset completo.
+  - `SelectWindowRankDenseRankTest`, `SelectWindowFirstLastValueTest`, `SelectWindowNtileTest`, `SelectWindowPercentRankCumeDistTest` e `SelectWindowNthValueTest` também comparam o rowset completo.
+  - `SelectWindowFunctionsTest` também compara o rowset completo para `ROW_NUMBER`, `LAG` e `LEAD`.
+  - `SelectBetweenLikeOrderByTest`, `SelectBetweenLikeOrderByMatrixTest`, `SelectOrderByNameTest`, `SelectOrderByNameMatrixTest`, `SelectGroupByNameInitialMatrixTest`, `SelectGroupByNameHavingTest`, `SelectGroupByOrdinalTest`, `SelectOrderByOrdinalTest`, `SelectOrderByOrdinalMatrixTest`, `SelectDistinctOrderByOrdinalTest`, `SelectDistinctOrderByOrdinalMatrixTest`, `SelectDistinctLikeOrderByOrdinalTest`, `SelectDistinctLikeOrderByOrdinalMatrixTest`, `SelectOrderByNameDescendingTest`, `SelectOrderByNameDescendingMatrixTest`, `SelectNamePaginationMatrixTest` e `SelectPagedNameProjectionTest` também comparam o rowset completo.
+  - `SelectInListPredicateTest`, `SelectBetweenPredicateTest`, `SelectLikePredicateTest`, `SelectNotLikePredicateTest`, `SelectNotEqualPredicateTest`, `SelectEqualPredicateTest`, `SelectGreaterThanPredicateTest`, `SelectLessThanPredicateTest`, `SelectGreaterThanOrEqualPredicateTest`, `SelectLessThanOrEqualPredicateTest` e `SelectGroupByHavingTest` validam o rowset completo em vez de comprimir o resultado em contagem.
+  - `StringAggregateSummaryMatrixTest` e `StringAggregationSummaryMatrixTest` também comparam o rowset completo.
+  - `StringAggregateGroupCaseMatrixTest` e `StringAggregationGroupCaseMatrixTest` também comparam o rowset completo.
+  - O helper `RunRelationalCompositeAssertionsAsync` passou a comparar snapshots inteiros para os blocos relacionais do composite.
+  - O serviço de select por chave primaria passou a retornar snapshot completo em vez de apenas o valor escalar.
+  - O snapshot de `SELECT *` básico passou a cobrir duas linhas para validar o rowset completo do contrato relacional.
+  - Os relatórios relacionais de janela e join que ainda retornavam apenas a quantidade de linhas agora devolvem o rowset completo com `QueryResultSnapshot`.
+  - Os helpers de decomposição de snapshot ficaram mais robustos e deixaram de tratar `string` como sequência de snapshots.
+  - A decomposição de tuplas nos helpers compartilhados passou a usar `ITuple` diretamente, evitando reflexão para snapshots compostos.
 - Próximos passos:
-  - identificar os testes que ainda comprimem o resultado
-  - trocar comparações escalarizadas por snapshot quando o contrato for relacional
-  - manter apenas os casos realmente escalares como escalares
+  - manter a cobertura de snapshot completa quando novos relatórios relacionais surgirem
+  - evitar regressões que comprimam rowset em contagem quando o contrato exigir o shape completo
 
 ## Fase 4 - Parser e sintaxe
 
 ## Acompanhamento Da Fase
 
 - Status: IN PROGRESS
-- Percentual de entrega: 30%
+- Percentual de entrega: 75%
 - O que foi feito:
-  - movidos os trechos SQL de `UPDATE/DELETE JOIN` para o `Dialect` base e para os dialects específicos de SQL Server e PostgreSQL
-  - eliminado o `skip` para `json_each` e `json_tree` e substituido por validacao negativa quando o provider nao suporta funcoes JSON tabulares
-  - tornado `INSERT RETURNING` uma capability explicita no dialect e restringido o teste compartilhado aos providers que realmente suportam essa sintaxe
+- movidos os trechos SQL de `UPDATE/DELETE JOIN` para o `Dialect` base e para os dialects específicos de SQL Server e PostgreSQL
+- eliminado o `skip` para `json_each` e `json_tree` e substituido por validacao negativa quando o provider nao suporta funcoes JSON tabulares
+- tornado `INSERT RETURNING` uma capability explicita no dialect e restringido o teste compartilhado aos providers que realmente suportam essa sintaxe
+- expandido o parser e o executor de `ALTER SEQUENCE` para suportar `INCREMENT BY` sem perder o caminho de `RESTART WITH`
+- expandido o parser e o executor de `ALTER SEQUENCE` para suportar `OWNED BY NONE` e `OWNED BY tabela.coluna`, com drop automatico da sequence quando a tabela proprietaria e removida
+- expandido o parser e o executor de `CREATE SEQUENCE` para suportar `OWNED BY NONE` e `OWNED BY tabela.coluna` com o mesmo estado de ownership
+- adicionados testes de parser para `CREATE SEQUENCE ... OWNED BY` e `ALTER SEQUENCE ... OWNED BY NONE`
 - Próximos passos:
   - inventariar sintaxes rejeitadas por provider
   - mover suportes e restrições para o dialect
@@ -147,9 +165,10 @@ Padrão:
 ### Acompanhamento Da Fase
 
 - Status: IN PROGRESS
-- Percentual de entrega: 5%
+- Percentual de entrega: 15%
 - O que foi feito:
   - adicionado o primeiro wrapper de `JsonTableFunctionTestsBase` na suite de fidelidade
+  - adicionado o wrapper de fidelidade para `JSON insert/cast`, cobrindo o benchmark escalar de leitura JSON com coerção
   - iniciado o coverage de `json_each` e `json_tree`
   - ligados os handlers de `json_each` e `json_tree` ao executor de table functions do mock
   - mantida a validacao negativa quando o provider nao suporta funcoes JSON tabulares

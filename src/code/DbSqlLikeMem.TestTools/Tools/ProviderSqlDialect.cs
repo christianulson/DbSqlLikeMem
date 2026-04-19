@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Describes provider-specific SQL snippets used by the benchmark session workflows.
-/// PT-br: Descreve trechos SQL especificos do provedor usados pelos fluxos das sessoes de benchmark.
+/// PT: Descreve trechos SQL especificos do provedor usados pelos fluxos das sessoes de benchmark.
 /// </summary>
 public abstract class ProviderSqlDialect
 {
@@ -43,8 +43,8 @@ public abstract class ProviderSqlDialect
     public virtual bool SupportsStringAggregate => true;
 
     /// <summary>
-    /// EN: Indicates whether the provider supports savepoints in the benchmark flow.
-    /// PT: Indica se o provedor suporta savepoints no fluxo de benchmark.
+    /// EN: Indicates whether the provider supports savepoints in the shared transaction flow.
+    /// PT: Indica se o provedor suporta savepoints no fluxo transacional compartilhado.
     /// </summary>
     public virtual bool SupportsSavepoints => true;
 
@@ -91,8 +91,8 @@ WHERE u.tenantid = 10";
     public virtual bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
 
     /// <summary>
-    /// EN: Indicates whether the provider supports releasing savepoints in the benchmark flow.
-    /// PT: Indica se o provedor suporta liberar savepoints no fluxo de benchmark.
+    /// EN: Indicates whether the provider supports releasing savepoints in the shared transaction flow.
+    /// PT: Indica se o provedor suporta liberar savepoints no fluxo transacional compartilhado.
     /// </summary>
     public virtual bool SupportsReleaseSavepoints => true;
 
@@ -120,8 +120,8 @@ WHERE u.tenantid = 10";
     /// </summary>
     public virtual bool SupportsJsonTableFunctions => SupportsJsonEachFunction && SupportsJsonTreeFunction;
 
-/// <summary>
-/// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
+    /// <summary>
+    /// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
     /// PT: Indica se o provedor suporta parametros input-output Guid em assinaturas de procedure.
     /// </summary>
     public virtual bool SupportsGuidInputOutputParameters => true;
@@ -207,12 +207,12 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// EN: Creates a provider-specific parameter for the non-directional command path when special handling is required.
     /// PT: Cria um parametro especifico do provedor para o caminho de comando sem direcao quando um tratamento especial for necessario.
     /// </summary>
-    /// <param name="command"></param>
-    /// <param name="name"></param>
-    /// <param name="dbType"></param>
-    /// <param name="value"></param>
-    /// <param name="parameter"></param>
-    /// <returns></returns>
+    /// <param name="command">EN: Command being configured. PT: Comando que esta sendo configurado.</param>
+    /// <param name="name">EN: Parameter name. PT: Nome do parametro.</param>
+    /// <param name="dbType">EN: Parameter database type. PT: Tipo de banco do parametro.</param>
+    /// <param name="value">EN: Parameter value. PT: Valor do parametro.</param>
+    /// <param name="parameter">EN: Created parameter when special handling applies. PT: Parametro criado quando um tratamento especial se aplica.</param>
+    /// <returns>EN: True when the provider created a special parameter. PT: True quando o provedor criou um parametro especial.</returns>
     protected virtual bool TryCreateSpecialParameter(DbCommand command, string name, DbType dbType, object? value, out DbParameter parameter)
     {
         parameter = null!;
@@ -223,13 +223,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// EN: Creates a provider-specific parameter for the directional command path when special handling is required.
     /// PT: Cria um parametro especifico do provedor para o caminho de comando com direcao quando um tratamento especial for necessario.
     /// </summary>
-    /// <param name="command"></param>
-    /// <param name="name"></param>
-    /// <param name="dbType"></param>
-    /// <param name="value"></param>
-    /// <param name="direction"></param>
-    /// <param name="parameter"></param>
-    /// <returns></returns>
+    /// <param name="command">EN: Command being configured. PT: Comando que esta sendo configurado.</param>
+    /// <param name="name">EN: Parameter name. PT: Nome do parametro.</param>
+    /// <param name="dbType">EN: Parameter database type. PT: Tipo de banco do parametro.</param>
+    /// <param name="value">EN: Parameter value. PT: Valor do parametro.</param>
+    /// <param name="direction">EN: Parameter direction. PT: Direcao do parametro.</param>
+    /// <param name="parameter">EN: Created parameter when special handling applies. PT: Parametro criado quando um tratamento especial se aplica.</param>
+    /// <returns>EN: True when the provider created a special parameter. PT: True quando o provedor criou um parametro especial.</returns>
     protected virtual bool TryCreateSpecialParameter(DbCommand command, string name, DbType dbType, object? value, ParameterDirection direction, out DbParameter parameter)
     {
         parameter = null!;
@@ -475,20 +475,20 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
         $"SELECT {NextSequenceValueExpression(context)} AS SeqValue";
 
     /// <summary>
-    /// EN: Returns the SQL statement used to create a savepoint.
-    /// PT: Retorna a instrucao SQL usada para criar um savepoint.
+    /// EN: Returns the SQL statement used to create a savepoint in the shared transaction flow.
+    /// PT: Retorna a instrucao SQL usada para criar um savepoint no fluxo transacional compartilhado.
     /// </summary>
     public virtual string Savepoint(string savepointName) => $"SAVEPOINT {savepointName}";
 
     /// <summary>
-    /// EN: Returns the SQL statement used to roll back to a savepoint.
-    /// PT: Retorna a instrucao SQL usada para desfazer ate um savepoint.
+    /// EN: Returns the SQL statement used to roll back to a savepoint in the shared transaction flow.
+    /// PT: Retorna a instrucao SQL usada para desfazer ate um savepoint no fluxo transacional compartilhado.
     /// </summary>
     public virtual string RollbackToSavepoint(string savepointName) => $"ROLLBACK TO SAVEPOINT {savepointName}";
 
     /// <summary>
-    /// EN: Returns the SQL statement used to release a savepoint.
-    /// PT: Retorna a instrucao SQL usada para liberar um savepoint.
+    /// EN: Returns the SQL statement used to release a savepoint in the shared transaction flow.
+    /// PT: Retorna a instrucao SQL usada para liberar um savepoint no fluxo transacional compartilhado.
     /// </summary>
     public virtual string ReleaseSavepoint(string savepointName) => $"RELEASE SAVEPOINT {savepointName}";
 

@@ -8,11 +8,14 @@ internal static class SqlKeywords
             SqlConst.AND,SqlConst.OR,SqlConst.NOT,
             SqlConst.IN,"LIKE",SqlConst.IS,SqlConst.NULL,"ESCAPE",
             SqlConst.TRUE,SqlConst.FALSE,
+            SqlConst.NO,
             SqlConst.AS,
             SqlConst.BETWEEN,
             SqlConst.DISTINCT,
             SqlConst.BEFORE,SqlConst.AFTER,SqlConst.TRIGGER,SqlConst.EACH,SqlConst.REFERENCING,SqlConst.MODE,SqlConst.ATOMIC,
-            "CASE",SqlConst.WHEN,SqlConst.THEN,SqlConst.ELSE,SqlConst.END
+            "CASE",SqlConst.WHEN,SqlConst.THEN,SqlConst.ELSE,SqlConst.END,
+            SqlConst.CYCLE,SqlConst.MINVALUE,SqlConst.MAXVALUE,
+            SqlConst.OWNED,SqlConst.NONE
         };
 
     /// <summary>

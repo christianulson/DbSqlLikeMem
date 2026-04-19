@@ -20,7 +20,7 @@ public class DmlMutationSequenceSelectProjectionServiceTest(
     {
         var value = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectNextSequenceValue(Context))!, CultureInfo.InvariantCulture);
 
-        if(value <= 10L)
+        if (value != 10L)
             throw new InvalidOperationException($"Unexpected sequence value for {Repo.Dialect.DisplayName}: {value}.");
 
         return value;

@@ -20,6 +20,7 @@ public static class SqlConst
     public const string ALTER = "ALTER";
     public const string DROP = "DROP";
     public const string RESTART = "RESTART";
+    public const string OWNED = "OWNED";
     public const string GENERATOR = "GENERATOR";
     public const string EXECUTE = "EXECUTE";
     public const string BLOCK = "BLOCK";
@@ -161,6 +162,9 @@ public static class SqlConst
     public const string LASTVAL = "LASTVAL";
     public const string SETVAL = "SETVAL";
     public const string SEQUENCE = "SEQUENCE";
+    public const string CYCLE = "CYCLE";
+    public const string MINVALUE = "MINVALUE";
+    public const string MAXVALUE = "MAXVALUE";
     #endregion
 
     #region Predicate helpers
@@ -182,9 +186,11 @@ public static class SqlConst
     public const string DO = "DO";
     public const string SET = "SET";
     public const string NOTHING = "NOTHING";
+    public const string NONE = "NONE";
     public const string RETURNING = "RETURNING";
     public const string MATCHED = "MATCHED";
     public const string NOT = "NOT";
+    public const string NO = "NO";
     public const string FOR = "FOR";
     public const string OPTION = "OPTION";
     public const string SQL_CALC_FOUND_ROWS = "SQL_CALC_FOUND_ROWS";

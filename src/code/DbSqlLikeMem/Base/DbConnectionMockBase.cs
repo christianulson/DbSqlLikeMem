@@ -1630,14 +1630,23 @@ public abstract class DbConnectionMockBase(
             throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
         }
 
-        if (CurrentTransaction != null
-            && Db.TryGetTable(tableName, out var schemaTable, targetSchema)
-            && schemaTable is TableMock schemaTableMock)
+        var tableExists = Db.TryGetTable(tableName, out var schemaTable, targetSchema);
+        var schemaTableMock = schemaTable as TableMock;
+        var canDropTable = tableExists && schemaTableMock is not null;
+
+        if (CurrentTransaction != null && canDropTable)
         {
             RecordDroppedTable(
-                schemaTableMock,
+                schemaTableMock!,
                 TransactionTableRegistrationKind.Schema,
-                schemaTableMock.TableName);
+                schemaTableMock!.TableName);
+        }
+
+        if (canDropTable)
+        {
+            var ownedSequences = Db.ListOwnedSequenceNames(tableName, targetSchema);
+            foreach (var ownedSequence in ownedSequences)
+                DropSequence(ownedSequence, true, targetSchema);
         }
 
         Db.DropTable(tableName, ifExists, targetSchema);
@@ -2127,6 +2136,12 @@ public abstract class DbConnectionMockBase(
     /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
     /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
     /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
+    /// <param name="minValue">EN: Minimum allowed value when the sequence is bounded. PT: Valor minimo permitido quando a sequence e limitada.</param>
+    /// <param name="maxValue">EN: Maximum allowed value when the sequence is bounded. PT: Valor maximo permitido quando a sequence e limitada.</param>
+    /// <param name="isCycle">EN: Whether the sequence wraps around when it reaches a bound. PT: Indica se a sequence reinicia ao atingir um limite.</param>
+    /// <param name="ownedBySchema">EN: Schema of the owning table when the sequence is attached to a column. PT: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByTable">EN: Owning table name when the sequence is attached to a column. PT: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByColumn">EN: Owning column name when the sequence is attached to a column. PT: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.</param>
     /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
     /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
     public SequenceDef AddSequence(
@@ -2134,12 +2149,24 @@ public abstract class DbConnectionMockBase(
         long startValue = 1,
         long incrementBy = 1,
         long? currentValue = null,
+        long? minValue = null,
+        long? maxValue = null,
+        bool isCycle = false,
+        string? ownedBySchema = null,
+        string? ownedByTable = null,
+        string? ownedByColumn = null,
         string? schemaName = null)
         => Db.AddSequence(
             sequenceName,
             startValue,
             incrementBy,
             currentValue,
+            minValue,
+            maxValue,
+            isCycle,
+            ownedBySchema,
+            ownedByTable,
+            ownedByColumn,
             schemaName ?? Database);
 
     /// <summary>
@@ -2164,6 +2191,12 @@ public abstract class DbConnectionMockBase(
         bool ifNotExists,
         long startValue = 1,
         long incrementBy = 1,
+        long? minValue = null,
+        long? maxValue = null,
+        bool isCycle = false,
+        string? ownedBySchema = null,
+        string? ownedByTable = null,
+        string? ownedByColumn = null,
         string? schemaName = null)
     {
         var targetSchema = schemaName ?? Database;
@@ -2173,6 +2206,12 @@ public abstract class DbConnectionMockBase(
             ifNotExists,
             startValue,
             incrementBy,
+            minValue,
+            maxValue,
+            isCycle,
+            ownedBySchema,
+            ownedByTable,
+            ownedByColumn,
             targetSchema);
 
         if (CurrentTransaction == null || existedBefore)
@@ -2233,7 +2272,13 @@ public abstract class DbConnectionMockBase(
             sequence.Name,
             sequence.StartValue,
             sequence.IncrementBy,
-            sequence.CurrentValue);
+            sequence.CurrentValue,
+            sequence.MinValue,
+            sequence.MaxValue,
+            sequence.IsCycle,
+            sequence.OwnedBySchema,
+            sequence.OwnedByTable,
+            sequence.OwnedByColumn);
         if (sequence.CurrentValue.HasValue && !sequence.IsCalled)
             clone.SetValue(sequence.CurrentValue.Value, false);
 

@@ -149,6 +149,12 @@ internal sealed record SqlCreateSequenceQuery : SqlQueryBase
     internal bool IfNotExists { get; init; }
     internal long StartValue { get; init; } = 1;
     internal long IncrementBy { get; init; } = 1;
+    internal long? MinValue { get; init; }
+    internal long? MaxValue { get; init; }
+    internal bool IsCycle { get; init; }
+    internal bool IsOwnedByNone { get; init; }
+    internal SqlTableSource? OwnedByTable { get; init; }
+    internal string? OwnedByColumn { get; init; }
 }
 
 internal sealed record SqlDropSequenceQuery : SqlQueryBase
@@ -159,6 +165,10 @@ internal sealed record SqlDropSequenceQuery : SqlQueryBase
 internal sealed record SqlAlterSequenceQuery : SqlQueryBase
 {
     internal long? RestartWith { get; init; }
+    internal long? IncrementBy { get; init; }
+    internal bool IsOwnedByNone { get; init; }
+    internal SqlTableSource? OwnedByTable { get; init; }
+    internal string? OwnedByColumn { get; init; }
 }
 
 internal sealed record SqlCreateFunctionQuery : SqlQueryBase

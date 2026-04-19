@@ -436,6 +436,7 @@ private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNul
             DbType.Currency or DbType.Decimal or DbType.VarNumeric => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
             DbType.Double => Convert.ToDouble(value, CultureInfo.InvariantCulture),
             DbType.Single => Convert.ToSingle(value, CultureInfo.InvariantCulture),
+            DbType.Boolean => Convert.ToBoolean(value, CultureInfo.InvariantCulture),
             DbType.Int16 => Convert.ToInt16(value, CultureInfo.InvariantCulture),
             DbType.Int32 => Convert.ToInt32(value, CultureInfo.InvariantCulture),
             DbType.Int64 => Convert.ToInt64(value, CultureInfo.InvariantCulture),

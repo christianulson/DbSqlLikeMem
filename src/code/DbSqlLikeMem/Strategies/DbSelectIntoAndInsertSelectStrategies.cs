@@ -330,7 +330,13 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             query.IfNotExists,
             query.StartValue,
             query.IncrementBy,
-            query.Table?.DbName);
+            query.MinValue,
+            query.MaxValue,
+            query.IsCycle,
+            query.IsOwnedByNone ? null : query.OwnedByTable?.DbName,
+            query.IsOwnedByNone ? null : query.OwnedByTable?.Name,
+            query.IsOwnedByNone ? null : query.OwnedByColumn,
+            schemaName: query.Table?.DbName);
         return new DmlExecutionResult();
     }
 
@@ -370,6 +376,25 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             throw new InvalidOperationException($"Sequence '{sequenceName!.NormalizeName()}' does not exist.");
 
         connection.CaptureSequenceStateForRollback(sequenceName!, query.Table?.DbName);
+        if (query.IncrementBy.HasValue)
+        {
+            sequence.SetIncrementBy(query.IncrementBy.Value);
+            return new DmlExecutionResult();
+        }
+
+        if (query.IsOwnedByNone)
+        {
+            sequence.ClearOwnership();
+            return new DmlExecutionResult();
+        }
+
+        if (query.OwnedByTable is not null)
+        {
+            var ownedSchema = query.OwnedByTable.DbName ?? query.Table?.DbName;
+            sequence.SetOwnership(ownedSchema, query.OwnedByTable.Name, query.OwnedByColumn);
+            return new DmlExecutionResult();
+        }
+
         var restartWith = query.RestartWith ?? sequence.StartValue;
         sequence.SetValue(restartWith, false);
         connection.ClearSessionSequenceValue(sequenceName!, query.Table?.DbName);
@@ -3462,6 +3487,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             "DECIMAL" or "NUMERIC" => DbType.Decimal,
             "NUMBER" => DbType.Decimal,
             "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
+            "BIT" => DbType.Boolean,
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,

@@ -151,7 +151,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
         var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbSqlLikeMem.DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
-        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice", 10));
         var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
@@ -175,8 +175,8 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
             ? $"SESSION.{users}"
             : users;
         using var tx = Repo.BeginTransaction();
-        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice"), tx);
-        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 2, "Bob"), tx);
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice", 10), tx);
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 2, "Bob", 10), tx);
         tx.Rollback();
 
         var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(CountRowsSql(sessionUsers)), CultureInfo.InvariantCulture);
@@ -200,7 +200,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
         var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
-        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice"));
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryRowSql(sessionUsers, 1, "Alice", 10));
 
         using var repo = Repo.Clone();
 
@@ -267,5 +267,8 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
     }
 
     private static string InsertTemporaryRowSql(string tableName, int id, string name)
-        => $"INSERT INTO {tableName} (Id, Name) VALUES ({id}, '{name}')";
+        => InsertTemporaryRowSql(tableName, id, name, 10);
+
+    private static string InsertTemporaryRowSql(string tableName, int id, string name, int tenantId)
+        => $"INSERT INTO {tableName} (Id, Name, TenantId) VALUES ({id}, '{name}', {tenantId})";
 }

@@ -11,6 +11,7 @@ DONE
 ## O que foi feito
 
 - `SelectByPkTest`, `SelectAllRowsCountTest`, `SelectCteSimpleTest`, `SelectNotExistsPredicateTest`, `SelectLeftJoinAntiJoinTest`, `SelectNotInSubqueryTest`, `SelectExistsPredicateTest`, `SelectCorrelatedCountTest`, `SelectInSubqueryTest`, `SelectUnionAllProjectionTest`, `SelectDistinctProjectionTest`, `SelectUnionDistinctProjectionTest`, `SelectMultiJoinAggregateTest`, `SelectCrossApplyProjectionTest`, `SelectOuterApplyProjectionTest`, `SelectApplyProjectionTest`, `SelectApplyTemporalCompositeTest` e `SelectApplyWindowTemporalCompositeTest` agora validam `QueryResultSnapshot` completo quando o contrato é relacional.
+- `SelectAllRowsSnapshotTest` passou a validar o snapshot completo do `SELECT *` básico sobre a tabela de usuarios com duas linhas de exemplo.
 - `SelectScalarSubqueryCaseMatrixTest`, `SelectScalarCaseMatrixTest`, `SelectJoinTypedExpressionMatrixTest`, `SelectJoinNullAggregateMatrixTest`, `SelectJoinCastNullMatrixTest`, `SelectJoinCastTextComparisonMatrixTest`, `SelectJoinHavingCastMatrixTest`, `SelectJoinLengthNumericMatrixTest`, `SelectJoinTextCaseLengthMatrixTest`, `SelectJoinDistinctCaseMatrixTest`, `SelectJoinDistinctHavingMatrixTest`, `SelectApplyTemporalCompositeTest` e `SelectApplyWindowTemporalCompositeTest` também passaram a comparar o rowset completo.
 - `SelectWindowRankDenseRankTest`, `SelectWindowFirstLastValueTest`, `SelectWindowNtileTest`, `SelectWindowPercentRankCumeDistTest` e `SelectWindowNthValueTest` também passaram a comparar o rowset completo.
 - `SelectWindowFunctionsTest` também passou a comparar o rowset completo para `ROW_NUMBER`, `LAG` e `LEAD`.
@@ -21,6 +22,8 @@ DONE
 - O helper `RunRelationalCompositeAssertionsAsync` passou a comparar snapshots inteiros para os blocos relacionais do composite.
 - O serviço de select por chave primaria agora retorna snapshot completo em vez de apenas o valor escalar.
 - Os relatórios relacionais de janela e join que ainda retornavam apenas a quantidade de linhas agora devolvem o rowset completo com `QueryResultSnapshot`.
+- Os helpers de decomposição de snapshot ficaram mais robustos e deixaram de tratar `string` como sequência de snapshots.
+- A decomposição de tuplas nos helpers compartilhados passou a usar `ITuple` diretamente, evitando reflexão para snapshots compostos.
 
 ## Próximos passos
 

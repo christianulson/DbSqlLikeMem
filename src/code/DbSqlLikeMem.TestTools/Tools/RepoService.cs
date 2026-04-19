@@ -133,7 +133,7 @@ public class RepoService(
         return resultSet;
     }
 
-    private async Task EnsureConnectionOpenAsync()
+    internal async Task EnsureConnectionOpenAsync()
     {
         if (Cnn.State == ConnectionState.Open) return;
         await Cnn.OpenAsync();

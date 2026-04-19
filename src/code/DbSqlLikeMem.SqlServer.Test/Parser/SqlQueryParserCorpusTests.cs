@@ -709,5 +709,23 @@ select id
         }
 #pragma warning restore CA1031 // Do not catch general exception types
     }
+
+    /// <summary>
+    /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
+    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [InlineData(0)]
+    [InlineData(2022)]
+    public void Parse_BlankSql_ShouldProvideParameterValidationMessage(int version)
+    {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
+
+        var ex = Assert.Throws<ArgumentException>(() => SqlQueryParser.Parse(" ", db, d));
+
+        Assert.Contains("sql", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }
 

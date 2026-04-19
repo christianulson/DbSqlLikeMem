@@ -348,7 +348,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : DBNull.Value;
             }
 
-            return FormatTextCastValue(context, v!);
+            return FormatTextCastValue(context, v!, fn.Args[0]);
         }
         catch
         {
@@ -507,7 +507,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return bytes;
 
             if (IsTextCastTypeName(type))
-                return FormatTextCastValue(context, v!);
+                return FormatTextCastValue(context, v!, fn.Args[0]);
 
             if (TryEvalCastIntegerResult(context, fn, v!, type, out var integerResult))
                 return integerResult;
@@ -524,7 +524,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             if (TryEvalCastJsonResult(v!, type, out var jsonResult))
                 return jsonResult;
 
-            return FormatTextCastValue(context, v!);
+            return FormatTextCastValue(context, v!, fn.Args[0]);
         }
 #pragma warning disable CA1031
         catch (Exception e)
@@ -750,10 +750,13 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
            || typeName.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
            || typeName.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase);
 
-    private static string FormatTextCastValue(QueryExecutionContext context, object value)
+    private static string FormatTextCastValue(QueryExecutionContext context, object value, SqlExpr? sourceExpression = null)
     {
         if (value is decimal decimalValue)
-            return FormatDecimalWithScale(decimalValue);
+        {
+            var scale = TryGetDecimalScaleFromExpression(sourceExpression) ?? GetDecimalScale(decimalValue);
+            return decimalValue.ToString($"F{scale}", CultureInfo.InvariantCulture);
+        }
 
         var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
         if (!IsFirebirdDialect(context.Connection.ProviderExecutionDialect))
@@ -771,11 +774,55 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         return decimal.Truncate(numeric).ToString(CultureInfo.InvariantCulture);
     }
 
-    private static string FormatDecimalWithScale(decimal value)
+    private static int? TryGetDecimalScaleFromExpression(SqlExpr? expression)
+    {
+        if (expression is not CallExpr and not FunctionCallExpr)
+            return null;
+
+        if (expression is CallExpr callExpr)
+            return TryGetDecimalScaleFromCastCall(callExpr.Name, callExpr.Args);
+
+        var fn = (FunctionCallExpr)expression;
+        return TryGetDecimalScaleFromCastCall(fn.Name, fn.Args);
+    }
+
+    private static int? TryGetDecimalScaleFromCastCall(string name, IReadOnlyList<SqlExpr> args)
+    {
+        if ((!string.Equals(name, "CAST", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+            || args.Count < 2)
+        {
+            return null;
+        }
+
+        var typeSql = GetTargetTypeName(args[1], _ => null);
+        return TryParseDecimalScale(typeSql, out var scale) ? scale : null;
+    }
+
+    private static bool TryParseDecimalScale(string typeSql, out int scale)
+    {
+        scale = 0;
+        if (string.IsNullOrWhiteSpace(typeSql))
+            return false;
+
+        var match = System.Text.RegularExpressions.Regex.Match(
+            typeSql,
+            @"^(?:DECIMAL|NUMERIC)\s*\(\s*\d+\s*,\s*(\d+)\s*\)$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        if (!match.Success)
+            return false;
+
+        if (!int.TryParse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out scale))
+            return false;
+
+        return true;
+    }
+
+    private static int GetDecimalScale(decimal value)
     {
         var bits = decimal.GetBits(value);
-        var scale = (bits[3] >> 16) & 0x7F;
-        return value.ToString($"F{scale}", CultureInfo.InvariantCulture);
+        return (bits[3] >> 16) & 0x7F;
     }
 
     private static bool IsNumericValue(object value)

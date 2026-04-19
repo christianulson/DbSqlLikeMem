@@ -26,6 +26,15 @@ public sealed class PostgreSqlTransactionReliabilityTests(
         => AssertSavepointRollbackRestoresIntermediateState();
 
     /// <summary>
+    /// EN: Ensures nested savepoints roll back to the selected outer snapshot.
+    /// PT: Garante que savepoints aninhados façam rollback para o snapshot externo selecionado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlTransactionReliability")]
+    public void NestedSavepointsShouldRollbackToOuterSnapshot()
+        => AssertNestedSavepointsRollbackToOuterSnapshot();
+
+    /// <summary>
     /// EN: Ensures the simplified isolation model is deterministic and visible.
     /// PT: Garante que o modelo simplificado de isolamento seja determinístico e visível.
     /// </summary>

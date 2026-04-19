@@ -104,10 +104,14 @@ public sealed class NpgsqlBatchMock : DbBatch
     public override int ExecuteNonQuery()
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchSyncExecutionRunner.ExecuteNonQueryCommands(
+        var affected = BatchSyncExecutionRunner.ExecuteNonQueryCommands(
             connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+
+        return NpgsqlNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affected);
     }
 
     /// <summary>
@@ -145,13 +149,22 @@ public sealed class NpgsqlBatchMock : DbBatch
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchAsyncExecutionRunner
-            .ExecuteNonQueryCommandsAsync(
-                connection,
-                BatchCommands.Commands,
-                CreateExecutableCommand,
-                cancellationToken)
-;
+        return ExecuteNonQueryAsyncCore(connection, cancellationToken);
+    }
+
+    private async Task<int> ExecuteNonQueryAsyncCore(
+        NpgsqlConnectionMock connection,
+        CancellationToken cancellationToken)
+    {
+        var affected = await BatchAsyncExecutionRunner.ExecuteNonQueryCommandsAsync(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand,
+            cancellationToken).ConfigureAwait(false);
+
+        return NpgsqlNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affected);
     }
 
     /// <summary>

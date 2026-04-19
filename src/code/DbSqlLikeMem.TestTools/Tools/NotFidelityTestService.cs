@@ -1,3 +1,9 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+#if NET462 || NETSTANDARD2_0
+using ITuple = DbSqlLikeMem.Compatibility.ITuple;
+#endif
+
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
@@ -308,11 +314,10 @@ public class NotFidelityTestService<TCnn1>(
         where TScenario : BaseScenario, ITestScenario
     {
         var type = typeof(TScenario);
-        if (initialData.Length == 0)
+        if (initialData.Length == 0
+            && TryCreateScenarioWithOptionalDefaults<TScenario>(type, repo, context, out var directScenario))
         {
-            var directScenario = Activator.CreateInstance(type, repo, context) as TScenario;
-            if (directScenario is not null)
-                return directScenario;
+            return directScenario;
         }
 
         var ctors = type.GetConstructors();
@@ -346,7 +351,55 @@ public class NotFidelityTestService<TCnn1>(
                     return (TScenario)ctor.Invoke([repo, context, arr1, arr2]);
             }
         }
+
+        if (initialData.Length > 0
+            && TryCreateScenarioWithOptionalDefaults<TScenario>(type, repo, context, out directScenario))
+        {
+            return directScenario;
+        }
         throw new MissingMethodException($"Constructor on type '{type.Name}' not found.");
+    }
+
+    private static bool TryCreateScenarioWithOptionalDefaults<TScenario>(
+        Type type,
+        RepoService repo,
+        FidelityTestContext context,
+        [MaybeNullWhen(false)] out TScenario scenario)
+        where TScenario : BaseScenario, ITestScenario
+    {
+        scenario = default;
+
+        foreach (var ctor in type.GetConstructors())
+        {
+            var ps = ctor.GetParameters();
+            if (ps.Length < 2)
+                continue;
+
+            if (ps[0].ParameterType != typeof(RepoService)
+                || ps[1].ParameterType != typeof(FidelityTestContext))
+            {
+                continue;
+            }
+
+            var args = new object?[ps.Length];
+            args[0] = repo;
+            args[1] = context;
+            for (var i = 2; i < ps.Length; i++)
+                args[i] = Type.Missing;
+
+            try
+            {
+                scenario = ctor.Invoke(args) as TScenario;
+                if (scenario is not null)
+                    return true;
+            }
+            catch
+            {
+                // Try the next constructor shape.
+            }
+        }
+
+        return false;
     }
 
     private static bool IsObjectMatrixParameter(Type parameterType)
@@ -371,6 +424,10 @@ public class NotFidelityTestService<TCnn1>(
                     arr[i] = (t.Item1, t.Item2);
                 else if (data[i] is object[] oa && oa.Length >= 2)
                     arr[i] = (Convert.ToInt32(oa[0]), oa[1]?.ToString() ?? "");
+                else if (data[i] is ITuple it && it.Length == 2)
+                    arr[i] = ((int)it[0]!, it[1]?.ToString() ?? "");
+                else
+                    return null;
             }
             return arr;
         }
@@ -385,6 +442,10 @@ public class NotFidelityTestService<TCnn1>(
                     arr[i] = (t.Item1, t.Item2, t.Item3);
                 else if (data[i] is object[] oa && oa.Length >= 3)
                     arr[i] = (Convert.ToInt32(oa[0]), Convert.ToInt32(oa[1]), oa[2]?.ToString() ?? "");
+                else if (data[i] is ITuple it && it.Length == 3)
+                    arr[i] = ((int)it[0]!, (int)it[1]!, it[2]?.ToString() ?? "");
+                else
+                    return null;
             }
             return arr;
         }

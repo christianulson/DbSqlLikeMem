@@ -121,15 +121,47 @@ internal static class SqlAlterParserHelper
 
         var sequence = ctx.ParseQualifiedObjectName();
 
-        if (!ctx.IsWord(SqlConst.RESTART))
-            throw new InvalidOperationException("ALTER SEQUENCE in the mock currently supports only RESTART.");
-
-        ctx.Consume(); // RESTART
         long? restartWith = null;
-        if (ctx.IsWord(SqlConst.WITH))
+        long? incrementBy = null;
+        var isOwnedByNone = false;
+        SqlTableSource? ownedByTable = null;
+        string? ownedByColumn = null;
+
+        if (ctx.IsWord(SqlConst.RESTART))
         {
-            ctx.Consume();
-            restartWith = ctx.ExpectSignedNumberLong("ALTER SEQUENCE RESTART WITH");
+            ctx.Consume(); // RESTART
+            if (ctx.IsWord(SqlConst.WITH))
+            {
+                ctx.Consume();
+                restartWith = ctx.ExpectSignedNumberLong("ALTER SEQUENCE RESTART WITH");
+            }
+        }
+        else if (ctx.IsWord(SqlConst.INCREMENT))
+        {
+            ctx.Consume(); // INCREMENT
+            ctx.ExpectWord(SqlConst.BY);
+            incrementBy = ctx.ExpectSignedNumberLong("ALTER SEQUENCE INCREMENT BY");
+        }
+        else if (ctx.IsWord(SqlConst.OWNED))
+        {
+            ctx.Consume(); // OWNED
+            ctx.ExpectWord(SqlConst.BY);
+
+            if (ctx.IsWord(SqlConst.NONE))
+            {
+                ctx.Consume();
+                isOwnedByNone = true;
+            }
+            else
+            {
+                ownedByTable = ctx.ParseQualifiedObjectName();
+                ctx.ExpectSymbol(".");
+                ownedByColumn = ctx.ExpectIdentifier();
+            }
+        }
+        else
+        {
+            throw new InvalidOperationException("ALTER SEQUENCE in the mock currently supports only RESTART, INCREMENT BY, or OWNED BY.");
         }
 
         ctx.EnsureStatementEnd("ALTER SEQUENCE");
@@ -137,7 +169,11 @@ internal static class SqlAlterParserHelper
         return new SqlAlterSequenceQuery
         {
             Table = sequence,
-            RestartWith = restartWith
+            RestartWith = restartWith,
+            IncrementBy = incrementBy,
+            IsOwnedByNone = isOwnedByNone,
+            OwnedByTable = ownedByTable,
+            OwnedByColumn = ownedByColumn
         };
     }
 

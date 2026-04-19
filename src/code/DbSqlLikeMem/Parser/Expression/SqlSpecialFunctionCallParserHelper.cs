@@ -17,6 +17,9 @@ internal static class SqlSpecialFunctionCallParserHelper
         if (name.Equals("OVERLAY", StringComparison.OrdinalIgnoreCase))
             return ctx.TryParseOverlay(parseExpression, out expr);
 
+        if (name.Equals("CONVERT", StringComparison.OrdinalIgnoreCase))
+            return ctx.TryParseConvert(parseExpression, out expr);
+
         if (name.Equals("TRY_CAST", StringComparison.OrdinalIgnoreCase))
             return ctx.TryParseTryCast(parseExpression, out expr);
 
@@ -270,6 +273,19 @@ internal static class SqlSpecialFunctionCallParserHelper
         this SqlExpressionParserContext ctx,
         Func<int, SqlExpr> parseExpression,
         out CallExpr expr)
+        => ctx.TryParseConvertLike(parseExpression, swallowErrors: true, out expr);
+
+    private static bool TryParseConvert(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        out CallExpr expr)
+        => ctx.TryParseConvertLike(parseExpression, swallowErrors: false, out expr);
+
+    private static bool TryParseConvertLike(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        bool swallowErrors,
+        out CallExpr expr)
     {
         expr = default!;
 
@@ -279,7 +295,7 @@ internal static class SqlSpecialFunctionCallParserHelper
         {
             var t = ctx.Peek();
             if (t.Kind == SqlTokenKind.EndOfFile)
-                throw ctx.Error("TRY_CONVERT type not closed", t);
+                throw ctx.Error(swallowErrors ? "TRY_CONVERT type not closed" : "CONVERT type not closed", t);
 
             if (t.Kind == SqlTokenKind.Symbol && t.Text == "(")
                 depth++;
@@ -287,7 +303,7 @@ internal static class SqlSpecialFunctionCallParserHelper
             if (t.Kind == SqlTokenKind.Symbol && t.Text == ")")
             {
                 if (depth == 0)
-                    throw ctx.Error("TRY_CONVERT requires an expression argument", t);
+                    throw ctx.Error(swallowErrors ? "TRY_CONVERT requires an expression argument" : "CONVERT requires an expression argument", t);
                 depth--;
             }
 
@@ -298,7 +314,7 @@ internal static class SqlSpecialFunctionCallParserHelper
         }
 
         if (typeToks.Count == 0)
-            throw ctx.Error("TRY_CONVERT requires a target type", ctx.Peek());
+            throw ctx.Error(swallowErrors ? "TRY_CONVERT requires a target type" : "CONVERT requires a target type", ctx.Peek());
 
         ExpectSymbol(ctx, ",");
 
@@ -316,7 +332,7 @@ internal static class SqlSpecialFunctionCallParserHelper
         }
 
         ExpectSymbol(ctx, ")");
-        expr = new CallExpr("TRY_CONVERT", [.. convertArgs])
+        expr = new CallExpr(swallowErrors ? "TRY_CONVERT" : "CONVERT", [.. convertArgs])
             .BindScalarFunctionDefinition(ctx.Dialect);
         return true;
     }

@@ -97,10 +97,14 @@ public sealed class OracleBatchMock : DbBatch
     public override int ExecuteNonQuery()
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchSyncExecutionRunner.ExecuteNonQueryCommands(
+        var affectedRows = BatchSyncExecutionRunner.ExecuteNonQueryCommands(
             connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+        return OracleNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affectedRows,
+            connection.ExecutionDialect);
     }
 
     /// <summary>
@@ -138,13 +142,7 @@ public sealed class OracleBatchMock : DbBatch
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchAsyncExecutionRunner
-            .ExecuteNonQueryCommandsAsync(
-                connection,
-                BatchCommands.Commands,
-                CreateExecutableCommand,
-                cancellationToken)
-;
+        return ExecuteNonQueryAsyncCore(connection, cancellationToken);
     }
 
     /// <summary>
@@ -154,15 +152,13 @@ public sealed class OracleBatchMock : DbBatch
     protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchAsyncExecutionRunner
-            .ExecuteReaderCommandsAsync(
-                connection,
-                BatchCommands.Commands,
-                CreateExecutableCommand,
-                behavior,
-                static tables => (DbDataReader)new OracleDataReaderMock(tables),
-                cancellationToken)
-;
+        return BatchAsyncExecutionRunner.ExecuteReaderCommandsAsync(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand,
+            behavior,
+            static tables => (DbDataReader)new OracleDataReaderMock(tables),
+            cancellationToken);
     }
 
     /// <summary>
@@ -210,6 +206,22 @@ public sealed class OracleBatchMock : DbBatch
     /// PT: Cria uma nova instância de simulado de comando em lote Oracle.
     /// </summary>
     protected override DbBatchCommand CreateDbBatchCommand() => new OracleBatchCommandMock();
+
+    private async Task<int> ExecuteNonQueryAsyncCore(
+        OracleConnectionMock connection,
+        CancellationToken cancellationToken)
+    {
+        var affectedRows = await BatchAsyncExecutionRunner.ExecuteNonQueryCommandsAsync(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand,
+            cancellationToken).ConfigureAwait(false);
+
+        return OracleNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affectedRows,
+            connection.ExecutionDialect);
+    }
 }
 
 /// <summary>

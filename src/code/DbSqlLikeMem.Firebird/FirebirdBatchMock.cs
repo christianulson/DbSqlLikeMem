@@ -106,10 +106,14 @@ public sealed class FirebirdBatchMock : DbBatch
     public override int ExecuteNonQuery()
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchSyncExecutionRunner.ExecuteNonQueryCommands(
+        var result = BatchSyncExecutionRunner.ExecuteNonQueryCommands(
             connection,
             BatchCommands.Commands,
             CreateExecutableCommand);
+        return FirebirdNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            result,
+            connection.ExecutionDialect);
     }
 
     /// <summary>
@@ -147,11 +151,7 @@ public sealed class FirebirdBatchMock : DbBatch
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var connection = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchAsyncExecutionRunner.ExecuteNonQueryCommandsAsync(
-            connection,
-            BatchCommands.Commands,
-            CreateExecutableCommand,
-            cancellationToken);
+        return ExecuteNonQueryAsyncCore(connection, cancellationToken);
     }
 
     /// <summary>
@@ -215,6 +215,22 @@ public sealed class FirebirdBatchMock : DbBatch
     /// PT: Cria uma nova instância de comando de lote do banco.
     /// </summary>
     protected override DbBatchCommand CreateDbBatchCommand() => new FirebirdBatchCommandMock();
+
+    private async Task<int> ExecuteNonQueryAsyncCore(
+        FirebirdConnectionMock connection,
+        CancellationToken cancellationToken)
+    {
+        var affectedRows = await BatchAsyncExecutionRunner.ExecuteNonQueryCommandsAsync(
+            connection,
+            BatchCommands.Commands,
+            CreateExecutableCommand,
+            cancellationToken).ConfigureAwait(false);
+
+        return FirebirdNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affectedRows,
+            connection.ExecutionDialect);
+    }
 }
 
 /// <summary>

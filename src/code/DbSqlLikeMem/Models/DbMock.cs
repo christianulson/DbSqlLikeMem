@@ -346,10 +346,31 @@ public abstract class DbMock
         var sc = GetSchemaName(schemaName);
         var normalized = tableName.NormalizeName();
         var removed = this[sc].Tables.Remove(normalized);
+
         if (removed || ifExists)
             return;
 
         throw SqlUnsupported.ForNormalizedTableDoesNotExist(normalized);
+    }
+
+    internal IReadOnlyList<string> ListOwnedSequenceNames(
+        string tableName,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+        var sc = GetSchemaName(schemaName);
+        if (!this.TryGetValue(sc, out var schema) || schema is null)
+            return [];
+
+        var normalizedTableName = tableName.NormalizeName();
+        return schema.Sequences
+            .Where(entry =>
+                entry.Value.OwnedByTable != null
+                && entry.Value.OwnedByTable.Equals(normalizedTableName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(entry.Value.OwnedBySchema ?? sc, sc, StringComparison.OrdinalIgnoreCase))
+            .Select(entry => entry.Key)
+            .ToList()
+            .AsReadOnly();
     }
 
     internal void CreateIndex(
@@ -810,6 +831,12 @@ public abstract class DbMock
     /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
     /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
     /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
+    /// <param name="minValue">EN: Minimum allowed value when the sequence is bounded. PT: Valor minimo permitido quando a sequence e limitada.</param>
+    /// <param name="maxValue">EN: Maximum allowed value when the sequence is bounded. PT: Valor maximo permitido quando a sequence e limitada.</param>
+    /// <param name="isCycle">EN: Whether the sequence wraps around when it reaches a bound. PT: Indica se a sequence reinicia ao atingir um limite.</param>
+    /// <param name="ownedBySchema">EN: Schema of the owning table when the sequence is attached to a column. PT: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByTable">EN: Owning table name when the sequence is attached to a column. PT: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByColumn">EN: Owning column name when the sequence is attached to a column. PT: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.</param>
     /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
     /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
     public SequenceDef AddSequence(
@@ -817,9 +844,25 @@ public abstract class DbMock
         long startValue = 1,
         long incrementBy = 1,
         long? currentValue = null,
+        long? minValue = null,
+        long? maxValue = null,
+        bool isCycle = false,
+        string? ownedBySchema = null,
+        string? ownedByTable = null,
+        string? ownedByColumn = null,
         string? schemaName = null)
     {
-        var sequence = new SequenceDef(sequenceName, startValue, incrementBy, currentValue);
+        var sequence = new SequenceDef(
+            sequenceName,
+            startValue,
+            incrementBy,
+            currentValue,
+            minValue,
+            maxValue,
+            isCycle,
+            ownedBySchema,
+            ownedByTable,
+            ownedByColumn);
         AddSequence(sequenceName, sequence, schemaName);
         return sequence;
     }
@@ -854,6 +897,12 @@ public abstract class DbMock
         bool ifNotExists,
         long startValue = 1,
         long incrementBy = 1,
+        long? minValue = null,
+        long? maxValue = null,
+        bool isCycle = false,
+        string? ownedBySchema = null,
+        string? ownedByTable = null,
+        string? ownedByColumn = null,
         string? schemaName = null)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
@@ -871,7 +920,17 @@ public abstract class DbMock
             throw new InvalidOperationException($"Sequence '{normalized}' already exists.");
         }
 
-        sequences[normalized] = new SequenceDef(sequenceName, startValue, incrementBy);
+        sequences[normalized] = new SequenceDef(
+            sequenceName,
+            startValue,
+            incrementBy,
+            null,
+            minValue,
+            maxValue,
+            isCycle,
+            ownedBySchema,
+            ownedByTable,
+            ownedByColumn);
     }
 
     internal void DropSequence(

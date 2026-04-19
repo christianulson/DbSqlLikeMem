@@ -323,8 +323,8 @@ SELECT * FROM cte
         $"SELECT Name FROM {context.TbUsersFullName} ORDER BY CURRENT_TIMESTAMP, Name FETCH FIRST 1 ROW ONLY";
 
     /// <summary>
-    /// EN: Returns a valid Oracle no-op command for the release-savepoint benchmark.
-    /// PT: Retorna um comando Oracle sem efeito valido para o benchmark de release-savepoint.
+    /// EN: Returns the Oracle SQL text used when release-savepoint handling is emitted.
+    /// PT: Retorna o texto SQL do Oracle usado quando o tratamento de release-savepoint eh emitido.
     /// </summary>
     public override string ReleaseSavepoint(string savepointName) =>
         $"RELEASE SAVEPOINT {savepointName}";

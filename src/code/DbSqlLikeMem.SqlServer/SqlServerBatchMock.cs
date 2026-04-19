@@ -106,10 +106,15 @@ public sealed class SqlServerBatchMock : DbBatch
     public override int ExecuteNonQuery()
     {
         var cnn = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchSyncExecutionRunner.ExecuteNonQueryCommands(
+        var affected = BatchSyncExecutionRunner.ExecuteNonQueryCommands(
             cnn,
             BatchCommands.Commands,
             CreateExecutableCommand);
+
+        return SqlServerNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affected,
+            cnn.ExecutionDialect);
     }
 
     /// <summary>
@@ -144,16 +149,21 @@ public sealed class SqlServerBatchMock : DbBatch
     /// EN: Execute Non Query Async for the current batch state.
     /// PT: Execute Non consulta Async para o estado atual do lote.
     /// </summary>
-    public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
+    public override async Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default)
     {
         var cnn = BatchExecutionGuards.RequireConnection(Connection);
-        return BatchAsyncExecutionRunner
+        var affected = await BatchAsyncExecutionRunner
             .ExecuteNonQueryCommandsAsync(
                 cnn,
                 BatchCommands.Commands,
                 CreateExecutableCommand,
                 cancellationToken)
-;
+            .ConfigureAwait(false);
+
+        return SqlServerNonQueryResultHelper.NormalizeBatchResult(
+            BatchCommands.Commands.Select(command => command.CommandText),
+            affected,
+            cnn.ExecutionDialect);
     }
 
     /// <summary>
@@ -193,7 +203,7 @@ public sealed class SqlServerBatchMock : DbBatch
         var cnn = BatchExecutionGuards.RequireConnection(Connection);
         return BatchCommandFactory.Create(
             cnn,
-            () => new SqlServerCommandMock(cnn, Transaction),
+            () => new SqlServerCommandMock(cnn, Transaction, suppressNoCountNormalization: true),
             batchCommand,
             Timeout);
     }

@@ -11,7 +11,8 @@ namespace DbSqlLikeMem.SqlServer;
 /// </summary>
 public class SqlServerCommandMock(
     SqlServerConnectionMock? connection,
-    SqlServerTransactionMock? transaction = null
+    SqlServerTransactionMock? transaction = null,
+    bool suppressNoCountNormalization = false
     ) : DbCommand, ISqlServerCommandMock
 {
     /// <summary>
@@ -23,8 +24,12 @@ public class SqlServerCommandMock(
     }
 
     private bool disposedValue;
+    private readonly bool suppressNoCountNormalization = suppressNoCountNormalization;
     private readonly Dictionary<string, IReadOnlyList<SqlServerOutputProjectionTemplate>> _outputProjectionTemplateCache =
         new(StringComparer.Ordinal);
+    private static readonly Regex SequenceCurrentValueRegexInstance = new(
+        @"^\s*SELECT\s+CONVERT\s*\(\s*BIGINT\s*,\s*current_value\s*\)\s+FROM\s+sys\.sequences\s+WHERE\s+name\s*=\s*N?'(?<name>[^']+)'\s*;?\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.Compiled);
 
     /// <summary>
     /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
@@ -107,17 +112,24 @@ public class SqlServerCommandMock(
 
         if (CommandType == CommandType.StoredProcedure)
         {
-            var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
-            connection.SetLastFoundRows(affected.AffectedRows);
-            return affected.AffectedRows;
+            var affected2 = connection!.ExecuteStoredProcedure(CommandText, Parameters);
+            connection.SetLastFoundRows(affected2.AffectedRows);
+            return affected2.AffectedRows;
         }
 
-        return connection.ExecuteNonQueryWithPipeline(
+        var affected = connection.ExecuteNonQueryWithPipeline(
             CommandText.NormalizeString(),
             Parameters,
             allowMerge: true,
             unionUsesSelectMessage: false,
             tryExecuteTransactionControl: TryExecuteTransactionControlCommand);
+
+        return suppressNoCountNormalization
+            ? affected
+            : SqlServerNonQueryResultHelper.NormalizeSingleCommandResult(
+                CommandText,
+                affected,
+                connection.ExecutionDialect);
     }
 
     /// <summary>
@@ -744,6 +756,8 @@ public class SqlServerCommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         using var _ = connection!.Metrics.BeginAmbientScope();
         using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
+        if (TryHandleSequenceCurrentValueScalar(out var currentSequenceScalar))
+            return currentSequenceScalar!;
         if (connection.TryHandleExecuteScalarPrelude(
             CommandType,
             CommandText,
@@ -760,6 +774,33 @@ public class SqlServerCommandMock(
         if (reader.Read())
             return reader.GetValue(0);
         return DBNull.Value;
+    }
+
+    private bool TryHandleSequenceCurrentValueScalar(out object? value)
+    {
+        value = null;
+        if (!TryParseSequenceCurrentValueCommand(CommandText, out var sequenceName))
+            return false;
+
+        if (connection is null || !connection.TryGetSequence(sequenceName, out var sequence) || sequence is null)
+            return false;
+
+        value = sequence.CurrentValue ?? sequence.StartValue;
+        return true;
+    }
+
+    private static bool TryParseSequenceCurrentValueCommand(string sql, out string sequenceName)
+    {
+        sequenceName = string.Empty;
+        if (string.IsNullOrWhiteSpace(sql))
+            return false;
+
+        var match = SequenceCurrentValueRegexInstance.Match(sql);
+        if (!match.Success)
+            return false;
+
+        sequenceName = match.Groups["name"].Value;
+        return !string.IsNullOrWhiteSpace(sequenceName);
     }
 
     /// <summary>

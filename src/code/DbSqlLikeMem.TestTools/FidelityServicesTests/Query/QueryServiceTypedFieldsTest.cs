@@ -250,8 +250,13 @@ INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt,
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, NULL, NULL)
 """);
 
-        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
+        var useUtcClock = Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure;
+        var nowExpr = useUtcClock
+            ? "SYSUTCDATETIME()"
+            : Repo.Dialect.TemporalCurrentTimestampExpression();
+        var nextDayExpr = useUtcClock
+            ? "DATEADD(day, 1, SYSUTCDATETIME())"
+            : Repo.Dialect.TemporalDateAddExpression();
 
         using var command = Repo.Cnn.CreateCommand();
         var namePrefixExpr = Repo.Dialect.StringPrefixExpression("Name", 2);
@@ -309,8 +314,13 @@ INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt,
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, NULL, NULL)
 """);
 
-        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
+        var useUtcClock = Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure;
+        var nowExpr = useUtcClock
+            ? "SYSUTCDATETIME()"
+            : Repo.Dialect.TemporalCurrentTimestampExpression();
+        var nextDayExpr = useUtcClock
+            ? "DATEADD(day, 1, SYSUTCDATETIME())"
+            : Repo.Dialect.TemporalDateAddExpression();
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -362,8 +372,13 @@ INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt,
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, NULL, NULL)
 """);
 
-        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
+        var useUtcClock = Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure;
+        var nowExpr = useUtcClock
+            ? "SYSUTCDATETIME()"
+            : Repo.Dialect.TemporalCurrentTimestampExpression();
+        var nextDayExpr = useUtcClock
+            ? "DATEADD(day, 1, SYSUTCDATETIME())"
+            : Repo.Dialect.TemporalDateAddExpression();
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""

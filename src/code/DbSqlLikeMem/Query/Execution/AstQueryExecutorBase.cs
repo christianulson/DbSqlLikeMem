@@ -2285,13 +2285,49 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         internal bool TryGetColumnMetadata(string columnName, out TableResultColMock? metadata)
         {
             metadata = null!;
-            if (_result is null)
+            if (_result is not null)
+            {
+                if (_resultColumnMetadataLookup is not null
+                    && _resultColumnMetadataLookup.TryGetValue(columnName, out metadata))
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            if (Physical is null)
                 return false;
 
-            if (_resultColumnMetadataLookup is not null
-                && _resultColumnMetadataLookup.TryGetValue(columnName, out metadata))
+            if (Physical.Columns.TryGetValue(columnName, out var physicalColumn))
             {
+                metadata = new TableResultColMock(
+                    tableAlias: Alias,
+                    columnAlias: columnName,
+                    columnName: columnName,
+                    columIndex: physicalColumn.Index,
+                    dbType: physicalColumn.DbType,
+                    isNullable: physicalColumn.Nullable,
+                    isJsonFragment: false);
                 return true;
+            }
+
+            var dotIndex = columnName.LastIndexOf('.');
+            if (dotIndex >= 0 && dotIndex + 1 < columnName.Length)
+            {
+                var unqualifiedColumnName = columnName[(dotIndex + 1)..];
+                if (Physical.Columns.TryGetValue(unqualifiedColumnName, out physicalColumn))
+                {
+                    metadata = new TableResultColMock(
+                        tableAlias: Alias,
+                        columnAlias: unqualifiedColumnName,
+                        columnName: unqualifiedColumnName,
+                        columIndex: physicalColumn.Index,
+                        dbType: physicalColumn.DbType,
+                        isNullable: physicalColumn.Nullable,
+                        isJsonFragment: false);
+                    return true;
+                }
             }
 
             return false;

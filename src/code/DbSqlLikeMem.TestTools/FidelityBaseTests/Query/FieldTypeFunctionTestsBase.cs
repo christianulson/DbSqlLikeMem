@@ -155,6 +155,28 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies that the JSON insert and cast benchmark returns the expected null value for the current provider.
+    /// PT: Verifica se o benchmark de insert e cast de JSON retorna o valor nulo esperado para o provedor atual.
+    /// </summary>
+    [Fact]
+    public async Task JsonInsertCastReturnsNullTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsJsonScalarRead)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+                (s, _) => s.RunJsonInsertCastAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            (s, _) => s.RunJsonInsertCastAsync());
+
+        result.Should().BeNull();
+    }
+
+    /// <summary>
     /// EN: Verifies a large temporal projection query over typed columns for the current provider.
     /// PT: Verifica uma consulta temporal grande sobre colunas tipadas para o provedor atual.
     /// </summary>

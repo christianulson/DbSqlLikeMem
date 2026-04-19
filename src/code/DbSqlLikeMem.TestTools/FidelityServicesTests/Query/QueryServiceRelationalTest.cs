@@ -55,6 +55,14 @@ public partial class QueryServiceTest
         _ => "COUNT(o.Id)"
     };
 
+    private string TemporalCurrentTimestampForProvider() => Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
+        ? "SYSUTCDATETIME()"
+        : Repo.Dialect.TemporalCurrentTimestampExpression();
+
+    private string TemporalDateAddForProvider() => Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
+        ? "DATEADD(day, 1, SYSUTCDATETIME())"
+        : Repo.Dialect.TemporalDateAddExpression();
+
     /// <summary>
     /// EN: Executes a large grouped join query over users and orders and validates the projected rows.
     /// PT: Executa uma consulta grande com junção agrupada entre usuarios e pedidos e valida as linhas projetadas.
@@ -504,8 +512,8 @@ ORDER BY u.Id
         var expectedNextDayAfterOrder = 1;
         var rows = new List<QueryResultRowSnapshot>(3);
 
-        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
+        var nowExpr = TemporalCurrentTimestampForProvider();
+        var nextDayExpr = TemporalDateAddForProvider();
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -601,8 +609,8 @@ ORDER BY u.Id, o.Id
         var expectedNextDayAfterOrder = 1;
         var rows = new List<QueryResultRowSnapshot>(3);
 
-        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
+        var nowExpr = TemporalCurrentTimestampForProvider();
+        var nextDayExpr = TemporalDateAddForProvider();
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -653,8 +661,8 @@ ORDER BY u.Id, o.Id
         var expectedNextDayAfterOrder = 1;
         var rows = new List<QueryResultRowSnapshot>(3);
 
-        var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
-        var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
+        var nowExpr = TemporalCurrentTimestampForProvider();
+        var nextDayExpr = TemporalDateAddForProvider();
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""

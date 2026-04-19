@@ -714,12 +714,30 @@ select id
             Console.WriteLine($"NotSupportedException: {e}");
             expectation.Should().Be(SqlCaseExpectation.ThrowNotSupported, $"Esperava {expectation} mas veio NotSupported.");
         }
-        catch (Exception e)
+    catch (Exception e)
         {
             Console.WriteLine($"Exception: {e}");
             expectation.Should().Be(SqlCaseExpectation.ThrowInvalid, $"Esperava {expectation} mas veio Exception.");
         }
 #pragma warning restore CA1031 // Do not catch general exception types
+    }
+
+    /// <summary>
+    /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
+    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [InlineData(0)]
+    [InlineData(3)]
+    public void Parse_BlankSql_ShouldProvideParameterValidationMessage(int version)
+    {
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
+
+        var ex = Assert.Throws<ArgumentException>(() => SqlQueryParser.Parse(" ", db, dialect));
+
+        Assert.Contains("sql", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }
 

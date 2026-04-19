@@ -1,5 +1,9 @@
+using System.Runtime.CompilerServices;
 using DbSqlLikeMem.TestTools.DML;
 using DbSqlLikeMem.TestTools.Query;
+#if NET462 || NETSTANDARD2_0
+using ITuple = DbSqlLikeMem.Compatibility.ITuple;
+#endif
 
 namespace DbSqlLikeMem.TestTools.Tests.Query;
 
@@ -47,6 +51,25 @@ public abstract class SelectTestsBase<T, T2>(
             });
 
         result.Should().Be(2);
+    }
+
+    /// <summary>
+    /// EN: Verifies that selecting all rows returns the full rowset snapshot for the current provider.
+    /// PT: Verifica se o select de todas as linhas retorna o snapshot completo do conjunto de linhas para o provedor atual.
+    /// </summary>
+    [Fact]
+    public async Task SelectAllRowsSnapshotTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+            async (s, a) =>
+            {
+                await s.Repo.ExecuteNonQueryAsync(dialect.InsertUser(s.Context, 2, "Bob"));
+                return await s.RunAllRowsSnapshotAsync(a);
+            });
+
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectAllRowsSnapshotTest)), Snapshot(["Name"], Row("Alice"), Row("Bob")));
     }
 
     /// <summary>
@@ -1622,23 +1645,86 @@ public abstract class SelectTestsBase<T, T2>(
 
     private static (QueryResultSnapshot First, QueryResultSnapshot Second) RequireSnapshotPair(object? value, string label)
     {
-        if (value is not (QueryResultSnapshot s0 and QueryResultSnapshot s1))
+        if (!TryDecomposeSnapshots(value, 2, out var snapshots))
             throw new InvalidOperationException($"{label} did not return two query snapshots.");
-        return (RequireSnapshot(s0, $"{label}[0]"), RequireSnapshot(s1, $"{label}[1]"));
+
+        return (
+            RequireSnapshot(snapshots[0], $"{label}[0]"),
+            RequireSnapshot(snapshots[1], $"{label}[1]")
+        );
     }
 
     private static (QueryResultSnapshot First, QueryResultSnapshot Second, QueryResultSnapshot Third) RequireSnapshotTriple(object? value, string label)
     {
-        if (value is not (QueryResultSnapshot s0 and QueryResultSnapshot s1 and QueryResultSnapshot s2))
+        if (!TryDecomposeSnapshots(value, 3, out var snapshots))
             throw new InvalidOperationException($"{label} did not return three query snapshots.");
-        return (RequireSnapshot(s0, $"{label}[0]"), RequireSnapshot(s1, $"{label}[1]"), RequireSnapshot(s2, $"{label}[2]"));
+
+        return (
+            RequireSnapshot(snapshots[0], $"{label}[0]"),
+            RequireSnapshot(snapshots[1], $"{label}[1]"),
+            RequireSnapshot(snapshots[2], $"{label}[2]")
+        );
     }
 
     private static (QueryResultSnapshot First, QueryResultSnapshot Second, QueryResultSnapshot Third, QueryResultSnapshot Fourth) RequireSnapshotQuad(object? value, string label)
     {
-        if (value is not (QueryResultSnapshot s0 and QueryResultSnapshot s1 and QueryResultSnapshot s2 and QueryResultSnapshot s3))
+        if (!TryDecomposeSnapshots(value, 4, out var snapshots))
             throw new InvalidOperationException($"{label} did not return four query snapshots.");
-        return (RequireSnapshot(s0, $"{label}[0]"), RequireSnapshot(s1, $"{label}[1]"), RequireSnapshot(s2, $"{label}[2]"), RequireSnapshot(s3, $"{label}[3]"));
+
+        return (
+            RequireSnapshot(snapshots[0], $"{label}[0]"),
+            RequireSnapshot(snapshots[1], $"{label}[1]"),
+            RequireSnapshot(snapshots[2], $"{label}[2]"),
+            RequireSnapshot(snapshots[3], $"{label}[3]")
+        );
+    }
+
+    private static bool TryDecomposeSnapshots(object? value, int expectedLength, out object?[] snapshots)
+    {
+        snapshots = [];
+
+        if (value is null)
+            return false;
+
+        if (value is object?[] array)
+        {
+            if (array.Length != expectedLength)
+                return false;
+
+            snapshots = array;
+            return true;
+        }
+
+        if (value is not string && value is System.Collections.IEnumerable enumerable)
+        {
+            var items = new List<object?>(expectedLength);
+            foreach (var item in enumerable)
+            {
+                items.Add(item);
+                if (items.Count > expectedLength)
+                    return false;
+            }
+
+            if (items.Count != expectedLength)
+                return false;
+
+            snapshots = items.ToArray();
+            return true;
+        }
+
+        if (value is ITuple tuple)
+        {
+            if (tuple.Length != expectedLength)
+                return false;
+
+            snapshots = new object?[expectedLength];
+            for (var i = 0; i < expectedLength; i++)
+                snapshots[i] = tuple[i];
+
+            return true;
+        }
+
+        return false;
     }
 
     private static QueryResultSnapshot Snapshot(string[] columnNames, params object?[][] rows)
