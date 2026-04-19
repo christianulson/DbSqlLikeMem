@@ -10,6 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
 		<ProjectReference Include="..\DbSqlLikeMem.CsvReader\DbSqlLikeMem.CsvReader.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
 	</ItemGroup>
 

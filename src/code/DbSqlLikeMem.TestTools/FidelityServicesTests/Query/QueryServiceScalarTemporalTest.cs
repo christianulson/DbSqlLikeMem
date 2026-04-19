@@ -86,22 +86,22 @@ var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\
     /// </summary>
     public async Task<List<Dictionary<string, object?>>> RunJsonEachFromArrayAsync()
     {
-        if (!Repo.Dialect.SupportsJsonTableFunctions)
+        if (!Repo.Dialect.SupportsJsonEachFunction)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support json_each.");
         }
 
         var json = "{\"items\":[{\"name\":\"Alice\"},{\"name\":\"Bob\"}]}";
         using var cmd = Repo.Cnn.CreateCommand();
-        cmd.CommandText = $"SELECT key, value FROM json_each('{json}')";
+        cmd.CommandText = Repo.Dialect.JsonEachFunction($"'{json}'");
         using var reader = await cmd.ExecuteReaderAsync();
         var results = new List<Dictionary<string, object?>>();
         while (await reader.ReadAsync())
         {
             results.Add(new Dictionary<string, object?>
             {
-                ["key"] = reader["key"],
-                ["value"] = reader["value"]
+                ["key"] = NormalizeJsonTableValue(reader["key"]),
+                ["value"] = NormalizeJsonTableValue(reader["value"])
             });
         }
 
@@ -114,22 +114,22 @@ var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\
     /// </summary>
     public async Task<List<Dictionary<string, object?>>> RunJsonEachFromObjectAsync()
     {
-        if (!Repo.Dialect.SupportsJsonTableFunctions)
+        if (!Repo.Dialect.SupportsJsonEachFunction)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support json_each.");
         }
 
         var json = "{\"name\":\"Alice\",\"age\":30}";
         using var cmd = Repo.Cnn.CreateCommand();
-        cmd.CommandText = $"SELECT key, value FROM json_each('{json}')";
+        cmd.CommandText = Repo.Dialect.JsonEachFunction($"'{json}'");
         using var reader = await cmd.ExecuteReaderAsync();
         var results = new List<Dictionary<string, object?>>();
         while (await reader.ReadAsync())
         {
             results.Add(new Dictionary<string, object?>
             {
-                ["key"] = reader["key"],
-                ["value"] = reader["value"]
+                ["key"] = NormalizeJsonTableValue(reader["key"]),
+                ["value"] = NormalizeJsonTableValue(reader["value"])
             });
         }
 
@@ -142,31 +142,105 @@ var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\
     /// </summary>
     public async Task<List<Dictionary<string, object?>>> RunJsonTreeStructureAsync()
     {
-        if (!Repo.Dialect.SupportsJsonTableFunctions)
+        if (!Repo.Dialect.SupportsJsonTreeFunction)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support json_tree.");
         }
 
         var json = "{\"user\":{\"name\":\"Alice\"}}";
         using var cmd = Repo.Cnn.CreateCommand();
-        cmd.CommandText = $"SELECT key, value, type, id, parent, path FROM json_tree('{json}')";
+        cmd.CommandText = Repo.Dialect.JsonTreeFunction($"'{json}'");
         using var reader = await cmd.ExecuteReaderAsync();
         var results = new List<Dictionary<string, object?>>();
         while (await reader.ReadAsync())
         {
             results.Add(new Dictionary<string, object?>
             {
-                ["key"] = reader["key"],
-                ["value"] = reader["value"],
-                ["type"] = reader["type"],
-                ["id"] = reader["id"],
-                ["parent"] = reader["parent"],
-                ["path"] = reader["path"]
+                ["key"] = NormalizeJsonTableValue(reader["key"]),
+                ["value"] = NormalizeJsonTableValue(reader["value"]),
+                ["type"] = NormalizeJsonTableValue(reader["type"]),
+                ["path"] = NormalizeJsonTableValue(reader["path"])
             });
         }
 
+        NormalizeJsonTreeIdentifiers(results);
         return results;
     }
+
+    private static void NormalizeJsonTreeIdentifiers(List<Dictionary<string, object?>> rows)
+    {
+        var fullKeyToId = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            var fullKey = BuildJsonTreeFullKey(row);
+            var parentFullKey = Convert.ToString(row["path"], CultureInfo.InvariantCulture);
+
+            row["id"] = (long)i;
+            row["parent"] = parentFullKey is null
+                || string.Equals(parentFullKey, fullKey, StringComparison.Ordinal)
+                    ? null
+                : fullKeyToId.TryGetValue(parentFullKey, out var parentId)
+                    ? parentId
+                    : null;
+
+            fullKeyToId[fullKey] = (long)i;
+        }
+    }
+
+    private static string BuildJsonTreeFullKey(Dictionary<string, object?> row)
+    {
+        var path = Convert.ToString(row["path"], CultureInfo.InvariantCulture) ?? "$";
+        var key = row["key"];
+
+        if (key is null)
+        {
+            return path;
+        }
+
+        return key switch
+        {
+            string text => path == "$" ? $"$.{text}" : $"{path}.{text}",
+            long index => $"{path}[{index}]",
+            int index => $"{path}[{index}]",
+            short index => $"{path}[{index}]",
+            byte index => $"{path}[{index}]",
+            sbyte index => $"{path}[{index}]",
+            _ => path == "$" ? $"$.{Convert.ToString(key, CultureInfo.InvariantCulture)}" : $"{path}.{Convert.ToString(key, CultureInfo.InvariantCulture)}"
+        };
+    }
+
+    private static object? NormalizeJsonTableValue(object? value)
+    {
+        if (value is null || value is DBNull)
+        {
+            return null;
+        }
+
+        if (value is System.Text.Json.JsonElement jsonElement)
+        {
+            return NormalizeJsonElement(jsonElement);
+        }
+
+        if (value is System.Text.Json.JsonDocument jsonDocument)
+        {
+            return NormalizeJsonTableValue(jsonDocument.RootElement);
+        }
+
+        return value;
+    }
+
+    private static object? NormalizeJsonElement(System.Text.Json.JsonElement jsonElement)
+        => jsonElement.ValueKind switch
+        {
+            System.Text.Json.JsonValueKind.Null or System.Text.Json.JsonValueKind.Undefined => null,
+            System.Text.Json.JsonValueKind.True => true,
+            System.Text.Json.JsonValueKind.False => false,
+            System.Text.Json.JsonValueKind.Number => jsonElement.TryGetInt64(out var longValue) ? longValue : jsonElement.GetDouble(),
+            System.Text.Json.JsonValueKind.String => jsonElement.GetString(),
+            _ => jsonElement.ToString()
+        };
 
     /// <summary>
 /// EN: Executes a current timestamp scalar query and keeps the provider result alive.

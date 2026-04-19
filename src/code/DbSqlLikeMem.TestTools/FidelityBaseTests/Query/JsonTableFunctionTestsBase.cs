@@ -25,7 +25,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        if (!dialect.SupportsJsonTableFunctions)
+        if (!dialect.SupportsJsonEachFunction)
         {
             await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
                 async (s, a) => (object?)await s.RunJsonEachFromArrayAsync()))
@@ -46,7 +46,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        if (!dialect.SupportsJsonTableFunctions)
+        if (!dialect.SupportsJsonEachFunction)
         {
             await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
                 async (s, a) => (object?)await s.RunJsonEachFromObjectAsync()))
@@ -67,7 +67,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        if (!dialect.SupportsJsonTableFunctions)
+        if (!dialect.SupportsJsonTreeFunction)
         {
             await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
                 async (s, a) => (object?)await s.RunJsonTreeStructureAsync()))

@@ -1221,6 +1221,11 @@ internal static class DbInsertStrategy
         {
             resolved = castJsonValue;
         }
+        else if (parsedExpr is IdentifierExpr identifierExpr
+            && TryEvaluateTemporalToken(context, identifierExpr.Name, out var identifierValue))
+        {
+            resolved = identifierValue;
+        }
         else if (TryResolveParsedSpecialValue(context, table, parsedExpr, out var parsedValue))
         {
             resolved = parsedValue;
@@ -1273,6 +1278,18 @@ internal static class DbInsertStrategy
 
         return dbType switch
         {
+            DbType.String
+            or DbType.AnsiString
+            or DbType.StringFixedLength
+            or DbType.AnsiStringFixedLength
+                => value switch
+                {
+                    string text => text,
+                    DateTime dateTime => dateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                    DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                    TimeSpan timeSpan => timeSpan.ToString("c", CultureInfo.InvariantCulture),
+                    _ => value.ToString() ?? string.Empty
+                },
             DbType.Byte => value is byte ? value : Convert.ToByte(value, CultureInfo.InvariantCulture),
             DbType.SByte => value is sbyte ? value : Convert.ToSByte(value, CultureInfo.InvariantCulture),
             DbType.Int16 => value is short ? value : Convert.ToInt16(value, CultureInfo.InvariantCulture),
@@ -1307,8 +1324,8 @@ internal static class DbInsertStrategy
                 {
                     LiteralExpr lit => lit.Value,
                     ParameterExpr p when context.TryResolveParameter(p.Name, out var parameterValue) => parameterValue,
-                    IdentifierExpr id when context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
-                    ColumnExpr c when context.TryEvaluateZeroArgIdentifier(c.Name, out var temporalColumnValue) => temporalColumnValue,
+                    IdentifierExpr id when TryEvaluateTemporalToken(context, id.Name, out var temporalIdentifierValue) => temporalIdentifierValue,
+                    ColumnExpr c when TryEvaluateTemporalToken(context, c.Name, out var temporalColumnValue) => temporalColumnValue,
                     _ => null
                 };
             }
@@ -1412,7 +1429,7 @@ internal static class DbInsertStrategy
         out object? value)
     {
         var trimmed = rawValue.Trim();
-        if (context.TryEvaluateZeroArgIdentifier(trimmed, out value))
+        if (TryEvaluateTemporalToken(context, trimmed, out value))
             return true;
 
         var openParen = trimmed.IndexOf('(');
@@ -1426,6 +1443,25 @@ internal static class DbInsertStrategy
             return false;
 
         return context.TryEvaluateZeroArgCall(functionName, out value);
+    }
+
+    private static bool TryEvaluateTemporalToken(
+        QueryExecutionContext context,
+        string functionName,
+        out object? value)
+    {
+        if (context.TryEvaluateZeroArgIdentifier(functionName, out value))
+            return true;
+
+        if (ReferenceEquals(context.Dialect, context.Connection.ProviderExecutionDialect))
+            return false;
+
+        var providerContext = new QueryExecutionContext(
+            context.Connection,
+            context.Connection.ProviderExecutionDialect,
+            context.DbParameters);
+
+        return providerContext.TryEvaluateZeroArgIdentifier(functionName, out value);
     }
 
     private static void ApplyOnDuplicateUpdateAstInMemory(
@@ -1479,7 +1515,7 @@ internal static class DbInsertStrategy
                 ParameterExpr p => context.TryResolveParameter(p.Name, out var parameterValue) ? parameterValue : null,
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue)
+                    : TryEvaluateTemporalToken(context, id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
                         : GetExistingColumnValue(GetUnqualifiedName(id.Name)),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
@@ -1878,7 +1914,7 @@ internal static class DbInsertStrategy
                 ParameterExpr p => context.TryResolveParameter(p.Name, out var parameterValue) ? parameterValue : null,
                 IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
                     ? excluded
-                    : context.TryEvaluateZeroArgIdentifier(id.Name, out var temporalIdentifierValue)
+                    : TryEvaluateTemporalToken(context, id.Name, out var temporalIdentifierValue)
                         ? temporalIdentifierValue
                         : GetExistingColumnValue(GetUnqualifiedName(id.Name)),
                 ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)

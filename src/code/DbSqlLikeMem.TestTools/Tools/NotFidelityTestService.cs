@@ -300,7 +300,7 @@ public class NotFidelityTestService<TCnn1>(
 
     #endregion
 
-private static TScenario CreateScenarioInstance<TScenario>(
+    private static TScenario CreateScenarioInstance<TScenario>(
         RepoService repo,
         FidelityTestContext context,
         object?[][] initialData
@@ -308,6 +308,13 @@ private static TScenario CreateScenarioInstance<TScenario>(
         where TScenario : BaseScenario, ITestScenario
     {
         var type = typeof(TScenario);
+        if (initialData.Length == 0)
+        {
+            var directScenario = Activator.CreateInstance(type, repo, context) as TScenario;
+            if (directScenario is not null)
+                return directScenario;
+        }
+
         var ctors = type.GetConstructors();
         foreach (var ctor in ctors)
         {

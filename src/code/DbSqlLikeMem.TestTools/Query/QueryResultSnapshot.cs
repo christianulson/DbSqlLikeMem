@@ -71,11 +71,14 @@ internal static class QueryResultSnapshotReader
             var text = value.ToString();
             if (!string.IsNullOrEmpty(text))
             {
-                if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
-                    return new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+                if (IsDateTimeLikeColumn(columnName))
+                {
+                    if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
+                        return new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
-                if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
-                    return DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified).ToString("O", CultureInfo.InvariantCulture);
+                    if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
+                        return DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified).ToString("O", CultureInfo.InvariantCulture);
+                }
             }
 
             return text;

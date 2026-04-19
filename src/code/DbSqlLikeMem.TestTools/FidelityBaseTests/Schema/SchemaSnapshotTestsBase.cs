@@ -1,4 +1,5 @@
 using DbSqlLikeMem.TestTools.DML;
+using System.Data;
 using System.Text.Json;
 using DbSqlLikeMem.TestTools.Schema;
 
@@ -124,6 +125,8 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 
     private static int InferSnapshotVersion(DbConnection connection, ProviderSqlDialect dialect)
     {
+        EnsureConnectionOpen(connection);
+
         var serverVersion = connection.ServerVersion;
         var (major, minor) = ReadVersionParts(serverVersion);
 
@@ -146,6 +149,14 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             _ when major > 0 => major,
             _ => 1,
         };
+    }
+
+    private static void EnsureConnectionOpen(DbConnection connection)
+    {
+        if (connection.State != ConnectionState.Open)
+        {
+            connection.Open();
+        }
     }
 
     private static (int major, int minor) ReadVersionParts(string version)

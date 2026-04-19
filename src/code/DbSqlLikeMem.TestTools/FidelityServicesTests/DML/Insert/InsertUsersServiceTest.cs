@@ -24,7 +24,11 @@ public class InsertUsersServiceTest(
         var expectedCount = args.Length > 2 ? (int)args[2] : rowCount;
         await InsertSequentialRows(rowCount, startId);
 
-        var lst = await Repo.ExecuteReaderAsync(Repo.Dialect.SelectAll(Context.TbUsersFullName));
+        var lst = await Repo.ExecuteReaderAsync($"""
+SELECT Id, Name
+FROM {Context.TbUsersFullName}
+ORDER BY Id
+""");
 
         if (lst.Count != 1
             || lst[0].Count != expectedCount)

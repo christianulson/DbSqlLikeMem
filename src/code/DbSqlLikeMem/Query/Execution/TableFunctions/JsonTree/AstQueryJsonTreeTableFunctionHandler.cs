@@ -55,7 +55,8 @@ internal sealed class AstQueryJsonTreeTableFunctionHandler(
         object? key,
         ref long nextId)
     {
-        var id = nextId++;
+        var id = nextId;
+        nextId += 2;
         var outRow = new Dictionary<int, object?>(6);
         outRow[0] = key;
         outRow[1] = GetValue(element);

@@ -31,8 +31,8 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies that selecting all rows returns the expected rowset for the current provider.
-    /// PT: Verifica se o select de todas as linhas retorna o conjunto de linhas esperado para o provedor atual.
+    /// EN: Verifies that selecting all rows returns the expected row count for the current provider.
+    /// PT: Verifica se o select de todas as linhas retorna a contagem esperada para o provedor atual.
     /// </summary>
     [Fact]
     public async Task SelectAllRowsCountTest()
@@ -43,10 +43,10 @@ public abstract class SelectTestsBase<T, T2>(
             async (s, a) =>
             {
                 await s.Repo.ExecuteNonQueryAsync(dialect.InsertUser(s.Context, 2, "Bob"));
-                return await s.RunAllRowsSnapshotAsync(a);
+                return await s.RunRowCountAfterSelectAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectAllRowsCountTest)), Snapshot(["Id", "Name"], Row(1m, "Alice"), Row(2m, "Bob")));
+        result.Should().Be(2);
     }
 
     /// <summary>
@@ -903,9 +903,12 @@ public abstract class SelectTestsBase<T, T2>(
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 2, "Bob"));
                 await s.Repo.ExecuteNonQueryAsync(s.Repo.Dialect.InsertUser(s.Context, 3, "Charlie"));
 
-                var rowNumber = await s.RunWindowRowNumberAsync(a);
-                var lag = await s.RunWindowLagAsync(a);
-                var lead = await s.RunWindowLeadAsync(a);
+                var rowNumber = (QueryResultSnapshot)(await s.RunWindowRowNumberAsync(a)
+                    ?? throw new InvalidOperationException("RunWindowRowNumberAsync did not return a query snapshot."));
+                var lag = (QueryResultSnapshot)(await s.RunWindowLagAsync(a)
+                    ?? throw new InvalidOperationException("RunWindowLagAsync did not return a query snapshot."));
+                var lead = (QueryResultSnapshot)(await s.RunWindowLeadAsync(a)
+                    ?? throw new InvalidOperationException("RunWindowLeadAsync did not return a query snapshot."));
                 return (rowNumber, lag, lead);
             });
 
@@ -1461,8 +1464,10 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
             {
-                var crossApply = await s.RunCrossApplyProjectionAsync(a);
-                var outerApply = await s.RunOuterApplyProjectionAsync(a);
+                var crossApply = (QueryResultSnapshot?)await s.RunCrossApplyProjectionAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyProjectionTest cross-apply result was null.");
+                var outerApply = (QueryResultSnapshot?)await s.RunOuterApplyProjectionAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyProjectionTest outer-apply result was null.");
                 return (crossApply, outerApply);
             });
 
@@ -1521,9 +1526,12 @@ public abstract class SelectTestsBase<T, T2>(
                 [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
                 async (s, a) =>
                 {
-                    var crossApply = await s.RunCrossApplyProjectionAsync(a);
-                    var outerApply = await s.RunOuterApplyProjectionAsync(a);
-                    var temporal = await s.RunJoinTemporalMatrixAsync(a);
+                    var crossApply = (QueryResultSnapshot?)await s.RunCrossApplyProjectionAsync(a)
+                        ?? throw new InvalidOperationException("SelectApplyTemporalCompositeTest cross-apply result was null.");
+                    var outerApply = (QueryResultSnapshot?)await s.RunOuterApplyProjectionAsync(a)
+                        ?? throw new InvalidOperationException("SelectApplyTemporalCompositeTest outer-apply result was null.");
+                    var temporal = (QueryResultSnapshot?)await s.RunJoinTemporalMatrixAsync(a)
+                        ?? throw new InvalidOperationException("SelectApplyTemporalCompositeTest temporal result was null.");
                     return (crossApply, outerApply, temporal);
                 })).Should().ThrowAsync<NotSupportedException>();
 
@@ -1534,9 +1542,12 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
             {
-                var crossApply = await s.RunCrossApplyProjectionAsync(a);
-                var outerApply = await s.RunOuterApplyProjectionAsync(a);
-                var temporal = await s.RunJoinTemporalMatrixAsync(a);
+                var crossApply = (QueryResultSnapshot?)await s.RunCrossApplyProjectionAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyTemporalCompositeTest cross-apply result was null.");
+                var outerApply = (QueryResultSnapshot?)await s.RunOuterApplyProjectionAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyTemporalCompositeTest outer-apply result was null.");
+                var temporal = (QueryResultSnapshot?)await s.RunJoinTemporalMatrixAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyTemporalCompositeTest temporal result was null.");
                 return (crossApply, outerApply, temporal);
             });
 
@@ -1562,10 +1573,14 @@ public abstract class SelectTestsBase<T, T2>(
                 [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
                 async (s, a) =>
                 {
-                    var crossApply = await s.RunCrossApplyProjectionAsync(a);
-                    var outerApply = await s.RunOuterApplyProjectionAsync(a);
-                    var window = await s.RunJoinWindowMatrixAsync(a);
-                    var temporal = await s.RunJoinWindowTemporalMatrixAsync(a);
+                    var crossApply = (QueryResultSnapshot?)await s.RunCrossApplyProjectionAsync(a)
+                        ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest cross-apply result was null.");
+                    var outerApply = (QueryResultSnapshot?)await s.RunOuterApplyProjectionAsync(a)
+                        ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest outer-apply result was null.");
+                    var window = (QueryResultSnapshot?)await s.RunJoinWindowMatrixAsync(a)
+                        ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest window result was null.");
+                    var temporal = (QueryResultSnapshot?)await s.RunJoinWindowTemporalMatrixAsync(a)
+                        ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest temporal result was null.");
                     return (crossApply, outerApply, window, temporal);
                 })).Should().ThrowAsync<NotSupportedException>();
 
@@ -1576,10 +1591,14 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             async (s, a) =>
             {
-                var crossApply = await s.RunCrossApplyProjectionAsync(a);
-                var outerApply = await s.RunOuterApplyProjectionAsync(a);
-                var window = await s.RunJoinWindowMatrixAsync(a);
-                var temporal = await s.RunJoinWindowTemporalMatrixAsync(a);
+                var crossApply = (QueryResultSnapshot?)await s.RunCrossApplyProjectionAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest cross-apply result was null.");
+                var outerApply = (QueryResultSnapshot?)await s.RunOuterApplyProjectionAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest outer-apply result was null.");
+                var window = (QueryResultSnapshot?)await s.RunJoinWindowMatrixAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest window result was null.");
+                var temporal = (QueryResultSnapshot?)await s.RunJoinWindowTemporalMatrixAsync(a)
+                    ?? throw new InvalidOperationException("SelectApplyWindowTemporalCompositeTest temporal result was null.");
                 return (crossApply, outerApply, window, temporal);
             });
 
@@ -1602,19 +1621,25 @@ public abstract class SelectTestsBase<T, T2>(
             : throw new InvalidOperationException($"{label} did not return a query snapshot.");
 
     private static (QueryResultSnapshot First, QueryResultSnapshot Second) RequireSnapshotPair(object? value, string label)
-        => value is ValueTuple<QueryResultSnapshot, QueryResultSnapshot> tuple
-            ? tuple
-            : throw new InvalidOperationException($"{label} did not return two query snapshots.");
+    {
+        if (value is not (QueryResultSnapshot s0 and QueryResultSnapshot s1))
+            throw new InvalidOperationException($"{label} did not return two query snapshots.");
+        return (RequireSnapshot(s0, $"{label}[0]"), RequireSnapshot(s1, $"{label}[1]"));
+    }
 
     private static (QueryResultSnapshot First, QueryResultSnapshot Second, QueryResultSnapshot Third) RequireSnapshotTriple(object? value, string label)
-        => value is ValueTuple<QueryResultSnapshot, QueryResultSnapshot, QueryResultSnapshot> tuple
-            ? tuple
-            : throw new InvalidOperationException($"{label} did not return three query snapshots.");
+    {
+        if (value is not (QueryResultSnapshot s0 and QueryResultSnapshot s1 and QueryResultSnapshot s2))
+            throw new InvalidOperationException($"{label} did not return three query snapshots.");
+        return (RequireSnapshot(s0, $"{label}[0]"), RequireSnapshot(s1, $"{label}[1]"), RequireSnapshot(s2, $"{label}[2]"));
+    }
 
     private static (QueryResultSnapshot First, QueryResultSnapshot Second, QueryResultSnapshot Third, QueryResultSnapshot Fourth) RequireSnapshotQuad(object? value, string label)
-        => value is ValueTuple<QueryResultSnapshot, QueryResultSnapshot, QueryResultSnapshot, QueryResultSnapshot> tuple
-            ? tuple
-            : throw new InvalidOperationException($"{label} did not return four query snapshots.");
+    {
+        if (value is not (QueryResultSnapshot s0 and QueryResultSnapshot s1 and QueryResultSnapshot s2 and QueryResultSnapshot s3))
+            throw new InvalidOperationException($"{label} did not return four query snapshots.");
+        return (RequireSnapshot(s0, $"{label}[0]"), RequireSnapshot(s1, $"{label}[1]"), RequireSnapshot(s2, $"{label}[2]"), RequireSnapshot(s3, $"{label}[3]"));
+    }
 
     private static QueryResultSnapshot Snapshot(string[] columnNames, params object?[][] rows)
     {

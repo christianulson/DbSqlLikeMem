@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
@@ -79,17 +81,25 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         var context = new FidelityTestContext();
         object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
             objResultContainer = await Execute<TScenario, TServiceTest>(args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
         }
 
         var objResultMock = await Execute<TScenario, TServiceTest>(args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
             AssertEquivalentResults(objResultMock, objResultContainer);
+        }
 
         return objResultMock;
     }
@@ -106,17 +116,25 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         var context = new FidelityTestContext();
         object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
         }
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
             AssertEquivalentResults(objResultMock, objResultContainer);
+        }
 
         return objResultMock;
     }
@@ -135,17 +153,25 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         var context = new FidelityTestContext();
         object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
             objResultContainer = await Execute<TScenario, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
         }
 
         var objResultMock = await Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
             AssertEquivalentResults(objResultMock, objResultContainer);
+        }
 
         return objResultMock;
     }
@@ -164,17 +190,25 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         var context = new FidelityTestContext();
         object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
                 throw new InvalidOperationException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured. Set the environment variable RUN_CONTAINER_TESTS to false or provide a valid connection string to run container tests.");
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
         }
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
             AssertEquivalentResults(objResultMock, objResultContainer);
+        }
 
         return objResultMock;
     }

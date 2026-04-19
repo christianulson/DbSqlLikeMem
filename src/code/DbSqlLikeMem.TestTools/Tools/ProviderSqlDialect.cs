@@ -96,17 +96,29 @@ WHERE u.tenantid = 10";
     /// </summary>
     public virtual bool SupportsReleaseSavepoints => true;
 
-/// <summary>
-/// EN: Indicates whether the provider supports JSON scalar reads in the benchmark flow.
-/// PT: Indica se o provedor suporta leitura escalar de JSON no fluxo de benchmark.
-/// </summary>
-public virtual bool SupportsJsonScalarRead => false;
+    /// <summary>
+    /// EN: Indicates whether the provider supports JSON scalar reads in the benchmark flow.
+    /// PT: Indica se o provedor suporta leitura escalar de JSON no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsJsonScalarRead => false;
 
-/// <summary>
-/// EN: Indicates whether the provider supports table-valued JSON functions (json_each, json_tree) in FROM clause.
-/// PT: Indica se o provedor suporta funções JSON tabulares (json_each, json_tree) na cláusulas FROM.
-/// </summary>
-public virtual bool SupportsJsonTableFunctions => false;
+    /// <summary>
+    /// EN: Indicates whether the provider supports the json_each table-valued function in the FROM clause.
+    /// PT: Indica se o provedor suporta a funcao tabular json_each na clausula FROM.
+    /// </summary>
+    public virtual bool SupportsJsonEachFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the json_tree table-valued function in the FROM clause.
+    /// PT: Indica se o provedor suporta a funcao tabular json_tree na clausula FROM.
+    /// </summary>
+    public virtual bool SupportsJsonTreeFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports table-valued JSON functions in the FROM clause.
+    /// PT: Indica se o provedor suporta funcoes JSON tabulares na clausula FROM.
+    /// </summary>
+    public virtual bool SupportsJsonTableFunctions => SupportsJsonEachFunction && SupportsJsonTreeFunction;
 
 /// <summary>
 /// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.
@@ -537,6 +549,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
         $"CAST({expression} AS CHAR({length}))";
 
     /// <summary>
+    /// EN: Returns the SQL expression used to cast a numeric value to decimal text for fidelity checks.
+    /// PT: Retorna a expressao SQL usada para converter um valor numerico em texto decimal nos testes de fidelidade.
+    /// </summary>
+    public virtual string DecimalTextExpression(string expression, int scale = 2) =>
+        StringCastExpression(expression, Math.Max(1, scale + 8));
+
+    /// <summary>
     /// EN: Returns the SQL expression used to cast a value to integer for fidelity checks.
     /// PT: Retorna a expressao SQL usada para converter um valor em inteiro nos testes de fidelidade.
     /// </summary>
@@ -615,21 +634,21 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// PT: Retorna a instrucao SQL usada no benchmark de EXISTS.
     /// </summary>
     public virtual string SelectExistsPredicate(FidelityTestContext context) =>
-        $"SELECT u.* FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
+        $"SELECT u.Id, u.Name FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the NOT EXISTS benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de NOT EXISTS.
     /// </summary>
     public virtual string SelectNotExistsPredicate(FidelityTestContext context) =>
-        $"SELECT u.* FROM {context.TbUsersFullName} u WHERE NOT EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
+        $"SELECT u.Id, u.Name FROM {context.TbUsersFullName} u WHERE NOT EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the LEFT JOIN anti-join benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de anti-join com LEFT JOIN.
     /// </summary>
     public virtual string SelectLeftJoinAntiJoin(FidelityTestContext context) =>
-        $"SELECT u.* FROM {context.TbUsersFullName} u LEFT JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE o.{context.TbUsers}Id IS NULL ORDER BY u.Id";
+        $"SELECT u.Id, u.Name FROM {context.TbUsersFullName} u LEFT JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE o.{context.TbUsers}Id IS NULL ORDER BY u.Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the correlated COUNT benchmark.
@@ -717,14 +736,14 @@ ORDER BY o1.Id, o2.Id
     /// PT: Retorna a instrucao SQL usada no benchmark de subconsulta IN.
     /// </summary>
     public virtual string SelectInSubquery(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} WHERE Id IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
+        $"SELECT Id, Name FROM {context.TbUsersFullName} WHERE Id IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the NOT IN subquery benchmark.
     /// PT: Retorna a instrucao SQL usada no benchmark de subconsulta NOT IN.
     /// </summary>
     public virtual string SelectNotInSubquery(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} WHERE Id NOT IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
+        $"SELECT Id, Name FROM {context.TbUsersFullName} WHERE Id NOT IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
 
     /// <summary>
     /// EN: Returns the SQL statement used for the SELECT * benchmark.

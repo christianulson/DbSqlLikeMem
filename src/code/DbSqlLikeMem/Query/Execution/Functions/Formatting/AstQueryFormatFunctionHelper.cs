@@ -237,7 +237,29 @@ internal static class AstQueryFormatFunctionHelper
                 continue;
             }
 
-            var token = format[++i];
+            var precision = -1;
+            var tokenStart = i + 1;
+            if (tokenStart < format.Length && format[tokenStart] == '.')
+            {
+                var precisionStart = tokenStart + 1;
+                var precisionEnd = precisionStart;
+                while (precisionEnd < format.Length && char.IsDigit(format[precisionEnd]))
+                    precisionEnd++;
+
+                if (precisionEnd < format.Length && precisionEnd > precisionStart)
+                {
+                    if (int.TryParse(format[precisionStart..precisionEnd], NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedPrecision))
+                        precision = parsedPrecision;
+
+                    tokenStart = precisionEnd;
+                }
+            }
+
+            if (tokenStart >= format.Length)
+                break;
+
+            i = tokenStart;
+            var token = format[tokenStart];
             if (token == '%')
             {
                 builder.Append('%');
@@ -248,7 +270,11 @@ internal static class AstQueryFormatFunctionHelper
             var text = token switch
             {
                 'd' or 'i' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
-                'f' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToDouble(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+                'f' => AstQueryExecutorBase.IsNullish(value)
+                    ? precision >= 0
+                        ? 0d.ToString($"F{precision}", CultureInfo.InvariantCulture)
+                        : "0"
+                    : FormatPrintfFloating(value, precision),
                 's' => AstQueryExecutorBase.IsNullish(value) ? string.Empty : stringValueFormatter(value),
                 'x' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("x", CultureInfo.InvariantCulture),
                 'X' => AstQueryExecutorBase.IsNullish(value) ? "0" : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString("X", CultureInfo.InvariantCulture),
@@ -259,6 +285,14 @@ internal static class AstQueryFormatFunctionHelper
         }
 
         return builder.ToString();
+    }
+
+    private static string FormatPrintfFloating(object? value, int precision)
+    {
+        var numeric = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+        return precision >= 0
+            ? numeric.ToString($"F{precision}", CultureInfo.InvariantCulture)
+            : numeric.ToString(CultureInfo.InvariantCulture);
     }
 
     private static string ReplaceInsensitive(string value, string oldValue, string newValue)

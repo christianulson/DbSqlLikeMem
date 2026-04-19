@@ -17,6 +17,7 @@ public class TemporaryTableServiceOpsTest(
     {
         var isMockConnection = Repo.Cnn is DbConnectionMockBase;
         var tempTable = BuildTemporaryTableName(Context.UId, isMockConnection);
+        var sourceUsersTable = Repo.Dialect.TemporaryUsersTableName(Context);
         var sessionTempTable = Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection
             ? $"SESSION.{tempTable}"
             : tempTable;
@@ -24,7 +25,7 @@ public class TemporaryTableServiceOpsTest(
         {
             await Repo.ExecuteNonQueryAsync($@"
 CREATE TEMP TABLE {tempTable} AS
-SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection)
         {
@@ -35,7 +36,7 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
 ) ON COMMIT PRESERVE ROWS NOT LOGGED");
             await Repo.ExecuteNonQueryAsync($@"
 INSERT INTO SESSION.{tempTable} (Id, Name)
-SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Repo.Dialect.Provider == ProviderId.Db2)
         {
@@ -50,18 +51,18 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
             tempTableMock.AddColumn("Name", DbType.String, false);
             await Repo.ExecuteNonQueryAsync($@"
 INSERT INTO {tempTable} (Id, Name)
-SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if ((Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure) && isMockConnection)
         {
             await Repo.ExecuteNonQueryAsync($@"
 CREATE TEMPORARY TABLE {tempTable} AS
-SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
         {
             await Repo.ExecuteNonQueryAsync($@"
-SELECT Id, Name INTO {tempTable} FROM {Context.TempTbFullName} WHERE TenantId = 10");
+SELECT Id, Name INTO {tempTable} FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else if (Repo.Dialect.Provider == ProviderId.Oracle
             && Repo.Cnn is not DbConnectionMockBase)
@@ -70,7 +71,7 @@ SELECT Id, Name INTO {tempTable} FROM {Context.TempTbFullName} WHERE TenantId = 
 CREATE GLOBAL TEMPORARY TABLE {tempTable}
 ON COMMIT PRESERVE ROWS
 AS SELECT Id, Name
-FROM {Context.TempTbFullName}
+FROM {sourceUsersTable}
 WHERE TenantId = 10");
         }
         else if (Repo.Dialect.Provider == ProviderId.Firebird
@@ -83,11 +84,11 @@ CREATE GLOBAL TEMPORARY TABLE {tempTable} (
 ) ON COMMIT PRESERVE ROWS");
             await Repo.ExecuteNonQueryAsync($@"
 INSERT INTO {tempTable} (Id, Name)
-SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         else
         {
-            var createSql = BuildCreateTemporaryTableSql(tempTable, Context.TempTbFullName);
+            var createSql = BuildCreateTemporaryTableSql(tempTable, sourceUsersTable);
             await Repo.ExecuteNonQueryAsync(createSql);
         }
 
@@ -135,7 +136,7 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10");
     {
         return $@"
 CREATE TEMPORARY TABLE {tempTable} AS
-SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10";
+SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
     }
 
     /// <summary>
@@ -146,7 +147,7 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10";
     {
         var users = pars.Length > 0
             ? (string)pars[0]
-            : Context.TempTbFullName;
+            : Repo.Dialect.TemporaryUsersTableName(Context);
         var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbSqlLikeMem.DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
@@ -169,7 +170,7 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10";
     {
         var users = pars.Length > 0
             ? (string)pars[0]
-            : Context.TempTbFullName;
+            : Repo.Dialect.TemporaryUsersTableName(Context);
         var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbSqlLikeMem.DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;
@@ -195,7 +196,7 @@ SELECT Id, Name FROM {Context.TempTbFullName} WHERE TenantId = 10";
     {
         var users = pars.Length > 0
             ? (string)pars[0]
-            : Context.TempTbFullName;
+            : Repo.Dialect.TemporaryUsersTableName(Context);
         var sessionUsers = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbConnectionMockBase
             ? $"SESSION.{users}"
             : users;

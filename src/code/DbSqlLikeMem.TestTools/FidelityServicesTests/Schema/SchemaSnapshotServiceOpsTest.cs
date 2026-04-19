@@ -1,4 +1,5 @@
 using DbSqlLikeMem.TestTools.Performance;
+using System.Data;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.TestTools.Schema;
@@ -96,6 +97,8 @@ public class SchemaSnapshotServiceOpsTest(
 
     private SchemaSnapshot GetSchemaSnapshot(DbConnection connection)
     {
+        EnsureConnectionOpen(connection);
+
         if (connection is DbConnectionMockBase mockConnection)
         {
             return mockConnection.ExportSchemaSnapshot();
@@ -110,11 +113,15 @@ public class SchemaSnapshotServiceOpsTest(
     }
 
     private string BuildCanonicalSchemaSnapshotEnvelope(DbConnection connection)
-        => JsonSerializer.Serialize(new
+    {
+        EnsureConnectionOpen(connection);
+
+        return JsonSerializer.Serialize(new
         {
             DialectName = GetSchemaDialectName(Repo.Dialect.Provider),
             Version = InferFallbackVersion(connection),
         });
+    }
 
     private static string GetSchemaDialectName(ProviderId provider)
         => provider switch
@@ -154,6 +161,14 @@ public class SchemaSnapshotServiceOpsTest(
             _ when major > 0 => major,
             _ => 1,
         };
+    }
+
+    private static void EnsureConnectionOpen(DbConnection connection)
+    {
+        if (connection.State != ConnectionState.Open)
+        {
+            connection.Open();
+        }
     }
 
     private static (int major, int minor) ReadVersionParts(string text)

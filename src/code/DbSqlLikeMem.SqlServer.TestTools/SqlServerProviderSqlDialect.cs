@@ -154,6 +154,10 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
         "SELECT CURRENT_TIMESTAMP";
 
     /// <inheritdoc />
+    public override string DecimalTextExpression(string expression, int scale = 2) =>
+        $"CONVERT(VARCHAR(50), CAST({expression} AS DECIMAL(38, {scale})))";
+
+    /// <inheritdoc />
     public override string StringAggregate(FidelityTestContext context) =>
         $"SELECT STRING_AGG(Name, ',') FROM {context.TbUsersFullName}";
 

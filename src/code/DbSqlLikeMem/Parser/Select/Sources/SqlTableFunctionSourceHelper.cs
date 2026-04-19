@@ -209,7 +209,10 @@ internal static class SqlTableFunctionSourceHelper
             return;
         }
 
-        throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
+        if (!functionDefinition.AllowsArgumentCount(function.Args.Count))
+            throw new NotSupportedException($"Table-valued function '{function.Name}' currently supports {functionDefinition.MinArguments} argument(s) in the mock.");
+
+        return;
     }
 
     private static DbFunctionDef ResolveTableFunctionDefinition(FunctionCallExpr function, ISqlDialect dialect)

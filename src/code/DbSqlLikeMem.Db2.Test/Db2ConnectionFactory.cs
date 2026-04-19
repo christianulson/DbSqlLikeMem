@@ -1,4 +1,5 @@
 #if NET462
+using DbSqlLikeMem.Db2.TestTools;
 using System.Globalization;
 using DB2Connection = IBM.Data.DB2.Core.DB2Connection;
 using DB2ConnectionStringBuilder = IBM.Data.DB2.Core.DB2ConnectionStringBuilder;
@@ -12,6 +13,7 @@ using System.Globalization;
 using DB2Connection = IBM.Data.Db2.DB2Connection;
 using DB2ConnectionStringBuilder = IBM.Data.Db2.DB2ConnectionStringBuilder;
 #endif
+using Xunit.Sdk;
 
 namespace DbSqlLikeMem.Db2.Test;
 
@@ -31,8 +33,16 @@ internal static class Db2ConnectionFactory
     /// <returns>EN: A connection instance ready for use by the fidelity tests. PT: Uma instancia de conexao pronta para uso pelos testes de fidelidade.</returns>
     internal static DB2Connection Create(string connectionString)
     {
-#if NET6_0
-        Db2NativeClientGuard.EnsureNativeClientAvailable();
+#if NET462 || NET6_0
+        try
+        {
+            Db2NativeClientGuard.EnsureNativeClientAvailable();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _ = ex;
+            throw SkipException.ForSkip("Db2 native client is not available.");
+        }
 #endif
         var builder = new DB2ConnectionStringBuilder
         {

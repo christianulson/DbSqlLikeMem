@@ -154,6 +154,12 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsJsonEachFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsJsonTreeFunction => true;
+
+    /// <inheritdoc />
     public override bool SupportsJsonTableFunctions => true;
 
     /// <inheritdoc />
@@ -198,6 +204,10 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     /// <inheritdoc />
     public override string StringCastExpression(string expression, int length = 10) =>
         $"PRINTF('%s', {expression})";
+
+    /// <inheritdoc />
+    public override string DecimalTextExpression(string expression, int scale = 2) =>
+        $"PRINTF('%.{scale}f', {expression})";
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>

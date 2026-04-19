@@ -38,6 +38,13 @@ WHERE u.tenantid = 10";
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsJsonEachFunction => true;
+
+    /// <inheritdoc />
+    public override string JsonEachFunction(string jsonColumn) =>
+        $"SELECT key, value FROM json_each({jsonColumn})";
+
+    /// <inheritdoc />
     public override string JsonParameter(string name) =>
         $"CAST({Parameter(name)} AS JSONB)";
 

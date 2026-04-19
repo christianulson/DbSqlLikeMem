@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 internal static class SqlCreateTemporaryTableHelper
@@ -191,7 +193,8 @@ internal static class SqlCreateTemporaryTableHelper
         var size = TryParseSize(typeSql, dbType);
         var decimalPlaces = TryParseDecimalPlaces(typeSql, dbType);
         var nullable = !HasNotNullConstraint(defTokens);
-        return new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces);
+        var defaultValue = ParseCreateTemporaryTableDefaultValue(defTokens, typeTokens.Count + 1, dbType);
+        return new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces, defaultValue: defaultValue);
     }
 
     private static List<SqlToken> CollectCreateTemporaryTableTypeTokens(IReadOnlyList<SqlToken> defTokens)
@@ -243,6 +246,210 @@ internal static class SqlCreateTemporaryTableHelper
         }
 
         return false;
+    }
+
+    private static object? ParseCreateTemporaryTableDefaultValue(
+        IReadOnlyList<SqlToken> defTokens,
+        int startIndex,
+        DbType dbType)
+    {
+        var defaultIndex = -1;
+        for (var i = startIndex; i < defTokens.Count; i++)
+        {
+            if (defTokens[i].Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+                continue;
+
+            if (defTokens[i].Text.Equals(SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase))
+            {
+                defaultIndex = i;
+                break;
+            }
+        }
+
+        if (defaultIndex < 0)
+            return null;
+
+        var valueTokens = new List<SqlToken>();
+        var depth = 0;
+        for (var i = defaultIndex + 1; i < defTokens.Count; i++)
+        {
+            var token = defTokens[i];
+            if (depth == 0 && IsColumnConstraintToken(token))
+                break;
+
+            if (token.Text == "(")
+                depth++;
+            else if (token.Text == ")" && depth > 0)
+                depth--;
+
+            valueTokens.Add(token);
+        }
+
+        if (valueTokens.Count == 0)
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column DEFAULT requires a value.");
+
+        return ParseCreateTemporaryTableDefaultValue(valueTokens, dbType);
+    }
+
+    private static object? ParseCreateTemporaryTableDefaultValue(
+        IReadOnlyList<SqlToken> valueTokens,
+        DbType dbType)
+    {
+        var normalizedValue = TokensToSql(StripOuterParentheses(valueTokens));
+        if (string.IsNullOrWhiteSpace(normalizedValue))
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE column DEFAULT requires a value.");
+
+        if (TryParseCurrentTimestampDefault(normalizedValue, dbType, out var timestampValue))
+            return timestampValue;
+
+        if (normalizedValue.Equals(SqlConst.NULL, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (normalizedValue.Equals(SqlConst.TRUE, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (normalizedValue.Equals(SqlConst.FALSE, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (normalizedValue.Length >= 2
+            && normalizedValue[0] == '\''
+            && normalizedValue[^1] == '\'')
+        {
+            return normalizedValue[1..^1].Replace("''", "'");
+        }
+
+        if (normalizedValue.StartsWith("+", StringComparison.Ordinal)
+            || normalizedValue.StartsWith("-", StringComparison.Ordinal)
+            || char.IsDigit(normalizedValue[0]))
+        {
+            if (long.TryParse(normalizedValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
+                return parsedLong;
+
+            if (decimal.TryParse(normalizedValue, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedDecimal))
+                return parsedDecimal;
+
+            if (double.TryParse(normalizedValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedDouble))
+                return parsedDouble;
+        }
+
+        return normalizedValue;
+    }
+
+    private static bool TryParseCurrentTimestampDefault(
+        string normalizedValue,
+        DbType dbType,
+        out object? value)
+    {
+        if (normalizedValue.Equals("CURRENT_TIMESTAMP", StringComparison.OrdinalIgnoreCase)
+            || normalizedValue.Equals("CURRENT TIMESTAMP", StringComparison.OrdinalIgnoreCase))
+        {
+            value = BuildCurrentTimestampDefault(dbType);
+            return true;
+        }
+
+        if (normalizedValue.Equals("CURRENT_DATE", StringComparison.OrdinalIgnoreCase)
+            || normalizedValue.Equals("CURRENT DATE", StringComparison.OrdinalIgnoreCase))
+        {
+            value = BuildCurrentDateDefault(dbType);
+            return true;
+        }
+
+        if (normalizedValue.Equals("CURRENT_TIME", StringComparison.OrdinalIgnoreCase)
+            || normalizedValue.Equals("CURRENT TIME", StringComparison.OrdinalIgnoreCase))
+        {
+            value = BuildCurrentTimeDefault(dbType);
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private static object BuildCurrentTimestampDefault(DbType dbType)
+    {
+        return dbType switch
+        {
+            DbType.String
+            or DbType.AnsiString
+            or DbType.StringFixedLength
+            or DbType.AnsiStringFixedLength
+                => DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+            DbType.DateTimeOffset
+                => DateTimeOffset.Now,
+            DbType.Date
+            or DbType.DateTime
+            or DbType.DateTime2
+                => DateTime.Now,
+            DbType.Time
+                => DateTime.Now.TimeOfDay,
+            _ => DateTime.Now
+        };
+    }
+
+    private static object BuildCurrentDateDefault(DbType dbType)
+    {
+        return dbType switch
+        {
+            DbType.String
+            or DbType.AnsiString
+            or DbType.StringFixedLength
+            or DbType.AnsiStringFixedLength
+                => DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            DbType.DateTimeOffset
+                => new DateTimeOffset(DateTime.Now.Date, TimeSpan.Zero),
+            DbType.Date
+            or DbType.DateTime
+            or DbType.DateTime2
+                => DateTime.Now.Date,
+            _ => DateTime.Now.Date
+        };
+    }
+
+    private static object BuildCurrentTimeDefault(DbType dbType)
+    {
+        return dbType switch
+        {
+            DbType.String
+            or DbType.AnsiString
+            or DbType.StringFixedLength
+            or DbType.AnsiStringFixedLength
+                => DateTime.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture),
+            DbType.Time
+                => DateTime.UtcNow.TimeOfDay,
+            DbType.DateTimeOffset
+                => DateTimeOffset.Now,
+            DbType.Date
+            or DbType.DateTime
+            or DbType.DateTime2
+                => DateTime.Now,
+            _ => DateTime.Now.TimeOfDay
+        };
+    }
+
+    private static IReadOnlyList<SqlToken> StripOuterParentheses(IReadOnlyList<SqlToken> tokens)
+    {
+        if (tokens.Count < 2
+            || tokens[0].Text != "("
+            || tokens[^1].Text != ")")
+        {
+            return tokens;
+        }
+
+        var depth = 0;
+        for (var i = 0; i < tokens.Count; i++)
+        {
+            var token = tokens[i];
+            if (token.Text == "(")
+                depth++;
+            else if (token.Text == ")")
+            {
+                depth--;
+                if (depth == 0 && i < tokens.Count - 1)
+                    return tokens;
+            }
+        }
+
+        return StripOuterParentheses(tokens.Skip(1).Take(tokens.Count - 2).ToList());
     }
 
     private static string? ParseCreateTemporaryTableSelectSql(SqlQueryParserContext ctx)

@@ -32,6 +32,7 @@ internal sealed class SqliteDialect : SqlDialectBase
         ])
     {
         SqliteScalarFunctionRegistry.Register(this, version);
+        SqliteTableFunctionRegistry.Register(this);
         SqlSharedWindowFunctionRegistry.Register(this);
     }
 

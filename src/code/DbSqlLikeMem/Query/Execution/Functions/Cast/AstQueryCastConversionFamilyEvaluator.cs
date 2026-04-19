@@ -752,6 +752,9 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
     private static string FormatTextCastValue(QueryExecutionContext context, object value)
     {
+        if (value is decimal decimalValue)
+            return FormatDecimalWithScale(decimalValue);
+
         var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
         if (!IsFirebirdDialect(context.Connection.ProviderExecutionDialect))
             return text;
@@ -766,6 +769,13 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             return text;
 
         return decimal.Truncate(numeric).ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatDecimalWithScale(decimal value)
+    {
+        var bits = decimal.GetBits(value);
+        var scale = (bits[3] >> 16) & 0x7F;
+        return value.ToString($"F{scale}", CultureInfo.InvariantCulture);
     }
 
     private static bool IsNumericValue(object value)
