@@ -30,6 +30,12 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
         string sql);
 
     /// <summary>
+    /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in this provider.
+    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT neste provedor.
+    /// </summary>
+    protected virtual int CreateTableAsSelectExpectedAffectedRows => 0;
+
+    /// <summary>
     /// EN: Verifies CREATE TABLE AS SELECT creates a new table populated with the selected rows.
     /// PT: Verifica se CREATE TABLE AS SELECT cria uma nova tabela populada com as linhas selecionadas.
     /// </summary>
@@ -50,7 +56,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
         var affected = ExecuteNonQuery(db, sql);
 
-        affected.Should().Be(0);
+        affected.Should().Be(CreateTableAsSelectExpectedAffectedRows);
         db.TryGetTable("active_users", out var active).Should().BeTrue();
         active.Should().NotBeNull();
         active!.Count.Should().Be(2);
@@ -81,7 +87,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
         var affected = ExecuteNonQuery(db, sql);
 
-        affected.Should().Be(0);
+        affected.Should().Be(CreateTableAsSelectExpectedAffectedRows);
         db.TryGetTable("active_users", out var active).Should().BeTrue();
         active.Should().NotBeNull();
         active!.Count.Should().Be(2);

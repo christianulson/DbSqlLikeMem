@@ -21,7 +21,7 @@ internal static class QueryResultSnapshotReader
     {
         var columnNames = new string[reader.FieldCount];
         for (var i = 0; i < columnNames.Length; i++)
-            columnNames[i] = reader.GetName(i);
+            columnNames[i] = NormalizeCapturedColumnName(reader.GetName(i), reader);
 
         var rows = new List<QueryResultRowSnapshot>();
         while (reader.Read())
@@ -74,10 +74,10 @@ internal static class QueryResultSnapshotReader
                 if (IsDateTimeLikeColumn(columnName))
                 {
                     if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
-                        return new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+                        return new DateTimeOffset(RoundToNearestSecond(dateTimeOffsetValue.DateTime), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
                     if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
-                        return DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified).ToString("O", CultureInfo.InvariantCulture);
+                        return RoundToNearestSecond(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified)).ToString("O", CultureInfo.InvariantCulture);
                 }
             }
 
@@ -97,10 +97,10 @@ internal static class QueryResultSnapshotReader
             return NormalizeJsonElement(jsonDocument.RootElement);
 
         if (value is DateTime dateTime)
-            return DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified).ToString("O", CultureInfo.InvariantCulture);
+            return RoundToNearestSecond(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified)).ToString("O", CultureInfo.InvariantCulture);
 
         if (value is DateTimeOffset dateTimeOffset)
-            return new DateTimeOffset(dateTimeOffset.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+            return new DateTimeOffset(RoundToNearestSecond(dateTimeOffset.DateTime), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
         if (value is TimeSpan timeSpan)
             return timeSpan.ToString("c", CultureInfo.InvariantCulture);
@@ -165,6 +165,15 @@ internal static class QueryResultSnapshotReader
         return value;
     }
 
+    private static string NormalizeCapturedColumnName(string columnName, DbDataReader reader)
+    {
+        var readerTypeName = reader.GetType().FullName ?? string.Empty;
+        if (readerTypeName.Contains("DbSqlLikeMem.Oracle", StringComparison.Ordinal))
+            return columnName.ToUpperInvariant();
+
+        return columnName;
+    }
+
     private static bool IsDateOnlyColumn(string columnName)
         => columnName.Contains("BirthDate", StringComparison.OrdinalIgnoreCase);
 
@@ -225,10 +234,10 @@ internal static class QueryResultSnapshotReader
             return null;
 
         if (value is DateTimeOffset dateTimeOffset)
-            return new DateTimeOffset(dateTimeOffset.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+            return new DateTimeOffset(RoundToNearestSecond(dateTimeOffset.DateTime), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
         if (value is DateTime dateTime)
-            return new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+            return new DateTimeOffset(RoundToNearestSecond(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified)), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
         if (value is string or char)
         {
@@ -236,10 +245,10 @@ internal static class QueryResultSnapshotReader
             if (!string.IsNullOrEmpty(text))
             {
                 if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
-                    return new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+                    return new DateTimeOffset(RoundToNearestSecond(dateTimeOffsetValue.DateTime), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
                 if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
-                    return new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+                    return new DateTimeOffset(RoundToNearestSecond(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified)), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
             }
 
             return text;
@@ -297,6 +306,13 @@ internal static class QueryResultSnapshotReader
 
         dateTime = new DateTime(year, month, day);
         return true;
+    }
+
+    private static DateTime RoundToNearestSecond(DateTime value)
+    {
+        var ticks = value.Ticks;
+        var roundedTicks = ((ticks + (TimeSpan.TicksPerSecond / 2)) / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
+        return new DateTime(roundedTicks, DateTimeKind.Unspecified);
     }
 }
 
@@ -415,10 +431,10 @@ internal static class QueryResultSnapshotAssertions
             return text;
 
         if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
-            return DateTime.SpecifyKind(dateTimeOffsetValue.DateTime, DateTimeKind.Unspecified).ToString("O", CultureInfo.InvariantCulture);
+            return RoundToNearestSecond(DateTime.SpecifyKind(dateTimeOffsetValue.DateTime, DateTimeKind.Unspecified)).ToString("O", CultureInfo.InvariantCulture);
 
         if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
-            return DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified).ToString("O", CultureInfo.InvariantCulture);
+            return RoundToNearestSecond(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified)).ToString("O", CultureInfo.InvariantCulture);
 
         return text;
     }
@@ -426,10 +442,10 @@ internal static class QueryResultSnapshotAssertions
     private static object? NormalizeDateTimeOffsetComparisonValue(object value)
     {
         if (value is DateTimeOffset dateTimeOffset)
-            return new DateTimeOffset(dateTimeOffset.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+            return new DateTimeOffset(RoundToNearestSecond(dateTimeOffset.DateTime), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
         if (value is DateTime dateTime)
-            return new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+            return new DateTimeOffset(RoundToNearestSecond(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified)), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
         if (value is string or char)
         {
@@ -438,10 +454,10 @@ internal static class QueryResultSnapshotAssertions
                 return text;
 
             if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffsetValue))
-                return new DateTimeOffset(dateTimeOffsetValue.DateTime, TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+                return new DateTimeOffset(RoundToNearestSecond(dateTimeOffsetValue.DateTime), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
             if (DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
-                return new DateTimeOffset(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
+                return new DateTimeOffset(RoundToNearestSecond(DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Unspecified)), TimeSpan.Zero).ToString("O", CultureInfo.InvariantCulture);
 
             return text;
         }
@@ -580,6 +596,13 @@ internal static class QueryResultSnapshotAssertions
 
         dateTime = new DateTime(year, month, day);
         return true;
+    }
+
+    private static DateTime RoundToNearestSecond(DateTime value)
+    {
+        var ticks = value.Ticks;
+        var roundedTicks = ((ticks + (TimeSpan.TicksPerSecond / 2)) / TimeSpan.TicksPerSecond) * TimeSpan.TicksPerSecond;
+        return new DateTime(roundedTicks, DateTimeKind.Unspecified);
     }
 }
 

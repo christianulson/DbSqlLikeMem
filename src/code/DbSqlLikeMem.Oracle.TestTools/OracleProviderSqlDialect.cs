@@ -173,9 +173,9 @@ CREATE TABLE {context.TbOrdersFullName} (
     public override string SelectCorrelatedCount(FidelityTestContext context) =>
         $"""
 SELECT
-    u.Id AS UserId,
-    u.Name AS UserName,
-    (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) AS OrderCount
+    u.Id AS USERID,
+    u.Name AS USERNAME,
+    (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) AS ORDERCOUNT
 FROM {context.TbUsersFullName} u
 WHERE (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) > 0
 ORDER BY u.Id
@@ -266,6 +266,10 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM (SELECT DISTINCT Name FROM {context.TbUsersFullName}) t";
 
     /// <inheritdoc />
+    public override string DistinctProjection(FidelityTestContext context) =>
+        $"SELECT DISTINCT Name AS NAME FROM {context.TbUsersFullName} ORDER BY Name";
+
+    /// <inheritdoc />
     public override string StringAggregateCustomSeparator(FidelityTestContext context, string separator) =>
         $"SELECT LISTAGG(Name, '{separator}') WITHIN GROUP (ORDER BY Name) FROM {context.TbUsersFullName}";
 
@@ -310,7 +314,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
     /// <inheritdoc />
     public override string CteSimple(FidelityTestContext context) =>
         $"""
-WITH cte AS (SELECT Name FROM {context.TbUsersFullName} WHERE Id = 1)
+WITH cte AS (SELECT Name AS NAME FROM {context.TbUsersFullName} WHERE Id = 1)
 SELECT * FROM cte
 """;
 
@@ -333,9 +337,9 @@ SELECT * FROM cte
     public override string CrossApplyProjection(FidelityTestContext context) =>
         $"""
 SELECT
-    u.Id AS UserId,
-    u.Name AS UserName,
-    x.Note AS Note
+    u.Id AS USERID,
+    u.Name AS USERNAME,
+    x.Note AS NOTE
 FROM {context.TbUsersFullName} u
 JOIN LATERAL (
     SELECT o.Note
@@ -351,9 +355,9 @@ ORDER BY u.Id
     public override string OuterApplyProjection(FidelityTestContext context) =>
         $"""
 SELECT
-    u.Id AS UserId,
-    u.Name AS UserName,
-    x.Note AS Note
+    u.Id AS USERID,
+    u.Name AS USERNAME,
+    x.Note AS NOTE
 FROM {context.TbUsersFullName} u
 LEFT JOIN LATERAL (
     SELECT o.Note

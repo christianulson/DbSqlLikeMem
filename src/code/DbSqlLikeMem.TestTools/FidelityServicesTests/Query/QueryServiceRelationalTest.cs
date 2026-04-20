@@ -1069,12 +1069,12 @@ ORDER BY u.Id, o.Id
     }
 
     /// <summary>
-    /// EN: Executes a select over all configured users and returns the full result snapshot.
-    /// PT: Executa um select sobre todos os usuarios configurados e retorna o snapshot completo do resultado.
+    /// EN: Executes a select over all configured users and returns the ordered Name snapshot.
+    /// PT: Executa um select sobre todos os usuarios configurados e retorna o snapshot ordenado de Name.
     /// </summary>
     public async Task<object?> RunAllRowsSnapshotAsync(params object[] pars)
     {
-        return await CaptureSnapshotAsync($"SELECT * FROM {Context.TbUsersFullName} ORDER BY Id");
+        return await CaptureSnapshotAsync($"SELECT Name FROM {Context.TbUsersFullName} ORDER BY Id");
     }
 
     /// <summary>
@@ -1337,6 +1337,16 @@ ORDER BY u.Id
         command.CommandText = sql;
 
         using var reader = await command.ExecuteReaderAsync();
-        return QueryResultSnapshotReader.Capture(reader);
+        var snapshot = QueryResultSnapshotReader.Capture(reader);
+        if (Repo.Dialect.Provider == ProviderId.Oracle)
+        {
+            var columnNames = new string[snapshot.ColumnNames.Count];
+            for (var i = 0; i < snapshot.ColumnNames.Count; i++)
+                columnNames[i] = snapshot.ColumnNames[i].ToUpperInvariant();
+
+            return snapshot with { ColumnNames = columnNames };
+        }
+
+        return snapshot;
     }
 }

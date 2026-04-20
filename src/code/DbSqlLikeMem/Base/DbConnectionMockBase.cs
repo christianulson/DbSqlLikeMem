@@ -2681,10 +2681,10 @@ public abstract class DbConnectionMockBase(
     private void ReleaseSavepointCore(string savepointName)
     {
         EnsureActiveTransaction();
+        var normalizedName = NormalizeSavepointName(savepointName);
         if (!SupportsSavepoints || !SupportsReleaseSavepoint)
             throw SqlUnsupported.NotSupported(ExecutionDialect, "RELEASE SAVEPOINT");
 
-        var normalizedName = NormalizeSavepointName(savepointName);
         if (!_savepoints.Remove(normalizedName))
             throw SqlUnsupported.ForSavepointNotFound(savepointName);
 

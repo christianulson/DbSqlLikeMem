@@ -28,11 +28,12 @@ public class SequenceTests(
         using var testService = new FidelityTestService<SqlServerConnectionMock, SqlConnection>(
             () => new SqlServerConnectionMock(),
             s => new SqlConnection(s),
-            new SqlServerProviderSqlDialect());
+            new SqlServerProviderSqlDialect(),
+            [[(1, "Alice")]]);
 
         var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest>() as long[];
 
-        _ = new long[] { 1L, 2L }.Should().Equal(result);
+        _ = new long[] { 10L, 11L }.Should().Equal(result);
     }
 
     /// <summary>

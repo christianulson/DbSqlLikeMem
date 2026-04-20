@@ -1,8 +1,8 @@
-namespace DbSqlLikeMem.Db2.Test.Fidelity.DML;
+namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
-/// EN: Reads a DB2 sequence value inside a filtered query over the users table for fidelity coverage.
-/// PT: Le um valor de sequence DB2 dentro de uma consulta filtrada na tabela de usuarios para cobertura de fidelidade.
+/// EN: Reads a sequence value inside a filtered query over the users table for fidelity coverage.
+/// PT: Le um valor de sequence dentro de uma consulta filtrada na tabela de usuarios para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceExpressionFilterServiceTest(
     RepoService repo,

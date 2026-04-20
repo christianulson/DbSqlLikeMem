@@ -163,13 +163,23 @@ internal static class SqlServerScalarFunctionRegistry
                 return true;
             }
 
-            var unitText = fn.Args[0] is RawSqlExpr rawUnit
-                ? rawUnit.Sql
-                : evalArg(0)?.ToString() ?? string.Empty;
+            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
             var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
             var unit = isIsoWeek
                 ? AstQueryExecutorBase.TemporalUnit.Week
                 : SqlServerTemporalUnitHelper.Resolve(unitText);
+            if (SqlServerTemporalUnitHelper.IsTimeZoneOffset(unitText))
+            {
+                var offsetValue = evalArg(1);
+                if (!SqlServerTemporalUnitHelper.TryResolveTimeZoneOffsetMinutes(offsetValue, out var offsetMinutes))
+                {
+                    result = null;
+                    return true;
+                }
+
+                result = offsetMinutes.ToString(CultureInfo.InvariantCulture);
+                return true;
+            }
             if (!supportsHighPrecisionTemporalFunctions
                 && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
                     || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
@@ -219,9 +229,7 @@ internal static class SqlServerScalarFunctionRegistry
 
             var name = fn.Name.ToUpperInvariant();
             var unitText = name == "DATEPART"
-                ? fn.Args[0] is RawSqlExpr rawUnit
-                    ? rawUnit.Sql
-                    : evalArg(0)?.ToString() ?? string.Empty
+                ? SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg)
                 : name;
             var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
             var valueIndex = name == "DATEPART" ? 1 : 0;
@@ -235,6 +243,18 @@ internal static class SqlServerScalarFunctionRegistry
             var unit = isIsoWeek
                 ? AstQueryExecutorBase.TemporalUnit.Week
                 : SqlServerTemporalUnitHelper.Resolve(unitText);
+            if (SqlServerTemporalUnitHelper.IsTimeZoneOffset(unitText))
+            {
+                var offsetValue = evalArg(valueIndex);
+                if (!SqlServerTemporalUnitHelper.TryResolveTimeZoneOffsetMinutes(offsetValue, out var offsetMinutes))
+                {
+                    result = null;
+                    return true;
+                }
+
+                result = offsetMinutes;
+                return true;
+            }
             if (!supportsHighPrecisionTemporalFunctions
                 && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
                     || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
@@ -288,9 +308,7 @@ internal static class SqlServerScalarFunctionRegistry
                 return true;
             }
 
-            var unitText = fn.Args[0] is RawSqlExpr rawUnit
-                ? rawUnit.Sql
-                : evalArg(0)?.ToString() ?? string.Empty;
+            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
             var value = evalArg(1);
             if (AstQueryExecutorBase.IsNullish(value)
                 || string.IsNullOrWhiteSpace(unitText)
@@ -349,9 +367,7 @@ internal static class SqlServerScalarFunctionRegistry
                 return true;
             }
 
-            var unitText = fn.Args[0] is RawSqlExpr rawUnit
-                ? rawUnit.Sql
-                : evalArg(0)?.ToString() ?? string.Empty;
+            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
             if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
                 throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
 
@@ -361,7 +377,7 @@ internal static class SqlServerScalarFunctionRegistry
                     || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
                 throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
             if (unit == AstQueryExecutorBase.TemporalUnit.Weekday)
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+                unit = AstQueryExecutorBase.TemporalUnit.Day;
 
             var startValue = evalArg(1);
             var endValue = evalArg(2);
@@ -431,16 +447,14 @@ internal static class SqlServerScalarFunctionRegistry
                 return true;
             }
 
-            var unitText = fn.Args[0] is RawSqlExpr rawUnit
-                ? rawUnit.Sql
-                : evalArg(0)?.ToString() ?? string.Empty;
+            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
             if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
                 throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
 
             var unit = SqlServerTemporalUnitHelper.Resolve(unitText);
             if (!supportsHighPrecisionTemporalFunctions && unit == AstQueryExecutorBase.TemporalUnit.Microsecond)
                 throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-            if (unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
+            if (!supportsHighPrecisionTemporalFunctions && unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
                 throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
 
             if (unit == AstQueryExecutorBase.TemporalUnit.Unknown)

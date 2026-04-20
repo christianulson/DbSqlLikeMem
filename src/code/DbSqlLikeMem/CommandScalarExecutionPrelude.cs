@@ -523,6 +523,13 @@ internal static class CommandScalarExecutionPrelude
         out object? value)
     {
         value = null;
+
+        if (string.Equals(context.Dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(context.Connection.ProviderExecutionDialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
         if (!(functionName.Equals("ADDDATE", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("ADDTIME", StringComparison.OrdinalIgnoreCase)
             || functionName.Equals("DATE_ADD", StringComparison.OrdinalIgnoreCase)

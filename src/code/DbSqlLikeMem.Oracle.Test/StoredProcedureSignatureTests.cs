@@ -13,7 +13,7 @@ public sealed class StoredProcedureSignatureTests(
     ) : StoredProcedureSignatureTestsBase<OracleMockException>(helper)
 {
     /// <inheritdoc />
-    protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Oracle.TestTools.OracleProviderSqlDialect();
+    protected override ProviderSqlDialect Dialect { get; } = new TestTools.OracleProviderSqlDialect();
 
     /// <summary>
     /// EN: Creates an Oracle mock connection used by stored procedure signature tests.

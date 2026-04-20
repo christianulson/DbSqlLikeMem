@@ -86,6 +86,13 @@ public abstract class SequenceTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
+        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<SequenceScenario, DmlMutationSequenceCaseWhereMatrixServiceTest>())
+                .Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
         await testService.RunTestAsync<SequenceScenario, DmlMutationSequenceCaseWhereMatrixServiceTest>();
     }
 

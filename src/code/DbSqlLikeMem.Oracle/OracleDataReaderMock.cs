@@ -17,6 +17,9 @@ public sealed class OracleDataReaderMock(
     public override object this[string name] => NormalizeBinaryValue(base[name]);
 
     /// <inheritdoc />
+    public override string GetName(int ordinal) => base.GetName(ordinal).ToUpperInvariant();
+
+    /// <inheritdoc />
     public override object GetValue(int ordinal) => NormalizeBinaryValue(base.GetValue(ordinal));
 
     /// <inheritdoc />

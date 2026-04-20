@@ -213,6 +213,7 @@ public static class SqlConst
     public const string USE = "USE";
     public const string FORCE = "FORCE";
     public const string PRIMARY = "PRIMARY";
+    public const string KEY = "KEY";
     public const string PREVIOUS = "PREVIOUS";
     public const string WITHIN = "WITHIN";
     public const string INCLUDE_NULL_VALUES = "INCLUDE_NULL_VALUES";

@@ -22,6 +22,16 @@ public class SelectByPKServiceTest(
         command.CommandText = sql;
 
         using var reader = await command.ExecuteReaderAsync();
-        return QueryResultSnapshotReader.Capture(reader);
+        var snapshot = QueryResultSnapshotReader.Capture(reader);
+        if (Repo.Dialect.Provider == ProviderId.Oracle)
+        {
+            var columnNames = new string[snapshot.ColumnNames.Count];
+            for (var i = 0; i < snapshot.ColumnNames.Count; i++)
+                columnNames[i] = snapshot.ColumnNames[i].ToUpperInvariant();
+
+            return snapshot with { ColumnNames = columnNames };
+        }
+
+        return snapshot;
     }
 }

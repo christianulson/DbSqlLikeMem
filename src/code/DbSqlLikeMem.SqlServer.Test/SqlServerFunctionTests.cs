@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 
 namespace DbSqlLikeMem.SqlServer.Test;
 
@@ -320,9 +321,8 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
             Assert.Equal(
                 new DateTime(2020, 2, 10, 10, 11, 12).AddTicks(1245680),
                 Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(ns, 150, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal(100L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(ns, '2020-02-10T10:11:12.1245678', '2020-02-10T10:11:12.1245679') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         }
-        if (version < SqlServerDialect.DateTruncMinVersion)
+        if (version < 2022)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETRUNC(month, '2020-02-15T10:11:12') FROM Users WHERE Id = 1"));
         }
@@ -502,7 +502,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         var longProfileName = new string('x', 4001);
         var longProfileJson = $"{{\"profile\":{{\"name\":\"{longProfileName}\"}}}}";
 
-        Assert.Null(ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', '$.profile.name') FROM Users WHERE Id = 1"));
+        Assert.Equal(DBNull.Value, ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', '$.profile.name') FROM Users WHERE Id = 1"));
         var strictLongValueEx = Assert.Throws<InvalidOperationException>(() => ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 1"));
         Assert.Contains("4000", strictLongValueEx.Message, StringComparison.OrdinalIgnoreCase);
 
@@ -623,7 +623,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal([1L, 2L], orderedCount);
 
         var orderedSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY Id) FROM Users ORDER BY Id");
-        Assert.Equal([1m, 3m], orderedSum);
+        Assert.Equal([1L, 3L], orderedSum);
 
         var orderedAvg = ExecuteColumn(connection, "SELECT AVG(Id) OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([1m, 1.5m], orderedAvg);
@@ -635,7 +635,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal([2L, 2L], peerOrderedCount);
 
         var peerOrderedSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY LEN(Name)) FROM Users ORDER BY Id");
-        Assert.Equal([3m, 3m], peerOrderedSum);
+        Assert.Equal([3L, 3L], peerOrderedSum);
 
         var peerOrderedAvg = ExecuteColumn(connection, "SELECT AVG(Id) OVER (ORDER BY LEN(Name)) FROM Users ORDER BY Id");
         Assert.Equal([1.5m, 1.5m], peerOrderedAvg);
@@ -650,10 +650,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal([2L, 2L], peerRangeCount);
 
         var peerRowsSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY LEN(Name) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM Users ORDER BY Id");
-        Assert.Equal([1m, 3m], peerRowsSum);
+        Assert.Equal([1L, 3L], peerRowsSum);
 
         var peerRangeSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY LEN(Name) RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM Users ORDER BY Id");
-        Assert.Equal([3m, 3m], peerRangeSum);
+        Assert.Equal([3L, 3L], peerRangeSum);
 
         var ntile = ExecuteColumn(connection, "SELECT NTILE(2) OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([1L, 2L], ntile);

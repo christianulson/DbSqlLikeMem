@@ -1363,7 +1363,7 @@ public abstract class SelectTestsBase<T, T2>(
         result.Should().Be(2);
     }
 
-    private static async Task<object?> RunRelationalCompositeAssertionsAsync(
+    private async Task<object?> RunRelationalCompositeAssertionsAsync(
         QueryServiceTest serviceTest)
     {
         var cte = RequireSnapshot(await serviceTest.RunCteSimpleAsync(), nameof(serviceTest.RunCteSimpleAsync));
@@ -1495,8 +1495,8 @@ public abstract class SelectTestsBase<T, T2>(
             });
 
         var (crossApplyResult, outerApplyResult) = RequireSnapshotPair(result, nameof(SelectApplyProjectionTest));
-        AssertSnapshot(crossApplyResult, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
-        AssertSnapshot(outerApplyResult, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
+        AssertSnapshot(crossApplyResult, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
+        AssertSnapshot(outerApplyResult, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
     }
 
     /// <summary>
@@ -1510,7 +1510,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunCrossApplyProjectionAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectCrossApplyProjectionTest)), Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectCrossApplyProjectionTest)), Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
     }
 
     /// <summary>
@@ -1533,7 +1533,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunOuterApplyProjectionAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectOuterApplyProjectionTest)), Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectOuterApplyProjectionTest)), Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
     }
 
     /// <summary>
@@ -1575,8 +1575,8 @@ public abstract class SelectTestsBase<T, T2>(
             });
 
         var (applyCross, applyOuter, temporal) = RequireSnapshotTriple(result, nameof(SelectApplyTemporalCompositeTest));
-        AssertSnapshot(applyCross, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
-        AssertSnapshot(applyOuter, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
+        AssertSnapshot(applyCross, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
+        AssertSnapshot(applyOuter, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
         AssertSnapshot(temporal, Snapshot(["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
             Row(1m, 2m, 0m, 1m, 1m, 2m, 1m),
             Row(2m, 1m, 0m, 1m, 1m, 1m, 1m),
@@ -1626,8 +1626,8 @@ public abstract class SelectTestsBase<T, T2>(
             });
 
         var (windowCross, windowOuter, windowCount, windowTemporal) = RequireSnapshotQuad(result, nameof(SelectApplyWindowTemporalCompositeTest));
-        AssertSnapshot(windowCross, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
-        AssertSnapshot(windowOuter, Snapshot(["UserId", "UserName", "Note"], Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
+        AssertSnapshot(windowCross, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
+        AssertSnapshot(windowOuter, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
         AssertSnapshot(windowCount, Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
             Row(1m, 10m, 1m, 2m, null),
             Row(1m, 11m, 2m, 2m, "A"),
@@ -1724,10 +1724,26 @@ public abstract class SelectTestsBase<T, T2>(
             return true;
         }
 
+        var valueType = value.GetType();
+        if (valueType.FullName?.StartsWith("System.ValueTuple`", StringComparison.Ordinal) == true)
+        {
+            snapshots = new object?[expectedLength];
+            for (var i = 0; i < expectedLength; i++)
+            {
+                var field = valueType.GetField($"Item{i + 1}");
+                if (field is null)
+                    return false;
+
+                snapshots[i] = field.GetValue(value);
+            }
+
+            return true;
+        }
+
         return false;
     }
 
-    private static QueryResultSnapshot Snapshot(string[] columnNames, params object?[][] rows)
+    private QueryResultSnapshot Snapshot(string[] columnNames, params object?[][] rows)
     {
         var snapshots = new QueryResultRowSnapshot[rows.Length];
         for (var i = 0; i < rows.Length; i++)
@@ -1740,10 +1756,27 @@ public abstract class SelectTestsBase<T, T2>(
 
         return new QueryResultSnapshot
         {
-            ColumnNames = columnNames,
+            ColumnNames = NormalizeSnapshotColumnNames(columnNames),
             Rows = snapshots,
         };
     }
+
+    private string[] NormalizeSnapshotColumnNames(string[] columnNames)
+    {
+        if (dialect.Provider != ProviderId.Oracle)
+            return columnNames;
+
+        var normalized = new string[columnNames.Length];
+        for (var i = 0; i < columnNames.Length; i++)
+            normalized[i] = columnNames[i].ToUpperInvariant();
+
+        return normalized;
+    }
+
+    private string[] ApplyProjectionColumnNames()
+        => dialect.Provider == ProviderId.Oracle
+            ? ["USERID", "USERNAME", "NOTE"]
+            : ["UserId", "UserName", "Note"];
 
     private static object?[] Row(params object?[] values) => values;
 

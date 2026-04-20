@@ -154,7 +154,7 @@ FROM users
 ORDER BY id").ToList();
 
         Assert.Equal(["John", "John", "John"], [.. rows.Select(r => (string)r.first_name)]);
-        Assert.Equal(["Jane", "Jane", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
     }
 
     /// <summary>
@@ -300,7 +300,7 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal(["Bob", "Bob", "Bob"], [.. rows.Select(r => (string)r.second_name)]);
+        Assert.Equal(new object?[] { null, "Bob", "Bob" }, rows.Select(r => (object?)r.second_name).ToArray());
     }
 
     /// <summary>
@@ -575,14 +575,14 @@ ORDER BY id").ToList();
     public void Window_Lag_And_NthValue_WithExpressionOffset_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>(@"
-SELECT id,
-       LAG(id, 1 + 0, -1) OVER (ORDER BY id) AS lag_expr,
-       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id) AS nth_expr
-FROM users
-ORDER BY id").ToList();
+        SELECT id,
+               LAG(id, 1 + 0, -1) OVER (ORDER BY id) AS lag_expr,
+               NTH_VALUE(name, 1 + 1) OVER (ORDER BY id) AS nth_expr
+        FROM users
+        ORDER BY id").ToList();
 
         Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_expr)]);
-        Assert.Equal(["Bob", "Bob", "Bob"], [.. rows.Select(r => (string)r.nth_expr)]);
+        Assert.Equal(new object?[] { null, "Bob", "Bob" }, rows.Select(r => (object?)r.nth_expr).ToArray());
     }
 
 

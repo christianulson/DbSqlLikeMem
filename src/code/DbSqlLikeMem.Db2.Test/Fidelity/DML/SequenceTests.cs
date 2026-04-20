@@ -31,7 +31,8 @@ public class SequenceTests(
         using var testService = new FidelityTestService<Db2ConnectionMock, DB2Connection>(
             () => new Db2ConnectionMock(),
             Db2ConnectionFactory.Create,
-            new Db2ProviderSqlDialect());
+            new Db2ProviderSqlDialect(),
+            [[(1, "Alice")]]);
 
         var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest>() as long[];
 

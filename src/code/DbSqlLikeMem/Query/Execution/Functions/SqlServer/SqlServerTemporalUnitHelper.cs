@@ -46,19 +46,26 @@ internal static class SqlServerTemporalUnitHelper
 
     internal static TemporalUnit Resolve(SqlExpr expr, Func<int, object?> evalArg)
     {
+        return Resolve(GetUnitText(expr, evalArg));
+    }
+
+    internal static string GetUnitText(SqlExpr expr, Func<int, object?> evalArg)
+    {
         var unitText = expr switch
         {
             RawSqlExpr raw => raw.Sql,
             IdentifierExpr id => id.Name,
             ColumnExpr col => col.Name,
             LiteralExpr lit => lit.Value?.ToString() ?? string.Empty,
+            CallExpr call when call.Args.Count == 0 => call.Name,
+            FunctionCallExpr call when call.Args.Count == 0 => call.Name,
             _ => null
         };
 
         if (string.IsNullOrWhiteSpace(unitText))
-            unitText = evalArg(0)?.ToString() ?? string.Empty;
+            return string.Empty;
 
-        return Resolve(unitText!);
+        return unitText!;
     }
 
     internal static int GetWeekdayIndex(DateTime dateTime)
@@ -78,10 +85,8 @@ internal static class SqlServerTemporalUnitHelper
 
     internal static DateTime TruncateToIsoWeekStart(DateTime dateTime)
     {
-        var isoYear = ISOWeek.GetYear(dateTime);
-        var isoWeek = ISOWeek.GetWeekOfYear(dateTime);
-        var start = ISOWeek.ToDateTime(isoYear, isoWeek, DayOfWeek.Monday);
-        return DateTime.SpecifyKind(start, dateTime.Kind);
+        var daysToMonday = ((int)dateTime.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        return DateTime.SpecifyKind(dateTime.Date.AddDays(-daysToMonday), dateTime.Kind);
     }
 
     internal static long GetWeekDifference(DateTime start, DateTime end)

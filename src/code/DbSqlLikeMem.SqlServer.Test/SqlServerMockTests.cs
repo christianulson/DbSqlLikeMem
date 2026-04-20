@@ -388,17 +388,20 @@ public sealed class SqlServerMockTests
         command.CommandText = "SELECT DATEDIFF(ww, '2005-12-31T23:59:59.9999999', '2006-01-01T00:00:00.0000000')";
         Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
+        command.CommandText = "SELECT DATEDIFF(dw, '2020-02-16', '2020-02-17')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
         command.CommandText = "SELECT DATEADD(dy, 1, '2020-02-14')";
-        Assert.Equal(new DateTime(2020, 2, 15), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 15), NormalizeDateValue(command.ExecuteScalar()));
 
         command.CommandText = "SELECT DATEADD(y, 1, '2020-02-14')";
-        Assert.Equal(new DateTime(2020, 2, 15), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 15), NormalizeDateValue(command.ExecuteScalar()));
 
         command.CommandText = "SELECT DATETRUNC(wk, '2020-02-19T10:11:12')";
-        Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 16), NormalizeDateValue(command.ExecuteScalar()));
 
         command.CommandText = "SELECT DATETRUNC(dy, '2020-02-14T10:11:12')";
-        Assert.Equal(new DateTime(2020, 2, 14), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(new DateTime(2020, 2, 14), NormalizeDateValue(command.ExecuteScalar()));
 
         command.CommandText = "SELECT DATEPART(isowk, '2021-01-01')";
         Assert.Equal(53, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
@@ -439,6 +442,19 @@ public sealed class SqlServerMockTests
         command.CommandText = "SELECT DEGREES(PI())";
         Assert.Equal(180d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
+
+    /// <summary>
+    /// EN: Normalizes date-like scalar values to DateTime for stable assertions in SQL Server mock tests.
+    /// PT: Normaliza valores escalares semelhantes a data para DateTime e permitir asserts estaveis nos testes do mock SQL Server.
+    /// </summary>
+    private static DateTime NormalizeDateValue(object? value)
+        => value switch
+        {
+            DateTime dateTime => dateTime,
+            DateTimeOffset dateTimeOffset => dateTimeOffset.DateTime,
+            string text => DateTime.Parse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
+            _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
+        };
 
     /// <summary>
     /// EN: Ensures SQL Server date part constructors return expected values.
@@ -2105,7 +2121,7 @@ public sealed class SqlServerMockTests
         using (var seed = new SqlServerCommandMock(_connection))
         {
             seed.CommandText = """
-                INSERT INTO Users (Id, Name, Email) VALUES (895, 'Bia', '{"profile":{"active":true},"roles":["admin","ops"]}');
+                INSERT INTO Users (Id, Name, Email) VALUES (895, 'Bia', '{"profile":{"active":true,"name":"Ana","roles":["admin","ops"]}}');
                 """;
             seed.ExecuteNonQuery();
         }
@@ -2141,7 +2157,7 @@ public sealed class SqlServerMockTests
         var payload = embeddedDocument.RootElement.GetProperty("User").GetProperty("Payload");
 
         Assert.Equal(System.Text.Json.JsonValueKind.Object, payload.ValueKind);
-        Assert.Equal("ops", payload.GetProperty("roles")[1].GetString());
+        Assert.Equal("ops", payload.GetProperty("profile").GetProperty("roles")[1].GetString());
 
         var strictValueEx = Assert.Throws<InvalidOperationException>(() => new SqlServerCommandMock(_connection)
         {
@@ -2180,15 +2196,23 @@ public sealed class SqlServerMockTests
         var longProfileName = new string('x', 4001);
         var longProfileJson = $"{{\"profile\":{{\"name\":\"{longProfileName}\"}}}}";
 
-        Assert.Null(ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', '$.profile.name') FROM Users WHERE Id = 895"));
-        var strictLongValueEx = Assert.Throws<InvalidOperationException>(() => ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 895"));
-        Assert.Contains("4000", strictLongValueEx.Message, StringComparison.OrdinalIgnoreCase);
+        using (var longCmd = new SqlServerCommandMock(_connection) { CommandText = $"SELECT JSON_VALUE('{longProfileJson}', '$.profile.name') FROM Users WHERE Id = 895" })
+            Assert.Equal(DBNull.Value, longCmd.ExecuteScalar());
+
+        using (var strictLongCmd = new SqlServerCommandMock(_connection) { CommandText = $"SELECT JSON_VALUE('{longProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 895" })
+        {
+            var strictLongValueEx = Assert.Throws<InvalidOperationException>(() => strictLongCmd.ExecuteScalar());
+            Assert.Contains("4000", strictLongValueEx.Message, StringComparison.OrdinalIgnoreCase);
+        }
 
         var exactProfileName = new string('y', 4000);
         var exactProfileJson = $"{{\"profile\":{{\"name\":\"{exactProfileName}\"}}}}";
 
-        Assert.Equal(exactProfileName, ExecuteScalar(connection, $"SELECT JSON_VALUE('{exactProfileJson}', '$.profile.name') FROM Users WHERE Id = 895"));
-        Assert.Equal(exactProfileName, ExecuteScalar(connection, $"SELECT JSON_VALUE('{exactProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 895"));
+        using (var exactCmd = new SqlServerCommandMock(_connection) { CommandText = $"SELECT JSON_VALUE('{exactProfileJson}', '$.profile.name') FROM Users WHERE Id = 895" })
+            Assert.Equal(exactProfileName, exactCmd.ExecuteScalar());
+
+        using (var strictExactCmd = new SqlServerCommandMock(_connection) { CommandText = $"SELECT JSON_VALUE('{exactProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 895" })
+            Assert.Equal(exactProfileName, strictExactCmd.ExecuteScalar());
     }
 
     /// <summary>
@@ -2199,6 +2223,8 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_Ntile_WithNonPositiveBucketCount_ShouldThrow()
     {
+        SeedWindowFrameUsers();
+
         using var command = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -2220,6 +2246,8 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_Lag_WithNegativeRuntimeOffset_ShouldThrow()
     {
+        SeedWindowFrameUsers();
+
         using var command = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -2241,6 +2269,8 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_Lead_WithNegativeRuntimeOffset_ShouldThrow()
     {
+        SeedWindowFrameUsers();
+
         using var command = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -2262,6 +2292,8 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_NthValue_WithNonPositiveRuntimeOrdinal_ShouldThrow()
     {
+        SeedWindowFrameUsers();
+
         using var command = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -2283,6 +2315,8 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_DefaultWindowFrame_ShouldRespectCurrentRowEnd()
     {
+        SeedWindowFrameUsers();
+
         using var command = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -2326,6 +2360,8 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_DefaultWindowFrame_ShouldRespectPeerGroups()
     {
+        SeedWindowFrameUsers();
+
         using var command = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -2363,6 +2399,8 @@ public sealed class SqlServerMockTests
     [Trait("Category", "SqlServerMock")]
     public void ExecuteReader_DefaultWindowFrame_ShouldDistinguishRowsAndRange()
     {
+        SeedWindowFrameUsers();
+
         using var command = new SqlServerCommandMock(_connection)
         {
             CommandText = """
@@ -2390,6 +2428,27 @@ public sealed class SqlServerMockTests
         Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("RowsSum")));
         Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("RangeSum")));
         Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Inserts the two users used by the ordered window frame tests.
+    /// PT: Insere os dois usuarios usados pelos testes de frame ordenado de janela.
+    /// </summary>
+    private void SeedWindowFrameUsers()
+    {
+        var users = _connection.GetTable("Users");
+        if (users.Count > 0)
+            return;
+
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', 'ana@example.com');
+                INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', 'bob@example.com');
+                """
+        };
+
+        Assert.Equal(2, command.ExecuteNonQuery());
     }
 
     /// <summary>

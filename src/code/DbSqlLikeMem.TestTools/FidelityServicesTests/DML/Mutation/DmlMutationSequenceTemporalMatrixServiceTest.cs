@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.TestTools.DML;
@@ -26,27 +27,20 @@ public class DmlMutationSequenceTemporalMatrixServiceTest(
         if (Repo.Dialect.Provider == ProviderId.Oracle)
             return await RunOracleMatrixAsync();
 
+        var firstValue = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.NextSequenceValue(Context))!, CultureInfo.InvariantCulture);
+        var secondValue = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.NextSequenceValue(Context))!, CultureInfo.InvariantCulture);
         var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
 
-        var seqFirstCte = BuildSingleRowSequenceCte("seq_first");
-        var seqSecondCte = BuildSingleRowSequenceCte("seq_second");
-
         var lst = await Repo.ExecuteReaderAsync($"""
-WITH {seqFirstCte},
-{seqSecondCte}
 SELECT
-    s1.SeqValue,
-    s2.SeqValue,
-    CASE WHEN s1.SeqValue = 10 THEN 1 ELSE 0 END AS FirstIsTen,
-    CASE WHEN s2.SeqValue = 11 THEN 1 ELSE 0 END AS SecondIsEleven,
+    {firstValue} AS SeqFirst,
+    {secondValue} AS SeqSecond,
+    CASE WHEN {firstValue} = 10 THEN 1 ELSE 0 END AS FirstIsTen,
+    CASE WHEN {secondValue} = 11 THEN 1 ELSE 0 END AS SecondIsEleven,
     CASE WHEN {nowExpr} IS NOT NULL THEN 1 ELSE 0 END AS NowPresent,
     CASE WHEN {nextDayExpr} > {nowExpr} THEN 1 ELSE 0 END AS NextDayAfterNow,
-    CASE WHEN s1.SeqValue < s2.SeqValue THEN 1 ELSE 0 END AS IsAscending
-FROM seq_first s1
-CROSS JOIN seq_second s2
-WHERE s1.SeqValue BETWEEN 10 AND 10
-  AND s2.SeqValue BETWEEN 11 AND 11
+    CASE WHEN {firstValue} < {secondValue} THEN 1 ELSE 0 END AS IsAscending
 """);
         if (lst?.Count != 1
             || lst[0].Count != 1
@@ -101,8 +95,4 @@ WHERE s1.SeqValue BETWEEN 10 AND 10
         return lst[0];
     }
 
-    private string BuildSingleRowSequenceCte(string alias)
-    {
-        return $"{alias} (SeqValue) AS ({Repo.Dialect.SelectNextSequenceValue(Context)})";
-    }
 }

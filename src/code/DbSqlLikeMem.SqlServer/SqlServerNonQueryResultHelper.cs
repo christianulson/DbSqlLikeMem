@@ -28,6 +28,9 @@ internal static class SqlServerNonQueryResultHelper
         if (affectedRows != 0)
             return affectedRows;
 
+        if (IsCreateTableAsSelect(sqlText, dialect))
+            return affectedRows;
+
         var (hasCountableDml, hasNoCountDdl, hasStatement) = AnalyzeSql(sqlText, dialect);
         if (!hasStatement || hasCountableDml)
             return affectedRows;
@@ -46,9 +49,12 @@ internal static class SqlServerNonQueryResultHelper
         var hasStatement = false;
         var hasCountableDml = false;
         var hasNoCountDdl = false;
+        var hasCreateTableAsSelect = false;
 
         foreach (var sqlText in sqlTexts)
         {
+            hasCreateTableAsSelect |= IsCreateTableAsSelect(sqlText, dialect);
+
             var (commandHasDml, commandHasNoCountDdl, commandHasStatement) = AnalyzeSql(sqlText, dialect);
             hasStatement |= commandHasStatement;
             hasCountableDml |= commandHasDml;
@@ -58,10 +64,31 @@ internal static class SqlServerNonQueryResultHelper
                 return affectedRows;
         }
 
+        if (hasCreateTableAsSelect)
+            return affectedRows;
+
         if (!hasStatement || hasCountableDml)
             return affectedRows;
 
         return hasNoCountDdl ? -1 : affectedRows;
+    }
+
+    private static bool IsCreateTableAsSelect(string sqlText, ISqlDialect dialect)
+    {
+        if (string.IsNullOrWhiteSpace(sqlText))
+            return false;
+
+        foreach (var statement in SqlQueryParser.SplitStatements(sqlText, dialect))
+        {
+            var trimmed = statement.TrimStart();
+            if (!trimmed.StartsWith("CREATE TABLE", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (trimmed.IndexOf(" AS SELECT", StringComparison.OrdinalIgnoreCase) >= 0)
+                return true;
+        }
+
+        return false;
     }
 
     private static (bool HasCountableDml, bool HasNoCountDdl, bool HasStatement) AnalyzeSql(

@@ -90,6 +90,7 @@ internal sealed record SqlCreateTemporaryTableQuery : SqlQueryBase
     internal bool IfNotExists { get; init; }
     internal IReadOnlyList<Col> ColumnDefinitions { get; init; } = [];
     internal IReadOnlyList<string> ColumnNames { get; init; } = [];
+    internal IReadOnlyList<string> PrimaryKeyColumns { get; init; } = [];
     internal SqlSelectQuery? AsSelect { get; init; }
 }
 

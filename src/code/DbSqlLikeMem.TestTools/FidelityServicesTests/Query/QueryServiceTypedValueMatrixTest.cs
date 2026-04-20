@@ -332,7 +332,7 @@ INSERT INTO {Context.TbUsersFullName} (
         }
         else
         {
-            Convert.ToDouble(reader.GetValue(12), CultureInfo.InvariantCulture).Should().Be(expectedDoubleValue.Value);
+            reader.GetDouble(12).Should().Be(expectedDoubleValue.Value);
         }
 
         if (expectedGuidValue is null)

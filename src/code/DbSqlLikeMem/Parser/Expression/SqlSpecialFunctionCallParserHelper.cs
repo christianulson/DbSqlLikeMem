@@ -289,6 +289,11 @@ internal static class SqlSpecialFunctionCallParserHelper
     {
         expr = default!;
 
+        if (IsValueFirstConvertDialect(ctx.Dialect))
+        {
+            return ctx.TryParseValueFirstConvertLike(parseExpression, swallowErrors, out expr);
+        }
+
         var typeToks = new List<SqlToken>();
         var depth = 0;
         while (true)
@@ -336,6 +341,71 @@ internal static class SqlSpecialFunctionCallParserHelper
             .BindScalarFunctionDefinition(ctx.Dialect);
         return true;
     }
+
+    private static bool TryParseValueFirstConvertLike(
+        this SqlExpressionParserContext ctx,
+        Func<int, SqlExpr> parseExpression,
+        bool swallowErrors,
+        out CallExpr expr)
+    {
+        expr = default!;
+
+        var inner = parseExpression(0);
+
+        if (!ctx.IsSymbol(","))
+            throw ctx.Error(swallowErrors ? "TRY_CONVERT requires a target type" : "CONVERT requires a target type", ctx.Peek());
+
+        ctx.Consume();
+
+        var typeToks = new List<SqlToken>();
+        var depth = 0;
+        while (true)
+        {
+            var t = ctx.Peek();
+            if (t.Kind == SqlTokenKind.EndOfFile)
+                throw ctx.Error(swallowErrors ? "TRY_CONVERT type not closed" : "CONVERT type not closed", t);
+
+            if (t.Kind == SqlTokenKind.Symbol && t.Text == "(")
+                depth++;
+
+            if (t.Kind == SqlTokenKind.Symbol && t.Text == ")")
+            {
+                if (depth == 0)
+                    break;
+                depth--;
+            }
+
+            if (t.Kind == SqlTokenKind.Symbol && t.Text == "," && depth == 0)
+                break;
+
+            typeToks.Add(ctx.Consume());
+        }
+
+        if (typeToks.Count == 0)
+            throw ctx.Error(swallowErrors ? "TRY_CONVERT requires a target type" : "CONVERT requires a target type", ctx.Peek());
+
+        var convertArgs = new List<SqlExpr>
+        {
+            inner,
+            new RawSqlExpr(string.Join(" ", typeToks.Select(ctx.TokenToSql)).Trim())
+        };
+
+        if (ctx.IsSymbol(","))
+        {
+            ctx.Consume();
+            convertArgs.Add(parseExpression(0));
+        }
+
+        ExpectSymbol(ctx, ")");
+        expr = new CallExpr(swallowErrors ? "TRY_CONVERT" : "CONVERT", [.. convertArgs])
+            .BindScalarFunctionDefinition(ctx.Dialect);
+        return true;
+    }
+
+    private static bool IsValueFirstConvertDialect(ISqlDialect dialect)
+        => dialect.Name.Equals("oracle", StringComparison.OrdinalIgnoreCase)
+            || dialect.Name.Equals("mysql", StringComparison.OrdinalIgnoreCase)
+            || dialect.Name.Equals("mariadb", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryParseParseLike(
         this SqlExpressionParserContext ctx,

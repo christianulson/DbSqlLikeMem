@@ -20,6 +20,9 @@ public class ConnectionLifecycleOpenServiceTest(
     /// <returns></returns>
     public Task<object?> RunTestAsync(params object[] args)
     {
+        if (Repo.Cnn.State == ConnectionState.Open)
+            Repo.Cnn.Close();
+
         Repo.Cnn.Open();
         Repo.Cnn.State.Should().Be(ConnectionState.Open);
         GC.KeepAlive(Repo.Cnn.State);

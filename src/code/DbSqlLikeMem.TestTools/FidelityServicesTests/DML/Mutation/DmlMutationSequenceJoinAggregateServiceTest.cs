@@ -46,6 +46,7 @@ ORDER BY u.Id
         {
             new()
             {
+                new object?[] { 1L, 2L, 2L, 0.00m },
                 new object?[] { firstUserId, 2L, 3L, 4.00m },
                 new object?[] { secondUserId, 1L, 4L, 5.50m }
             }

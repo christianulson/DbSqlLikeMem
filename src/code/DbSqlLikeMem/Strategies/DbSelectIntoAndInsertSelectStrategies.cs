@@ -3585,6 +3585,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                     AddTemporaryTableColumn(newTable, column);
             }
 
+            if (query.PrimaryKeyColumns.Count > 0)
+                newTable.AddPrimaryKeyIndexes([.. query.PrimaryKeyColumns]);
+
             return new DmlExecutionResult();
         }
 
@@ -3609,6 +3612,9 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 AddInferredColumn(newTable, colName, dbType);
             }
         }
+
+        if (query.PrimaryKeyColumns.Count > 0)
+            newTable.AddPrimaryKeyIndexes([.. query.PrimaryKeyColumns]);
 
         foreach (var row in res)
         {

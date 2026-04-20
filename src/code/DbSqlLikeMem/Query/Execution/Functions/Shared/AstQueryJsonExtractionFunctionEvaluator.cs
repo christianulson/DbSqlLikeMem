@@ -278,6 +278,10 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
 
             return QueryJsonFunctionHelper.TryReadJsonPathValue(json, path);
         }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
 #pragma warning disable CA1031
         catch (Exception e)
         {

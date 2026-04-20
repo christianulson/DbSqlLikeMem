@@ -47,4 +47,10 @@ public class OracleConnectionMock
     /// </summary>
     protected internal override Exception NewException(string message, int code)
         => new OracleMockException(message, code);
+
+    /// <summary>
+    /// EN: Indicates whether Oracle supports releasing savepoints in this mock.
+    /// PT: Indica se o Oracle suporta liberar savepoints neste mock.
+    /// </summary>
+    protected override bool SupportsReleaseSavepoint => false;
 }

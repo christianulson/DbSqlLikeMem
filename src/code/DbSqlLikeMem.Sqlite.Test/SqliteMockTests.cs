@@ -1104,13 +1104,13 @@ public sealed class SqliteMockTests
         reader.Read().Should().BeTrue();
         reader.GetInt32(0).Should().Be(1);
         Convert.ToInt32(reader.GetValue(1)).Should().Be(1);
-        Convert.ToInt32(reader.GetValue(2)).Should().Be(3);
-        Convert.ToInt32(reader.GetValue(3)).Should().Be(2);
+        Convert.ToInt32(reader.GetValue(2)).Should().Be(1);
+        reader.GetValue(3).Should().Be(DBNull.Value);
 
         reader.Read().Should().BeTrue();
         reader.GetInt32(0).Should().Be(2);
         Convert.ToInt32(reader.GetValue(1)).Should().Be(1);
-        Convert.ToInt32(reader.GetValue(2)).Should().Be(3);
+        Convert.ToInt32(reader.GetValue(2)).Should().Be(2);
         Convert.ToInt32(reader.GetValue(3)).Should().Be(2);
 
         reader.Read().Should().BeTrue();

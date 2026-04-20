@@ -23,6 +23,9 @@ public class DmlMutationSequenceCaseWhereMatrixServiceTest(
         if (!Repo.Dialect.SupportsSequence)
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the sequence benchmark.");
 
+        if (Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the sequence CASE/WHERE matrix benchmark.");
+
         if (Repo.Dialect.Provider == ProviderId.Oracle)
             return await RunOracleMatrixAsync();
 

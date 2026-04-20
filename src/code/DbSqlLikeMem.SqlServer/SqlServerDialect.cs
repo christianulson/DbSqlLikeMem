@@ -271,6 +271,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
         "DATEDIFF",
         "DATENAME",
         "DATEPART",
+        "DATETRUNC",
         "DAY",
         "MONTH",
         "YEAR",
@@ -392,13 +393,15 @@ internal sealed class SqlServerDialect : SqlDialectBase
     /// PT: Verifica se uma funcao de data do SQL Server e suportada por este dialeto.
     /// </summary>
     public override bool SupportsSqlServerDateFunction(string functionName)
-        => !string.IsNullOrWhiteSpace(functionName)
-            && SqlServerDateFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
-            && this.TryGetScalarFunctionDefinition(functionName, out var definition)
-            && definition is not null
-            && (!functionName.Equals("DATETRUNC", StringComparison.OrdinalIgnoreCase)
-                || Version >= DateTruncMinVersion)
-            && (definition.AllowsCall || definition.AllowsIdentifier);
+    {
+        if (string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        if (functionName.Equals("DATETRUNC", StringComparison.OrdinalIgnoreCase))
+            return Version >= DateTruncMinVersion;
+
+        return SqlServerDateFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// EN: Checks whether a SQL Server aggregate function is supported by this dialect.

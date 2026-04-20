@@ -191,31 +191,78 @@ internal static class AstQuerySqlServerTemporalAccessorFunctionEvaluator
         if (string.IsNullOrWhiteSpace(text))
             return false;
 
-        if (HasExplicitTimeZoneOffset(text))
-        {
-            if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedOffset))
-            {
-                offsetMinutes = (int)parsedOffset.Offset.TotalMinutes;
-                return true;
-            }
-
-            return false;
-        }
+        if (TryParseExplicitTimeZoneOffsetMinutes(text, out offsetMinutes))
+            return true;
 
         return AstQueryExecutorBase.TryCoerceDateTime(value, out _);
     }
 
-    private static bool HasExplicitTimeZoneOffset(string text)
+    private static bool TryParseExplicitTimeZoneOffsetMinutes(string text, out int offsetMinutes)
     {
+        offsetMinutes = 0;
+
         var trimmed = text.Trim();
         if (trimmed.EndsWith("Z", StringComparison.OrdinalIgnoreCase))
+        {
+            offsetMinutes = 0;
             return true;
+        }
 
         var separatorIndex = Math.Max(trimmed.LastIndexOf('T'), trimmed.LastIndexOf(' '));
         if (separatorIndex < 0 || separatorIndex + 1 >= trimmed.Length)
             return false;
 
         var trailing = trimmed[(separatorIndex + 1)..];
-        return trailing.Contains('+') || trailing.Contains('-');
+        if (string.IsNullOrWhiteSpace(trailing))
+            return false;
+
+        trailing = trailing.Trim();
+        if (trailing.Length < 3)
+            return false;
+
+        var sign = trailing[0] switch
+        {
+            '+' => 1,
+            '-' => -1,
+            _ => 0
+        };
+
+        if (sign == 0)
+            return false;
+
+        var body = trailing[1..];
+        if (body.Contains(':'))
+        {
+            var separatorIndex2 = body.IndexOf(':');
+            if (separatorIndex2 <= 0 || separatorIndex2 >= body.Length - 1)
+                return false;
+
+            var hoursPart = body[..separatorIndex2];
+            var minutesPart = body[(separatorIndex2 + 1)..];
+            if (!int.TryParse(hoursPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                || !int.TryParse(minutesPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            {
+                return false;
+            }
+
+            offsetMinutes = sign * ((hours * 60) + minutes);
+            return true;
+        }
+
+        if (body.Length == 4
+            && int.TryParse(body[..2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var compactHours)
+            && int.TryParse(body[2..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var compactMinutes))
+        {
+            offsetMinutes = sign * ((compactHours * 60) + compactMinutes);
+            return true;
+        }
+
+        if (int.TryParse(body, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hoursOnly))
+        {
+            offsetMinutes = sign * (hoursOnly * 60);
+            return true;
+        }
+
+        return false;
     }
 }

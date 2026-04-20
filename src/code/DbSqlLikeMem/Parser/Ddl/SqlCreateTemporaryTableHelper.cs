@@ -73,7 +73,7 @@ internal static class SqlCreateTemporaryTableHelper
         var ifNotExists = ParseCreateTemporaryTableIfNotExists(ctx);
 
         var table = ctx.ParseQualifiedObjectName();
-        var columnDefinitions = ParseCreateTemporaryTableColumnDefinitions(ctx);
+        var (columnDefinitions, primaryKeyColumns) = ParseCreateTemporaryTableColumnDefinitions(ctx);
         var selectSql = ParseCreateTemporaryTableSelectSql(ctx);
 
         return Build(
@@ -81,6 +81,7 @@ internal static class SqlCreateTemporaryTableHelper
             ifNotExists,
             table,
             columnDefinitions,
+            primaryKeyColumns,
             selectSql,
             tempScope,
             isTemporary);
@@ -142,11 +143,12 @@ internal static class SqlCreateTemporaryTableHelper
         return true;
     }
 
-    private static List<Col> ParseCreateTemporaryTableColumnDefinitions(SqlQueryParserContext ctx)
+    private static (List<Col> Columns, List<string> PrimaryKeyColumns) ParseCreateTemporaryTableColumnDefinitions(SqlQueryParserContext ctx)
     {
         var columnDefinitions = new List<Col>();
+        var primaryKeyColumns = new List<string>();
         if (!ctx.IsSymbol("("))
-            return columnDefinitions;
+            return (columnDefinitions, primaryKeyColumns);
 
         var rawColumnsBlock = ctx.ReadBalancedParenRawTokens();
         var defs = SqlRawCommaSplitterHelper.SplitRawByComma(rawColumnsBlock);
@@ -164,12 +166,20 @@ internal static class SqlCreateTemporaryTableHelper
             throw new InvalidOperationException("CREATE TEMPORARY TABLE column list has an empty entry between commas.");
 
         foreach (var def in defs)
-            columnDefinitions.Add(ParseCreateTemporaryTableColumnDefinition(def, ctx));
+        {
+            var columnDefinition = ParseCreateTemporaryTableColumnDefinition(def, ctx);
+            if (columnDefinition is not null)
+            {
+                columnDefinitions.Add(columnDefinition.Value.Column);
+                if (columnDefinition.Value.PrimaryKey)
+                    primaryKeyColumns.Add(columnDefinition.Value.Column.name);
+            }
+        }
 
-        return columnDefinitions;
+        return (columnDefinitions, primaryKeyColumns);
     }
 
-    private static Col ParseCreateTemporaryTableColumnDefinition(string def, SqlQueryParserContext ctx)
+    private static (Col Column, bool PrimaryKey)? ParseCreateTemporaryTableColumnDefinition(string def, SqlQueryParserContext ctx)
     {
         var defTokens = new SqlTokenizer(def, ctx.Dialect).Tokenize()
             .Where(t => t.Kind != SqlTokenKind.EndOfFile)
@@ -182,6 +192,9 @@ internal static class SqlCreateTemporaryTableHelper
         if (firstColToken.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
             throw new InvalidOperationException($"CREATE TEMPORARY TABLE column list expects a column name, found {firstColToken.Kind} '{firstColToken.Text}'.");
 
+        if (IsTableConstraintStarterToken(firstColToken))
+            return null;
+
         var typeTokens = CollectCreateTemporaryTableTypeTokens(defTokens);
         if (typeTokens.Count == 0)
             throw new InvalidOperationException("CREATE TEMPORARY TABLE column list requires a column type.");
@@ -191,8 +204,23 @@ internal static class SqlCreateTemporaryTableHelper
         var size = TryParseSize(typeSql, dbType);
         var decimalPlaces = TryParseDecimalPlaces(typeSql, dbType);
         var nullable = !HasNotNullConstraint(defTokens);
+        var primaryKey = HasPrimaryKeyConstraint(defTokens);
         var defaultValue = ParseCreateTemporaryTableDefaultValue(defTokens, typeTokens.Count + 1, dbType);
-        return new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces, defaultValue: defaultValue);
+        return (new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces, defaultValue: defaultValue), primaryKey);
+    }
+
+    private static bool HasPrimaryKeyConstraint(IReadOnlyList<SqlToken> defTokens)
+    {
+        for (var i = 0; i < defTokens.Count - 1; i++)
+        {
+            if (!defTokens[i].Text.Equals(SqlConst.PRIMARY, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (defTokens[i + 1].Text.Equals(SqlConst.KEY, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private static List<SqlToken> CollectCreateTemporaryTableTypeTokens(IReadOnlyList<SqlToken> defTokens)
@@ -477,6 +505,7 @@ internal static class SqlCreateTemporaryTableHelper
         bool ifNotExists,
         SqlTableSource table,
         IReadOnlyList<Col> columnDefinitions,
+        IReadOnlyList<string> primaryKeyColumns,
         string? selectSql,
         TemporaryTableScope currentScope,
         bool isTemporary)
@@ -525,6 +554,7 @@ internal static class SqlCreateTemporaryTableHelper
             Table = table,
             ColumnDefinitions = columnDefinitions,
             ColumnNames = [.. columnDefinitions.Select(static c => c.name)],
+            PrimaryKeyColumns = [.. primaryKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase)],
             AsSelect = sel
         };
     }
@@ -554,6 +584,15 @@ internal static class SqlCreateTemporaryTableHelper
     private static bool IsColumnConstraintToken(SqlToken token)
         => token.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
            && ColumnConstraintTokens.Contains(token.Text);
+
+    private static bool IsTableConstraintStarterToken(SqlToken token)
+        => token.Kind is SqlTokenKind.Identifier or SqlTokenKind.Keyword
+           && (
+               token.Text.Equals("CONSTRAINT", StringComparison.OrdinalIgnoreCase)
+               || token.Text.Equals("PRIMARY", StringComparison.OrdinalIgnoreCase)
+               || token.Text.Equals("FOREIGN", StringComparison.OrdinalIgnoreCase)
+               || token.Text.Equals("UNIQUE", StringComparison.OrdinalIgnoreCase)
+               || token.Text.Equals("CHECK", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsTypeContinuationToken(SqlToken? token)
         => token is not null
