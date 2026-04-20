@@ -141,22 +141,25 @@ internal static class AstQueryWindowFunctionSupport
 
         var evaluated = eval(args[1], sampleRow, null, ctes);
         if (evaluated is null || evaluated is DBNull)
-            return 1;
+            throw new InvalidOperationException("NTH_VALUE requires a positive integer expression.");
 
         if (evaluated is IConvertible)
         {
             try
             {
                 var parsed = Convert.ToInt32(evaluated, CultureInfo.InvariantCulture);
-                return parsed > 0 ? parsed : 1;
+                if (parsed > 0)
+                    return parsed;
+
+                throw new InvalidOperationException("NTH_VALUE requires a positive integer expression.");
             }
             catch
             {
-                return 1;
+                throw new InvalidOperationException("NTH_VALUE requires a positive integer expression.");
             }
         }
 
-        return 1;
+        throw new InvalidOperationException("NTH_VALUE requires a positive integer expression.");
     }
 
     internal static int ResolveLagLeadOffset(
@@ -173,22 +176,25 @@ internal static class AstQueryWindowFunctionSupport
 
         var evaluated = eval(args[1], sampleRow, null, ctes);
         if (evaluated is null || evaluated is DBNull)
-            return 1;
+            throw new InvalidOperationException("LAG and LEAD require a non-negative integer expression.");
 
         if (evaluated is IConvertible)
         {
             try
             {
                 var parsed = Convert.ToInt32(evaluated, CultureInfo.InvariantCulture);
-                return parsed >= 0 ? parsed : 1;
+                if (parsed >= 0)
+                    return parsed;
+
+                throw new InvalidOperationException("LAG and LEAD require a non-negative integer expression.");
             }
             catch
             {
-                return 1;
+                throw new InvalidOperationException("LAG and LEAD require a non-negative integer expression.");
             }
         }
 
-        return 1;
+        throw new InvalidOperationException("LAG and LEAD require a non-negative integer expression.");
     }
 
     internal static long ResolveNtileBucketCount(
@@ -210,21 +216,24 @@ internal static class AstQueryWindowFunctionSupport
 
         var evaluated = eval(arg, sampleRow, null, ctes);
         if (evaluated is null || evaluated is DBNull)
-            return 1;
+            throw new InvalidOperationException("NTILE requires a positive integer expression.");
 
         if (evaluated is IConvertible)
         {
             try
             {
                 var parsed = Convert.ToInt64(evaluated, CultureInfo.InvariantCulture);
-                return parsed > 0 ? parsed : 1;
+                if (parsed > 0)
+                    return parsed;
+
+                throw new InvalidOperationException("NTILE requires a positive integer expression.");
             }
             catch
             {
-                return 1;
+                throw new InvalidOperationException("NTILE requires a positive integer expression.");
             }
         }
 
-        return 1;
+        throw new InvalidOperationException("NTILE requires a positive integer expression.");
     }
 }

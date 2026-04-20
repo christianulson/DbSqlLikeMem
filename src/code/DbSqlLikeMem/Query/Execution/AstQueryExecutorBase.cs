@@ -1865,10 +1865,16 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     {
         TemporalUnit.Year => dt.AddYears(amount),
         TemporalUnit.Month => dt.AddMonths(amount),
+        TemporalUnit.Week => dt.AddDays(amount * 7L),
         TemporalUnit.Day => dt.AddDays(amount),
+        TemporalUnit.Weekday => dt.AddDays(amount),
+        TemporalUnit.Yearday => dt.AddDays(amount),
         TemporalUnit.Hour => dt.AddHours(amount),
         TemporalUnit.Minute => dt.AddMinutes(amount),
         TemporalUnit.Second => dt.AddSeconds(amount),
+        TemporalUnit.Millisecond => dt.AddMilliseconds(amount),
+        TemporalUnit.Microsecond => dt.AddTicks(amount * 10L),
+        TemporalUnit.Nanosecond => dt.AddTicks((long)Math.Round(amount / 100m, MidpointRounding.AwayFromZero)),
         _ => dt
     };
 
@@ -1880,6 +1886,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0),
         TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0),
         TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second),
+        TemporalUnit.Millisecond => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Millisecond, dateTime.Kind),
+        TemporalUnit.Microsecond => new DateTime(dateTime.Ticks - (dateTime.Ticks % 10), dateTime.Kind),
         _ => dateTime
     };
 
@@ -1891,6 +1899,9 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         TemporalUnit.Hour => dateTime.Hour,
         TemporalUnit.Minute => dateTime.Minute,
         TemporalUnit.Second => dateTime.Second,
+        TemporalUnit.Millisecond => dateTime.Millisecond,
+        TemporalUnit.Microsecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L),
+        TemporalUnit.Nanosecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) * 100L),
         _ => null
     };
 
@@ -1917,6 +1928,8 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             TemporalUnit.Hour => TimeSpan.FromHours((double)value),
             TemporalUnit.Minute => TimeSpan.FromMinutes((double)value),
             TemporalUnit.Second => TimeSpan.FromSeconds((double)value),
+            TemporalUnit.Microsecond => TimeSpan.FromTicks((long)decimal.Truncate(value * 10m)),
+            TemporalUnit.Nanosecond => TimeSpan.FromTicks((long)Math.Round(value / 100m, MidpointRounding.AwayFromZero)),
             _ => (TimeSpan?)null
         };
 
@@ -2659,7 +2672,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     internal readonly record struct DateTimeOffsetParseCacheEntry(bool Success, DateTimeOffset Value);
     internal readonly record struct TimeSpanParseCacheEntry(bool Success, TimeSpan Value);
     internal enum SqlTruthValue { True, False, Unknown }
-    internal enum TemporalUnit { Unknown, Year, Month, Day, Week, Weekday, Yearday, Hour, Minute, Second, Millisecond }
+    internal enum TemporalUnit { Unknown, Year, Month, Day, Week, Weekday, Yearday, Hour, Minute, Second, Millisecond, Microsecond, Nanosecond }
 
     private static readonly IReadOnlyDictionary<string, TemporalUnit> _temporalUnits = new Dictionary<string, TemporalUnit>(StringComparer.OrdinalIgnoreCase)
     {
@@ -2688,7 +2701,10 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         ["SECONDS"] = TemporalUnit.Second,
         ["SS"] = TemporalUnit.Second,
         ["S"] = TemporalUnit.Second,
-        ["MILLISECOND"] = TemporalUnit.Millisecond
+        ["MILLISECOND"] = TemporalUnit.Millisecond,
+        ["MICROSECOND"] = TemporalUnit.Microsecond,
+        ["MICROSECONDS"] = TemporalUnit.Microsecond,
+        ["MCS"] = TemporalUnit.Microsecond
     };
 
     private static readonly IReadOnlyDictionary<string, DayOfWeek> _oracleDayOfWeekMap = new Dictionary<string, DayOfWeek>(StringComparer.OrdinalIgnoreCase)

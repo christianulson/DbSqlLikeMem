@@ -2,7 +2,7 @@
 
 ## Status
 
-IN PROGRESS
+DONE
 
 ## Percentual de entrega
 

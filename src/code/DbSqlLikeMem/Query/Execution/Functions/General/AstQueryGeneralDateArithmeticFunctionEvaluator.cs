@@ -214,6 +214,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
             TemporalUnit.Minute => dateTime.AddMinutes(amount),
             TemporalUnit.Second => dateTime.AddSeconds(amount),
             TemporalUnit.Millisecond => dateTime.AddMilliseconds(amount),
+            TemporalUnit.Microsecond => dateTime.AddTicks((long)Math.Truncate(amount * 10d)),
             _ => null
         };
         return true;

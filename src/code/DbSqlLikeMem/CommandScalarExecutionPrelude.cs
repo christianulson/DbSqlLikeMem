@@ -707,14 +707,23 @@ internal static class CommandScalarExecutionPrelude
 
         if (functionName.Equals("JSON_QUERY", StringComparison.OrdinalIgnoreCase))
         {
-            if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json!, path!, out var element))
+            var lookup = QueryJsonFunctionHelper.LookupJsonPath(json!, path!);
+            if (!lookup.Success)
             {
+                if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+                    throw new InvalidOperationException($"JSON_QUERY path '{path}' is invalid in the mock.");
+
+                if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
+                    throw new InvalidOperationException($"JSON_QUERY strict path '{path}' was not found in the JSON payload.");
+
                 return true;
             }
 
-            value = element.ValueKind is JsonValueKind.Object or JsonValueKind.Array
-                ? element.GetRawText()
-                : null;
+            value = lookup.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array
+                ? lookup.Value.GetRawText()
+                : lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict
+                    ? throw new InvalidOperationException($"JSON_QUERY strict path '{path}' was not found in the JSON payload.")
+                    : null;
             return true;
         }
 
@@ -722,12 +731,33 @@ internal static class CommandScalarExecutionPrelude
         {
             if (context.Dialect.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase))
             {
-                if (!QueryJsonFunctionHelper.TryReadJsonPathElement(json!, path!, out var element))
+                var lookup = QueryJsonFunctionHelper.LookupJsonPath(json!, path!);
+                if (!lookup.Success)
                 {
+                    if (lookup.Failure == QueryJsonFunctionHelper.JsonPathLookupFailure.InvalidPath)
+                        throw new InvalidOperationException($"JSON_VALUE path '{path}' is invalid in the mock.");
+
+                    if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
+                        throw new InvalidOperationException($"JSON_VALUE strict path '{path}' was not found in the JSON payload.");
+
                     return true;
                 }
 
-                value = QueryJsonFunctionHelper.ConvertJsonElementToSqlServerJsonValue(element);
+                value = QueryJsonFunctionHelper.ConvertJsonElementToSqlServerJsonValue(lookup.Value);
+                if (value is null
+                    && lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict
+                    && lookup.Value.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+                    throw new InvalidOperationException($"JSON_VALUE strict path '{path}' was not found in the JSON payload.");
+
+                if (value is string text && text.Length > 4000)
+                {
+                    if (lookup.Mode == QueryJsonFunctionHelper.JsonPathMode.Strict)
+                        throw new InvalidOperationException($"JSON_VALUE strict path '{path}' exceeds the 4000 character limit.");
+
+                    value = null;
+                    return true;
+                }
+
                 return true;
             }
 

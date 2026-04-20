@@ -29,6 +29,58 @@ public sealed class MariaDbDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures MariaDB rejects ORDER BY NULLS FIRST and NULLS LAST modifiers in SELECT queries.
+    /// PT: Garante que o MariaDB rejeite os modificadores ORDER BY NULLS FIRST e NULLS LAST em consultas SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSelect_OrderByNullsModifier_ShouldReject()
+    {
+        var db = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDbMock(v));
+        var dialect = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDialect(v));
+
+        var firstEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS FIRST",
+            db,
+            dialect));
+
+        Assert.Contains("NULLS FIRST", firstEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var lastEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS LAST",
+            db,
+            dialect));
+
+        Assert.Contains("NULLS LAST", lastEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MariaDB rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
+    /// PT: Garante que o MariaDB rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseWithCte_MaterializedHint_ShouldReject()
+    {
+        var db = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDbMock(v));
+        var dialect = Get(MariaDbDbVersions.Version11_0, v => new MariaDbDialect(v));
+
+        var materializedEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "WITH x AS MATERIALIZED (SELECT 1 AS id) SELECT id FROM x",
+            db,
+            dialect));
+
+        Assert.Contains("WITH ... AS MATERIALIZED", materializedEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var notMaterializedEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "WITH x AS NOT MATERIALIZED (SELECT 1 AS id) SELECT id FROM x",
+            db,
+            dialect));
+
+        Assert.Contains("WITH ... AS NOT MATERIALIZED", notMaterializedEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures INSERT ... RETURNING follows the MariaDB version gate and captures the projection payload when enabled.
     /// PT: Garante que INSERT ... RETURNING siga o gate de versao do MariaDB e capture a projecao quando habilitado.
     /// </summary>
@@ -564,6 +616,24 @@ public sealed class MariaDbDialectFeatureParserTests(
 
         var parsed = Assert.IsType<SqlCreateSequenceQuery>(SqlQueryParser.Parse(sql, db, dialect));
         Assert.Equal(sql, parsed.RawSql);
+    }
+
+    /// <summary>
+    /// EN: Ensures MariaDB rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is available.
+    /// PT: Garante que o MariaDB rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseCreateSequence_OwnedBy_ShouldThrowNotSupported()
+    {
+        var db = Get(MariaDbDbVersions.Version10_5, v => new MariaDbDbMock(v));
+        var dialect = Get(MariaDbDialect.SequenceMinVersion, v => new MariaDbDialect(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1 OWNED BY sales.users.id",
+            db, dialect));
+
+        Assert.Contains("OWNED BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

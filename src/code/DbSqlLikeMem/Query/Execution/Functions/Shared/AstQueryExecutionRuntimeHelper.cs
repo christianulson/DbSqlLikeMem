@@ -32,6 +32,9 @@ internal static class AstQueryExecutionRuntimeHelper
         ["SS"] = TemporalUnit.Second,
         ["S"] = TemporalUnit.Second,
         ["MILLISECOND"] = TemporalUnit.Millisecond,
+        ["MICROSECOND"] = TemporalUnit.Microsecond,
+        ["MICROSECONDS"] = TemporalUnit.Microsecond,
+        ["MCS"] = TemporalUnit.Microsecond,
     };
 
     internal static TemporalUnit ResolveTemporalUnit(string unit)

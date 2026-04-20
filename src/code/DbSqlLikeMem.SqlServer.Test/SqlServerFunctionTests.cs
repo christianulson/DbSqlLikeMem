@@ -236,6 +236,115 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF(day, '2020-01-01', '2020-01-03') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("February", ExecuteScalar(connection, "SELECT DATENAME(month, '2020-02-10') FROM Users WHERE Id = 1"));
         Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(month, '2020-02-10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(124, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(millisecond, '2020-02-10T10:11:12.124') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            new DateTime(2020, 2, 10, 10, 11, 12, 124),
+            Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(millisecond, 1, '2020-02-10T10:11:12.123') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(45, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(dayofyear, '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("45", ExecuteScalar(connection, "SELECT DATENAME(dayofyear, '2020-02-14') FROM Users WHERE Id = 1"));
+        Assert.Equal(45, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(dy, '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("45", ExecuteScalar(connection, "SELECT DATENAME(y, '2020-02-14') FROM Users WHERE Id = 1"));
+        Assert.Equal(
+            new DateTime(2020, 2, 15),
+            Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(dayofyear, 1, '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF(dayofyear, '2020-02-14', '2020-02-15') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("Sunday", ExecuteScalar(connection, "SELECT DATENAME(weekday, '2020-02-16') FROM Users WHERE Id = 1"));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(weekday, '2020-02-16') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("Sunday", ExecuteScalar(connection, "SELECT DATENAME(dw, '2020-02-16') FROM Users WHERE Id = 1"));
+        Assert.Equal("Sunday", ExecuteScalar(connection, "SELECT DATENAME(w, '2020-02-16') FROM Users WHERE Id = 1"));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(w, '2020-02-16') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(dw, '2020-02-16') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            new DateTime(2020, 2, 17),
+            Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(weekday, 1, '2020-02-16') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(16, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(week, '2007-04-21') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("16", ExecuteScalar(connection, "SELECT DATENAME(week, '2007-04-21') FROM Users WHERE Id = 1"));
+        Assert.Equal(16, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(wk, '2007-04-21') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("16", ExecuteScalar(connection, "SELECT DATENAME(ww, '2007-04-21') FROM Users WHERE Id = 1"));
+        Assert.Equal(
+            new DateTime(2007, 4, 28),
+            Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(week, 1, '2007-04-21') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            1,
+            Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF(week, '2005-12-31T23:59:59.9999999', '2006-01-01T00:00:00.0000000') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            new DateTime(2007, 4, 28),
+            Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(wk, 1, '2007-04-21') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            1,
+            Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF(dw, '2020-02-16', '2020-02-17') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            1,
+            Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF(ww, '2005-12-31T23:59:59.9999999', '2006-01-01T00:00:00.0000000') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            new DateTime(2020, 2, 15),
+            Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(dy, 1, '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(
+            new DateTime(2020, 2, 15),
+            Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(y, 1, '2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(53, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(iso_week, '2021-01-01') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("53", ExecuteScalar(connection, "SELECT DATENAME(iso_week, '2021-01-01') FROM Users WHERE Id = 1"));
+        Assert.Equal(53, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(isowk, '2021-01-01') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("53", ExecuteScalar(connection, "SELECT DATENAME(isoww, '2021-01-01') FROM Users WHERE Id = 1"));
+        Assert.Equal(310, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("310", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
+        Assert.Equal(310, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("310", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("0", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"));
+        Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEADD(iso_week, 1, '2021-01-01') FROM Users WHERE Id = 1"));
+        Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEDIFF(iso_week, '2021-01-01', '2021-01-08') FROM Users WHERE Id = 1"));
+        if (version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATENAME(microsecond, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEPART(microsecond, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEPART(mcs, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATENAME(ns, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEPART(ns, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEADD(ns, 150, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEDIFF(ns, '2020-02-10T10:11:12.1245678', '2020-02-10T10:11:12.1245679') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEADD(microsecond, 1, '2020-02-10T10:11:12.1234567') FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEDIFF(microsecond, '2020-02-10T10:11:12.1234567', '2020-02-10T10:11:12.1234577') FROM Users WHERE Id = 1"));
+        }
+        else
+        {
+            Assert.Equal("124567", ExecuteScalar(connection, "SELECT DATENAME(microsecond, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Equal(124567, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(microsecond, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(124567, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(mcs, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(
+                new DateTime(2020, 2, 10, 10, 11, 12).AddTicks(1234577),
+                Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(microsecond, 1, '2020-02-10T10:11:12.1234567') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF(microsecond, '2020-02-10T10:11:12.1234567', '2020-02-10T10:11:12.1234577') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal("124567800", ExecuteScalar(connection, "SELECT DATENAME(ns, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+            Assert.Equal(124567800, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(ns, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(
+                new DateTime(2020, 2, 10, 10, 11, 12).AddTicks(1245680),
+                Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEADD(ns, 150, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(100L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(ns, '2020-02-10T10:11:12.1245678', '2020-02-10T10:11:12.1245679') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        }
+        if (version < SqlServerDialect.DateTruncMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETRUNC(month, '2020-02-15T10:11:12') FROM Users WHERE Id = 1"));
+        }
+        else
+        {
+            Assert.Equal(new DateTime(2020, 2, 1), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(month, '2020-02-15T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(week, '2020-02-19T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(wk, '2020-02-19T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(ww, '2020-02-19T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 14), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(dayofyear, '2020-02-14T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 14), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(dy, '2020-02-14T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 14), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(y, '2020-02-14T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 12, 28), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(iso_week, '2021-01-01T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 12, 28), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(isowk, '2021-01-01T10:11:12') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(
+                new DateTime(2020, 2, 10, 10, 11, 12, 124),
+                Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(millisecond, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(
+                new DateTime(2020, 2, 10, 10, 11, 12).AddTicks(1245670),
+                Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETRUNC(microsecond, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETRUNC(ns, '2020-02-10T10:11:12.1245678') FROM Users WHERE Id = 1"));
+        }
         Assert.Equal(14, Convert.ToInt32(ExecuteScalar(connection, "SELECT DAY('2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT MONTH('2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(2020, Convert.ToInt32(ExecuteScalar(connection, "SELECT YEAR('2020-02-14') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -248,6 +357,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         {
             Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12), TimeSpan.FromHours(2)), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00') FROM Users WHERE Id = 1")));
             Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 9, 11, 12), TimeSpan.Zero), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00') FROM Users WHERE Id = 1")));
+            Assert.Equal(120, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal("120", ExecuteScalar(connection, "SELECT DATENAME(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"));
+            Assert.Equal(-210, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30')) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal("-210", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30')) FROM Users WHERE Id = 1"));
         }
 
         if (version < SqlServerDialect.FromPartsMinVersion)
@@ -275,6 +388,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         }
 
         Assert.Equal(2L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(day, '2020-01-01', '2020-01-03') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(week, '2005-12-31T23:59:59.9999999', '2006-01-01T00:00:00.0000000') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(millisecond, '2020-02-10T10:11:12.123', '2020-02-10T10:11:12.124') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(microsecond, '2020-02-10T10:11:12.1234567', '2020-02-10T10:11:12.1234577') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(100L, Convert.ToInt64(ExecuteScalar(connection, "SELECT DATEDIFF_BIG(ns, '2020-02-10T10:11:12.1245678', '2020-02-10T10:11:12.1245679') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -374,6 +491,53 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
         Assert.Equal("{\"active\":true,\"name\":\"Ana\"}", ExecuteScalar(connection, "SELECT JSON_QUERY(Email, '$.profile') FROM Users WHERE Id = 1"));
         Assert.Equal("Ana", ExecuteScalar(connection, "SELECT JSON_VALUE(Email, '$.profile.name') FROM Users WHERE Id = 1"));
+        var strictValueEx = Assert.Throws<InvalidOperationException>(() => ExecuteScalar(connection, "SELECT JSON_VALUE(Email, 'strict $.profile') FROM Users WHERE Id = 1"));
+        Assert.Contains("strict", strictValueEx.Message, StringComparison.OrdinalIgnoreCase);
+        var strictQueryEx = Assert.Throws<InvalidOperationException>(() => ExecuteScalar(connection, "SELECT JSON_QUERY(Email, 'strict $.profile.name') FROM Users WHERE Id = 1"));
+        Assert.Contains("strict", strictQueryEx.Message, StringComparison.OrdinalIgnoreCase);
+        var strictModifyEx = Assert.Throws<InvalidOperationException>(() => ExecuteScalar(connection, "SELECT JSON_MODIFY(Email, 'strict $.profile.missing', NULL) FROM Users WHERE Id = 1"));
+        Assert.Contains("strict", strictModifyEx.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("{\"profile\":{\"active\":true,\"name\":\"Ana\",\"tags\":[\"db\",\"sql\",\"azure\"]}}", ExecuteScalar(connection, "SELECT JSON_MODIFY('{\"profile\":{\"active\":true,\"name\":\"Ana\",\"tags\":[\"db\",\"sql\"]}}', 'append $.profile.tags', 'azure') FROM Users WHERE Id = 1"));
+
+        var longProfileName = new string('x', 4001);
+        var longProfileJson = $"{{\"profile\":{{\"name\":\"{longProfileName}\"}}}}";
+
+        Assert.Null(ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', '$.profile.name') FROM Users WHERE Id = 1"));
+        var strictLongValueEx = Assert.Throws<InvalidOperationException>(() => ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 1"));
+        Assert.Contains("4000", strictLongValueEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exactProfileName = new string('y', 4000);
+        var exactProfileJson = $"{{\"profile\":{{\"name\":\"{exactProfileName}\"}}}}";
+
+        Assert.Equal(exactProfileName, ExecuteScalar(connection, $"SELECT JSON_VALUE('{exactProfileJson}', '$.profile.name') FROM Users WHERE Id = 1"));
+        Assert.Equal(exactProfileName, ExecuteScalar(connection, $"SELECT JSON_VALUE('{exactProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 1"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server JSON_QUERY without a path preserves a root JSON fragment.
+    /// PT: Garante que JSON_QUERY do SQL Server sem path preserve um fragmento JSON de raiz.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void JsonQueryWithoutPath_ShouldReturnRootJsonFragment()
+    {
+        using var connection = CreateOpenConnection();
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (895, 'Bia', '{\"profile\":{\"active\":true},\"roles\":[\"admin\",\"ops\"]}')");
+
+        var scalarJson = Assert.IsType<string>(ExecuteScalar(connection, "SELECT JSON_QUERY(Email) FROM Users WHERE Id = 895"));
+        using (var scalarDocument = JsonDocument.Parse(scalarJson))
+        {
+            Assert.Equal(JsonValueKind.Object, scalarDocument.RootElement.ValueKind);
+            Assert.True(scalarDocument.RootElement.GetProperty("profile").GetProperty("active").GetBoolean());
+        }
+
+        var embeddedJson = Assert.IsType<string>(ExecuteScalar(connection, "SELECT JSON_QUERY(Email) AS [User.Payload] FROM Users WHERE Id = 895 FOR JSON PATH, WITHOUT_ARRAY_WRAPPER"));
+        using var embeddedDocument = JsonDocument.Parse(embeddedJson);
+        var payload = embeddedDocument.RootElement.GetProperty("User").GetProperty("Payload");
+
+        Assert.Equal(JsonValueKind.Object, payload.ValueKind);
+        Assert.Equal("ops", payload.GetProperty("roles")[1].GetString());
     }
 
     /// <summary>
@@ -406,7 +570,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         if (version < SqlServerDialect.StringAggMinVersion)
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT STRING_AGG(Name, ',') FROM Users"));
         else
+        {
             Assert.Equal("Ana,Bob", ExecuteScalar(connection, "SELECT STRING_AGG(Name, ',') FROM Users"));
+            Assert.Equal("Bob,Ana", ExecuteScalar(connection, "SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name DESC) FROM Users"));
+        }
 
         Assert.Equal(Math.Sqrt(0.5d), Convert.ToDouble(ExecuteScalar(connection, "SELECT STDEV(Id) FROM Users"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar(connection, "SELECT STDEVP(Id) FROM Users"), CultureInfo.InvariantCulture), 12);
@@ -431,6 +598,12 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         var lastValues = ExecuteColumn(connection, "SELECT LAST_VALUE(Name) OVER (ORDER BY Id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) FROM Users ORDER BY Id");
         Assert.Equal(["Bob", "Bob"], lastValues);
 
+        var defaultLastValues = ExecuteColumn(connection, "SELECT LAST_VALUE(Name) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal(["Ana", "Bob"], defaultLastValues);
+
+        var defaultNthValues = ExecuteColumn(connection, "SELECT NTH_VALUE(Name, 2) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal([DBNull.Value, "Bob"], defaultNthValues);
+
         var denseRanks = ExecuteColumn(connection, "SELECT DENSE_RANK() OVER (ORDER BY LEN(Name)) FROM Users ORDER BY Id");
         Assert.Equal([1L, 1L], denseRanks);
 
@@ -446,8 +619,56 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         var cumeDist = ExecuteColumn(connection, "SELECT CUME_DIST() OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([0.5d, 1d], cumeDist);
 
+        var orderedCount = ExecuteColumn(connection, "SELECT COUNT(*) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal([1L, 2L], orderedCount);
+
+        var orderedSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal([1m, 3m], orderedSum);
+
+        var orderedAvg = ExecuteColumn(connection, "SELECT AVG(Id) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal([1m, 1.5m], orderedAvg);
+
+        var orderedMax = ExecuteColumn(connection, "SELECT MAX(Id) OVER (ORDER BY Id) FROM Users ORDER BY Id");
+        Assert.Equal([1, 2], orderedMax);
+
+        var peerOrderedCount = ExecuteColumn(connection, "SELECT COUNT(*) OVER (ORDER BY LEN(Name)) FROM Users ORDER BY Id");
+        Assert.Equal([2L, 2L], peerOrderedCount);
+
+        var peerOrderedSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY LEN(Name)) FROM Users ORDER BY Id");
+        Assert.Equal([3m, 3m], peerOrderedSum);
+
+        var peerOrderedAvg = ExecuteColumn(connection, "SELECT AVG(Id) OVER (ORDER BY LEN(Name)) FROM Users ORDER BY Id");
+        Assert.Equal([1.5m, 1.5m], peerOrderedAvg);
+
+        var peerOrderedMax = ExecuteColumn(connection, "SELECT MAX(Id) OVER (ORDER BY LEN(Name)) FROM Users ORDER BY Id");
+        Assert.Equal([2, 2], peerOrderedMax);
+
+        var peerRowsCount = ExecuteColumn(connection, "SELECT COUNT(*) OVER (ORDER BY LEN(Name) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM Users ORDER BY Id");
+        Assert.Equal([1L, 2L], peerRowsCount);
+
+        var peerRangeCount = ExecuteColumn(connection, "SELECT COUNT(*) OVER (ORDER BY LEN(Name) RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM Users ORDER BY Id");
+        Assert.Equal([2L, 2L], peerRangeCount);
+
+        var peerRowsSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY LEN(Name) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM Users ORDER BY Id");
+        Assert.Equal([1m, 3m], peerRowsSum);
+
+        var peerRangeSum = ExecuteColumn(connection, "SELECT SUM(Id) OVER (ORDER BY LEN(Name) RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM Users ORDER BY Id");
+        Assert.Equal([3m, 3m], peerRangeSum);
+
         var ntile = ExecuteColumn(connection, "SELECT NTILE(2) OVER (ORDER BY Id) FROM Users ORDER BY Id");
         Assert.Equal([1L, 2L], ntile);
+
+        var ntileEx = Assert.Throws<InvalidOperationException>(() => ExecuteColumn(connection, "SELECT NTILE(Id - Id) OVER (ORDER BY Id) FROM Users ORDER BY Id"));
+        Assert.Contains("positive integer", ntileEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var lagEx = Assert.Throws<InvalidOperationException>(() => ExecuteColumn(connection, "SELECT LAG(Name, Id - (Id + 1)) OVER (ORDER BY Id) FROM Users ORDER BY Id"));
+        Assert.Contains("non-negative", lagEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var leadEx = Assert.Throws<InvalidOperationException>(() => ExecuteColumn(connection, "SELECT LEAD(Name, Id - (Id + 1)) OVER (ORDER BY Id) FROM Users ORDER BY Id"));
+        Assert.Contains("non-negative", leadEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var nthValueEx = Assert.Throws<InvalidOperationException>(() => ExecuteColumn(connection, "SELECT NTH_VALUE(Name, Id - (Id + 1)) OVER (ORDER BY Id) FROM Users ORDER BY Id"));
+        Assert.Contains("positive integer", nthValueEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

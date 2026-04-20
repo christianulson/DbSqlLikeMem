@@ -893,6 +893,38 @@ public sealed class SqlAzureDialectFeatureParserTests(
         Assert.Single(parsed.SelectItems);
         Assert.Contains(SqlConst.STRING_AGG, parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
     }
+
+    /// <summary>
+    /// EN: Ensures SQL Azure parser accepts tz and tzoffset temporal parts through the shared SQL Server syntax path.
+    /// PT: Garante que o parser SQL Azure aceite partes temporais tz e tzoffset pelo caminho compartilhado de sintaxe do SQL Server.
+    /// </summary>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlAzureCompatibilityLevel]
+    public void ParseScalar_TimeZoneOffsetFunctions_ShouldParse(int compatibilityLevel)
+    {
+        var dialect = CreateDialect(compatibilityLevel);
+        var db = Get(dialect.Version, v => new SqlAzureDbMock(v));
+
+        var tzCall = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(tz, '2007-05-10T00:00:01.1234567Z')", db, dialect));
+        Assert.Equal("DATEPART", tzCall.Name, StringComparer.OrdinalIgnoreCase);
+
+        var tzNameCall = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(tz, '2007-05-10T00:00:01.1234567Z')", db, dialect));
+        Assert.Equal("DATENAME", tzNameCall.Name, StringComparer.OrdinalIgnoreCase);
+
+        var tzOffsetCall = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(tzoffset, '2007-05-10T00:00:01.1234567Z')", db, dialect));
+        Assert.Equal("DATEPART", tzOffsetCall.Name, StringComparer.OrdinalIgnoreCase);
+
+        var tzOffsetNameCall = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(tzoffset, '2007-05-10T00:00:01.1234567Z')", db, dialect));
+        Assert.Equal("DATENAME", tzOffsetNameCall.Name, StringComparer.OrdinalIgnoreCase);
+
+        var tzOffsetFromPartsCall = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))", db, dialect));
+        Assert.Equal("DATEPART", tzOffsetFromPartsCall.Name, StringComparer.OrdinalIgnoreCase);
+
+        var tzOffsetFromPartsNameCall = Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))", db, dialect));
+        Assert.Equal("DATENAME", tzOffsetFromPartsNameCall.Name, StringComparer.OrdinalIgnoreCase);
+    }
 }
 
 

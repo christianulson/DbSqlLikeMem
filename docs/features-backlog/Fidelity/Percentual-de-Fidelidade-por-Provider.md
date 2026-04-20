@@ -63,7 +63,7 @@
 - Pontos garantidos:
   - `NpgsqlDbMock` e `NpgsqlConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
-- Regras de `Dialect` para `LATERAL`, temporais e `DateTimeOffset`.
+  - Regras de `Dialect` para `LATERAL`, temporais e `DateTimeOffset`.
   - Teste dedicado para `ALTER SEQUENCE ... RESTART WITH` na suíte de fidelidade.
   - Teste dedicado para `currval` e `lastval` após restart de sequence.
   - Teste dedicado para `setval(..., false)` e `lastval` estável.

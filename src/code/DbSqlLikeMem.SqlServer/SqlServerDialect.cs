@@ -47,6 +47,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     internal const int StringSplitOrdinalMinVersion = 2022;
     internal const int HighPrecisionTemporalFunctionsMinVersion = 2008;
     internal const int DateTimeOffsetFunctionsMinVersion = 2008;
+    internal const int DateTruncMinVersion = 2022;
     internal const int EomonthMinVersion = 2012;
     internal const int FormatMinVersion = 2012;
     internal const int PercentileMinVersion = 2012;
@@ -265,6 +266,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
         "STRING_ESCAPE",
         "TODATETIMEOFFSET",
         "SWITCHOFFSET",
+        "DATETRUNC",
         "DATEADD",
         "DATEDIFF",
         "DATENAME",
@@ -394,6 +396,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
             && SqlServerDateFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase)
             && this.TryGetScalarFunctionDefinition(functionName, out var definition)
             && definition is not null
+            && (!functionName.Equals("DATETRUNC", StringComparison.OrdinalIgnoreCase)
+                || Version >= DateTruncMinVersion)
             && (definition.AllowsCall || definition.AllowsIdentifier);
 
     /// <summary>
@@ -414,8 +418,8 @@ internal sealed class SqlServerDialect : SqlDialectBase
                         || Version >= ApproxCountDistinctMinVersion));
 
     /// <summary>
-    /// EN: Checks whether a SQL Server FROM PARTS-style function is supported by this dialect.
-    /// PT: Verifica se uma funcao estilo FROM PARTS do SQL Server e suportada por este dialeto.
+    /// EN: Indicates whether a SQL Server FROM PARTS-style function is supported by this dialect.
+    /// PT: Indica se uma funcao estilo FROM PARTS do SQL Server e suportada por este dialeto.
     /// </summary>
     public bool SupportsSqlServerFromPartsFunction(string functionName)
         => IsRegisteredSqlServerCall(functionName)

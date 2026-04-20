@@ -74,6 +74,7 @@ internal static class SqlServerScalarFunctionRegistry
         AstQueryGeneralScalarFunctionHandler tryEvalSqlServerUtilityFunction)
     {
         _ = version;
+        var supportsHighPrecisionTemporalFunctions = version >= SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion;
 
         dialect.AddScalarFunction(
             CreateScalarFunctionDef(
@@ -149,7 +150,7 @@ internal static class SqlServerScalarFunctionRegistry
             dialect.AddScalarFunction("EOMONTH", "DATE", TryEvalSqlServerEomonthFunction);
         }
 
-        static bool TryEvalSqlServerDateNameFunction(
+        bool TryEvalSqlServerDateNameFunction(
             QueryExecutionContext context,
             FunctionCallExpr fn,
             Func<int, object?> evalArg,
@@ -165,7 +166,15 @@ internal static class SqlServerScalarFunctionRegistry
             var unitText = fn.Args[0] is RawSqlExpr rawUnit
                 ? rawUnit.Sql
                 : evalArg(0)?.ToString() ?? string.Empty;
-            var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
+            var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
+            var unit = isIsoWeek
+                ? AstQueryExecutorBase.TemporalUnit.Week
+                : SqlServerTemporalUnitHelper.Resolve(unitText);
+            if (!supportsHighPrecisionTemporalFunctions
+                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
             var value = evalArg(1);
             if (AstQueryExecutorBase.IsNullish(value)
                 || unit == AstQueryExecutorBase.TemporalUnit.Unknown
@@ -175,20 +184,32 @@ internal static class SqlServerScalarFunctionRegistry
                 return true;
             }
 
+            if (isIsoWeek)
+            {
+                result = AstQueryExecutorBase.GetIsoWeekOfYear(dateTime).ToString(CultureInfo.InvariantCulture);
+                return true;
+            }
+
             result = unit switch
             {
                 AstQueryExecutorBase.TemporalUnit.Year => dateTime.Year.ToString(CultureInfo.InvariantCulture),
                 AstQueryExecutorBase.TemporalUnit.Month => dateTime.ToString("MMMM", CultureInfo.InvariantCulture),
                 AstQueryExecutorBase.TemporalUnit.Day => dateTime.Day.ToString(CultureInfo.InvariantCulture),
+                AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.DayOfYear.ToString(CultureInfo.InvariantCulture),
+                AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.GetWeekOfYear(dateTime).ToString(CultureInfo.InvariantCulture),
+                AstQueryExecutorBase.TemporalUnit.Weekday => SqlServerTemporalUnitHelper.GetWeekdayName(dateTime),
                 AstQueryExecutorBase.TemporalUnit.Hour => dateTime.Hour.ToString(CultureInfo.InvariantCulture),
                 AstQueryExecutorBase.TemporalUnit.Minute => dateTime.Minute.ToString(CultureInfo.InvariantCulture),
                 AstQueryExecutorBase.TemporalUnit.Second => dateTime.Second.ToString(CultureInfo.InvariantCulture),
+                AstQueryExecutorBase.TemporalUnit.Millisecond => dateTime.Millisecond.ToString(CultureInfo.InvariantCulture),
+                AstQueryExecutorBase.TemporalUnit.Microsecond => ((int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L)).ToString(CultureInfo.InvariantCulture),
+                AstQueryExecutorBase.TemporalUnit.Nanosecond => ((int)((dateTime.Ticks % TimeSpan.TicksPerSecond) * 100L)).ToString(CultureInfo.InvariantCulture),
                 _ => null
             };
             return true;
         }
 
-        static bool TryEvalSqlServerDatePartFunction(
+        bool TryEvalSqlServerDatePartFunction(
             QueryExecutionContext context,
             FunctionCallExpr fn,
             Func<int, object?> evalArg,
@@ -202,6 +223,7 @@ internal static class SqlServerScalarFunctionRegistry
                     ? rawUnit.Sql
                     : evalArg(0)?.ToString() ?? string.Empty
                 : name;
+            var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
             var valueIndex = name == "DATEPART" ? 1 : 0;
             if ((name == "DATEPART" && fn.Args.Count < 2)
                 || (name != "DATEPART" && fn.Args.Count == 0))
@@ -210,7 +232,14 @@ internal static class SqlServerScalarFunctionRegistry
                 return true;
             }
 
-            var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
+            var unit = isIsoWeek
+                ? AstQueryExecutorBase.TemporalUnit.Week
+                : SqlServerTemporalUnitHelper.Resolve(unitText);
+            if (!supportsHighPrecisionTemporalFunctions
+                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
             var value = evalArg(valueIndex);
             if (AstQueryExecutorBase.IsNullish(value)
                 || unit == AstQueryExecutorBase.TemporalUnit.Unknown
@@ -220,20 +249,94 @@ internal static class SqlServerScalarFunctionRegistry
                 return true;
             }
 
+            if (isIsoWeek)
+            {
+                result = AstQueryExecutorBase.GetIsoWeekOfYear(dateTime);
+                return true;
+            }
+
             result = unit switch
             {
                 AstQueryExecutorBase.TemporalUnit.Year => dateTime.Year,
                 AstQueryExecutorBase.TemporalUnit.Month => dateTime.Month,
                 AstQueryExecutorBase.TemporalUnit.Day => dateTime.Day,
+                AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.DayOfYear,
+                AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.GetWeekOfYear(dateTime),
+                AstQueryExecutorBase.TemporalUnit.Weekday => SqlServerTemporalUnitHelper.GetWeekdayIndex(dateTime),
                 AstQueryExecutorBase.TemporalUnit.Hour => dateTime.Hour,
                 AstQueryExecutorBase.TemporalUnit.Minute => dateTime.Minute,
                 AstQueryExecutorBase.TemporalUnit.Second => dateTime.Second,
+                AstQueryExecutorBase.TemporalUnit.Millisecond => dateTime.Millisecond,
+                AstQueryExecutorBase.TemporalUnit.Microsecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L),
+                AstQueryExecutorBase.TemporalUnit.Nanosecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) * 100L),
                 _ => null
             };
             return true;
         }
 
-        static bool TryEvalSqlServerDateDiffFunction(
+        bool TryEvalSqlServerDateTruncFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            _ = context;
+
+            if (fn.Args.Count < 2)
+            {
+                result = null;
+                return true;
+            }
+
+            var unitText = fn.Args[0] is RawSqlExpr rawUnit
+                ? rawUnit.Sql
+                : evalArg(0)?.ToString() ?? string.Empty;
+            var value = evalArg(1);
+            if (AstQueryExecutorBase.IsNullish(value)
+                || string.IsNullOrWhiteSpace(unitText)
+                || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+            {
+                result = null;
+                return true;
+            }
+
+            var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
+            var unit = isIsoWeek
+                ? AstQueryExecutorBase.TemporalUnit.Week
+                : SqlServerTemporalUnitHelper.Resolve(unitText);
+            if (!supportsHighPrecisionTemporalFunctions
+                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+            if (unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+            if (unit == AstQueryExecutorBase.TemporalUnit.Weekday)
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+            if (isIsoWeek)
+            {
+                result = SqlServerTemporalUnitHelper.TruncateToIsoWeekStart(dateTime);
+                return true;
+            }
+
+            result = unit switch
+            {
+                AstQueryExecutorBase.TemporalUnit.Year => new DateTime(dateTime.Year, 1, 1, 0, 0, 0, dateTime.Kind),
+                AstQueryExecutorBase.TemporalUnit.Month => new DateTime(dateTime.Year, dateTime.Month, 1, 0, 0, 0, dateTime.Kind),
+                AstQueryExecutorBase.TemporalUnit.Day => dateTime.Date,
+                AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.Date,
+                AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.TruncateToWeekStart(dateTime),
+                AstQueryExecutorBase.TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0, dateTime.Kind),
+                AstQueryExecutorBase.TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0, dateTime.Kind),
+                AstQueryExecutorBase.TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Kind),
+                AstQueryExecutorBase.TemporalUnit.Millisecond => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Millisecond, dateTime.Kind),
+                AstQueryExecutorBase.TemporalUnit.Microsecond => new DateTime(dateTime.Ticks - (dateTime.Ticks % 10), dateTime.Kind),
+                _ => dateTime
+            };
+            return true;
+        }
+
+        bool TryEvalSqlServerDateDiffFunction(
             QueryExecutionContext context,
             FunctionCallExpr fn,
             Func<int, object?> evalArg,
@@ -249,7 +352,17 @@ internal static class SqlServerScalarFunctionRegistry
             var unitText = fn.Args[0] is RawSqlExpr rawUnit
                 ? rawUnit.Sql
                 : evalArg(0)?.ToString() ?? string.Empty;
-            var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
+            if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+            var unit = SqlServerTemporalUnitHelper.Resolve(unitText);
+            if (!supportsHighPrecisionTemporalFunctions
+                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+            if (unit == AstQueryExecutorBase.TemporalUnit.Weekday)
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
             var startValue = evalArg(1);
             var endValue = evalArg(2);
             if (AstQueryExecutorBase.IsNullish(startValue)
@@ -264,27 +377,32 @@ internal static class SqlServerScalarFunctionRegistry
 
             var difference = GetTemporalDifference(startDateTime, endDateTime, unit);
             result = fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase)
-                ? (long)difference
-                : difference;
+                ? difference
+                : (int)difference;
             return true;
         }
 
-        static int GetTemporalDifference(DateTime start, DateTime end, AstQueryExecutorBase.TemporalUnit unit)
+        static long GetTemporalDifference(DateTime start, DateTime end, AstQueryExecutorBase.TemporalUnit unit)
             => unit switch
             {
                 AstQueryExecutorBase.TemporalUnit.Year => end.Year - start.Year,
                 AstQueryExecutorBase.TemporalUnit.Month => DiffMonths(start, end),
+                AstQueryExecutorBase.TemporalUnit.Yearday => (int)(end.Date - start.Date).TotalDays,
                 AstQueryExecutorBase.TemporalUnit.Day => (int)(end.Date - start.Date).TotalDays,
+                AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.GetWeekDifference(start, end),
                 AstQueryExecutorBase.TemporalUnit.Hour => (int)(end - start).TotalHours,
                 AstQueryExecutorBase.TemporalUnit.Minute => (int)(end - start).TotalMinutes,
                 AstQueryExecutorBase.TemporalUnit.Second => (int)(end - start).TotalSeconds,
+                AstQueryExecutorBase.TemporalUnit.Millisecond => (int)(end - start).TotalMilliseconds,
+                AstQueryExecutorBase.TemporalUnit.Microsecond => (long)Math.Truncate((end - start).Ticks / 10d),
+                AstQueryExecutorBase.TemporalUnit.Nanosecond => (end - start).Ticks * 100L,
                 _ => 0
             };
 
         static int DiffMonths(DateTime start, DateTime end)
             => (end.Year - start.Year) * 12 + end.Month - start.Month;
 
-        static bool TryEvalSqlServerDateAddFunction(
+        bool TryEvalSqlServerDateAddFunction(
             QueryExecutionContext context,
             FunctionCallExpr fn,
             Func<int, object?> evalArg,
@@ -316,14 +434,22 @@ internal static class SqlServerScalarFunctionRegistry
             var unitText = fn.Args[0] is RawSqlExpr rawUnit
                 ? rawUnit.Sql
                 : evalArg(0)?.ToString() ?? string.Empty;
-            var unit = AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText);
+            if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+            var unit = SqlServerTemporalUnitHelper.Resolve(unitText);
+            if (!supportsHighPrecisionTemporalFunctions && unit == AstQueryExecutorBase.TemporalUnit.Microsecond)
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+            if (unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
+                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
             if (unit == AstQueryExecutorBase.TemporalUnit.Unknown)
             {
                 result = dateTime;
                 return true;
             }
 
-            var amount = Convert.ToInt32(amountValue.ToDec(), CultureInfo.InvariantCulture);
+            var amount = (int)decimal.Truncate(amountValue.ToDec());
             result = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, amount);
             return true;
         }
@@ -331,6 +457,8 @@ internal static class SqlServerScalarFunctionRegistry
         dialect.AddScalarFunction(CreateScalarFunctionDef("DATEDIFF", "INT", TryEvalSqlServerDateDiffFunction));
         dialect.AddScalarFunction(CreateScalarFunctionDef("DATENAME", "VARCHAR", TryEvalSqlServerDateNameFunction));
         dialect.AddScalarFunction(CreateScalarFunctionDef("DATEPART", "INT", TryEvalSqlServerDatePartFunction));
+        if (version >= SqlServerDialect.DateTruncMinVersion)
+            dialect.AddScalarFunction(CreateScalarFunctionDef("DATETRUNC", "DATETIME", TryEvalSqlServerDateTruncFunction));
         dialect.AddScalarFunction(CreateScalarFunctionDef("DAY", "INT", TryEvalSqlServerDatePartFunction));
         dialect.AddScalarFunction(CreateScalarFunctionDef("MONTH", "INT", TryEvalSqlServerDatePartFunction));
         dialect.AddScalarFunction(CreateScalarFunctionDef(SqlConst.YEAR, "INT", TryEvalSqlServerDatePartFunction));

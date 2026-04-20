@@ -640,6 +640,12 @@ internal abstract class SqlDialectBase : ISqlDialect
 
     public virtual bool SupportsSequenceDdl => false;
 
+    /// <summary>
+    /// EN: Indicates whether CREATE SEQUENCE and ALTER SEQUENCE accept OWNED BY in this dialect.
+    /// PT: Indica se CREATE SEQUENCE e ALTER SEQUENCE aceitam OWNED BY neste dialeto.
+    /// </summary>
+    public virtual bool SupportsSequenceOwnership => false;
+
     public virtual bool SupportsFunctionDdl => false;
 
     public virtual bool SupportsCreateOrReplaceFunctionDdl => false;

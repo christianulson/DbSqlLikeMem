@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Provides helper methods for executing SQL commands and queries against a database connection within the context of scenario-based tests.

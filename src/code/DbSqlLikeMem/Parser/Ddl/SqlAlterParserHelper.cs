@@ -144,6 +144,9 @@ internal static class SqlAlterParserHelper
         }
         else if (ctx.IsWord(SqlConst.OWNED))
         {
+            if (!ctx.Dialect.SupportsSequenceOwnership)
+                throw ctx.NotSupported("ALTER SEQUENCE OWNED BY");
+
             ctx.Consume(); // OWNED
             ctx.ExpectWord(SqlConst.BY);
 

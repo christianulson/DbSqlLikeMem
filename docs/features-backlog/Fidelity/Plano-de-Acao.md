@@ -15,18 +15,20 @@ Manter a fidelidade entre mock e container com prioridade para comportamento obs
 - O plano principal deve começar com todas as fases em `TODO`.
 - O percentual geral do plano deve ser atualizado conforme as fases avancarem.
 - A matriz de fidelidade por provider deve ficar em `Percentual-de-Fidelidade-por-Provider.md`.
+- Testes de fidelidade são implementados com sua lógica em src\code\DbSqlLikeMem.TestTools\FidelityServicesTests e aplicados src\code\DbSqlLikeMem.TestTools\FidelityBaseTests e utilizados em cada projeto de teste de banco especifico conforme regra do banco real
+
 
 ## Status Do Plano
 
-Percentual geral atual: 99%
+Percentual geral atual: 91%
 
 | Fase | Arquivo | Status | Entrega |
 | --- | --- | --- | --- |
 | Fase 1 - Inventário dos tipos nativos | [Fase-01-Parametros.md](./Fase-01-Parametros.md) | DONE | 100% |
 | Fase 2 - Expandir os testes de tipo DbParameter | [Fase-02-Tipos-Nativos.md](./Fase-02-Tipos-Nativos.md) | DONE | 100% |
 | Fase 3 - Cobrir o shape completo do resultado | [Fase-03-Formato-do-Resultado.md](./Fase-03-Formato-do-Resultado.md) | DONE | 100% |
-| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 75% |
-| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 15% |
+| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 98% |
+| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 52% |
 | Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | IN PROGRESS | 98% |
 | Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | DONE | 100% |
 | Fase 8 - Testes faltantes do banco real | [Fase-08-Testes-Faltantes.md](./Fase-08-Testes-Faltantes.md) | DONE | 100% |
@@ -142,7 +144,7 @@ Padrão:
 ## Acompanhamento Da Fase
 
 - Status: IN PROGRESS
-- Percentual de entrega: 75%
+- Percentual de entrega: 98%
 - O que foi feito:
 - movidos os trechos SQL de `UPDATE/DELETE JOIN` para o `Dialect` base e para os dialects específicos de SQL Server e PostgreSQL
 - eliminado o `skip` para `json_each` e `json_tree` e substituido por validacao negativa quando o provider nao suporta funcoes JSON tabulares
@@ -165,13 +167,41 @@ Padrão:
 ### Acompanhamento Da Fase
 
 - Status: IN PROGRESS
-- Percentual de entrega: 15%
+- Percentual de entrega: 52%
 - O que foi feito:
   - adicionado o primeiro wrapper de `JsonTableFunctionTestsBase` na suite de fidelidade
   - adicionado o wrapper de fidelidade para `JSON insert/cast`, cobrindo o benchmark escalar de leitura JSON com coerção
   - iniciado o coverage de `json_each` e `json_tree`
   - ligados os handlers de `json_each` e `json_tree` ao executor de table functions do mock
   - mantida a validacao negativa quando o provider nao suporta funcoes JSON tabulares
+  - adicionado suporte a `DATETRUNC` no SQL Server 2022+, com registro de capability, parser e avaliacao temporal compartilhada
+  - adicionado o contrato de capability para `DATETRUNC` e `FROM PARTS` no SQL Server, com cobertura de parser para o limite de versao e o grupo de construtores nativos
+  - adicionado suporte a `iso_week` em `DATEPART`, `DATENAME` e `DATETRUNC` no SQL Server, com rejeicao explicita em `DATEADD` e `DATEDIFF` quando a unidade nao faz parte do contrato real
+  - expandido o suporte de `iso_week` para os aliases `isowk` e `isoww` em `DATEPART`, `DATENAME` e `DATETRUNC`, com a mesma rejeicao em `DATEADD` e `DATEDIFF`
+  - adicionado o contrato de `JSON_QUERY` sem path no SQL Server, preservando o fragmento JSON bruto da raiz e a insercao dentro de `FOR JSON PATH`
+  - validado `STRING_AGG` com `WITHIN GROUP (ORDER BY ...)` no SQL Server para manter a ordem explicita de concatenacao
+  - adicionado tratamento de `strict` nos caminhos JSON do SQL Server, com erro quando o caminho nao existe ou nao resolve para o tipo esperado
+  - adicionado tratamento de `strict` em `JSON_MODIFY` no SQL Server, com erro quando o caminho nao existe no documento JSON
+  - adicionado `append` em `JSON_MODIFY` no SQL Server, com append de valor em array JSON existente
+  - adicionado o limite de 4000 caracteres em `JSON_VALUE` do SQL Server, com retorno nulo no modo lax e erro no modo strict
+  - validado o limite exato de 4000 caracteres em `JSON_VALUE` do SQL Server, com retorno do valor no limite e rejeicao acima dele
+  - adicionado tratamento runtime para `NTILE` no SQL Server quando a expressao de buckets avalia para valor nao positivo
+  - adicionado tratamento runtime para `LAG` no SQL Server quando o offset avaliado em runtime fica abaixo de zero
+  - adicionado tratamento runtime para `LEAD` no SQL Server quando o offset avaliado em runtime fica abaixo de zero
+  - adicionado tratamento runtime para `NTH_VALUE` no SQL Server quando o ordinal avaliado em runtime fica abaixo de um
+  - corrigido o frame padrao de janela ordenada no SQL Server para tratar `LAST_VALUE` e `NTH_VALUE` como acumulados por linha
+  - corrigido o frame padrao de janela ordenada no SQL Server para tratar agregados em janela como acumulados por linha
+  - reforcada a cobertura de agregados em janela ordenada no SQL Server com peers duplicados em `ORDER BY`, preservando o frame padrao acumulado por linha
+  - reforcada a diferenca entre `ROWS` e `RANGE` em janela ordenada no SQL Server com valores repetidos em `ORDER BY`
+  - reforcada a cobertura de agregados em janela ordenada no SQL Server com `AVG` e `MAX` acumulados por linha
+  - reforcados os aliases temporais do SQL Server para `dy`, `y`, `wk`, `ww`, `dw` e `w` em `DATEPART`, `DATENAME`, `DATEADD` e `DATEDIFF`
+  - reforcados os aliases temporais do SQL Server para `dy`, `y`, `wk` e `ww` em `DATETRUNC`
+  - reforcados os aliases temporais do SQL Server para `dw`, `w`, `dy`, `y` e `ww` com cobertura adicional em `DATEPART`, `DATENAME`, `DATEADD` e `DATEDIFF`
+  - adicionados testes de capability, parser e execucao para `DATETRUNC`
+  - expandido o suporte temporal compartilhado para `millisecond` em `DATEADD`, `DATEDIFF`, `DATEPART`, `DATENAME` e `DATETRUNC`
+  - expandido o suporte temporal compartilhado para `microsecond` em `DATEADD`, `DATEDIFF`, `DATEPART`, `DATENAME` e `DATETRUNC`
+  - expandido o suporte SQL Server para `dayofyear`, `week` e `weekday` em `DATEADD`, `DATEPART` e `DATENAME`, com `dayofyear` e `week` tambem em `DATEDIFF` e `DATETRUNC`
+  - expandido o suporte temporal compartilhado para `nanosecond` nas funcoes temporais do SQL Server, com `DATETRUNC` rejeitando a unidade conforme o banco real
 - Próximos passos:
   - separar funções por categoria
   - cobrir tipos nativos de retorno e de parâmetro
@@ -184,8 +214,12 @@ Padrão:
 
 ### Acompanhamento Da Fase
 
-- Status: TODO
-- Percentual de entrega: 0%
+- Status: IN PROGRESS
+- Percentual de entrega: 98%
+- O que foi feito:
+  - Padronizado o contrato base de `ProviderSqlDialect` para savepoints e parametros especiais.
+  - Mapeado o contrato de `SupportsReleaseSavepoints` por provider e documentadas as implementacoes concretas no SQL Server e no Oracle.
+  - Adicionados casos de savepoint aninhado, release sem transacao ativa e rollback para snapshot externo em todos os providers principais.
 - Próximos passos:
   - mapear contratos por provider
   - validar savepoints e nested flow
@@ -199,8 +233,12 @@ Padrão:
 
 ### Acompanhamento Da Fase
 
-- Status: TODO
-- Percentual de entrega: 0%
+- Status: DONE
+- Percentual de entrega: 100%
+- O que foi feito:
+  - Adicionados casos de excecao transacional nas estrategias de MariaDB, MySQL, Firebird, Db2, Npgsql, SQLite, Oracle, SQL Server e SQL Azure.
+  - Adicionados testes de parser para mensagem de parametro em SQL em branco nos providers SQL Server, MySQL, Npgsql, SQLite, Db2, Oracle, MariaDB e Firebird.
+  - Adicionados testes de savepoint com nome em branco para validar a mensagem de validacao de parametro existente.
 - Próximos passos:
   - levantar exceções reais por cenário
   - padronizar enriquecimento de debug sem mudar o gatilho
@@ -214,8 +252,12 @@ Padrão:
 
 ### Acompanhamento Da Fase
 
-- Status: TODO
-- Percentual de entrega: 0%
+- Status: DONE
+- Percentual de entrega: 100%
+- O que foi feito:
+  - Inventariadas funcionalidades faltantes por provider e registradas as lacunas por banco.
+  - Criados testes de fidelidade para sequences no SQL Server, Db2 e Npgsql.
+  - Documentado o ponto de entrada dos testes criados e os gaps que continuam abertos para o backlog futuro.
 - Próximos passos:
   - inventariar funcionalidades faltantes por provider
   - criar testes even if unimplemented

@@ -361,6 +361,42 @@ public sealed class FirebirdDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures Firebird rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
+    /// PT: Garante que o Firebird rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [InlineData("WITH x AS MATERIALIZED (SELECT 1 FROM RDB$DATABASE) SELECT 1 FROM x", "WITH ... AS MATERIALIZED")]
+    [InlineData("WITH x AS NOT MATERIALIZED (SELECT 1 FROM RDB$DATABASE) SELECT 1 FROM x", "WITH ... AS NOT MATERIALIZED")]
+    public void ParseWithCte_MaterializedHint_ShouldReject(string sql, string expectedMessage)
+    {
+        var dialect = new FirebirdDialect(FirebirdDbVersions.Default);
+        var db = new FirebirdDbMock(FirebirdDbVersions.Default);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
+
+        Assert.Contains(expectedMessage, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Firebird rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is available.
+    /// PT: Garante que o Firebird rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseCreateSequence_OwnedBy_ShouldThrowNotSupported()
+    {
+        var dialect = new FirebirdDialect(FirebirdDbVersions.Default);
+        var db = new FirebirdDbMock(FirebirdDbVersions.Default);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "CREATE SEQUENCE seq_users START WITH 1 INCREMENT BY 1 OWNED BY public.users.id",
+            db, dialect));
+
+        Assert.Contains("OWNED BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures Firebird parses DROP GENERATOR as a sequence drop alias in the supported subset.
     /// PT: Garante que o Firebird interprete DROP GENERATOR como alias de exclusao de sequence no subset suportado.
     /// </summary>

@@ -176,14 +176,14 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
             return true;
         }
 
-        var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
+        var unit = SqlServerTemporalUnitHelper.Resolve(fn.Args[0], evalArg);
         if (unit == TemporalUnit.Unknown)
         {
             result = dateTime;
             return true;
         }
 
-        var amount = Convert.ToInt32(amountValue!.ToDec(), CultureInfo.InvariantCulture);
+        var amount = (int)decimal.Truncate(amountValue!.ToDec());
         result = ApplyDateDelta(dateTime, unit, amount);
         return true;
     }

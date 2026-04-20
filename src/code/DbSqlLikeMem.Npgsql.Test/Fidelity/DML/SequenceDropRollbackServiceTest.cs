@@ -18,7 +18,7 @@ public sealed class SequenceDropRollbackServiceTest(
     {
         var initial = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
 
-        using var transaction = await Repo.Cnn.BeginTransactionAsync();
+        using var transaction = Repo.BeginTransaction();
 
         await ExecuteNonQueryAsync($"DROP SEQUENCE {Context.Seq}", transaction);
 
@@ -32,7 +32,7 @@ public sealed class SequenceDropRollbackServiceTest(
             droppedMissing = true;
         }
 
-        await transaction.RollbackAsync();
+        transaction.Rollback();
 
         var afterRollback = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         return new[] { initial, droppedMissing ? 1L : 0L, afterRollback };

@@ -219,6 +219,58 @@ public sealed class MySqlDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures MySQL rejects ORDER BY NULLS FIRST and NULLS LAST modifiers in SELECT queries.
+    /// PT: Garante que o MySQL rejeite os modificadores ORDER BY NULLS FIRST e NULLS LAST em consultas SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSelect_OrderByNullsModifier_ShouldReject()
+    {
+        var db = Get(MySqlDbVersions.Default, v => new MySqlDbMock(v));
+        var dialect = Get(MySqlDbVersions.Default, v => new MySqlDialect(v));
+
+        var firstEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS FIRST",
+            db,
+            dialect));
+
+        Assert.Contains("NULLS FIRST", firstEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var lastEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS LAST",
+            db,
+            dialect));
+
+        Assert.Contains("NULLS LAST", lastEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
+    /// PT: Garante que o MySQL rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseWithCte_MaterializedHint_ShouldReject()
+    {
+        var db = Get(MySqlDbVersions.Default, v => new MySqlDbMock(v));
+        var dialect = Get(MySqlDbVersions.Default, v => new MySqlDialect(v));
+
+        var materializedEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "WITH x AS MATERIALIZED (SELECT 1 AS id) SELECT id FROM x",
+            db,
+            dialect));
+
+        Assert.Contains("WITH ... AS MATERIALIZED", materializedEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var notMaterializedEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "WITH x AS NOT MATERIALIZED (SELECT 1 AS id) SELECT id FROM x",
+            db,
+            dialect));
+
+        Assert.Contains("WITH ... AS NOT MATERIALIZED", notMaterializedEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Verifies ANSI_QUOTES mode enables double-quoted identifiers in the MySQL dialect.
     /// PT: Verifica se o modo ANSI_QUOTES habilita identificadores entre aspas duplas no dialeto MySQL.
     /// </summary>

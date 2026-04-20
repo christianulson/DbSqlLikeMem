@@ -143,6 +143,8 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     bool ISqlDialect.SupportsPostgreSqlCreateFunctionDdl => true;
 
     public override bool SupportsSequenceDdl => true;
+    /// <inheritdoc />
+    public override bool SupportsSequenceOwnership => true;
     /// <summary>
     /// EN: Gets whether sequence dot value expressions are supported.
     /// PT: Obtém se há suporte a expressões de sequence com ponto.

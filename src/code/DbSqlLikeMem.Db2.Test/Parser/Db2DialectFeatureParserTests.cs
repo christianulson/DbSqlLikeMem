@@ -247,6 +247,26 @@ public sealed class Db2DialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures DB2 rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is available.
+    /// PT: Garante que o DB2 rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataDb2Version]
+    public void ParseCreateSequence_OwnedBy_ShouldThrowNotSupported(int version)
+    {
+        var db = Get(version, v => new Db2DbMock(v));
+        var dialect = Get(version, v => new Db2Dialect(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1 OWNED BY sales.users.id",
+            db, dialect));
+
+        Assert.Contains("OWNED BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Verifies recursive SELECT statements are rejected.
     /// PT: Verifica se instrucoes SELECT recursivas sao rejeitadas.
     /// PT: Testa o comportamento de ParseSelect_WithRecursive_ShouldBeRejected.
@@ -267,6 +287,24 @@ public sealed class Db2DialectFeatureParserTests(
 
         var parsed = SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v)));
         Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+    /// <summary>
+    /// EN: Ensures DB2 rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
+    /// PT: Garante que o DB2 rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [InlineData("WITH x AS MATERIALIZED (SELECT 1 FROM SYSIBM.SYSDUMMY1) SELECT 1 FROM x", "WITH ... AS MATERIALIZED")]
+    [InlineData("WITH x AS NOT MATERIALIZED (SELECT 1 FROM SYSIBM.SYSDUMMY1) SELECT 1 FROM x", "WITH ... AS NOT MATERIALIZED")]
+    public void ParseWithCte_MaterializedHint_ShouldReject(string sql, string expectedMessage)
+    {
+        var db = Get(Db2DbVersions.Default, v => new Db2DbMock(v));
+        var dialect = Get(Db2DbVersions.Default, v => new Db2Dialect(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, dialect));
+
+        Assert.Contains(expectedMessage, ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

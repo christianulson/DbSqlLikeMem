@@ -750,10 +750,32 @@ public sealed class SqlServerDialectFeatureParserTests(
         Assert.True(dialect.SupportsSqlServerDateFunction("DATEDIFF"));
         Assert.True(dialect.SupportsSqlServerDateFunction("DATENAME"));
         Assert.True(dialect.SupportsSqlServerDateFunction("DATEPART"));
+        Assert.Equal(version >= SqlServerDialect.DateTruncMinVersion, dialect.SupportsSqlServerDateFunction("DATETRUNC"));
         Assert.True(dialect.SupportsSqlServerDateFunction("DAY"));
         Assert.True(dialect.SupportsSqlServerDateFunction("MONTH"));
         Assert.True(dialect.SupportsSqlServerDateFunction(SqlConst.YEAR));
         Assert.False(dialect.SupportsSqlServerDateFunction("TIMESTAMPDIFF"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server FROM PARTS helpers are exposed through an explicit dialect capability.
+    /// PT: Garante que helpers FROM PARTS do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versao do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion]
+    public void FromPartsFunctionCapability_ShouldExposeSqlServerContract(int version)
+    {
+        var dialect = Get(version, v => new SqlServerDialect(v));
+
+        Assert.Equal(version >= SqlServerDialect.FromPartsMinVersion, dialect.SupportsSqlServerFromPartsFunction("DATEFROMPARTS"));
+        Assert.Equal(version >= SqlServerDialect.FromPartsMinVersion, dialect.SupportsSqlServerFromPartsFunction("DATETIMEFROMPARTS"));
+        Assert.Equal(version >= SqlServerDialect.FromPartsMinVersion, dialect.SupportsSqlServerFromPartsFunction("DATETIME2FROMPARTS"));
+        Assert.Equal(version >= SqlServerDialect.FromPartsMinVersion, dialect.SupportsSqlServerFromPartsFunction("DATETIMEOFFSETFROMPARTS"));
+        Assert.Equal(version >= SqlServerDialect.FromPartsMinVersion, dialect.SupportsSqlServerFromPartsFunction("TIMEFROMPARTS"));
+        Assert.Equal(version >= SqlServerDialect.FromPartsMinVersion, dialect.SupportsSqlServerFromPartsFunction("SMALLDATETIMEFROMPARTS"));
+        Assert.False(dialect.SupportsSqlServerFromPartsFunction("DATEADD"));
     }
 
     /// <summary>
@@ -817,6 +839,19 @@ public sealed class SqlServerDialectFeatureParserTests(
         Assert.Equal("DATEDIFF", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEDIFF(day, '2020-01-01', '2020-01-03')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("DATENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(month, '2020-02-10')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("DATEPART", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(month, '2020-02-10')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATEPART", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(tz, '2007-05-10T00:00:01.1234567Z')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(tz, '2007-05-10T00:00:01.1234567Z')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATEPART", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATEPART(tzoffset, '2007-05-10T00:00:01.1234567Z')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("DATENAME", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATENAME(tzoffset, '2007-05-10T00:00:01.1234567Z')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        if (version < SqlServerDialect.DateTruncMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("DATETRUNC(month, '2020-02-10')", db, d));
+            Assert.Contains("DATETRUNC", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        else
+        {
+            Assert.Equal("DATETRUNC", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DATETRUNC(month, '2020-02-10')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        }
         Assert.Equal("DAY", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("DAY('2020-02-14')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("MONTH", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("MONTH('2020-02-14')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal(SqlConst.YEAR, Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("YEAR('2020-02-14')", db, d)).Name, StringComparer.OrdinalIgnoreCase);
@@ -1188,6 +1223,29 @@ public sealed class SqlServerDialectFeatureParserTests(
         Assert.True(parsed.IfExists);
         Assert.Equal("sales", parsed.Table?.DbName, ignoreCase: true);
         Assert.Equal("seq_orders", parsed.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects OWNED BY for sequence DDL even when sequence syntax is available.
+    /// PT: Garante que o SQL Server rejeite OWNED BY em DDL de sequence mesmo quando a sintaxe de sequence esta disponivel.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSequenceOwnership_ShouldBeRejected()
+    {
+        var version = SqlServerDialect.SequenceMinVersion;
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
+
+        var createEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "CREATE SEQUENCE sales.seq_orders START WITH 10 INCREMENT BY 5 OWNED BY sales.users.id",
+            db, d));
+        Assert.Contains("OWNED BY", createEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var alterEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "ALTER SEQUENCE sales.seq_orders OWNED BY sales.users.id",
+            db, d));
+        Assert.Contains("OWNED BY", alterEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -1673,6 +1731,26 @@ public sealed class SqlServerDialectFeatureParserTests(
         var rowLimit = Assert.IsType<SqlLimitOffset>(parsed.RowLimit);
         Assert.Equal(new LiteralExpr(2), rowLimit.Count);
         Assert.Equal(new LiteralExpr(1), rowLimit.Offset);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects NULLS FIRST and NULLS LAST modifiers in ORDER BY clauses.
+    /// PT: Garante que o SQL Server rejeite modifiers NULLS FIRST e NULLS LAST em clausulas ORDER BY.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSelect_OrderByNullsModifier_ShouldBeRejected()
+    {
+        var d = new SqlServerDialect(SqlServerDialect.OffsetFetchMinVersion);
+        var db = new SqlServerDbMock(SqlServerDialect.OffsetFetchMinVersion);
+
+        var firstEx = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY name NULLS FIRST", db, d));
+        Assert.Contains("NULLS FIRST", firstEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var lastEx = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY name NULLS LAST", db, d));
+        Assert.Contains("NULLS LAST", lastEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -2424,6 +2502,28 @@ public sealed class SqlServerDialectFeatureParserTests(
         }
 
         Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
+    /// PT: Garante que o SQL Server rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// </summary>
+    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.WithCteMinVersion)]
+    public void ParseSelect_WithMaterializedHint_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new SqlServerDialect(v));
+        var db = Get(version, v => new SqlServerDbMock(v));
+
+        var materializedEx = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH x AS MATERIALIZED (SELECT 1) SELECT 1 FROM x", db, d));
+        Assert.Contains("WITH ... AS MATERIALIZED", materializedEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var notMaterializedEx = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH x AS NOT MATERIALIZED (SELECT 1) SELECT 1 FROM x", db, d));
+        Assert.Contains("WITH ... AS NOT MATERIALIZED", notMaterializedEx.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

@@ -178,6 +178,14 @@ public sealed class SqlAzureFunctionTests
         Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEDIFF(day, '2020-01-01', '2020-01-03') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("February", ExecuteScalar(connection, "SELECT DATENAME(month, '2020-02-10') FROM Users WHERE Id = 1"));
         Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(month, '2020-02-10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(310, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("310", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
+        Assert.Equal(310, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("310", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("0", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"));
+        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("0", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"));
 
         if (sqlVersion < FromPartsMinVersion)
         {
@@ -203,6 +211,12 @@ public sealed class SqlAzureFunctionTests
 
         Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12), TimeSpan.FromHours(2)), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00') FROM Users WHERE Id = 1")));
         Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 9, 11, 12), TimeSpan.Zero), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00') FROM Users WHERE Id = 1")));
+        Assert.Equal(120, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("120", ExecuteScalar(connection, "SELECT DATENAME(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"));
+        Assert.Equal(120, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("120", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"));
+        Assert.Equal(-210, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30')) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal("-210", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30')) FROM Users WHERE Id = 1"));
 
         if (sqlVersion < DateDiffBigMinVersion)
         {

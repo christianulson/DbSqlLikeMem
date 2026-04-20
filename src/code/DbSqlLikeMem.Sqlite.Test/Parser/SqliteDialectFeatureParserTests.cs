@@ -386,6 +386,46 @@ public sealed class SqliteDialectFeatureParserTests(
         Assert.False(union.AllFlags[0]);
     }
 
+    /// <summary>
+    /// EN: Ensures SQLite parses ORDER BY NULLS FIRST/LAST only when the version gate allows the modifier.
+    /// PT: Garante que o SQLite interprete ORDER BY NULLS FIRST/LAST apenas quando o gate de versao permitir o modifier.
+    /// </summary>
+    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataSqliteVersion]
+    public void ParseSelect_OrderByNullsModifier_ShouldFollowVersionGate(int version)
+    {
+        var db = Get(version, v => new SqliteDbMock(v));
+        var dialect = Get(version, v => new SqliteDialect(v));
+
+        if (version < SqliteDialect.OrderByNullsModifierMinVersion)
+        {
+            var firstEx = Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY name NULLS FIRST", db, dialect));
+            Assert.Contains("NULLS FIRST", firstEx.Message, StringComparison.OrdinalIgnoreCase);
+
+            var lastEx = Assert.Throws<NotSupportedException>(() =>
+                SqlQueryParser.Parse("SELECT id FROM users ORDER BY name NULLS LAST", db, dialect));
+            Assert.Contains("NULLS LAST", lastEx.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var firstParsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS FIRST",
+            db,
+            dialect));
+        Assert.Single(firstParsed.OrderBy);
+        Assert.True(firstParsed.OrderBy[0].NullsFirst);
+
+        var lastParsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS LAST",
+            db,
+            dialect));
+        Assert.Single(lastParsed.OrderBy);
+        Assert.False(lastParsed.OrderBy[0].NullsFirst);
+    }
+
 
     /// <summary>
     /// EN: Ensures OFFSET/FETCH pagination syntax is rejected for SQLite.

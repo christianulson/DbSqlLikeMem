@@ -87,6 +87,11 @@ internal interface ISqlDialect
     bool SupportsMerge { get; }
     bool SupportsTriggers { get; }
     bool SupportsSequenceDdl { get; }
+    /// <summary>
+    /// EN: Indicates whether CREATE SEQUENCE and ALTER SEQUENCE accept OWNED BY in the current dialect.
+    /// PT: Indica se CREATE SEQUENCE e ALTER SEQUENCE aceitam OWNED BY no dialeto atual.
+    /// </summary>
+    bool SupportsSequenceOwnership { get; }
     bool SupportsFunctionDdl { get; }
     bool SupportsCreateOrReplaceFunctionDdl { get; }
     /// <summary>

@@ -361,6 +361,81 @@ public sealed class SqlServerMockTests
         command.CommandText = "SELECT DATEDIFF(day, '2020-01-01', '2020-01-03')";
         Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
+        command.CommandText = "SELECT DATEPART(dy, '2020-02-14')";
+        Assert.Equal(45, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(y, '2020-02-14')";
+        Assert.Equal("45", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATENAME(dw, '2020-02-16')";
+        Assert.Equal("Sunday", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATENAME(w, '2020-02-16')";
+        Assert.Equal("Sunday", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEPART(w, '2020-02-16')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATEPART(dw, '2020-02-16')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATEPART(wk, '2007-04-21')";
+        Assert.Equal(16, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(ww, '2007-04-21')";
+        Assert.Equal("16", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEDIFF(ww, '2005-12-31T23:59:59.9999999', '2006-01-01T00:00:00.0000000')";
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATEADD(dy, 1, '2020-02-14')";
+        Assert.Equal(new DateTime(2020, 2, 15), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATEADD(y, 1, '2020-02-14')";
+        Assert.Equal(new DateTime(2020, 2, 15), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATETRUNC(wk, '2020-02-19T10:11:12')";
+        Assert.Equal(new DateTime(2020, 2, 16), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATETRUNC(dy, '2020-02-14T10:11:12')";
+        Assert.Equal(new DateTime(2020, 2, 14), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATEPART(isowk, '2021-01-01')";
+        Assert.Equal(53, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(isoww, '2021-01-01')";
+        Assert.Equal("53", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEPART(tz, '2007-05-10 00:00:01.1234567 +05:10')";
+        Assert.Equal(310, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(tz, '2007-05-10 00:00:01.1234567 +05:10')";
+        Assert.Equal("310", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEPART(tzoffset, '2007-05-10 00:00:01.1234567 +05:10')";
+        Assert.Equal(310, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(tzoffset, '2007-05-10 00:00:01.1234567 +05:10')";
+        Assert.Equal("310", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEPART(tz, '2007-05-10T00:00:01.1234567Z')";
+        Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(tz, '2007-05-10T00:00:01.1234567Z')";
+        Assert.Equal("0", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEPART(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))";
+        Assert.Equal(120, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))";
+        Assert.Equal("120", command.ExecuteScalar());
+
+        command.CommandText = "SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30'))";
+        Assert.Equal(-210, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+
+        command.CommandText = "SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30'))";
+        Assert.Equal("-210", command.ExecuteScalar());
+
         command.CommandText = "SELECT DEGREES(PI())";
         Assert.Equal(180d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
     }
@@ -2067,6 +2142,254 @@ public sealed class SqlServerMockTests
 
         Assert.Equal(System.Text.Json.JsonValueKind.Object, payload.ValueKind);
         Assert.Equal("ops", payload.GetProperty("roles")[1].GetString());
+
+        var strictValueEx = Assert.Throws<InvalidOperationException>(() => new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT JSON_VALUE(u.Email, 'strict $.profile') FROM Users u WHERE u.Id = 895"
+        }.ExecuteScalar());
+        Assert.Contains("strict", strictValueEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var strictQueryEx = Assert.Throws<InvalidOperationException>(() => new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT JSON_QUERY(u.Email, 'strict $.profile.name') FROM Users u WHERE u.Id = 895"
+        }.ExecuteScalar());
+        Assert.Contains("strict", strictQueryEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var strictModifyEx = Assert.Throws<InvalidOperationException>(() => new SqlServerCommandMock(_connection)
+        {
+            CommandText = "SELECT JSON_MODIFY(u.Email, 'strict $.profile.missing', NULL) FROM Users u WHERE u.Id = 895"
+        }.ExecuteScalar());
+        Assert.Contains("strict", strictModifyEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var appendCommand = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT JSON_MODIFY(u.Email, 'append $.profile.roles', 'azure')
+                FROM Users u
+                WHERE u.Id = 895
+                """
+        };
+
+        var appendedJson = Assert.IsType<string>(appendCommand.ExecuteScalar());
+        using var appendedDocument = System.Text.Json.JsonDocument.Parse(appendedJson);
+        var roles = appendedDocument.RootElement.GetProperty("profile").GetProperty("roles");
+
+        Assert.Equal(System.Text.Json.JsonValueKind.Array, roles.ValueKind);
+        Assert.Equal("azure", roles[2].GetString());
+
+        var longProfileName = new string('x', 4001);
+        var longProfileJson = $"{{\"profile\":{{\"name\":\"{longProfileName}\"}}}}";
+
+        Assert.Null(ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', '$.profile.name') FROM Users WHERE Id = 895"));
+        var strictLongValueEx = Assert.Throws<InvalidOperationException>(() => ExecuteScalar(connection, $"SELECT JSON_VALUE('{longProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 895"));
+        Assert.Contains("4000", strictLongValueEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exactProfileName = new string('y', 4000);
+        var exactProfileJson = $"{{\"profile\":{{\"name\":\"{exactProfileName}\"}}}}";
+
+        Assert.Equal(exactProfileName, ExecuteScalar(connection, $"SELECT JSON_VALUE('{exactProfileJson}', '$.profile.name') FROM Users WHERE Id = 895"));
+        Assert.Equal(exactProfileName, ExecuteScalar(connection, $"SELECT JSON_VALUE('{exactProfileJson}', 'strict $.profile.name') FROM Users WHERE Id = 895"));
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects NTILE with a non-positive runtime bucket count.
+    /// PT: Garante que o SQL Server rejeite NTILE com contagem de buckets nao positiva em tempo de execucao.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_Ntile_WithNonPositiveBucketCount_ShouldThrow()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT NTILE(Id - Id) OVER (ORDER BY Id)
+                FROM Users
+                ORDER BY Id
+                """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("positive integer", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects LAG with a runtime offset that evaluates below zero.
+    /// PT: Garante que o SQL Server rejeite LAG com offset em runtime que avalia abaixo de zero.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_Lag_WithNegativeRuntimeOffset_ShouldThrow()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT LAG(u.Name, u.Id - (u.Id + 1)) OVER (ORDER BY u.Id)
+                FROM Users u
+                ORDER BY u.Id
+                """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("non-negative", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects LEAD with a runtime offset that evaluates below zero.
+    /// PT: Garante que o SQL Server rejeite LEAD com offset em runtime que avalia abaixo de zero.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_Lead_WithNegativeRuntimeOffset_ShouldThrow()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT LEAD(u.Name, u.Id - (u.Id + 1)) OVER (ORDER BY u.Id)
+                FROM Users u
+                ORDER BY u.Id
+                """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("non-negative", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server rejects NTH_VALUE with a runtime ordinal that evaluates below one.
+    /// PT: Garante que o SQL Server rejeite NTH_VALUE com ordinal em runtime que avalia abaixo de um.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_NthValue_WithNonPositiveRuntimeOrdinal_ShouldThrow()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT NTH_VALUE(u.Name, u.Id - (u.Id + 1)) OVER (ORDER BY u.Id)
+                FROM Users u
+                ORDER BY u.Id
+                """
+        };
+
+        var ex = Assert.Throws<InvalidOperationException>(command.ExecuteReader);
+        Assert.Contains("positive integer", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server uses the default ordered window frame for LAST_VALUE and NTH_VALUE.
+    /// PT: Garante que o SQL Server use o frame padrao de janela ordenada para LAST_VALUE e NTH_VALUE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_DefaultWindowFrame_ShouldRespectCurrentRowEnd()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    COUNT(*) OVER (ORDER BY u.Id) AS CountOrdered,
+                    SUM(u.Id) OVER (ORDER BY u.Id) AS SumOrdered,
+                    AVG(u.Id) OVER (ORDER BY u.Id) AS AvgOrdered,
+                    MAX(u.Id) OVER (ORDER BY u.Id) AS MaxOrdered,
+                    LAST_VALUE(u.Name) OVER (ORDER BY u.Id) AS LastValueDefault,
+                    NTH_VALUE(u.Name, 2) OVER (ORDER BY u.Id) AS NthValueDefault
+                FROM Users u
+                ORDER BY u.Id
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("CountOrdered")));
+        Assert.Equal(1m, reader.GetDecimal(reader.GetOrdinal("SumOrdered")));
+        Assert.Equal(1m, reader.GetDecimal(reader.GetOrdinal("AvgOrdered")));
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("MaxOrdered")));
+        Assert.Equal("Ana", reader.GetString(reader.GetOrdinal("LastValueDefault")));
+        Assert.True(reader.IsDBNull(reader.GetOrdinal("NthValueDefault")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("CountOrdered")));
+        Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("SumOrdered")));
+        Assert.Equal(1.5m, reader.GetDecimal(reader.GetOrdinal("AvgOrdered")));
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("MaxOrdered")));
+        Assert.Equal("Bob", reader.GetString(reader.GetOrdinal("LastValueDefault")));
+        Assert.Equal("Bob", reader.GetString(reader.GetOrdinal("NthValueDefault")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures ordered window aggregates treat peer rows as the same default frame when ORDER BY values repeat.
+    /// PT: Garante que agregados de janela ordenados tratem linhas pares como o mesmo frame padrao quando os valores de ORDER BY se repetem.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_DefaultWindowFrame_ShouldRespectPeerGroups()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    COUNT(*) OVER (ORDER BY LEN(u.Name)) AS CountPeers,
+                    SUM(u.Id) OVER (ORDER BY LEN(u.Name)) AS SumPeers,
+                    AVG(u.Id) OVER (ORDER BY LEN(u.Name)) AS AvgPeers,
+                    MAX(u.Id) OVER (ORDER BY LEN(u.Name)) AS MaxPeers
+                FROM Users u
+                ORDER BY u.Id
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("CountPeers")));
+        Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("SumPeers")));
+        Assert.Equal(1.5m, reader.GetDecimal(reader.GetOrdinal("AvgPeers")));
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("MaxPeers")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("CountPeers")));
+        Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("SumPeers")));
+        Assert.Equal(1.5m, reader.GetDecimal(reader.GetOrdinal("AvgPeers")));
+        Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("MaxPeers")));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Ensures ROWS and RANGE keep distinct default-frame behavior when ORDER BY values repeat.
+    /// PT: Garante que ROWS e RANGE mantenham comportamento distinto de frame padrao quando os valores de ORDER BY se repetem.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerMock")]
+    public void ExecuteReader_DefaultWindowFrame_ShouldDistinguishRowsAndRange()
+    {
+        using var command = new SqlServerCommandMock(_connection)
+        {
+            CommandText = """
+                SELECT
+                    COUNT(*) OVER (ORDER BY LEN(u.Name) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS RowsCount,
+                    COUNT(*) OVER (ORDER BY LEN(u.Name) RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS RangeCount,
+                    SUM(u.Id) OVER (ORDER BY LEN(u.Name) ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS RowsSum,
+                    SUM(u.Id) OVER (ORDER BY LEN(u.Name) RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS RangeSum
+                FROM Users u
+                ORDER BY u.Id
+                """
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(1L, reader.GetInt64(reader.GetOrdinal("RowsCount")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("RangeCount")));
+        Assert.Equal(1m, reader.GetDecimal(reader.GetOrdinal("RowsSum")));
+        Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("RangeSum")));
+
+        Assert.True(reader.Read());
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("RowsCount")));
+        Assert.Equal(2L, reader.GetInt64(reader.GetOrdinal("RangeCount")));
+        Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("RowsSum")));
+        Assert.Equal(3m, reader.GetDecimal(reader.GetOrdinal("RangeSum")));
+        Assert.False(reader.Read());
     }
 
     /// <summary>

@@ -17,7 +17,28 @@ internal static class AstQueryWindowFrameHelper
         if (part.Count == 0)
             return RowsFrameRange.Empty;
 
-        if (frame is null || frame.Unit == WindowFrameUnit.Rows)
+        if (frame is null)
+        {
+            if (orderBy.Count == 0)
+                return new RowsFrameRange(0, part.Count - 1, IsEmpty: false);
+
+            var defaultFrame = new WindowFrameSpec(
+                WindowFrameUnit.Range,
+                new WindowFrameBound(WindowFrameBoundKind.UnboundedPreceding, null),
+                new WindowFrameBound(WindowFrameBoundKind.CurrentRow, null));
+            var orderValuesByRow2 = precomputedOrderValuesByRow ?? WindowOrderValueHelper.BuildWindowOrderValuesByRow(
+                part,
+                orderBy,
+                (expr, row) => eval(expr, row, null, ctes));
+            return context.ResolveRowsFrameRange(
+                defaultFrame,
+                part,
+                rowIndex,
+                orderBy,
+                orderValuesByRow2);
+        }
+
+        if (frame.Unit == WindowFrameUnit.Rows)
             return WindowFrameRangeResolver.ResolveRowsFrameRange(frame, part.Count, rowIndex);
 
         if (orderBy.Count == 0)
@@ -32,8 +53,7 @@ internal static class AstQueryWindowFrameHelper
             part,
             rowIndex,
             orderBy,
-            orderValuesByRow
-            );
+            orderValuesByRow);
     }
 
     internal static RowsFrameRange ResolveWindowFrameRange(
@@ -49,7 +69,25 @@ internal static class AstQueryWindowFrameHelper
         if (part.Count == 0)
             return RowsFrameRange.Empty;
 
-        if (frame is null || frame.Unit == WindowFrameUnit.Rows)
+        if (frame is null)
+        {
+            if (orderBy.Count == 0)
+                return new RowsFrameRange(0, part.Count - 1, IsEmpty: false);
+
+            var defaultFrame = new WindowFrameSpec(
+                WindowFrameUnit.Range,
+                new WindowFrameBound(WindowFrameBoundKind.UnboundedPreceding, null),
+                new WindowFrameBound(WindowFrameBoundKind.CurrentRow, null));
+            var orderValuesByRow = precomputedSingleOrderValuesByRow ?? context.GetRequiredSingleOrderValueByRow();
+            return context.ResolveRowsFrameRange(
+                defaultFrame,
+                part,
+                rowIndex,
+                orderBy,
+                orderValuesByRow);
+        }
+
+        if (frame.Unit == WindowFrameUnit.Rows)
             return WindowFrameRangeResolver.ResolveRowsFrameRange(frame, part.Count, rowIndex);
 
         if (orderBy.Count == 0)
@@ -63,8 +101,7 @@ internal static class AstQueryWindowFrameHelper
             part,
             rowIndex,
             orderBy,
-            precomputedSingleOrderValuesByRow
-            );
+            precomputedSingleOrderValuesByRow);
     }
 
     internal static Func<EvalRow, object?>? TryCreateWindowValueSelector(

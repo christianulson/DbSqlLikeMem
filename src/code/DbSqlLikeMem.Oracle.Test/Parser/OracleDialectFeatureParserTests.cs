@@ -240,6 +240,28 @@ public sealed class OracleDialectFeatureParserTests(
     }
 
     /// <summary>
+    /// EN: Ensures Oracle rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
+    /// PT: Garante que o Oracle rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.WithCteMinVersion)]
+    public void ParseSelect_WithMaterializedHint_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
+
+        var materializedEx = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH x AS MATERIALIZED (SELECT 1 FROM dual) SELECT 1 FROM x", db, d));
+        Assert.Contains("WITH ... AS MATERIALIZED", materializedEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var notMaterializedEx = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH x AS NOT MATERIALIZED (SELECT 1 FROM dual) SELECT 1 FROM x", db, d));
+        Assert.Contains("WITH ... AS NOT MATERIALIZED", notMaterializedEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// EN: Ensures ON CONFLICT syntax is rejected for Oracle.
     /// PT: Garante que a sintaxe ON CONFLICT seja rejeitada no Oracle.
     /// </summary>
@@ -1214,6 +1236,26 @@ public sealed class OracleDialectFeatureParserTests(
 
         Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
         Assert.Contains("oracle", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures Oracle rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is supported.
+    /// PT: Garante que o Oracle rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver suportado.
+    /// </summary>
+    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataOracleVersion]
+    public void ParseCreateSequence_OwnedBy_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new OracleDialect(v));
+        var db = Get(version, v => new OracleDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1 OWNED BY sales.users.id",
+            db, d));
+
+        Assert.Contains("OWNED BY", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

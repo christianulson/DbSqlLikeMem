@@ -163,6 +163,9 @@ internal static class SqlCreateObjectHelper
                 if (parsedOwnership)
                     throw new InvalidOperationException("CREATE SEQUENCE OWNED BY can only be specified once.");
 
+                if (!ctx.Dialect.SupportsSequenceOwnership)
+                    throw ctx.NotSupported("CREATE SEQUENCE OWNED BY");
+
                 ctx.Consume(); // OWNED
                 ctx.ExpectWord(SqlConst.BY);
 

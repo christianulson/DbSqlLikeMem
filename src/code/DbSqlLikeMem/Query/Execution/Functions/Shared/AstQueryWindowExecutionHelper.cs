@@ -480,7 +480,8 @@ internal static class AstQueryWindowExecutionHelper
             return;
 
         var aggregateCall = new FunctionCallExpr(windowFunctionExpr.Name, windowFunctionExpr.Args, windowFunctionExpr.Distinct);
-        if (windowFunctionExpr.Spec.Frame is null || partitionContext.CoversWholePartition())
+        if ((windowFunctionExpr.Spec.Frame is null && windowFunctionExpr.Spec.OrderBy.Count == 0)
+            || partitionContext.CoversWholePartition())
         {
             var wholePartitionValue = partitionContext.QueryExecutionContext.EvalAggregate(
                 aggregateCall,

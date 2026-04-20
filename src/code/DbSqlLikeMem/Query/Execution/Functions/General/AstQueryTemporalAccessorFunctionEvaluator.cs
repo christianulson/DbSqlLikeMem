@@ -166,6 +166,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
                 TemporalUnit.Minute => dateTime.Minute,
                 TemporalUnit.Second => dateTime.Second,
                 TemporalUnit.Millisecond => dateTime.Millisecond,
+                TemporalUnit.Microsecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L),
                 _ => null
             };
             return true;
@@ -180,6 +181,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
                 TemporalUnit.Minute => timeSpan.Minutes,
                 TemporalUnit.Second => timeSpan.Seconds,
                 TemporalUnit.Millisecond => timeSpan.Milliseconds,
+                TemporalUnit.Microsecond => (int)((timeSpan.Ticks % TimeSpan.TicksPerSecond) / 10L),
                 _ => null
             };
             return true;
