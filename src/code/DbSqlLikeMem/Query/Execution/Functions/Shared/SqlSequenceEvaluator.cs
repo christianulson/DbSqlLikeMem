@@ -222,42 +222,14 @@ internal static class SqlSequenceEvaluator
         out SequenceDef? sequence,
         out string? resolvedSchemaName)
     {
-        if (connection.TryGetSequence(sequenceRef.SequenceName, out sequence, sequenceRef.SchemaName))
+        resolvedSchemaName = connection.ResolveSchemaName(sequenceRef.SchemaName);
+        if (connection.Db.TryGetSequence(sequenceRef.SequenceName, out sequence, resolvedSchemaName)
+            && sequence is not null)
         {
-            resolvedSchemaName = sequenceRef.SchemaName ?? connection.Database;
-            return sequence is not null;
-        }
-
-        if (!string.IsNullOrWhiteSpace(sequenceRef.SchemaName))
-        {
-            resolvedSchemaName = sequenceRef.SchemaName;
-            return sequence is not null;
-        }
-
-        if (connection.ProviderExecutionDialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
-        {
-            var candidates = new[]
-            {
-                connection.Database,
-                "public",
-                "DefaultSchema"
-            };
-
-            foreach (var candidate in candidates)
-            {
-                if (string.IsNullOrWhiteSpace(candidate))
-                    continue;
-
-                if (connection.Db.TryGetSequence(sequenceRef.SequenceName, out sequence, candidate) && sequence is not null)
-                {
-                    resolvedSchemaName = candidate;
-                    return true;
-                }
-            }
+            return true;
         }
 
         sequence = null;
-        resolvedSchemaName = sequenceRef.SchemaName ?? connection.Database;
         return false;
     }
 

@@ -13,12 +13,16 @@ public sealed class NpgsqlConnectionMock
     }
 
     /// <summary>
+    /// EN: Gets the default schema name.
+    /// PT: Obtém o nome do esquema padrão.
+    /// </summary>
+    /// <summary>
     /// EN: Represents Npgsql Connection Mock.
     /// PT: Representa uma conexão simulada do Npgsql.
     /// </summary>
     public NpgsqlConnectionMock(
        NpgsqlDbMock? db = null,
-       string? defaultDatabase = null
+       string? defaultDatabase = "public"
     ) : base(db ?? [], defaultDatabase)
     {
         _serverVersion = $"PostgreSQL {Db.Version}";

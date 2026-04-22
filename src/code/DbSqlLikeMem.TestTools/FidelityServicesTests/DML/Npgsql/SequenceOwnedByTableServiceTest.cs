@@ -18,12 +18,15 @@ public sealed class SequenceOwnedByTableServiceTest(
     {
         _ = args;
 
+        Console.WriteLine($"[SequenceOwnedByTable] Creating table {Context.TbUsersFullName} and sequence {Context.Seq}.");
         await ExecuteNonQueryAsync($"CREATE TABLE {Context.TbUsersFullName} (Id BIGINT NOT NULL PRIMARY KEY)");
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 1 INCREMENT BY 1");
         await ExecuteNonQueryAsync($"ALTER SEQUENCE {Context.Seq} OWNED BY {Context.TbUsersFullName}.Id");
 
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
+        Console.WriteLine($"[SequenceOwnedByTable] First nextval returned {first}.");
 
+        Console.WriteLine($"[SequenceOwnedByTable] Dropping table {Context.TbUsersFullName} and verifying the sequence is removed.");
         await ExecuteNonQueryAsync($"DROP TABLE {Context.TbUsersFullName}");
 
         var missing = false;
@@ -31,8 +34,14 @@ public sealed class SequenceOwnedByTableServiceTest(
         {
             await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         }
-        catch (Exception ex) when (IsMissingSequenceException(ex))
+        catch (Exception ex)
         {
+            var message = ex.GetBaseException().Message;
+            Console.WriteLine($"[SequenceOwnedByTable] nextval after drop failed with: {message}");
+
+            if (!IsMissingSequenceException(ex))
+                throw;
+
             missing = true;
         }
 
@@ -57,6 +66,7 @@ public sealed class SequenceOwnedByTableServiceTest(
     {
         var message = ex.GetBaseException().Message;
         return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("sequence not found", StringComparison.OrdinalIgnoreCase)
             || message.Contains("undefined table", StringComparison.OrdinalIgnoreCase)
             || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
             || message.Contains("no such table", StringComparison.OrdinalIgnoreCase);

@@ -99,14 +99,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
         QueryExecutionContext context)
-    {
-        if (!connection.Db.ThreadSafe)
-            return ExecuteUpdateFromSelectImpl(connection, query, context);
-        lock (connection.Db.SyncRoot)
-        {
-            return ExecuteUpdateFromSelectImpl(connection, query, context);
-        }
-    }
+        => connection.Db.ExecuteWithLock(() => ExecuteUpdateFromSelectImpl(connection, query, context));
 
     private static DmlExecutionResult ExecuteUpdateFromSelectImpl(
         DbConnectionMockBase connection,
@@ -389,10 +382,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         ISqlDialect dialect)
     {
         var context = new QueryExecutionContext(connection, dialect, pars);
-        if (!connection.Db.ThreadSafe)
-            return ExecuteDeleteFromSelectImpl(connection, query, context);
-        lock (connection.Db.SyncRoot)
-            return ExecuteDeleteFromSelectImpl(connection, query, context);
+        return connection.Db.ExecuteWithLock(() => ExecuteDeleteFromSelectImpl(connection, query, context));
     }
 
     private static DmlExecutionResult ExecuteDeleteFromSelectImpl(

@@ -1,6 +1,12 @@
 namespace DbSqlLikeMem;
 
-internal static class SqlStringExtencions
+/// <summary>
+/// EN: String normalization helpers used internally by the SQL engine.
+/// PT: Helpers de normalizacao de string usados internamente pelo motor SQL.
+/// </summary>
+// Note: the file name retains the legacy "Extencions" spelling to avoid disrupting build artefacts.
+// The class is intentionally renamed to the correct "Extensions" spelling.
+internal static class SqlStringExtensions
 {
     /// <summary>
     /// EN: Implements NormalizeString.

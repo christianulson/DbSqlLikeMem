@@ -16,10 +16,13 @@ public sealed class SequenceDropRollbackServiceTest(
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
+        Console.WriteLine($"[SequenceDropRollback] Reading initial value from {Context.Seq}.");
         var initial = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
+        Console.WriteLine($"[SequenceDropRollback] Initial nextval returned {initial}.");
 
         using var transaction = Repo.BeginTransaction();
 
+        Console.WriteLine($"[SequenceDropRollback] Dropping {Context.Seq} inside the active transaction.");
         await ExecuteNonQueryAsync($"DROP SEQUENCE {Context.Seq}", transaction);
 
         var droppedMissing = false;
@@ -27,12 +30,19 @@ public sealed class SequenceDropRollbackServiceTest(
         {
             await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')", transaction);
         }
-        catch (Exception ex) when (IsMissingSequenceException(ex))
+        catch (Exception ex)
         {
+            var message = ex.GetBaseException().Message;
+            Console.WriteLine($"[SequenceDropRollback] nextval after drop failed with: {message}");
+
+            if (!IsMissingSequenceException(ex))
+                throw;
+
             droppedMissing = true;
         }
 
         transaction.Rollback();
+        Console.WriteLine($"[SequenceDropRollback] Rolled back the transaction and will read {Context.Seq} again.");
 
         var afterRollback = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         return new[] { initial, droppedMissing ? 1L : 0L, afterRollback };
@@ -59,6 +69,7 @@ public sealed class SequenceDropRollbackServiceTest(
     {
         var message = ex.GetBaseException().Message;
         return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("sequence not found", StringComparison.OrdinalIgnoreCase)
             || message.Contains("undefined table", StringComparison.OrdinalIgnoreCase)
             || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
             || message.Contains("no such table", StringComparison.OrdinalIgnoreCase);

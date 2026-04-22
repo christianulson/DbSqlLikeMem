@@ -22,12 +22,7 @@ internal static class DbUpdateStrategy
         this DbConnectionMockBase connection,
         SqlUpdateQuery query,
         QueryExecutionContext context)
-    {
-        if (!connection.Db.ThreadSafe)
-            return Execute(context, query);
-        lock (connection.Db.SyncRoot)
-            return Execute(context, query);
-    }
+        => connection.Db.ExecuteWithLock(() => Execute(context, query));
 
     private static DmlExecutionResult Execute(
         QueryExecutionContext context,

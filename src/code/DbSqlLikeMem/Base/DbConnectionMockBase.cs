@@ -898,6 +898,11 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     protected virtual bool SupportsReleaseSavepoint => true;
 
+    protected virtual string DefaultSchemaName => Database;
+
+    internal string ResolveSchemaName(string? schemaName)
+        => Db.GetSchemaName(schemaName ?? DefaultSchemaName);
+
     private readonly Dictionary<string, ITableMock> _temporaryTables =
         new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ITableMock> _globalTemporaryTables =
@@ -1206,7 +1211,7 @@ public abstract class DbConnectionMockBase(
             tableName,
             columns,
             rows,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
         if (CurrentTransaction != null && table is TableMock tableMock)
         {
@@ -1246,7 +1251,7 @@ public abstract class DbConnectionMockBase(
 
         return Db.GetTable(
             tableName,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
     }
 
     /// <summary>
@@ -1277,7 +1282,7 @@ public abstract class DbConnectionMockBase(
         return Db.TryGetTable(
             tableName,
             out tb,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
     }
 
     internal bool IsTemporaryTable(
@@ -1469,8 +1474,9 @@ public abstract class DbConnectionMockBase(
     public IReadOnlyList<ITableMock> ListTables(
         string? schemaName = null)
     {
-        var tables = Db.ListTables(schemaName ?? Database).ToList();
-        foreach (var globalTable in Db.ListGlobalTemporaryTables(schemaName ?? Database))
+        var targetSchema = ResolveSchemaName(schemaName);
+        var tables = Db.ListTables(targetSchema).ToList();
+        foreach (var globalTable in Db.ListGlobalTemporaryTables(targetSchema))
         {
             if (globalTable is TableMock globalTableMock
                 && TryGetGlobalTemporaryTable(globalTableMock.TableName, out var table, schemaName))
@@ -1509,7 +1515,7 @@ public abstract class DbConnectionMockBase(
     internal void AddView(
         SqlCreateViewQuery query)
     {
-        var schemaName = query.Table?.DbName ?? Database;
+        var schemaName = ResolveSchemaName(query.Table?.DbName);
         var viewName = query.Table?.Name?.NormalizeName();
         SqlSelectQuery? previousDefinition = null;
         if (!string.IsNullOrWhiteSpace(viewName))
@@ -1538,7 +1544,7 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
         => Db.GetView(
             viewName,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     internal bool TryGetView(
         string viewName,
@@ -1547,14 +1553,14 @@ public abstract class DbConnectionMockBase(
         => Db.TryGetView(
             viewName,
             out vw,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     internal void DropView(
         string viewName,
         bool ifExists,
         string? schemaName = null)
     {
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         if (CurrentTransaction != null
             && Db.TryGetView(viewName, out var previousDefinition, targetSchema)
             && previousDefinition is not null)
@@ -1583,6 +1589,7 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
     {
         var targetSchema = schemaName ?? Database;
+        var regularSchema = ResolveSchemaName(schemaName);
 
         if (scope == TemporaryTableScope.Global)
         {
@@ -1630,7 +1637,7 @@ public abstract class DbConnectionMockBase(
             throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
         }
 
-        var tableExists = Db.TryGetTable(tableName, out var schemaTable, targetSchema);
+        var tableExists = Db.TryGetTable(tableName, out var schemaTable, regularSchema);
         var schemaTableMock = schemaTable as TableMock;
         var canDropTable = tableExists && schemaTableMock is not null;
 
@@ -1644,12 +1651,12 @@ public abstract class DbConnectionMockBase(
 
         if (canDropTable)
         {
-            var ownedSequences = Db.ListOwnedSequenceNames(tableName, targetSchema);
+            var ownedSequences = Db.ListOwnedSequenceNames(tableName, regularSchema);
             foreach (var ownedSequence in ownedSequences)
-                DropSequence(ownedSequence, true, targetSchema);
+                DropSequence(ownedSequence, true, regularSchema);
         }
 
-        Db.DropTable(tableName, ifExists, targetSchema);
+        Db.DropTable(tableName, ifExists, regularSchema);
         ClearSelectPlanCache();
     }
 
@@ -1665,13 +1672,13 @@ public abstract class DbConnectionMockBase(
             tableName,
             keyColumns,
             unique,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
         ClearSelectPlanCache();
 
         if (CurrentTransaction == null)
             return;
 
-        if (Db.GetTable(tableName, schemaName ?? Database) is not TableMock table)
+        if (Db.GetTable(tableName, ResolveSchemaName(schemaName)) is not TableMock table)
             return;
 
         var createdIndex = table.Indexes[indexName.NormalizeName()];
@@ -1691,7 +1698,7 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
     {
         if (CurrentTransaction != null
-            && TryResolveDroppedIndex(indexName, tableName, schemaName ?? Database, out var table, out var indexDefinition))
+            && TryResolveDroppedIndex(indexName, tableName, ResolveSchemaName(schemaName), out var table, out var indexDefinition))
         {
             RecordDroppedIndex(table, indexDefinition);
         }
@@ -1700,7 +1707,7 @@ public abstract class DbConnectionMockBase(
             indexName,
             ifExists,
             tableName,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
         ClearSelectPlanCache();
     }
 
@@ -1722,7 +1729,7 @@ public abstract class DbConnectionMockBase(
             size,
             decimalPlaces,
             defaultValue,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
         ClearSelectPlanCache();
     }
 
@@ -1743,7 +1750,7 @@ public abstract class DbConnectionMockBase(
             procedure.Name,
             procedure,
             orReplace: true,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     /// <summary>
     /// EN: Registers a stored procedure.
@@ -1768,7 +1775,7 @@ public abstract class DbConnectionMockBase(
         => CreateFunction(
             function,
             orReplace: true,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     /// <summary>
     /// EN: Tries to get a stored procedure.
@@ -1785,7 +1792,7 @@ public abstract class DbConnectionMockBase(
         => Db.TryGetProcedure(
             procName,
             out pr,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     #endregion
 
@@ -1874,7 +1881,7 @@ public abstract class DbConnectionMockBase(
         ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(definition.Name, nameof(definition.Name));
 
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         DbFunctionDef? previousDefinition = null;
         Db.TryGetFunction(definition.Name, out previousDefinition, targetSchema);
 
@@ -1905,7 +1912,7 @@ public abstract class DbConnectionMockBase(
         bool ifExists,
         string? schemaName = null)
     {
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         if (CurrentTransaction != null
             && Db.TryGetFunction(functionName, out var previousDefinition, targetSchema)
             && previousDefinition is not null)
@@ -1935,7 +1942,7 @@ public abstract class DbConnectionMockBase(
         bool ifExists,
         string? schemaName = null)
     {
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         if (!Db.TryGetProcedure(procedureName, out var previousDefinition, targetSchema)
             || previousDefinition is null)
         {
@@ -1980,7 +1987,7 @@ public abstract class DbConnectionMockBase(
         bool orReplace = false,
         string? schemaName = null)
     {
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         ProcedureDef? previousDefinition = null;
         Db.TryGetProcedure(procedureName, out previousDefinition, targetSchema);
 
@@ -2018,7 +2025,7 @@ public abstract class DbConnectionMockBase(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
         ArgumentNullExceptionCompatible.ThrowIfNull(table, nameof(table));
 
-        var targetSchema = table.DbName ?? Database;
+        var targetSchema = ResolveSchemaName(table.DbName);
         var targetTable = Db.GetTable(table.Name!, targetSchema);
         if (targetTable is not TableMock tableMock)
             throw new InvalidOperationException($"Table '{table.Name}' is not a supported in-memory table type.");
@@ -2126,7 +2133,7 @@ public abstract class DbConnectionMockBase(
         => Db.AddSequence(
             sequenceName,
             sequence,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     /// <summary>
     /// EN: Creates and registers a sequence.
@@ -2167,7 +2174,7 @@ public abstract class DbConnectionMockBase(
             ownedBySchema,
             ownedByTable,
             ownedByColumn,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     /// <summary>
     /// EN: Tries to get a sequence.
@@ -2184,7 +2191,7 @@ public abstract class DbConnectionMockBase(
         => Db.TryGetSequence(
             sequenceName,
             out sequence,
-            schemaName ?? Database);
+            ResolveSchemaName(schemaName));
 
     internal void CreateSequence(
         string sequenceName,
@@ -2199,7 +2206,7 @@ public abstract class DbConnectionMockBase(
         string? ownedByColumn = null,
         string? schemaName = null)
     {
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         var existedBefore = Db.TryGetSequence(sequenceName, out _, targetSchema);
         Db.CreateSequence(
             sequenceName,
@@ -2239,7 +2246,7 @@ public abstract class DbConnectionMockBase(
         bool ifExists,
         string? schemaName = null)
     {
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         if (CurrentTransaction != null
             && Db.TryGetSequence(sequenceName, out var previousSequence, targetSchema)
             && previousSequence is not null)
@@ -2290,11 +2297,11 @@ public abstract class DbConnectionMockBase(
         string? schemaName = null)
     {
         if (CurrentTransaction == null
-            || !Db.TryGetSequence(sequenceName, out var sequence, schemaName ?? Database)
+            || !Db.TryGetSequence(sequenceName, out var sequence, ResolveSchemaName(schemaName))
             || sequence is null)
             return;
 
-        var targetSchema = schemaName ?? Database;
+        var targetSchema = ResolveSchemaName(schemaName);
         var hadSessionValue = TryGetSessionSequenceValue(sequenceName, out var sessionValue, targetSchema);
         _transactionJournal.Add(new TransactionJournalEntry(
             null!,
@@ -2380,7 +2387,7 @@ public abstract class DbConnectionMockBase(
         string sequenceName,
         string? schemaName)
     {
-        var schema = Db.GetSchemaName(schemaName ?? Database);
+        var schema = ResolveSchemaName(schemaName);
         return $"{schema}:{sequenceName.NormalizeName()}";
     }
 

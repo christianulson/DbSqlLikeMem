@@ -40,6 +40,37 @@ public abstract class DbMock
 
     internal object SyncRoot { get; } = new();
 
+    /// <summary>
+    /// EN: Executes the given action while holding the database lock when ThreadSafe is enabled.
+    /// PT: Executa a acao informada enquanto segura o lock do banco quando ThreadSafe estiver habilitado.
+    /// </summary>
+    /// <typeparam name="T">EN: Return type of the action. PT: Tipo de retorno da acao.</typeparam>
+    /// <param name="action">EN: Action to execute under the lock. PT: Acao a executar sob o lock.</param>
+    /// <returns>EN: Result returned by the action. PT: Resultado retornado pela acao.</returns>
+    internal T ExecuteWithLock<T>(Func<T> action)
+    {
+        if (!ThreadSafe)
+            return action();
+        lock (SyncRoot)
+            return action();
+    }
+
+    /// <summary>
+    /// EN: Executes the given action while holding the database lock when ThreadSafe is enabled.
+    /// PT: Executa a acao informada enquanto segura o lock do banco quando ThreadSafe estiver habilitado.
+    /// </summary>
+    /// <param name="action">EN: Action to execute under the lock. PT: Acao a executar sob o lock.</param>
+    internal void ExecuteWithLock(Action action)
+    {
+        if (!ThreadSafe)
+        {
+            action();
+            return;
+        }
+        lock (SyncRoot)
+            action();
+    }
+
     internal abstract SqlDialectBase Dialect { get; set; }
 
     private readonly Dictionary<string, ITableMock> _globalTemporaryTables =

@@ -67,7 +67,9 @@ public sealed class SequenceSessionLocalServiceTest(
             _ = await ExecuteScalarLongAsync(repo, sql);
             return 0L;
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex) when (
+            ex is InvalidOperationException
+            || (ex.GetType().Name == "PostgresException" && ex.Message.Contains("not yet defined", StringComparison.OrdinalIgnoreCase)))
         {
             Assert.Contains("not yet defined", ex.Message, StringComparison.OrdinalIgnoreCase);
             return 1L;

@@ -385,11 +385,12 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         var sequenceName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sequenceName, nameof(sequenceName));
+        var targetSchema = connection.ResolveSchemaName(query.Table?.DbName);
 
-        if (!connection.Db.TryGetSequence(sequenceName!, out var sequence, query.Table?.DbName) || sequence is null)
+        if (!connection.Db.TryGetSequence(sequenceName!, out var sequence, targetSchema) || sequence is null)
             throw new InvalidOperationException($"Sequence '{sequenceName!.NormalizeName()}' does not exist.");
 
-        connection.CaptureSequenceStateForRollback(sequenceName!, query.Table?.DbName);
+        connection.CaptureSequenceStateForRollback(sequenceName!, targetSchema);
         if (query.IncrementBy.HasValue)
         {
             sequence.SetIncrementBy(query.IncrementBy.Value);
@@ -404,14 +405,14 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
         if (query.OwnedByTable is not null)
         {
-            var ownedSchema = query.OwnedByTable.DbName ?? query.Table?.DbName;
+            var ownedSchema = query.OwnedByTable.DbName ?? targetSchema;
             sequence.SetOwnership(ownedSchema, query.OwnedByTable.Name, query.OwnedByColumn);
             return new DmlExecutionResult();
         }
 
         var restartWith = query.RestartWith ?? sequence.StartValue;
         sequence.SetValue(restartWith, false);
-        connection.ClearSessionSequenceValue(sequenceName!, query.Table?.DbName);
+        connection.ClearSessionSequenceValue(sequenceName!, targetSchema);
         return new DmlExecutionResult();
     }
 
