@@ -729,7 +729,7 @@ public abstract class TableMock
         => _triggers.Count > 0;
 
     /// <summary>
-    /// EN: Add new Vollumn to Table
+    /// EN: Add new Column to Table
     /// PT: Incluir nova coluna na tabela
     /// </summary>
     /// <param name="name"></param>
@@ -785,7 +785,7 @@ public abstract class TableMock
     }
 
     /// <summary>
-    /// EN: Add new Vollumn to Table
+    /// EN: Add new Column to Table
     /// PT: Incluir nova coluna na tabela
     /// </summary>
     /// <returns></returns>

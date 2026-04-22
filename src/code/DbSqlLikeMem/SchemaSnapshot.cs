@@ -26,7 +26,6 @@ public sealed record SchemaSnapshot
         "drift-comparison"
     ]);
     private static readonly IReadOnlyList<string> UnsupportedObjectKinds = Array.AsReadOnly([
-        "check-constraints",
         "computed-default-expressions",
         "computed-column-generators",
         "trigger-bodies",
@@ -780,6 +779,12 @@ public sealed record SchemaSnapshotTable
     /// </summary>
     public string? PartitionClauseSql { get; init; }
 
+    /// <summary>
+    /// EN: Check constraints captured for the table.
+    /// PT: Restricoes check capturadas para a tabela.
+    /// </summary>
+    public IReadOnlyList<SchemaSnapshotCheckConstraint>? CheckConstraints { get; init; }
+
     internal static SchemaSnapshotTable FromTable(ITableMock table)
         => new()
         {
@@ -1014,6 +1019,25 @@ public sealed record SchemaSnapshotForeignKeyReference
     /// PT: Nome da coluna referenciada.
     /// </summary>
     public required string RefColumnName { get; init; }
+}
+
+/// <summary>
+/// EN: Captures a check constraint definition inside a schema snapshot.
+/// PT: Captura a definicao de uma restricao check dentro de um snapshot de schema.
+/// </summary>
+public sealed record SchemaSnapshotCheckConstraint
+{
+    /// <summary>
+    /// EN: Check constraint name.
+    /// PT: Nome da restricao check.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// EN: SQL expression defining the check condition.
+    /// PT: Expressao SQL que define a condicao do check.
+    /// </summary>
+    public required string Expression { get; init; }
 }
 
 /// <summary>

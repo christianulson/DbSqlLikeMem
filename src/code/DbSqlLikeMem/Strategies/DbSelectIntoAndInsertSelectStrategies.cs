@@ -68,63 +68,6 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     /// <summary>
-    /// EN: Implements ExecuteCreateView.
-    /// PT: Implementa ExecuteCreateView.
-    /// </summary>
-    public static DmlExecutionResult ExecuteCreateView(
-        this DbConnectionMockBase connection,
-        SqlCreateViewQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
-    {
-        _ = pars;
-        _ = dialect;
-        DmlExecutionResult affected;
-        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateViewImpl(connection, query));
-
-        connection.SetLastFoundRows(affected.AffectedRows);
-        return affected;
-    }
-
-    private static DmlExecutionResult ExecuteCreateViewImpl(
-        DbConnectionMockBase connection,
-        SqlCreateViewQuery query)
-    {
-        connection.AddView(query);
-        return new DmlExecutionResult();
-    }
-
-
-    /// <summary>
-    /// EN: Implements ExecuteDropView.
-    /// PT: Implementa ExecuteDropView.
-    /// </summary>
-    public static DmlExecutionResult ExecuteDropView(
-        this DbConnectionMockBase connection,
-        SqlDropViewQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
-    {
-        _ = pars;
-        _ = dialect;
-        DmlExecutionResult affected;
-        affected = connection.Db.ExecuteWithLock(() => ExecuteDropViewImpl(connection, query));
-
-        connection.SetLastFoundRows(affected.AffectedRows);
-        return affected;
-    }
-
-    private static DmlExecutionResult ExecuteDropViewImpl(
-        DbConnectionMockBase connection,
-        SqlDropViewQuery query)
-    {
-        var viewName = query.Table?.Name;
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(viewName, nameof(viewName));
-        connection.DropView(viewName!, query.IfExists, query.Table?.DbName);
-        return new DmlExecutionResult();
-    }
-
-    /// <summary>
     /// EN: Implements ExecuteCreateSchema.
     /// PT: Implementa ExecuteCreateSchema.
     /// </summary>
@@ -213,62 +156,6 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             defaultValue,
             query.Table?.DbName);
 
-        return new DmlExecutionResult();
-    }
-
-    /// <summary>
-    /// EN: Implements ExecuteCreateIndex.
-    /// PT: Implementa ExecuteCreateIndex.
-    /// </summary>
-    public static DmlExecutionResult ExecuteCreateIndex(
-        this DbConnectionMockBase connection,
-        SqlCreateIndexQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
-    {
-        _ = pars;
-        _ = dialect;
-        DmlExecutionResult affected;
-        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateIndexImpl(connection, query));
-
-        connection.SetLastFoundRows(affected.AffectedRows);
-        return affected;
-    }
-
-    private static DmlExecutionResult ExecuteCreateIndexImpl(
-        DbConnectionMockBase connection,
-        SqlCreateIndexQuery query)
-    {
-        var tableName = query.Table?.Name;
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
-        connection.CreateIndex(query.IndexName, tableName!, query.KeyColumns, query.Unique, query.Table?.DbName);
-        return new DmlExecutionResult();
-    }
-
-    /// <summary>
-    /// EN: Implements ExecuteDropIndex.
-    /// PT: Implementa ExecuteDropIndex.
-    /// </summary>
-    public static DmlExecutionResult ExecuteDropIndex(
-        this DbConnectionMockBase connection,
-        SqlDropIndexQuery query,
-        DbParameterCollection pars,
-        ISqlDialect dialect)
-    {
-        _ = pars;
-        _ = dialect;
-        DmlExecutionResult affected;
-        affected = connection.Db.ExecuteWithLock(() => ExecuteDropIndexImpl(connection, query));
-
-        connection.SetLastFoundRows(affected.AffectedRows);
-        return affected;
-    }
-
-    private static DmlExecutionResult ExecuteDropIndexImpl(
-        DbConnectionMockBase connection,
-        SqlDropIndexQuery query)
-    {
-        connection.DropIndex(query.IndexName, query.IfExists, query.Table?.Name, query.Table?.DbName);
         return new DmlExecutionResult();
     }
 
