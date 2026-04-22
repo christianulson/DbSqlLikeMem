@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs SQL Azure benchmark scenarios against the in-memory DbSqlLikeMem SQL Azure mock provider.
 /// PT-br: Executa cenários de benchmark de SQL Azure contra o provedor mock em memória DbSqlLikeMem de SQL Azure.
 /// </summary>
-public sealed class SqlAzureDbSqlLikeMemSession()
+internal sealed class SqlAzureDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new SqlAzureProviderSqlDialect())
 {
     private readonly SqlAzureDbMock Db = new() { ThreadSafe = true };

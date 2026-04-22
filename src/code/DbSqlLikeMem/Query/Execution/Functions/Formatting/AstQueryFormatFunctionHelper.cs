@@ -176,6 +176,16 @@ internal static class AstQueryFormatFunctionHelper
         }
     }
 
+    internal static string FormatOracleNumber(object value)
+    {
+        if (!AstQueryExecutorBase.TryConvertNumericToDecimal(value, out var number))
+            return value.ToString() ?? string.Empty;
+
+        return number
+            .ToString("0.#############################", CultureInfo.InvariantCulture)
+            .Replace('.', ',');
+    }
+
     internal static string FormatPostgreSqlNumber(object value, string mask)
     {
         if (!AstQueryExecutorBase.TryConvertNumericToDecimal(value, out var number))

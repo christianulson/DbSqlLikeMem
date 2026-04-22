@@ -16,6 +16,7 @@ public static class SqlConst
     public const string DELETE = "DELETE";
     public const string MERGE = "MERGE";
     public const string CREATE = "CREATE";
+    public const string SCHEMA = "SCHEMA";
     public const string RECREATE = "RECREATE";
     public const string ALTER = "ALTER";
     public const string DROP = "DROP";

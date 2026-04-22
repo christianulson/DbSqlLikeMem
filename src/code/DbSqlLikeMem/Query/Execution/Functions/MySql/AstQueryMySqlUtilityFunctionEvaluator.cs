@@ -92,7 +92,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                 throw new InvalidOperationException("ELT() espera indice e valores.");
 
             var indexValue = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(indexValue))
+            if (IsNullish(indexValue))
             {
                 result = null;
                 return true;
@@ -112,7 +112,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             }
 
             var value = evalArg(position);
-            result = AstQueryExecutorBase.IsNullish(value) ? null : value;
+            result = IsNullish(value) ? null : value;
             return true;
         }
 
@@ -122,7 +122,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                 throw new InvalidOperationException("MAKE_SET() espera bits e valores.");
 
             var bitsValue = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(bitsValue) || !tryConvertNumericToInt64(bitsValue!, out var bits))
+            if (IsNullish(bitsValue) || !tryConvertNumericToInt64(bitsValue!, out var bits))
             {
                 result = null;
                 return true;
@@ -135,7 +135,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                     continue;
 
                 var value = evalArg(i);
-                if (AstQueryExecutorBase.IsNullish(value))
+                if (IsNullish(value))
                     continue;
 
                 selected.Add(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
@@ -149,7 +149,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             throw new InvalidOperationException("EXPORT_SET() espera bits, on, off.");
 
         var bitsExportValue = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(bitsExportValue) || !tryConvertNumericToInt64(bitsExportValue!, out var bitsExport))
+        if (IsNullish(bitsExportValue) || !tryConvertNumericToInt64(bitsExportValue!, out var bitsExport))
         {
             result = null;
             return true;
@@ -164,7 +164,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         var offText = Convert.ToString(offValue, CultureInfo.InvariantCulture) ?? string.Empty;
         var separator = Convert.ToString(separatorValue, CultureInfo.InvariantCulture) ?? ",";
         var limit = 64;
-        if (!AstQueryExecutorBase.IsNullish(limitValue) && tryConvertNumericToInt64(limitValue!, out var limitParsed) && limitParsed > 0)
+        if (!IsNullish(limitValue) && tryConvertNumericToInt64(limitValue!, out var limitParsed) && limitParsed > 0)
             limit = (int)limitParsed;
 
         var pieces = new string[limit];
@@ -206,7 +206,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = SqlConst.NULL;
             return true;
@@ -239,7 +239,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -398,7 +398,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -438,7 +438,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -477,7 +477,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -525,7 +525,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -567,7 +567,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         var textValue = evalArg(0);
         var delimValue = evalArg(1);
         var countValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(textValue) || AstQueryExecutorBase.IsNullish(delimValue) || AstQueryExecutorBase.IsNullish(countValue))
+        if (IsNullish(textValue) || IsNullish(delimValue) || IsNullish(countValue))
         {
             result = null;
             return true;
@@ -614,7 +614,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         var value = evalArg(0);
         var decimalsValue = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(value) || AstQueryExecutorBase.IsNullish(decimalsValue))
+        if (IsNullish(value) || IsNullish(decimalsValue))
         {
             result = null;
             return true;
@@ -665,7 +665,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             throw new InvalidOperationException("RANDOM_BYTES() espera o tamanho em bytes.");
 
         var lengthValue = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(lengthValue))
+        if (IsNullish(lengthValue))
         {
             result = null;
             return true;
@@ -703,7 +703,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             throw new InvalidOperationException("SLEEP() espera o tempo em segundos.");
 
         var secondsValue = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(secondsValue))
+        if (IsNullish(secondsValue))
         {
             result = null;
             return true;
@@ -733,7 +733,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             throw new InvalidOperationException($"{fn.Name.ToUpperInvariant()}() espera ao menos um argumento.");
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -799,7 +799,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             throw new InvalidOperationException("FORMAT_BYTES() espera um valor numerico.");
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -849,7 +849,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             throw new InvalidOperationException("FORMAT_PICO_TIME() espera um valor numerico.");
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -986,7 +986,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                 throw new InvalidOperationException("ENCRYPT() espera texto.");
 
             var value = evalArg(0);
-            if (AstQueryExecutorBase.IsNullish(value))
+            if (IsNullish(value))
             {
                 result = null;
                 return true;
@@ -1009,7 +1009,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         var payloadValue = evalArg(0);
         var keyValue = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(payloadValue) || AstQueryExecutorBase.IsNullish(keyValue))
+        if (IsNullish(payloadValue) || IsNullish(keyValue))
         {
             result = null;
             return true;
@@ -1146,7 +1146,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         else
         {
             var value = evalArg(0);
-            result = AstQueryExecutorBase.IsNullish(value) ? null : value;
+            result = IsNullish(value) ? null : value;
             return true;
         }
 
@@ -1183,7 +1183,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         var nameValue = evalArg(0);
         var value = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(nameValue))
+        if (IsNullish(nameValue))
         {
             result = null;
             return true;
@@ -1310,15 +1310,15 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         var position = 1;
-        if (fn.Args.Count >= 3 && !AstQueryExecutorBase.IsNullish(evalArg(2)))
+        if (fn.Args.Count >= 3 && !IsNullish(evalArg(2)))
             position = Math.Max(1, Convert.ToInt32(evalArg(2)!.ToDec()));
 
         var occurrence = 1;
-        if (fn.Args.Count >= 4 && !AstQueryExecutorBase.IsNullish(evalArg(3)))
+        if (fn.Args.Count >= 4 && !IsNullish(evalArg(3)))
             occurrence = Math.Max(1, Convert.ToInt32(evalArg(3)!.ToDec()));
 
         var returnOption = 0;
-        if (fn.Args.Count >= 5 && !AstQueryExecutorBase.IsNullish(evalArg(4)))
+        if (fn.Args.Count >= 5 && !IsNullish(evalArg(4)))
             returnOption = Convert.ToInt32(evalArg(4)!.ToDec());
 
         var matchType = fn.Args.Count >= 6 ? evalArg(5)?.ToString() ?? string.Empty : string.Empty;
@@ -1352,7 +1352,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
             if (string.Equals(fn.Name, "REGEXP_REPLACE", StringComparison.OrdinalIgnoreCase))
             {
                 var replacement = fn.Args.Count >= 3 ? evalArg(2)?.ToString() ?? string.Empty : string.Empty;
-                if (fn.Args.Count >= 4 && !AstQueryExecutorBase.IsNullish(evalArg(3)) && occurrence > 0)
+                if (fn.Args.Count >= 4 && !IsNullish(evalArg(3)) && occurrence > 0)
                 {
                     var matches = Regex.Matches(scoped, pattern, options);
                     if (matches.Count == 0)
@@ -1423,7 +1423,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
         var candidateValue = evalArg(0);
         var jsonValue = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(candidateValue) || AstQueryExecutorBase.IsNullish(jsonValue))
+        if (IsNullish(candidateValue) || IsNullish(jsonValue))
         {
             result = null;
             return true;
@@ -1471,7 +1471,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         _ = tryConvertNumericToDouble;
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = 0;
             return true;

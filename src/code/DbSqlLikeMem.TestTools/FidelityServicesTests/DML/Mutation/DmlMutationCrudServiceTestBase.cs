@@ -127,9 +127,9 @@ SELECT
     UpdatedAt,
     ProfileJson
 FROM {Context.TbUsersFullName}
-WHERE Id = {Repo.Dialect.Parameter("id")}
-""",
-        addParameters: command => AddParameter(command, "id", DbType.Int32, id));
+WHERE Id = {id}
+"""
+        );
 
         reader.Should().NotBeEmpty();
 

@@ -215,7 +215,7 @@ ORDER BY id";
         var rows = connection.Query<dynamic>(sql).ToList();
 
         Assert.Equal(["John", "John", "John"], [.. rows.Select(r => (string)r.first_name)]);
-        Assert.Equal(["Jane", "Jane", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
     }
 
 
@@ -243,7 +243,7 @@ ORDER BY id";
 
         var rows = connection.Query<dynamic>(sql).ToList();
 
-        Assert.Equal(["Bob", "Bob", "Bob"], [.. rows.Select(r => (string)r.second_name)]);
+        Assert.True(new string?[] { null, "Bob", "Bob" }.SequenceEqual(rows.Select(r => (string?)r.second_name)));
     }
 
 
@@ -416,7 +416,7 @@ ORDER BY id";
         var rows = connection.Query<dynamic>(sql).ToList();
 
         Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_expr)]);
-        Assert.Equal(["Bob", "Bob", "Bob"], [.. rows.Select(r => (string)r.nth_expr)]);
+        Assert.True(new string?[] { null, "Bob", "Bob" }.SequenceEqual(rows.Select(r => (string?)r.nth_expr)));
     }
 
 

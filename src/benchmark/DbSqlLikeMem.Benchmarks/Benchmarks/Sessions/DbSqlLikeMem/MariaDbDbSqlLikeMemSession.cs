@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs MariaDB benchmark scenarios against the in-memory DbSqlLikeMem MariaDB mock provider.
 /// PT-br: Executa cenarios de benchmark de MariaDB contra o provedor mock em memoria DbSqlLikeMem de MariaDB.
 /// </summary>
-public sealed class MariaDbDbSqlLikeMemSession()
+internal sealed class MariaDbDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new MariaDbProviderSqlDialect())
 {
     private readonly MariaDbDbMock Db = new() { ThreadSafe = true };

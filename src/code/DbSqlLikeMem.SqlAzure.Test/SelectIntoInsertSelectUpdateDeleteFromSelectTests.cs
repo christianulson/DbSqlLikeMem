@@ -22,6 +22,12 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override SqlAzureDbMock CreateDb() => [];
 
     /// <summary>
+    /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in SQL Azure.
+    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no SQL Azure.
+    /// </summary>
+    protected override int CreateTableAsSelectExpectedAffectedRows => 2;
+
+    /// <summary>
     /// EN: Executes a non-query SQL statement against the provided SQL Azure mock database.
     /// PT: Executa um comando SQL sem retorno no banco simulado de SQL Azure informado.
     /// </summary>

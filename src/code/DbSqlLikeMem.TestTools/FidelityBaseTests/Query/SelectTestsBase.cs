@@ -98,7 +98,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectScalarSubqueryCaseMatrixAsync(a));
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectScalarSubqueryCaseMatrixTest)), Snapshot(["UserId", "UserName", "OrderCount", "HasNoOrders", "HasManyOrders"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectScalarSubqueryCaseMatrixTest)), RawSnapshot(["UserId", "UserName", "OrderCount", "HasNoOrders", "HasManyOrders"],
             Row(1m, "Alice", 3m, 0m, 1m),
             Row(2m, "Bob", 1m, 0m, 0m),
             Row(3m, "Carla", 0m, 1m, 0m)));
@@ -116,7 +116,7 @@ public abstract class SelectTestsBase<T, T2>(
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectScalarCaseMatrixAsync(a));
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectScalarCaseMatrixTest)), Snapshot(["UserId", "UserName", "OrderCount", "HasNoOrders", "HasManyOrders"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectScalarCaseMatrixTest)), RawSnapshot(["UserId", "UserName", "OrderCount", "HasNoOrders", "HasManyOrders"],
             Row(1m, "Alice", 3m, 0m, 1m),
             Row(2m, "Bob", 1m, 0m, 0m),
             Row(3m, "Carla", 0m, 1m, 0m)));
@@ -1172,7 +1172,7 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinTypedExpressionMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTypedExpressionMatrixTest)), Snapshot(["UserId", "UserNameUpper", "UserNameLower", "OrderCount", "TotalQuantity", "TotalAmount", "AvgAmount", "FirstNote", "LastNote", "HasMultipleOrders", "AmountAtLeastThree"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTypedExpressionMatrixTest)), RawSnapshot(["UserId", "UserNameUpper", "UserNameLower", "OrderCount", "TotalQuantity", "TotalAmount", "AvgAmount", "FirstNote", "LastNote", "HasMultipleOrders", "AmountAtLeastThree"],
             Row(1m, "ALICE", "alice", 2m, 3m, 4.00m, 2.00m, "A", "B", 1m, 1m),
             Row(2m, "BOB", "bob", 1m, 4m, 5.50m, 5.50m, "C", "C", 0m, 1m)));
     }
@@ -1192,7 +1192,7 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinNullAggregateMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinNullAggregateMatrixTest)), Snapshot(["UserId", "UserName", "OrderCount", "TotalQuantity", "TotalAmount", "FirstNote", "HasNoOrders", "AmountIsNull", "HasLargeQuantity"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinNullAggregateMatrixTest)), RawSnapshot(["UserId", "UserName", "OrderCount", "TotalQuantity", "TotalAmount", "FirstNote", "HasNoOrders", "AmountIsNull", "HasLargeQuantity"],
             Row(1m, "Alice", 2m, 3m, 4.00m, "A", 0m, 0m, 1m),
             Row(2m, "Bob", 1m, 4m, 5.50m, "C", 0m, 0m, 1m),
             Row(3m, "Carla", 0m, 0m, 0.00m, "none", 1m, 1m, 0m)));
@@ -1213,10 +1213,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinCastNullMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinCastNullMatrixTest)), Snapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasNoOrders", "NotesAreNull", "HasNote", "MeetsAmountThreshold"],
-            Row(1m, "Alice", "2", "3", "4.00", 0m, 0m, 1m, 1m),
-            Row(2m, "Bob", "1", "4", "5.50", 0m, 0m, 1m, 1m),
-            Row(3m, "Carla", "0", "0", "0.00", 1m, 1m, 0m, 0m)));
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinCastNullMatrixTest)), RawSnapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasNoOrders", "NotesAreNull", "HasNote", "MeetsAmountThreshold"],
+            Row(1m, "Alice", "2", "3", AmountText(4.00m), 0m, 0m, 1m, 1m),
+            Row(2m, "Bob", "1", "4", AmountText(5.50m), 0m, 0m, 1m, 1m),
+            Row(3m, "Carla", "0", "0", AmountText(0.00m), 1m, 1m, 0m, 0m)));
     }
 
     /// <summary>
@@ -1234,10 +1234,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinCastTextComparisonMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinCastTextComparisonMatrixTest)), Snapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "CountTextIsZero", "QuantityTextNonZero", "NotesAreMissing", "HasAnyNote"],
-            Row(1m, "Alice", "2", "3", "4.00", 0m, 1m, 0m, 1m),
-            Row(2m, "Bob", "1", "4", "5.50", 0m, 1m, 0m, 1m),
-            Row(3m, "Carla", "0", "0", "0.00", 1m, 0m, 1m, 0m)));
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinCastTextComparisonMatrixTest)), RawSnapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "CountTextIsZero", "QuantityTextNonZero", "NotesAreMissing", "HasAnyNote"],
+            Row(1m, "Alice", "2", "3", AmountText(4.00m), 0m, 1m, 0m, 1m),
+            Row(2m, "Bob", "1", "4", AmountText(5.50m), 0m, 1m, 0m, 1m),
+            Row(3m, "Carla", "0", "0", AmountText(0.00m), 1m, 0m, 1m, 0m)));
     }
 
     /// <summary>
@@ -1255,8 +1255,8 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinHavingCastMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinHavingCastMatrixTest)), Snapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasTwoOrMoreOrders", "AmountAtLeastFour", "StartsAtA"],
-            Row(1m, "Alice", "2", "3", "4.00", 1m, 1m, 1m)));
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinHavingCastMatrixTest)), RawSnapshot(["UserId", "UserName", "OrderCountText", "TotalQuantityText", "TotalAmountText", "HasTwoOrMoreOrders", "AmountAtLeastFour", "StartsAtA"],
+            Row(1m, "Alice", "2", "3", AmountText(4.00m), 1m, 1m, 1m)));
     }
 
     /// <summary>
@@ -1274,10 +1274,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinLengthNumericMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinLengthNumericMatrixTest)), Snapshot(["UserId", "UserName", "NameLenText", "TotalQuantityText", "TotalAmountText", "MaxNoteLenText", "NameLenGe4", "QuantityGe3", "AmountGe4", "HasNotes"],
-            Row(1m, "Alice", "5", "3", "4.00", "1", 1m, 1m, 1m, 1m),
-            Row(2m, "Bob", "3", "4", "5.50", "1", 0m, 1m, 1m, 1m),
-            Row(3m, "Carla", "5", "0", "0.00", "0", 1m, 0m, 0m, 0m)));
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinLengthNumericMatrixTest)), RawSnapshot(["UserId", "UserName", "NameLenText", "TotalQuantityText", "TotalAmountText", "MaxNoteLenText", "NameLenGe4", "QuantityGe3", "AmountGe4", "HasNotes"],
+            Row(1m, "Alice", "5", "3", AmountText(4.00m), "1", 1m, 1m, 1m, 1m),
+            Row(2m, "Bob", "3", "4", AmountText(5.50m), "1", 0m, 1m, 1m, 1m),
+            Row(3m, "Carla", "5", "0", AmountText(0.00m), "0", 1m, 0m, 0m, 0m)));
     }
 
     /// <summary>
@@ -1296,7 +1296,7 @@ public abstract class SelectTestsBase<T, T2>(
             });
 
         var textMatchAlready = dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0m : 1m;
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTextCaseLengthMatrixTest)), Snapshot(["UserId", "NameUpper", "NameLower", "NameTrimmed", "NameLenText", "MaxNoteLenText", "NameLenGe4", "IsUpperAlready", "IsLowerAlready", "TwoOrMoreOrders", "QuantityGe3"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTextCaseLengthMatrixTest)), RawSnapshot(["UserId", "NameUpper", "NameLower", "NameTrimmed", "NameLenText", "MaxNoteLenText", "NameLenGe4", "IsUpperAlready", "IsLowerAlready", "TwoOrMoreOrders", "QuantityGe3"],
             Row(1m, "ALICE", "alice", "Alice", "5", "1", 1m, textMatchAlready, textMatchAlready, 1m, 1m),
             Row(2m, "BOB", "bob", "Bob", "3", "1", 0m, textMatchAlready, textMatchAlready, 0m, 1m),
             Row(3m, "CARLA", "carla", "Carla", "5", "0", 1m, textMatchAlready, textMatchAlready, 0m, 0m)));
@@ -1313,7 +1313,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders],
             (s, a) => s.RunJoinDistinctCaseMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinDistinctCaseMatrixTest)), Snapshot(["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinDistinctCaseMatrixTest)), RawSnapshot(["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
             Row(1m, 3m, 2m, 2m, 1m, 1m),
             Row(2m, 1m, 1m, 0m, 0m, 0m),
             Row(3m, 0m, 0m, 0m, 0m, 0m)));
@@ -1330,7 +1330,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders],
             (s, a) => s.RunJoinDistinctHavingMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinDistinctHavingMatrixTest)), Snapshot(["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinDistinctHavingMatrixTest)), RawSnapshot(["UserId", "OrderCount", "DistinctNoteCount", "NoteACount", "HasMultipleDistinctNotes", "HasRepeatedNoteA"],
             Row(1m, 3m, 2m, 2m, 1m, 1m),
             Row(3m, 0m, 0m, 0m, 0m, 0m)));
     }
@@ -1405,7 +1405,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinTemporalMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTemporalMatrixTest)), Snapshot(["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTemporalMatrixTest)), RawSnapshot(["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
             Row(1m, 2m, 0m, 1m, 1m, 2m, 1m),
             Row(2m, 1m, 0m, 1m, 1m, 1m, 1m),
             Row(3m, 0m, 1m, 1m, 1m, 1m, 1m)));
@@ -1422,7 +1422,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowMatrixTest)), Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowMatrixTest)), RawSnapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
             Row(1m, 10m, 1m, 2m, null),
             Row(1m, 11m, 2m, 2m, "A"),
             Row(2m, 12m, 1m, 1m, null)));
@@ -1439,7 +1439,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowTemporalMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowTemporalMatrixTest)), Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowTemporalMatrixTest)), RawSnapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
             Row(1m, 10m, 1m, 2m, null, 1m, 1m, 1m),
             Row(1m, 11m, 2m, 2m, "A", 1m, 1m, 1m),
             Row(2m, 12m, 1m, 1m, null, 1m, 1m, 1m)));
@@ -1456,7 +1456,7 @@ public abstract class SelectTestsBase<T, T2>(
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
             (s, a) => s.RunJoinWindowAggregateTemporalMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowAggregateTemporalMatrixTest)), Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "QuantityPerUser", "AmountPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinWindowAggregateTemporalMatrixTest)), RawSnapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "QuantityPerUser", "AmountPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
             Row(1m, 10m, 1m, 2m, 2m, 0m, null, 1m, 1m, 1m),
             Row(1m, 11m, 2m, 2m, 2m, 0m, "A", 1m, 1m, 1m),
             Row(2m, 12m, 1m, 1m, 1m, 0m, null, 1m, 1m, 1m)));
@@ -1577,7 +1577,7 @@ public abstract class SelectTestsBase<T, T2>(
         var (applyCross, applyOuter, temporal) = RequireSnapshotTriple(result, nameof(SelectApplyTemporalCompositeTest));
         AssertSnapshot(applyCross, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
         AssertSnapshot(applyOuter, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
-        AssertSnapshot(temporal, Snapshot(["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
+        AssertSnapshot(temporal, RawSnapshot(["UserId", "OrderCount", "HasNoOrders", "MinOrderedBeforeNow", "MaxOrderedBeforeNextDay", "PendingDeliveries", "UserCreatedBeforeNow"],
             Row(1m, 2m, 0m, 1m, 1m, 2m, 1m),
             Row(2m, 1m, 0m, 1m, 1m, 1m, 1m),
             Row(3m, 0m, 1m, 1m, 1m, 1m, 1m)));
@@ -1628,11 +1628,11 @@ public abstract class SelectTestsBase<T, T2>(
         var (windowCross, windowOuter, windowCount, windowTemporal) = RequireSnapshotQuad(result, nameof(SelectApplyWindowTemporalCompositeTest));
         AssertSnapshot(windowCross, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C")));
         AssertSnapshot(windowOuter, Snapshot(ApplyProjectionColumnNames(), Row(1m, "Alice", "B"), Row(2m, "Bob", "C"), Row(3m, "Carla", null)));
-        AssertSnapshot(windowCount, Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
+        AssertSnapshot(windowCount, RawSnapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote"],
             Row(1m, 10m, 1m, 2m, null),
             Row(1m, 11m, 2m, 2m, "A"),
             Row(2m, 12m, 1m, 1m, null)));
-        AssertSnapshot(windowTemporal, Snapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
+        AssertSnapshot(windowTemporal, RawSnapshot(["UserId", "OrderId", "RowNumberInUser", "OrdersPerUser", "PreviousNote", "OrderedBeforeNow", "NextDayAfterOrder", "UserCreatedBeforeNow"],
             Row(1m, 10m, 1m, 2m, null, 1m, 1m, 1m),
             Row(1m, 11m, 2m, 2m, "A", 1m, 1m, 1m),
             Row(2m, 12m, 1m, 1m, null, 1m, 1m, 1m)));
@@ -1761,9 +1761,43 @@ public abstract class SelectTestsBase<T, T2>(
         };
     }
 
+    private static QueryResultSnapshot RawSnapshot(string[] columnNames, params object?[][] rows)
+    {
+        var snapshots = new QueryResultRowSnapshot[rows.Length];
+        for (var i = 0; i < rows.Length; i++)
+        {
+            snapshots[i] = new QueryResultRowSnapshot
+            {
+                Values = rows[i],
+            };
+        }
+
+        return new QueryResultSnapshot
+        {
+            ColumnNames = columnNames,
+            Rows = snapshots,
+        };
+    }
+
     private string[] NormalizeSnapshotColumnNames(string[] columnNames)
     {
-        if (dialect.Provider != ProviderId.Oracle)
+        if (dialect.Provider == ProviderId.Npgsql)
+        {
+            var normalized2 = new string[columnNames.Length];
+            for (var i = 0; i < columnNames.Length; i++)
+            {
+                normalized2[i] = columnNames[i] switch
+                {
+                    "Name" => "name",
+                    "Id" => "id",
+                    _ => columnNames[i]
+                };
+            }
+
+            return normalized2;
+        }
+
+        if (dialect.Provider is not ProviderId.Oracle and not ProviderId.Db2)
             return columnNames;
 
         var normalized = new string[columnNames.Length];
@@ -1774,11 +1808,16 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     private string[] ApplyProjectionColumnNames()
-        => dialect.Provider == ProviderId.Oracle
+        => dialect.Provider is ProviderId.Oracle or ProviderId.Db2
             ? ["USERID", "USERNAME", "NOTE"]
             : ["UserId", "UserName", "Note"];
 
     private static object?[] Row(params object?[] values) => values;
+
+    private string AmountText(decimal value)
+        => dialect.Provider == ProviderId.Oracle
+            ? value.ToString("0.#############################", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',')
+            : value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
 
     private static void AssertSnapshot(QueryResultSnapshot actual, QueryResultSnapshot expected)
     {

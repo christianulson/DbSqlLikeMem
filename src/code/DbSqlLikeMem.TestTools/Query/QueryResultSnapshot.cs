@@ -168,7 +168,19 @@ internal static class QueryResultSnapshotReader
     private static string NormalizeCapturedColumnName(string columnName, DbDataReader reader)
     {
         var readerTypeName = reader.GetType().FullName ?? string.Empty;
-        if (readerTypeName.Contains("DbSqlLikeMem.Oracle", StringComparison.Ordinal))
+        if (readerTypeName.Contains("DbSqlLikeMem.Npgsql", StringComparison.Ordinal)
+            || readerTypeName.Contains("Npgsql.", StringComparison.Ordinal))
+        {
+            return columnName switch
+            {
+                "Name" => "name",
+                "Id" => "id",
+                _ => columnName
+            };
+        }
+
+        if (readerTypeName.Contains("DbSqlLikeMem.Oracle", StringComparison.Ordinal)
+            || readerTypeName.Contains("DbSqlLikeMem.Db2", StringComparison.Ordinal))
             return columnName.ToUpperInvariant();
 
         return columnName;

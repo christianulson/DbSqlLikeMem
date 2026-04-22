@@ -74,7 +74,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         var isSub = string.Equals(fn.Name, "DATE_SUB", StringComparison.OrdinalIgnoreCase);
 
         var baseValue = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(baseValue) || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
         {
             result = null;
             return true;
@@ -98,7 +98,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         if (isSub)
             amount = -amount;
 
-        result = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, amount);
+        result = ApplyDateDelta(dateTime, unit, amount);
         return true;
     }
 
@@ -137,7 +137,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         }
 
         var baseValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(baseValue) || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
         {
             result = null;
             return true;
@@ -145,7 +145,7 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
 
         var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
         var amountObject = evalArg(1);
-        result = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, Convert.ToInt32((amountObject ?? 0m).ToDec()));
+        result = ApplyDateDelta(dateTime, unit, Convert.ToInt32((amountObject ?? 0m).ToDec()));
         return true;
     }
 
@@ -168,9 +168,9 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
         var startValue = evalArg(1);
         var endValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(startValue) || AstQueryExecutorBase.IsNullish(endValue)
-            || !AstQueryExecutorBase.TryCoerceDateTime(startValue, out var start)
-            || !AstQueryExecutorBase.TryCoerceDateTime(endValue, out var end))
+        if (IsNullish(startValue) || IsNullish(endValue)
+            || !TryCoerceDateTime(startValue, out var start)
+            || !TryCoerceDateTime(endValue, out var end))
         {
             result = null;
             return true;
@@ -199,9 +199,9 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
         var startValue = evalArg(1);
         var endValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(startValue) || AstQueryExecutorBase.IsNullish(endValue)
-            || !AstQueryExecutorBase.TryCoerceDateTime(startValue, out var start)
-            || !AstQueryExecutorBase.TryCoerceDateTime(endValue, out var end))
+        if (IsNullish(startValue) || IsNullish(endValue)
+            || !TryCoerceDateTime(startValue, out var start)
+            || !TryCoerceDateTime(endValue, out var end))
         {
             result = null;
             return true;
@@ -227,9 +227,9 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         {
             var startValueMySql = evalArg(0);
             var endValueMySql = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(startValueMySql) || AstQueryExecutorBase.IsNullish(endValueMySql)
-                || !AstQueryExecutorBase.TryCoerceDateTime(startValueMySql, out var startMySql)
-                || !AstQueryExecutorBase.TryCoerceDateTime(endValueMySql, out var endMySql))
+            if (IsNullish(startValueMySql) || IsNullish(endValueMySql)
+                || !TryCoerceDateTime(startValueMySql, out var startMySql)
+                || !TryCoerceDateTime(endValueMySql, out var endMySql))
             {
                 result = null;
                 return true;
@@ -245,9 +245,9 @@ internal static class AstQueryTemporalArithmeticFunctionEvaluator
         var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
         var startValue = evalArg(1);
         var endValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(startValue) || AstQueryExecutorBase.IsNullish(endValue)
-            || !AstQueryExecutorBase.TryCoerceDateTime(startValue, out var start)
-            || !AstQueryExecutorBase.TryCoerceDateTime(endValue, out var end))
+        if (IsNullish(startValue) || IsNullish(endValue)
+            || !TryCoerceDateTime(startValue, out var start)
+            || !TryCoerceDateTime(endValue, out var end))
         {
             result = null;
             return true;

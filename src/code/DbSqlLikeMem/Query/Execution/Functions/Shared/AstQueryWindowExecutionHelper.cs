@@ -16,6 +16,11 @@ internal static class AstQueryWindowExecutionHelper
 
         var dialectInstance = context.Dialect ?? throw new InvalidOperationException("Dialect is required for window function validation.");
         var isSqlServer = dialectInstance.Name.Equals("sqlserver", StringComparison.OrdinalIgnoreCase);
+        object? EvalWithScope(SqlExpr expr, EvalRow row)
+        {
+            using var positionalScope = context.BeginPositionalParameterScope();
+            return eval(expr, row, null, ctes);
+        }
 
         foreach (var slotGroup in GroupWindowSlotsBySpec(slots))
         {
@@ -30,7 +35,7 @@ internal static class AstQueryWindowExecutionHelper
             var partitions = WindowPartitionHelper.BuildPartitions(
                 firstExpr,
                 rows,
-                (expr, row) => eval(expr, row, null, ctes),
+                EvalWithScope,
                 context.NormalizeDistinctKey);
 
             foreach (var part in partitions.Values)
@@ -39,7 +44,7 @@ internal static class AstQueryWindowExecutionHelper
                 var orderValuesByRow = WindowPartitionHelper.SortPartition(
                     part,
                     orderBy,
-                    (expr, row) => eval(expr, row, null, ctes),
+                    EvalWithScope,
                     context.CompareSql,
                     includeOrderValues: slotGroupRequiresOrderValues);
                 var slotGroupCount = slotGroup.Count;
@@ -451,7 +456,7 @@ internal static class AstQueryWindowExecutionHelper
             var value = valueSelector is null
                 ? eval(countArg, row, null, ctes)
                 : valueSelector(row);
-            if (AstQueryExecutorBase.IsNullish(value))
+            if (IsNullish(value))
                 continue;
 
             if (seen is not null)

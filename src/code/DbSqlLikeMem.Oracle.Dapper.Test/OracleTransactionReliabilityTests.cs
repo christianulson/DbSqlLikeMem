@@ -9,6 +9,9 @@ public sealed class OracleTransactionReliabilityTests(
     ) : ProviderDapperTransactionReliabilityTestsBase<OracleDbMock, OracleConnectionMock>(helper)
 {
     /// <inheritdoc />
+    protected override bool SupportsReleaseSavepoint => false;
+
+    /// <inheritdoc />
     protected override OracleDbMock CreateDb(int? version, bool threadSafe)
         => new(version) { ThreadSafe = threadSafe };
 

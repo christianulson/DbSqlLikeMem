@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace DbSqlLikeMem;
 
 internal static class QueryConcatFunctionHelper
@@ -58,10 +60,10 @@ internal static class QueryConcatFunctionHelper
         {
             var value = evalArg(i);
             if (!IsNullish(value))
-                parts.Add(value?.ToString() ?? string.Empty);
+                parts.Add(ToConcatText(value));
         }
 
-        result = string.Join(separatorValue?.ToString() ?? string.Empty, parts);
+        result = string.Join(ToConcatText(separatorValue), parts);
         return true;
     }
 
@@ -76,11 +78,22 @@ internal static class QueryConcatFunctionHelper
             return !context.Dialect.ConcatFunctionReturnsNullOnNullInput;
         }
 
-        part = value?.ToString() ?? string.Empty;
+        part = ToConcatText(value);
         return true;
     }
 
     private static bool IsNullish(object? value)
         => value is null or DBNull;
+
+    private static string ToConcatText(object? value)
+    {
+        if (value is null || value is DBNull)
+            return string.Empty;
+
+        if (value is IFormattable formattable)
+            return formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty;
+
+        return value.ToString() ?? string.Empty;
+    }
 }
 

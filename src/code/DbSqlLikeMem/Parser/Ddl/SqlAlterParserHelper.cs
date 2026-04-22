@@ -157,9 +157,7 @@ internal static class SqlAlterParserHelper
             }
             else
             {
-                ownedByTable = ctx.ParseQualifiedObjectName();
-                ctx.ExpectSymbol(".");
-                ownedByColumn = ctx.ExpectIdentifier();
+                (ownedByTable, ownedByColumn) = ctx.ParseSequenceOwnershipTarget();
             }
         }
         else

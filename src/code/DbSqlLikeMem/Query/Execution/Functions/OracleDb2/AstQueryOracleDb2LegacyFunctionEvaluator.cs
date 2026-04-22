@@ -193,7 +193,11 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
                 "DEC" or "DECIMAL" => CoerceToDecimal(value!),
                 "DOUBLE" or "DOUBLE_PRECISION" or "FLOAT" or "FLOAT4" or "FLOAT8" or "REAL" => CoerceToDouble(value!),
                 "BPCHAR" or "DBCLOB" or "GRAPHIC" or "VARGRAPHIC" => value?.ToString(),
-                "VARCHAR" => value is byte[] bytes ? bytes : value?.ToString(),
+                "VARCHAR" => value is byte[] bytes
+                    ? bytes
+                    : IsOracleProvider(context) && AstQueryFormatFunctionHelper.IsNumericValue(value)
+                        ? FormatOracleVarcharNumeric(value!)
+                        : value?.ToString(),
                 _ => null
             };
         }
@@ -206,6 +210,28 @@ internal static class AstQueryOracleDb2LegacyFunctionEvaluator
 #pragma warning restore CA1031
 
         return true;
+    }
+
+    private static bool IsOracleProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "oracle", StringComparison.OrdinalIgnoreCase);
+
+    private static string FormatOracleVarcharNumeric(object value)
+    {
+        var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+
+        var trimmed = text.Trim();
+        if (trimmed.IndexOfAny(['e', 'E']) >= 0)
+            return trimmed.Replace('.', ',');
+
+        if (trimmed.Contains('.'))
+        {
+            trimmed = trimmed.TrimEnd('0').TrimEnd('.');
+            return trimmed.Replace('.', ',');
+        }
+
+        return trimmed;
     }
 
     private static bool TryEvalCubeTableFunction(

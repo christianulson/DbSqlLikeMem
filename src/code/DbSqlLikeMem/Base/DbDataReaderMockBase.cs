@@ -11,7 +11,7 @@ public abstract class DbDataReaderMockBase(
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object, object>> _converters = new();
 
     private readonly List<TableResultMock> _resultSets = CopyResultSets(tables);
-    private readonly List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> _columnsDic = BuildColumnsByResultSet(tables);
+    private readonly List<Dictionary<int, (string ColumnAlias, string ColumnName, DbType DbType, bool IsNullable)>> _columnsDic = BuildColumnsByResultSet(tables);
     private readonly List<Dictionary<string, int>> _columnOrdinalByNormalizedName = BuildOrdinalIndexByNormalizedName(tables);
 
     private int _currentResultSetIndex;
@@ -26,17 +26,17 @@ public abstract class DbDataReaderMockBase(
         return result;
     }
 
-private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>> BuildColumnsByResultSet(IList<TableResultMock> tables)
+    private static List<Dictionary<int, (string ColumnAlias, string ColumnName, DbType DbType, bool IsNullable)>> BuildColumnsByResultSet(IList<TableResultMock> tables)
     {
-        var result = new List<Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>>(tables.Count);
+        var result = new List<Dictionary<int, (string ColumnAlias, string ColumnName, DbType DbType, bool IsNullable)>>(tables.Count);
         for (var i = 0; i < tables.Count; i++)
         {
             var cols = tables[i].Columns;
-            var dict = new Dictionary<int, (string ColumName, DbType DbType, bool IsNullable)>(cols.Count);
+            var dict = new Dictionary<int, (string ColumnAlias, string ColumnName, DbType DbType, bool IsNullable)>(cols.Count);
             for (var c = 0; c < cols.Count; c++)
             {
                 var col = cols[c];
-                dict.Add(col.ColumIndex, (col.ColumnAlias, col.DbType, col.IsNullable));
+                dict.Add(col.ColumIndex, (col.ColumnAlias, col.ColumnName, col.DbType, col.IsNullable));
             }
 
             result.Add(dict);
@@ -275,8 +275,8 @@ private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNul
     /// </summary>
     public override string GetName(int ordinal)
     {
-        var n = _columnsDic[_currentResultSetIndex][ordinal].ColumName ?? string.Empty;
-        return NormalizeColumnName(n);
+        var column = _columnsDic[_currentResultSetIndex][ordinal];
+        return NormalizeColumnNameForGetName(column.ColumnAlias ?? string.Empty, column.ColumnName ?? string.Empty);
     }
 
     /// <summary>
@@ -296,7 +296,7 @@ private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNul
         var cols = _columnsDic[_currentResultSetIndex];
         foreach (var kv in cols)
         {
-            var stored = kv.Value.ColumName ?? string.Empty;
+            var stored = kv.Value.ColumnAlias ?? string.Empty;
             var dot = stored.LastIndexOf('.');
             if (dot > 0)
             {
@@ -333,7 +333,7 @@ private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNul
         var dt = new DataTable();
         foreach (var col in _columnsDic[_currentResultSetIndex])
             dt.Columns.Add(new DataColumn(
-                NormalizeColumnName(col.Value.ColumName ?? string.Empty),
+                NormalizeColumnName(col.Value.ColumnAlias ?? string.Empty),
                 col.Value.DbType.ConvertDbTypeToType())
             {
                 AllowDBNull = col.Value.IsNullable
@@ -451,7 +451,17 @@ private static List<Dictionary<int, (string ColumName, DbType DbType, bool IsNul
 
     private bool ShouldTraceScoreColumn(int ordinal)
         => _columnsDic[_currentResultSetIndex].TryGetValue(ordinal, out var column)
-            && column.ColumName.Equals("score", StringComparison.OrdinalIgnoreCase);
+            && column.ColumnAlias.Equals("score", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// EN: Resolves the column name returned by GetName for the current provider.
+    /// PT: Resolve o nome de coluna retornado por GetName para o provedor atual.
+    /// </summary>
+    /// <param name="columnAlias">EN: Column alias reported by the result set. PT: Alias da coluna informado pelo conjunto de resultados.</param>
+    /// <param name="columnName">EN: Source column name reported by the result set. PT: Nome de origem da coluna informado pelo conjunto de resultados.</param>
+    /// <returns>EN: Column name exposed by the reader. PT: Nome da coluna exposto pelo leitor.</returns>
+    protected virtual string NormalizeColumnNameForGetName(string columnAlias, string columnName)
+        => NormalizeColumnName(columnAlias);
 
     private static string FormatDebugValue(object? value)
         => value is null or DBNull

@@ -77,7 +77,7 @@ internal static class AstQueryDb2DateFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
             return true;
@@ -95,8 +95,8 @@ internal static class AstQueryDb2DateFunctionEvaluator
             "MINUTE" => dateTime.Minute,
             "MONTH" => dateTime.Month,
             "SECOND" => dateTime.Second,
-            "WEEK" => AstQueryExecutorBase.GetIsoWeekOfYear(dateTime),
-            "WEEK_ISO" => AstQueryExecutorBase.GetIsoWeekOfYear(dateTime),
+            "WEEK" => GetIsoWeekOfYear(dateTime),
+            "WEEK_ISO" => GetIsoWeekOfYear(dateTime),
             "YEAR" => dateTime.Year,
             _ => null
         };
@@ -115,13 +115,13 @@ internal static class AstQueryDb2DateFunctionEvaluator
 
         var baseValue = evalArg(0);
         var amountValue = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(baseValue) || AstQueryExecutorBase.IsNullish(amountValue))
+        if (IsNullish(baseValue) || IsNullish(amountValue))
         {
             result = null;
             return true;
         }
 
-        if (!AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        if (!TryCoerceDateTime(baseValue, out var dateTime))
         {
             result = null;
             return true;
@@ -131,7 +131,7 @@ internal static class AstQueryDb2DateFunctionEvaluator
         {
             var amount = Convert.ToInt32(amountValue.ToDec());
             var unit = resolveTemporalUnit(name["ADD_".Length..]);
-            result = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, amount);
+            result = ApplyDateDelta(dateTime, unit, amount);
             return true;
         }
         catch

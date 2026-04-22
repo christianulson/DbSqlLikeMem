@@ -77,7 +77,7 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{TemporaryUsersTableName(context)} (
 
     /// <inheritdoc />
     public override string DropTemporaryUsersTable(FidelityTestContext context) =>
-        $"DROP TEMPORARY TABLE {TemporaryUsersTableName(context)}";
+        $"DROP TABLE SESSION.{TemporaryUsersTableName(context)}";
 
     /// <inheritdoc />
     public override string InsertUser(FidelityTestContext context, int id, string name) =>
@@ -142,7 +142,8 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{TemporaryUsersTableName(context)} (
         if (dbType == DbType.Guid
             || dbType == DbType.DateTimeOffset
             || dbType == DbType.Time
-            || dbType == DbType.DateTime)
+            || dbType == DbType.DateTime
+            || dbType == DbType.DateTime2)
         {
             parameter.DbType = DbType.String;
             return;

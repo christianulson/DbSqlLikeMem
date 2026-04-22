@@ -1411,9 +1411,15 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     {
         try
         {
-            var localTokens = tokens.Concat([SqlToken.EOF]).ToArray();
+            var localSql = _context.TokensToSql(tokens);
+            var localTokens = new SqlTokenizer(localSql, _context.Dialect).Tokenize();
             var parser = new SqlExpressionParser(
-                new SqlExpressionParserContext(localTokens, _context.Db, _context.Dialect, _context.Parameters, _context.CustomFunctionSupported));
+                new SqlExpressionParserContext(
+                    localTokens,
+                    _context.Db,
+                    _context.Dialect,
+                    _context.Parameters,
+                    _context.CustomFunctionSupported));
             var parsed = parser.ParseExpression(0);
             parser._context.ExpectEnd();
             return parsed;

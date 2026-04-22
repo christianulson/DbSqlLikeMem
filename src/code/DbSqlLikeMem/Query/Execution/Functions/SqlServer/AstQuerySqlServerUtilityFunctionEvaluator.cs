@@ -364,7 +364,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
             return true;
         }
 
-        result = double.TryParse(value?.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out _)
+        result = double.TryParse(value?.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out _)
             ? 1
             : 0;
         return true;

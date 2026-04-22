@@ -110,6 +110,11 @@ internal sealed record SqlCreateViewQuery : SqlQueryBase
     internal SqlSelectQuery Select { get; init; } = null!;
 }
 
+internal sealed record SqlCreateSchemaQuery : SqlQueryBase
+{
+    internal bool IfNotExists { get; init; }
+}
+
 internal sealed record SqlDropViewQuery : SqlQueryBase
 {
     internal bool IfExists { get; init; }

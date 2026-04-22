@@ -22,6 +22,12 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override SqliteDbMock CreateDb() => [];
 
     /// <summary>
+    /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in SQLite.
+    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no SQLite.
+    /// </summary>
+    protected override int CreateTableAsSelectExpectedAffectedRows => 2;
+
+    /// <summary>
     /// EN: Executes a non-query command using a SQLite mock connection.
     /// PT: Executa um comando sem retorno usando uma conexão simulada de SQLite.
     /// </summary>

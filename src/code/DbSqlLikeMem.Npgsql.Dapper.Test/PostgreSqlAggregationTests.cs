@@ -224,7 +224,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
         var rows = Query("SELECT CURRENT_TIMESTAMP AS nowValue FROM orders WHERE CURRENT_TIMESTAMP IS NOT NULL");
 
         Assert.NotEmpty(rows);
-        Assert.NotNull(rows[0].nowValue);
+        Assert.NotNull(GetValueIgnoreCase((object)rows[0], "nowValue"));
     }
 
 
@@ -281,7 +281,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
         var rows = Query("SELECT NOW() AS nowValue FROM orders WHERE NOW() IS NOT NULL");
 
         Assert.NotEmpty(rows);
-        Assert.NotNull(rows[0].nowValue);
+        Assert.NotNull(GetValueIgnoreCase((object)rows[0], "nowValue"));
     }
 
     /// <summary>
@@ -375,7 +375,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
     {
         var projectionRows = Query("SELECT NOW() AS nowValue FROM orders");
         Assert.NotEmpty(projectionRows);
-        Assert.NotNull(projectionRows[0].nowValue);
+        Assert.NotNull(GetValueIgnoreCase((object)projectionRows[0], "nowValue"));
 
         var whereRows = Query("SELECT id FROM orders WHERE NOW() IS NOT NULL");
         Assert.NotEmpty(whereRows);
@@ -413,7 +413,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
     {
         var projectionRows = Query("SELECT CURRENT_DATE AS nowValue FROM orders");
         Assert.NotEmpty(projectionRows);
-        Assert.NotNull(projectionRows[0].nowValue);
+        Assert.NotNull(GetValueIgnoreCase((object)projectionRows[0], "nowValue"));
 
         var whereRows = Query("SELECT id FROM orders WHERE CURRENT_DATE IS NOT NULL");
         Assert.NotEmpty(whereRows);
@@ -451,7 +451,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
     {
         var projectionRows = Query("SELECT CURRENT_TIME AS nowValue FROM orders");
         Assert.NotEmpty(projectionRows);
-        Assert.NotNull(projectionRows[0].nowValue);
+        Assert.NotNull(GetValueIgnoreCase((object)projectionRows[0], "nowValue"));
 
         var whereRows = Query("SELECT id FROM orders WHERE CURRENT_TIME IS NOT NULL");
         Assert.NotEmpty(whereRows);
@@ -489,7 +489,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
     {
         var projectionRows = Query("SELECT CURRENT_TIMESTAMP AS nowValue FROM orders");
         Assert.NotEmpty(projectionRows);
-        Assert.NotNull(projectionRows[0].nowValue);
+        Assert.NotNull(GetValueIgnoreCase((object)projectionRows[0], "nowValue"));
 
         var whereRows = Query("SELECT id FROM orders WHERE CURRENT_TIMESTAMP IS NOT NULL");
         Assert.NotEmpty(whereRows);

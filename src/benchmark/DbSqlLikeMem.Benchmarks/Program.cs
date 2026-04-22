@@ -100,7 +100,7 @@ public sealed record BenchmarkRunOptions(
 /// EN: Builds the BenchmarkDotNet configuration used by the benchmark entry point.
 /// PT: Monta a configuracao do BenchmarkDotNet usada pelo ponto de entrada do benchmark.
 /// </summary>
-public class BenchmarkConfig : ManualConfig
+internal class BenchmarkConfig : ManualConfig
 {
     /// <summary>
     /// EN: Creates a BenchmarkDotNet configuration for the selected benchmark mode.

@@ -475,7 +475,7 @@ internal static class DbUpdateStrategy
         if (operand is string)
             return operand;
 
-        return System.Text.Json.JsonSerializer.Serialize(operand);
+        return JsonSerializer.Serialize(operand);
     }
 
     private static bool TryResolveTemporalSetValue(string exprRaw, QueryExecutionContext context, out object? value)

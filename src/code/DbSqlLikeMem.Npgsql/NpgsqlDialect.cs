@@ -1,3 +1,6 @@
+using DbSqlLikeMem.Models;
+using DbSqlLikeMem;
+
 namespace DbSqlLikeMem.Npgsql;
 
 internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
@@ -33,6 +36,14 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     {
         NpgsqlScalarFunctionRegistry.Register(this, version);
         SqlSharedWindowFunctionRegistry.Register(this);
+        var jsonEachFunction = DbFunctionDef.CreateTable(
+            "json_each",
+            signatures: new DbFunctionSignature([], 1, 1)) with
+        {
+            TableExecutor = static (executor, tableSource, ctes, outerRow)
+                => executor.ExecuteJsonEachTableFunction(tableSource, ctes, outerRow)
+        };
+        Functions.Add(jsonEachFunction);
     }
 
 

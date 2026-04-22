@@ -424,15 +424,15 @@ public abstract class BenchmarkSuiteBase
     private static readonly object _setupLogSync = new();
     protected void LogSetupIssue(Exception ex)
     {
-        var root = ex.GetBaseException();
+        var root = ex?.GetBaseException();
 
         var message =
-            $"[SETUP-{root.GetType().Name}] {root.ToString()}";
+            $"[SETUP-{root!.GetType().Name}] {root.ToString()}";
 
         Console.WriteLine(message);
 
         var logEntry =
-            $"{DateTime.UtcNow:O} {message}{Environment.NewLine}{root.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+            $"{DateTime.UtcNow:O} {message}{Environment.NewLine}{root?.StackTrace}{Environment.NewLine}{Environment.NewLine}";
 
         lock (_setupLogSync)
         {
@@ -452,10 +452,10 @@ public abstract class BenchmarkSuiteBase
     private static readonly HashSet<string> Errors = [];
     protected virtual void LogBenchmarkIssue(BenchmarkFeatureId feature, Exception ex)
     {
-        var root = ex.GetBaseException();
+        var root = ex?.GetBaseException();
         var message = root is NotSupportedException
-            ? $"[NA-{root.GetType().Name}] {feature}: {root.Message}{Environment.NewLine}{Environment.NewLine}"
-            : $"[NA-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+            ? $"[NA-{root!.GetType().Name}] {feature}: {root.Message}{Environment.NewLine}{Environment.NewLine}"
+            : $"[NA-{root!.GetType().Name}] {feature}: {root.Message} -- {ex?.StackTrace}{Environment.NewLine}{Environment.NewLine}";
 
         Console.WriteLine(message);
 

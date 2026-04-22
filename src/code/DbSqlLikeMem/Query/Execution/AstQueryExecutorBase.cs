@@ -821,7 +821,11 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         var firstRow = rows.Count > 0 ? rows[0] : EvalRow.Empty();
         var aggregateGroup = new EvalGroup(rows);
-        var resultValue = context.EvalAggregate(aggregateCall, aggregateGroup, ctes, Eval);
+        object? resultValue;
+        using (var positionalScope = context.BeginPositionalParameterScope())
+        {
+            resultValue = context.EvalAggregate(aggregateCall, aggregateGroup, ctes, Eval);
+        }
 
         result = new TableResultMock
         {
@@ -849,8 +853,16 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
             query,
             ctes,
             ParseExpr,
-            (expr, row) => Eval(expr, row, group: null, ctes),
-            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture));
+            (expr, row) =>
+            {
+                using var positionalScope = _context.BeginPositionalParameterScope();
+                return Eval(expr, row, group: null, ctes);
+            },
+            (expr, scope) =>
+            {
+                using var positionalScope = _context.BeginPositionalParameterScope();
+                return Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture);
+            });
         result = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(result, query);
         return true;
     }
@@ -911,6 +923,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         {
             foreach (var candidate in rows)
             {
+                using var positionalScope = _context.BeginPositionalParameterScope();
                 if (Eval(query.Where, AttachOuterRow(candidate, outerRow), group: null, ctes).ToBool())
                     count++;
             }
@@ -920,6 +933,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         foreach (var candidate in rows)
         {
+            using var positionalScope = _context.BeginPositionalParameterScope();
             if (Eval(query.Where, candidate, group: null, ctes).ToBool())
                 count++;
         }
@@ -952,6 +966,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         GroupKey BuildGroupKey(EvalRow row)
         {
+            using var positionalScope = _context.BeginPositionalParameterScope();
             var values = new object?[keyExprs.Length];
             for (var i = 0; i < keyExprs.Length; i++)
                 values[i] = Eval(keyExprs[i], row, group: null, ctes);
@@ -1016,7 +1031,14 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         IEnumerable<EvalRow> rows,
         SqlExpr predicate,
         IDictionary<string, Source> ctes)
-        => rows.Where(r => Eval(predicate, r, group: null, ctes).ToBool());
+    {
+        foreach (var row in rows)
+        {
+            using var positionalScope = _context.BeginPositionalParameterScope();
+            if (Eval(predicate, row, group: null, ctes).ToBool())
+                yield return row;
+        }
+    }
 
     private List<MaterializedGroup> ApplyHavingPredicate(
         IReadOnlyList<MaterializedGroup> grouped,
@@ -1030,14 +1052,18 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         var filtered = new List<MaterializedGroup>(grouped.Count);
 
         var firstGroup = grouped[0];
-        var firstEvalCtx = BuildHavingEvaluationContext(firstGroup, aliasExprs, ctes, out var firstEvalGroup);
-        HavingHelper.EnsureHavingIdentifiersAreBound(havingExpr, firstEvalCtx, context.Dialect!);
-        if (Eval(havingExpr, firstEvalCtx, firstEvalGroup, ctes).ToBool())
-            filtered.Add(firstGroup);
+        {
+            using var positionalScope = _context.BeginPositionalParameterScope();
+            var firstEvalCtx = BuildHavingEvaluationContext(firstGroup, aliasExprs, ctes, out var firstEvalGroup);
+            HavingHelper.EnsureHavingIdentifiersAreBound(havingExpr, firstEvalCtx, context.Dialect!);
+            if (Eval(havingExpr, firstEvalCtx, firstEvalGroup, ctes).ToBool())
+                filtered.Add(firstGroup);
+        }
 
         for (var i = 1; i < grouped.Count; i++)
         {
             var group = grouped[i];
+            using var positionalScope = _context.BeginPositionalParameterScope();
             var evalCtx = BuildHavingEvaluationContext(group, aliasExprs, ctes, out var evalGroup);
             if (Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool())
                 filtered.Add(group);
@@ -1220,6 +1246,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         foreach (var r in rows)
         {
+            using var positionalScope = _context.BeginPositionalParameterScope();
             var outRow = new Dictionary<int, object?>(projectedColumnCount);
             for (int i = 0; i < projectedColumnCount; i++)
                 outRow[i] = selectPlan.Evaluators[i](r, null);
@@ -1272,6 +1299,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
 
         foreach (var g in groupsList)
         {
+            using var positionalScope = _context.BeginPositionalParameterScope();
             var eg = new EvalGroup(g.Rows);
             var outRow = new Dictionary<int, object?>(groupedColumnCount);
 
@@ -1444,7 +1472,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
         IDictionary<string, Source> ctes)
     {
         var topLevelEval = _evalDepth++ == 0;
-        if (topLevelEval)
+        if (topLevelEval && !_context.HasPositionalParameterScope)
             _context.ResetPositionalParameterCursor();
 
         try

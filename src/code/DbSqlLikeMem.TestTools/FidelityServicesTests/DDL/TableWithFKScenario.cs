@@ -17,7 +17,7 @@ public class TableWithFKScenario(
     public async  Task CreateScenarioAsync()
     {
         await  Repo.ExecuteNonQueryAsync(Repo.Dialect.CreateUsersTable(Context));
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.CreateOrdersTable(Context));
+        await Repo.ExecuteNonQueryStatementsAsync(Repo.Dialect.CreateOrdersTable(Context));
     }
 
     /// <summary>

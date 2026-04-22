@@ -389,7 +389,7 @@ public partial class QueryServiceTest
         GC.KeepAlive(bobCount);
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Ordered", "TotalCount", "DistinctCount", "BobCount"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Ordered", "TotalCount", "DistinctCount", "BobCount"]),
             Rows =
             [
                 new QueryResultRowSnapshot
@@ -438,7 +438,7 @@ ORDER BY NameGroup
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"],
+            ColumnNames = NormalizeSnapshotColumnNames(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"]),
             Rows = rows,
         };
     }
@@ -486,7 +486,7 @@ ORDER BY {initialExpr}
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["NameInitial", "TotalCount", "DistinctCount", "AliceCount", "BobCount", "FirstName", "LastName", "HasAtLeastTwo"],
+            ColumnNames = NormalizeSnapshotColumnNames(["NameInitial", "TotalCount", "DistinctCount", "AliceCount", "BobCount", "FirstName", "LastName", "HasAtLeastTwo"]),
             Rows = rows,
         };
     }
@@ -524,7 +524,7 @@ ORDER BY Name
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name", "TotalCount"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name", "TotalCount"]),
             Rows = rows,
         };
     }
@@ -574,7 +574,7 @@ ORDER BY 1
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["NameInitial", "TotalCount"],
+            ColumnNames = NormalizeSnapshotColumnNames(["NameInitial", "TotalCount"]),
             Rows = rows,
         };
     }
@@ -615,7 +615,7 @@ ORDER BY 2 DESC
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name", "Id"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name", "Id"]),
             Rows = rows,
         };
     }
@@ -656,7 +656,7 @@ ORDER BY 1
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name"]),
             Rows = rows,
         };
     }
@@ -694,7 +694,7 @@ ORDER BY 1
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["UPPER(Name)"],
+            ColumnNames = NormalizeSnapshotColumnNames(["UPPER(Name)"]),
             Rows = rows,
         };
     }
@@ -770,7 +770,7 @@ ORDER BY Name
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name"]),
             Rows = rows,
         };
     }
@@ -1492,7 +1492,7 @@ ORDER BY Name
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name"]),
             Rows = rows,
         };
     }
@@ -1528,7 +1528,7 @@ ORDER BY Name DESC
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name"]),
             Rows = rows,
         };
     }
@@ -1568,7 +1568,7 @@ ORDER BY rn
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name"]),
             Rows = rows,
         };
     }
@@ -1596,7 +1596,7 @@ ORDER BY rn
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name"]),
             Rows = rows,
         };
     }
@@ -1621,6 +1621,34 @@ ORDER BY rn
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalNowOrderBy(Context));
         GC.KeepAlive(value);
         return value;
+    }
+
+    private string[] NormalizeSnapshotColumnNames(string[] columnNames)
+    {
+        if (Repo.Dialect.Provider == ProviderId.Npgsql)
+        {
+            var normalized = new string[columnNames.Length];
+            for (var i = 0; i < columnNames.Length; i++)
+            {
+                normalized[i] = columnNames[i] switch
+                {
+                    "Name" => "name",
+                    "Id" => "id",
+                    _ => columnNames[i]
+                };
+            }
+
+            return normalized;
+        }
+
+        if (Repo.Dialect.Provider is not ProviderId.Oracle and not ProviderId.Db2)
+            return columnNames;
+
+        var normalized2 = new string[columnNames.Length];
+        for (var i = 0; i < columnNames.Length; i++)
+            normalized2[i] = columnNames[i].ToUpperInvariant();
+
+        return normalized2;
     }
 
     private static void ValidateStringAggregateGroupCaseRow(

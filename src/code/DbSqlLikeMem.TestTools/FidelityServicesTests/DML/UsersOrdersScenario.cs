@@ -38,7 +38,7 @@ public sealed class UsersOrdersScenario(
             : d.TemporalCurrentTimestampExpression();
 
         await Repo.ExecuteNonQueryAsync(d.CreateUsersTable(Context));
-        await Repo.ExecuteNonQueryAsync(d.CreateOrdersTable(Context));
+        await Repo.ExecuteNonQueryStatementsAsync(d.CreateOrdersTable(Context));
 
         foreach (var (id, name) in usersSeed)
         {

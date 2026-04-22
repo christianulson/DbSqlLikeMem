@@ -13,7 +13,7 @@ public class TemporaryTableServiceOpsTest(
     /// EN: Creates a temporary table from the source users table and returns the projected row identifiers.
     /// PT: Cria uma tabela temporaria a partir da tabela fonte de usuarios e retorna os identificadores projetados das linhas.
     /// </summary>
-    public async Task<object?> RunCreateTemporaryTableAsSelectThenSelect(params object[] pars)
+    public async Task<object?> RunCreateTemporaryTableAsSelectThenSelectAsync(params object[] pars)
     {
         var isMockConnection = Repo.Cnn is DbConnectionMockBase;
         var tempTable = BuildTemporaryTableName(Context.UId, isMockConnection);

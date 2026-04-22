@@ -180,9 +180,18 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
                 return true;
             }
 
+            if (IsDb2Provider(context)
+                && TryGetNumericScale(fn.Args[0], out var scale)
+                && scale > 0
+                && AstQueryExecutorBase.TryConvertNumericToDecimal(value, out var decimalValue))
+            {
+                result = decimalValue.ToString($"F{scale}", CultureInfo.InvariantCulture);
+                return true;
+            }
+
             result = IsDb2Provider(context)
                 ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty
-                : value!.ToString();
+                : AstQueryFormatFunctionHelper.FormatOracleNumber(value!);
             return true;
         }
 
@@ -192,6 +201,149 @@ internal static class AstQueryOracleDb2ConversionFunctionEvaluator
 
     private static bool IsDb2Provider(QueryExecutionContext context)
         => string.Equals(context.Connection.ProviderExecutionDialect.Name, "db2", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryGetNumericScale(SqlExpr expression, out int scale)
+    {
+        switch (expression)
+        {
+            case LiteralExpr { Value: decimal decimalValue }:
+                scale = GetDecimalScale(decimalValue);
+                return true;
+
+            case FunctionCallExpr functionCall:
+                return TryGetNumericScaleFromCall(functionCall.Name, functionCall.Args, out scale);
+
+            case CallExpr call:
+                return TryGetNumericScaleFromCall(call.Name, call.Args, out scale);
+
+            case UnaryExpr unary:
+                return TryGetNumericScale(unary.Expr, out scale);
+
+            case BinaryExpr binary:
+                var hasLeftScale = TryGetNumericScale(binary.Left, out var leftScale);
+                var hasRightScale = TryGetNumericScale(binary.Right, out var rightScale);
+                if (hasLeftScale || hasRightScale)
+                {
+                    scale = Math.Max(leftScale, rightScale);
+                    return true;
+                }
+
+                break;
+        }
+
+        scale = 0;
+        return false;
+    }
+
+    private static bool TryGetNumericScaleFromCall(string name, IReadOnlyList<SqlExpr> args, out int scale)
+    {
+        if (string.Equals(name, "ROUND", StringComparison.OrdinalIgnoreCase))
+        {
+            if (args.Count > 1 && TryReadIntegerLiteral(args[1], out scale))
+                return true;
+        }
+
+        if (string.Equals(name, "CAST", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "CONVERT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (TryGetDecimalScaleFromTypeExpression(args, out scale))
+                return true;
+        }
+
+        if (string.Equals(name, "COALESCE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "NVL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "NVL2", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "IFNULL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "ISNULL", StringComparison.OrdinalIgnoreCase))
+        {
+            var hasScale = false;
+            var maxScale = 0;
+            for (var i = 0; i < args.Count; i++)
+            {
+                if (!TryGetNumericScale(args[i], out var argScale))
+                    continue;
+
+                hasScale = true;
+                if (argScale > maxScale)
+                    maxScale = argScale;
+            }
+
+            if (hasScale)
+            {
+                scale = maxScale;
+                return true;
+            }
+        }
+
+        scale = 0;
+        return false;
+    }
+
+    private static bool TryGetDecimalScaleFromTypeExpression(IReadOnlyList<SqlExpr> args, out int scale)
+    {
+        scale = 0;
+        if (args.Count < 2)
+            return false;
+
+        if (args[1] is not RawSqlExpr rawType)
+            return false;
+
+        var typeSql = rawType.Sql;
+        if (!typeSql.Contains("(", StringComparison.Ordinal))
+            return false;
+
+        var commaIndex = typeSql.IndexOf(',');
+        var closeIndex = typeSql.IndexOf(')', commaIndex >= 0 ? commaIndex : 0);
+        if (commaIndex < 0 || closeIndex < 0 || commaIndex + 1 >= closeIndex)
+            return false;
+
+        var scaleText = typeSql[(commaIndex + 1)..closeIndex].Trim();
+        return int.TryParse(scaleText, NumberStyles.Integer, CultureInfo.InvariantCulture, out scale);
+    }
+
+    private static bool TryReadIntegerLiteral(SqlExpr expression, out int value)
+    {
+        value = 0;
+
+        if (expression is LiteralExpr { Value: int intValue })
+        {
+            value = intValue;
+            return true;
+        }
+
+        if (expression is LiteralExpr { Value: long longValue } && longValue is >= int.MinValue and <= int.MaxValue)
+        {
+            value = (int)longValue;
+            return true;
+        }
+
+        if (expression is LiteralExpr { Value: decimal decimalValue })
+        {
+            value = (int)decimalValue;
+            return true;
+        }
+
+        if (expression is LiteralExpr { Value: double doubleValue })
+        {
+            value = (int)doubleValue;
+            return true;
+        }
+
+        if (expression is LiteralExpr { Value: string text }
+            && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            value = parsed;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int GetDecimalScale(decimal value)
+    {
+        var bits = decimal.GetBits(value);
+        return (bits[3] >> 16) & 0x7F;
+    }
 
     private static bool TryEvalToDateFunction(
         this QueryExecutionContext context,

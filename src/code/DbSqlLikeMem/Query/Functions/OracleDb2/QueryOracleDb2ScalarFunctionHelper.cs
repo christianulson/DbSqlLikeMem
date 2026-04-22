@@ -25,7 +25,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
             context,
             fn,
             evalArg,
-            AstQueryExecutorBase.TryCoerceDateTime,
+            TryCoerceDateTime,
             out result);
 
     public static bool TryEvalCoreFunctions(
@@ -385,12 +385,12 @@ internal static class QueryOracleDb2ScalarFunctionHelper
         }
         catch
         {
-            var coerceDateTime = tryCoerceDateTime ?? AstQueryExecutorBase.TryCoerceDateTime;
+            var coerceDateTime = tryCoerceDateTime ?? TryCoerceDateTime;
             if (coerceDateTime(value, out var dateTime))
             {
                 if (fn.Args.Count < 2)
                 {
-                    result = AstQueryExecutorBase.TruncateDateTime(dateTime, TemporalUnit.Day);
+                    result = TruncateDateTime(dateTime, TemporalUnit.Day);
                     return true;
                 }
 
@@ -401,7 +401,7 @@ internal static class QueryOracleDb2ScalarFunctionHelper
                     return true;
                 }
 
-                result = AstQueryExecutorBase.TruncateDateTime(dateTime, AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText!));
+                result = TruncateDateTime(dateTime, AstQueryExecutionRuntimeHelper.ResolveTemporalUnit(unitText!));
                 return true;
             }
 

@@ -7,7 +7,7 @@ internal static class AstQueryFirebirdIdentifierEvaluator
         IdentifierExpr identifier,
         DbConnectionMockBase connection,
         out object? result)
-        => AstQueryFirebirdIdentifierEvaluator.TryResolveIdentifier(context, identifier, connection, out result);
+        => TryResolveIdentifier(context, identifier, connection, out result);
 
     internal static bool TryResolveIdentifier(
         this QueryExecutionContext context,

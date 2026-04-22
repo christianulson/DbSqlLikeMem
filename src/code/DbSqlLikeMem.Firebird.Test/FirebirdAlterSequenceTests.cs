@@ -45,7 +45,7 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
         {
             alter.CommandText = "ALTER SEQUENCE seq_users RESTART WITH 10";
             var affected = alter.ExecuteNonQuery();
-            Assert.Equal(0, affected);
+            Assert.Equal(-1, affected);
         }
 
         using (var insert = new FirebirdCommandMock(connection))
@@ -117,13 +117,13 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
         using (var create = new FirebirdCommandMock(connection))
         {
             create.CommandText = "CREATE GENERATOR seq_alias";
-            Assert.Equal(0, create.ExecuteNonQuery());
+            Assert.Equal(-1, create.ExecuteNonQuery());
         }
 
         using (var alter = new FirebirdCommandMock(connection))
         {
             alter.CommandText = "ALTER GENERATOR seq_alias RESTART WITH 7";
-            Assert.Equal(0, alter.ExecuteNonQuery());
+            Assert.Equal(-1, alter.ExecuteNonQuery());
         }
 
         using (var insert = new FirebirdCommandMock(connection))
@@ -135,7 +135,7 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
         using (var drop = new FirebirdCommandMock(connection))
         {
             drop.CommandText = "DROP GENERATOR seq_alias";
-            Assert.Equal(0, drop.ExecuteNonQuery());
+            Assert.Equal(-1, drop.ExecuteNonQuery());
         }
 
         Assert.False(db.TryGetSequence("seq_alias", out _));
@@ -152,13 +152,13 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
         using (var create = new FirebirdCommandMock(connection))
         {
             create.CommandText = "CREATE GENERATOR seq_set";
-            Assert.Equal(0, create.ExecuteNonQuery());
+            Assert.Equal(-1, create.ExecuteNonQuery());
         }
 
         using (var set = new FirebirdCommandMock(connection))
         {
             set.CommandText = "SET GENERATOR seq_set TO 4";
-            Assert.Equal(0, set.ExecuteNonQuery());
+            Assert.Equal(-1, set.ExecuteNonQuery());
         }
 
         using (var insert = new FirebirdCommandMock(connection))

@@ -15,5 +15,5 @@ public class CreateTableWithFKServiceTest(
     /// PT: Cria a tabela de pedidos que referencia a tabela de usuarios.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    => await Repo.ExecuteNonQueryAsync(Repo.Dialect.CreateOrdersTable(Context));
+        => await Repo.ExecuteNonQueryStatementsAsync(Repo.Dialect.CreateOrdersTable(Context));
 }

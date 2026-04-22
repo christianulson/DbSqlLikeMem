@@ -26,6 +26,7 @@ internal static class SqlCreateTemporaryTableHelper
         "CHARACTER",
         "LONG",
         "VAR",
+        "SUB_TYPE",
     };
 
     private static readonly HashSet<string> ColumnTypeStarterTokens = new(StringComparer.OrdinalIgnoreCase)

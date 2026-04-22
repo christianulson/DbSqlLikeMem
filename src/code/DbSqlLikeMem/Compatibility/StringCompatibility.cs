@@ -41,6 +41,21 @@ internal static class StringCompatibility
         return value.Slice(start, end - start + 1);
     }
 
+    internal static IEnumerable<string> SplitAndTrim(
+        string value,
+        char separator)
+    {
+        if (value is null)
+            throw new ArgumentNullException(nameof(value));
+
+        foreach (var part in value.Split(separator))
+        {
+            var trimmed = part.Trim();
+            if (!string.IsNullOrWhiteSpace(trimmed))
+                yield return trimmed;
+        }
+    }
+
     private static bool Contains(
         char[] values,
         char candidate)

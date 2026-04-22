@@ -837,6 +837,9 @@ internal sealed class SqlQueryParser
         if (_ctx.IsWord(SqlConst.VIEW))
             return _ctx.ParseCreateView(orReplace);
 
+        if (_ctx.IsWord(SqlConst.SCHEMA))
+            return _ctx.ParseCreateSchema(orReplace);
+
         var uniqueIndex = false;
         if (_ctx.IsWord(SqlConst.UNIQUE))
         {
@@ -1061,8 +1064,85 @@ internal sealed class SqlQueryParser
         DbMock db,
         ISqlDialect dialect)
     {
-        var q = Parse(sql, db, dialect);
-        if (q is SqlSelectQuery sq) return new SubqueryExpr(sql, sq);
+        var normalizedSql = NormalizeWrappedSubquerySql(sql, dialect);
+        var q = Parse(normalizedSql, db, dialect);
+        if (q is SqlSelectQuery sq) return new SubqueryExpr(sql, sq with { RawSql = sql });
         throw new InvalidOperationException("Subquery deve ser SELECT " + ctx + " | " + t.Text);
+    }
+
+    internal static string NormalizeWrappedSubquerySql(string sql, ISqlDialect dialect)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return string.Empty;
+
+        var normalized = sql.Trim();
+        while (TryTrimOuterParentheses(normalized, dialect, out var innerSql))
+            normalized = innerSql;
+
+        return normalized;
+    }
+
+    private static bool TryTrimOuterParentheses(
+        string sql,
+        ISqlDialect dialect,
+        out string innerSql)
+    {
+        innerSql = sql;
+
+        if (string.IsNullOrWhiteSpace(sql))
+            return false;
+
+        var tokens = new SqlTokenizer(sql, dialect).Tokenize();
+        var meaningfulTokens = new List<SqlToken>(tokens.Count);
+        foreach (var token in tokens)
+        {
+            if (token.Kind != SqlTokenKind.EndOfFile)
+                meaningfulTokens.Add(token);
+        }
+
+        if (meaningfulTokens.Count < 2
+            || !IsSymbol(meaningfulTokens[0], "(")
+            || !IsSymbol(meaningfulTokens[^1], ")"))
+            return false;
+
+        var depth = 0;
+        for (var i = 0; i < meaningfulTokens.Count; i++)
+        {
+            var token = meaningfulTokens[i];
+            if (IsSymbol(token, "("))
+            {
+                depth++;
+                continue;
+            }
+
+            if (!IsSymbol(token, ")"))
+                continue;
+
+            depth--;
+            if (depth < 0)
+                return false;
+
+            if (depth == 0 && i < meaningfulTokens.Count - 1)
+                return false;
+        }
+
+        if (depth != 0)
+            return false;
+
+        if (meaningfulTokens.Count == 2)
+        {
+            innerSql = string.Empty;
+            return true;
+        }
+
+        var start = meaningfulTokens[1].Position;
+        var endToken = meaningfulTokens[^2];
+        var end = endToken.Position + endToken.Text.Length;
+
+        if (start < 0 || end < start || end > sql.Length)
+            return false;
+
+        innerSql = sql[start..end].Trim();
+        return true;
     }
 }

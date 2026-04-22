@@ -100,7 +100,7 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
                 };
             }
 
-            result = version.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            result = version.ToString(CultureInfo.InvariantCulture);
             return true;
         }
 

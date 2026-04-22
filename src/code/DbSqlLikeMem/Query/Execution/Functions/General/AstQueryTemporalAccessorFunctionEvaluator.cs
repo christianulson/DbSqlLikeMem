@@ -80,7 +80,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
             throw new InvalidOperationException("DAYS() espera 1 argumento.");
 
         var baseValue = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(baseValue) || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
         {
             result = null;
             return true;
@@ -108,7 +108,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
 
         var name = fn.Name.ToUpperInvariant();
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
             return true;
@@ -146,13 +146,13 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
 
         var unit = getTemporalUnit(fn.Args[0], row, group, ctes);
         var value = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
         }
 
-        if (AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        if (TryCoerceDateTime(value, out var dateTime))
         {
             result = unit switch
             {
@@ -172,7 +172,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
             return true;
         }
 
-        if (AstQueryExecutorBase.TryCoerceTimeSpan(value, out var timeSpan))
+        if (TryCoerceTimeSpan(value, out var timeSpan))
         {
             result = unit switch
             {
@@ -187,7 +187,7 @@ internal static class AstQueryTemporalAccessorFunctionEvaluator
             return true;
         }
 
-        if (AstQueryExecutorBase.TryConvertNumericToDouble(value, out var numeric))
+        if (TryConvertNumericToDouble(value, out var numeric))
         {
             result = unit switch
             {

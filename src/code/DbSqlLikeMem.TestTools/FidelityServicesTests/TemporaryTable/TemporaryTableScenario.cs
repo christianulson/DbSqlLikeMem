@@ -16,8 +16,15 @@ public sealed class TemporaryTableScenario(
     public override async Task CreateScenarioAsync()
     {
         await base.CreateScenarioAsync();
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertTemporaryUsersTable(Context, 1, "John", 10));
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertTemporaryUsersTable(Context, 2, "Bob", 10));
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertTemporaryUsersTable(Context, 3, "Jane", 20));
+        var tempUsersTable = Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is not DbConnectionMockBase
+            ? $"SESSION.{Repo.Dialect.TemporaryUsersTableName(Context)}"
+            : Repo.Dialect.TemporaryUsersTableName(Context);
+
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryUsersTableSql(tempUsersTable, 1, "John", 10));
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryUsersTableSql(tempUsersTable, 2, "Bob", 10));
+        await Repo.ExecuteNonQueryAsync(InsertTemporaryUsersTableSql(tempUsersTable, 3, "Jane", 20));
     }
+
+    private static string InsertTemporaryUsersTableSql(string tableName, int id, string name, int tenantId)
+        => $"INSERT INTO {tableName} (Id, Name, TenantId) VALUES ({id}, '{name}', {tenantId})";
 }

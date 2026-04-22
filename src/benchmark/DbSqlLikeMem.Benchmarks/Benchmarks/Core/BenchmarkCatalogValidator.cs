@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 /// EN: Validates the benchmark catalog against the public benchmark suite surface.
 /// PT: Valida o catalogo de benchmarks contra a superficie publica da suite de benchmark.
 /// </summary>
-public static class BenchmarkCatalogValidator
+internal static class BenchmarkCatalogValidator
 {
     /// <summary>
     /// EN: Validates benchmark feature and provider catalogs and the benchmark suite method mapping.

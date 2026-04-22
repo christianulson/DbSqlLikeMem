@@ -131,7 +131,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             }
 
             var evaluated = _eval(countArg, attached, null, ctes);
-            if (!AstQueryExecutorBase.IsNullish(evaluated))
+            if (!IsNullish(evaluated))
                 count++;
         }
 
@@ -157,7 +157,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             }
 
             var evaluated = _eval(countArg, candidate, null, ctes);
-            if (!AstQueryExecutorBase.IsNullish(evaluated))
+            if (!IsNullish(evaluated))
                 count++;
         }
 

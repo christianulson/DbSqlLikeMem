@@ -16,8 +16,8 @@ public sealed class QueryExecutorExtrasTests(
 
     /// <inheritdoc />
     protected override string PaginationBatchSql => """
-SELECT t2.* FROM t t2 ORDER BY id DESC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY;
-SELECT * FROM t ORDER BY iddesc ASC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY;
+SELECT id FROM t ORDER BY id DESC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY;
+SELECT id FROM t ORDER BY iddesc ASC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY;
 """;
 
     /// <inheritdoc />

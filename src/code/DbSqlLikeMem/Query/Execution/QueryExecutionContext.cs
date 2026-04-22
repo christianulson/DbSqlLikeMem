@@ -110,6 +110,7 @@ internal sealed class QueryExecutionContext
     private readonly bool _sqliteDecimalRoundTrip;
     private readonly Dictionary<string, object?> _namedParameterValues;
     private readonly object?[] _positionalParameterValues;
+    private int _positionalParameterScopeDepth;
 
     /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
@@ -199,6 +200,25 @@ internal sealed class QueryExecutionContext
     /// </summary>
     internal void ResetPositionalParameterCursor()
         => _positionalParameterCursor = 0;
+
+    /// <summary>
+    /// EN: Begins a positional-parameter evaluation scope and resets the cursor when entering the outermost scope.
+    /// PT: Inicia um escopo de avaliacao de parametros posicionais e reinicia o cursor ao entrar no escopo mais externo.
+    /// </summary>
+    /// <returns>EN: A disposable scope that restores the nesting depth on exit. PT: Um escopo descartavel que restaura a profundidade de aninhamento ao sair.</returns>
+    internal IDisposable BeginPositionalParameterScope()
+    {
+        if (_positionalParameterScopeDepth++ == 0)
+            ResetPositionalParameterCursor();
+
+        return new PositionalParameterScope(this);
+    }
+
+    /// <summary>
+    /// EN: Indicates whether a positional-parameter evaluation scope is active.
+    /// PT: Indica se um escopo de avaliacao de parametros posicionais esta ativo.
+    /// </summary>
+    internal bool HasPositionalParameterScope => _positionalParameterScopeDepth > 0;
 
     /// <summary>
     /// EN: Creates a shallow copy that preserves the current positional-parameter cursor.
@@ -429,4 +449,19 @@ internal sealed class QueryExecutionContext
 
     public NotSupportedException NotSupported(string feature)
         => Dialect.NotSupported(feature);
+
+    private sealed class PositionalParameterScope(QueryExecutionContext context) : IDisposable
+    {
+        private bool disposed;
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+
+            disposed = true;
+            if (context._positionalParameterScopeDepth > 0)
+                context._positionalParameterScopeDepth--;
+        }
+    }
 }

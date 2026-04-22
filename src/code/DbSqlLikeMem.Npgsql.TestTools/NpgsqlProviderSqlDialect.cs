@@ -238,6 +238,10 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     }
 
     /// <inheritdoc />
+    public override string DecimalTextExpression(string expression, int scale = 2)
+        => $"CAST({expression} AS TEXT)";
+
+    /// <inheritdoc />
     public override string TemporalDateAdd() =>
         "SELECT (CURRENT_TIMESTAMP + INTERVAL '1 day')";
 
@@ -266,7 +270,7 @@ SELECT
 FROM {context.TbUsersFullName} u
 JOIN LATERAL (
     SELECT o.Note
-    FROM {context.TbOrders} o
+    FROM {context.TbOrdersFullName} o
     WHERE o.{context.TbUsers}Id = u.Id
     ORDER BY o.Id DESC
     LIMIT 1
@@ -284,7 +288,7 @@ SELECT
 FROM {context.TbUsersFullName} u
 LEFT JOIN LATERAL (
     SELECT o.Note
-    FROM {context.TbOrders} o
+    FROM {context.TbOrdersFullName} o
     WHERE o.{context.TbUsers}Id = u.Id
     ORDER BY o.Id DESC
     LIMIT 1

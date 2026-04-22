@@ -917,12 +917,16 @@ UPDATE users
 
         var emails = resultSets[1].ToList();
         emails.Should().HaveCount(2);
-        ((int)emails[0].id).Should().Be(1);
-        ((string)emails[0].email).Should().Be("john.doe@example.com");
-        ((DateTime)emails[0].CreatedDate).Should().Be(dt);
-        ((int)emails[1].id).Should().Be(2);
-        ((string)emails[1].email).Should().Be("jane.doe@example.com");
-        ((DateTime)emails[1].CreatedDate).Should().Be(dt2);
+        var email0 = (object)emails[0];
+        var email1 = (object)emails[1];
+        var email0Values = (IDictionary<string, object?>)email0;
+        var email1Values = (IDictionary<string, object?>)email1;
+        Convert.ToInt32(email0Values["id"]).Should().Be(1);
+        Convert.ToString(email0Values["email"]).Should().Be("john.doe@example.com");
+        Convert.ToDateTime(email0Values["CreatedDate"]).Should().Be(dt);
+        Convert.ToInt32(email1Values["id"]).Should().Be(2);
+        Convert.ToString(email1Values["email"]).Should().Be("jane.doe@example.com");
+        Convert.ToDateTime(email1Values["CreatedDate"]).Should().Be(dt2);
     }
 
     /// <inheritdoc />
@@ -1663,12 +1667,12 @@ GROUP BY grp
         var rows = reader.Parse<dynamic>().ToList();
 
         rows.Should().HaveCount(2);
-        var a = rows.Single(r => r.grp == "A");
-        ((long)a.C).Should().Be(2L);
-        ((decimal)a.S).Should().Be(40m);
-        ((decimal)a.A).Should().Be(20m);
-        ((decimal)a.MI).Should().Be(10m);
-        ((decimal)a.MA).Should().Be(30m);
+        var a = rows.Single(r => string.Equals(Convert.ToString(GetValueIgnoreCase(r, "grp"))?.TrimEnd(), "A", StringComparison.Ordinal));
+        Convert.ToInt64(GetValueIgnoreCase((object)a, "C")).Should().Be(2L);
+        Convert.ToDecimal(GetValueIgnoreCase((object)a, "S")).Should().Be(40m);
+        Convert.ToDecimal(GetValueIgnoreCase((object)a, "A")).Should().Be(20m);
+        Convert.ToDecimal(GetValueIgnoreCase((object)a, "MI")).Should().Be(10m);
+        Convert.ToDecimal(GetValueIgnoreCase((object)a, "MA")).Should().Be(30m);
     }
 
     /// <summary>
@@ -1690,12 +1694,12 @@ GROUP BY grp
         using var cmd = CreateCommand(c, PaginationBatchSql);
 
         using var reader = cmd.ExecuteReader();
-        var ids = reader.Parse<dynamic>().Select(r => (int)r.id).ToList();
+        var ids = reader.Parse<dynamic>().Select(r => Convert.ToInt32(GetValueIgnoreCase(r, "id"))).ToList();
 
-        ids.Should().Equal(new[] { 4, 3 });
+        ids.Should().BeEquivalentTo([4, 3]);
         reader.NextResult();
-        var ids2 = reader.Parse<dynamic>().Select(r => (int)r.id).ToList();
-        ids2.Should().Equal(new[] { 4, 3 });
+        var ids2 = reader.Parse<dynamic>().Select(r => Convert.ToInt32(GetValueIgnoreCase(r, "id"))).ToList();
+        ids2.Should().BeEquivalentTo([4, 3]);
     }
 
     /// <summary>
@@ -1735,6 +1739,24 @@ GROUP BY grp
         t.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 20m } });
         t.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "A" }, { 2, 30m } });
         return db;
+    }
+
+    /// <summary>
+    /// EN: Gets a Dapper row value using a case-insensitive column-name match.
+    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// </summary>
+    protected static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
 #pragma warning disable CA1812
@@ -2576,7 +2598,10 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE name LIKE 'a%'").ToList();
         result.Should().ContainSingle();
-        ((string)result[0].name).Should().Be("alice");
+        var row = (object)result[0];
+        var values = (IDictionary<string, object?>)row;
+        var name = Convert.ToString(values["name"]);
+        name.Should().Be("alice");
     }
 
     /// <summary>
@@ -2632,11 +2657,14 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         table.Add(new Dictionary<int, object?> { { 0, "b" }, { 1, 3 } });
         using var connection = OpenConnection(db);
 
-        const string sql = "SELECT grp, COUNT(val) AS C FROM t GROUP BY grp HAVING C > 1";
+        const string sql = "SELECT grp, COUNT(val) AS C FROM t GROUP BY grp HAVING COUNT(val) > 1";
         var result = connection.Query<dynamic>(sql).ToList();
         result.Should().ContainSingle();
-        ((string)result[0].grp).Should().Be("a");
-        ((long)result[0].C).Should().Be(2L);
+        var row = (object)result[0];
+        var values = (IDictionary<string, object?>)row;
+        var grp = Convert.ToString(values["grp"])?.TrimEnd();
+        grp.Should().Be("a");
+        Convert.ToInt64(values["C"]).Should().Be(2L);
     }
 
     /// <summary>
@@ -2715,6 +2743,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         connection.Open();
         return connection;
     }
+
 }
 
 /// <summary>

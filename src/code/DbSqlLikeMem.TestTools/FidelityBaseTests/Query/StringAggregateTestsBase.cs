@@ -139,7 +139,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 return await s.RunStringAggregateGroupCaseMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregateGroupCaseMatrixTest)), Snapshot(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"],
+        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregateGroupCaseMatrixTest)), Snapshot(NormalizeSnapshotColumnNames(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"]),
             Row("B", 2m, 1m, "Bob", "Bob"),
             Row("Other", 3m, 3m, "Alice", "Delta")));
     }
@@ -172,7 +172,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 return await s.RunStringAggregateGroupCaseMatrixAsync(a);
             });
 
-        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregationGroupCaseMatrixTest)), Snapshot(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"],
+        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregationGroupCaseMatrixTest)), Snapshot(NormalizeSnapshotColumnNames(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"]),
             Row("B", 2m, 1m, "Bob", "Bob"),
             Row("Other", 3m, 3m, "Alice", "Delta")));
     }
@@ -207,8 +207,15 @@ public abstract class StringAggregateTestsBase<T, T2>(
         actual.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
     }
 
-    private static QueryResultSnapshot ExpectedStringAggregateSummarySnapshot()
-        => Snapshot(["Ordered", "TotalCount", "DistinctCount", "BobCount"],
+    private string[] NormalizeSnapshotColumnNames(string[] columnNames)
+    {
+        return dialect.Provider is ProviderId.Oracle or ProviderId.Db2
+            ? Array.ConvertAll(columnNames, static name => name.ToUpperInvariant())
+            : columnNames;
+    }
+
+    private QueryResultSnapshot ExpectedStringAggregateSummarySnapshot()
+        => Snapshot(NormalizeSnapshotColumnNames(["Ordered", "TotalCount", "DistinctCount", "BobCount"]),
             Row("Alice,Bob,Bob,Charlie,Delta", 5, 4, 2));
 
     private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(

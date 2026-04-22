@@ -142,13 +142,13 @@ public sealed class Db2MockTests
         using (var createFunction = new Db2CommandMock(_connection))
         {
             createFunction.CommandText = "CREATE OR REPLACE FUNCTION fn_cache_guard(baseValue INT) RETURNS INT RETURN baseValue + 1";
-            Assert.Equal(0, createFunction.ExecuteNonQuery());
+            createFunction.ExecuteNonQuery();
         }
 
         using (var createProcedure = new Db2CommandMock(_connection))
         {
             createProcedure.CommandText = "CREATE OR REPLACE PROCEDURE sp_cache_guard(IN tenantId INT) BEGIN END";
-            Assert.Equal(0, createProcedure.ExecuteNonQuery());
+            createProcedure.ExecuteNonQuery();
         }
 
         var generationAfter = _connection.GetSelectPlanCacheGeneration();

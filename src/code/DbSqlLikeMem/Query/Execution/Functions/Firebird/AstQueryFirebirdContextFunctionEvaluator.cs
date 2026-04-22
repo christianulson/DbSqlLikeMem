@@ -136,13 +136,13 @@ internal static class AstQueryFirebirdContextFunctionEvaluator
 
     private static string GetCurrentProcessId()
     {
-        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        using var process = Process.GetCurrentProcess();
         return process.Id.ToString(CultureInfo.InvariantCulture);
     }
 
     private static string GetCurrentProcessName()
     {
-        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        using var process = Process.GetCurrentProcess();
         return process.ProcessName;
     }
 

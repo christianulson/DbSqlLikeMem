@@ -107,10 +107,10 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
 
         var amountValue = evalArg(1);
         var baseValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(baseValue)
-            || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime)
-            || AstQueryExecutorBase.IsNullish(amountValue)
-            || !AstQueryExecutorBase.TryConvertNumericToDouble(amountValue, out var amount))
+        if (IsNullish(baseValue)
+            || !TryCoerceDateTime(baseValue, out var dateTime)
+            || IsNullish(amountValue)
+            || !TryConvertNumericToDouble(amountValue, out var amount))
         {
             result = null;
             return true;
@@ -149,7 +149,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         foreach (var index in Enumerable.Range(0, fn.Args.Count))
         {
             var value = evalArg(index);
-            if (AstQueryExecutorBase.IsNullish(value))
+            if (IsNullish(value))
             {
                 result = null;
                 return true;
@@ -178,7 +178,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -215,7 +215,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -227,7 +227,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
             return true;
         }
 
-        var scale = fn.Args.Count > 1 && !AstQueryExecutorBase.IsNullish(evalArg(1))
+        var scale = fn.Args.Count > 1 && !IsNullish(evalArg(1))
             ? Convert.ToInt32(evalArg(1), CultureInfo.InvariantCulture)
             : 0;
 
@@ -254,7 +254,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -335,7 +335,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -351,7 +351,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -381,7 +381,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -405,7 +405,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -436,7 +436,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         out object? result)
     {
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;
@@ -631,7 +631,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         }
 
         var firstValue = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(firstValue))
+        if (IsNullish(firstValue))
         {
             result = null;
             return true;
@@ -641,7 +641,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         for (var i = 1; i < fn.Args.Count; i++)
         {
             var value = evalArg(i);
-            if (AstQueryExecutorBase.IsNullish(value))
+            if (IsNullish(value))
             {
                 result = null;
                 return true;
@@ -675,7 +675,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
 
         var value = evalArg(0);
         var shiftValue = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(value) || AstQueryExecutorBase.IsNullish(shiftValue))
+        if (IsNullish(value) || IsNullish(shiftValue))
         {
             result = null;
             return true;
@@ -699,7 +699,7 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         }
 
         var value = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(value))
+        if (IsNullish(value))
         {
             result = null;
             return true;

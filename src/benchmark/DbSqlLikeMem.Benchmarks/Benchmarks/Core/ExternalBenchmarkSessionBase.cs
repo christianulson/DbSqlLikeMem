@@ -97,6 +97,7 @@ public abstract class ExternalBenchmarkSessionBase(
 
         while (DateTime.UtcNow < deadline)
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 using var connection = CreateProviderConnection(connectionString);
@@ -108,6 +109,7 @@ public abstract class ExternalBenchmarkSessionBase(
                 lastError = ex;
                 Thread.Sleep(TimeSpan.FromSeconds(1));
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         throw new TimeoutException(

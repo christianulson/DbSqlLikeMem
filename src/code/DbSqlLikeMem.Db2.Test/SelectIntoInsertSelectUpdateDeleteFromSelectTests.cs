@@ -16,6 +16,12 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Db2.TestTools.Db2ProviderSqlDialect();
 
     /// <summary>
+    /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in Db2.
+    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no Db2.
+    /// </summary>
+    protected override int CreateTableAsSelectExpectedAffectedRows => 2;
+
+    /// <summary>
     /// EN: Creates a new Db2 mock database instance for each test.
     /// PT: Cria uma nova instância de banco simulado de Db2 para cada teste.
     /// </summary>

@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs Oracle benchmark scenarios against the in-memory DbSqlLikeMem Oracle mock provider.
 /// PT-br: Executa cenários de benchmark de Oracle contra o provedor mock em memória DbSqlLikeMem de Oracle.
 /// </summary>
-public sealed class OracleDbSqlLikeMemSession()
+internal sealed class OracleDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new OracleProviderSqlDialect())
 {
     private readonly OracleDbMock Db = new() { ThreadSafe = true };

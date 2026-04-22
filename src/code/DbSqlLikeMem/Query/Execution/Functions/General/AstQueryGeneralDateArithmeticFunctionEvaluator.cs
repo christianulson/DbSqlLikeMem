@@ -48,7 +48,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
             throw new InvalidOperationException("ADDDATE() espera 2 argumentos.");
 
         var baseValue = evalArg(0);
-        if (AstQueryExecutorBase.IsNullish(baseValue) || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        if (IsNullish(baseValue) || !TryCoerceDateTime(baseValue, out var dateTime))
         {
             result = null;
             return true;
@@ -65,7 +65,7 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
             return true;
         }
 
-        if (AstQueryExecutorBase.TryConvertNumericToDouble(addValue, out var dayOffset))
+        if (TryConvertNumericToDouble(addValue, out var dayOffset))
         {
             result = isSubtraction
                 ? dateTime.AddDays(-dayOffset)
@@ -88,21 +88,21 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
         var baseValue = evalArg(0);
         var addValue = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(baseValue) || AstQueryExecutorBase.IsNullish(addValue))
+        if (IsNullish(baseValue) || IsNullish(addValue))
         {
             result = null;
             return true;
         }
 
-        if (AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime)
-            && AstQueryExecutorBase.TryCoerceTimeSpan(addValue, out var addSpan))
+        if (TryCoerceDateTime(baseValue, out var dateTime)
+            && TryCoerceTimeSpan(addValue, out var addSpan))
         {
             result = dateTime.Add(addSpan);
             return true;
         }
 
-        if (AstQueryExecutorBase.TryCoerceTimeSpan(baseValue, out var baseSpan)
-            && AstQueryExecutorBase.TryCoerceTimeSpan(addValue, out var addSpan2))
+        if (TryCoerceTimeSpan(baseValue, out var baseSpan)
+            && TryCoerceTimeSpan(addValue, out var addSpan2))
         {
             result = baseSpan.Add(addSpan2);
             return true;
@@ -123,34 +123,34 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
         var baseValue = evalArg(0);
         var intervalValue = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(baseValue) || AstQueryExecutorBase.IsNullish(intervalValue))
+        if (IsNullish(baseValue) || IsNullish(intervalValue))
         {
             result = null;
             return true;
         }
 
-        if (baseValue is TimeSpan baseTimeSpan && AstQueryExecutorBase.TryCoerceTimeSpan(intervalValue, out var span))
+        if (baseValue is TimeSpan baseTimeSpan && TryCoerceTimeSpan(intervalValue, out var span))
         {
             result = baseTimeSpan.Subtract(span);
             return true;
         }
 
         if (baseValue is string baseText
-            && AstQueryExecutorBase.LooksLikeTimeOnly(baseText)
-            && AstQueryExecutorBase.TryCoerceTimeSpan(baseText, out var baseSpanText)
-            && AstQueryExecutorBase.TryCoerceTimeSpan(intervalValue, out var spanText))
+            && LooksLikeTimeOnly(baseText)
+            && TryCoerceTimeSpan(baseText, out var baseSpanText)
+            && TryCoerceTimeSpan(intervalValue, out var spanText))
         {
             result = baseSpanText.Subtract(spanText);
             return true;
         }
 
-        if (AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime) && AstQueryExecutorBase.TryCoerceTimeSpan(intervalValue, out var spanDate))
+        if (TryCoerceDateTime(baseValue, out var dateTime) && TryCoerceTimeSpan(intervalValue, out var spanDate))
         {
             result = dateTime.Subtract(spanDate);
             return true;
         }
 
-        if (AstQueryExecutorBase.TryCoerceTimeSpan(baseValue, out var baseSpan) && AstQueryExecutorBase.TryCoerceTimeSpan(intervalValue, out var span2))
+        if (TryCoerceTimeSpan(baseValue, out var baseSpan) && TryCoerceTimeSpan(intervalValue, out var span2))
         {
             result = baseSpan.Subtract(span2);
             return true;
@@ -181,24 +181,24 @@ internal static class AstQueryGeneralDateArithmeticFunctionEvaluator
 
         var amountValue = evalArg(1);
         var baseValue = evalArg(2);
-        if (AstQueryExecutorBase.IsNullish(baseValue)
-            || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        if (IsNullish(baseValue)
+            || !TryCoerceDateTime(baseValue, out var dateTime))
         {
             if (!TryResolveTemporalBaseValue(context, fn.Args[2], out baseValue)
-                || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out dateTime))
+                || !TryCoerceDateTime(baseValue, out dateTime))
             {
                 result = null;
                 return true;
             }
         }
 
-        if (AstQueryExecutorBase.IsNullish(amountValue))
+        if (IsNullish(amountValue))
         {
             result = null;
             return true;
         }
 
-        if (!AstQueryExecutorBase.TryConvertNumericToDouble(amountValue, out var amount))
+        if (!TryConvertNumericToDouble(amountValue, out var amount))
         {
             result = null;
             return true;

@@ -16,7 +16,7 @@ public class TemporaryUsersScenario(
     /// </summary>
     public virtual Task CreateScenarioAsync()
     {
-        return Repo.ExecuteNonQueryAsync(Repo.Dialect.CreateTemporaryUsersTable(Context));
+        return Repo.ExecuteNonQueryAsync(GetCreateTemporaryUsersTableSql());
     }
 
     /// <summary>
@@ -27,12 +27,31 @@ public class TemporaryUsersScenario(
     {
         try
         {
-            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTemporaryUsersTable(Context));
+            await Repo.ExecuteNonQueryAsync(GetDropTemporaryUsersTableSql());
         }
         catch (Exception ex) when (IsMissingTableException(ex))
         {
 
         }
+    }
+
+    private string GetDropTemporaryUsersTableSql()
+    {
+        return Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is DbConnectionMockBase
+            ? $"DROP TABLE {Repo.Dialect.TemporaryUsersTableName(Context)}"
+            : Repo.Dialect.DropTemporaryUsersTable(Context);
+    }
+
+    private string GetCreateTemporaryUsersTableSql()
+    {
+        return Repo.Dialect.Provider == ProviderId.Db2 && Repo.Cnn is DbConnectionMockBase
+            ? $@"
+CREATE TEMPORARY TABLE {Repo.Dialect.TemporaryUsersTableName(Context)} (
+    Id INT NOT NULL PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    TenantId INT NOT NULL
+)"
+            : Repo.Dialect.CreateTemporaryUsersTable(Context);
     }
 
     private static bool IsMissingTableException(Exception ex)

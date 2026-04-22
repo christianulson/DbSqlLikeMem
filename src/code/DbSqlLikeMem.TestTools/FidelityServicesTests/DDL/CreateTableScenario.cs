@@ -24,7 +24,29 @@ public class CreateTableScenario(
     /// PT: Remove a tabela de usuarios criada pelo cenario.
     /// </summary>
     /// <exception cref="NotImplementedException"></exception>
-    public virtual Task DropScenarioAsync()
-    => Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbUsersFullName));
+    public virtual async Task DropScenarioAsync()
+    {
+        try
+        {
+            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbUsersFullName));
+        }
+        catch (Exception ex) when (IsMissingTableException(ex))
+        {
+        }
+    }
+
+    private static bool IsMissingTableException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("ora-00942", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("tabela ou view", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("given key was not present", StringComparison.OrdinalIgnoreCase);
+    }
     
 }

@@ -38,5 +38,5 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// EN: Gets the Oracle-specific affected-row count expected for CREATE TABLE AS SELECT.
     /// PT: Obtém a contagem de linhas afetadas especifica do Oracle esperada para CREATE TABLE AS SELECT.
     /// </summary>
-    protected override int CreateTableAsSelectExpectedAffectedRows => -1;
+    protected override int CreateTableAsSelectExpectedAffectedRows => 2;
 }

@@ -207,7 +207,9 @@ internal static class OracleScalarFunctionRegistry
                     || type.StartsWith("CLOB", StringComparison.OrdinalIgnoreCase)
                     || type.StartsWith("NCLOB", StringComparison.OrdinalIgnoreCase))
                 {
-                    result = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+                    result = AstQueryFormatFunctionHelper.IsNumericValue(value)
+                        ? AstQueryFormatFunctionHelper.FormatOracleNumber(value!)
+                        : Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
                     return true;
                 }
 

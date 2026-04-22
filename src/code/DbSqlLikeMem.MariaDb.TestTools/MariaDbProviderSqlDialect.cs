@@ -25,6 +25,35 @@ public sealed class MariaDbProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsInsertReturning => true;
 
     /// <inheritdoc />
+    protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
+    {
+        if (dbType is DbType.DateTime or DbType.DateTime2)
+        {
+            parameter.DbType = DbType.String;
+            return;
+        }
+
+        base.ConfigureParameter(parameter, dbType);
+    }
+
+    /// <summary>
+    /// EN: Normalizes MariaDB temporal parameter values to an invariant SQL timestamp text.
+    /// PT: Normaliza valores temporais de parametros MariaDB para um texto de timestamp SQL invariavel.
+    /// </summary>
+    /// <param name="dbType">EN: Parameter database type. PT: Tipo de banco do parametro.</param>
+    /// <param name="value">EN: Parameter value. PT: Valor do parametro.</param>
+    /// <returns>EN: Normalized parameter value. PT: Valor do parametro normalizado.</returns>
+    protected override object? NormalizeParameterValue(DbType dbType, object? value)
+        => value is null
+            ? DBNull.Value
+            : (dbType, value) switch
+            {
+                (DbType.DateTime, DateTime dateTime) => dateTime.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                (DbType.DateTime2, DateTime dateTime) => dateTime.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                _ => value
+            };
+
+    /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
 CREATE TABLE {context.TbUsersFullName} (
@@ -243,15 +272,14 @@ ORDER BY u.Id
 SELECT
     u.Id AS UserId,
     u.Name AS UserName,
-    x.Note AS Note
+    (
+        SELECT o.Note
+        FROM {context.TbOrdersFullName} o
+        WHERE o.{context.TbUsers}Id = u.Id
+        ORDER BY o.Id DESC
+        LIMIT 1
+    ) AS Note
 FROM {context.TbUsersFullName} u
-LEFT JOIN LATERAL (
-    SELECT o.Note
-    FROM {context.TbOrdersFullName} o
-    WHERE o.{context.TbUsers}Id = u.Id
-    ORDER BY o.Id DESC
-    LIMIT 1
-) x ON TRUE
 ORDER BY u.Id
 """;
 }

@@ -23,7 +23,7 @@ public class SelectByPKServiceTest(
 
         using var reader = await command.ExecuteReaderAsync();
         var snapshot = QueryResultSnapshotReader.Capture(reader);
-        if (Repo.Dialect.Provider == ProviderId.Oracle)
+        if (Repo.Dialect.Provider is ProviderId.Oracle or ProviderId.Db2)
         {
             var columnNames = new string[snapshot.ColumnNames.Count];
             for (var i = 0; i < snapshot.ColumnNames.Count; i++)

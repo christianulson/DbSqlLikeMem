@@ -752,6 +752,9 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
     private static string FormatTextCastValue(QueryExecutionContext context, object value, SqlExpr? sourceExpression = null)
     {
+        if (string.Equals(context.Dialect.Name, "oracle", StringComparison.OrdinalIgnoreCase) && IsNumericValue(value))
+            return AstQueryFormatFunctionHelper.FormatOracleNumber(value);
+
         if (value is decimal decimalValue)
         {
             var scale = TryGetDecimalScaleFromExpression(sourceExpression) ?? GetDecimalScale(decimalValue);
@@ -805,10 +808,10 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         if (string.IsNullOrWhiteSpace(typeSql))
             return false;
 
-        var match = System.Text.RegularExpressions.Regex.Match(
+        var match = Regex.Match(
             typeSql,
             @"^(?:DECIMAL|NUMERIC)\s*\(\s*\d+\s*,\s*(\d+)\s*\)$",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         if (!match.Success)
             return false;

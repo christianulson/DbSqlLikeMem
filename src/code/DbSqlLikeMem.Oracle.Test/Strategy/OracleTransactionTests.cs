@@ -341,8 +341,8 @@ public sealed class OracleTransactionTests(
     }
 
     /// <summary>
-    /// EN: Ensures releasing an unknown savepoint keeps the actionable runtime message in Oracle.
-    /// PT: Garante que liberar um savepoint desconhecido mantenha a mensagem acionavel em runtime no Oracle.
+    /// EN: Ensures releasing a savepoint keeps the standardized not-supported message in Oracle when release-savepoint is disabled.
+    /// PT: Garante que liberar um savepoint mantenha a mensagem padronizada de nao suportado no Oracle quando release-savepoint esta desabilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -357,10 +357,11 @@ public sealed class OracleTransactionTests(
 
         connection.CreateSavepoint("sp_known");
 
-        var ex = Assert.Throws<InvalidOperationException>(() => connection.ReleaseSavepoint("sp_missing"));
+        var ex = Assert.Throws<NotSupportedException>(() => connection.ReleaseSavepoint("sp_missing"));
 
-        Assert.Contains("Savepoint", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("was not found", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RELEASE SAVEPOINT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("oracle", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

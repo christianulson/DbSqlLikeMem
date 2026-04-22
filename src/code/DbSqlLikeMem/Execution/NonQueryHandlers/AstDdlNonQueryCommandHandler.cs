@@ -15,6 +15,7 @@ internal sealed class AstDdlNonQueryCommandHandler : INonQueryCommandHandler
         {
             SqlCreateTemporaryTableQuery tempQ => context.Connection.ExecuteCreateTemporaryTableAsSelect(tempQ, execCtx.DbParameters, execCtx.Dialect),
             SqlCreateViewQuery viewQ => context.Connection.ExecuteCreateView(viewQ, execCtx.DbParameters, execCtx.Dialect),
+            SqlCreateSchemaQuery schemaQ => context.Connection.ExecuteCreateSchema(schemaQ),
             SqlAlterTableAddColumnQuery alterAddColumnQ => context.Connection.ExecuteAlterTableAddColumn(alterAddColumnQ, execCtx.DbParameters, execCtx.Dialect),
             SqlAlterSequenceQuery alterSequenceQ => context.Connection.ExecuteAlterSequence(alterSequenceQ, execCtx.DbParameters, execCtx.Dialect),
             SqlCreateIndexQuery createIndexQ => context.Connection.ExecuteCreateIndex(createIndexQ, execCtx.DbParameters, execCtx.Dialect),
@@ -33,6 +34,6 @@ internal sealed class AstDdlNonQueryCommandHandler : INonQueryCommandHandler
             _ => new DmlExecutionResult()
         };
 
-        return query is SqlCreateTemporaryTableQuery or SqlCreateViewQuery or SqlAlterTableAddColumnQuery or SqlAlterSequenceQuery or SqlCreateIndexQuery or SqlCreateSequenceQuery or SqlCreateFunctionQuery or SqlCreateProcedureQuery or SqlCreateTriggerQuery or SqlDropViewQuery or SqlDropTableQuery or SqlDropIndexQuery or SqlDropSequenceQuery or SqlDropFunctionQuery or SqlDropProcedureQuery or SqlDropTriggerQuery or SqlExecuteBlockQuery;
+        return query is SqlCreateTemporaryTableQuery or SqlCreateViewQuery or SqlCreateSchemaQuery or SqlAlterTableAddColumnQuery or SqlAlterSequenceQuery or SqlCreateIndexQuery or SqlCreateSequenceQuery or SqlCreateFunctionQuery or SqlCreateProcedureQuery or SqlCreateTriggerQuery or SqlDropViewQuery or SqlDropTableQuery or SqlDropIndexQuery or SqlDropSequenceQuery or SqlDropFunctionQuery or SqlDropProcedureQuery or SqlDropTriggerQuery or SqlExecuteBlockQuery;
     }
 }

@@ -51,6 +51,24 @@ public class RepoService(
         return await command.ExecuteNonQueryAsync();
     }
 
+    internal async Task<int> ExecuteNonQueryStatementsAsync(
+        string sql,
+        DbTransaction? transaction = null)
+    {
+        await EnsureConnectionOpenAsync();
+
+        var affectedRows = 0;
+        foreach (var statement in SplitStatements(sql))
+        {
+            using var command = Cnn.CreateCommand();
+            command.CommandText = statement;
+            command.Transaction = transaction;
+            affectedRows += await command.ExecuteNonQueryAsync();
+        }
+
+        return affectedRows;
+    }
+
     /// <summary>
     /// EN: Executes a SQL command and returns its scalar result.
     /// PT: Executa um comando SQL e retorna o seu resultado escalar.
@@ -137,6 +155,11 @@ public class RepoService(
     {
         if (Cnn.State == ConnectionState.Open) return;
         await Cnn.OpenAsync();
+    }
+
+    private static IEnumerable<string> SplitStatements(string sql)
+    {
+        return StringCompatibility.SplitAndTrim(sql, ';');
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ internal static class BatchReaderResultCollector
     {
         var collectedTableCount = 0;
         var collectedRowCount = 0;
-        var valuesBuffer = System.Array.Empty<object>();
+        var valuesBuffer = Array.Empty<object>();
         do
         {
             var fieldCount = reader.FieldCount;
@@ -62,7 +62,7 @@ internal static class BatchReaderResultCollector
 
     private static BatchReaderCollectionStats CollectAllResultSetsWithoutStatsCore(DbDataReader reader, ICollection<TableResultMock> tables)
     {
-        var valuesBuffer = System.Array.Empty<object>();
+        var valuesBuffer = Array.Empty<object>();
         do
         {
             var fieldCount = reader.FieldCount;

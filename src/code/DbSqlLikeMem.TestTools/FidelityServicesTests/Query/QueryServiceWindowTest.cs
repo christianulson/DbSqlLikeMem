@@ -48,7 +48,7 @@ ORDER BY Name, Id
 
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name", "RankValue", "DenseRankValue", "RowNumberValue"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name", "RankValue", "DenseRankValue", "RowNumberValue"]),
             Rows = rows,
         };
     }
@@ -107,7 +107,7 @@ ORDER BY Id
 
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name", "FirstName", "LastName"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name", "FirstName", "LastName"]),
             Rows = rows,
         };
     }
@@ -163,7 +163,7 @@ ORDER BY Name, Id
 
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name", "BucketValue"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name", "BucketValue"]),
             Rows = rows,
         };
     }
@@ -228,7 +228,7 @@ ORDER BY Name, Id
 
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name", "PercentRankValue", "CumeDistValue"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name", "PercentRankValue", "CumeDistValue"]),
             Rows = rows,
         };
     }
@@ -289,7 +289,7 @@ ORDER BY Id
 
         return new QueryResultSnapshot
         {
-            ColumnNames = ["Name", "SecondName"],
+            ColumnNames = NormalizeSnapshotColumnNames(["Name", "SecondName"]),
             Rows = rows,
         };
     }

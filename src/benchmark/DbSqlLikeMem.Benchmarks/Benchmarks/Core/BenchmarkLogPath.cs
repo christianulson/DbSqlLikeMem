@@ -25,7 +25,7 @@ public static class BenchmarkLogPath
     /// </summary>
     /// <param name="fileName">EN: The raw file name to sanitize. PT: O nome bruto do arquivo a ser sanitizado.</param>
     /// <returns>EN: The absolute benchmark log file path. PT: O caminho absoluto do arquivo de log do benchmark.</returns>
-    public static string GetFilePath(string fileName)
+    internal static string GetFilePath(string fileName)
         => Path.Combine(GetDirectory(), GetSafeFileName(fileName));
 
     /// <summary>
@@ -34,7 +34,7 @@ public static class BenchmarkLogPath
     /// </summary>
     /// <param name="fileName">EN: The raw file name to sanitize. PT: O nome bruto do arquivo a ser sanitizado.</param>
     /// <returns>EN: The sanitized file name. PT: O nome de arquivo sanitizado.</returns>
-    public static string GetSafeFileName(string fileName)
+    internal static string GetSafeFileName(string fileName)
     {
         var invalidChars = Path.GetInvalidFileNameChars();
         var sanitized = new char[fileName.Length];

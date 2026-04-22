@@ -137,6 +137,20 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     }
 
     /// <summary>
+    /// EN: Implements ExecuteCreateSchema.
+    /// PT: Implementa ExecuteCreateSchema.
+    /// </summary>
+    public static DmlExecutionResult ExecuteCreateSchema(
+        this DbConnectionMockBase connection,
+        SqlCreateSchemaQuery query)
+    {
+        var schemaName = query.Table?.Name;
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(schemaName, nameof(schemaName));
+        connection.Db.CreateSchema(schemaName!);
+        return new DmlExecutionResult();
+    }
+
+    /// <summary>
     /// EN: Implements ExecuteDropTable.
     /// PT: Implementa ExecuteDropTable.
     /// </summary>
@@ -1745,7 +1759,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         {
             externalConnection = Activator.CreateInstance(
                 connectionType,
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 binder: null,
                 args: [connection.Db, null],
                 culture: null) as DbConnectionMockBase;
@@ -1760,7 +1774,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             {
                 externalConnection = Activator.CreateInstance(
                     connectionType,
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                     binder: null,
                     args: [connection.Db],
                     culture: null) as DbConnectionMockBase;
@@ -2430,8 +2444,8 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             bool b => b ? "TRUE" : "FALSE",
             byte or sbyte or short or ushort or int or uint or long or ulong
                 or float or double or decimal
-                => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? "NULL",
-            IFormattable formattable => formattable.ToString(null, System.Globalization.CultureInfo.InvariantCulture) ?? "NULL",
+                => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "NULL",
+            IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture) ?? "NULL",
             _ => QuoteSqlStringLiteral(value.ToString() ?? string.Empty, dialect)
         };
     }
@@ -3121,10 +3135,10 @@ internal static class DbSelectIntoAndInsertSelectStrategies
 
     private static string ExtractExecuteStatementSql(string sqlRaw)
     {
-        var match = System.Text.RegularExpressions.Regex.Match(
+        var match = Regex.Match(
             sqlRaw.Trim(),
             @"^EXECUTE\s+STATEMENT\s+'(?<sql>(?:''|[^'])*)'\s*;?$",
-            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         if (!match.Success)
             throw new InvalidOperationException("EXECUTE STATEMENT requires a single quoted SQL string literal.");
@@ -3203,7 +3217,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 newTable.Add(d);
             }
 
-            return new DmlExecutionResult();
+            return DmlExecutionResult.ForCount(res.Count);
         }
 
         // CREATE TABLE name (id INT, name VARCHAR(100), ...) [PARTITION BY ...]
@@ -3408,10 +3422,10 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
             return value[1..^1].Replace("''", "'");
 
-        if (long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsedLong))
+        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
             return parsedLong;
 
-        if (decimal.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsedDecimal))
+        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedDecimal))
             return parsedDecimal;
 
         return value;
@@ -3471,6 +3485,10 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     private static DbType ParseDbTypeFromSqlType(string sqlType)
     {
         var normalizedType = sqlType.Trim().NormalizeName();
+        if (normalizedType.StartsWith("LONG RAW", StringComparison.OrdinalIgnoreCase)
+            || normalizedType.StartsWith("RAW", StringComparison.OrdinalIgnoreCase))
+            return DbType.Binary;
+
         var typeNameEnd = normalizedType.IndexOf('(');
         var spaceIndex = normalizedType.IndexOf(' ');
         if (spaceIndex >= 0 && (typeNameEnd < 0 || spaceIndex < typeNameEnd))
@@ -3486,13 +3504,15 @@ internal static class DbSelectIntoAndInsertSelectStrategies
             "BIGINT" => DbType.Int64,
             "DECIMAL" or "NUMERIC" => DbType.Decimal,
             "NUMBER" => DbType.Decimal,
+            "BINARY_DOUBLE" => DbType.Double,
+            "BINARY_FLOAT" => DbType.Single,
             "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
             "BIT" => DbType.Boolean,
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,
             "GUID" or "UUID" => DbType.Guid,
-            "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
+            "BLOB" or "BINARY" or "VARBINARY" or "RAW" => DbType.Binary,
             _ => DbType.String,
         };
     }
@@ -3833,6 +3853,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
                 bool => DbType.Boolean,
                 Guid => DbType.Guid,
                 DateTime => DbType.DateTime,
+                byte[] => DbType.Binary,
                 string => DbType.String,
                 _ => DbType.Object
             };

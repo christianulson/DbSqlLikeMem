@@ -22,6 +22,12 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override NpgsqlDbMock CreateDb() => [];
 
     /// <summary>
+    /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in PostgreSQL.
+    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no PostgreSQL.
+    /// </summary>
+    protected override int CreateTableAsSelectExpectedAffectedRows => 2;
+
+    /// <summary>
     /// EN: Executes a non-query command using a PostgreSQL mock connection.
     /// PT: Executa um comando sem retorno usando uma conexão simulada de PostgreSQL.
     /// </summary>
@@ -57,7 +63,6 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         Assert.Single(users);
         Assert.Equal(2, (int)users[0][0]!);
     }
-
 
 
     /// <summary>
@@ -103,5 +108,4 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         var ex = Assert.Throws<InvalidOperationException>(() => ExecuteNonQuery(db, sql));
         Assert.Contains(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition(), ex.Message, StringComparison.OrdinalIgnoreCase);
     }
-
 }

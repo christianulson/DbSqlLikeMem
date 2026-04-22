@@ -27,7 +27,7 @@ public sealed class SequenceDropRollbackServiceTest(
         {
             await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')", transaction);
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("does not exist", StringComparison.OrdinalIgnoreCase))
+        catch (Exception ex) when (IsMissingSequenceException(ex))
         {
             droppedMissing = true;
         }
@@ -53,5 +53,14 @@ public sealed class SequenceDropRollbackServiceTest(
         command.CommandText = sql;
         command.Transaction = transaction;
         return Convert.ToInt64(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+    }
+
+    private static bool IsMissingSequenceException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined table", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("no such table", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -160,14 +160,14 @@ CREATE TABLE {context.TbOrdersFullName} (
 
     /// <inheritdoc />
     public override string SelectExistsPredicate(FidelityTestContext context) =>
-        $"SELECT u.* FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
+        $"SELECT u.Id, u.Name FROM {context.TbUsersFullName} u WHERE EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
     /// <inheritdoc />
     public override string SelectNotExistsPredicate(FidelityTestContext context) =>
-        $"SELECT u.* FROM {context.TbUsersFullName} u WHERE NOT EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
+        $"SELECT u.Id, u.Name FROM {context.TbUsersFullName} u WHERE NOT EXISTS (SELECT 1 FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = u.Id) ORDER BY u.Id";
 
     /// <inheritdoc />
     public override string SelectLeftJoinAntiJoin(FidelityTestContext context) =>
-        $"SELECT u.* FROM {context.TbUsersFullName} u LEFT JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE o.{context.TbUsers}Id IS NULL ORDER BY u.Id";
+        $"SELECT u.Id, u.Name FROM {context.TbUsersFullName} u LEFT JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id WHERE o.{context.TbUsers}Id IS NULL ORDER BY u.Id";
 
     /// <inheritdoc />
     public override string SelectCorrelatedCount(FidelityTestContext context) =>
@@ -183,7 +183,7 @@ ORDER BY u.Id
 
     /// <inheritdoc />
     public override string GroupByHaving(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM (SELECT u.Id FROM {context.TbUsersFullName} u INNER JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id GROUP BY u.Id HAVING COUNT(*) >= 2) q";
+        $"SELECT * FROM (SELECT u.Id FROM {context.TbUsersFullName} u INNER JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id GROUP BY u.Id HAVING COUNT(*) >= 2) q";
 
     /// <inheritdoc />
     public override string MultiJoinAggregate(FidelityTestContext context) =>
@@ -204,11 +204,11 @@ ORDER BY o1.Id, o2.Id
         $"SELECT (SELECT COUNT(*) FROM {context.TbOrdersFullName} o WHERE o.{context.TbUsers}Id = 1) FROM DUAL";
     /// <inheritdoc />
     public override string SelectInSubquery(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} WHERE Id IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
+        $"SELECT Id, Name FROM {context.TbUsersFullName} WHERE Id IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
 
     /// <inheritdoc />
     public override string SelectNotInSubquery(FidelityTestContext context) =>
-        $"SELECT * FROM {context.TbUsersFullName} WHERE Id NOT IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
+        $"SELECT Id, Name FROM {context.TbUsersFullName} WHERE Id NOT IN (SELECT {context.TbUsers}Id FROM {context.TbOrdersFullName}) ORDER BY Id";
 
     /// <inheritdoc />
     public override string UpdateUserNameById(FidelityTestContext context, int id, string newName) =>

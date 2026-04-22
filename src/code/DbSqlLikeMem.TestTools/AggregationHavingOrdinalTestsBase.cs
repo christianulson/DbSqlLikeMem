@@ -59,6 +59,29 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
     protected abstract List<dynamic> Query(string sql);
 
     /// <summary>
+    /// EN: Gets a row value using a case-insensitive column-name match.
+    /// PT: Obtem um valor de linha usando correspondencia case-insensitive do nome da coluna.
+    /// </summary>
+    /// <param name="row">EN: Row object returned by the query. PT: Objeto de linha retornado pela consulta.</param>
+    /// <param name="name">EN: Column name to read. PT: Nome da coluna para ler.</param>
+    /// <returns>EN: The matched column value, or null when the column is missing. PT: O valor da coluna encontrada, ou null quando a coluna nao existe.</returns>
+    protected static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return pair.Value;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// EN: Validates DISTINCT + ORDER BY + provider pagination syntax over grouped seed data.
     /// PT: Valida sintaxe de DISTINCT + ORDER BY + paginação do provedor sobre os dados semeados.
     /// </summary>
@@ -79,7 +102,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().ContainSingle();
-        ((int)rows[0].userId).Should().Be(2);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(2);
     }
 
 
@@ -399,11 +422,11 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         var rows = Query(sql);
         rows.Should().HaveCount(2);
 
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
         ((int)rows[0].total).Should().Be(2);
         ((decimal)rows[0].sumAmount).Should().Be(40m);
 
-        ((int)rows[1].userId).Should().Be(2);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")).Should().Be(2);
         ((int)rows[1].total).Should().Be(1);
         ((decimal)rows[1].sumAmount).Should().Be(5m);
     }
@@ -424,7 +447,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().ContainSingle();
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
     }
 
     /// <summary>
@@ -445,9 +468,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         var rows = Query(sql);
 
         rows.Should().HaveCount(2);
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
         ((decimal)rows[0].sumAmount).Should().Be(40m);
-        ((int)rows[1].userId).Should().Be(2);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")).Should().Be(2);
         ((decimal)rows[1].sumAmount).Should().Be(5m);
     }
 
@@ -486,8 +509,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().HaveCount(2);
-        ((int)rows[0].userId).Should().Be(1);
-        ((int)rows[1].userId).Should().Be(2);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")).Should().Be(2);
     }
 
     /// <summary>
@@ -507,7 +530,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().ContainSingle();
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
     }
 
     /// <summary>
@@ -527,7 +550,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().ContainSingle();
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
     }
 
     /// <summary>
@@ -547,7 +570,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().ContainSingle();
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
     }
 
     /// <summary>
@@ -567,7 +590,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().ContainSingle();
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
     }
 
     /// <summary>
@@ -587,7 +610,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         var rows = Query(sql);
         rows.Should().ContainSingle();
-        ((int)rows[0].userId).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
     }
 
     /// <summary>

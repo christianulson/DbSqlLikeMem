@@ -29,7 +29,7 @@ public sealed class SequenceMinValueServiceTest(
         {
             await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("minimum value", StringComparison.OrdinalIgnoreCase))
+        catch (Exception ex) when (IsSequenceBoundException(ex, "minimum value"))
         {
             stoppedAtMinimum = true;
         }
@@ -50,5 +50,13 @@ public sealed class SequenceMinValueServiceTest(
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = sql;
         return Convert.ToInt64(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+    }
+
+    private static bool IsSequenceBoundException(Exception ex, string boundMessage)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains(boundMessage, StringComparison.OrdinalIgnoreCase)
+            || message.Contains("2200H", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("2200G", StringComparison.OrdinalIgnoreCase);
     }
 }

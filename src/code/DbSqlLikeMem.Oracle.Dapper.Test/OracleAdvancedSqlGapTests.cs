@@ -202,7 +202,10 @@ ORDER BY id";
         const string sql = @"
 SELECT id,
        FIRST_VALUE(name) OVER (ORDER BY id) AS first_name,
-       LAST_VALUE(name) OVER (ORDER BY id) AS last_name
+       LAST_VALUE(name) OVER (
+           ORDER BY id
+           ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+       ) AS last_name
 FROM users
 ORDER BY id";
 
@@ -231,7 +234,10 @@ ORDER BY id";
         using var connection = CreateOpenConnection(version);
         const string sql = @"
 SELECT id,
-       NTH_VALUE(name, 2) OVER (ORDER BY id) AS second_name
+       NTH_VALUE(name, 2) OVER (
+           ORDER BY id
+           ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+       ) AS second_name
 FROM users
 ORDER BY id";
 
@@ -395,7 +401,10 @@ ORDER BY tenantid, rn, id";
         const string sql = @"
 SELECT id,
        LAG(id, 1 + 0, -1) OVER (ORDER BY id) AS lag_expr,
-       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id) AS nth_expr
+       NTH_VALUE(name, 1 + 1) OVER (
+           ORDER BY id
+           ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+       ) AS nth_expr
 FROM users
 ORDER BY id";
 
@@ -454,7 +463,7 @@ SELECT u.id,
 FROM users u
 ORDER BY u.id").ToList();
 
-        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => (decimal)(r.total ?? 0m))]);
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(GetValueIgnoreCase(r, "total") ?? 0m))]);
     }
 
     /// <summary>
@@ -474,7 +483,7 @@ ORDER BY id").ToList();
             new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local),
             new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local),
             new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
-            [.. rows.Select(r => (DateTime)r.d)]);
+            [.. rows.Select(r => (DateTime)GetValueIgnoreCase(r, "d")!)]);
     }
 
     /// <summary>
@@ -515,6 +524,20 @@ ORDER BY id").ToList();
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
+    }
+
+    private static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
 

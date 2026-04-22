@@ -380,22 +380,22 @@ public sealed class OracleMockTests
     }
 
     /// <summary>
-    /// EN: Verifies ROW_COUNT returns zero after RELEASE SAVEPOINT.
-    /// PT: Verifica se ROW_COUNT retorna zero apos RELEASE SAVEPOINT.
+    /// EN: Verifies RELEASE SAVEPOINT emits the standardized not-supported error in Oracle batches.
+    /// PT: Verifica se RELEASE SAVEPOINT emite o erro padronizado de nao suportado em lotes Oracle.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
-    public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
+    public void TestBatch_ReleaseSavepointThenRowCount_ShouldThrowNotSupported()
     {
         using var command = new OracleCommandMock(_connection)
         {
             CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT ROW_COUNT();"
         };
 
-        using var reader = command.ExecuteReader();
-
-        Assert.True(reader.Read());
-        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+        var ex = Assert.Throws<NotSupportedException>(() => command.ExecuteReader());
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RELEASE SAVEPOINT", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("oracle", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
 

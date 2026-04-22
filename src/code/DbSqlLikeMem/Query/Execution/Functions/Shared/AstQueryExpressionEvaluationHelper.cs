@@ -38,7 +38,7 @@ internal static class AstQueryExpressionEvaluationHelper
             return evalNotIn(notInExpression, row, group, ctes);
 
         var value = eval(expression.Expr, row, group, ctes);
-        return AstQueryExecutorBase.IsNullish(value) ? null : !value.ToBool();
+        return IsNullish(value) ? null : !value.ToBool();
     }
 
     internal static object? EvalIn(

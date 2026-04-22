@@ -60,7 +60,7 @@ internal static class AstQueryExecutionRuntimeHelper
     {
         json = evalArg(0);
         path = evalArg(1)?.ToString();
-        return !AstQueryExecutorBase.IsNullish(json) && !string.IsNullOrWhiteSpace(path);
+        return !IsNullish(json) && !string.IsNullOrWhiteSpace(path);
     }
 
     internal static void LogFunctionEvaluationFailure(Exception exception)

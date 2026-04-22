@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 /// EN: Provides the DbSqlLikeMem benchmark session implementation shared across providers.
 /// PT: Fornece a implementacao de sessao de benchmark do DbSqlLikeMem compartilhada entre providers.
 /// </summary>
-public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialect)
+internal abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialect)
     : BenchmarkSessionBase(dialect, BenchmarkEngine.DbSqlLikeMem)
 {
     /// <summary>
@@ -16,8 +16,8 @@ public abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dialec
         using var scope = CreateTemporaryTableScope();
         try
         {
-            var rows = scope.Service.RunCreateTemporaryTableAsSelectThenSelect(
-                scope.Context);
+            var rows = scope.Service.RunCreateTemporaryTableAsSelectThenSelectAsync(
+                scope.Context).GetAwaiter().GetResult();
             GC.KeepAlive(rows);
         }
         finally

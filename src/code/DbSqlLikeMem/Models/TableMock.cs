@@ -1117,7 +1117,7 @@ public abstract class TableMock
             var found = 0;
             Parallel.For(0, refTable.Count, (refIndex, state) =>
             {
-                if (System.Threading.Volatile.Read(ref found) != 0)
+                if (Volatile.Read(ref found) != 0)
                 {
                     state.Stop();
                     return;
@@ -1130,11 +1130,11 @@ public abstract class TableMock
                         return;
                 }
 
-                System.Threading.Interlocked.Exchange(ref found, 1);
+                Interlocked.Exchange(ref found, 1);
                 state.Stop();
             });
 
-            return System.Threading.Volatile.Read(ref found) != 0;
+            return Volatile.Read(ref found) != 0;
         }
 
         foreach (var refRow in refTable)

@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs Firebird benchmark scenarios against the in-memory DbSqlLikeMem Firebird mock provider.
 /// PT: Executa cenarios de benchmark Firebird contra o provedor mock em memoria DbSqlLikeMem de Firebird.
 /// </summary>
-public sealed class FirebirdDbSqlLikeMemSession()
+internal sealed class FirebirdDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new FirebirdProviderSqlDialect())
 {
     private readonly FirebirdDbMock Db = new() { ThreadSafe = true };

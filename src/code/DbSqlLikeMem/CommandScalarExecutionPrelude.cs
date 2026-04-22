@@ -157,7 +157,6 @@ internal static class CommandScalarExecutionPrelude
         out object? scalar)
     {
         scalar = DBNull.Value;
-        context.ResetPositionalParameterCursor();
 
         if (query.SelectItems.Count == 0)
             return false;
@@ -176,37 +175,40 @@ internal static class CommandScalarExecutionPrelude
         }
 
         object? firstScalar = null;
-        for (var i = 0; i < query.SelectItems.Count; i++)
+        using (var positionalScope = context.BeginPositionalParameterScope())
         {
-            var rawItem = query.SelectItems[i].Raw.Trim();
-            object? itemValue;
-            if (context.TryResolveParameter(rawItem, out itemValue))
+            for (var i = 0; i < query.SelectItems.Count; i++)
             {
-                // Fast path for parameter projection: return bound parameters without parsing.
-            }
-            else
-            {
-                SqlExpr expr;
-                try
+                var rawItem = query.SelectItems[i].Raw.Trim();
+                object? itemValue;
+                if (context.TryResolveParameter(rawItem, out itemValue))
                 {
-                    expr = SqlExpressionParser.ParseScalar(
-                        rawItem,
-                        context.Connection.Db,
-                        context.Dialect,
-                        null,
-                        customFunctionSupported);
+                    // Fast path for parameter projection: return bound parameters without parsing.
                 }
-                catch
+                else
                 {
-                    return false;
+                    SqlExpr expr;
+                    try
+                    {
+                        expr = SqlExpressionParser.ParseScalar(
+                            rawItem,
+                            context.Connection.Db,
+                            context.Dialect,
+                            null,
+                            customFunctionSupported);
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+
+                    if (!TryEvaluateSelectItemScalarExpression(context, expr, out itemValue))
+                        return false;
                 }
 
-                if (!TryEvaluateSelectItemScalarExpression(context, expr, out itemValue))
-                    return false;
+                if (i == 0)
+                    firstScalar = itemValue ?? DBNull.Value;
             }
-
-            if (i == 0)
-                firstScalar = itemValue ?? DBNull.Value;
         }
 
         scalar = firstScalar ?? DBNull.Value;
@@ -270,7 +272,6 @@ internal static class CommandScalarExecutionPrelude
         out object? scalar)
     {
         scalar = DBNull.Value;
-        context.ResetPositionalParameterCursor();
 
         if (query.Ctes.Count > 0
             || query.Joins.Count > 0
@@ -299,6 +300,7 @@ internal static class CommandScalarExecutionPrelude
 
         if (query.Where is not null)
         {
+            using var positionalScope = context.BeginPositionalParameterScope();
             if (!TryEvaluateConstantBooleanExpression(context, query.Where, out var whereResult))
                 return false;
 

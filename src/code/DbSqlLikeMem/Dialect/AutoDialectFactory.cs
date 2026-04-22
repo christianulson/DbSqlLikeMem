@@ -23,7 +23,7 @@ internal static class AutoDialectFactory
             {
                 var created = Activator.CreateInstance(
                     autoDialectType,
-                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                     binder: null,
                     args: [version],
                     culture: null);
@@ -45,7 +45,7 @@ internal static class AutoDialectFactory
         {
             var created = Activator.CreateInstance(
                 autoSyntaxDetectorType,
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
                 binder: null,
                 args: [],
                 culture: null);

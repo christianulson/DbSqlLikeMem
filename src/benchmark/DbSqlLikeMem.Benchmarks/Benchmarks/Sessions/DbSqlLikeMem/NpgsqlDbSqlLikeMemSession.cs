@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs PostgreSQL/Npgsql benchmark scenarios against the in-memory DbSqlLikeMem mock provider.
 /// PT-br: Executa cenários de benchmark de PostgreSQL/Npgsql contra o provedor mock em memória DbSqlLikeMem.
 /// </summary>
-public sealed class NpgsqlDbSqlLikeMemSession()
+internal sealed class NpgsqlDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new NpgsqlProviderSqlDialect())
 {
     private readonly NpgsqlDbMock Db = new() { ThreadSafe = true };

@@ -121,6 +121,9 @@ internal static class OracleValueHelper
 
         if (parameterValue is string textValue)
         {
+            if (TryParseOracleFloatingPointText(textValue, dbType, out var parsedNumericValue))
+                return parsedNumericValue;
+
             try
             {
                 return dbType.Parse(textValue);
@@ -191,6 +194,55 @@ internal static class OracleValueHelper
                 return parameterValue;
             }
         }
+    }
+
+    private static bool TryParseOracleFloatingPointText(string textValue, DbType dbType, out object? parsedValue)
+    {
+        parsedValue = null;
+
+        switch (dbType)
+        {
+            case DbType.Double:
+                if (TryParseCommaDecimalAsInvariant(textValue, out double doubleValue))
+                {
+                    parsedValue = doubleValue;
+                    return true;
+                }
+
+                return false;
+            case DbType.Single:
+                if (TryParseCommaDecimalAsInvariant(textValue, out float floatValue))
+                {
+                    parsedValue = floatValue;
+                    return true;
+                }
+
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryParseCommaDecimalAsInvariant(string textValue, out double parsedValue)
+    {
+        parsedValue = default;
+
+        if (!textValue.Contains(',') || textValue.Contains('.'))
+            return false;
+
+        var normalized = textValue.Replace(',', '.');
+        return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out parsedValue);
+    }
+
+    private static bool TryParseCommaDecimalAsInvariant(string textValue, out float parsedValue)
+    {
+        parsedValue = default;
+
+        if (!textValue.Contains(',') || textValue.Contains('.'))
+            return false;
+
+        var normalized = textValue.Replace(',', '.');
+        return float.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out parsedValue);
     }
 
     private static bool TryParseEnumOrSet(

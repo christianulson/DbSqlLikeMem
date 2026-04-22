@@ -37,12 +37,18 @@ internal static class SqlAlterTableHelper
             rawArgs = ctx.TokensToSql(args);
         }
 
+        var normalizedTypeName = typeName.Trim().NormalizeName();
+        var isBinaryRaw = normalizedTypeName.StartsWith("LONG RAW", StringComparison.OrdinalIgnoreCase)
+            || normalizedTypeName.StartsWith("RAW", StringComparison.OrdinalIgnoreCase);
+
         var dbType = typeName.Trim().NormalizeName() switch
         {
             "INT" or "INTEGER" or "SMALLINT" => DbType.Int32,
             "BIGINT" => DbType.Int64,
             "DECIMAL" or "NUMERIC" => DbType.Decimal,
             "NUMBER" => DbType.Decimal,
+            "BINARY_DOUBLE" => DbType.Double,
+            "BINARY_FLOAT" => DbType.Single,
             "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
             "BIT" => DbType.Boolean,
             "BOOLEAN" or "BOOL" => DbType.Boolean,
@@ -50,9 +56,12 @@ internal static class SqlAlterTableHelper
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,
             "DATETIMEOFFSET" or "TIMESTAMPTZ" or "TIMESTAMP WITH TIME ZONE" => DbType.DateTimeOffset,
             "GUID" or "UUID" => DbType.Guid,
-            "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
+            "BLOB" or "BINARY" or "VARBINARY" or "RAW" => DbType.Binary,
             _ => DbType.String,
         };
+
+        if (isBinaryRaw)
+            dbType = DbType.Binary;
 
         var (size, decimalPlaces) = ParseAlterTableTypeArgs(rawArgs, dbType);
         return (dbType, size, decimalPlaces);

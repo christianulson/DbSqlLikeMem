@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
@@ -9,6 +9,13 @@
 		<StartupObject>DbSqlLikeMem.Benchmarks.Program</StartupObject>
 		<IsTestingPlatformApplication>false</IsTestingPlatformApplication>
 		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+
+		<!--<ErrorReport>prompt</ErrorReport>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+		<AnalysisMode>all</AnalysisMode>
+		<AnalysisLevel>latest-all</AnalysisLevel>-->
+		<NoWarn>CA1707;CA1303</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -20,6 +27,15 @@
 		<PackageReference Include="Testcontainers.MySql" Version="4.11.0" />
 		<PackageReference Include="Testcontainers.Oracle" Version="4.11.0" />
 		<PackageReference Include="Testcontainers.PostgreSql" Version="4.11.0" />
+
+		<PackageReference Include="AsyncFixer" Version="2.1.0" PrivateAssets="All" />
+		<PackageReference Include="AsyncFriendlyStackTrace" Version="1.7.0" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.Analyzers" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.CodeFixes" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.CSharp" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.15.0" PrivateAssets="All" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -45,6 +61,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Benchmarks.Test" />
+	</ItemGroup>
+		
+	<ItemGroup>
 		<Using Include="BenchmarkDotNet.Attributes" />
 		<Using Include="BenchmarkDotNet.Running" />
 		<Using Include="DbSqlLikeMem.Benchmarks.Core" />
@@ -55,6 +75,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="Logs\" />
+		<Folder Include="Logs\" />
 	</ItemGroup>
 </Project>

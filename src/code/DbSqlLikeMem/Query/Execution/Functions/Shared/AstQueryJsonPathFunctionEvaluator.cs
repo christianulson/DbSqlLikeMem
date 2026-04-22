@@ -618,7 +618,7 @@ internal static class AstQueryJsonPathFunctionEvaluator
         string key,
         JsonPathTokenCacheEntry entry)
     {
-        if (cache.Count >= AstQueryExecutorBase.JsonPathParseCacheSoftLimit)
+        if (cache.Count >= JsonPathParseCacheSoftLimit)
             cache.Clear();
 
         cache[key] = entry;

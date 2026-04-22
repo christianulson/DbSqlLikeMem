@@ -10,7 +10,7 @@ internal static class QueryOrderByHelper
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalExpression)
     {
         Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>? joinFieldsByRow = null;
-        var keySelectors = BuildKeySelectors(
+        var keySelectors = context.BuildKeySelectors(
             result,
             orderBy,
             parseExpression,
@@ -37,6 +37,7 @@ internal static class QueryOrderByHelper
     }
 
     private static List<OrderByKeySelector> BuildKeySelectors(
+        this QueryExecutionContext context,
         TableResultMock result,
         IReadOnlyList<SqlOrderByItem> orderBy,
         Func<string, SqlExpr> parseExpression,
@@ -68,6 +69,7 @@ internal static class QueryOrderByHelper
             keySelectors.Add(new OrderByKeySelector(
                 row =>
                 {
+                    using var positionalScope = context.BeginPositionalParameterScope();
                     var joinFieldsByRow = getJoinFieldsByRow();
                     joinFieldsByRow.TryGetValue(row, out var joinFields);
                     var projectedRow = AstQueryExecutorBase.EvalRow.FromProjected(

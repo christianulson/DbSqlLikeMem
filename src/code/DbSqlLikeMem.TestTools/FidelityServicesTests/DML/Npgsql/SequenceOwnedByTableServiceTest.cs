@@ -31,7 +31,7 @@ public sealed class SequenceOwnedByTableServiceTest(
         {
             await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("does not exist", StringComparison.OrdinalIgnoreCase))
+        catch (Exception ex) when (IsMissingSequenceException(ex))
         {
             missing = true;
         }
@@ -51,5 +51,14 @@ public sealed class SequenceOwnedByTableServiceTest(
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = sql;
         return Convert.ToInt64(await command.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
+    }
+
+    private static bool IsMissingSequenceException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined table", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("invalid object name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("no such table", StringComparison.OrdinalIgnoreCase);
     }
 }

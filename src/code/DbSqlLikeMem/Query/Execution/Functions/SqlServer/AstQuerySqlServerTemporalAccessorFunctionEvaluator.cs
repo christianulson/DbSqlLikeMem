@@ -81,7 +81,7 @@ internal static class AstQuerySqlServerTemporalAccessorFunctionEvaluator
         }
 
         var value = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
             return true;
@@ -136,7 +136,7 @@ internal static class AstQuerySqlServerTemporalAccessorFunctionEvaluator
         }
 
         var value = evalArg(1);
-        if (AstQueryExecutorBase.IsNullish(value) || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        if (IsNullish(value) || !TryCoerceDateTime(value, out var dateTime))
         {
             result = null;
             return true;
@@ -194,7 +194,7 @@ internal static class AstQuerySqlServerTemporalAccessorFunctionEvaluator
         if (TryParseExplicitTimeZoneOffsetMinutes(text, out offsetMinutes))
             return true;
 
-        return AstQueryExecutorBase.TryCoerceDateTime(value, out _);
+        return TryCoerceDateTime(value, out _);
     }
 
     private static bool TryParseExplicitTimeZoneOffsetMinutes(string text, out int offsetMinutes)

@@ -253,7 +253,7 @@ internal static class DbDeleteStrategy
             var found = 0;
             Parallel.For(0, childTable.Count, (childIndex, state) =>
             {
-                if (System.Threading.Volatile.Read(ref found) != 0)
+                if (Volatile.Read(ref found) != 0)
                 {
                     state.Stop();
                     return;
@@ -266,11 +266,11 @@ internal static class DbDeleteStrategy
                         return;
                 }
 
-                System.Threading.Interlocked.Exchange(ref found, 1);
+                Interlocked.Exchange(ref found, 1);
                 state.Stop();
             });
 
-            return System.Threading.Volatile.Read(ref found) != 0;
+            return Volatile.Read(ref found) != 0;
         }
 
         foreach (var childRow in childTable)

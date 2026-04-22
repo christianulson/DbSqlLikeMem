@@ -518,16 +518,16 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void LogBenchmarkIssue(string txt, BenchmarkFeatureId feature, Exception ex)
     {
-        var root = ex.GetBaseException();
+        var root = ex?.GetBaseException();
         var message = root is NotSupportedException
             ? $"[{txt}-{root.GetType().Name}] {feature}: {root.Message}{Environment.NewLine}{Environment.NewLine}"
-            : $"[{txt}-{root.GetType().Name}] {feature}: {root.Message} -- {ex.StackTrace}{Environment.NewLine}{Environment.NewLine}";
+            : $"[{txt}-{root?.GetType().Name}] {feature}: {root?.Message} -- {ex?.StackTrace}{Environment.NewLine}{Environment.NewLine}";
 
         Console.WriteLine(message);
 
         lock (_logSync)
         {
-            var errorKey = $"{GetType().FullName}|{Dialect.DisplayName}|{feature}|{root.GetType().FullName}|{root.Message}";
+            var errorKey = $"{GetType().FullName}|{Dialect.DisplayName}|{feature}|{root?.GetType().FullName}|{root?.Message}";
             if (Errors.TryGetValue(errorKey, out int value))
             {
                 Errors[errorKey] = value + 1;
@@ -1777,7 +1777,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunTempTableCreateAndUse()
     {
         var state = GetPreparedTemporaryTableSourceState("TempTableSource");
-        var rows = state.Service.RunCreateTemporaryTableAsSelectThenSelect().GetAwaiter().GetResult();
+        var rows = state.Service.RunCreateTemporaryTableAsSelectThenSelectAsync().GetAwaiter().GetResult();
         GC.KeepAlive(rows);
     }
 

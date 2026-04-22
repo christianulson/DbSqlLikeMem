@@ -306,16 +306,17 @@ ORDER BY CreatedAt, Id
     /// </summary>
     internal async Task<object?> RunTemporalComparisonMatrixAsync(params object[] pars)
     {
-        var createdAt = new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var createdAt = NormalizeTemporalMatrixDateTimeInput(new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
+        var createdAtParameter = Repo.Dialect.Parameter("CreatedAt");
 
         await Repo.ExecuteNonQueryAsync($"""
-INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, @CreatedAt, NULL, NULL)
+INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, {createdAtParameter}, NULL, NULL)
 """, addParameters: cmd => Repo.Dialect.AddParameter(cmd, "CreatedAt", DbType.DateTime2, createdAt));
         await Repo.ExecuteNonQueryAsync($"""
-INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (2, 'Bob', NULL, 27, 20.25, @CreatedAt, NULL, NULL)
+INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (2, 'Bob', NULL, 27, 20.25, {createdAtParameter}, NULL, NULL)
 """, addParameters: cmd => Repo.Dialect.AddParameter(cmd, "CreatedAt", DbType.DateTime2, createdAt));
         await Repo.ExecuteNonQueryAsync($"""
-INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, @CreatedAt, NULL, NULL)
+INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, {createdAtParameter}, NULL, NULL)
 """, addParameters: cmd => Repo.Dialect.AddParameter(cmd, "CreatedAt", DbType.DateTime2, createdAt));
 
         var useUtcClock = Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure;
@@ -366,16 +367,17 @@ ORDER BY CreatedAt, Id
     /// </summary>
     internal async Task<object?> RunTemporalArithmeticMatrixAsync(params object[] pars)
     {
-        var createdAt = new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var createdAt = NormalizeTemporalMatrixDateTimeInput(new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
+        var createdAtParameter = Repo.Dialect.Parameter("CreatedAt");
 
         await Repo.ExecuteNonQueryAsync($"""
-INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, @CreatedAt, NULL, NULL)
+INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, {createdAtParameter}, NULL, NULL)
 """, addParameters: cmd => Repo.Dialect.AddParameter(cmd, "CreatedAt", DbType.DateTime2, createdAt));
         await Repo.ExecuteNonQueryAsync($"""
-INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (2, 'Bob', NULL, 27, 20.25, @CreatedAt, NULL, NULL)
+INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (2, 'Bob', NULL, 27, 20.25, {createdAtParameter}, NULL, NULL)
 """, addParameters: cmd => Repo.Dialect.AddParameter(cmd, "CreatedAt", DbType.DateTime2, createdAt));
         await Repo.ExecuteNonQueryAsync($"""
-INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, @CreatedAt, NULL, NULL)
+INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, CreatedAt, UpdatedAt, ProfileJson) VALUES (3, 'Carla', 'carla@example.com', NULL, 5.00, {createdAtParameter}, NULL, NULL)
 """, addParameters: cmd => Repo.Dialect.AddParameter(cmd, "CreatedAt", DbType.DateTime2, createdAt));
 
         var useUtcClock = Repo.Dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure;
@@ -420,6 +422,17 @@ ORDER BY CreatedAt, Id
             ColumnNames = ["Id", "CreatedAtBeforeNow", "TomorrowAfterCreatedAt", "TomorrowAfterNow", "FallbackBeforeTomorrow", "FallbackAtLeastCreatedAt", "UpdatedAtIsNull", "CreatedAtIsNotNull"],
             Rows = rows,
         };
+    }
+
+    private DateTime NormalizeTemporalMatrixDateTimeInput(DateTime value)
+    {
+        if (Repo.Dialect.Provider == ProviderId.Npgsql
+            && value.Kind == DateTimeKind.Utc)
+        {
+            return DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
+        }
+
+        return value;
     }
 
     /// <summary>

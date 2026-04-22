@@ -141,6 +141,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
     [InlineData("BLOB")]
     [InlineData("BINARY")]
     [InlineData("VARBINARY")]
+    [InlineData("BYTEA")]
     [InlineData("varbinary")]
     public void ParseDbType_BinaryVariants_ShouldReturnBinary(string typeSql)
     {

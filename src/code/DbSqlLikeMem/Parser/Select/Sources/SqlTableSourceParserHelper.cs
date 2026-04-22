@@ -23,7 +23,8 @@ internal static class SqlTableSourceParserHelper
             var innerSql = ctx.ReadBalancedParenRawTokens();
             var alias = ctx.ReadOptionalAlias(aliasStopWords);
 
-            var parsed = ctx.ParseQuery(innerSql);
+            var parsedSql = SqlQueryParser.NormalizeWrappedSubquerySql(innerSql, ctx.Dialect);
+            var parsed = ctx.ParseQuery(parsedSql) with { RawSql = innerSql };
             if (parsed is SqlUnionQuery union)
             {
                 return new SqlTableSource(

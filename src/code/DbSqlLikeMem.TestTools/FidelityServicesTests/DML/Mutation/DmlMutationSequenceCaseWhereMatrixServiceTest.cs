@@ -29,6 +29,9 @@ public class DmlMutationSequenceCaseWhereMatrixServiceTest(
         if (Repo.Dialect.Provider == ProviderId.Oracle)
             return await RunOracleMatrixAsync();
 
+        if (Repo.Dialect.Provider == ProviderId.MariaDb)
+            return await RunMariaDbMatrixAsync();
+
         var lst = await Repo.ExecuteReaderAsync($"""
 WITH {BuildSingleRowSequenceCte("seq_first")},
 {BuildSingleRowSequenceCte("seq_second")}
@@ -77,6 +80,41 @@ SELECT
     CASE WHEN s2.SeqValue = 11 THEN 1 ELSE 0 END AS SecondIsEleven
 FROM (SELECT {firstValue} AS SeqValue FROM DUAL) s1
 CROSS JOIN (SELECT {secondValue} AS SeqValue FROM DUAL) s2
+WHERE s1.SeqValue >= 10
+  AND s2.SeqValue <= 11
+""");
+        if (lst?.Count != 1
+            || lst[0].Count != 1
+            || lst[0][0].Length != 7
+            || Convert.ToInt64(lst[0][0][0], CultureInfo.InvariantCulture) != 10L
+            || Convert.ToInt64(lst[0][0][1], CultureInfo.InvariantCulture) != 11L
+            || Convert.ToInt32(lst[0][0][2], CultureInfo.InvariantCulture) != 1
+            || Convert.ToInt32(lst[0][0][3], CultureInfo.InvariantCulture) != 1
+            || Convert.ToInt32(lst[0][0][4], CultureInfo.InvariantCulture) != 1
+            || Convert.ToInt32(lst[0][0][5], CultureInfo.InvariantCulture) != 1
+            || Convert.ToInt32(lst[0][0][6], CultureInfo.InvariantCulture) != 1
+            )
+            throw new InvalidOperationException($"Unexpected sequence insert results for {Repo.Dialect.DisplayName}: {JsonSerializer.Serialize(lst)}.");
+
+        return lst[0];
+    }
+
+    private async Task<object?> RunMariaDbMatrixAsync()
+    {
+        var firstValue = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.NextSequenceValue(Context))!, CultureInfo.InvariantCulture);
+        var secondValue = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.NextSequenceValue(Context))!, CultureInfo.InvariantCulture);
+
+        var lst = await Repo.ExecuteReaderAsync($"""
+SELECT
+    s1.SeqValue,
+    s2.SeqValue,
+    CASE WHEN s1.SeqValue BETWEEN 10 AND 11 THEN 1 ELSE 0 END AS FirstInRange,
+    CASE WHEN s2.SeqValue BETWEEN 10 AND 11 THEN 1 ELSE 0 END AS SecondInRange,
+    CASE WHEN s1.SeqValue < s2.SeqValue THEN 1 ELSE 0 END AS IsAscending,
+    CASE WHEN s1.SeqValue = 10 THEN 1 ELSE 0 END AS FirstIsTen,
+    CASE WHEN s2.SeqValue = 11 THEN 1 ELSE 0 END AS SecondIsEleven
+FROM (SELECT {firstValue} AS SeqValue) s1
+CROSS JOIN (SELECT {secondValue} AS SeqValue) s2
 WHERE s1.SeqValue >= 10
   AND s2.SeqValue <= 11
 """);

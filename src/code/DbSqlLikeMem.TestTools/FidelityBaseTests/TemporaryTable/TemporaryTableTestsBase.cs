@@ -23,7 +23,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     public async Task CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
         var result = (List<int>?)await RunFidelityTestAsync<TemporaryTableScenario>(
-            (s, a) => s.RunCreateTemporaryTableAsSelectThenSelect(a));
+            (s, a) => s.RunCreateTemporaryTableAsSelectThenSelectAsync(a));
 
         result.Should().Equal([1, 2]);
     }

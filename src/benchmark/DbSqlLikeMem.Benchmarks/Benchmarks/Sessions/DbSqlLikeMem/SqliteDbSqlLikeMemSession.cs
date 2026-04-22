@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs the benchmark session against the SQLite mock provider.
 /// PT: Executa a sessão de benchmark contra o provider mock de SQLite.
 /// </summary>
-public sealed class SqliteDbSqlLikeMemSession()
+internal sealed class SqliteDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new SqliteProviderSqlDialect())
 {
     private readonly SqliteDbMock _singleThreadDb = new()

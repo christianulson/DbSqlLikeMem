@@ -12,6 +12,12 @@ internal static class SqlParameterDbTypeParserHelper
             return DbType.DateTimeOffset;
         }
 
+        if (normalizedType.StartsWith("LONG RAW", StringComparison.OrdinalIgnoreCase)
+            || normalizedType.StartsWith("RAW", StringComparison.OrdinalIgnoreCase))
+        {
+            return DbType.Binary;
+        }
+
         var typeNameEnd = normalizedType.IndexOf('(');
         var spaceIndex = normalizedType.IndexOf(' ');
         if (spaceIndex >= 0 && (typeNameEnd < 0 || spaceIndex < typeNameEnd))
@@ -27,13 +33,15 @@ internal static class SqlParameterDbTypeParserHelper
             "BIGINT" => DbType.Int64,
             "DECIMAL" or "NUMERIC" => DbType.Decimal,
             "NUMBER" => DbType.Decimal,
+            "BINARY_DOUBLE" => DbType.Double,
+            "BINARY_FLOAT" => DbType.Single,
             "FLOAT" or "REAL" or "DOUBLE" => DbType.Double,
             "BIT" => DbType.Boolean,
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,
             "GUID" or "UUID" => DbType.Guid,
-            "BLOB" or "BINARY" or "VARBINARY" => DbType.Binary,
+            "BLOB" or "BINARY" or "VARBINARY" or "BYTEA" or "RAW" => DbType.Binary,
             _ => DbType.String,
         };
     }

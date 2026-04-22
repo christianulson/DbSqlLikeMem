@@ -176,9 +176,7 @@ internal static class SqlCreateObjectHelper
                 }
                 else
                 {
-                    ownedByTable = ctx.ParseQualifiedObjectName();
-                    ctx.ExpectSymbol(".");
-                    ownedByColumn = ctx.ExpectIdentifier();
+                    (ownedByTable, ownedByColumn) = ctx.ParseSequenceOwnershipTarget();
                 }
 
                 parsedOwnership = true;

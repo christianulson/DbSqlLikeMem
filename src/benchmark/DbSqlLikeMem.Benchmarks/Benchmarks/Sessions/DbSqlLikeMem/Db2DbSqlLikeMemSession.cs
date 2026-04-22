@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 /// EN: Runs DB2 benchmark scenarios against the in-memory DbSqlLikeMem DB2 mock provider.
 /// PT-br: Executa cenários de benchmark de DB2 contra o provedor mock em memória DbSqlLikeMem de DB2.
 /// </summary>
-public sealed class Db2DbSqlLikeMemSession()
+internal sealed class Db2DbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new Db2ProviderSqlDialect())
 {
     private readonly Db2DbMock Db = new() { ThreadSafe = true };

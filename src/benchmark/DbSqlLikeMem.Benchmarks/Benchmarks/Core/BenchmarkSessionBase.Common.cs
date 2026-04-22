@@ -36,6 +36,7 @@ public abstract partial class BenchmarkSessionBase
 
         public void Dispose()
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 Scenario.DropScenarioAsync().GetAwaiter().GetResult();
@@ -48,6 +49,7 @@ public abstract partial class BenchmarkSessionBase
             {
                 Repo.Dispose();
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
     }
 
@@ -83,7 +85,7 @@ public abstract partial class BenchmarkSessionBase
 
     private PreparedScenarioScope<SelectTableScenario, SelectByPKServiceTest> CreateSelectByPkScope()
         => CreatePreparedScenarioScope(
-            (repo, context) => BenchmarkScenarioFactory.CreateSelectTableScenario(repo, context),
+            BenchmarkScenarioFactory.CreateSelectTableScenario,
             (repo, context) => new SelectByPKServiceTest(repo, context));
 
     private PreparedScenarioScope<UsersOrdersScenario, DmlMutationSelectJoinServiceTest> CreateUsersOrdersMutationScope(
@@ -96,32 +98,32 @@ public abstract partial class BenchmarkSessionBase
 
     private PreparedScenarioScope<CreateTableScenario, CreateTableServiceTest> CreateCreateTableScope()
         => CreatePreparedScenarioScope(
-            (repo, context) => BenchmarkScenarioFactory.CreateTableScenario(repo, context),
+            BenchmarkScenarioFactory.CreateTableScenario,
             (repo, context) => new CreateTableServiceTest(repo, context));
 
     private PreparedScenarioScope<CreateTableWithFKScenario, CreateTableWithFKServiceTest> CreateCreateTableWithFkScope()
         => CreatePreparedScenarioScope(
-            (repo, context) => BenchmarkScenarioFactory.CreateTableWithFKScenario(repo, context),
+            BenchmarkScenarioFactory.CreateTableWithFKScenario,
             (repo, context) => new CreateTableWithFKServiceTest(repo, context));
 
     private PreparedScenarioScope<DropTableScenario, DropTableServiceTest> CreateDropTableScope()
         => CreatePreparedScenarioScope(
-            (repo, context) => BenchmarkScenarioFactory.CreateDropTableScenario(repo, context),
+            BenchmarkScenarioFactory.CreateDropTableScenario,
             (repo, context) => new DropTableServiceTest(repo, context));
 
     private PreparedScenarioScope<InsertUsersScenario, BatchInsertReturningServiceTest> CreateReturningInsertScope()
         => CreatePreparedScenarioScope(
-            (repo, context) => BenchmarkScenarioFactory.CreateInsertUsersScenario(repo, context),
+            BenchmarkScenarioFactory.CreateInsertUsersScenario,
             (repo, context) => new BatchInsertReturningServiceTest(repo, context));
 
     protected PreparedScenarioScope<TemporaryTableScenario, TemporaryTableServiceOpsTest> CreateTemporaryTableScope()
         => CreatePreparedScenarioScope(
-            (repo, context) => BenchmarkScenarioFactory.CreateTemporaryTableScenario(repo, context),
+            BenchmarkScenarioFactory.CreateTemporaryTableScenario,
             (repo, context) => new TemporaryTableServiceOpsTest(repo, context));
 
     protected PreparedScenarioScope<TemporaryUsersScenario, TemporaryTableServiceOpsTest> CreateTemporaryUsersScope()
         => CreatePreparedScenarioScope(
-            (repo, context) => BenchmarkScenarioFactory.CreateTemporaryUsersScenario(repo, context),
+            BenchmarkScenarioFactory.CreateTemporaryUsersScenario,
             (repo, context) => new TemporaryTableServiceOpsTest(repo, context));
 
     private PreparedScenarioScope<UsersScenario, LastExecutionPlansHistoryServiceTest> CreateExecutionPlanHistoryScope(
@@ -878,15 +880,6 @@ public abstract partial class BenchmarkSessionBase
 
     private sealed class PreparedTemporaryTableSourceState(
         PreparedScenarioScope<TemporaryTableScenario, TemporaryTableServiceOpsTest> scope) : IDisposable
-    {
-        public TemporaryTableServiceOpsTest Service => scope.Service;
-
-        public void Dispose()
-            => scope.Dispose();
-    }
-
-    private sealed class PreparedTemporaryUsersState(
-        PreparedScenarioScope<TemporaryUsersScenario, TemporaryTableServiceOpsTest> scope) : IDisposable
     {
         public TemporaryTableServiceOpsTest Service => scope.Service;
 
