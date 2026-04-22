@@ -1,11 +1,22 @@
 namespace DbSqlLikeMem.Models;
 
+/// <summary>
+/// EN: Temporary foreign key definition record used during parsing.
+/// PT: Registro temporario de definicao de chave estrangeira usado durante o parsing.
+/// </summary>
+/// <param name="name">EN: Foreign key name. PT: Nome da chave estrangeira.</param>
+/// <param name="RefTableName">EN: Referenced table name. PT: Nome da tabela referenciada.</param>
+/// <param name="references">EN: Column mappings. PT: Mapeamentos de coluna.</param>
 public sealed record Foreign(
     string name,
     string RefTableName,
     HashSet<(string col, string refCol)> references);
 
 
+/// <summary>
+/// EN: Defines foreign key metadata.
+/// PT: Define os metadados de chave estrangeira.
+/// </summary>
 public sealed class ForeignDef
 {
     private ForeignLookupPlan? _childLookupPlan;
@@ -32,10 +43,22 @@ public sealed class ForeignDef
     /// </summary>
     public ITableMock Table { get; private set; }
 
+    /// <summary>
+    /// EN: Foreign key name.
+    /// PT: Nome da chave estrangeira.
+    /// </summary>
     public string Name { get; private set; }
 
+    /// <summary>
+    /// EN: Referenced table.
+    /// PT: Tabela referenciada.
+    /// </summary>
     public ITableMock RefTable { get; private set; }
 
+    /// <summary>
+    /// EN: Mapped columns (local to referenced).
+    /// PT: Colunas mapeadas (local para referenciada).
+    /// </summary>
     public HashSet<(ColumnDef col, ColumnDef refCol)> References { get; private set; }
 
     internal bool TryGetChildLookupPlan(out ForeignLookupPlan plan)

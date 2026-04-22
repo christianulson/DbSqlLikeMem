@@ -637,7 +637,7 @@ internal static class QueryMariaDbFunctionHelper
         var rightValues = right.EnumerateArray().Select(NormalizeJsonElement).ToHashSet(StringComparer.Ordinal);
         var leftArray = left.EnumerateArray().ToList();
         var intersected = new List<object?>(leftArray.Count);
-        var seen = HashSetCompatibilityExtensions.Create<string>(Math.Max(1, leftArray.Count), StringComparer.Ordinal);
+        var seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, leftArray.Count), StringComparer.Ordinal);
         foreach (var item in leftArray)
         {
             var normalized = NormalizeJsonElement(item);

@@ -172,6 +172,25 @@ public class RepoService(
     public RepoService Clone()
         => new(cnnFactory, dialect);
 
+    /// <summary>
+    /// EN: Creates a new instance of the RepoService class that shares
+    /// PT: Cria uma nova instância da classe RepoService que compartilhaq
+    /// </summary>
+    /// <returns></returns>
+    public RepoService CloneWithSharedDatabase()
+    {
+        if (Cnn is DbConnectionMockBase mockCnn)
+        {
+            var sharedDb = mockCnn.Db;
+            var connectionType = mockCnn.GetType();
+            return new RepoService(
+                () => (DbConnection)Activator.CreateInstance(connectionType, sharedDb)!,
+                dialect);
+        }
+
+        return Clone();
+    }
+
     #region Dispose
 
     private bool disposedValue;

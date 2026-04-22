@@ -80,13 +80,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateViewImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateViewImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateViewImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -114,13 +108,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropViewImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteDropViewImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteDropViewImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -162,13 +150,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
     {
         _ = pars;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropTableImpl(connection, query, dialect);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteDropTableImpl(connection, query, dialect);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteDropTableImpl(connection, query, dialect));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -204,13 +186,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteAlterTableAddColumnImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteAlterTableAddColumnImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteAlterTableAddColumnImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -253,13 +229,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateIndexImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateIndexImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateIndexImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -288,13 +258,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropIndexImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteDropIndexImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteDropIndexImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -321,13 +285,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateSequenceImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateSequenceImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateSequenceImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -367,13 +325,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteAlterSequenceImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteAlterSequenceImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteAlterSequenceImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -425,13 +377,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateFunctionImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateFunctionImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateFunctionImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -459,13 +405,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateProcedureImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateProcedureImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateProcedureImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -494,13 +434,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropSequenceImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteDropSequenceImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteDropSequenceImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -525,13 +459,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropFunctionImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteDropFunctionImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteDropFunctionImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -550,13 +478,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropProcedureImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteDropProcedureImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteDropProcedureImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -585,13 +507,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = pars;
         _ = dialect;
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteDropTriggerImpl(connection, query);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteDropTriggerImpl(connection, query);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteDropTriggerImpl(connection, query));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -621,13 +537,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         _ = dialect;
 
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteExecuteBlockImpl(connection, query, pars);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteExecuteBlockImpl(connection, query, pars);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteExecuteBlockImpl(connection, query, pars));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;
@@ -3539,13 +3449,7 @@ internal static class DbSelectIntoAndInsertSelectStrategies
         QueryExecutionContext context)
     {
         DmlExecutionResult affected;
-        if (!connection.Db.ThreadSafe)
-            affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, context);
-        else
-        {
-            lock (connection.Db.SyncRoot)
-                affected = ExecuteCreateTemporaryTableAsSelectImpl(connection, query, context);
-        }
+        affected = connection.Db.ExecuteWithLock(() => ExecuteCreateTemporaryTableAsSelectImpl(connection, query, context));
 
         connection.SetLastFoundRows(affected.AffectedRows);
         return affected;

@@ -464,7 +464,7 @@ internal static class DbUpdateStrategy
         if (operand is null || operand is DBNull)
             return null;
 
-        if (operand is System.Text.Json.JsonDocument || operand is System.Text.Json.JsonElement)
+        if (operand is JsonDocument || operand is JsonElement)
             return operand;
 
         if (operand is string)

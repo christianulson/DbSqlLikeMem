@@ -20,6 +20,15 @@ internal static class HashSetCompatibilityExtensions
 #endif
     }
 
+    internal static HashSet<string> CreateStringHashSet(int capacity, IEqualityComparer<string> comparer)
+    {
+#if NET8_0_OR_GREATER
+        return new HashSet<string>(capacity, comparer);
+#else
+        return new HashSet<string>(comparer);
+#endif
+    }
+
     internal static HashSet<T> Create<T>(
         int capacity,
         IEqualityComparer<T> comparer)

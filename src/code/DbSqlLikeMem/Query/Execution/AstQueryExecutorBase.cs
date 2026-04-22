@@ -3294,7 +3294,7 @@ internal abstract class AstQueryExecutorBase(QueryExecutionContext context)
     /// EN: Implements EvalGroup.
     /// PT: Implementa EvalGroup.
     /// </summary>
-    internal sealed class EvalGroup(List<AstQueryExecutorBase.EvalRow> rows)
+    internal sealed class EvalGroup(List<EvalRow> rows)
     {
         /// <summary>
         /// EN: Gets or sets Rows.

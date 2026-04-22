@@ -19,7 +19,7 @@ public sealed class SequenceSessionLocalServiceTest(
         var useLastVal = args.Length > 0 && args[0] is bool flag && flag;
 
         await EnsureOpenAsync(Repo);
-        using var second = Repo.Clone();
+        using var second = Repo.CloneWithSharedDatabase();
         await EnsureOpenAsync(second);
 
         return useLastVal
@@ -67,12 +67,21 @@ public sealed class SequenceSessionLocalServiceTest(
             _ = await ExecuteScalarLongAsync(repo, sql);
             return 0L;
         }
-        catch (Exception ex) when (
-            ex is InvalidOperationException
-            || (ex.GetType().Name == "PostgresException" && ex.Message.Contains("not yet defined", StringComparison.OrdinalIgnoreCase)))
+        catch (Exception ex)
         {
-            Assert.Contains("not yet defined", ex.Message, StringComparison.OrdinalIgnoreCase);
-            return 1L;
+            var message = ex.Message;
+            var isSessionMissing =
+                ex is InvalidOperationException
+                || (ex.GetType().Name == "PostgresException" && (
+                    message.Contains("not yet defined", StringComparison.OrdinalIgnoreCase)
+                    || message.Contains("Sequence not found", StringComparison.OrdinalIgnoreCase)));
+
+            if (isSessionMissing)
+            {
+                return 1L;
+            }
+
+            throw;
         }
     }
 

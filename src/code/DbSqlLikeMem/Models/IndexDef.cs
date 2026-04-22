@@ -1,5 +1,13 @@
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// EN: Temporary index definition record used during parsing.
+/// PT: Registro temporario de definicao de indice usado durante o parsing.
+/// </summary>
+/// <param name="Name">EN: Index name. PT: Nome do indice.</param>
+/// <param name="KeyCols">EN: Key columns. PT: Colunas chaves.</param>
+/// <param name="Unique">EN: Is unique. PT: E unico.</param>
+/// <param name="Include">EN: Included columns. PT: Colunas incluidas.</param>
 public sealed record Idx(
     string Name,
     IReadOnlyList<string> KeyCols,
@@ -184,6 +192,10 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
+    /// <summary>
+    /// EN: Gets an enumerable collection that contains the keys in the read-only dictionary.
+    /// PT: Obtem uma colecao enumeravel que contem as chaves no dicionario somente leitura.
+    /// </summary>
     public IEnumerable<IndexKey> Keys
     {
         get
@@ -193,6 +205,10 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         }
     }
 
+    /// <summary>
+    /// EN: Gets an enumerable collection that contains the values in the read-only dictionary.
+    /// PT: Obtem uma colecao enumeravel que contem os valores no dicionario somente leitura.
+    /// </summary>
     public IEnumerable<IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>> Values
     {
         get
@@ -203,6 +219,10 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         }
     }
 
+    /// <summary>
+    /// EN: Gets the number of elements in the collection.
+    /// PT: Obtem o numero de elementos na colecao.
+    /// </summary>
     public int Count
     {
         get
@@ -212,6 +232,11 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         }
     }
 
+    /// <summary>
+    /// EN: Gets the element that has the specified key in the read-only dictionary.
+    /// PT: Obtem o elemento que tem a chave especificada no dicionario somente leitura.
+    /// </summary>
+    /// <param name="key">EN: The key to locate. PT: A chave para localizar.</param>
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> this[IndexKey key]
     {
         get
@@ -221,12 +246,23 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         }
     }
 
+    /// <summary>
+    /// EN: Determines whether the read-only dictionary contains an element that has the specified key.
+    /// PT: Determina se o dicionario somente leitura contem um elemento que tem a chave especificada.
+    /// </summary>
+    /// <param name="key">EN: The key to locate. PT: A chave para localizar.</param>
     public bool ContainsKey(IndexKey key)
     {
         EnsureReady();
         return _items.ContainsKey(key);
     }
 
+    /// <summary>
+    /// EN: Gets the value that is associated with the specified key.
+    /// PT: Obtem o valor que esta associado a chave especificada.
+    /// </summary>
+    /// <param name="key">EN: The key to locate. PT: A chave para localizar.</param>
+    /// <param name="value">EN: The output value. PT: O valor de saida.</param>
     public bool TryGetValue(IndexKey key, out IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> value)
     {
         EnsureReady();
@@ -239,6 +275,10 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         return true;
     }
 
+    /// <summary>
+    /// EN: Returns an enumerator that iterates through the collection.
+    /// PT: Retorna um enumerador que itera atraves da colecao.
+    /// </summary>
     public IEnumerator<KeyValuePair<IndexKey, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>> GetEnumerator()
     {
         EnsureReady();
@@ -455,6 +495,12 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         return null;
     }
 
+    /// <summary>
+    /// EN: Updates the index with a new row.
+    /// PT: Atualiza o indice com uma nova linha.
+    /// </summary>
+    /// <param name="rowIndex">EN: Row index. PT: Indice da linha.</param>
+    /// <param name="newRow">EN: The new row data. PT: Os dados da nova linha.</param>
     public void UpdateIndexesWithRow(
         int rowIndex,
         IReadOnlyDictionary<int, object?> newRow)
@@ -497,6 +543,13 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         }
     }
 
+    /// <summary>
+    /// EN: Updates the index replacing an old row with a new one.
+    /// PT: Atualiza o indice substituindo uma linha antiga por uma nova.
+    /// </summary>
+    /// <param name="rowIndex">EN: Row index. PT: Indice da linha.</param>
+    /// <param name="oldRow">EN: The old row data. PT: Os dados da linha antiga.</param>
+    /// <param name="newRow">EN: The new row data. PT: Os dados da nova linha.</param>
     public void UpdateIndexesWithRow(
         int rowIndex,
         IReadOnlyDictionary<int, object?>? oldRow,

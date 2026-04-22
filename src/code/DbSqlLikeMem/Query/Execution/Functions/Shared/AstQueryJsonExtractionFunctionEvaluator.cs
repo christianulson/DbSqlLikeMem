@@ -79,7 +79,7 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
 
             if (hasContent)
             {
-                var builder = new System.Text.StringBuilder(inner.Length + 2);
+                var builder = new StringBuilder(inner.Length + 2);
                 var added = false;
                 var start = 0;
                 while (start < inner.Length)

@@ -1,57 +1,46 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
+using DbSqlLikeMem.Interfaces;
 
 namespace DbSqlLikeMem.Models;
 
+/// <summary>
+/// EN: Provides a read-only set wrapper over a HashSet.
+/// PT: Fornece um wrapper de conjunto somente leitura sobre um HashSet.
+/// </summary>
 public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
 {
-
-
     private readonly HashSet<T> _set;
 
-    //
-    // Summary:
-    //     Initializes a new instance of the System.Collections.Generic.HashSet`1 class
-    //     that is empty and uses the default equality comparer for the set type.
+    /// <summary>
+    /// EN: Initializes a new instance of the ReadOnlyHashSet class that is empty.
+    /// PT: Inicializa uma nova instancia da classe ReadOnlyHashSet que esta vazia.
+    /// </summary>
     public ReadOnlyHashSet()
         => _set = [];
-    //
-    // Summary:
-    //     Initializes a new instance of the System.Collections.Generic.HashSet`1 class
-    //     that uses the default equality comparer for the set type, contains elements copied
-    //     from the specified collection, and has sufficient capacity to accommodate the
-    //     number of elements copied.
-    //
-    // Parameters:
-    //   collection:
-    //     The collection whose elements are copied to the new set.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     collection is null.
+
+    /// <summary>
+    /// EN: Initializes a new instance containing elements copied from the specified collection.
+    /// PT: Inicializa uma nova instancia contendo elementos copiados da colecao especificada.
+    /// </summary>
+    /// <param name="collection">EN: The collection whose elements are copied. PT: A colecao cujos elementos sao copiados.</param>
     public ReadOnlyHashSet(IEnumerable<T> collection)
         => _set = [.. collection];
-    //
-    // Summary:
-    //     Initializes a new instance of the System.Collections.Generic.HashSet`1 class
-    //     that is empty and uses the specified equality comparer for the set type.
-    //
-    // Parameters:
-    //   comparer:
-    //     The System.Collections.Generic.IEqualityComparer`1 implementation to use when
-    //     comparing values in the set, or null to use the default System.Collections.Generic.EqualityComparer`1
-    //     implementation for the set type.
+
+    /// <summary>
+    /// EN: Initializes a new empty instance that uses the specified equality comparer.
+    /// PT: Inicializa uma nova instancia vazia que usa o comparador de igualdade especificado.
+    /// </summary>
+    /// <param name="comparer">EN: The equality comparer to use. PT: O comparador de igualdade a usar.</param>
     public ReadOnlyHashSet(IEqualityComparer<T> comparer)
         => _set = new HashSet<T>(comparer);
-    //
-    // Summary:
-    //     Initializes a new instance of the System.Collections.Generic.HashSet`1 class
-    //     that is empty, but has reserved space for capacity items and uses the default
-    //     equality comparer for the set type.
-    //
-    // Parameters:
-    //   capacity:
-    //     The initial size of the System.Collections.Generic.HashSet`1
+
+    /// <summary>
+    /// EN: Initializes a new instance with the specified capacity.
+    /// PT: Inicializa uma nova instancia com a capacidade especificada.
+    /// </summary>
+    /// <param name="capacity">EN: The initial capacity. PT: A capacidade inicial.</param>
     public ReadOnlyHashSet(int capacity)
     {
 #if NET8_0_OR_GREATER
@@ -60,41 +49,22 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
         _set = new HashSet<T>();
 #endif
     }
-    //
-    // Summary:
-    //     Initializes a new instance of the System.Collections.Generic.HashSet`1 class
-    //     that uses the specified equality comparer for the set type, contains elements
-    //     copied from the specified collection, and has sufficient capacity to accommodate
-    //     the number of elements copied.
-    //
-    // Parameters:
-    //   collection:
-    //     The collection whose elements are copied to the new set.
-    //
-    //   comparer:
-    //     The System.Collections.Generic.IEqualityComparer`1 implementation to use when
-    //     comparing values in the set, or null to use the default System.Collections.Generic.EqualityComparer`1
-    //     implementation for the set type.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     collection is null.
+
+    /// <summary>
+    /// EN: Initializes a new instance containing elements copied from the collection, using the specified equality comparer.
+    /// PT: Inicializa uma nova instancia contendo elementos copiados da colecao, usando o comparador de igualdade especificado.
+    /// </summary>
+    /// <param name="collection">EN: The collection whose elements are copied. PT: A colecao cujos elementos sao copiados.</param>
+    /// <param name="comparer">EN: The equality comparer to use. PT: O comparador de igualdade a usar.</param>
     public ReadOnlyHashSet(IEnumerable<T> collection, IEqualityComparer<T> comparer)
         => _set = new HashSet<T>(collection, comparer);
-    //
-    // Summary:
-    //     Initializes a new instance of the System.Collections.Generic.HashSet`1 class
-    //     that uses the specified equality comparer for the set type, and has sufficient
-    //     capacity to accommodate capacity elements.
-    //
-    // Parameters:
-    //   capacity:
-    //     The initial size of the System.Collections.Generic.HashSet`1
-    //
-    //   comparer:
-    //     The System.Collections.Generic.IEqualityComparer`1 implementation to use when
-    //     comparing values in the set, or null (Nothing in Visual Basic) to use the default
-    //     System.Collections.Generic.IEqualityComparer`1 implementation for the set type.
+
+    /// <summary>
+    /// EN: Initializes a new instance with the specified capacity and equality comparer.
+    /// PT: Inicializa uma nova instancia com a capacidade e comparador de igualdade especificados.
+    /// </summary>
+    /// <param name="capacity">EN: The initial capacity. PT: A capacidade inicial.</param>
+    /// <param name="comparer">EN: The equality comparer to use. PT: O comparador de igualdade a usar.</param>
     public ReadOnlyHashSet(int capacity, IEqualityComparer<T> comparer)
     {
 #if NET8_0_OR_GREATER
@@ -104,165 +74,91 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
 #endif
     }
 
-    //
-    // Summary:
-    //     Gets the number of elements that are contained in a set.
-    //
-    // Returns:
-    //     The number of elements that are contained in the set.
+    /// <summary>
+    /// EN: Gets the number of elements that are contained in the set.
+    /// PT: Obtem o numero de elementos que estao contidos no conjunto.
+    /// </summary>
     public int Count => _set.Count;
-    //
-    // Summary:
-    //     Gets the System.Collections.Generic.IEqualityComparer`1 object that is used to
-    //     determine equality for the values in the set.
-    //
-    // Returns:
-    //     The System.Collections.Generic.IEqualityComparer`1 object that is used to determine
-    //     equality for the values in the set.
+
+    /// <summary>
+    /// EN: Gets the equality comparer used for the values in the set.
+    /// PT: Obtem o comparador de igualdade usado para os valores no conjunto.
+    /// </summary>
     public IEqualityComparer<T> Comparer => _set.Comparer;
 
-    //
-    // Summary:
-    //     Returns an System.Collections.IEqualityComparer object that can be used for equality
-    //     testing of a System.Collections.Generic.HashSet`1 object.
-    //
-    // Returns:
-    //     An System.Collections.IEqualityComparer object that can be used for deep equality
-    //     testing of the System.Collections.Generic.HashSet`1 object.
+    /// <summary>
+    /// EN: Returns an equality comparer object that can be used for deep equality testing.
+    /// PT: Retorna um objeto comparador de igualdade que pode ser usado para testes de igualdade profunda.
+    /// </summary>
     public static IEqualityComparer<HashSet<T>> CreateSetComparer()
         => HashSet<T>.CreateSetComparer();
-    //
-    // Summary:
-    //     Determines whether a System.Collections.Generic.HashSet`1 object contains the
-    //     specified element.
-    //
-    // Parameters:
-    //   item:
-    //     The element to locate in the System.Collections.Generic.HashSet`1 object.
-    //
-    // Returns:
-    //     true if the System.Collections.Generic.HashSet`1 object contains the specified
-    //     element; otherwise, false.
+
+    /// <summary>
+    /// EN: Determines whether the set contains the specified element.
+    /// PT: Determina se o conjunto contem o elemento especificado.
+    /// </summary>
+    /// <param name="item">EN: The element to locate. PT: O elemento a localizar.</param>
     public bool Contains(T item)
         => _set.Contains(item);
-    //
-    // Summary:
-    //     Copies the elements of a System.Collections.Generic.HashSet`1 object to an array.
-    //
-    //
-    // Parameters:
-    //   array:
-    //     The one-dimensional array that is the destination of the elements copied from
-    //     the System.Collections.Generic.HashSet`1 object. The array must have zero-based
-    //     indexing.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     array is null.
+
+    /// <summary>
+    /// EN: Copies the elements to an array.
+    /// PT: Copia os elementos para um array.
+    /// </summary>
+    /// <param name="array">EN: The destination array. PT: O array de destino.</param>
     public void CopyTo(T[] array)
         => _set.CopyTo(array);
-    //
-    // Summary:
-    //     Copies the elements of a System.Collections.Generic.HashSet`1 object to an array,
-    //     starting at the specified array index.
-    //
-    // Parameters:
-    //   array:
-    //     The one-dimensional array that is the destination of the elements copied from
-    //     the System.Collections.Generic.HashSet`1 object. The array must have zero-based
-    //     indexing.
-    //
-    //   arrayIndex:
-    //     The zero-based index in array at which copying begins.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     array is null.
-    //
-    //   T:System.ArgumentOutOfRangeException:
-    //     arrayIndex is less than 0.
-    //
-    //   T:System.ArgumentException:
-    //     arrayIndex is greater than the length of the destination array.
+
+    /// <summary>
+    /// EN: Copies the elements to an array, starting at the specified index.
+    /// PT: Copia os elementos para um array, comecando no indice especificado.
+    /// </summary>
+    /// <param name="array">EN: The destination array. PT: O array de destino.</param>
+    /// <param name="arrayIndex">EN: The start index. PT: O indice inicial.</param>
     public void CopyTo(T[] array, int arrayIndex)
         => _set.CopyTo(array, arrayIndex);
-    //
-    // Summary:
-    //     Copies the specified number of elements of a System.Collections.Generic.HashSet`1
-    //     object to an array, starting at the specified array index.
-    //
-    // Parameters:
-    //   array:
-    //     The one-dimensional array that is the destination of the elements copied from
-    //     the System.Collections.Generic.HashSet`1 object. The array must have zero-based
-    //     indexing.
-    //
-    //   arrayIndex:
-    //     The zero-based index in array at which copying begins.
-    //
-    //   count:
-    //     The number of elements to copy to array.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     array is null.
-    //
-    //   T:System.ArgumentOutOfRangeException:
-    //     arrayIndex is less than 0. -or- count is less than 0.
-    //
-    //   T:System.ArgumentException:
-    //     arrayIndex is greater than the length of the destination array. -or- count is
-    //     greater than the available space from the index to the end of the destination
-    //     array.
+
+    /// <summary>
+    /// EN: Copies the specified number of elements to an array, starting at the specified index.
+    /// PT: Copia o numero especificado de elementos para um array, comecando no indice especificado.
+    /// </summary>
+    /// <param name="array">EN: The destination array. PT: O array de destino.</param>
+    /// <param name="arrayIndex">EN: The start index. PT: O indice inicial.</param>
+    /// <param name="count">EN: The number of elements to copy. PT: O numero de elementos a copiar.</param>
     public void CopyTo(T[] array, int arrayIndex, int count)
         => _set.CopyTo(array, arrayIndex, count);
 
 #if NET6_0_OR_GREATER
-    //
-    // Summary:
-    //     Ensures that this hash set can hold the specified number of elements without
-    //     growing.
-    //
-    // Parameters:
-    //   capacity:
-    //     The minimum capacity to ensure.
-    //
-    // Returns:
-    //     The new capacity of this instance.
-    //
-    // Exceptions:
-    //   T:System.ArgumentOutOfRangeException:
-    //     capacity is less than zero.
+    /// <summary>
+    /// EN: Ensures that this set can hold the specified number of elements without growing.
+    /// PT: Garante que este conjunto possa conter o numero especificado de elementos sem crescer.
+    /// </summary>
+    /// <param name="capacity">EN: The minimum capacity to ensure. PT: A capacidade minima a garantir.</param>
     public int EnsureCapacity(int capacity)
         => _set.EnsureCapacity(capacity);
 #endif
 
-    //
-    // Summary:
-    //     Removes all elements in the specified collection from the current System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Parameters:
-    //   other:
-    //     The collection of items to remove from the System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     other is null.
+    /// <summary>
+    /// EN: Removes all elements in the specified collection from the current set.
+    /// PT: Remove todos os elementos da colecao especificada do conjunto atual.
+    /// </summary>
+    /// <param name="other">EN: The collection of items to remove. PT: A colecao de itens a remover.</param>
     public void ExceptWith(IEnumerable<T> other)
         => _set.ExceptWith(other);
-    //
-    // Summary:
-    //     Returns an enumerator that iterates through a System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Returns:
-    //     A System.Collections.Generic.HashSet`1.Enumerator object for the System.Collections.Generic.HashSet`1
-    //     object.
+
+    /// <summary>
+    /// EN: Returns an enumerator that iterates through the set.
+    /// PT: Retorna um enumerador que itera atraves do conjunto.
+    /// </summary>
     public HashSet<T>.Enumerator GetEnumerator()
         => _set.GetEnumerator();
 
+    /// <summary>
+    /// EN: Implements the ISerializable interface.
+    /// PT: Implementa a interface ISerializable.
+    /// </summary>
+    /// <param name="info">EN: The SerializationInfo. PT: O SerializationInfo.</param>
+    /// <param name="context">EN: The StreamingContext. PT: O StreamingContext.</param>
     public void GetObjectData(SerializationInfo info, StreamingContext context)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(info, nameof(info));
@@ -271,152 +167,68 @@ public class ReadOnlyHashSet<T> : IReadOnlyHashSet<T>
 #pragma warning restore SYSLIB0050 // Formatter-based serialization is obsolete and should not be used.
     }
 
-    //
-    // Summary:
-    //     Determines whether a System.Collections.Generic.HashSet`1 object is a proper
-    //     subset of the specified collection.
-    //
-    // Parameters:
-    //   other:
-    //     The collection to compare to the current System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Returns:
-    //     true if the System.Collections.Generic.HashSet`1 object is a proper subset of
-    //     other; otherwise, false.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     other is null.
+    /// <summary>
+    /// EN: Determines whether the set is a proper subset of the specified collection.
+    /// PT: Determina se o conjunto e um subconjunto proprio da colecao especificada.
+    /// </summary>
+    /// <param name="other">EN: The collection to compare. PT: A colecao a comparar.</param>
     public bool IsProperSubsetOf(IEnumerable<T> other)
         => _set.IsProperSubsetOf(other);
-    //
-    // Summary:
-    //     Determines whether a System.Collections.Generic.HashSet`1 object is a proper
-    //     superset of the specified collection.
-    //
-    // Parameters:
-    //   other:
-    //     The collection to compare to the current System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Returns:
-    //     true if the System.Collections.Generic.HashSet`1 object is a proper superset
-    //     of other; otherwise, false.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     other is null.
+
+    /// <summary>
+    /// EN: Determines whether the set is a proper superset of the specified collection.
+    /// PT: Determina se o conjunto e um superconjunto proprio da colecao especificada.
+    /// </summary>
+    /// <param name="other">EN: The collection to compare. PT: A colecao a comparar.</param>
     public bool IsProperSupersetOf(IEnumerable<T> other)
         => _set.IsProperSupersetOf(other);
-    //
-    // Summary:
-    //     Determines whether a System.Collections.Generic.HashSet`1 object is a subset
-    //     of the specified collection.
-    //
-    // Parameters:
-    //   other:
-    //     The collection to compare to the current System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Returns:
-    //     true if the System.Collections.Generic.HashSet`1 object is a subset of other;
-    //     otherwise, false.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     other is null.
+
+    /// <summary>
+    /// EN: Determines whether the set is a subset of the specified collection.
+    /// PT: Determina se o conjunto e um subconjunto da colecao especificada.
+    /// </summary>
+    /// <param name="other">EN: The collection to compare. PT: A colecao a comparar.</param>
     public bool IsSubsetOf(IEnumerable<T> other)
         => _set.IsSubsetOf(other);
-    //
-    // Summary:
-    //     Determines whether a System.Collections.Generic.HashSet`1 object is a superset
-    //     of the specified collection.
-    //
-    // Parameters:
-    //   other:
-    //     The collection to compare to the current System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Returns:
-    //     true if the System.Collections.Generic.HashSet`1 object is a superset of other;
-    //     otherwise, false.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     other is null.
+
+    /// <summary>
+    /// EN: Determines whether the set is a superset of the specified collection.
+    /// PT: Determina se o conjunto e um superconjunto da colecao especificada.
+    /// </summary>
+    /// <param name="other">EN: The collection to compare. PT: A colecao a comparar.</param>
     public bool IsSupersetOf(IEnumerable<T> other)
         => _set.IsSupersetOf(other);
-    //
-    // Summary:
-    //     Implements the System.Runtime.Serialization.ISerializable interface and raises
-    //     the deserialization event when the deserialization is complete.
-    //
-    // Parameters:
-    //   sender:
-    //     The source of the deserialization event.
-    //
-    // Exceptions:
-    //   T:System.Runtime.Serialization.SerializationException:
-    //     The System.Runtime.Serialization.SerializationInfo object associated with the
-    //     current System.Collections.Generic.HashSet`1 object is invalid.
+
+    /// <summary>
+    /// EN: Raises the deserialization event.
+    /// PT: Aciona o evento de desserializacao.
+    /// </summary>
+    /// <param name="sender">EN: The source. PT: A fonte.</param>
     public virtual void OnDeserialization(object? sender)
         => _set.OnDeserialization(sender);
-    //
-    // Summary:
-    //     Determines whether the current System.Collections.Generic.HashSet`1 object and
-    //     a specified collection share common elements.
-    //
-    // Parameters:
-    //   other:
-    //     The collection to compare to the current System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Returns:
-    //     true if the System.Collections.Generic.HashSet`1 object and other share at least
-    //     one common element; otherwise, false.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     other is null.
+
+    /// <summary>
+    /// EN: Determines whether the set and a specified collection share common elements.
+    /// PT: Determina se o conjunto e uma colecao especificada compartilham elementos comuns.
+    /// </summary>
+    /// <param name="other">EN: The collection to compare. PT: A colecao a comparar.</param>
     public bool Overlaps(IEnumerable<T> other)
         => _set.Overlaps(other);
 
-    //
-    // Summary:
-    //     Determines whether a System.Collections.Generic.HashSet`1 object and the specified
-    //     collection contain the same elements.
-    //
-    // Parameters:
-    //   other:
-    //     The collection to compare to the current System.Collections.Generic.HashSet`1
-    //     object.
-    //
-    // Returns:
-    //     true if the System.Collections.Generic.HashSet`1 object is equal to other; otherwise,
-    //     false.
-    //
-    // Exceptions:
-    //   T:System.ArgumentNullException:
-    //     other is null.
+    /// <summary>
+    /// EN: Determines whether the set and the specified collection contain the same elements.
+    /// PT: Determina se o conjunto e a colecao especificada contem os mesmos elementos.
+    /// </summary>
+    /// <param name="other">EN: The collection to compare. PT: A colecao a comparar.</param>
     public bool SetEquals(IEnumerable<T> other)
         => _set.SetEquals(other);
 
-    //
-    // Summary:
-    //     Searches the set for a given value and returns the equal value it finds, if any.
-    //
-    //
-    // Parameters:
-    //   equalValue:
-    //     The value to search for.
-    //
-    //   actualValue:
-    //     The value from the set that the search found, or the default value of T when
-    //     the search yielded no match.
-    //
-    // Returns:
-    //     A value indicating whether the search was successful.
+    /// <summary>
+    /// EN: Searches the set for a given value and returns the equal value it finds.
+    /// PT: Pesquisa no conjunto por um valor e retorna o valor igual encontrado.
+    /// </summary>
+    /// <param name="equalValue">EN: The value to search. PT: O valor a procurar.</param>
+    /// <param name="actualValue">EN: The found value. PT: O valor encontrado.</param>
     public bool TryGetValue(
         T equalValue,
 #if NET8_0_OR_GREATER

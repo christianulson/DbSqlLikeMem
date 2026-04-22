@@ -368,6 +368,10 @@ public abstract class TableMock
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
+    /// <summary>
+    /// EN: Gets the read-only list of items in the table.
+    /// PT: Obtem a lista somente leitura de itens na tabela.
+    /// </summary>
     public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => _itemsView;
 
     private sealed class ItemsView(List<Dictionary<int, object?>> items) : IReadOnlyList<IReadOnlyDictionary<int, object?>>
@@ -397,6 +401,11 @@ public abstract class TableMock
     /// </summary>
     public IReadOnlyHashSet<int> PrimaryKeyIndexes => _primaryKeyIndexesView;
 
+    /// <summary>
+    /// EN: Adds primary key index columns by name.
+    /// PT: Adiciona colunas de indice de chave primaria pelo nome.
+    /// </summary>
+    /// <param name="columns">EN: Primary key columns. PT: Colunas da chave primaria.</param>
     public void AddPrimaryKeyIndexes(params string[] columns)
     {
         foreach (var colName in columns)
@@ -972,6 +981,11 @@ public abstract class TableMock
         }
     }
 
+    /// <summary>
+    /// EN: Updates index structures using the specified row.
+    /// PT: Atualiza estruturas de indice usando a linha indicada.
+    /// </summary>
+    /// <param name="rowIdx">EN: Updated row index. PT: Indice da linha atualizada.</param>
     public void UpdateIndexesWithRow(int rowIdx)
     {
         if (_indexes.Count == 0)

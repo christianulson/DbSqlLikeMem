@@ -1,9 +1,17 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// EN: Dependency injection extensions for DbMock.
+/// PT: Extensoes de injecao de dependencia para DbMock.
+/// </summary>
 public static class ServiceCollectionDbMockExtensions
 {
+    /// <summary>
+    /// EN: Adds a DbMock as a singleton service.
+    /// PT: Adiciona um DbMock como um servico singleton.
+    /// </summary>
     public static IServiceCollection AddDbMockSingleton<T>(
         this IServiceCollection services,
         Action<T>? acRegister = null)
@@ -15,6 +23,10 @@ public static class ServiceCollectionDbMockExtensions
         return instance;
     });
 
+    /// <summary>
+    /// EN: Adds a DbMock as a scoped service.
+    /// PT: Adiciona um DbMock como um servico de escopo.
+    /// </summary>
     public static IServiceCollection AddDbMockScoped<T>(
         this IServiceCollection services,
         Action<T>? acRegister = null)
@@ -26,6 +38,10 @@ public static class ServiceCollectionDbMockExtensions
         return instance;
     });
 
+    /// <summary>
+    /// EN: Adds a DbMock as a transient service.
+    /// PT: Adiciona um DbMock como um servico transiente.
+    /// </summary>
     public static IServiceCollection AddDbMockTransient<T>(
         this IServiceCollection services,
         Action<T>? acRegister = null)

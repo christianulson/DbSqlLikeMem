@@ -102,7 +102,7 @@ public abstract class DbConnectionMockBase(
     private int _transactionBeginJournalPosition;
     private bool _isReplayingTransactionJournal;
     private int _currentTransactionId;
-    private static readonly System.Threading.AsyncLocal<DbConnectionMockBase?> _ambientMutationConnection = new();
+    private static readonly AsyncLocal<DbConnectionMockBase?> _ambientMutationConnection = new();
 
     /// <summary>
     /// EN: In-memory database associated with this connection.
@@ -165,7 +165,7 @@ public abstract class DbConnectionMockBase(
     private byte[]? _contextInfo;
     private string? _lastSessionSequenceKey;
     private string? _currentQueryText;
-    private static readonly System.Threading.AsyncLocal<TableTriggerEvent?> _ambientTriggerEvent = new();
+    private static readonly AsyncLocal<TableTriggerEvent?> _ambientTriggerEvent = new();
 
     internal void ClearExecutionPlans()
     {
@@ -898,6 +898,10 @@ public abstract class DbConnectionMockBase(
     /// </summary>
     protected virtual bool SupportsReleaseSavepoint => true;
 
+    /// <summary>
+    /// EN: Gets the default schema name for this connection.
+    /// PT: Obtem o nome do esquema padrao para esta conexao.
+    /// </summary>
     protected virtual string DefaultSchemaName => Database;
 
     internal string ResolveSchemaName(string? schemaName)
@@ -3284,6 +3288,10 @@ public abstract class DbConnectionMockBase(
             Thread.Sleep(SimulatedLatencyMs);
     }
 
+    /// <summary>
+    /// EN: Creates a new provider-specific exception.
+    /// PT: Cria uma nova excecao especifica do provedor.
+    /// </summary>
     protected internal abstract Exception NewException(string message, int code);
 
     /// <summary>

@@ -1,5 +1,17 @@
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// EN: Temporary column definition record used during parsing.
+/// PT: Registro temporario de definicao de coluna usado durante o parsing.
+/// </summary>
+/// <param name="name">EN: Column name. PT: Nome da coluna.</param>
+/// <param name="dbType">EN: Data type. PT: Tipo de dados.</param>
+/// <param name="nullable">EN: Accepts nulls. PT: Aceita nulos.</param>
+/// <param name="size">EN: Optional size. PT: Tamanho opcional.</param>
+/// <param name="decimalPlaces">EN: Optional decimal places. PT: Casas decimais opcionais.</param>
+/// <param name="identity">EN: Identity flag. PT: Indicador de identidade.</param>
+/// <param name="defaultValue">EN: Default value. PT: Valor padrao.</param>
+/// <param name="enumValues">EN: Enum values. PT: Valores enum.</param>
 public sealed record Col(
     string name,
     DbType dbType,
@@ -77,6 +89,10 @@ public sealed class ColumnDef
     /// </summary>
     public ITableMock Table { get; private set; }
 
+    /// <summary>
+    /// EN: Column name.
+    /// PT: Nome da coluna.
+    /// </summary>
     public string Name { get; private set; }
 
     /// <summary>

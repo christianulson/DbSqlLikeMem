@@ -132,7 +132,7 @@ internal static class AstQuerySqliteDateFunctionEvaluator
 
     private static string FormatSqliteStrftime(string format, DateTime dateTime)
     {
-        var builder = new System.Text.StringBuilder();
+        var builder = new StringBuilder();
         for (var i = 0; i < format.Length; i++)
         {
             var ch = format[i];

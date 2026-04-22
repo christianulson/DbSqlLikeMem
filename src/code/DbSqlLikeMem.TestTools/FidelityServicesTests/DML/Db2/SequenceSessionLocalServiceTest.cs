@@ -19,7 +19,7 @@ public sealed class SequenceSessionLocalServiceTest(
         _ = args;
 
         await EnsureOpenAsync(Repo);
-        using var second = Repo.Clone();
+        using var second = Repo.CloneWithSharedDatabase();
         await EnsureOpenAsync(second);
 
         return await RunSessionLocalAsync(second);

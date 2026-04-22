@@ -1085,7 +1085,7 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
-        List<AstQueryExecutorBase.EvalRow> rows = group.Rows;
+        List<EvalRow> rows = group.Rows;
         var rowCount = rows.Count;
         if (rowCount == 0)
             return null;
@@ -1119,7 +1119,7 @@ internal static class AstQueryAggregateEvaluator
         var hasValue = false;
         var estimatedCapacity = EstimateStringAggregateCapacity(rowCount, separator.Length);
         HashSet<string>? seen = fn.Distinct && rowCount > 1
-            ? HashSetCompatibilityExtensions.Create<string>(Math.Max(1, rowCount), StringComparer.Ordinal)
+            ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal)
             : null;
 
         if (!hasDirectValueSelector)
@@ -1262,12 +1262,12 @@ internal static class AstQueryAggregateEvaluator
         return hasValue ? StringBuilderCache.GetStringAndRelease(builder!) : null;
     }
 
-    private static List<AstQueryExecutorBase.EvalRow> OrderStringAggregateRows(
+    private static List<EvalRow> OrderStringAggregateRows(
         QueryExecutionContext context,
         IReadOnlyList<WindowOrderItem> orderBy,
-        List<AstQueryExecutorBase.EvalRow> rows,
+        List<EvalRow> rows,
         IDictionary<string, Source> ctes,
-        Func<SqlExpr, AstQueryExecutorBase.EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
         var rowCount = rows.Count;
         var orderedIndexes = new int[rowCount];
@@ -1291,7 +1291,7 @@ internal static class AstQueryAggregateEvaluator
 
                 return leftIndex.CompareTo(rightIndex);
             });
-            var orderedRows1 = new List<AstQueryExecutorBase.EvalRow>(rowCount);
+            var orderedRows1 = new List<EvalRow>(rowCount);
             for (var i = 0; i < rowCount; i++)
                 orderedRows1.Add(rows[orderedIndexes[i]]);
 
@@ -1312,7 +1312,7 @@ internal static class AstQueryAggregateEvaluator
             return leftIndex.CompareTo(rightIndex);
         });
 
-        var orderedRows2 = new List<AstQueryExecutorBase.EvalRow>(rowCount);
+        var orderedRows2 = new List<EvalRow>(rowCount);
         for (var i = 0; i < rowCount; i++)
             orderedRows2.Add(rows[orderedIndexes[i]]);
 
@@ -1458,7 +1458,7 @@ internal static class AstQueryAggregateEvaluator
 
         var distinct = fn.Distinct;
         var rowCount = group.Rows.Count;
-        HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.Create<string>(Math.Max(1, rowCount), StringComparer.Ordinal) : null;
+        HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal) : null;
         long c = 0;
         foreach (var r in group.Rows)
         {
@@ -1515,7 +1515,7 @@ internal static class AstQueryAggregateEvaluator
         HashSet<string>? seen = null;
         if (fn.Distinct)
         {
-            seen = HashSetCompatibilityExtensions.Create<string>(Math.Max(1, rowCount), StringComparer.Ordinal);
+            seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal);
         }
         var traceGroupedCaseWhen = fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count > 0

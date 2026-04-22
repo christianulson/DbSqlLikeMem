@@ -37,6 +37,11 @@ public interface ITableMock
     /// </summary>
     string? PartitionClauseSql { get; set; }
 
+    /// <summary>
+    /// EN: Sets whether explicit values can be inserted into identity columns.
+    /// PT: Define se valores explicitos podem ser inseridos em colunas identity.
+    /// </summary>
+    /// <param name="allowIdentityInsert">EN: Allow identity insert. PT: Permitir insercao em identity.</param>
     ITableMock SetAllowIdentityInsert(bool allowIdentityInsert);
 
     /// <summary>

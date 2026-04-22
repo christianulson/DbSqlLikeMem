@@ -39,6 +39,10 @@ public static class DbMockConnectionFactory
             ["postgresql"] = "Npgsql"
         };
 
+    /// <summary>
+    /// EN: Creates a Oracle mock and resolves its matching connection.
+    /// PT: Cria um mock Oracle e resolve sua conexao correspondente.
+    /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Oracle", tableMappers);
 
@@ -59,6 +63,10 @@ public static class DbMockConnectionFactory
         params Action<DbMock>[] tableMappers)
         => CreateWithTablesIntercepted("Oracle", options, tableMappers);
 
+    /// <summary>
+    /// EN: Creates a SqlServer mock and resolves its matching connection.
+    /// PT: Cria um mock SqlServer e resolve sua conexao correspondente.
+    /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateSqlServerWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlServer", tableMappers);
 
@@ -79,6 +87,10 @@ public static class DbMockConnectionFactory
         params Action<DbMock>[] tableMappers)
         => CreateWithTablesIntercepted("SqlServer", options, tableMappers);
 
+    /// <summary>
+    /// EN: Creates a SqlAzure mock and resolves its matching connection.
+    /// PT: Cria um mock SqlAzure e resolve sua conexao correspondente.
+    /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateSqlAzureWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlAzure", tableMappers);
 
@@ -99,12 +111,20 @@ public static class DbMockConnectionFactory
         params Action<DbMock>[] tableMappers)
         => CreateWithTablesIntercepted("SqlAzure", options, tableMappers);
 
+    /// <summary>
+    /// EN: Creates a MySql mock and resolves its matching connection.
+    /// PT: Cria um mock MySql e resolve sua conexao correspondente.
+    /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateMySqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("MySql", tableMappers);
 
     /// <summary>
     /// EN: Creates a MariaDB mock and resolves its matching connection.
     /// PT: Cria um mock MariaDB e resolve sua conexao correspondente.
+    /// </summary>
+    /// <summary>
+    /// EN: Creates a MariaDb mock and resolves its matching connection.
+    /// PT: Cria um mock MariaDb e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateMariaDbWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("MariaDb", tableMappers);
@@ -143,6 +163,10 @@ public static class DbMockConnectionFactory
         params Action<DbMock>[] tableMappers)
         => CreateWithTablesIntercepted("MariaDb", options, tableMappers);
 
+    /// <summary>
+    /// EN: Creates a Sqlite mock and resolves its matching connection.
+    /// PT: Cria um mock Sqlite e resolve sua conexao correspondente.
+    /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateSqliteWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Sqlite", tableMappers);
 
@@ -163,9 +187,17 @@ public static class DbMockConnectionFactory
         params Action<DbMock>[] tableMappers)
         => CreateWithTablesIntercepted("Sqlite", options, tableMappers);
 
+    /// <summary>
+    /// EN: Creates a Db2 mock and resolves its matching connection.
+    /// PT: Cria um mock Db2 e resolve sua conexao correspondente.
+    /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateDb2WithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Db2", tableMappers);
 
+    /// <summary>
+    /// EN: Creates a Firebird mock and resolves its matching connection.
+    /// PT: Cria um mock Firebird e resolve sua conexao correspondente.
+    /// </summary>
     /// <summary>
     /// EN: Creates a Firebird mock and resolves its matching connection.
     /// PT: Cria um mock Firebird e resolve sua conexao correspondente.
@@ -207,6 +239,10 @@ public static class DbMockConnectionFactory
         params Action<DbMock>[] tableMappers)
         => CreateWithTablesIntercepted("Db2", options, tableMappers);
 
+    /// <summary>
+    /// EN: Creates a Npgsql mock and resolves its matching connection.
+    /// PT: Cria um mock Npgsql e resolve sua conexao correspondente.
+    /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateNpgsqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Npgsql", tableMappers);
 
