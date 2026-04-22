@@ -100,8 +100,8 @@ public partial class QueryServiceTest
         {
             results.Add(new Dictionary<string, object?>
             {
-                ["key"] = NormalizeJsonTableValue(reader["key"]),
-                ["value"] = NormalizeJsonTableValue(reader["value"])
+                ["key"] = Repo.Dialect.NormalizeJsonTableValue(reader["key"]),
+                ["value"] = Repo.Dialect.NormalizeJsonTableValue(reader["value"])
             });
         }
 
@@ -128,8 +128,8 @@ public partial class QueryServiceTest
         {
             results.Add(new Dictionary<string, object?>
             {
-                ["key"] = NormalizeJsonTableValue(reader["key"]),
-                ["value"] = NormalizeJsonTableValue(reader["value"])
+                ["key"] = Repo.Dialect.NormalizeJsonTableValue(reader["key"]),
+                ["value"] = Repo.Dialect.NormalizeJsonTableValue(reader["value"])
             });
         }
 
@@ -156,10 +156,10 @@ public partial class QueryServiceTest
         {
             results.Add(new Dictionary<string, object?>
             {
-                ["key"] = NormalizeJsonTableValue(reader["key"]),
-                ["value"] = NormalizeJsonTableValue(reader["value"]),
-                ["type"] = NormalizeJsonTableValue(reader["type"]),
-                ["path"] = NormalizeJsonTableValue(reader["path"])
+                ["key"] = Repo.Dialect.NormalizeJsonTableValue(reader["key"]),
+                ["value"] = Repo.Dialect.NormalizeJsonTableValue(reader["value"]),
+                ["type"] = Repo.Dialect.NormalizeJsonTableValue(reader["type"]),
+                ["path"] = Repo.Dialect.NormalizeJsonTableValue(reader["path"])
             });
         }
 
@@ -210,37 +210,6 @@ public partial class QueryServiceTest
             _ => path == "$" ? $"$.{Convert.ToString(key, CultureInfo.InvariantCulture)}" : $"{path}.{Convert.ToString(key, CultureInfo.InvariantCulture)}"
         };
     }
-
-    private static object? NormalizeJsonTableValue(object? value)
-    {
-        if (value is null || value is DBNull)
-        {
-            return null;
-        }
-
-        if (value is System.Text.Json.JsonElement jsonElement)
-        {
-            return NormalizeJsonElement(jsonElement);
-        }
-
-        if (value is System.Text.Json.JsonDocument jsonDocument)
-        {
-            return NormalizeJsonTableValue(jsonDocument.RootElement);
-        }
-
-        return value;
-    }
-
-    private static object? NormalizeJsonElement(System.Text.Json.JsonElement jsonElement)
-        => jsonElement.ValueKind switch
-        {
-            System.Text.Json.JsonValueKind.Null or System.Text.Json.JsonValueKind.Undefined => null,
-            System.Text.Json.JsonValueKind.True => true,
-            System.Text.Json.JsonValueKind.False => false,
-            System.Text.Json.JsonValueKind.Number => jsonElement.TryGetInt64(out var longValue) ? longValue : jsonElement.GetDouble(),
-            System.Text.Json.JsonValueKind.String => jsonElement.GetString(),
-            _ => jsonElement.ToString()
-        };
 
     /// <summary>
 /// EN: Executes a current timestamp scalar query and keeps the provider result alive.

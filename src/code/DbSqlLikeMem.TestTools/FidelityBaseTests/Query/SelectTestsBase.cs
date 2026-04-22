@@ -460,9 +460,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectParameterRoundTripMatrixTest()
     {
-        var createdAt = dialect.Provider == ProviderId.Npgsql
-            ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
-            : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+        var createdAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
 
@@ -487,9 +485,7 @@ public abstract class SelectTestsBase<T, T2>(
     [Fact]
     public async Task SelectParameterTypeMatrixTest()
     {
-        var createdAt = dialect.Provider == ProviderId.Npgsql
-            ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
-            : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+        var createdAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
         var ansiFixedText = "Fixed ANSI";
         var fixedText = "Fixed Text";
 
@@ -1295,11 +1291,10 @@ public abstract class SelectTestsBase<T, T2>(
                 return await s.RunJoinTextCaseLengthMatrixAsync(a);
             });
 
-        var textMatchAlready = dialect.Provider is ProviderId.Sqlite or ProviderId.Oracle or ProviderId.Npgsql or ProviderId.Db2 or ProviderId.Firebird ? 0m : 1m;
         AssertSnapshot(RequireSnapshot(result, nameof(SelectJoinTextCaseLengthMatrixTest)), RawSnapshot(["UserId", "NameUpper", "NameLower", "NameTrimmed", "NameLenText", "MaxNoteLenText", "NameLenGe4", "IsUpperAlready", "IsLowerAlready", "TwoOrMoreOrders", "QuantityGe3"],
-            Row(1m, "ALICE", "alice", "Alice", "5", "1", 1m, textMatchAlready, textMatchAlready, 1m, 1m),
-            Row(2m, "BOB", "bob", "Bob", "3", "1", 0m, textMatchAlready, textMatchAlready, 0m, 1m),
-            Row(3m, "CARLA", "carla", "Carla", "5", "0", 1m, textMatchAlready, textMatchAlready, 0m, 0m)));
+            Row(1m, "ALICE", "alice", "Alice", "5", "1", 1m, TextMatchAlreadyValue, TextMatchAlreadyValue, 1m, 1m),
+            Row(2m, "BOB", "bob", "Bob", "3", "1", 0m, TextMatchAlreadyValue, TextMatchAlreadyValue, 0m, 1m),
+            Row(3m, "CARLA", "carla", "Carla", "5", "0", 1m, TextMatchAlreadyValue, TextMatchAlreadyValue, 0m, 0m)));
     }
 
     /// <summary>
@@ -1779,45 +1774,47 @@ public abstract class SelectTestsBase<T, T2>(
         };
     }
 
-    private string[] NormalizeSnapshotColumnNames(string[] columnNames)
-    {
-        if (dialect.Provider == ProviderId.Npgsql)
-        {
-            var normalized2 = new string[columnNames.Length];
-            for (var i = 0; i < columnNames.Length; i++)
-            {
-                normalized2[i] = columnNames[i] switch
-                {
-                    "Name" => "name",
-                    "Id" => "id",
-                    _ => columnNames[i]
-                };
-            }
+    /// <summary>
+    /// EN: Normalizes DateTime input values used by parameter roundtrip tests for the current provider.
+    /// PT: Normaliza valores de entrada DateTime usados pelos testes de roundtrip de parametros para o provedor atual.
+    /// </summary>
+    /// <param name="value">EN: The input DateTime value. PT: O valor DateTime de entrada.</param>
+    /// <returns>EN: The normalized DateTime value. PT: O valor DateTime normalizado.</returns>
+    protected virtual DateTime NormalizeParameterDateTimeInput(DateTime value)
+        => value;
 
-            return normalized2;
-        }
+    /// <summary>
+    /// EN: Normalizes snapshot column names based on the current provider's behavior to ensure consistent assertions across providers.
+    /// PT: Normaliza os nomes de colunas dos snapshots com base no comportamento do provedor atual para garantir asserções consistentes entre os provedores.
+    /// </summary>
+    /// <param name="columnNames"></param>
+    /// <returns></returns>
+    protected virtual string[] NormalizeSnapshotColumnNames(string[] columnNames)
+        => columnNames;
 
-        if (dialect.Provider is not ProviderId.Oracle and not ProviderId.Db2)
-            return columnNames;
-
-        var normalized = new string[columnNames.Length];
-        for (var i = 0; i < columnNames.Length; i++)
-            normalized[i] = columnNames[i].ToUpperInvariant();
-
-        return normalized;
-    }
-
-    private string[] ApplyProjectionColumnNames()
-        => dialect.Provider is ProviderId.Oracle or ProviderId.Db2
-            ? ["USERID", "USERNAME", "NOTE"]
-            : ["UserId", "UserName", "Note"];
+    /// <summary>
+    /// EN: Provides the expected column names for the APPLY projection tests based on the current provider's behavior.
+    /// PT: Fornece os nomes de colunas esperados para os testes de projeção APPLY com base no comportamento do provedor atual.
+    /// </summary>
+    protected virtual string[] ApplyProjectionColumnNames()
+        => ["UserId", "UserName", "Note"];
 
     private static object?[] Row(params object?[] values) => values;
 
-    private string AmountText(decimal value)
-        => dialect.Provider == ProviderId.Oracle
-            ? value.ToString("0.#############################", System.Globalization.CultureInfo.InvariantCulture).Replace('.', ',')
-            : value.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+    /// <summary>
+    /// EN: Gets the numeric value used when text case comparisons already match for the current provider.
+    /// PT: Obtem o valor numerico usado quando as comparacoes de caixa de texto ja coincidem para o provedor atual.
+    /// </summary>
+    protected virtual decimal TextMatchAlreadyValue => 1m;
+
+    /// <summary>
+    /// EN: Formats decimal amounts for snapshot assertions based on the current provider's behavior, ensuring consistent representations across providers.
+    /// PT: Formata valores decimais para asserções de snapshot com base no comportamento do provedor atual, garantindo representações consistentes entre os provedores.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    protected virtual string AmountText(decimal value)
+        => value.ToString("0.00", CultureInfo.InvariantCulture);
 
     private static void AssertSnapshot(QueryResultSnapshot actual, QueryResultSnapshot expected)
     {

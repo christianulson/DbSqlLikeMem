@@ -17,6 +17,9 @@ public class SequenceTests(
     s => new SqlConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override bool SequenceCaseWhereMatrixThrowsNotSupported => true;
+
     /// <summary>
     /// EN: Verifies NEXT VALUE FOR can be used inside a filtered SQL Server query and advances in execution order.
     /// PT: Verifica se NEXT VALUE FOR pode ser usado dentro de uma consulta filtrada do SQL Server e avanca na ordem de execucao.

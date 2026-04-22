@@ -44,8 +44,7 @@ internal static class SqlSequenceEvaluator
         if (!TryResolveSequenceReference(functionName, args, evalArg, out var sequenceRef))
             return false;
 
-        var targetSchema = sequenceRef!.SchemaName ?? table.Schema.SchemaName;
-        if (!table.Schema.Db.TryGetSequence(sequenceRef.SequenceName, out var sequence, targetSchema) || sequence is null)
+        if (!table.Schema.Db.TryGetSequence(sequenceRef!.SequenceName, out var sequence, sequenceRef.SchemaName ?? table.Schema.SchemaName) || sequence is null)
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
         if (!functionName.Equals("NEXT_VALUE_FOR", StringComparison.OrdinalIgnoreCase)
@@ -140,21 +139,21 @@ internal static class SqlSequenceEvaluator
 
     private static long GetNextSequenceValue(this DbConnectionMockBase connection, SequenceReference sequenceRef)
     {
-        if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
+        if (!TryGetSequence(connection, sequenceRef, out var sequence, out var resolvedSchemaName))
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
-        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
-        var value = sequence.NextValue();
-        connection.SetSessionSequenceValue(sequenceRef.SequenceName, value, sequenceRef.SchemaName);
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, resolvedSchemaName);
+        var value = sequence!.NextValue();
+        connection.SetSessionSequenceValue(sequenceRef.SequenceName, value, resolvedSchemaName);
         return value;
     }
 
     private static long GetCurrentSequenceValue(this DbConnectionMockBase connection, SequenceReference sequenceRef)
     {
-        if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
+        if (!TryGetSequence(connection, sequenceRef, out var _, out var resolvedSchemaName))
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
-        if (!connection.TryGetSessionSequenceValue(sequenceRef.SequenceName, out var value, sequenceRef.SchemaName))
+        if (!connection.TryGetSessionSequenceValue(sequenceRef.SequenceName, out var value, resolvedSchemaName))
             throw new InvalidOperationException($"currval of sequence '{sequenceRef.DisplayName}' is not yet defined in this session.");
 
         return value;
@@ -166,15 +165,15 @@ internal static class SqlSequenceEvaluator
         IReadOnlyList<SqlExpr> args,
         Func<SqlExpr, object?> evalArg)
     {
-        if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
+        if (!TryGetSequence(connection, sequenceRef, out var sequence, out var resolvedSchemaName))
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
-        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, resolvedSchemaName);
         var value = Convert.ToInt64(evalArg(args[1]), CultureInfo.InvariantCulture);
         var isCalled = args.Count < 3 || Convert.ToBoolean(evalArg(args[2]), CultureInfo.InvariantCulture);
-        var result = sequence.SetValue(value, isCalled);
+        var result = sequence!.SetValue(value, isCalled);
         if (isCalled)
-            connection.SetSessionSequenceValue(sequenceRef.SequenceName, result, sequenceRef.SchemaName);
+            connection.SetSessionSequenceValue(sequenceRef.SequenceName, result, resolvedSchemaName);
 
         return result;
     }
@@ -185,18 +184,18 @@ internal static class SqlSequenceEvaluator
         IReadOnlyList<SqlExpr> args,
         Func<SqlExpr, object?> evalArg)
     {
-        if (!connection.TryGetSequence(sequenceRef.SequenceName, out var sequence, sequenceRef.SchemaName) || sequence is null)
+        if (!TryGetSequence(connection, sequenceRef, out var sequence, out var resolvedSchemaName))
             throw new InvalidOperationException($"Sequence not found: {sequenceRef.DisplayName}");
 
         if (args.Count != 2)
             throw new InvalidOperationException("GEN_ID requires a sequence name and an increment value.");
 
-        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, sequenceRef.SchemaName);
+        connection.CaptureSequenceStateForRollback(sequenceRef.SequenceName, resolvedSchemaName);
 
-        var baseValue = sequence.CurrentValue ?? 0L;
+        var baseValue = sequence!.CurrentValue ?? 0L;
         var increment = Convert.ToInt64(evalArg(args[1]), CultureInfo.InvariantCulture);
         var result = sequence.SetValue(baseValue + increment, true);
-        connection.SetSessionSequenceValue(sequenceRef.SequenceName, result, sequenceRef.SchemaName);
+        connection.SetSessionSequenceValue(sequenceRef.SequenceName, result, resolvedSchemaName);
         return result;
     }
 
@@ -215,6 +214,51 @@ internal static class SqlSequenceEvaluator
 
         value = currentValue;
         return true;
+    }
+
+    private static bool TryGetSequence(
+        DbConnectionMockBase connection,
+        SequenceReference sequenceRef,
+        out SequenceDef? sequence,
+        out string? resolvedSchemaName)
+    {
+        if (connection.TryGetSequence(sequenceRef.SequenceName, out sequence, sequenceRef.SchemaName))
+        {
+            resolvedSchemaName = sequenceRef.SchemaName ?? connection.Database;
+            return sequence is not null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(sequenceRef.SchemaName))
+        {
+            resolvedSchemaName = sequenceRef.SchemaName;
+            return sequence is not null;
+        }
+
+        if (connection.ProviderExecutionDialect.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+        {
+            var candidates = new[]
+            {
+                connection.Database,
+                "public",
+                "DefaultSchema"
+            };
+
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate))
+                    continue;
+
+                if (connection.Db.TryGetSequence(sequenceRef.SequenceName, out sequence, candidate) && sequence is not null)
+                {
+                    resolvedSchemaName = candidate;
+                    return true;
+                }
+            }
+        }
+
+        sequence = null;
+        resolvedSchemaName = sequenceRef.SchemaName ?? connection.Database;
+        return false;
     }
 
     private sealed record SequenceReference(string? SchemaName, string SequenceName)

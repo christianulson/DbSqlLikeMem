@@ -15,4 +15,6 @@ public class SelectTests(
     s => new FbConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override decimal TextMatchAlreadyValue => 0m;
 }

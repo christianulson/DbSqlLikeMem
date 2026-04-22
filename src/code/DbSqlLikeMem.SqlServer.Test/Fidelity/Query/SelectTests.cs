@@ -16,4 +16,7 @@ public class SelectTests(
     s => new SqlConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
+        => columnNames;
 }

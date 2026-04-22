@@ -86,7 +86,7 @@ public abstract class SequenceTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        if (dialect.Provider is ProviderId.SqlServer or ProviderId.SqlAzure)
+        if (SequenceCaseWhereMatrixThrowsNotSupported)
         {
             await FluentActions.Awaiting(() => testService.RunTestAsync<SequenceScenario, DmlMutationSequenceCaseWhereMatrixServiceTest>())
                 .Should().ThrowAsync<NotSupportedException>();
@@ -95,6 +95,12 @@ public abstract class SequenceTestsBase<T, T2>(
 
         await testService.RunTestAsync<SequenceScenario, DmlMutationSequenceCaseWhereMatrixServiceTest>();
     }
+
+    /// <summary>
+    /// EN: Gets whether the sequence CASE and WHERE matrix is expected to be unsupported for the current provider.
+    /// PT: Obtem se a matriz de CASE e WHERE de sequence deve ser tratada como sem suporte para o provedor atual.
+    /// </summary>
+    protected virtual bool SequenceCaseWhereMatrixThrowsNotSupported => false;
 
     /// <summary>
     /// EN: Verifies that sequence values can be combined with temporal expressions inside a single query for the current provider.

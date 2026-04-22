@@ -16,4 +16,7 @@ public class StringAggregateTests(
     s => new OracleConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
+        => Array.ConvertAll(columnNames, static name => name.ToUpperInvariant());
 }

@@ -84,14 +84,21 @@ internal sealed class AstQueryJsonEachTableFunctionHandler(
         }
     }
 
-    private static object? NormalizeJsonValue(JsonElement element)
-        => element.ValueKind switch
-        {
-            JsonValueKind.Null => null,
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
-            JsonValueKind.String => element.GetString(),
-            _ => element.ToString()
-        };
+    private object? NormalizeJsonValue(JsonElement element)
+        => IsPostgreSqlProvider()
+            ? element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined
+                ? null
+                : element.GetRawText()
+            : element.ValueKind switch
+            {
+                JsonValueKind.Null => null,
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
+                JsonValueKind.String => element.GetString(),
+                _ => element.ToString()
+            };
+
+    private bool IsPostgreSqlProvider()
+        => string.Equals(_context.Connection.ProviderExecutionDialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase);
 }

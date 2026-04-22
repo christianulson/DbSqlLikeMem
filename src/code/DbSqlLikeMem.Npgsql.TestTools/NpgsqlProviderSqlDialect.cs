@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace DbSqlLikeMem.Npgsql.TestTools;
 
 /// <summary>
@@ -43,6 +45,29 @@ WHERE u.tenantid = 10";
     /// <inheritdoc />
     public override string JsonEachFunction(string jsonColumn) =>
         $"SELECT key, value FROM json_each({jsonColumn})";
+
+    /// <inheritdoc />
+    public override object? NormalizeJsonTableValue(object? value)
+    {
+        if (value is null || value is DBNull)
+        {
+            return null;
+        }
+
+        if (value is JsonElement jsonElement)
+        {
+            return jsonElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined
+                ? null
+                : jsonElement.GetRawText();
+        }
+
+        if (value is JsonDocument jsonDocument)
+        {
+            return NormalizeJsonTableValue(jsonDocument.RootElement);
+        }
+
+        return value;
+    }
 
     /// <inheritdoc />
     public override string JsonParameter(string name) =>
@@ -239,7 +264,10 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
 
     /// <inheritdoc />
     public override string DecimalTextExpression(string expression, int scale = 2)
-        => $"CAST({expression} AS TEXT)";
+    {
+        var fractionalPattern = scale > 0 ? "." + new string('0', scale) : string.Empty;
+        return $"TO_CHAR({expression}, 'FM9999999990{fractionalPattern}')";
+    }
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>

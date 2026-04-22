@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
@@ -519,6 +521,49 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// </summary>
     public virtual string JsonTreeFunction(string jsonColumn) =>
         throw new NotSupportedException($"{DisplayName} does not support json_tree.");
+
+    /// <summary>
+    /// EN: Normalizes a value returned by json_each or json_tree for fidelity comparison.
+    /// PT: Normaliza um valor retornado por json_each ou json_tree para comparacao de fidelidade.
+    /// </summary>
+    /// <param name="value">EN: Raw provider value. PT: Valor bruto do provedor.</param>
+    /// <returns>EN: Normalized value used in tests. PT: Valor normalizado usado nos testes.</returns>
+    public virtual object? NormalizeJsonTableValue(object? value)
+    {
+        if (value is null || value is DBNull)
+        {
+            return null;
+        }
+
+        if (value is JsonElement jsonElement)
+        {
+            return NormalizeJsonElement(jsonElement);
+        }
+
+        if (value is JsonDocument jsonDocument)
+        {
+            return NormalizeJsonTableValue(jsonDocument.RootElement);
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    /// EN: Normalizes a JSON element using the default typed representation for table-valued JSON tests.
+    /// PT: Normaliza um elemento JSON usando a representacao tipada padrao para testes JSON tabulares.
+    /// </summary>
+    /// <param name="jsonElement">EN: JSON element to normalize. PT: Elemento JSON a normalizar.</param>
+    /// <returns>EN: Normalized JSON value. PT: Valor JSON normalizado.</returns>
+    protected static object? NormalizeJsonElement(JsonElement jsonElement)
+        => jsonElement.ValueKind switch
+        {
+            JsonValueKind.Null or JsonValueKind.Undefined => null,
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Number => jsonElement.TryGetInt64(out var longValue) ? longValue : jsonElement.GetDouble(),
+            JsonValueKind.String => jsonElement.GetString(),
+            _ => jsonElement.ToString()
+        };
 
     /// <summary>
     /// EN: Returns the SQL expression used to read the profile name from a JSON column.

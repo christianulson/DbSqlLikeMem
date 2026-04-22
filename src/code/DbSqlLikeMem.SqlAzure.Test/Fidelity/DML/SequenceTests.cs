@@ -16,4 +16,6 @@ public class SequenceTests(
     s => new SqlConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override bool SequenceCaseWhereMatrixThrowsNotSupported => true;
 }

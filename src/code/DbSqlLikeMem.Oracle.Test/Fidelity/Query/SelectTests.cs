@@ -16,4 +16,36 @@ public class SelectTests(
     s => new OracleConnection(s)
     )
 {
+    /// <summary>
+    /// EN: Gets the column names to be used in the projection of the select query.
+    /// PT: Obtém os nomes das colunas a serem usadas na projeção da consulta de seleção.
+    /// </summary>
+    protected override string[] ApplyProjectionColumnNames()
+    => ["USERID", "USERNAME", "NOTE"];
+
+
+    /// <summary>
+    /// EN: Normalizes the column names in the snapshot to match the expected format for Oracle.
+    /// PT: Normaliza os nomes das colunas no snapshot para corresponder ao formato esperado para o Oracle.
+    /// </summary>
+    protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
+    {
+        var normalized = new string[columnNames.Length];
+        for (var i = 0; i < columnNames.Length; i++)
+            normalized[i] = columnNames[i].ToUpperInvariant();
+
+        return normalized;
+    }
+
+    /// <inheritdoc />
+    protected override decimal TextMatchAlreadyValue => 0m;
+
+    /// <summary>
+    /// EN: Formats the decimal value as a string in the format expected by Oracle, using a comma as the decimal separator.
+    /// PT: Formata o valor decimal como uma string no formato esperado pelo Oracle, usando uma vírgula como separador decimal.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    protected override string AmountText(decimal value)
+    => value.ToString("0.#############################", CultureInfo.InvariantCulture).Replace('.', ',');
 }

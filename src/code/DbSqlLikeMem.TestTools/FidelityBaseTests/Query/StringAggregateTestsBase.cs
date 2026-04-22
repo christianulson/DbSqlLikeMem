@@ -207,12 +207,14 @@ public abstract class StringAggregateTestsBase<T, T2>(
         actual.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
     }
 
-    private string[] NormalizeSnapshotColumnNames(string[] columnNames)
-    {
-        return dialect.Provider is ProviderId.Oracle or ProviderId.Db2
-            ? Array.ConvertAll(columnNames, static name => name.ToUpperInvariant())
-            : columnNames;
-    }
+    /// <summary>
+    /// EN: Normalizes snapshot column names for the current provider before assertions run.
+    /// PT: Normaliza os nomes das colunas do snapshot para o provedor atual antes das assercoes.
+    /// </summary>
+    /// <param name="columnNames">EN: The original snapshot column names. PT: Os nomes originais das colunas do snapshot.</param>
+    /// <returns>EN: The normalized snapshot column names. PT: Os nomes normalizados das colunas do snapshot.</returns>
+    protected virtual string[] NormalizeSnapshotColumnNames(string[] columnNames)
+        => columnNames;
 
     private QueryResultSnapshot ExpectedStringAggregateSummarySnapshot()
         => Snapshot(NormalizeSnapshotColumnNames(["Ordered", "TotalCount", "DistinctCount", "BobCount"]),

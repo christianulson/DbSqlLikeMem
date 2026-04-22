@@ -112,7 +112,7 @@ public abstract class CrudTestsBase<T, T2>(
             connectionContainer,
             dialect,
             [(1, "Alice"), (2, "Bob")]);
-        var updatedAt = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var updatedAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
         var result = await testService.RunTestAsync<UsersScenario, DmlMutationParameterUpdateDeleteRoundTripServiceTest>(
             "Alice-v2",
@@ -137,10 +137,10 @@ public abstract class CrudTestsBase<T, T2>(
             connectionMock,
             connectionContainer,
             dialect);
-        var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
-        var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
-        var updatedAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Unspecified));
-        var updatedAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 4, 5, 6, 7, 8, DateTimeKind.Unspecified));
+        var createdAt1 = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var createdAt2 = NormalizeParameterDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
+        var updatedAt1 = NormalizeParameterDateTimeInput(new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Unspecified));
+        var updatedAt2 = NormalizeParameterDateTimeInput(new DateTime(2024, 4, 5, 6, 7, 8, DateTimeKind.Unspecified));
 
         var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterInsertRoundTripServiceTest>(
             "Alice-v2",
@@ -173,7 +173,7 @@ public abstract class CrudTestsBase<T, T2>(
             connectionMock,
             connectionContainer,
             dialect);
-        var createdAt = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var createdAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
 
         var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterInsertNullRoundTripServiceTest>(
             "Alice-v2",
@@ -198,8 +198,8 @@ public abstract class CrudTestsBase<T, T2>(
             connectionMock,
             connectionContainer,
             dialect);
-        var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
-        var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
+        var createdAt1 = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var createdAt2 = NormalizeParameterDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
 
         var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterTransactionCommitServiceTest>(
             "Alice-v2",
@@ -222,8 +222,8 @@ public abstract class CrudTestsBase<T, T2>(
             connectionMock,
             connectionContainer,
             dialect);
-        var createdAt1 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
-        var createdAt2 = NormalizeNpgsqlDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
+        var createdAt1 = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
+        var createdAt2 = NormalizeParameterDateTimeInput(new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
 
         var result = await testService.RunTestAsync<InsertUsersScenario, DmlMutationParameterTransactionRollbackServiceTest>(
             "Alice-v2",
@@ -236,17 +236,12 @@ public abstract class CrudTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Normalizes unspecified DateTime values for providers that require UTC input handling.
-    /// PT: Normaliza valores DateTime sem Kind definido para provedores que exigem tratamento UTC na entrada.
+    /// EN: Normalizes DateTime input values used by parameter roundtrip tests for the current provider.
+    /// PT: Normaliza valores de entrada DateTime usados pelos testes de roundtrip de parametros para o provedor atual.
     /// </summary>
     /// <param name="value">EN: The input DateTime value. PT: O valor DateTime de entrada.</param>
     /// <returns>EN: The normalized DateTime value. PT: O valor DateTime normalizado.</returns>
-    protected virtual DateTime NormalizeNpgsqlDateTimeInput(DateTime value)
-    {
-        if (dialect.Provider == ProviderId.Npgsql && value.Kind == DateTimeKind.Unspecified)
-            return DateTime.SpecifyKind(value, DateTimeKind.Utc);
-
-        return value;
-    }
+    protected virtual DateTime NormalizeParameterDateTimeInput(DateTime value)
+        => value;
 }
 

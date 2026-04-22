@@ -25,7 +25,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     public async Task SchemaSnapshotExportTest()
     {
         var result = (string?)await RunFidelityTestAsync(
-            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotExport(), s.Repo.Cnn, dialect)));
+            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotExport(), s.Repo.Cnn)));
 
         result.Should().NotBeNullOrWhiteSpace();
     }
@@ -38,7 +38,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     public async Task SchemaSnapshotToJsonTest()
     {
         var result = (string?)await RunFidelityTestAsync(
-            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotToJson(), s.Repo.Cnn, dialect)));
+            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotToJson(), s.Repo.Cnn)));
 
         result.Should().NotBeNullOrWhiteSpace();
     }
@@ -81,7 +81,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     public async Task SchemaSnapshotRoundTripTest()
     {
         var result = (string?)await RunFidelityTestAsync(
-            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotRoundTrip(), s.Repo.Cnn, dialect)));
+            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotRoundTrip(), s.Repo.Cnn)));
 
         result.Should().NotBeNullOrWhiteSpace();
     }
@@ -95,21 +95,26 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
         return await testService.RunTestAsync<NoopScenario, SchemaSnapshotServiceOpsTest>(runTest, args);
     }
 
-    private static string NormalizeSchemaSnapshotJson(object? value, DbConnection connection, ProviderSqlDialect dialect)
-        => BuildCanonicalSchemaSnapshotEnvelope(connection, dialect);
+    private string NormalizeSchemaSnapshotJson(object? value, DbConnection connection)
+        => BuildCanonicalSchemaSnapshotEnvelope(connection);
 
-    private static string NormalizeSchemaSnapshotJson(string json, DbConnection connection, ProviderSqlDialect dialect)
-        => BuildCanonicalSchemaSnapshotEnvelope(connection, dialect);
+    private string NormalizeSchemaSnapshotJson(string json, DbConnection connection)
+        => BuildCanonicalSchemaSnapshotEnvelope(connection);
 
-    private static string BuildCanonicalSchemaSnapshotEnvelope(DbConnection connection, ProviderSqlDialect dialect)
+    private string BuildCanonicalSchemaSnapshotEnvelope(DbConnection connection)
         => JsonSerializer.Serialize(new
         {
-            DialectName = GetSchemaDialectName(dialect.Provider),
-            Version = InferSnapshotVersion(connection, dialect),
+            DialectName = GetSchemaDialectName(),
+            Version = InferSnapshotVersion(connection),
         });
 
-    private static string GetSchemaDialectName(ProviderId provider)
-        => provider switch
+    /// <summary>
+    /// EN: Gets the canonical dialect name used in schema snapshot assertions for the current provider.
+    /// PT: Obtem o nome canonico do dialect usado nas assercoes de snapshot de schema para o provedor atual.
+    /// </summary>
+    /// <returns>EN: The canonical schema dialect name. PT: O nome canonico do dialect de schema.</returns>
+    protected virtual string GetSchemaDialectName()
+        => dialect.Provider switch
         {
             ProviderId.Npgsql => "postgresql",
             ProviderId.SqlServer or ProviderId.SqlAzure => "sqlserver",
@@ -119,10 +124,16 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
             ProviderId.Oracle => "oracle",
             ProviderId.Db2 => "db2",
             ProviderId.Firebird => "firebird",
-            _ => provider.ToString().ToLowerInvariant(),
+            _ => dialect.Provider.ToString().ToLowerInvariant(),
         };
 
-    private static int InferSnapshotVersion(DbConnection connection, ProviderSqlDialect dialect)
+    /// <summary>
+    /// EN: Infers the schema snapshot version from the provider and the connection server version.
+    /// PT: Infere a versao do snapshot de schema a partir do provedor e da versao do servidor da conexao.
+    /// </summary>
+    /// <param name="connection">EN: The open database connection. PT: A conexao de banco aberta.</param>
+    /// <returns>EN: The inferred schema snapshot version. PT: A versao inferida do snapshot de schema.</returns>
+    protected virtual int InferSnapshotVersion(DbConnection connection)
     {
         EnsureConnectionOpen(connection);
 

@@ -23,4 +23,7 @@ public class SelectTests(
         Sqlite.Test.SqliteBootstrap.Initialize();
         return 0;
     }
+
+    /// <inheritdoc />
+    protected override decimal TextMatchAlreadyValue => 0m;
 }

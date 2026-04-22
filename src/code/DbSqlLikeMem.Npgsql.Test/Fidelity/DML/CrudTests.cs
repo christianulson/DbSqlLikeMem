@@ -16,4 +16,9 @@ public class CrudTests(
     s => new NpgsqlConnection(s)
     )
 {
+    /// <inheritdoc />
+    protected override DateTime NormalizeParameterDateTimeInput(DateTime value)
+        => value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            : value;
 }

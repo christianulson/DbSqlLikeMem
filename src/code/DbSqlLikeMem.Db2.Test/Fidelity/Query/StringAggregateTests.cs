@@ -19,4 +19,7 @@ public class StringAggregateTests(
     Db2ConnectionFactory.Create
     )
 {
+    /// <inheritdoc />
+    protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
+        => Array.ConvertAll(columnNames, static name => name.ToUpperInvariant());
 }
