@@ -30,6 +30,10 @@ public abstract class TableMock
     {
         TableName = tableName.NormalizeName();
         Schema = schema;
+        _triggerManager = new TableTriggerManager(this);
+        _foreignKeyManager = new TableForeignKeyManager(this, ForeignKeyFails);
+        _indexManager = new TableIndexManager(this);
+        _stateManager = new TableStateManager(this);
         _columnsView = new ReadOnlyDictionary<string, ColumnDef>(_columns);
         _itemsView = new ItemsView(_items);
         _indexesView = new ReadOnlyDictionary<string, IndexDef>(_indexes);
@@ -69,259 +73,44 @@ public abstract class TableMock
     /// </summary>
     public string? PartitionClauseSql { get; set; }
 
-    private PartitionRoutingInfo? _partitionRoutingInfo;
-
     internal bool MatchesRequestedPartitions(
         IReadOnlyDictionary<int, object?> row,
         IReadOnlyCollection<string> requestedPartitionNames)
-    {
-        if (requestedPartitionNames.Count == 0 || string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return true;
-
-        var routingInfo = GetPartitionRoutingInfo();
-        if (routingInfo is null)
-            return true;
-
-        if (!routingInfo.TryGetPartitionName(row, this, out var partitionName))
-            return false;
-
-        foreach (var requestedPartitionName in requestedPartitionNames)
-        {
-            if (string.Equals(requestedPartitionName, partitionName, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
-    }
+        => TablePartitionRouter.MatchesRequestedPartitions(this, row, requestedPartitionNames);
 
     internal bool TryGetPartitionName(
         IReadOnlyDictionary<int, object?> row,
         out string partitionName)
-    {
-        partitionName = string.Empty;
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return false;
-
-        var routingInfo = GetPartitionRoutingInfo();
-        if (routingInfo is null)
-            return false;
-
-        return routingInfo.TryGetPartitionName(row, this, out partitionName);
-    }
+        => TablePartitionRouter.TryGetPartitionName(this, row, out partitionName);
 
     internal bool TryInferRequestedPartitionNames(
         IReadOnlyDictionary<string, object?> equalsByColumn,
         out IReadOnlyList<string> partitionNames)
-    {
-        partitionNames = [];
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return false;
-
-        var routingInfo = GetPartitionRoutingInfo();
-        if (routingInfo is null)
-            return false;
-
-        if (!equalsByColumn.TryGetValue(routingInfo.PartitionedColumnName, out var rawValue))
-            return false;
-
-        return TryInferRequestedPartitionNames([rawValue], out partitionNames);
-    }
+        => TablePartitionRouter.TryInferRequestedPartitionNames(this, equalsByColumn, out partitionNames);
 
     internal bool TryInferRequestedPartitionNames(
         IEnumerable<object?> rawValues,
         out IReadOnlyList<string> partitionNames)
-    {
-        partitionNames = [];
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return false;
-
-        var routingInfo = GetPartitionRoutingInfo();
-        if (routingInfo is null)
-            return false;
-
-        var distinctPartitionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var hasValue = false;
-        foreach (var rawValue in rawValues)
-        {
-            hasValue = true;
-            if (!TryGetPartitionNameForValue(rawValue, out var partitionName))
-                return false;
-
-            distinctPartitionNames.Add(partitionName);
-        }
-
-        if (!hasValue || distinctPartitionNames.Count == 0)
-            return false;
-
-        partitionNames = [.. distinctPartitionNames];
-        return true;
-    }
+        => TablePartitionRouter.TryInferRequestedPartitionNames(this, rawValues, out partitionNames);
 
     internal bool TryInferRequestedPartitionNamesForRange(
         object? lowValue,
         object? highValue,
         out IReadOnlyList<string> partitionNames)
-    {
-        partitionNames = [];
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return false;
-
-        if (!TryGetYearForPartitionValue(lowValue, out var lowYear)
-            || !TryGetYearForPartitionValue(highValue, out var highYear))
-        {
-            return false;
-        }
-
-        if (lowYear > highYear)
-            return false;
-
-        var span = highYear - lowYear;
-        if (span > 32)
-            return false;
-
-        var distinctPartitionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var year = lowYear; year <= highYear; year++)
-        {
-            if (!TryGetPartitionNameForValue(year, out var partitionName))
-                return false;
-
-            distinctPartitionNames.Add(partitionName);
-        }
-
-        if (distinctPartitionNames.Count == 0)
-            return false;
-
-        partitionNames = [.. distinctPartitionNames];
-        return true;
-    }
+        => TablePartitionRouter.TryInferRequestedPartitionNamesForRange(this, lowValue, highValue, out partitionNames);
 
     internal bool TryInferRequestedPartitionNamesForRanges(
         IEnumerable<(object? Low, object? High)> ranges,
         out IReadOnlyList<string> partitionNames)
-    {
-        partitionNames = [];
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return false;
-
-        var distinctPartitionNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var hasRange = false;
-        foreach (var (low, high) in ranges)
-        {
-            hasRange = true;
-            if (!TryInferRequestedPartitionNamesForRange(low, high, out var rangePartitionNames))
-                return false;
-
-            foreach (var partitionName in rangePartitionNames)
-                distinctPartitionNames.Add(partitionName);
-        }
-
-        if (!hasRange || distinctPartitionNames.Count == 0)
-            return false;
-
-        partitionNames = [.. distinctPartitionNames];
-        return true;
-    }
+        => TablePartitionRouter.TryInferRequestedPartitionNamesForRanges(this, ranges, out partitionNames);
 
     internal bool TryGetPartitionNameForValue(
         object? rawValue,
         out string partitionName)
-    {
-        partitionName = string.Empty;
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return false;
-
-        var routingInfo = GetPartitionRoutingInfo();
-        if (routingInfo is null)
-            return false;
-
-        if (rawValue is null || rawValue is DBNull)
-            return false;
-
-        if (!_columns.TryGetValue(routingInfo.PartitionedColumnName, out var partitionedColumn))
-            return false;
-
-        var probeRow = new Dictionary<int, object?>(1)
-        {
-            [partitionedColumn.Index] = rawValue
-        };
-
-        return routingInfo.TryGetPartitionName(probeRow, this, out partitionName);
-    }
-
-    private static bool TryGetYearForPartitionValue(object? rawValue, out int year)
-    {
-        switch (rawValue)
-        {
-            case DateTime dateTime:
-                year = dateTime.Year;
-                return true;
-            case DateTimeOffset dateTimeOffset:
-                year = dateTimeOffset.Year;
-                return true;
-            case int intValue:
-                year = intValue;
-                return true;
-            case short shortValue:
-                year = shortValue;
-                return true;
-            case sbyte sbyteValue:
-                year = sbyteValue;
-                return true;
-            case byte byteValue:
-                year = byteValue;
-                return true;
-            case long longValue when longValue >= int.MinValue && longValue <= int.MaxValue:
-                year = (int)longValue;
-                return true;
-            case uint uintValue when uintValue <= int.MaxValue:
-                year = (int)uintValue;
-                return true;
-            case ulong ulongValue when ulongValue <= int.MaxValue:
-                year = (int)ulongValue;
-                return true;
-            case decimal decimalValue when decimalValue >= int.MinValue && decimalValue <= int.MaxValue:
-                year = (int)decimalValue;
-                return true;
-            case double doubleValue when doubleValue >= int.MinValue && doubleValue <= int.MaxValue:
-                year = (int)doubleValue;
-                return true;
-            case float floatValue when floatValue >= int.MinValue && floatValue <= int.MaxValue:
-                year = (int)floatValue;
-                return true;
-            case string text when DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate):
-                year = parsedDate.Year;
-                return true;
-            default:
-                year = default;
-                return false;
-        }
-    }
+        => TablePartitionRouter.TryGetPartitionNameForValue(this, rawValue, out partitionName);
 
     internal bool TryGetPartitionedColumnName(out string partitionedColumnName)
-    {
-        partitionedColumnName = string.Empty;
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return false;
-
-        var routingInfo = GetPartitionRoutingInfo();
-        if (routingInfo is null)
-            return false;
-
-        partitionedColumnName = routingInfo.PartitionedColumnName;
-        return true;
-    }
-
-    private PartitionRoutingInfo? GetPartitionRoutingInfo()
-    {
-        if (_partitionRoutingInfo is not null)
-            return _partitionRoutingInfo;
-
-        if (string.IsNullOrWhiteSpace(PartitionClauseSql))
-            return null;
-
-        _partitionRoutingInfo = PartitionRoutingInfo.TryParse(PartitionClauseSql!);
-        return _partitionRoutingInfo;
-    }
+        => TablePartitionRouter.TryGetPartitionedColumnName(this, out partitionedColumnName);
 
     /// <summary>
     /// EN: Sets the AllowIdentityInsert property.
@@ -345,7 +134,7 @@ public abstract class TableMock
     private readonly ItemsView _itemsView;
     private readonly ReadOnlyDictionary<string, IndexDef> _indexesView;
     private readonly List<IndexDef> _uniqueIndexes = [];
-    private bool _hasSelfReferencingForeignKey;
+    private readonly List<SchemaSnapshotCheckConstraint> _checkConstraints = [];
     private bool _hasPersistedComputedColumns;
     private bool _hasPersistedComputedColumnsInitialized;
     private int _indexVersion;
@@ -363,8 +152,20 @@ public abstract class TableMock
     internal IReadOnlyList<ColumnDef> ColumnsByOrdinal => _columnsByOrdinal;
     internal ColumnDef? IdentityColumn => _identityColumn;
     internal ColumnDef GetColumnByIndex(int index) => _columnsByOrdinal[index];
+    internal TableIndexManager IndexManager => _indexManager;
+    internal TableForeignKeyManager ForeignKeyManager => _foreignKeyManager;
+    internal TableTriggerManager TriggerManager => _triggerManager;
     internal IReadOnlyList<IndexDef> UniqueIndexes => _uniqueIndexes;
+    internal List<SchemaSnapshotCheckConstraint> CheckConstraintsMutable => _checkConstraints;
     internal int IndexVersion => _indexVersion;
+    internal IndexDictionary IndexesMutable => _indexes;
+    internal List<IndexDef> UniqueIndexesMutable => _uniqueIndexes;
+    internal ReadOnlyDictionary<string, IndexDef> IndexesView => _indexesView;
+    internal int IndexVersionValue
+    {
+        get => _indexVersion;
+        set => _indexVersion = value;
+    }
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
@@ -373,6 +174,12 @@ public abstract class TableMock
     /// PT: Obtem a lista somente leitura de itens na tabela.
     /// </summary>
     public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => _itemsView;
+
+    /// <summary>
+    /// EN: Gets the check constraints configured for the table.
+    /// PT: Obtém as restricoes check configuradas para a tabela.
+    /// </summary>
+    public IReadOnlyList<SchemaSnapshotCheckConstraint> CheckConstraints => _checkConstraints;
 
     private sealed class ItemsView(List<Dictionary<int, object?>> items) : IReadOnlyList<IReadOnlyDictionary<int, object?>>
     {
@@ -386,7 +193,12 @@ public abstract class TableMock
     private int[] _pkIndexArray = [];
     private ColumnDef? _identityColumn;
 
+    internal HashSet<int> PrimaryKeyIndexesMutable => _primaryKeyIndexes;
     internal int[] PkIndexArray => _pkIndexArray;
+    internal Dictionary<IndexKey, int> PrimaryKeyLookup => _pkIndex;
+    internal IReadOnlyHashSet<int> PrimaryKeyIndexesViewMutable => _primaryKeyIndexesView;
+    internal void SetPrimaryKeyIndexArray(int[] value) => _pkIndexArray = value;
+    internal void SetPrimaryKeyIndexesView(IReadOnlyHashSet<int> value) => _primaryKeyIndexesView = value;
 
     /// <summary>
     /// EN: Fast lookup dictionary mapping serialized PK values to row positions.
@@ -407,58 +219,7 @@ public abstract class TableMock
     /// </summary>
     /// <param name="columns">EN: Primary key columns. PT: Colunas da chave primaria.</param>
     public void AddPrimaryKeyIndexes(params string[] columns)
-    {
-        foreach (var colName in columns)
-            _primaryKeyIndexes.Add(_columns[colName].Index);
-        if (_primaryKeyIndexes.Count != columns.Length)
-            throw new InvalidOperationException(SqlExceptionMessages.DuplicatePrimaryKeyColumns());
-        _pkIndexArray = [.. _primaryKeyIndexes.OrderBy(static i => i)];
-        _primaryKeyIndexesView = new ReadOnlyHashSet<int>(_primaryKeyIndexes);
-        RebuildPkIndex();
-    }
-
-    /// <summary>
-    /// EN: Builds a composite key string from primary key column values of a row.
-    /// PT: Constrói uma string de chave composta a partir dos valores das colunas PK de uma linha.
-    /// </summary>
-    internal IndexKey BuildPkKey(IReadOnlyDictionary<int, object?> row)
-    {
-        if (_pkIndexArray.Length == 0)
-            return default;
-
-        if (_pkIndexArray.Length == 1)
-        {
-            var pk0 = _pkIndexArray[0];
-            return new IndexKey(row.TryGetValue(pk0, out var v) ? v : null);
-        }
-
-        if (_pkIndexArray.Length == 2)
-        {
-            var pk0 = _pkIndexArray[0];
-            var pk1 = _pkIndexArray[1];
-            var v0 = row.TryGetValue(pk0, out var vv0) ? vv0 : null;
-            var v1 = row.TryGetValue(pk1, out var vv1) ? vv1 : null;
-            return new IndexKey(v0, v1);
-        }
-
-        if (_pkIndexArray.Length == 3)
-        {
-            var pk0 = _pkIndexArray[0];
-            var pk1 = _pkIndexArray[1];
-            var pk2 = _pkIndexArray[2];
-            var v0 = row.TryGetValue(pk0, out var vv0) ? vv0 : null;
-            var v1 = row.TryGetValue(pk1, out var vv1) ? vv1 : null;
-            var v2 = row.TryGetValue(pk2, out var vv2) ? vv2 : null;
-            return new IndexKey(v0, v1, v2);
-        }
-
-        var values = new object?[_pkIndexArray.Length];
-        for (int i = 0; i < _pkIndexArray.Length; i++)
-        {
-            values[i] = row.TryGetValue(_pkIndexArray[i], out var v) ? v : null;
-        }
-        return new IndexKey(values);
-    }
+        => _indexManager.AddPrimaryKeyIndexes(columns);
 
     /// <summary>
     /// EN: Tries to find a row by its primary key using the fast PK index.
@@ -468,14 +229,7 @@ public abstract class TableMock
     /// <param name="rowIndex">EN: Found row index. PT: Índice da linha encontrada.</param>
     /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
     public bool TryFindRowByPk(IReadOnlyDictionary<int, object?> row, out int rowIndex)
-    {
-        rowIndex = -1;
-        if (_primaryKeyIndexes.Count == 0)
-            return false;
-
-        var key = BuildPkKey(row);
-        return _pkIndex.TryGetValue(key, out rowIndex);
-    }
+        => _indexManager.TryFindRowByPk(row, out rowIndex);
 
     /// <summary>
     /// EN: Tries to find a row by primary key values already ordered by the PK definition.
@@ -485,13 +239,7 @@ public abstract class TableMock
     /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
     /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
     internal bool TryFindRowByPkValues(object?[] values, out int rowIndex)
-    {
-        rowIndex = -1;
-        if (_primaryKeyIndexes.Count == 0 || _pkIndexArray.Length != values.Length)
-            return false;
-
-        return _pkIndex.TryGetValue(new IndexKey(values), out rowIndex);
-    }
+        => _indexManager.TryFindRowByPkValues(values, out rowIndex);
 
     /// <summary>
     /// EN: Tries to find a row by a single primary key value.
@@ -501,13 +249,7 @@ public abstract class TableMock
     /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
     /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
     internal bool TryFindRowByPkValues(object? value, out int rowIndex)
-    {
-        rowIndex = -1;
-        if (_primaryKeyIndexes.Count == 0 || _pkIndexArray.Length != 1)
-            return false;
-
-        return _pkIndex.TryGetValue(new IndexKey(value), out rowIndex);
-    }
+        => _indexManager.TryFindRowByPkValues(value, out rowIndex);
 
     /// <summary>
     /// EN: Tries to find a row by two primary key values.
@@ -518,13 +260,7 @@ public abstract class TableMock
     /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
     /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
     internal bool TryFindRowByPkValues(object? v1, object? v2, out int rowIndex)
-    {
-        rowIndex = -1;
-        if (_primaryKeyIndexes.Count == 0 || _pkIndexArray.Length != 2)
-            return false;
-
-        return _pkIndex.TryGetValue(new IndexKey(v1, v2), out rowIndex);
-    }
+        => _indexManager.TryFindRowByPkValues(v1, v2, out rowIndex);
 
     /// <summary>
     /// EN: Tries to find a row by three primary key values.
@@ -536,38 +272,17 @@ public abstract class TableMock
     /// <param name="rowIndex">EN: Found row index. PT: Indice da linha encontrada.</param>
     /// <returns>EN: True if a matching row was found. PT: True se uma linha correspondente foi encontrada.</returns>
     internal bool TryFindRowByPkValues(object? v1, object? v2, object? v3, out int rowIndex)
-    {
-        rowIndex = -1;
-        if (_primaryKeyIndexes.Count == 0 || _pkIndexArray.Length != 3)
-            return false;
+        => _indexManager.TryFindRowByPkValues(v1, v2, v3, out rowIndex);
 
-        return _pkIndex.TryGetValue(new IndexKey(v1, v2, v3), out rowIndex);
-    }
-
-    /// <summary>
-    /// EN: Rebuilds the PK index from all current rows.
-    /// PT: Reconstrói o índice PK a partir de todas as linhas atuais.
-    /// </summary>
-    private void RebuildPkIndex()
-    {
-        _pkIndex.Clear();
-        if (_primaryKeyIndexes.Count == 0)
-            return;
-
-        for (int i = 0; i < _items.Count; i++)
-        {
-            var key = BuildPkKey(_items[i]);
-            _pkIndex[key] = i;
-        }
-    }
-
-    private readonly Dictionary<string, ForeignDef> _foreignKeys = new(StringComparer.OrdinalIgnoreCase);
+    private readonly TableForeignKeyManager _foreignKeyManager;
+    private readonly TableIndexManager _indexManager;
+    private readonly TableStateManager _stateManager;
 
     /// <summary>
     /// EN: List of foreign keys defined in the table.
     /// PT: Lista de chaves estrangeiras definidas na tabela.
     /// </summary>
-    public IReadOnlyDictionary<string, ForeignDef> ForeignKeys => _foreignKeys;
+    public IReadOnlyDictionary<string, ForeignDef> ForeignKeys => _foreignKeyManager.ForeignKeys;
 
     internal IndexDictionary _indexes = [];
     internal IndexDictionary IndexesRaw => _indexes;
@@ -579,8 +294,7 @@ public abstract class TableMock
     public IReadOnlyDictionary<string, IndexDef> Indexes
         => _indexesView;
 
-    private readonly Dictionary<TableTriggerEvent, List<Action<TableTriggerContext>>> _triggers = [];
-    private readonly Dictionary<string, (TableTriggerEvent Event, Action<TableTriggerContext> Handler)> _namedTriggers = new(StringComparer.OrdinalIgnoreCase);
+    private readonly TableTriggerManager _triggerManager;
     internal event Action<TableMutationNotification>? MutationApplied;
 
     /// <summary>
@@ -590,97 +304,11 @@ public abstract class TableMock
     /// <param name="evt">EN: Trigger event. PT: Evento da trigger.</param>
     /// <param name="handler">EN: Callback handler. PT: Manipulador de callback.</param>
     public void AddTrigger(TableTriggerEvent evt, Action<TableTriggerContext> handler)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(handler, nameof(handler));
-        if (!_triggers.TryGetValue(evt, out var handlers))
-        {
-            handlers = [];
-            _triggers[evt] = handlers;
-        }
-
-        handlers.Add(handler);
-    }
-
-    internal void AddOrReplaceTrigger(
-        string triggerName,
-        TableTriggerEvent evt,
-        Action<TableTriggerContext> handler,
-        bool orReplace = false)
-    {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
-        ArgumentNullExceptionCompatible.ThrowIfNull(handler, nameof(handler));
-
-        var normalizedName = triggerName.NormalizeName();
-        if (_namedTriggers.TryGetValue(normalizedName, out var previous))
-        {
-            if (!orReplace)
-                throw new InvalidOperationException($"Trigger '{normalizedName}' already exists.");
-
-            if (_triggers.TryGetValue(previous.Event, out var previousHandlers))
-            {
-                previousHandlers.Remove(previous.Handler);
-                if (previousHandlers.Count == 0)
-                    _triggers.Remove(previous.Event);
-            }
-        }
-
-        AddTrigger(evt, handler);
-        _namedTriggers[normalizedName] = (evt, handler);
-    }
-
-    internal bool RemoveTrigger(string triggerName)
-    {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
-
-        var normalizedName = triggerName.NormalizeName();
-        if (!_namedTriggers.TryGetValue(normalizedName, out var previous))
-            return false;
-
-        if (_triggers.TryGetValue(previous.Event, out var previousHandlers))
-        {
-            previousHandlers.Remove(previous.Handler);
-            if (previousHandlers.Count == 0)
-                _triggers.Remove(previous.Event);
-        }
-
-        _namedTriggers.Remove(normalizedName);
-        return true;
-    }
-
-    internal bool TryGetTriggerEvent(
-        string triggerName,
-        out TableTriggerEvent evt)
-    {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
-
-        var normalizedName = triggerName.NormalizeName();
-        if (_namedTriggers.TryGetValue(normalizedName, out var previous))
-        {
-            evt = previous.Event;
-            return true;
-        }
-
-        evt = default;
-        return false;
-    }
-
-    internal void ExecuteTriggers(
-        TableTriggerEvent evt,
-        IReadOnlyDictionary<int, object?>? oldRow,
-        IReadOnlyDictionary<int, object?>? newRow)
-    {
-        if (!_triggers.TryGetValue(evt, out var handlers) || handlers.Count == 0)
-            return;
-
-        using var scope = DbConnectionMockBase.BeginTriggerScope(evt);
-        var context = new TableTriggerContext(this, oldRow, newRow);
-        foreach (var handler in handlers)
-            handler(context);
-    }
+        => _triggerManager.AddTrigger(evt, handler);
 
     /// <inheritdoc />
     public bool HasTriggers(TableTriggerEvent evt)
-        => _triggers.TryGetValue(evt, out var handlers) && handlers.Count > 0;
+        => _triggerManager.HasTriggers(evt);
 
     /// <summary>
     /// EN: Creates a detachable row snapshot without allocating a dictionary.
@@ -725,9 +353,6 @@ public abstract class TableMock
             previousNextIdentity));
     }
 
-    internal bool HasRegisteredTriggers()
-        => _triggers.Count > 0;
-
     /// <summary>
     /// EN: Add new Column to Table
     /// PT: Incluir nova coluna na tabela
@@ -740,6 +365,7 @@ public abstract class TableMock
     /// <param name="identity"></param>
     /// <param name="defaultValue"></param>
     /// <param name="enumValues"></param>
+    /// <param name="computedExpression"></param>
     /// <returns></returns>
     public ColumnDef AddColumn(
         string name,
@@ -749,7 +375,8 @@ public abstract class TableMock
         int? decimalPlaces = null,
         bool identity = false,
         object? defaultValue = null,
-        IList<string>? enumValues = null)
+        IList<string>? enumValues = null,
+        string? computedExpression = null)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
 
@@ -771,7 +398,8 @@ public abstract class TableMock
             decimalPlaces: decimalPlaces,
             identity: identity,
             defaultValue: defaultValue,
-            enumValues: enumValues);
+            enumValues: enumValues,
+            computedExpression: computedExpression);
 
         _columns.Add(normalizedName, col);
         _columnsByIndex[col.Index] = normalizedName;
@@ -799,7 +427,8 @@ public abstract class TableMock
             column.decimalPlaces,
             column.identity,
             column.defaultValue,
-            column.enumValues);
+            column.enumValues,
+            column.computedExpression);
 
     private void BackfillAddedColumn(ColumnDef column)
     {
@@ -857,83 +486,7 @@ public abstract class TableMock
         IEnumerable<string> keyCols,
         string[]? include = null,
         bool unique = false)
-    {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
-        ArgumentNullExceptionCompatible.ThrowIfNull(keyCols, nameof(keyCols));
-        name = name.NormalizeName();
-        if (_indexes.ContainsKey(name))
-            throw new InvalidOperationException(SqlExceptionMessages.IndexAlreadyExists(name));
-        var normalizedKeyCols = keyCols is ICollection<string> keyColsCollection
-            ? new List<string>(keyColsCollection.Count)
-            : new List<string>();
-        var seenKeyCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var keyCol in keyCols)
-        {
-            var normalizedKeyCol = keyCol.NormalizeName();
-            if (!seenKeyCols.Add(normalizedKeyCol))
-                throw new InvalidOperationException($"Index '{name}' cannot contain duplicate key columns.");
-
-            normalizedKeyCols.Add(normalizedKeyCol);
-        }
-
-        foreach (var keyColumn in normalizedKeyCols)
-            GetColumn(keyColumn);
-
-        List<string>? normalizedIncludeCols = null;
-        if (include is not null)
-        {
-            normalizedIncludeCols = include is ICollection<string> includeCollection
-                ? new List<string>(includeCollection.Count)
-                : [];
-            var seenIncludeCols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var includeCol in include)
-            {
-                var normalizedIncludeCol = includeCol.NormalizeName();
-                if (!seenIncludeCols.Add(normalizedIncludeCol))
-                    throw new InvalidOperationException($"Index '{name}' cannot contain duplicate include columns.");
-
-                for (var i = 0; i < normalizedKeyCols.Count; i++)
-                {
-                    if (string.Equals(normalizedKeyCols[i], normalizedIncludeCol, StringComparison.OrdinalIgnoreCase))
-                        throw new InvalidOperationException($"Index '{name}' cannot include key columns redundantly.");
-                }
-
-                normalizedIncludeCols.Add(normalizedIncludeCol);
-            }
-
-            foreach (var includeColumn in normalizedIncludeCols)
-                GetColumn(includeColumn);
-        }
-
-        var idx = new IndexDef(this, name, normalizedKeyCols, normalizedIncludeCols?.ToArray(), unique);
-        _indexes.Add(name, idx);
-        if (unique)
-            _uniqueIndexes.Add(idx);
-        _indexVersion++;
-        return idx;
-    }
-
-    internal void DropIndex(
-        string name,
-        bool ifExists = false)
-    {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
-        name = name.NormalizeName();
-
-        if (_indexes.Remove(name))
-        {
-            if (_uniqueIndexes.Count > 0)
-                _uniqueIndexes.RemoveAll(index => string.Equals(index.Name, name, StringComparison.OrdinalIgnoreCase));
-
-            _indexVersion++;
-            return;
-        }
-
-        if (ifExists)
-            return;
-
-        throw new InvalidOperationException($"Index '{name}' does not exist.");
-    }
+        => _indexManager.CreateIndex(name, keyCols, include, unique);
 
     /// <summary>
     /// EN: Looks up values in the index using the given key.
@@ -945,41 +498,7 @@ public abstract class TableMock
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(
         IndexDef def,
         IndexKey key)
-    {
-        ArgumentNullExceptionCompatible.ThrowIfNull(def, nameof(def));
-        if (!_indexes.TryGetValue(def.Name.NormalizeName(), out var map))
-            return null;
-
-        return map.Lookup(key);
-    }
-
-    /// <summary>
-    /// EN: Updates _indexes after inserting or changing a row.
-    /// PT: Atualiza os índices após inserir ou alterar uma linha.
-    /// </summary>
-    /// <param name="rowIdx">EN: Changed row index. PT: Índice da linha alterada.</param>
-    /// <param name="row">EN: Row to remove. PT: Linha a remover.</param>
-    internal void RemoveRowFromIndexes(int rowIdx, IReadOnlyDictionary<int, object?> row)
-    {
-        if (_indexes.Count == 0)
-            return;
-
-        foreach (var idx in _indexes.Values)
-        {
-            idx.RemoveRow(rowIdx, row);
-        }
-    }
-
-    internal void ShiftIndexPositionsAfterDelete(int deletedIdx)
-    {
-        if (_indexes.Count == 0)
-            return;
-
-        foreach (var idx in _indexes.Values)
-        {
-            idx.ShiftPositionsAfter(deletedIdx);
-        }
-    }
+        => _indexManager.Lookup(def, key);
 
     /// <summary>
     /// EN: Updates index structures using the specified row.
@@ -987,25 +506,7 @@ public abstract class TableMock
     /// </summary>
     /// <param name="rowIdx">EN: Updated row index. PT: Indice da linha atualizada.</param>
     public void UpdateIndexesWithRow(int rowIdx)
-    {
-        if (_indexes.Count == 0)
-            return;
-
-        foreach (var index in _indexes.Values)
-            index.UpdateIndexesWithRow(rowIdx, this[rowIdx]);
-    }
-
-    internal void UpdateIndexesWithRow(
-        int rowIdx,
-        IReadOnlyDictionary<int, object?>? oldRow,
-        IReadOnlyDictionary<int, object?> newRow)
-    {
-        if (_indexes.Count == 0)
-            return;
-
-        foreach (var index in _indexes.Values)
-            index.UpdateIndexesWithRow(rowIdx, oldRow, newRow);
-    }
+        => _indexManager.UpdateIndexesWithRow(rowIdx);
 
     /// <summary>
     /// EN: Rebuilds all table _indexes.
@@ -1013,31 +514,8 @@ public abstract class TableMock
     /// </summary>
     public void RebuildAllIndexes()
     {
-        if (_indexes.Count == 0)
-        {
-            RebuildPkIndex();
-            return;
-        }
-
-        if (_indexes.Count <= 1 || !Schema.Db.ThreadSafe)
-        {
-            foreach (var ix in _indexes)
-                ix.Value.RebuildIndex();
-            RebuildPkIndex();
-            return;
-        }
-
-        Parallel.ForEach(_indexes.Values, ix => ix.RebuildIndex());
-        RebuildPkIndex();
-    }
-
-    internal void MarkAllIndexesDirty()
-    {
-        if (_indexes.Count == 0)
-            return;
-
-        foreach (var ix in _indexes.Values)
-            ix.MarkDirty();
+        _indexManager.RebuildAllIndexes();
+        _indexManager.RebuildPkIndex();
     }
 
 
@@ -1049,126 +527,7 @@ public abstract class TableMock
         string name,
         string refTable,
         HashSet<(string col, string refCol)> references)
-    {
-        var tbRef = ResolveReferencedTable(refTable);
-        var fk = new ForeignDef(
-            this,
-            name,
-            tbRef,
-            [.. references.Select(reference =>
-            {
-                var col = _columns[reference.col];
-                var refCol = tbRef is TableMock refTableMock
-                    ? refTableMock._columns[reference.refCol]
-                    : tbRef.Columns[reference.refCol];
-                return (col: col, refCol: refCol);
-            })]
-            );
-
-        _foreignKeys.Add(name, fk);
-        if (ReferenceEquals(tbRef, this))
-            _hasSelfReferencingForeignKey = true;
-        return fk;
-    }
-
-    private ITableMock ResolveReferencedTable(string refTable)
-    {
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(refTable, nameof(refTable));
-
-        var separatorIndex = refTable.IndexOf('.');
-        if (separatorIndex <= 0 || separatorIndex == refTable.Length - 1)
-            return Schema[refTable];
-
-        var schemaName = refTable[..separatorIndex].NormalizeName();
-        var tableName = refTable[(separatorIndex + 1)..].NormalizeName();
-        return Schema.Db.GetTable(tableName, schemaName);
-    }
-
-    internal void ValidateForeignKeysOnRow(IReadOnlyDictionary<int, object?> row)
-    {
-        if (_foreignKeys.Count == 0)
-            return;
-
-        foreach (var fk in _foreignKeys.Values)
-        {
-            var hasNull = false;
-            foreach (var (col, _) in fk.References)
-            {
-                if (!row.TryGetValue(col.Index, out var val)
-                    || val is null
-                    || val is DBNull)
-                {
-                    hasNull = true;
-                    break;
-                }
-            }
-
-            if (hasNull)
-                continue;
-
-            if (!HasReferencedRow(fk, row))
-            {
-                var refCols = string.Join(",", fk.References.Select(_ => _.col.Name));
-                throw ForeignKeyFails(refCols, fk.RefTable.TableName);
-            }
-        }
-    }
-
-    private bool HasReferencedRow(
-        ForeignDef fk,
-        IReadOnlyDictionary<int, object?> row)
-    {
-        var refTable = fk.RefTable;
-        if (fk.TryGetRefLookupPlan(out var lookupPlan))
-        {
-            var key = lookupPlan.BuildKey(row);
-            if (lookupPlan.Index.LookupMutable(key)?.Count > 0)
-                return true;
-        }
-
-        if (Schema.Db.ThreadSafe && refTable.Count >= 2048)
-        {
-            var found = 0;
-            Parallel.For(0, refTable.Count, (refIndex, state) =>
-            {
-                if (Volatile.Read(ref found) != 0)
-                {
-                    state.Stop();
-                    return;
-                }
-
-                var refRow = refTable[refIndex];
-                foreach (var reference in fk.References)
-                {
-                    if (!Equals(refRow[reference.refCol.Index], row[reference.col.Index]))
-                        return;
-                }
-
-                Interlocked.Exchange(ref found, 1);
-                state.Stop();
-            });
-
-            return Volatile.Read(ref found) != 0;
-        }
-
-        foreach (var refRow in refTable)
-        {
-            var matches = true;
-            foreach (var reference in fk.References)
-            {
-                if (!Equals(refRow[reference.refCol.Index], row[reference.col.Index]))
-                {
-                    matches = false;
-                    break;
-                }
-            }
-
-            if (matches)
-                return true;
-        }
-
-        return false;
-    }
+        => _foreignKeyManager.CreateForeignKey(name, refTable, references);
 
     /// <summary>
     /// EN: Adds multiple items by converting them into rows.
@@ -1309,9 +668,8 @@ public abstract class TableMock
         if (valueCount == 0)
             return this;
 
-        var hasForeignKeys = _foreignKeys.Count > 0;
+        var hasForeignKeys = _foreignKeyManager.HasForeignKeys;
         var hasPersistedComputedColumns = HasPersistedComputedColumns();
-        var hasExistingRows = Count > 0;
         if (valueCount == 1 || HasSelfReferencingForeignKey())
         {
             foreach (var value in values)
@@ -1352,8 +710,6 @@ public abstract class TableMock
                 batchUniqueSets[i] = new HashSet<IndexKey>();
         }
 
-        // Pre-calculate ALL keys for ALL indexes to reuse later
-        var pkKeys = batchPrimaryKeys is null ? null : new IndexKey[valueCount];
         var indexKeysMatrix = new IndexKey[allIndexCount][];
         for (int i = 0; i < allIndexCount; i++)
             indexKeysMatrix[i] = new IndexKey[valueCount];
@@ -1368,17 +724,10 @@ public abstract class TableMock
             if (hasPersistedComputedColumns)
                 RefreshPersistedComputedValues(row);
             if (hasForeignKeys)
-                ValidateForeignKeysOnRow(row);
+                _foreignKeyManager.ValidateForeignKeysOnRow(row);
 
-            if (pkKeys is not null)
-            {
-                var pkKey = BuildPkKey(row);
-                pkKeys[valueIndex] = pkKey;
-                if ((hasExistingRows && _pkIndex.ContainsKey(pkKey)) || !batchPrimaryKeys!.Add(pkKey))
-                {
-                    throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(row));
-                }
-            }
+            if (batchPrimaryKeys is not null)
+                _indexManager.EnsurePrimaryKeyUniqueOnInsert(row, batchPrimaryKeys);
 
             for (int i = 0; i < allIndexCount; i++)
             {
@@ -1411,10 +760,10 @@ public abstract class TableMock
             {
                 allIndexes[i].UpdateIndexesWithRow(rowIndex, row, indexKeysMatrix[i][rowOffset]);
             }
-
-            if (hasPrimaryKey)
-                _pkIndex[pkKeys![rowOffset]] = rowIndex;
         }
+
+        if (hasPrimaryKey)
+            _indexManager.RegisterPrimaryKeys(startIndex, values);
 
         if (hasMutationApplied)
         {
@@ -1439,12 +788,9 @@ public abstract class TableMock
         var hasMutationApplied = MutationApplied is not null;
         var previousNextIdentities = hasMutationApplied ? new int[valueCount] : null;
         var hasPersistedComputedColumns = HasPersistedComputedColumns();
-        var hasExistingRows = Count > 0;
         var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
             ? new HashSet<IndexKey>()
             : null;
-        var pkKeys = batchPrimaryKeys is null ? null : new IndexKey[valueCount];
-
         for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
         {
             var row = values[valueIndex];
@@ -1455,25 +801,19 @@ public abstract class TableMock
             if (hasPersistedComputedColumns)
                 RefreshPersistedComputedValues(row);
             if (hasForeignKeys)
-                ValidateForeignKeysOnRow(row);
+                _foreignKeyManager.ValidateForeignKeysOnRow(row);
 
-            if (pkKeys is null)
+            if (batchPrimaryKeys is null)
                 continue;
 
-            var pkKey = BuildPkKey(row);
-            pkKeys[valueIndex] = pkKey;
-            if ((hasExistingRows && _pkIndex.ContainsKey(pkKey)) || !batchPrimaryKeys!.Add(pkKey))
-                throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(row));
+            _indexManager.EnsurePrimaryKeyUniqueOnInsert(row, batchPrimaryKeys);
         }
 
         var startIndex = _items.Count;
         _items.AddRange(values);
 
-        if (pkKeys is not null)
-        {
-            for (var rowOffset = 0; rowOffset < valueCount; rowOffset++)
-                _pkIndex[pkKeys[rowOffset]] = startIndex + rowOffset;
-        }
+        if (batchPrimaryKeys is not null)
+            _indexManager.RegisterPrimaryKeys(startIndex, values);
 
         if (hasMutationApplied)
         {
@@ -1491,7 +831,7 @@ public abstract class TableMock
     }
 
     private bool HasSelfReferencingForeignKey()
-        => _hasSelfReferencingForeignKey;
+        => _foreignKeyManager.HasSelfReferencingForeignKey;
 
     /// <summary>
     /// EN: Adds a row ensuring default values and uniqueness.
@@ -1506,19 +846,14 @@ public abstract class TableMock
         ApplyDefaultValues(value);
         if (hasPersistedComputedColumns)
             RefreshPersistedComputedValues(value);
-        if (_foreignKeys.Count > 0)
-            ValidateForeignKeysOnRow(value);
-        var primaryKeyValue = _primaryKeyIndexes.Count > 0 ? BuildPkKey(value) : default(IndexKey?);
-        EnsureUniqueOnInsert(value, primaryKeyValue, _items.Count > 0);
+        if (_foreignKeyManager.HasForeignKeys)
+            _foreignKeyManager.ValidateForeignKeysOnRow(value);
+        _indexManager.EnsureUniqueOnInsert(value);
         _items.Add(value);
         // Update _indexes with the new row
         int newIdx = Count - 1;
-        UpdateIndexesWithRow(newIdx);
-        // Update PK index
-        if (primaryKeyValue is { } pkKey)
-        {
-            _pkIndex[pkKey] = newIdx;
-        }
+        _indexManager.UpdateIndexesWithRow(newIdx);
+        _indexManager.RegisterPrimaryKey(newIdx, value);
         if (hasMutationApplied)
         {
             NotifyMutationApplied(
@@ -1528,27 +863,6 @@ public abstract class TableMock
                 previousNextIdentity: previousNextIdentity);
         }
         return this;
-    }
-
-    internal void UpdateIndexesWithRows(
-        int startIndex,
-        IReadOnlyList<Dictionary<int, object?>> rows)
-    {
-        if (rows.Count == 0)
-            return;
-
-        var hasPrimaryKey = _primaryKeyIndexes.Count > 0;
-        for (var rowOffset = 0; rowOffset < rows.Count; rowOffset++)
-        {
-            var rowIndex = startIndex + rowOffset;
-            var row = rows[rowOffset];
-
-            foreach (var index in _indexes.Values)
-                index.UpdateIndexesWithRow(rowIndex, row);
-
-            if (hasPrimaryKey)
-                _pkIndex[BuildPkKey(row)] = rowIndex;
-        }
     }
 
     private void ApplyDefaultValues(Dictionary<int, object?> value)
@@ -1631,226 +945,6 @@ public abstract class TableMock
 
         _hasPersistedComputedColumnsInitialized = true;
         return _hasPersistedComputedColumns;
-    }
-
-    private bool TryFindPrimaryConflictByIndex(
-        IReadOnlyDictionary<int, object?> newRow,
-        out int rowIndex)
-    {
-        rowIndex = -1;
-        if (_primaryKeyIndexes.Count == 0)
-            return false;
-
-        IndexDef? pkIndex = null;
-        foreach (var index in _uniqueIndexes)
-        {
-            if (index.KeyCols.Count != _pkIndexArray.Length)
-                continue;
-
-            var matches = true;
-            for (var i = 0; i < _pkIndexArray.Length; i++)
-            {
-                var pkIdx = _pkIndexArray[i];
-                var columnName = _columnsByOrdinal[pkIdx].Name;
-                if (!index.KeyCols.Contains(columnName, StringComparer.OrdinalIgnoreCase))
-                {
-                    matches = false;
-                    break;
-                }
-            }
-
-            if (matches)
-            {
-                pkIndex = index;
-                break;
-            }
-        }
-
-        if (pkIndex is null)
-            return false;
-
-        var valuesByColumn = new Dictionary<string, object?>(_pkIndexArray.Length, StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < _pkIndexArray.Length; i++)
-        {
-            var pkIdx = _pkIndexArray[i];
-            var columnName = _columnsByOrdinal[pkIdx].Name;
-            valuesByColumn[columnName] = newRow.TryGetValue(pkIdx, out var val) ? val : null;
-        }
-
-        var key = pkIndex.BuildIndexKeyFromValues(valuesByColumn);
-        var hits = pkIndex.LookupMutable(key);
-        if (hits is not { Count: > 0 })
-            return false;
-
-        foreach (var hit in hits)
-        {
-            rowIndex = hit.Key;
-            break;
-        }
-        return true;
-    }
-
-    internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow)
-        => EnsureUniqueOnInsert(newRow, null, _items.Count > 0);
-
-    internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow, IndexKey? pkKey)
-        => EnsureUniqueOnInsert(newRow, pkKey, _items.Count > 0);
-
-    internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow, IndexKey? pkKey, bool hasExistingRows)
-    {
-        CheckUniquePrimary(newRow, pkKey, hasExistingRows);
-
-        foreach (var idx in _uniqueIndexes)
-        {
-            var key = idx.BuildIndexKey(newRow);
-            var hits = idx.LookupMutable(key);
-            if (hits is { Count: > 0 })
-                throw DuplicateKey(TableName, idx.Name, key);
-        }
-    }
-
-    private void CheckUniquePrimary(Dictionary<int, object?> newRow, IndexKey? pkKey = null, bool hasExistingRows = true)
-    {
-        if (_primaryKeyIndexes.Count <= 0)
-            return;
-
-        // Fast path: use PK index dictionary for O(1) conflict detection
-        if (hasExistingRows && _pkIndex.Count > 0)
-        {
-            var primaryKey = pkKey ?? BuildPkKey(newRow);
-            if (_pkIndex.ContainsKey(primaryKey))
-            {
-                throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(newRow));
-            }
-            return;
-        }
-
-        // Fallback: use existing index-based detection
-        if (TryFindPrimaryConflictByIndex(newRow, out _))
-        {
-            throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(newRow));
-        }
-
-        for (int i = 0; i < Count; i++)
-        {
-            var existingRow = this[i];
-            var matchedCount = 0;
-            for (var pkPos = 0; pkPos < _pkIndexArray.Length; pkPos++)
-            {
-                var pkIdx = _pkIndexArray[pkPos];
-                if (newRow.TryGetValue(pkIdx, out var pkVal)
-                    && existingRow.TryGetValue(pkIdx, out var cur)
-                    && Equals(cur, pkVal))
-                {
-                    matchedCount++;
-                }
-            }
-            if (_pkIndexArray.Length == matchedCount)
-                throw DuplicateKey(TableName, PRIMARY, BuildPrimaryKeyDescription(existingRow));
-        }
-    }
-
-    internal int? FindConflictingRowIndex(
-        IReadOnlyDictionary<int, object?> newRow,
-        out string? conflictIndexName,
-        out object? conflictKey)
-    {
-        conflictIndexName = null;
-        conflictKey = null;
-
-        // Fast path: use PK dictionary for O(1) conflict detection
-        if (_primaryKeyIndexes.Count > 0 && _pkIndex.Count > 0)
-        {
-            var pkKey = BuildPkKey(newRow);
-            if (_pkIndex.TryGetValue(pkKey, out var pkConflict))
-            {
-                conflictIndexName = PRIMARY;
-                conflictKey = BuildPrimaryKeyDescription(newRow);
-                return pkConflict;
-            }
-        }
-
-        if (TryFindPrimaryConflictByIndex(newRow, out var conflictByIndex))
-        {
-            conflictIndexName = PRIMARY;
-            conflictKey = BuildPrimaryKeyDescription(newRow);
-            return conflictByIndex;
-        }
-
-        if (!CheckPrimary(newRow, ref conflictIndexName, ref conflictKey, out var value))
-            return value;
-
-        foreach (var idx in _uniqueIndexes)
-        {
-            var key = idx.BuildIndexKey(newRow);
-            var hits = idx.LookupMutable(key);
-            if (hits is { Count: > 0 })
-            {
-                conflictIndexName = idx.Name;
-                conflictKey = key;
-                foreach (var hit in hits)
-                    return hit.Key;
-            }
-        }
-        return null;
-    }
-
-    private bool CheckPrimary(
-        IReadOnlyDictionary<int, object?> newRow,
-        ref string? conflictIndexName,
-        ref object? conflictKey,
-        out int? value)
-    {
-        value = default;
-        if (_primaryKeyIndexes.Count <= 0) return true;
-        for (int i = 0; i < Count; i++)
-        {
-            var existingRow = this[i];
-            var matchedCount = 0;
-            for (var pkPos = 0; pkPos < _pkIndexArray.Length; pkPos++)
-            {
-                var pkIdx = _pkIndexArray[pkPos];
-                if (newRow.TryGetValue(pkIdx, out var pkVal)
-                    && existingRow.TryGetValue(pkIdx, out var cur)
-                    && Equals(cur, pkVal))
-                {
-                    matchedCount++;
-                }
-            }
-            if (_pkIndexArray.Length != matchedCount)
-                continue;
-
-            conflictIndexName = PRIMARY;
-            conflictKey = BuildPrimaryKeyDescription(existingRow);
-            value = i;
-            return false;
-        }
-
-        return true;
-    }
-
-    private string BuildPrimaryKeyDescription(IReadOnlyDictionary<int, object?> row)
-    {
-        var parts = new List<string>(_pkIndexArray.Length);
-        foreach (var pkIdx in _pkIndexArray)
-        {
-            var columnName = _columnsByOrdinal[pkIdx].Name;
-            parts.Add($"{columnName}: {(row.TryGetValue(pkIdx, out var value) ? value : null)}");
-        }
-
-        return string.Join(",", parts);
-    }
-
-    internal void EnsureUniqueBeforeUpdate(
-        string tableName,
-        IReadOnlyDictionary<int, object?> existingRow,
-        IReadOnlyDictionary<int, object?> simulatedRow,
-        int rowIdx,
-        IReadOnlyList<string> changedCols)
-    {
-        foreach (var ix in _uniqueIndexes)
-            ix.EnsureUniqueBeforeUpdate(rowIdx, existingRow, simulatedRow, changedCols);
-
     }
 
     internal static string? ResolveWhereRaw(
@@ -2855,28 +1949,10 @@ public abstract class TableMock
         var hasMutationApplied = MutationApplied is not null;
         var it = _items[idx];
         Schema.ValidateForeignKeysOnDelete(TableName, this, [it]);
-        RemoveRowFromIndexes(idx, it);
-        // Remove from PK index and shift positions
-        if (_primaryKeyIndexes.Count > 0)
-        {
-            var removedKey = BuildPkKey(it);
-            _pkIndex.Remove(removedKey);
-            // Shift positions for rows after the deleted one
-            var keysToUpdate = new List<IndexKey>(_pkIndex.Count);
-            foreach (var entry in _pkIndex)
-            {
-                if (entry.Value > idx)
-                    keysToUpdate.Add(entry.Key);
-            }
-
-            foreach (var key in keysToUpdate)
-            {
-                if (_pkIndex.TryGetValue(key, out var currentIndex))
-                    _pkIndex[key] = currentIndex - 1;
-            }
-        }
+        _indexManager.RemoveRowFromIndexes(idx, it);
+        _indexManager.RemovePrimaryKey(idx, it);
         _items.RemoveAt(idx);
-        ShiftIndexPositionsAfterDelete(idx);
+        _indexManager.ShiftIndexPositionsAfterDelete(idx);
         if (hasMutationApplied)
             NotifyMutationApplied(TableMutationKind.Delete, idx, it);
         return it;
@@ -2894,26 +1970,32 @@ public abstract class TableMock
         var hasMutationApplied = MutationApplied is not null;
         var row = _items[rowIdx];
         var oldRow = hasMutationApplied ? CloneRow(row) : null;
-        // If changing a PK column, update the PK index
-        if (_primaryKeyIndexes.Count > 0 && _primaryKeyIndexes.Contains(colIdx))
-        {
-            var oldKey = BuildPkKey(row);
-            _pkIndex.Remove(oldKey);
-            row[colIdx] = value;
-            RefreshPersistedComputedValues(row);
-            var newKey = BuildPkKey(row);
-            _pkIndex[newKey] = rowIdx;
-        }
-        else
-        {
-            row[colIdx] = value;
-            RefreshPersistedComputedValues(row);
-        }
+        var oldValue = row[colIdx];
+        row[colIdx] = value;
+        RefreshPersistedComputedValues(row);
+        _indexManager.UpdatePrimaryKeyIfNeeded(rowIdx, colIdx, oldValue, row);
         if (hasMutationApplied)
             NotifyMutationApplied(TableMutationKind.Update, rowIdx, row, oldRow);
     }
 
     internal int FindRowIndexByReference(Dictionary<int, object?> row)
+        => _stateManager.FindRowIndexByReference(row);
+
+    internal void RemoveRowByReference(Dictionary<int, object?> row)
+        => _stateManager.RemoveRowByReference(row);
+
+    internal void InsertRestoredRow(int rowIndex, Dictionary<int, object?> row)
+        => _stateManager.InsertRestoredRow(rowIndex, row);
+
+    internal void RestoreRowSnapshot(
+        Dictionary<int, object?> targetRow,
+        IReadOnlyDictionary<int, object?> snapshot)
+        => _stateManager.RestoreRowSnapshot(targetRow, snapshot);
+
+    internal void RestoreIndexesAfterJournalReplay()
+        => _stateManager.RestoreIndexesAfterJournalReplay();
+
+    internal int FindRowIndexByReferenceCore(Dictionary<int, object?> row)
     {
         for (var i = 0; i < _items.Count; i++)
         {
@@ -2924,69 +2006,36 @@ public abstract class TableMock
         return -1;
     }
 
-    internal void RemoveRowByReference(Dictionary<int, object?> row)
+    internal void RemoveRowByReferenceCore(int rowIndex)
     {
-        var rowIndex = FindRowIndexByReference(row);
-        if (rowIndex >= 0)
+        if (rowIndex >= 0 && rowIndex < _items.Count)
             _items.RemoveAt(rowIndex);
     }
 
-    internal void InsertRestoredRow(int rowIndex, Dictionary<int, object?> row)
+    internal void InsertRestoredRowCore(int rowIndex, Dictionary<int, object?> row)
         => _items.Insert(rowIndex, row);
 
-    internal void RestoreRowSnapshot(
-        Dictionary<int, object?> targetRow,
-        IReadOnlyDictionary<int, object?> snapshot)
-    {
-        targetRow.Clear();
-        foreach (var entry in snapshot)
-            targetRow[entry.Key] = entry.Value;
-    }
-
-    internal void RestoreIndexesAfterJournalReplay()
-    {
-        RebuildPkIndex();
-        MarkAllIndexesDirty();
-    }
-
-    private List<Dictionary<int, object?>>? _backup;
+    internal void ClearRowsCore() => _items.Clear();
 
     /// <summary>
     /// EN: Backs up current rows.
     /// PT: Faz backup das linhas atuais.
     /// </summary>
     public void Backup()
-    {
-        var backup = new List<Dictionary<int, object?>>(_items.Count);
-        foreach (var row in _items)
-            backup.Add(CloneRow(row));
-
-        _backup = backup;
-    }
+        => _stateManager.Backup();
 
     /// <summary>
     /// EN: Restores the previous backup, if any.
     /// PT: Restaura o backup anterior, se existir.
     /// </summary>
     public void Restore()
-    {
-        if (_backup == null)
-            return;
-
-        _items.Clear();
-        _pkIndex.Clear();
-        foreach (var row in _backup)
-            _items.Add(CloneRow(row));
-
-        RebuildPkIndex();
-        MarkAllIndexesDirty();
-    }
+        => _stateManager.Restore();
 
     /// <summary>
     /// EN: Clears the stored backup.
     /// PT: Limpa o backup armazenado.
     /// </summary>
-    public void ClearBackup() => _backup = null;
+    public void ClearBackup() => _stateManager.ClearBackup();
 
     internal static Dictionary<int, object?> CloneRow(IReadOnlyDictionary<int, object?> row)
     {
@@ -3076,297 +2125,4 @@ public abstract class TableMock
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();
 
-    private sealed record PartitionRoutingInfo(
-        string PartitionedColumnName,
-        PartitionPartitionKind Kind,
-        IReadOnlyList<PartitionPartitionItem> Partitions)
-    {
-        internal static PartitionRoutingInfo? TryParse(string partitionClauseSql)
-        {
-            var rangeMatch = Regex.Match(
-                partitionClauseSql,
-                @"PARTITION\s+BY\s+RANGE\s*\(\s*YEAR\s*\(\s*`?(?<column>[A-Za-z0-9_]+)`?\s*\)\s*\)\s*\((?<parts>[\s\S]+)\)\s*$",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-            if (rangeMatch.Success)
-            {
-                var partitionColumn = rangeMatch.Groups["column"].Value.NormalizeName();
-                if (string.IsNullOrWhiteSpace(partitionColumn))
-                    return null;
-
-                var partitions = new List<PartitionPartitionItem>();
-                foreach (var part in SplitTopLevelPartitions(rangeMatch.Groups["parts"].Value))
-                {
-                    var item = ParseRangePartitionItem(part);
-                    if (item is null)
-                        return null;
-
-                    partitions.Add(item);
-                }
-
-                if (partitions.Count == 0)
-                    return null;
-
-                return new PartitionRoutingInfo(partitionColumn, PartitionPartitionKind.Range, partitions);
-            }
-
-            var listMatch = Regex.Match(
-                partitionClauseSql,
-                @"PARTITION\s+BY\s+LIST\s*\(\s*YEAR\s*\(\s*`?(?<column>[A-Za-z0-9_]+)`?\s*\)\s*\)\s*\((?<parts>[\s\S]+)\)\s*$",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-            if (!listMatch.Success)
-                return null;
-
-            var listPartitionColumn = listMatch.Groups["column"].Value.NormalizeName();
-            if (string.IsNullOrWhiteSpace(listPartitionColumn))
-                return null;
-
-            var listPartitions = new List<PartitionPartitionItem>();
-            foreach (var part in SplitTopLevelPartitions(listMatch.Groups["parts"].Value))
-            {
-                var item = ParseListPartitionItem(part);
-                if (item is null)
-                    return null;
-
-                listPartitions.Add(item);
-            }
-
-            if (listPartitions.Count == 0)
-                return null;
-
-            return new PartitionRoutingInfo(listPartitionColumn, PartitionPartitionKind.List, listPartitions);
-        }
-
-        internal bool TryGetPartitionName(
-            IReadOnlyDictionary<int, object?> row,
-            TableMock table,
-            out string partitionName)
-        {
-            partitionName = string.Empty;
-            if (!table._columns.TryGetValue(PartitionedColumnName, out var column))
-                return false;
-
-            if (!row.TryGetValue(column.Index, out var rawValue) || rawValue is null || rawValue is DBNull)
-                return false;
-
-            if (!TryGetYear(rawValue, out var year))
-                return false;
-
-            foreach (var partition in Partitions)
-            {
-                if (Kind == PartitionPartitionKind.Range)
-                {
-                    if (partition.MaxValue)
-                    {
-                        partitionName = partition.Name;
-                        return true;
-                    }
-
-                    if (year < partition.Value)
-                    {
-                        partitionName = partition.Name;
-                        return true;
-                    }
-
-                    continue;
-                }
-
-                if (partition.ListValues is not null)
-                {
-                    if (partition.ListValues.Contains(year))
-                    {
-                        partitionName = partition.Name;
-                        return true;
-                    }
-
-                    continue;
-                }
-
-                if (partition.Value == year)
-                {
-                    partitionName = partition.Name;
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static IEnumerable<string> SplitTopLevelPartitions(string partsSql)
-        {
-            var start = 0;
-            var depth = 0;
-            for (var i = 0; i < partsSql.Length; i++)
-            {
-                var ch = partsSql[i];
-                if (ch == '(')
-                {
-                    depth++;
-                    continue;
-                }
-
-                if (ch == ')')
-                {
-                    if (depth > 0)
-                        depth--;
-                    continue;
-                }
-
-                if (ch == ',' && depth == 0)
-                {
-                    var slice = partsSql[start..i].Trim();
-                    if (!string.IsNullOrWhiteSpace(slice))
-                        yield return slice;
-                    start = i + 1;
-                }
-            }
-
-            var last = partsSql[start..].Trim();
-            if (!string.IsNullOrWhiteSpace(last))
-                yield return last;
-        }
-
-        private static PartitionPartitionItem? ParseRangePartitionItem(string partSql)
-        {
-            var match = Regex.Match(
-                partSql,
-                @"^\s*PARTITION\s+`?(?<name>[A-Za-z0-9_]+)`?\s+VALUES\s+LESS\s+THAN\s*(?:\(\s*(?<bound>MAXVALUE|-?\d+)\s*\)|(?<bound>MAXVALUE|-?\d+))\s*$",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-            if (!match.Success)
-                return null;
-
-            var name = match.Groups["name"].Value.NormalizeName();
-            var boundRaw = match.Groups["bound"].Value.Trim();
-            if (string.Equals(boundRaw, "MAXVALUE", StringComparison.OrdinalIgnoreCase))
-                return new PartitionPartitionItem(name, 0, MaxValue: true);
-
-            if (!int.TryParse(boundRaw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var upperBound))
-                return null;
-
-            return new PartitionPartitionItem(name, upperBound, MaxValue: false);
-        }
-
-        private static PartitionPartitionItem? ParseListPartitionItem(string partSql)
-        {
-            var match = Regex.Match(
-                partSql,
-                @"^\s*PARTITION\s+`?(?<name>[A-Za-z0-9_]+)`?\s+VALUES\s+IN\s*\(\s*(?<values>[\s\S]+?)\s*\)\s*$",
-                RegexOptions.IgnoreCase | RegexOptions.Singleline);
-            if (!match.Success)
-                return null;
-
-            var name = match.Groups["name"].Value.NormalizeName();
-            if (string.IsNullOrWhiteSpace(name))
-                return null;
-
-            var valuesSql = match.Groups["values"].Value;
-            var parsedValues = new List<int>();
-            var hasValue = false;
-            foreach (var rawValue in SplitTopLevelCsv(valuesSql))
-            {
-                hasValue = true;
-                if (!int.TryParse(rawValue.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
-                    return null;
-
-                parsedValues.Add(value);
-            }
-
-            if (!hasValue)
-                return null;
-
-            return new PartitionPartitionItem(name, 0, MaxValue: false, parsedValues);
-        }
-
-        private static bool TryGetYear(object rawValue, out int year)
-        {
-            switch (rawValue)
-            {
-                case DateTime dateTime:
-                    year = dateTime.Year;
-                    return true;
-                case DateTimeOffset dateTimeOffset:
-                    year = dateTimeOffset.Year;
-                    return true;
-                case int intValue:
-                    year = intValue;
-                    return true;
-                case short shortValue:
-                    year = shortValue;
-                    return true;
-                case sbyte sbyteValue:
-                    year = sbyteValue;
-                    return true;
-                case byte byteValue:
-                    year = byteValue;
-                    return true;
-                case long longValue when longValue >= int.MinValue && longValue <= int.MaxValue:
-                    year = (int)longValue;
-                    return true;
-                case uint uintValue when uintValue <= int.MaxValue:
-                    year = (int)uintValue;
-                    return true;
-                case ulong ulongValue when ulongValue <= int.MaxValue:
-                    year = (int)ulongValue;
-                    return true;
-                case decimal decimalValue when decimalValue >= int.MinValue && decimalValue <= int.MaxValue:
-                    year = (int)decimalValue;
-                    return true;
-                case double doubleValue when doubleValue >= int.MinValue && doubleValue <= int.MaxValue:
-                    year = (int)doubleValue;
-                    return true;
-                case float floatValue when floatValue >= int.MinValue && floatValue <= int.MaxValue:
-                    year = (int)floatValue;
-                    return true;
-                case string text when DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsedDate):
-                    year = parsedDate.Year;
-                    return true;
-                default:
-                    year = default;
-                    return false;
-            }
-        }
-    }
-
-    private static IEnumerable<string> SplitTopLevelCsv(string partsSql)
-    {
-        var start = 0;
-        var depth = 0;
-        for (var i = 0; i < partsSql.Length; i++)
-        {
-            var ch = partsSql[i];
-            if (ch == '(')
-            {
-                depth++;
-                continue;
-            }
-
-            if (ch == ')')
-            {
-                if (depth > 0)
-                    depth--;
-                continue;
-            }
-
-            if (ch == ',' && depth == 0)
-            {
-                var slice = partsSql[start..i].Trim();
-                if (!string.IsNullOrWhiteSpace(slice))
-                    yield return slice;
-                start = i + 1;
-            }
-        }
-
-        var last = partsSql[start..].Trim();
-        if (!string.IsNullOrWhiteSpace(last))
-            yield return last;
-    }
-
-    private enum PartitionPartitionKind
-    {
-        Range,
-        List
-    }
-
-    private sealed record PartitionPartitionItem(string Name, int Value, bool MaxValue, IReadOnlyList<int>? ListValues = null);
 }

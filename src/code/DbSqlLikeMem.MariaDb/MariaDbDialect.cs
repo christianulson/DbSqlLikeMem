@@ -21,9 +21,14 @@ internal sealed class MariaDbDialect
     internal MariaDbDialect(int version)
         : base(DialectName, version)
     {
-        MariaDbScalarFunctionRegistry.Register(this, version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        MariaDbScalarFunctionRegistry.Register(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
-        MariaDbTableFunctionRegistry.Register(this, version);
+        MariaDbTableFunctionRegistry.Register(this, Version);
     }
 
     /// <inheritdoc />

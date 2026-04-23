@@ -14,6 +14,7 @@ public sealed record SchemaSnapshot
         "tables",
         "columns",
         "primary-keys",
+        "check-constraints",
         "indexes",
         "foreign-keys",
         "views",
@@ -26,7 +27,6 @@ public sealed record SchemaSnapshot
         "drift-comparison"
     ]);
     private static readonly IReadOnlyList<string> UnsupportedObjectKinds = Array.AsReadOnly([
-        "computed-default-expressions",
         "computed-column-generators",
         "trigger-bodies",
         "procedure-bodies",
@@ -425,6 +425,9 @@ public sealed record SchemaSnapshot
                     tableSnapshot.Columns.Select(static column => column.ToCol()));
                 created.NextIdentity = tableSnapshot.NextIdentity;
                 created.PartitionClauseSql = tableSnapshot.PartitionClauseSql;
+
+                if (tableSnapshot.CheckConstraints is { Count: > 0 } && created is TableMock createdTable)
+                    createdTable.CheckConstraintsMutable.AddRange(tableSnapshot.CheckConstraints);
             }
 
             foreach (var tableSnapshot in schemaSnapshot.Tables)
@@ -802,7 +805,11 @@ public sealed record SchemaSnapshotTable
             ForeignKeys = [.. table.ForeignKeys.Values
                 .OrderBy(static foreignKey => foreignKey.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(static foreignKey => SchemaSnapshotForeignKey.FromForeignKey(foreignKey))],
-            PartitionClauseSql = table.PartitionClauseSql
+            PartitionClauseSql = table.PartitionClauseSql,
+            CheckConstraints = table.CheckConstraints.Count == 0
+                ? []
+                : [.. table.CheckConstraints
+                    .OrderBy(static checkConstraint => checkConstraint.Name, StringComparer.OrdinalIgnoreCase)]
         };
 }
 
@@ -860,6 +867,12 @@ public sealed record SchemaSnapshotColumn
     /// </summary>
     public IReadOnlyList<string>? EnumValues { get; init; }
 
+    /// <summary>
+    /// EN: Optional computed expression text captured for the column.
+    /// PT: Texto opcional da expressao computada capturado para a coluna.
+    /// </summary>
+    public string? ComputedExpression { get; init; }
+
     internal static SchemaSnapshotColumn FromColumn(ColumnDef column)
         => new()
         {
@@ -870,7 +883,8 @@ public sealed record SchemaSnapshotColumn
             DecimalPlaces = column.DecimalPlaces,
             Identity = column.Identity,
             DefaultValue = SchemaSnapshot.SerializeDefaultValue(column.DefaultValue),
-            EnumValues = [.. column.EnumValues.OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)]
+            EnumValues = [.. column.EnumValues.OrderBy(static value => value, StringComparer.OrdinalIgnoreCase)],
+            ComputedExpression = column.ComputedExpression
         };
 
     internal Col ToCol()
@@ -882,7 +896,8 @@ public sealed record SchemaSnapshotColumn
             decimalPlaces: DecimalPlaces,
             identity: Identity,
             defaultValue: SchemaSnapshot.DeserializeDefaultValue(DefaultValue),
-            enumValues: EnumValues is null ? null : [.. EnumValues]);
+            enumValues: EnumValues is null ? null : [.. EnumValues],
+            computedExpression: ComputedExpression);
 }
 
 /// <summary>

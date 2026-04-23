@@ -46,8 +46,9 @@ internal static class SqlInsertValuesParserHelper
             for (var i = 0; i < rowValueCount; i++)
             {
                 var raw = rowValues[i];
+                var rawSpan = raw.AsSpan();
                 normalizedValues.Add(SqlSimpleValueParserHelper.NormalizeSimpleSqlValueRawTrimmed(raw, ctx.Dialect));
-                parsedValues.Add(ParseInsertValueExpression(raw, ctx.Dialect, rowNumber, i + 1, ctx.ParseScalar));
+                parsedValues.Add(ParseInsertValueExpression(rawSpan, raw, ctx.Dialect, rowNumber, i + 1, ctx.ParseScalar));
             }
 
             valuesRaw.Add(normalizedValues);
@@ -71,13 +72,14 @@ internal static class SqlInsertValuesParserHelper
     }
 
     private static SqlExpr ParseInsertValueExpression(
+        ReadOnlySpan<char> rawSpan,
         string raw,
         ISqlDialect dialect,
         int rowNumber,
         int exprNumber,
         Func<string, SqlExpr> parseScalar)
     {
-        if (HasDanglingTrailingOperator(raw))
+        if (HasDanglingTrailingOperator(rawSpan))
             throw new InvalidOperationException(
                 $"INSERT VALUES row {rowNumber} expression {exprNumber} is invalid.");
 
@@ -96,7 +98,7 @@ internal static class SqlInsertValuesParserHelper
         }
     }
 
-    private static bool HasDanglingTrailingOperator(string raw)
+    private static bool HasDanglingTrailingOperator(ReadOnlySpan<char> raw)
     {
         var trimmed = raw.TrimEnd();
         if (trimmed.Length == 0)

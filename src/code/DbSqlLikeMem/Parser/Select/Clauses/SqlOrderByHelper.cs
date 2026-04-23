@@ -19,31 +19,7 @@ internal static class SqlOrderByHelper
         var raws = readRawItems(ctx.AllowInsertSelectSuffixBoundary);
         foreach (var r in raws)
         {
-            var raw = r.Trim();
-            bool? nullsFirst = null;
-
-            if (raw.EndsWith(" NULLS FIRST", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!ctx.Dialect.SupportsOrderByNullsModifier)
-                    throw ctx.NotSupported("ORDER BY ... NULLS FIRST");
-                nullsFirst = true;
-                raw = raw[..^12].Trim();
-            }
-            else if (raw.EndsWith(" NULLS LAST", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!ctx.Dialect.SupportsOrderByNullsModifier)
-                    throw ctx.NotSupported("ORDER BY ... NULLS LAST");
-                nullsFirst = false;
-                raw = raw[..^11].Trim();
-            }
-
-            var desc = raw.EndsWith(" DESC", StringComparison.OrdinalIgnoreCase);
-            var val = desc
-                ? raw[..^5].Trim()
-                : (raw.EndsWith(" ASC", StringComparison.OrdinalIgnoreCase)
-                    ? raw[..^4].Trim()
-                    : raw);
-            list.Add(new SqlOrderByItem(val, desc, nullsFirst));
+            list.Add(ParseOrderByItem(r.AsSpan(), ctx.Dialect, ctx.NotSupported));
         }
 
         return list;
@@ -71,33 +47,45 @@ internal static class SqlOrderByHelper
         var raws = readRawItems(allowInsertSelectSuffixBoundary);
         foreach (var r in raws)
         {
-            var raw = r.Trim();
-            bool? nullsFirst = null;
-
-            if (raw.EndsWith(" NULLS FIRST", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!dialect.SupportsOrderByNullsModifier)
-                    throw SqlUnsupported.NotSupported(dialect, "ORDER BY ... NULLS FIRST");
-                nullsFirst = true;
-                raw = raw[..^12].Trim();
-            }
-            else if (raw.EndsWith(" NULLS LAST", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!dialect.SupportsOrderByNullsModifier)
-                    throw SqlUnsupported.NotSupported(dialect, "ORDER BY ... NULLS LAST");
-                nullsFirst = false;
-                raw = raw[..^11].Trim();
-            }
-
-            var desc = raw.EndsWith(" DESC", StringComparison.OrdinalIgnoreCase);
-            var val = desc
-                ? raw[..^5].Trim()
-                : (raw.EndsWith(" ASC", StringComparison.OrdinalIgnoreCase)
-                    ? raw[..^4].Trim()
-                    : raw);
-            list.Add(new SqlOrderByItem(val, desc, nullsFirst));
+            list.Add(ParseOrderByItem(r.AsSpan(), dialect, message => SqlUnsupported.NotSupported(dialect, message)));
         }
 
         return list;
     }
+
+    private static SqlOrderByItem ParseOrderByItem(
+        ReadOnlySpan<char> raw,
+        ISqlDialect dialect,
+        Func<string, Exception> notSupported)
+    {
+        var normalized = raw.Trim();
+        bool? nullsFirst = null;
+
+        if (normalized.EndsWith(" NULLS FIRST", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsOrderByNullsModifier)
+                throw notSupported("ORDER BY ... NULLS FIRST");
+            nullsFirst = true;
+            normalized = TrimSuffix(normalized, 12);
+        }
+        else if (normalized.EndsWith(" NULLS LAST", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!dialect.SupportsOrderByNullsModifier)
+                throw notSupported("ORDER BY ... NULLS LAST");
+            nullsFirst = false;
+            normalized = TrimSuffix(normalized, 11);
+        }
+
+        var desc = normalized.EndsWith(" DESC", StringComparison.OrdinalIgnoreCase);
+        var value = desc
+            ? TrimSuffix(normalized, 5)
+            : normalized.EndsWith(" ASC", StringComparison.OrdinalIgnoreCase)
+                ? TrimSuffix(normalized, 4)
+                : normalized;
+
+        return new SqlOrderByItem(value.ToString(), desc, nullsFirst);
+    }
+
+    private static ReadOnlySpan<char> TrimSuffix(ReadOnlySpan<char> value, int suffixLength)
+        => suffixLength <= 0 || suffixLength > value.Length ? value : value[..^suffixLength].Trim();
 }

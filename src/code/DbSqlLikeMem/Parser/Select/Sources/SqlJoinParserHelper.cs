@@ -56,7 +56,7 @@ internal static class SqlJoinParserHelper
         if (type != SqlJoinType.Cross)
         {
             ctx.ExpectWord(SqlConst.ON);
-            var txt = ctx.ReadClauseTextUntilTopLevelStop(
+            var txt = SqlQueryParserContext.NormalizeClauseText(ctx.ReadClauseTextUntilTopLevelStop(
                 SqlConst.JOIN,
                 SqlConst.LEFT,
                 SqlConst.RIGHT,
@@ -70,7 +70,7 @@ internal static class SqlJoinParserHelper
                 SqlConst.LIMIT,
                 SqlConst.OFFSET,
                 SqlConst.FETCH,
-                SqlConst.UNION);
+                SqlConst.UNION).AsSpan());
             onExpr = ctx.ParseWhere(txt);
         }
 
@@ -131,8 +131,7 @@ internal static class SqlJoinParserHelper
         if (type != SqlJoinType.Cross)
         {
             ExpectWord(ctx, SqlConst.ON);
-            var txt = ReadClauseTextUntilTopLevelStop(
-                ctx,
+            var txt = ctx.ReadClauseTextUntilTopLevelStop(
                 SqlConst.JOIN,
                 SqlConst.LEFT,
                 SqlConst.RIGHT,
@@ -163,52 +162,4 @@ internal static class SqlJoinParserHelper
         ctx.Consume();
     }
 
-    private static string ReadClauseTextUntilTopLevelStop(
-        this SqlQueryParserContext ctx,
-        params string[] stopWords)
-    {
-        var buf = new List<SqlToken>();
-        var depth = 0;
-        while (true)
-        {
-            var t = ctx.Peek(0);
-            if (t.Kind == SqlTokenKind.EndOfFile)
-                break;
-
-            if (t.Kind == SqlTokenKind.Symbol && t.Text == "(")
-                depth++;
-            else if (t.Kind == SqlTokenKind.Symbol && t.Text == ")")
-                depth--;
-
-            if (depth == 0 && t.Kind == SqlTokenKind.Symbol && t.Text == ";")
-                break;
-
-            if (depth == 0 && stopWords.Any(sw => SqlQueryParserContext.IsWord(t, sw)))
-                break;
-
-            buf.Add(ctx.Consume());
-        }
-
-        return TokensToSql(buf);
-    }
-
-    private static string TokensToSql(List<SqlToken> toks)
-    {
-        var sb = new StringBuilder();
-        SqlToken? prev = null;
-
-        foreach (var t in toks)
-        {
-            if (prev is not null && NeedsSpace(prev.Value, t))
-                sb.Append(' ');
-
-            sb.Append(t.Text);
-            prev = t;
-        }
-
-        return sb.ToString();
-    }
-
-    private static bool NeedsSpace(SqlToken prev, SqlToken cur)
-        => !(prev.Kind == SqlTokenKind.Symbol || cur.Kind == SqlTokenKind.Symbol);
 }

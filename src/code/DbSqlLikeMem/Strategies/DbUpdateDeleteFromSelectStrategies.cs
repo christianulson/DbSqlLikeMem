@@ -228,9 +228,9 @@ internal static class DbUpdateDeleteFromSelectStrategies
                 if (target is TableMock targetTableMock)
                 {
                     if (requiresOldSnapshotForIndex)
-                        targetTableMock.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
+                        targetTableMock.IndexManager.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
                     else
-                        targetTableMock.UpdateIndexesWithRow(i);
+                        targetTableMock.IndexManager.UpdateIndexesWithRow(i);
                 }
                 else
                 {

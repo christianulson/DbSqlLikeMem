@@ -47,9 +47,27 @@ internal static class SqlAlterParserHelper
         var nullable = true;
         var sawNullability = false;
         string? defaultValueRaw = null;
+        string? computedExpression = null;
 
         while (!ctx.IsEnd() && !ctx.IsSymbol(";"))
         {
+            if (ctx.IsWord("GENERATED") || ctx.IsWord(SqlConst.AS))
+            {
+                if (computedExpression is not null)
+                    throw new InvalidOperationException("ALTER TABLE ADD COLUMN computed expression can only be specified once.");
+
+                if (ctx.IsWord("GENERATED"))
+                {
+                    ctx.Consume();
+                    if (ctx.IsWord("ALWAYS"))
+                        ctx.Consume();
+                }
+
+                ctx.ExpectWord(SqlConst.AS);
+                computedExpression = ctx.ReadBalancedParenRawTokens();
+                continue;
+            }
+
             if (ctx.IsWord(SqlConst.DEFAULT))
             {
                 if (defaultValueRaw is not null)
@@ -103,7 +121,8 @@ internal static class SqlAlterParserHelper
             Size = size,
             DecimalPlaces = decimalPlaces,
             Nullable = nullable,
-            DefaultValueRaw = defaultValueRaw
+            DefaultValueRaw = defaultValueRaw,
+            ComputedExpression = computedExpression
         };
     }
 

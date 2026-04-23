@@ -84,7 +84,7 @@ internal static class SqlRawExpressionReaderHelper
         if (startPos < 0 || lastEndPos < startPos)
             return string.Empty;
 
-        return ctx.RawSql[startPos..lastEndPos].Trim();
+        return SqlQueryParserContext.NormalizeClauseText(ctx.RawSql.AsSpan(startPos, lastEndPos - startPos));
     }
 
     internal static string ReadRawExpressionUntilCommaOrTerminator(
@@ -122,6 +122,6 @@ internal static class SqlRawExpressionReaderHelper
         if (startPos < 0 || lastEndPos < startPos)
             return string.Empty;
 
-        return ctx.RawSql[startPos..lastEndPos].Trim();
+        return SqlQueryParserContext.NormalizeClauseText(ctx.RawSql.AsSpan(startPos, lastEndPos - startPos));
     }
 }

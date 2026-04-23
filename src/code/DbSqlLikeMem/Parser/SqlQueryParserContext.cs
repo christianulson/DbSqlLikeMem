@@ -459,7 +459,7 @@ internal sealed class SqlQueryParserContext
             {
                 if (buf.Count > 0)
                 {
-                    items.Add(RawSql[itemStartPos..t.Position].Trim());
+                    items.Add(TrimToString(RawSql.AsSpan(itemStartPos, t.Position - itemStartPos)));
                     buf.Clear();
                     itemStartPos = -1;
                 }
@@ -470,7 +470,7 @@ internal sealed class SqlQueryParserContext
             {
                 Consume();
                 if (itemStartPos >= 0)
-                    items.Add(RawSql[itemStartPos..t.Position].Trim());
+                    items.Add(TrimToString(RawSql.AsSpan(itemStartPos, t.Position - itemStartPos)));
                 else
                     items.Add(string.Empty);
 
@@ -485,7 +485,7 @@ internal sealed class SqlQueryParserContext
         if (buf.Count > 0)
         {
             var itemEndPos = IsEnd() ? RawSql.Length : Peek().Position;
-            items.Add(RawSql[itemStartPos..itemEndPos].Trim());
+            items.Add(TrimToString(RawSql.AsSpan(itemStartPos, itemEndPos - itemStartPos)));
         }
 
         return items;
@@ -521,7 +521,7 @@ internal sealed class SqlQueryParserContext
         if (startPos < 0 || lastEndPos < startPos)
             return string.Empty;
 
-        return RawSql[startPos..lastEndPos].Trim();
+        return TrimToString(RawSql.AsSpan(startPos, lastEndPos - startPos));
     }
 
     internal string ReadBalancedParenRawTokens()
@@ -559,7 +559,7 @@ internal sealed class SqlQueryParserContext
         if (startPos < 0 || lastEndPos < startPos)
             return string.Empty;
 
-        return RawSql[startPos..lastEndPos].Trim();
+        return TrimToString(RawSql.AsSpan(startPos, lastEndPos - startPos));
     }
 
     internal string TokensToSql(List<SqlToken> toks)
@@ -691,6 +691,18 @@ internal sealed class SqlQueryParserContext
         return txt;
     }
 
+    internal static string NormalizeClauseText(ReadOnlySpan<char> raw)
+    {
+        var txt = raw.Trim();
+        if (txt.Length == 0)
+            return string.Empty;
+
+        if (txt.EndsWith(";", StringComparison.Ordinal))
+            txt = txt[..^1].TrimEnd();
+
+        return txt.ToString();
+    }
+
     internal static bool IsJoinStart(SqlToken t)
         => JoinStart.Contains(t.Text);
 
@@ -738,5 +750,19 @@ internal sealed class SqlQueryParserContext
         }
 
         return true;
+    }
+
+    private static string TrimToString(ReadOnlySpan<char> value)
+    {
+        var start = 0;
+        var end = value.Length - 1;
+
+        while (start <= end && char.IsWhiteSpace(value[start]))
+            start++;
+
+        while (end >= start && char.IsWhiteSpace(value[end]))
+            end--;
+
+        return end < start ? string.Empty : value.Slice(start, end - start + 1).ToString();
     }
 }

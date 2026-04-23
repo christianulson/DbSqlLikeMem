@@ -27,8 +27,13 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
             ">=", "<=", "<>", "!=", "||"
         ])
     {
-        OracleScalarFunctionRegistry.Register(this, version);
-        OracleTableFunctionRegistry.Register(this, version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        OracleScalarFunctionRegistry.Register(this, Version);
+        OracleTableFunctionRegistry.Register(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
     }
 
@@ -184,7 +189,7 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
     public override bool SupportsCreateOrReplaceFunctionDdl => true;
-    bool ISqlDialect.SupportsOracleCreateFunctionDdl => true;
+    bool IOracleDialectFeatures.SupportsOracleCreateFunctionDdl => true;
     public override bool SupportsSequenceDdl => true;
     public override bool SupportsSequenceDotValueExpression(string suffix)
         => this.TryGetScalarFunctionDefinition(suffix, out var definition)
@@ -272,5 +277,3 @@ internal sealed class OracleDialect : SqlDialectBase, ISqlDialect
                 || typeName.StartsWith("NUMBER", StringComparison.OrdinalIgnoreCase));
 
 }
-
-

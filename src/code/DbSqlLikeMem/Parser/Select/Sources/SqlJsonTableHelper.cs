@@ -232,17 +232,18 @@ internal static class SqlJsonTableHelper
     {
         inner = string.Empty;
         trailingSql = string.Empty;
-        if (string.IsNullOrWhiteSpace(sql) || sql[0] != '(')
+        var span = sql.AsSpan().Trim();
+        if (span.Length == 0 || span[0] != '(')
             return false;
 
         var depth = 0;
         var inSingleQuote = false;
-        for (var i = 0; i < sql.Length; i++)
+        for (var i = 0; i < span.Length; i++)
         {
-            var ch = sql[i];
+            var ch = span[i];
             if (inSingleQuote)
             {
-                if (ch == '\'' && i + 1 < sql.Length && sql[i + 1] == '\'')
+                if (ch == '\'' && i + 1 < span.Length && span[i + 1] == '\'')
                 {
                     i++;
                     continue;
@@ -271,8 +272,8 @@ internal static class SqlJsonTableHelper
                 depth--;
                 if (depth == 0)
                 {
-                    inner = sql[1..i];
-                    trailingSql = sql[(i + 1)..].Trim();
+                    inner = span[1..i].ToString();
+                    trailingSql = span[(i + 1)..].Trim().ToString();
                     return true;
                 }
             }

@@ -14,9 +14,7 @@ internal static class SqlTableFunctionSourceHelper
         var argsSql = ctx.ReadBalancedParenRawTokens();
         var function = new FunctionCallExpr(
             functionName,
-            [.. SqlRawCommaSplitterHelper.SplitRawByComma(argsSql)
-                .Select(static arg => arg.Trim())
-                .Where(static arg => arg.Length > 0)
+            [.. NormalizeRawItems(SqlRawCommaSplitterHelper.SplitRawByComma(argsSql))
                 .Select(ctx.ParseScalar)]);
 
         if (ctx.Dialect.TryGetTableFunctionDefinition(functionName, out var functionDefinition))
@@ -72,9 +70,7 @@ internal static class SqlTableFunctionSourceHelper
         var argsSql = readBalancedParenRawTokens();
         var function = new FunctionCallExpr(
             functionName,
-            [.. SqlRawCommaSplitterHelper.SplitRawByComma(argsSql)
-                .Select(static arg => arg.Trim())
-                .Where(static arg => arg.Length > 0)
+            [.. NormalizeRawItems(SqlRawCommaSplitterHelper.SplitRawByComma(argsSql))
                 .Select(ctx.ParseScalar)]);
 
         if (ctx.Dialect.TryGetTableFunctionDefinition(functionName, out var functionDefinition))
@@ -125,10 +121,7 @@ internal static class SqlTableFunctionSourceHelper
         Func<string?> readOptionalAlias)
     {
         var argsSql = readBalancedParenRawTokens();
-        var parts = SqlRawCommaSplitterHelper.SplitRawByComma(argsSql)
-            .Select(static x => x.Trim())
-            .Where(static x => x.Length > 0)
-            .ToList();
+        var parts = NormalizeRawItems(SqlRawCommaSplitterHelper.SplitRawByComma(argsSql));
 
         if (parts.Count != 2)
             throw new NotSupportedException("JSON_TABLE table source currently supports json document plus path/COLUMNS clause in the mock.");
@@ -225,5 +218,18 @@ internal static class SqlTableFunctionSourceHelper
             return dialectDefinition;
 
         throw new NotSupportedException($"Table-valued function '{function.Name}' not supported yet in the mock.");
+    }
+
+    private static List<string> NormalizeRawItems(IReadOnlyList<string> rawItems)
+    {
+        var items = new List<string>(rawItems.Count);
+        foreach (var rawItem in rawItems)
+        {
+            var normalized = rawItem.AsSpan().Trim().ToString();
+            if (normalized.Length > 0)
+                items.Add(normalized);
+        }
+
+        return items;
     }
 }

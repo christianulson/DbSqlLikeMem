@@ -66,8 +66,13 @@ internal partial class MySqlDialect : SqlDialectBase
     {
         _ansiQuotes = ansiQuotes;
         _pipesAsConcat = pipesAsConcat;
-        RegisterScalarFunctions(version);
-        RegisterTableFunctions(version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        RegisterScalarFunctions(Version);
+        RegisterTableFunctions(Version);
         SqlSharedWindowFunctionRegistry.Register(this);
     }
 

@@ -1000,7 +1000,7 @@ internal sealed class SqlQueryParser
         if (!_ctx.IsWord(SqlConst.WHERE)) return null;
         _ctx.Consume();
         // SqlConst.ON here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.HAVING, SqlConst.FOR, SqlConst.ON, SqlConst.RETURNING);
+        var txt = SqlQueryParserContext.NormalizeClauseText(_ctx.ReadClauseTextUntilTopLevelStop(SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.HAVING, SqlConst.FOR, SqlConst.ON, SqlConst.RETURNING).AsSpan());
         return _ctx.ParseWhere(txt);
     }
 
@@ -1020,7 +1020,7 @@ internal sealed class SqlQueryParser
     {
         if (!_ctx.IsWord(SqlConst.HAVING)) return null;
         _ctx.Consume();
-        var txt = _ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON);
+        var txt = SqlQueryParserContext.NormalizeClauseText(_ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON).AsSpan());
         return _ctx.ParseWhere(txt);
     }
 

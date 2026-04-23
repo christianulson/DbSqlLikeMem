@@ -10,17 +10,19 @@ internal static class SqlSelectItemParserHelper
     {
         return [.. raws.Select(raw =>
         {
+            var normalizedRaw = raw.AsSpan().Trim().ToString();
+
             // Fail fast on known-invalid patterns before any splitting/normalization.
             // Example: COUNT(DISTINCT DISTINCT id)
             if (Regex.IsMatch(
-                    raw,
+                    normalizedRaw,
                     @"\bDISTINCT\s+DISTINCT\b",
                     RegexOptions.IgnoreCase))
             {
                 throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
             }
 
-            var (expr, alias) = SqlAliasParserHelper.SplitTrailingAsAliasTopLevel(raw, dialect);
+            var (expr, alias) = SqlAliasParserHelper.SplitTrailingAsAliasTopLevel(normalizedRaw.AsSpan(), dialect);
             if (string.IsNullOrWhiteSpace(expr))
                 throw new InvalidOperationException("Empty SELECT item.");
 

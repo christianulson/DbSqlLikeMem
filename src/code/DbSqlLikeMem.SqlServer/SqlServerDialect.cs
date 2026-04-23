@@ -26,9 +26,14 @@ internal sealed class SqlServerDialect : SqlDialectBase
             ">=", "<=", "<>", "!="
         ])
     {
-        SqlServerScalarFunctionRegistry.Register(this, version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        SqlServerScalarFunctionRegistry.Register(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
-        SqlServerTableFunctionRegistry.Register(this, version);
+        SqlServerTableFunctionRegistry.Register(this, Version);
     }
 
 
@@ -467,4 +472,3 @@ internal sealed class SqlServerDialect : SqlDialectBase
     }
 
 }
-

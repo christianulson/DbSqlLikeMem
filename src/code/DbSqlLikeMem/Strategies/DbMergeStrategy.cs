@@ -25,10 +25,7 @@ internal static class DbMergeStrategy
         DbConnectionMockBase connection,
         QueryExecutionContext context,
         SqlMergeQuery query)
-    {
-        lock (connection.Db.SyncRoot)
-            return ExecuteMergeImpl(context, query);
-    }
+        => connection.Db.ExecuteWithLock(() => ExecuteMergeImpl(context, query));
 
     public static DmlExecutionResult ExecuteMerge(
         this DbConnectionMockBase connection,
@@ -160,7 +157,7 @@ internal static class DbMergeStrategy
                         table.UpdateRowColumn(existingIndex, assignment.TargetColumn.Index, value);
                     }
 
-                    table.UpdateIndexesWithRow(existingIndex, oldSnapshot, table[existingIndex]);
+                    table.IndexManager.UpdateIndexesWithRow(existingIndex, oldSnapshot, table[existingIndex]);
                 }
 
                 affected.IncreseAffected();

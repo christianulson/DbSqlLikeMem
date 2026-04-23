@@ -12,12 +12,9 @@ internal static class SqlPartitionClauseHelper
             throw new InvalidOperationException("PARTITION clause requires a partition list.");
 
         var rawPartitions = ctx.ReadBalancedParenRawTokens().Trim();
-        var partitionNames = SqlRawCommaSplitterHelper.SplitRawByComma(rawPartitions)
-            .Select(static part => part.Trim().Trim('`', '"', '[', ']').NormalizeName())
-            .Where(static part => !string.IsNullOrWhiteSpace(part))
-            .ToArray();
+        var partitionNames = NormalizePartitionNames(rawPartitions);
 
-        if (partitionNames.Length == 0)
+        if (partitionNames.Count == 0)
             throw new InvalidOperationException("PARTITION clause requires at least one partition name.");
 
         return partitionNames;
@@ -38,14 +35,24 @@ internal static class SqlPartitionClauseHelper
             throw new InvalidOperationException("PARTITION clause requires a partition list.");
 
         var rawPartitions = readBalancedParenRawTokens().Trim();
-        var partitionNames = SqlRawCommaSplitterHelper.SplitRawByComma(rawPartitions)
-            .Select(static part => part.Trim().Trim('`', '"', '[', ']').NormalizeName())
-            .Where(static part => !string.IsNullOrWhiteSpace(part))
-            .ToArray();
+        var partitionNames = NormalizePartitionNames(rawPartitions);
 
-        if (partitionNames.Length == 0)
+        if (partitionNames.Count == 0)
             throw new InvalidOperationException("PARTITION clause requires at least one partition name.");
 
         return partitionNames;
+    }
+
+    private static List<string> NormalizePartitionNames(string rawPartitions)
+    {
+        var names = new List<string>();
+        foreach (var part in SqlRawCommaSplitterHelper.SplitRawByComma(rawPartitions))
+        {
+            var normalized = StringCompatibility.Trim(part.AsSpan(), '`', '"', '[', ']').NormalizeName();
+            if (!string.IsNullOrWhiteSpace(normalized))
+                names.Add(normalized);
+        }
+
+        return names;
     }
 }

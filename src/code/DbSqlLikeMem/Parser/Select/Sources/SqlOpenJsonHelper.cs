@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal static class SqlOpenJsonHelper
 {
-    private static readonly Dictionary<string, DbType> fnDtType = new()
+    private static readonly Dictionary<string, DbType> fnDtType = new(StringComparer.OrdinalIgnoreCase)
     {
         { "NVARCHAR", DbType.String },
         { "VARCHAR", DbType.String },
@@ -86,25 +86,35 @@ internal static class SqlOpenJsonHelper
 
     internal static DbType ParseOpenJsonColumnDbType(string sqlType)
     {
-        var normalized = sqlType
-            .Trim()
-            .NormalizeName()
-            .ToUpperInvariant()
-            .Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)[0];
-        return fnDtType.TryGetValue(normalized, out var dt)
+        var normalized = sqlType.AsSpan().Trim();
+        var typeNameEnd = -1;
+        for (var i = 0; i < normalized.Length; i++)
+        {
+            var ch = normalized[i];
+            if (ch is ' ' or '\t' or '\r' or '\n' or '(')
+            {
+                typeNameEnd = i;
+                break;
+            }
+        }
+
+        var firstToken = typeNameEnd >= 0 ? normalized[..typeNameEnd] : normalized;
+        var dbTypeName = firstToken.NormalizeName();
+
+        return fnDtType.TryGetValue(dbTypeName, out var dt)
             ? dt
             : DbType.String;
     }
 
     internal static string UnquoteSqlStringLiteral(string token)
     {
-        var trimmed = token.Trim();
+        var trimmed = token.AsSpan().Trim();
         if (trimmed.StartsWith("N'", StringComparison.OrdinalIgnoreCase))
             trimmed = trimmed[1..];
 
         if (trimmed.Length < 2 || trimmed[0] != '\'' || trimmed[^1] != '\'')
             throw new InvalidOperationException($"Invalid SQL string literal: {token}");
 
-        return trimmed[1..^1].Replace("''", "'");
+        return trimmed[1..^1].ToString().Replace("''", "'");
     }
 }

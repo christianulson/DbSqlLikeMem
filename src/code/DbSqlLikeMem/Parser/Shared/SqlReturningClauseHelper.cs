@@ -57,7 +57,7 @@ internal static class SqlReturningClauseHelper
 
         return raws.ConvertAll(raw =>
         {
-            var (expr, alias) = SqlAliasParserHelper.SplitTrailingAsAliasTopLevel(raw, ctx.Dialect);
+            var (expr, alias) = SqlAliasParserHelper.SplitTrailingAsAliasTopLevel(raw.AsSpan(), ctx.Dialect);
             if (string.IsNullOrWhiteSpace(expr))
                 throw new InvalidOperationException(
                     $"RETURNING requires at least one expression (found '{SqlQueryParserContext.DescribeFoundTokenFromRaw(raw)}').");

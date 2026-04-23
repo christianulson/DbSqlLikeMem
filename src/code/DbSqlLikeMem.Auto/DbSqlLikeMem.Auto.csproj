@@ -15,5 +15,6 @@
 	  <ProjectReference Include="..\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" />
 	  <ProjectReference Include="..\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" />
 	  <ProjectReference Include="..\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" />
+	  <ProjectReference Include="..\DbSqlLikeMem.SourceGenerators\DbSqlLikeMem.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 </Project>

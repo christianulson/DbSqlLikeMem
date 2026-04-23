@@ -31,7 +31,12 @@ internal sealed class SqliteDialect : SqlDialectBase
             "||"
         ])
     {
-        SqliteScalarFunctionRegistry.Register(this, version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        SqliteScalarFunctionRegistry.Register(this, Version);
         SqliteTableFunctionRegistry.Register(this);
         SqlSharedWindowFunctionRegistry.Register(this);
     }

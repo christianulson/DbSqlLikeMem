@@ -70,8 +70,8 @@ internal static class SqlFunctionParameterParserHelper
         if (typeTokens.Count == 0)
             throw new InvalidOperationException($"CREATE FUNCTION parameter '{nameToken.Text}' requires a type.");
 
-        var typeSql = ctx.TokensToSql(typeTokens).Trim();
-        if (string.IsNullOrWhiteSpace(typeSql))
+        var typeSql = ctx.TokensToSql(typeTokens).AsSpan().Trim();
+        if (typeSql.Length == 0)
             throw new InvalidOperationException($"CREATE FUNCTION parameter '{nameToken.Text}' requires a type.");
 
         object? defaultValue = null;
@@ -80,7 +80,7 @@ internal static class SqlFunctionParameterParserHelper
 
         return new DbFunctionParameterDef(
             nameToken.Text,
-            typeSql,
+            typeSql.ToString(),
             Required: !hasDefault,
             DefaultValue: defaultValue);
     }

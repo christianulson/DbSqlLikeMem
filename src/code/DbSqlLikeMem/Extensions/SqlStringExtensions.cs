@@ -9,8 +9,8 @@ namespace DbSqlLikeMem;
 internal static class SqlStringExtensions
 {
     /// <summary>
-    /// EN: Implements NormalizeString.
-    /// PT: Implementa NormalizeString.
+    /// EN: Collapses whitespace outside quoted strings while preserving escaped single quotes.
+    /// PT: Reduz espacos em branco fora de strings entre aspas e preserva aspas simples escapadas.
     /// </summary>
     public static string NormalizeString(this string str)
     {
@@ -82,8 +82,8 @@ internal static class SqlStringExtensions
     }
 
     /// <summary>
-    /// EN: Implements NormalizeName.
-    /// PT: Implementa NormalizeName.
+    /// EN: Trims and normalizes a dotted identifier by removing wrapper characters from each segment.
+    /// PT: Remove espacos e normaliza um identificador pontuado removendo os caracteres de envoltorio de cada segmento.
     /// </summary>
     public static string NormalizeName(this string name)
     {

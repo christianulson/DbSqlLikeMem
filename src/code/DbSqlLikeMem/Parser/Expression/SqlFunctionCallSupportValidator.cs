@@ -29,7 +29,7 @@ internal static class SqlFunctionCallSupportValidator
             if (definition is null || definition.AllowsCall)
                 return;
 
-            throw ctx.NotSupported(name.ToUpperInvariant());
+            throw ctx.NotSupported(name);
         }
 
         // EN: MATCH is a special predicate handled by SqlMatchAgainstExpressionParserHelper.
@@ -62,26 +62,26 @@ internal static class SqlFunctionCallSupportValidator
             if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase)
                 && !ctx.Dialect.SupportsApproximateAggregateFunction(name))
             {
-                throw ctx.NotSupported(name.ToUpperInvariant());
+                throw ctx.NotSupported(name);
             }
 
             if (name.Equals("RATIO_TO_REPORT", StringComparison.OrdinalIgnoreCase)
                 && !ctx.Dialect.SupportsOracleAnalyticsFunction(name))
             {
-                throw ctx.NotSupported(name.ToUpperInvariant());
+                throw ctx.NotSupported(name);
             }
 
             if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG
                 && !ctx.Dialect.TryGetScalarFunctionDefinition(name, out _)
                 && !ctx.Dialect.SupportsWithinGroupForStringAggregates)
             {
-                throw ctx.NotSupported(name.ToUpperInvariant());
+                throw ctx.NotSupported(name);
             }
 
             return;
         }
 
-        throw ctx.NotSupported(name.ToUpperInvariant());
+        throw ctx.NotSupported(name);
     }
 
 }

@@ -432,7 +432,7 @@ public abstract class DbMock
             if (GetTable(tableName!, schemaName) is not TableMock namedTable)
                 throw new InvalidOperationException($"Table '{tableName!.NormalizeName()}' does not support index mutation.");
 
-            namedTable.DropIndex(indexName, ifExists);
+            namedTable.IndexManager.DropIndex(indexName, ifExists);
             return;
         }
 
@@ -445,7 +445,7 @@ public abstract class DbMock
 
         if (matchingTables.Count == 1)
         {
-            matchingTables[0].DropIndex(indexName, ifExists);
+            matchingTables[0].IndexManager.DropIndex(indexName, ifExists);
             return;
         }
 
@@ -466,6 +466,7 @@ public abstract class DbMock
         int? size = null,
         int? decimalPlaces = null,
         object? defaultValue = null,
+        string? computedExpression = null,
         string? schemaName = null)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
@@ -479,7 +480,8 @@ public abstract class DbMock
             size,
             decimalPlaces,
             identity: false,
-            defaultValue: defaultValue);
+            defaultValue: defaultValue,
+            computedExpression: computedExpression);
     }
 
     /// <summary>

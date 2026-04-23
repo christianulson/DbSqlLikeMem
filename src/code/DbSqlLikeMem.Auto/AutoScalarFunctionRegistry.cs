@@ -1,9 +1,10 @@
 using System.Globalization;
+using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Auto;
 
-internal static class AutoScalarFunctionRegistry
+internal static partial class AutoScalarFunctionRegistry
 {
     internal static void Register(ISqlDialect dialect)
     {
@@ -63,17 +64,7 @@ internal static class AutoScalarFunctionRegistry
             "JSON_QUERY",
             "JSON_VALUE");
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("JSON_UNQUOTE", "VARCHAR"));
-        dialect.AddScalarFunction(
-            DbFunctionDef.CreateScalar(SqlConst.OPENJSON, "VARCHAR") with
-            {
-                AstExecutor = TryEvalOpenJsonFunction
-            });
-        dialect.AddScalarFunction(
-            DbFunctionDef.CreateScalar("JSON_OBJECT", "VARCHAR") with
-            {
-                AstExecutor = AstQueryJsonObjectFunctionEvaluator.TryEvalJsonObjectFunction
-            });
-
+        RegisterGeneratedScalarFunctions(dialect);
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar(SqlConst.GROUP_CONCAT, "VARCHAR") with
             {
@@ -91,6 +82,15 @@ internal static class AutoScalarFunctionRegistry
             SqlConst.LASTVAL);
     }
 
+    [ScalarFunction("JSON_OBJECT", "VARCHAR")]
+    private static bool TryEvalJsonObjectFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryJsonObjectFunctionEvaluator.TryEvalJsonObjectFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("OPENJSON", "VARCHAR")]
     private static bool TryEvalOpenJsonFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -120,4 +120,6 @@ internal static class AutoScalarFunctionRegistry
         };
         return true;
     }
+
+    static partial void RegisterGeneratedScalarFunctions(ISqlDialect dialect);
 }

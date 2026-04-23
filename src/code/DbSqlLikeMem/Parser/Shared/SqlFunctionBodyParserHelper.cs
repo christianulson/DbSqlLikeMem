@@ -85,7 +85,7 @@ internal static class SqlFunctionBodyParserHelper
         this SqlQueryParserContext ctx,
         string bodySql)
     {
-        var trimmed = bodySql.Trim();
+        var trimmed = bodySql.AsSpan().Trim();
         if (trimmed.EndsWith(";", StringComparison.Ordinal))
             trimmed = trimmed[..^1].TrimEnd();
 
@@ -93,10 +93,10 @@ internal static class SqlFunctionBodyParserHelper
             throw new NotSupportedException("CREATE FUNCTION currently supports only PostgreSQL LANGUAGE SQL bodies with a single SELECT <expr> statement in the mock.");
 
         trimmed = trimmed[6..].TrimStart();
-        if (string.IsNullOrWhiteSpace(trimmed))
+        if (trimmed.Length == 0)
             throw new InvalidOperationException("CREATE FUNCTION PostgreSQL body requires a scalar expression after SELECT.");
 
-        return ctx.ParseScalar(trimmed);
+        return ctx.ParseScalar(trimmed.ToString());
     }
 
     internal static SqlCreateFunctionQuery BuildCreateFunctionQuery(

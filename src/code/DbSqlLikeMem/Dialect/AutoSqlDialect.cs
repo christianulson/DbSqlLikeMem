@@ -37,9 +37,14 @@ internal sealed class AutoSqlDialect : SqlDialectBase
             binOps: _binaryOperators,
             operators: ["<=>", ">=", "<=", "<>", "!="])
     {
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
         SqlSharedScalarFunctionRegistry.Register(this);
         AutoScalarFunctionRegistry.Register(this);
-        TryRegisterFirebirdScalarFunctions(this, version);
+        TryRegisterFirebirdScalarFunctions(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
         AutoSqlServerScalarFunctionRegistry.Register(this);
         AutoTableFunctionRegistry.Register(this);

@@ -8,14 +8,14 @@ public interface ITableMock
     : IReadOnlyList<IReadOnlyDictionary<int, object?>>
 {
     /// <summary>
-    /// EN: Normalized table name.
-    /// PT: Nome normalizado da tabela.
+    /// EN: Gets the normalized table name used by the table mock.
+    /// PT: Obtém o nome normalizado usado pelo mock da tabela.
     /// </summary>
     string TableName { get; }
 
     /// <summary>
-    /// EN: Schema to which the table belongs.
-    /// PT: Schema ao qual a tabela pertence.
+    /// EN: Gets the schema that owns the table.
+    /// PT: Obtém o schema que possui a tabela.
     /// </summary>
     SchemaMock Schema { get; }
 
@@ -32,8 +32,8 @@ public interface ITableMock
     bool AllowIdentityInsert { get; set; }
 
     /// <summary>
-    /// EN: Captures the table partitioning clause when the provider records partition metadata.
-    /// PT: Captura a clausula de particionamento da tabela quando o provedor registra metadados de particionamento.
+    /// EN: Gets or sets the partitioning clause captured for the table.
+    /// PT: Obtém ou define a clausula de particionamento capturada para a tabela.
     /// </summary>
     string? PartitionClauseSql { get; set; }
 
@@ -45,8 +45,8 @@ public interface ITableMock
     ITableMock SetAllowIdentityInsert(bool allowIdentityInsert);
 
     /// <summary>
-    /// EN: Holds the column _indexes that compose the primary key.
-    /// PT: Mantém os índices das colunas que compõem a chave primária.
+    /// EN: Gets the column indexes that compose the primary key.
+    /// PT: Obtém os índices das colunas que compõem a chave primária.
     /// </summary>
     IReadOnlyHashSet<int> PrimaryKeyIndexes { get; }
 
@@ -58,10 +58,16 @@ public interface ITableMock
     void AddPrimaryKeyIndexes(params string[] columns);
 
     /// <summary>
-    /// EN: Exposes foreign keys configured on the table.
-    /// PT: Expõe as chaves estrangeiras configuradas na tabela.
+    /// EN: Gets the foreign keys configured on the table.
+    /// PT: Obtém as chaves estrangeiras configuradas na tabela.
     /// </summary>
     IReadOnlyDictionary<string, ForeignDef> ForeignKeys { get; }
+
+    /// <summary>
+    /// EN: Gets the check constraints configured on the table.
+    /// PT: Obtém as restricoes check configuradas na tabela.
+    /// </summary>
+    IReadOnlyList<SchemaSnapshotCheckConstraint> CheckConstraints { get; }
 
     /// <summary>
     /// EN: Creates a foreign key linking a local column to a column in another table.
@@ -76,8 +82,8 @@ public interface ITableMock
         HashSet<(string col, string refCol)> references);
 
     /// <summary>
-    /// EN: Gets the table column dictionary.
-    /// PT: Obtém o dicionário de colunas da tabela.
+    /// EN: Gets the dictionary of table columns keyed by name.
+    /// PT: Obtém o dicionário de colunas da tabela indexado pelo nome.
     /// </summary>
     IReadOnlyDictionary<string, ColumnDef> Columns { get; }
 
@@ -93,6 +99,7 @@ public interface ITableMock
     /// <param name="identity">EN: Auto-increment flag. PT: Indicador de auto incremento.</param>
     /// <param name="defaultValue">EN: Optional default value. PT: Valor padrão opcional.</param>
     /// <param name="enumValues">EN: Optional enum values. PT: Valores de enum opcionais.</param>
+    /// <param name="computedExpression">EN: Optional computed expression text. PT: Texto opcional da expressao computada.</param>
     ColumnDef AddColumn(
         string name,
         DbType dbType,
@@ -101,7 +108,8 @@ public interface ITableMock
         int? decimalPlaces = null,
         bool identity = false,
         object? defaultValue = null,
-        IList<string>? enumValues = null);
+        IList<string>? enumValues = null,
+        string? computedExpression = null);
 
     /// <summary>
     /// EN: Finds a column by name or throws if it does not exist.
@@ -112,7 +120,7 @@ public interface ITableMock
     ColumnDef GetColumn(string columnName);
 
     /// <summary>
-    /// EN: Gets the _indexes declared for the table.
+    /// EN: Gets the indexes declared for the table.
     /// PT: Obtém os índices declarados para a tabela.
     /// </summary>
     IReadOnlyDictionary<string, IndexDef> Indexes { get; }
@@ -188,19 +196,20 @@ public interface ITableMock
     ITableMock Add(Dictionary<int, object?> value);
 
     /// <summary>
-    /// Removes the element at the specified index and returns a dictionary containing the removed item.
+    /// EN: Removes the row at the specified index and returns the removed values.
+    /// PT: Remove a linha no indice informado e retorna os valores removidos.
     /// </summary>
-    /// <param name="idx">The zero-based index of the element to remove. Must be within the valid range of the collection.</param>
-    /// <returns>A dictionary containing the removed element, where the key is the index and the value is the element. If the
-    /// index is invalid, the dictionary will be empty.</returns>
+    /// <param name="idx">EN: Zero-based row index to remove. PT: Indice da linha, com base zero, a remover.</param>
+    /// <returns>EN: Removed row values keyed by column index. PT: Valores da linha removida indexados pela coluna.</returns>
     Dictionary<int, object?> RemoveAt(int idx);
 
     /// <summary>
-    /// Updates the value of a specific cell in the table at the given row and column indices.
+    /// EN: Updates a single cell in the table using the specified row and column indices.
+    /// PT: Atualiza uma unica celula da tabela usando os indices de linha e coluna informados.
     /// </summary>
-    /// <param name="rowIdx">The zero-based index of the row containing the cell to update. Must be within the valid range of rows.</param>
-    /// <param name="colIdx">The zero-based index of the column containing the cell to update. Must be within the valid range of columns.</param>
-    /// <param name="value">The new value to assign to the specified cell. Can be null to clear the cell's contents.</param>
+    /// <param name="rowIdx">EN: Zero-based row index containing the cell to update. PT: Indice da linha, com base zero, que contem a celula a atualizar.</param>
+    /// <param name="colIdx">EN: Zero-based column index of the cell to update. PT: Indice da coluna, com base zero, da celula a atualizar.</param>
+    /// <param name="value">EN: New value for the cell. PT: Novo valor para a celula.</param>
     void UpdateRowColumn(
         int rowIdx,
         int colIdx,
@@ -225,14 +234,14 @@ public interface ITableMock
     void ClearBackup();
 
     /// <summary>
-    /// EN: Gets or sets the column currently being evaluated during parsing/execution.
-    /// PT: Obtém ou define a coluna atualmente em avaliação durante parsing/execução.
+    /// EN: Gets or sets the column currently being evaluated during parsing or execution.
+    /// PT: Obtém ou define a coluna atualmente em avaliação durante parsing ou execucao.
     /// </summary>
     string? CurrentColumn { get; set; }
 
     /// <summary>
     /// EN: Resolves an SQL token to its value in the table context.
-    /// PT: ResolveRowsFrameRange um token SQL para o valor correspondente no contexto da tabela.
+    /// PT: Resolve um token SQL para o valor correspondente no contexto da tabela.
     /// </summary>
     /// <param name="token">EN: Token to resolve. PT: Token a resolver.</param>
     /// <param name="dbType">EN: Expected token type. PT: Tipo esperado do token.</param>

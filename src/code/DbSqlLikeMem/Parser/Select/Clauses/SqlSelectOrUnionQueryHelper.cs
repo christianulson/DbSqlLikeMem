@@ -7,14 +7,15 @@ internal static class SqlSelectOrUnionQueryHelper
         Func<bool, bool, SqlSelectQuery> parseSelectQuery)
     {
         var first = parseSelectQuery(true, false);
+        Func<bool, IReadOnlyList<string>> readOrderByItems = boundary => boundary
+            ? ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
+            : ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING);
 
         if (!ctx.IsWord(SqlConst.UNION))
         {
             var orderBy = SqlOrderByHelper.TryParseOrderBy(
                 ctx,
-                boundary => boundary
-                    ? ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
-                    : ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
+                readOrderByItems);
             var rowLimit = ctx.TryParseRowLimitTail(orderBy.Count > 0);
             var forJson = ctx.TryParseForJsonClause();
             rowLimit ??= first.RowLimit;
@@ -48,9 +49,7 @@ internal static class SqlSelectOrUnionQueryHelper
 
         var unionOrderBy = SqlOrderByHelper.TryParseOrderBy(
             ctx,
-            boundary => boundary
-                ? ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
-                : ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING));
+            readOrderByItems);
         var unionRowLimit = ctx.TryParseRowLimitTail(unionOrderBy.Count > 0);
         ctx.TryConsumeQueryHintOption();
         ctx.ExpectEndOrUnionBoundary();

@@ -74,7 +74,7 @@ internal static class SqlCreateTemporaryTableHelper
         var ifNotExists = ParseCreateTemporaryTableIfNotExists(ctx);
 
         var table = ctx.ParseQualifiedObjectName();
-        var (columnDefinitions, primaryKeyColumns) = ParseCreateTemporaryTableColumnDefinitions(ctx);
+        var (columnDefinitions, primaryKeyColumns, checkConstraints) = ParseCreateTemporaryTableColumnDefinitions(ctx);
         var selectSql = ParseCreateTemporaryTableSelectSql(ctx);
 
         return Build(
@@ -83,6 +83,7 @@ internal static class SqlCreateTemporaryTableHelper
             table,
             columnDefinitions,
             primaryKeyColumns,
+            checkConstraints,
             selectSql,
             tempScope,
             isTemporary);
@@ -144,12 +145,13 @@ internal static class SqlCreateTemporaryTableHelper
         return true;
     }
 
-    private static (List<Col> Columns, List<string> PrimaryKeyColumns) ParseCreateTemporaryTableColumnDefinitions(SqlQueryParserContext ctx)
+    private static (List<Col> Columns, List<string> PrimaryKeyColumns, List<SchemaSnapshotCheckConstraint> CheckConstraints) ParseCreateTemporaryTableColumnDefinitions(SqlQueryParserContext ctx)
     {
         var columnDefinitions = new List<Col>();
         var primaryKeyColumns = new List<string>();
+        var checkConstraints = new List<SchemaSnapshotCheckConstraint>();
         if (!ctx.IsSymbol("("))
-            return (columnDefinitions, primaryKeyColumns);
+            return (columnDefinitions, primaryKeyColumns, checkConstraints);
 
         var rawColumnsBlock = ctx.ReadBalancedParenRawTokens();
         var defs = SqlRawCommaSplitterHelper.SplitRawByComma(rawColumnsBlock);
@@ -166,21 +168,35 @@ internal static class SqlCreateTemporaryTableHelper
         if (defs.Any(string.IsNullOrWhiteSpace))
             throw new InvalidOperationException("CREATE TEMPORARY TABLE column list has an empty entry between commas.");
 
+        var checkConstraintOrdinal = 1;
         foreach (var def in defs)
         {
-            var columnDefinition = ParseCreateTemporaryTableColumnDefinition(def, ctx);
-            if (columnDefinition is not null)
+            var defTokens = new SqlTokenizer(def, ctx.Dialect).Tokenize()
+                .Where(t => t.Kind != SqlTokenKind.EndOfFile)
+                .ToList();
+
+            if (TryParseCreateTemporaryTableCheckConstraint(defTokens, checkConstraintOrdinal, out var checkConstraint))
             {
-                columnDefinitions.Add(columnDefinition.Value.Column);
-                if (columnDefinition.Value.PrimaryKey)
-                    primaryKeyColumns.Add(columnDefinition.Value.Column.name);
+                checkConstraints.Add(checkConstraint!);
+                checkConstraintOrdinal++;
+                continue;
             }
+
+            var columnDefinition = ParseCreateTemporaryTableColumnDefinition(def, ctx);
+            if (columnDefinition is null)
+                continue;
+
+            columnDefinitions.Add(columnDefinition.Value.Column);
+            if (columnDefinition.Value.PrimaryKey)
+                primaryKeyColumns.Add(columnDefinition.Value.Column.name);
         }
 
-        return (columnDefinitions, primaryKeyColumns);
+        return (columnDefinitions, primaryKeyColumns, checkConstraints);
     }
 
-    private static (Col Column, bool PrimaryKey)? ParseCreateTemporaryTableColumnDefinition(string def, SqlQueryParserContext ctx)
+    private static (Col Column, bool PrimaryKey)? ParseCreateTemporaryTableColumnDefinition(
+        string def,
+        SqlQueryParserContext ctx)
     {
         var defTokens = new SqlTokenizer(def, ctx.Dialect).Tokenize()
             .Where(t => t.Kind != SqlTokenKind.EndOfFile)
@@ -207,7 +223,113 @@ internal static class SqlCreateTemporaryTableHelper
         var nullable = !HasNotNullConstraint(defTokens);
         var primaryKey = HasPrimaryKeyConstraint(defTokens);
         var defaultValue = ParseCreateTemporaryTableDefaultValue(defTokens, typeTokens.Count + 1, dbType);
-        return (new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces, defaultValue: defaultValue), primaryKey);
+        var computedExpression = ParseCreateTemporaryTableComputedExpression(defTokens, typeTokens.Count + 1);
+        return (new Col(firstColToken.Text, dbType, nullable, size, decimalPlaces, defaultValue: defaultValue, computedExpression: computedExpression), primaryKey);
+    }
+
+    private static bool TryParseCreateTemporaryTableCheckConstraint(
+        IReadOnlyList<SqlToken> defTokens,
+        int checkConstraintOrdinal,
+        out SchemaSnapshotCheckConstraint? checkConstraint)
+    {
+        checkConstraint = null;
+
+        if (defTokens.Count == 0)
+            return false;
+
+        var firstToken = defTokens[0];
+        if (!IsTableConstraintStarterToken(firstToken))
+            return false;
+
+        if (firstToken.Text.Equals("CHECK", StringComparison.OrdinalIgnoreCase))
+        {
+            var expression = ParseCreateTemporaryTableCheckConstraintExpression(defTokens, 0);
+            checkConstraint = new SchemaSnapshotCheckConstraint
+            {
+                Name = $"CHECK_{checkConstraintOrdinal}",
+                Expression = expression
+            };
+            return true;
+        }
+
+        if (firstToken.Text.Equals("CONSTRAINT", StringComparison.OrdinalIgnoreCase)
+            && defTokens.Count >= 3
+            && defTokens[2].Text.Equals("CHECK", StringComparison.OrdinalIgnoreCase))
+        {
+            var constraintName = defTokens[1].Text;
+            var expression = ParseCreateTemporaryTableCheckConstraintExpression(defTokens, 2);
+            checkConstraint = new SchemaSnapshotCheckConstraint
+            {
+                Name = string.IsNullOrWhiteSpace(constraintName)
+                    ? $"CHECK_{checkConstraintOrdinal}"
+                    : constraintName,
+                Expression = expression
+            };
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ParseCreateTemporaryTableCheckConstraintExpression(
+        IReadOnlyList<SqlToken> defTokens,
+        int checkTokenIndex)
+    {
+        var openParenIndex = -1;
+        for (var i = checkTokenIndex + 1; i < defTokens.Count; i++)
+        {
+            if (defTokens[i].Text == "(")
+            {
+                openParenIndex = i;
+                break;
+            }
+        }
+
+        if (openParenIndex < 0)
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE CHECK constraint requires a parenthesized expression.");
+
+        var expressionTokens = ExtractBalancedTokens(defTokens, openParenIndex);
+        if (expressionTokens.Count == 0)
+            throw new InvalidOperationException("CREATE TEMPORARY TABLE CHECK constraint requires a parenthesized expression.");
+
+        return TokensToSql(StripOuterParentheses(expressionTokens));
+    }
+
+    private static string? ParseCreateTemporaryTableComputedExpression(
+        IReadOnlyList<SqlToken> defTokens,
+        int startIndex)
+    {
+        var asIndex = -1;
+        for (var i = startIndex; i < defTokens.Count; i++)
+        {
+            if (defTokens[i].Text.Equals(SqlConst.AS, StringComparison.OrdinalIgnoreCase))
+            {
+                asIndex = i;
+                break;
+            }
+        }
+
+        if (asIndex < 0)
+            return null;
+
+        var openParenIndex = -1;
+        for (var i = asIndex + 1; i < defTokens.Count; i++)
+        {
+            if (defTokens[i].Text == "(")
+            {
+                openParenIndex = i;
+                break;
+            }
+        }
+
+        if (openParenIndex < 0)
+            return null;
+
+        var expressionTokens = ExtractBalancedTokens(defTokens, openParenIndex);
+        if (expressionTokens.Count == 0)
+            return null;
+
+        return TokensToSql(StripOuterParentheses(expressionTokens));
     }
 
     private static bool HasPrimaryKeyConstraint(IReadOnlyList<SqlToken> defTokens)
@@ -259,6 +381,28 @@ internal static class SqlCreateTemporaryTableHelper
         }
 
         return typeTokens;
+    }
+
+    private static List<SqlToken> ExtractBalancedTokens(IReadOnlyList<SqlToken> defTokens, int openParenIndex)
+    {
+        var tokens = new List<SqlToken>();
+        var depth = 0;
+        for (var i = openParenIndex; i < defTokens.Count; i++)
+        {
+            var token = defTokens[i];
+            tokens.Add(token);
+
+            if (token.Text == "(")
+                depth++;
+            else if (token.Text == ")")
+            {
+                depth--;
+                if (depth == 0)
+                    return tokens;
+            }
+        }
+
+        throw new InvalidOperationException("Unbalanced parenthesized expression in CREATE TEMPORARY TABLE definition.");
     }
 
     private static bool HasNotNullConstraint(IReadOnlyList<SqlToken> defTokens)
@@ -507,6 +651,7 @@ internal static class SqlCreateTemporaryTableHelper
         SqlTableSource table,
         IReadOnlyList<Col> columnDefinitions,
         IReadOnlyList<string> primaryKeyColumns,
+        IReadOnlyList<SchemaSnapshotCheckConstraint> checkConstraints,
         string? selectSql,
         TemporaryTableScope currentScope,
         bool isTemporary)
@@ -556,6 +701,7 @@ internal static class SqlCreateTemporaryTableHelper
             ColumnDefinitions = columnDefinitions,
             ColumnNames = [.. columnDefinitions.Select(static c => c.name)],
             PrimaryKeyColumns = [.. primaryKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase)],
+            CheckConstraints = checkConstraints.Count == 0 ? [] : [.. checkConstraints],
             AsSelect = sel
         };
     }

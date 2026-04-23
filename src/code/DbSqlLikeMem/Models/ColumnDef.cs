@@ -12,6 +12,7 @@ namespace DbSqlLikeMem;
 /// <param name="identity">EN: Identity flag. PT: Indicador de identidade.</param>
 /// <param name="defaultValue">EN: Default value. PT: Valor padrao.</param>
 /// <param name="enumValues">EN: Enum values. PT: Valores enum.</param>
+/// <param name="computedExpression">EN: Optional computed expression text. PT: Texto opcional da expressao computada.</param>
 public sealed record Col(
     string name,
     DbType dbType,
@@ -20,7 +21,8 @@ public sealed record Col(
     int? decimalPlaces = null,
     bool identity = false,
     object? defaultValue = null,
-    IList<string>? enumValues = null
+    IList<string>? enumValues = null,
+    string? computedExpression = null
 );
 
 /// <summary>
@@ -43,6 +45,7 @@ public sealed class ColumnDef
     /// <param name="identity">EN: Identity flag. PT: Indicador de identidade.</param>
     /// <param name="defaultValue">EN: Optional default value. PT: Valor padrão opcional.</param>
     /// <param name="enumValues">EN: Optional enum values. PT: Valores de enum opcionais.</param>
+    /// <param name="computedExpression">EN: Optional computed expression text. PT: Texto opcional da expressao computada.</param>
     internal ColumnDef(
         ITableMock table,
         string name,
@@ -53,7 +56,8 @@ public sealed class ColumnDef
         int? decimalPlaces = null,
         bool identity = false,
         object? defaultValue = null,
-        IList<string>? enumValues = null)
+        IList<string>? enumValues = null,
+        string? computedExpression = null)
     {
         if (dbType == DbType.String
             && size <= 0)
@@ -75,6 +79,7 @@ public sealed class ColumnDef
         DecimalPlaces = decimalPlaces;
         Identity = identity;
         DefaultValue = defaultValue;
+        ComputedExpression = computedExpression;
         enumValues ??= [];
         EnumValues = new HashSet<string>(
                     enumValues.Select(v => v.Trim()),
@@ -136,6 +141,12 @@ public sealed class ColumnDef
     /// PT: Obtém ou define o valor padrão da coluna.
     /// </summary>
     public object? DefaultValue { get; private set; }
+
+    /// <summary>
+    /// EN: Optional computed expression text captured for the column.
+    /// PT: Texto opcional da expressao computada capturado para a coluna.
+    /// </summary>
+    public string? ComputedExpression { get; private set; }
 
     /// <summary>
     /// EN: Allowed values when the column is an enum.

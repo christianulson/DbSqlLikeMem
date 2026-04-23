@@ -10,46 +10,88 @@ internal static class ReadOnlySpanCompatibility
         NumberStyles styles,
         IFormatProvider? provider,
         out byte result)
-        => byte.TryParse(value.ToString(), styles, provider, out result);
+    {
+#if NET8_0_OR_GREATER
+        return byte.TryParse(value, styles, provider, out result);
+#else
+        return byte.TryParse(value.ToString(), styles, provider, out result);
+#endif
+    }
 
     internal static bool TryParseInt32(
         ReadOnlySpan<char> value,
         NumberStyles styles,
         IFormatProvider? provider,
         out int result)
-        => int.TryParse(value.ToString(), styles, provider, out result);
+    {
+#if NET8_0_OR_GREATER
+        return int.TryParse(value, styles, provider, out result);
+#else
+        return int.TryParse(value.ToString(), styles, provider, out result);
+#endif
+    }
 
     internal static bool TryParseInt64(
         ReadOnlySpan<char> value,
         NumberStyles styles,
         IFormatProvider? provider,
         out long result)
-        => long.TryParse(value.ToString(), styles, provider, out result);
+    {
+#if NET8_0_OR_GREATER
+        return long.TryParse(value, styles, provider, out result);
+#else
+        return long.TryParse(value.ToString(), styles, provider, out result);
+#endif
+    }
 
     internal static bool TryParseDouble(
         ReadOnlySpan<char> value,
         NumberStyles styles,
         IFormatProvider? provider,
         out double result)
-        => double.TryParse(value.ToString(), styles, provider, out result);
+    {
+#if NET8_0_OR_GREATER
+        return double.TryParse(value, styles, provider, out result);
+#else
+        return double.TryParse(value.ToString(), styles, provider, out result);
+#endif
+    }
 
     internal static bool TryParseDecimal(
         ReadOnlySpan<char> value,
         NumberStyles styles,
         IFormatProvider? provider,
         out decimal result)
-        => decimal.TryParse(value.ToString(), styles, provider, out result);
+    {
+#if NET8_0_OR_GREATER
+        return decimal.TryParse(value, styles, provider, out result);
+#else
+        return decimal.TryParse(value.ToString(), styles, provider, out result);
+#endif
+    }
 
     internal static bool TryParseTimeSpan(
         ReadOnlySpan<char> value,
         IFormatProvider? provider,
         out TimeSpan result)
-        => TimeSpan.TryParse(value.ToString(), provider, out result);
+    {
+#if NET8_0_OR_GREATER
+        return TimeSpan.TryParse(value, provider, out result);
+#else
+        return TimeSpan.TryParse(value.ToString(), provider, out result);
+#endif
+    }
 
     internal static bool TryParseDateTime(
         ReadOnlySpan<char> value,
         IFormatProvider? provider,
         DateTimeStyles styles,
         out DateTime result)
-        => DateTime.TryParse(value.ToString(), provider, styles, out result);
+    {
+#if NET8_0_OR_GREATER
+        return DateTime.TryParse(value, provider, styles, out result);
+#else
+        return DateTime.TryParse(value.ToString(), provider, styles, out result);
+#endif
+    }
 }

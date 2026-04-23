@@ -29,23 +29,4 @@ internal static class HashSetCompatibilityExtensions
 #endif
     }
 
-    internal static HashSet<T> Create<T>(
-        int capacity,
-        IEqualityComparer<T> comparer)
-        where T : notnull
-    {
-#if NET8_0_OR_GREATER
-        return new HashSet<T>(capacity, comparer);
-#else
-        return new HashSet<T>(comparer);
-#endif
-    }
-
-    internal static HashSet<T> Create<T>(
-        IEnumerable<T> collection,
-        IEqualityComparer<T>? comparer = null)
-        where T : notnull
-        => comparer is null
-            ? new HashSet<T>(collection)
-            : new HashSet<T>(collection, comparer);
 }

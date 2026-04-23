@@ -114,7 +114,7 @@ internal static class SqlPivotHelper
         var inListRaw = m.Groups["in"].Value.Trim();
 
         var inItems = new List<SqlPivotInItem>();
-        foreach (var itemRaw in SplitPivotInItems(inListRaw))
+        foreach (var itemRaw in SplitPivotInItems(inListRaw.AsSpan()))
         {
             var item = itemRaw.Trim();
             if (item.Length == 0)
@@ -158,7 +158,7 @@ internal static class SqlPivotHelper
         var inListRaw = match.Groups["in"].Value.Trim();
 
         var inItems = new List<SqlUnpivotInItem>();
-        foreach (var itemRaw in SplitPivotInItems(inListRaw))
+        foreach (var itemRaw in SplitPivotInItems(inListRaw.AsSpan()))
         {
             var item = itemRaw.Trim();
             if (item.Length == 0)
@@ -177,33 +177,46 @@ internal static class SqlPivotHelper
         return new SqlUnpivotSpec(valueColumnName, nameColumnName, inItems);
     }
 
-    private static IEnumerable<string> SplitPivotInItems(string raw)
+    private static IEnumerable<string> SplitPivotInItems(ReadOnlySpan<char> raw)
     {
         var list = new List<string>();
-        var sb = new StringBuilder();
         var depth = 0;
+        var start = 0;
 
-        foreach (var ch in raw)
+        for (var i = 0; i < raw.Length; i++)
         {
+            var ch = raw[i];
             if (ch == '(')
                 depth++;
-            if (ch == ')')
+            else if (ch == ')')
                 depth--;
 
             if (ch == ',' && depth == 0)
             {
-                list.Add(sb.ToString());
-                sb.Clear();
+                list.Add(TrimToString(raw.Slice(start, i - start)));
+                start = i + 1;
                 continue;
             }
-
-            sb.Append(ch);
         }
 
-        if (sb.Length > 0)
-            list.Add(sb.ToString());
+        if (start <= raw.Length)
+            list.Add(TrimToString(raw[start..]));
 
         return list;
+    }
+
+    private static string TrimToString(ReadOnlySpan<char> value)
+    {
+        var start = 0;
+        var end = value.Length - 1;
+
+        while (start <= end && char.IsWhiteSpace(value[start]))
+            start++;
+
+        while (end >= start && char.IsWhiteSpace(value[end]))
+            end--;
+
+        return end < start ? string.Empty : value.Slice(start, end - start + 1).ToString();
     }
 
     private static bool IsWord(SqlToken token, string word)

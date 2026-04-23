@@ -46,11 +46,11 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
-    public void Where_Precedence_AND_ShouldBindStrongerThan_OR()
+    public async Task Where_Precedence_AND_ShouldBindStrongerThan_OR()
     {
         // MySQL precedence: AND binds stronger than OR.
         // Equivalent to: id = 1 OR (id = 2 AND name = 'Bob')
-        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 2 AND name = 'Bob'").ToList();
+        var rows = (await _cnn.QueryAsync<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 2 AND name = 'Bob'")).ToList();
         Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id).OrderBy(_ => _)]);
     }
 
@@ -60,9 +60,9 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSqlCompatibilityGap")]
-    public void Where_OR_ShouldWork()
+    public async Task Where_OR_ShouldWork()
     {
-        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 3").ToList();
+        var rows = (await _cnn.QueryAsync<dynamic>("SELECT id FROM users WHERE id = 1 OR id = 3")).ToList();
         Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id).OrderBy(_ => _)]);
     }
 

@@ -171,7 +171,7 @@ internal static class DbDeleteStrategy
             return;
 
         if (table is TableMock tableMock)
-            tableMock.ExecuteTriggers(evt, oldRow, newRow);
+            tableMock.TriggerManager.ExecuteTriggers(evt, oldRow, newRow);
     }
 
     private static void ValidateForeignKeys(

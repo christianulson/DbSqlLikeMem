@@ -29,7 +29,12 @@ internal partial class FirebirdDialect : SqlDialectBase, ISqlDialect
             ">=", "<=", "<>", "!="
         ])
     {
-        FirebirdScalarFunctionRegistry.Register(this, version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        FirebirdScalarFunctionRegistry.Register(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
     }
 
@@ -170,9 +175,9 @@ internal partial class FirebirdDialect : SqlDialectBase, ISqlDialect
         => functionName.Equals("GEN_ID", StringComparison.OrdinalIgnoreCase)
            || base.SupportsSequenceFunctionCall(functionName);
 
-    bool ISqlDialect.SupportsDb2TriggerDdl => true;
+    bool ISqlDialectCompatibility.SupportsDb2TriggerDdl => true;
 
-    bool ISqlDialect.SupportsDb2ProcedureDdl => true;
+    bool ISqlDialectCompatibility.SupportsDb2ProcedureDdl => true;
 
     /// <summary>
     /// EN: Gets or sets null substitute function names.

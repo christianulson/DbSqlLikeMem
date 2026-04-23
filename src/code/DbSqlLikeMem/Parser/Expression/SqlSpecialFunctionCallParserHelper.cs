@@ -414,11 +414,10 @@ internal static class SqlSpecialFunctionCallParserHelper
         out CallExpr expr)
     {
         expr = default!;
-        var functionName = name.ToUpperInvariant();
         var inner = parseExpression(0);
 
         if (!ctx.IsKeywordOrIdentifierWord(SqlConst.AS))
-            throw ctx.Error($"{functionName} requires AS", ctx.Peek());
+            throw ctx.Error($"{name} requires AS", ctx.Peek());
         ctx.Consume();
 
         var typeToks = new List<SqlToken>();
@@ -426,7 +425,7 @@ internal static class SqlSpecialFunctionCallParserHelper
         {
             var t = ctx.Peek();
             if (t.Kind == SqlTokenKind.EndOfFile)
-                throw ctx.Error($"{functionName} type not closed", t);
+                throw ctx.Error($"{name} type not closed", t);
 
             if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.USING) || SqlExpressionParserContext.IsSymbol(t, ")"))
                 break;
@@ -435,7 +434,7 @@ internal static class SqlSpecialFunctionCallParserHelper
         }
 
         if (typeToks.Count == 0)
-            throw ctx.Error($"{functionName} requires a target type", ctx.Peek());
+            throw ctx.Error($"{name} requires a target type", ctx.Peek());
 
         var parseArgs = new List<SqlExpr>
         {
@@ -450,7 +449,7 @@ internal static class SqlSpecialFunctionCallParserHelper
         }
 
         ExpectSymbol(ctx, ")");
-        expr = new CallExpr(functionName, [.. parseArgs])
+        expr = new CallExpr(name, [.. parseArgs])
             .BindScalarFunctionDefinition(ctx.Dialect);
         return true;
     }

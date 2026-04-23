@@ -14,6 +14,31 @@ internal static class SqlAliasParserHelper
             dialect.AllowsDoubleQuoteIdentifiers && !dialect.IsStringQuote('"'),
             dialect.AllowsBracketIdentifiers);
 
+        var rawSpan = raw.AsSpan();
+
+        var explicitAlias = TrySplitExplicitAliasTopLevel(rawSpan, dialect, options);
+        if (explicitAlias is not null)
+            return explicitAlias.Value;
+
+        var implicitAlias = TrySplitImplicitAliasTopLevel(rawSpan, dialect, options);
+        if (implicitAlias is not null)
+            return implicitAlias.Value;
+
+        return (raw, null);
+    }
+
+    internal static (string Expr, string? Alias) SplitTrailingAsAliasTopLevel(ReadOnlySpan<char> raw, ISqlDialect dialect)
+    {
+        raw = raw.Trim();
+        if (raw.Length == 0)
+            return (string.Empty, null);
+
+        var options = new AliasSplitOptions(
+            dialect.IsStringQuote('"'),
+            dialect.AllowsBacktickIdentifiers,
+            dialect.AllowsDoubleQuoteIdentifiers && !dialect.IsStringQuote('"'),
+            dialect.AllowsBracketIdentifiers);
+
         var explicitAlias = TrySplitExplicitAliasTopLevel(raw, dialect, options);
         if (explicitAlias is not null)
             return explicitAlias.Value;
@@ -22,11 +47,11 @@ internal static class SqlAliasParserHelper
         if (implicitAlias is not null)
             return implicitAlias.Value;
 
-        return (raw, null);
+        return (raw.ToString(), null);
     }
 
     private static (string Expr, string? Alias)? TrySplitExplicitAliasTopLevel(
-        string raw,
+        ReadOnlySpan<char> raw,
         ISqlDialect dialect,
         AliasSplitOptions options)
     {
@@ -63,14 +88,14 @@ internal static class SqlAliasParserHelper
             if (aliasRaw.Length == 0)
                 return null;
 
-            return (expr, NormalizeAlias(aliasRaw, dialect, options));
+            return (expr.ToString(), NormalizeAlias(aliasRaw, dialect, options));
         }
 
         return null;
     }
 
     private static (string Expr, string? Alias)? TrySplitImplicitAliasTopLevel(
-        string raw,
+        ReadOnlySpan<char> raw,
         ISqlDialect dialect,
         AliasSplitOptions options)
     {
@@ -111,7 +136,7 @@ internal static class SqlAliasParserHelper
     }
 
     private static (string Expr, string Alias)? TryCreateImplicitAliasSplit(
-        string raw,
+        ReadOnlySpan<char> raw,
         int separatorIndex,
         ISqlDialect dialect,
         AliasSplitOptions options)
@@ -124,12 +149,12 @@ internal static class SqlAliasParserHelper
         ThrowIfUnsupportedAliasQuote(right, dialect, options);
 
         var lastLeft = left.TrimEnd();
-        if (Regex.IsMatch(lastLeft, @"(<=>|<>|!=|>=|<=|=|>|<|\|\||\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(lastLeft.ToString(), @"(<=>|<>|!=|>=|<=|=|>|<|\|\||\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
             return null;
-        if (Regex.IsMatch(lastLeft, @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (Regex.IsMatch(lastLeft.ToString(), @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
             return null;
 
-        var compositeTemporalIdentifier = $"{lastLeft} {right}";
+        var compositeTemporalIdentifier = string.Concat(lastLeft.ToString(), " ", right.ToString());
         if (dialect.AllowsTemporalIdentifier(compositeTemporalIdentifier))
             return null;
 
@@ -140,15 +165,18 @@ internal static class SqlAliasParserHelper
         if (dialect.IsKeyword(alias))
             return null;
 
-        return (left, alias);
+        return (left.ToString(), alias);
     }
 
     private static bool IsExplicitAliasKeyword(string raw, int index)
+        => IsExplicitAliasKeyword(raw.AsSpan(), index);
+
+    private static bool IsExplicitAliasKeyword(ReadOnlySpan<char> raw, int index)
     {
         if (index < 0 || index + 1 >= raw.Length)
             return false;
 
-        if (!raw.AsSpan(index).StartsWith("AS", StringComparison.OrdinalIgnoreCase))
+        if (!raw[index..].StartsWith("AS", StringComparison.OrdinalIgnoreCase))
             return false;
 
         var beforeOk = index == 0 || char.IsWhiteSpace(raw[index - 1]);
@@ -158,6 +186,9 @@ internal static class SqlAliasParserHelper
     }
 
     private static void ThrowIfUnsupportedAliasQuote(string aliasRaw, ISqlDialect dialect, AliasSplitOptions options)
+        => ThrowIfUnsupportedAliasQuote(aliasRaw.AsSpan(), dialect, options);
+
+    private static void ThrowIfUnsupportedAliasQuote(ReadOnlySpan<char> aliasRaw, ISqlDialect dialect, AliasSplitOptions options)
     {
         if ((aliasRaw[0] == '`' && !options.AllowBacktick)
             || (aliasRaw[0] == '[' && !options.AllowBracket)
@@ -168,6 +199,9 @@ internal static class SqlAliasParserHelper
     }
 
     private static bool TryConsumeAliasForwardQuotedChar(string raw, ref int index, ref AliasForwardScanState state)
+        => TryConsumeAliasForwardQuotedChar(raw.AsSpan(), ref index, ref state);
+
+    private static bool TryConsumeAliasForwardQuotedChar(ReadOnlySpan<char> raw, ref int index, ref AliasForwardScanState state)
     {
         var ch = raw[index];
         if (state.InSingle)
@@ -328,6 +362,9 @@ internal static class SqlAliasParserHelper
     }
 
     private static bool LooksLikeAliasToken(string rawRight, AliasSplitOptions options)
+        => LooksLikeAliasToken(rawRight.AsSpan(), options);
+
+    private static bool LooksLikeAliasToken(ReadOnlySpan<char> rawRight, AliasSplitOptions options)
     {
         rawRight = rawRight.Trim();
         if (rawRight.Length == 0)
@@ -369,37 +406,58 @@ internal static class SqlAliasParserHelper
         bool allowBacktick,
         bool allowDqIdent,
         bool allowBracket)
+        => NormalizeAlias(aliasRaw.AsSpan(), dialect, dqIsString, allowBacktick, allowDqIdent, allowBracket);
+
+    private static string NormalizeAlias(
+        ReadOnlySpan<char> aliasRaw,
+        ISqlDialect dialect,
+        AliasSplitOptions options)
+        => NormalizeAlias(
+            aliasRaw,
+            dialect,
+            options.DqIsString,
+            options.AllowBacktick,
+            options.AllowDqIdent,
+            options.AllowBracket);
+
+    private static string NormalizeAlias(
+        ReadOnlySpan<char> aliasRaw,
+        ISqlDialect dialect,
+        bool dqIsString,
+        bool allowBacktick,
+        bool allowDqIdent,
+        bool allowBracket)
     {
         aliasRaw = aliasRaw.Trim();
 
-        if (aliasRaw.StartsWith("`") && !allowBacktick)
+        if (aliasRaw.StartsWith("`", StringComparison.Ordinal) && !allowBacktick)
             throw SqlUnsupported.NotSupported(dialect, "alias/identificadores com '`'");
 
-        if (aliasRaw.StartsWith("[") && !allowBracket)
+        if (aliasRaw.StartsWith("[", StringComparison.Ordinal) && !allowBracket)
             throw SqlUnsupported.NotSupported(dialect, "alias/identificadores com '['");
 
-        if (aliasRaw.StartsWith("\"") && !allowDqIdent && !dqIsString)
+        if (aliasRaw.StartsWith("\"", StringComparison.Ordinal) && !allowDqIdent && !dqIsString)
             throw SqlUnsupported.NotSupported(dialect, "alias/identificadores com '\"'");
 
         if (allowBacktick && aliasRaw.Length >= 2 && aliasRaw[0] == '`' && aliasRaw[^1] == '`')
         {
-            var inner = aliasRaw[1..^1].Replace("``", "`");
+            var inner = aliasRaw[1..^1].ToString().Replace("``", "`");
             return inner;
         }
 
         if (allowDqIdent && aliasRaw.Length >= 2 && aliasRaw[0] == '"' && aliasRaw[^1] == '"')
         {
-            var inner = aliasRaw[1..^1].Replace("\"\"", "\"");
+            var inner = aliasRaw[1..^1].ToString().Replace("\"\"", "\"");
             return inner;
         }
 
         if (allowBracket && aliasRaw.Length >= 2 && aliasRaw[0] == '[' && aliasRaw[^1] == ']')
         {
-            var inner = aliasRaw[1..^1].Replace("]]", "]");
+            var inner = aliasRaw[1..^1].ToString().Replace("]]", "]");
             return inner;
         }
 
-        return aliasRaw;
+        return aliasRaw.ToString();
     }
 
     private static string NormalizeAlias(string aliasRaw, ISqlDialect dialect, AliasSplitOptions options)

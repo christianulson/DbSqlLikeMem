@@ -207,7 +207,7 @@ internal static class SqlInsertConflictHelper
             var col = ctx.ExpectIdentifierWithDots();
             ctx.ExpectAssignmentEquals(clauseLabel, col);
 
-            var exprRaw = ctx.ReadClauseTextUntilTopLevelStop([.. expressionStopWords]).Trim();
+            var exprRaw = SqlQueryParserContext.NormalizeClauseText(ctx.ReadClauseTextUntilTopLevelStop([.. expressionStopWords]).AsSpan());
             if (string.IsNullOrWhiteSpace(exprRaw))
                 throw new InvalidOperationException($"{clauseLabel} assignment for '{col}' requires an expression.");
 
@@ -323,7 +323,7 @@ internal static class SqlInsertConflictHelper
         string raw,
         string clauseLabel)
     {
-        var normalized = NormalizeClauseText(raw);
+        var normalized = SqlQueryParserContext.NormalizeClauseText(raw.AsSpan());
         if (string.IsNullOrWhiteSpace(normalized))
             throw new InvalidOperationException(
                 $"{clauseLabel} requires a predicate (found '{ctx.DescribeFoundToken()}').");
@@ -372,13 +372,14 @@ internal static class SqlInsertConflictHelper
                 throw new InvalidOperationException(
                     $"ON CONFLICT target has an unexpected comma before expression (found '{ctx.DescribeFoundToken()}').");
 
-            var raw = ctx.ReadRawExpressionUntilCommaOrRightParen().Trim();
-            if (string.IsNullOrWhiteSpace(raw))
+            var raw = ctx.ReadRawExpressionUntilCommaOrRightParen();
+            var normalized = SqlQueryParserContext.NormalizeClauseText(raw.AsSpan());
+            if (string.IsNullOrWhiteSpace(normalized))
                 throw new InvalidOperationException("ON CONFLICT target requires at least one expression.");
 
             try
             {
-                _ = SqlExpressionParser.ParseScalar(raw, ctx.Db, ctx.Dialect);
+                _ = SqlExpressionParser.ParseScalar(normalized, ctx.Db, ctx.Dialect);
             }
             catch (InvalidOperationException ex)
             {
@@ -475,18 +476,6 @@ internal static class SqlInsertConflictHelper
             || token.Text.Equals(SqlConst.SET, StringComparison.OrdinalIgnoreCase)
             || token.Text.Equals(SqlConst.WHERE, StringComparison.OrdinalIgnoreCase)
             || token.Text.Equals(SqlConst.RETURNING, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string NormalizeClauseText(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return string.Empty;
-
-        var txt = raw!.Trim();
-        if (txt.EndsWith(";", StringComparison.Ordinal))
-            txt = txt[..^1].TrimEnd();
-
-        return txt;
     }
 
     private static bool IsTrailingTokenInWherePredicate(InvalidOperationException ex)

@@ -37,25 +37,27 @@ internal static class SqlSimpleValueParserHelper
         ISqlDialect dialect,
         out SqlExpr expr)
     {
-        if (TryParseQuotedStringValue(raw, dialect, out var normalizedString))
+        var rawSpan = raw.AsSpan();
+
+        if (TryParseQuotedStringValue(rawSpan, dialect, out var normalizedString))
         {
             expr = new LiteralExpr(normalizedString);
             return true;
         }
 
-        if (TryParseNullTrueFalse(raw, out expr))
+        if (TryParseNullTrueFalse(rawSpan, out expr))
             return true;
 
-        if (TryParseParameter(raw, dialect, out expr))
+        if (TryParseParameter(rawSpan, dialect, out expr))
             return true;
 
-        if (TryParseHexBinaryLiteralValue(raw, out var binaryValue))
+        if (TryParseHexBinaryLiteralValue(rawSpan, out var binaryValue))
         {
             expr = new LiteralExpr(binaryValue);
             return true;
         }
 
-        if (TryParseNumericLiteralValue(raw, out var numericValue))
+        if (TryParseNumericLiteralValue(rawSpan, out var numericValue))
         {
             expr = new LiteralExpr(numericValue);
             return true;
@@ -74,6 +76,12 @@ internal static class SqlSimpleValueParserHelper
         string raw,
         ISqlDialect dialect,
         out string normalized)
+        => TryParseQuotedStringValue(raw.AsSpan(), dialect, out normalized);
+
+    private static bool TryParseQuotedStringValue(
+        ReadOnlySpan<char> raw,
+        ISqlDialect dialect,
+        out string normalized)
     {
         normalized = string.Empty;
         if (raw.Length < 2)
@@ -83,7 +91,7 @@ internal static class SqlSimpleValueParserHelper
         if (!dialect.IsStringQuote(quote) || raw[^1] != quote)
             return false;
 
-        var inner = raw.AsSpan(1, raw.Length - 2);
+        var inner = raw.Slice(1, raw.Length - 2);
         if (inner.Length == 0)
         {
             normalized = string.Empty;
@@ -126,6 +134,9 @@ internal static class SqlSimpleValueParserHelper
     }
 
     private static bool TryParseNullTrueFalse(string raw, out SqlExpr expr)
+        => TryParseNullTrueFalse(raw.AsSpan(), out expr);
+
+    private static bool TryParseNullTrueFalse(ReadOnlySpan<char> raw, out SqlExpr expr)
     {
         expr = default!;
 
@@ -154,6 +165,12 @@ internal static class SqlSimpleValueParserHelper
         string raw,
         ISqlDialect dialect,
         out SqlExpr expr)
+        => TryParseParameter(raw.AsSpan(), dialect, out expr);
+
+    private static bool TryParseParameter(
+        ReadOnlySpan<char> raw,
+        ISqlDialect dialect,
+        out SqlExpr expr)
     {
         expr = default!;
 
@@ -169,18 +186,21 @@ internal static class SqlSimpleValueParserHelper
             }
         }
 
-        expr = new ParameterExpr(raw);
+        expr = new ParameterExpr(raw.ToString());
         return true;
     }
 
     private static bool TryParseHexBinaryLiteralValue(string raw, out byte[] binaryValue)
+        => TryParseHexBinaryLiteralValue(raw.AsSpan(), out binaryValue);
+
+    private static bool TryParseHexBinaryLiteralValue(ReadOnlySpan<char> raw, out byte[] binaryValue)
     {
         binaryValue = [];
 
         if (!raw.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
             return false;
 
-        var hex = raw.AsSpan(2);
+        var hex = raw.Slice(2);
         if (hex.Length == 0 || hex.Length % 2 != 0)
             return false;
 
@@ -198,6 +218,9 @@ internal static class SqlSimpleValueParserHelper
     }
 
     private static bool TryParseNumericLiteralValue(string raw, out object numericValue)
+        => TryParseNumericLiteralValue(raw.AsSpan(), out numericValue);
+
+    private static bool TryParseNumericLiteralValue(ReadOnlySpan<char> raw, out object numericValue)
     {
         numericValue = default!;
 
@@ -209,13 +232,13 @@ internal static class SqlSimpleValueParserHelper
 
         if (!hasDecimalPoint && !hasExponent)
         {
-            if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+            if (ReadOnlySpanCompatibility.TryParseInt32(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
             {
                 numericValue = intValue;
                 return true;
             }
 
-            if (long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
+            if (ReadOnlySpanCompatibility.TryParseInt64(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
             {
                 numericValue = longValue;
                 return true;
@@ -223,19 +246,19 @@ internal static class SqlSimpleValueParserHelper
         }
 
         if (hasExponent
-            && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var doubleValue))
+            && ReadOnlySpanCompatibility.TryParseDouble(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var doubleValue))
         {
             numericValue = doubleValue;
             return true;
         }
 
-        if (decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var decimalValue))
+        if (ReadOnlySpanCompatibility.TryParseDecimal(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var decimalValue))
         {
             numericValue = decimalValue;
             return true;
         }
 
-        if (!double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var fallbackDouble))
+        if (!ReadOnlySpanCompatibility.TryParseDouble(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out var fallbackDouble))
             return false;
 
         numericValue = fallbackDouble;
@@ -244,6 +267,12 @@ internal static class SqlSimpleValueParserHelper
 
     private static bool HasValidNumericLiteralSyntax(
         string raw,
+        out bool hasDecimalPoint,
+        out bool hasExponent)
+        => HasValidNumericLiteralSyntax(raw.AsSpan(), out hasDecimalPoint, out hasExponent);
+
+    private static bool HasValidNumericLiteralSyntax(
+        ReadOnlySpan<char> raw,
         out bool hasDecimalPoint,
         out bool hasExponent)
     {

@@ -1,5 +1,7 @@
 <Solution>
-  <Folder Name="/code/" />
+  <Folder Name="/code/">
+    <Project Path="code/DbSqlLikeMem.SourceGenerators/DbSqlLikeMem.SourceGenerators.csproj" />
+  </Folder>
   <Folder Name="/code/Auto/">
     <Project Path="code/DbSqlLikeMem.Auto/DbSqlLikeMem.Auto.csproj" />
   </Folder>

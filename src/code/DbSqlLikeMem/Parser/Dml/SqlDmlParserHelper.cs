@@ -85,7 +85,7 @@ internal static class SqlDmlParserHelper
         if (ctx.IsWord(SqlConst.WHERE))
         {
             ctx.Consume(); // WHERE
-            whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop(ctx, SqlConst.RETURNING));
+            whereRaw = SqlQueryParserContext.NormalizeClauseText(ctx.ReadClauseTextUntilTopLevelStop(SqlConst.RETURNING).AsSpan());
             if (string.IsNullOrWhiteSpace(whereRaw))
                 throw new InvalidOperationException(
                     $"UPDATE WHERE requires a predicate (found '{ctx.DescribeFoundToken()}').");
@@ -212,7 +212,7 @@ internal static class SqlDmlParserHelper
         if (ctx.IsWord(SqlConst.WHERE))
         {
             ctx.Consume();
-            whereRaw = NormalizeClauseText(ReadClauseTextUntilTopLevelStop(ctx, SqlConst.RETURNING));
+            whereRaw = SqlQueryParserContext.NormalizeClauseText(ctx.ReadClauseTextUntilTopLevelStop(SqlConst.RETURNING).AsSpan());
             if (string.IsNullOrWhiteSpace(whereRaw))
                 throw new InvalidOperationException(
                     $"DELETE WHERE requires a predicate (found '{ctx.DescribeFoundToken()}').");
@@ -260,38 +260,6 @@ internal static class SqlDmlParserHelper
                 ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
                 : null
         };
-    }
-
-    private static string NormalizeClauseText(string? raw)
-    {
-        if (string.IsNullOrWhiteSpace(raw))
-            return string.Empty;
-
-        var txt = raw!.Trim();
-        if (txt.EndsWith(";", StringComparison.Ordinal))
-            txt = txt[..^1].TrimEnd();
-
-        return txt;
-    }
-
-    private static string ReadClauseTextUntilTopLevelStop(
-        SqlQueryParserContext ctx,
-        params string[] stopWords)
-    {
-        var buf = new List<SqlToken>();
-        int depth = 0;
-        while (!ctx.IsEnd())
-        {
-            var t = ctx.Peek();
-            if (SqlQueryParserContext.IsSymbol(t, "(")) depth++;
-            else if (SqlQueryParserContext.IsSymbol(t, ")")) depth--;
-            if (depth == 0 && SqlQueryParserContext.IsSymbol(t, ";")) break;
-            if (depth == 0 && stopWords.Any(sw => t.Text.Equals(sw, StringComparison.OrdinalIgnoreCase)))
-                break;
-            buf.Add(ctx.Consume());
-        }
-
-        return ctx.TokensToSql(buf);
     }
 
     private static bool IsTrailingTokenInWherePredicate(InvalidOperationException ex)

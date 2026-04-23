@@ -147,15 +147,19 @@ namespace DbSqlLikeMem
     public static class ArgumentNullExceptionCompatible
     {
         /// <summary>
-        /// Throws an ArgumentNullException if the specified value is null.
+        /// EN: Throws an ArgumentNullException when the value is null.
+        /// PT: Lanca ArgumentNullException quando o valor e nulo.
         /// </summary>
-        /// <param name="value">The object to validate for nullity.</param>
-        /// <param name="paramName">The name of the parameter being validated. Used in the exception if thrown.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null.</exception>
+        /// <param name="value">EN: Object value to validate. PT: Valor do objeto a validar.</param>
+        /// <param name="paramName">EN: Parameter name used in the exception. PT: Nome do parametro usado na excecao.</param>
         public static void ThrowIfNull(object? value, string paramName)
         {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(value, paramName);
+#else
             if (value is null)
                 throw new ArgumentNullException(paramName);
+#endif
         }
     }
 
@@ -169,16 +173,19 @@ namespace DbSqlLikeMem
     public static class ArgumentExceptionCompatible
     {
         /// <summary>
-        /// Throws an exception if the specified string is null, empty, or consists only of white-space characters.
+        /// EN: Throws an ArgumentException when the string is null, empty, or white-space.
+        /// PT: Lanca ArgumentException quando a string e nula, vazia ou apenas espacos.
         /// </summary>
-        /// <param name="value">The string value to validate. Can be null, empty, or contain only white-space characters.</param>
-        /// <param name="paramName">The name of the parameter to include in the exception if <paramref name="value"/> is null, empty, or white
-        /// space.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="value"/> is null, empty, or consists only of white-space characters.</exception>
+        /// <param name="value">EN: String value to validate. PT: Valor de string a validar.</param>
+        /// <param name="paramName">EN: Parameter name used in the exception. PT: Nome do parametro usado na excecao.</param>
         public static void ThrowIfNullOrWhiteSpace(string? value, string paramName)
         {
+#if NET6_0_OR_GREATER
+            ArgumentException.ThrowIfNullOrWhiteSpace(value, paramName);
+#else
             if (string.IsNullOrWhiteSpace(value))
                 throw new ArgumentException(paramName);
+#endif
         }
     }
 

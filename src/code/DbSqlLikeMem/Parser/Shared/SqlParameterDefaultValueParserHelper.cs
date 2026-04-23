@@ -50,13 +50,13 @@ internal static class SqlParameterDefaultValueParserHelper
         return token.Kind switch
         {
             SqlTokenKind.String => token.Text,
-            SqlTokenKind.Number => ParseNumericLiteral(token.Text, sign),
-            SqlTokenKind.Identifier or SqlTokenKind.Keyword => ParseKeywordLiteral(token.Text),
+            SqlTokenKind.Number => ParseNumericLiteral(token.Text.AsSpan(), sign),
+            SqlTokenKind.Identifier or SqlTokenKind.Keyword => ParseKeywordLiteral(token.Text.AsSpan()),
             _ => throw new NotSupportedException("Parameter default values are not supported in the mock yet."),
         };
     }
 
-    private static object? ParseKeywordLiteral(string text)
+    private static object? ParseKeywordLiteral(ReadOnlySpan<char> text)
         => text.Equals(SqlConst.NULL, StringComparison.OrdinalIgnoreCase)
             ? null
             : text.Equals(SqlConst.TRUE, StringComparison.OrdinalIgnoreCase)
@@ -66,7 +66,7 @@ internal static class SqlParameterDefaultValueParserHelper
                     : throw new NotSupportedException("Parameter default values are not supported in the mock yet.");
 
     private static object ParseNumericLiteral(
-        string text,
+        ReadOnlySpan<char> text,
         int sign)
     {
         var negative = sign < 0;
@@ -82,20 +82,32 @@ internal static class SqlParameterDefaultValueParserHelper
         if (text.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
         {
             var hexText = text[2..];
-            var parsedHex = Convert.ToInt64(hexText, 16);
+            var parsedHex = Convert.ToInt64(hexText.ToString(), 16);
             return negative ? -parsedHex : parsedHex;
         }
 
-        var signedText = negative ? $"-{text}" : text;
+        if (negative)
+        {
+            if (ReadOnlySpanCompatibility.TryParseInt64(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
+                return -parsedLong;
 
-        if (long.TryParse(signedText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
-            return parsedLong;
+            if (ReadOnlySpanCompatibility.TryParseDecimal(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedDecimal))
+                return -parsedDecimal;
 
-        if (decimal.TryParse(signedText, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedDecimal))
-            return parsedDecimal;
+            if (ReadOnlySpanCompatibility.TryParseDouble(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedDouble))
+                return -parsedDouble;
+        }
+        else
+        {
+            if (ReadOnlySpanCompatibility.TryParseInt64(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedLong))
+                return parsedLong;
 
-        if (double.TryParse(signedText, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedDouble))
-            return parsedDouble;
+            if (ReadOnlySpanCompatibility.TryParseDecimal(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedDecimal))
+                return parsedDecimal;
+
+            if (ReadOnlySpanCompatibility.TryParseDouble(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsedDouble))
+                return parsedDouble;
+        }
 
         throw new NotSupportedException("Parameter default values are not supported in the mock yet.");
     }

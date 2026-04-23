@@ -110,17 +110,19 @@ internal static class SqlTableHintsHelper
 
     private static IReadOnlyList<string> ValidateMySqlIndexHintList(string hintIndexListRaw)
     {
-        var rawItems = SqlRawCommaSplitterHelper.SplitRawByComma(hintIndexListRaw)
-            .ConvertAll(static x => x.Trim());
+        var rawItems = SqlRawCommaSplitterHelper.SplitRawByComma(hintIndexListRaw);
+        var normalizedItems = new List<string>(rawItems.Count);
+        foreach (var rawItem in rawItems)
+            normalizedItems.Add(rawItem.AsSpan().Trim().ToString());
 
-        if (rawItems.Count == 0 || rawItems.All(static x => x.Length == 0))
+        if (normalizedItems.Count == 0 || normalizedItems.All(static x => x.Length == 0))
             throw new InvalidOperationException("MySQL index hint inválido: lista de índices vazia.");
 
-        if (rawItems.Any(static x => x.Length == 0))
+        if (normalizedItems.Any(static x => x.Length == 0))
             throw new InvalidOperationException("MySQL index hint inválido: lista contém item vazio.");
 
-        var parsedItems = new List<string>(rawItems.Count);
-        foreach (var item in rawItems)
+        var parsedItems = new List<string>(normalizedItems.Count);
+        foreach (var item in normalizedItems)
         {
             if (item.Equals(SqlConst.PRIMARY, StringComparison.OrdinalIgnoreCase))
             {

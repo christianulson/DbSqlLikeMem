@@ -90,9 +90,9 @@ internal static class DbUpdateStrategy
 
             // Valida Unique Constraints antes de aplicar (somente quando necessario)
             if (requiresUniqueValidation)
-                tableMock.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
+                tableMock.IndexManager.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
 
-            tableMock.ValidateForeignKeysOnRow(simulated);
+            tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(simulated);
 
             if (hasBeforeUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
@@ -104,9 +104,9 @@ internal static class DbUpdateStrategy
 
             // Atualiza índices
             if (requiresOldSnapshotForIndex)
-                tableMock.UpdateIndexesWithRow(rowIdx, oldSnapshot, table[rowIdx]);
+                tableMock.IndexManager.UpdateIndexesWithRow(rowIdx, oldSnapshot, table[rowIdx]);
             else
-                tableMock.UpdateIndexesWithRow(rowIdx);
+                tableMock.IndexManager.UpdateIndexesWithRow(rowIdx);
             updated++;
             affectedIndexes.Add(rowIdx);
             if (captureAffectedRowSnapshots)
@@ -637,6 +637,6 @@ internal static class DbUpdateStrategy
             return;
 
         if (table is TableMock tableMock)
-            tableMock.ExecuteTriggers(evt, oldRow, newRow);
+            tableMock.TriggerManager.ExecuteTriggers(evt, oldRow, newRow);
     }
 }

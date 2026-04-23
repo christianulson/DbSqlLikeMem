@@ -668,16 +668,18 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (token.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
             return false;
 
-        return token.Text.ToUpperInvariant() switch
-        {
-            SqlConst.YEAR or "YEARS"
-            or "MONTH" or "MONTHS"
-            or "DAY" or "DAYS"
-            or "HOUR" or "HOURS"
-            or "MINUTE" or "MINUTES"
-            or "SECOND" or "SECONDS" => true,
-            _ => false
-        };
+        return token.Text.Equals(SqlConst.YEAR, StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("YEARS", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("MONTH", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("MONTHS", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("DAY", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("DAYS", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("HOUR", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("HOURS", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("MINUTE", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("MINUTES", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("SECOND", StringComparison.OrdinalIgnoreCase)
+            || token.Text.Equals("SECONDS", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool TryParseBetweenInfix(ref SqlExpr left, int minBp)
@@ -815,7 +817,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         var subquery = SqlQueryParser.ParseSubqueryExprOrThrow(
             subSql,
             contextToken,
-            $"{quantifier.ToString().ToUpperInvariant()} quantified comparison",
+            quantifier is SqlQuantifier.Any ? "ANY quantified comparison" : "ALL quantified comparison",
             _context.Db,
             _context.Dialect);
 
@@ -1197,7 +1199,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     {
         binaryValue = [];
 
-        var normalized = text.Trim();
+        var normalized = text.AsSpan().Trim();
         if (!normalized.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
             return false;
 
@@ -1208,7 +1210,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         var buffer = new byte[hex.Length / 2];
         for (var i = 0; i < hex.Length; i += 2)
         {
-            if (!byte.TryParse(hex.Substring(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var part))
+            if (!ReadOnlySpanCompatibility.TryParseByte(hex.Slice(i, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var part))
                 return false;
 
             buffer[i / 2] = part;
@@ -1610,8 +1612,10 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (!_context.IsKeywordOrIdentifierWord(SqlConst.ORDER))
             return null;
 
-        var normalizedName = functionName.ToUpperInvariant();
-        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG and not SqlConst.LIST)
+        if (!functionName.Equals(SqlConst.GROUP_CONCAT, StringComparison.OrdinalIgnoreCase)
+            && !functionName.Equals(SqlConst.STRING_AGG, StringComparison.OrdinalIgnoreCase)
+            && !functionName.Equals(SqlConst.LISTAGG, StringComparison.OrdinalIgnoreCase)
+            && !functionName.Equals(SqlConst.LIST, StringComparison.OrdinalIgnoreCase))
             throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate ORDER BY for function '{functionName}'");
 
         if (!_context.Dialect.SupportsAggregateOrderByForStringAggregates)
@@ -1650,8 +1654,10 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (!_context.IsKeywordOrIdentifierWord("SEPARATOR"))
             return;
 
-        var normalizedName = functionName.ToUpperInvariant();
-        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG and not SqlConst.LIST)
+        if (!functionName.Equals(SqlConst.GROUP_CONCAT, StringComparison.OrdinalIgnoreCase)
+            && !functionName.Equals(SqlConst.STRING_AGG, StringComparison.OrdinalIgnoreCase)
+            && !functionName.Equals(SqlConst.LISTAGG, StringComparison.OrdinalIgnoreCase)
+            && !functionName.Equals(SqlConst.LIST, StringComparison.OrdinalIgnoreCase))
             throw SqlUnsupported.NotSupported(_context.Dialect, $"aggregate separator keyword for function '{functionName}'");
 
         if (!_context.Dialect.SupportsAggregateSeparatorKeywordForStringAggregates)
@@ -1760,8 +1766,10 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (!_context.IsKeywordOrIdentifierWord(SqlConst.WITHIN))
             return call;
 
-        var normalizedName = call.Name.ToUpperInvariant();
-        if (normalizedName is not SqlConst.GROUP_CONCAT and not SqlConst.STRING_AGG and not SqlConst.LISTAGG and not SqlConst.LIST)
+        if (!call.Name.Equals(SqlConst.GROUP_CONCAT, StringComparison.OrdinalIgnoreCase)
+            && !call.Name.Equals(SqlConst.STRING_AGG, StringComparison.OrdinalIgnoreCase)
+            && !call.Name.Equals(SqlConst.LISTAGG, StringComparison.OrdinalIgnoreCase)
+            && !call.Name.Equals(SqlConst.LIST, StringComparison.OrdinalIgnoreCase))
         {
             throw SqlUnsupported.NotSupported(
                 _context.Dialect,
@@ -1996,7 +2004,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         }
 
         if (!_context.Dialect.SupportsSequenceDotValueExpression(suffix))
-            throw SqlUnsupported.NotSupported(_context.Dialect, suffix.ToUpperInvariant());
+            throw SqlUnsupported.NotSupported(_context.Dialect, suffix);
 
         var targetParts = parts.Take(parts.Count - 1).ToArray();
         SqlExpr target = targetParts.Length switch
@@ -2006,7 +2014,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             _ => new RawSqlExpr(string.Join(".", targetParts))
         };
 
-        expr = new CallExpr(suffix.ToUpperInvariant(), [target])
+        expr = new CallExpr(suffix, [target])
             .BindScalarFunctionDefinition(_context.Dialect);
         return true;
     }

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Description>PostgreSQL (Npgsql) provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
@@ -11,7 +11,7 @@
 		<PackageReference Include="Npgsql" Version="8.0.8" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'">
 		<PackageReference Include="Npgsql" Version="10.0.2" />
 	</ItemGroup>
 

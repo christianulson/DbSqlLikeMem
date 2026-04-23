@@ -28,9 +28,14 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
             "||"
         ])
     {
-        Db2ScalarFunctionRegistry.Register(this, version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        Db2ScalarFunctionRegistry.Register(this, Version);
         Db2WindowFunctionRegistry.Register(this);
-        Db2TableFunctionRegistry.Register(this, version);
+        Db2TableFunctionRegistry.Register(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
     }
 
@@ -132,9 +137,9 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
 
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
-    bool ISqlDialect.SupportsInlineReturnCreateFunctionDdl => true;
-    bool ISqlDialect.SupportsDb2TriggerDdl => true;
-    bool ISqlDialect.SupportsDb2ProcedureDdl => true;
+    bool ISqlDialectCompatibility.SupportsInlineReturnCreateFunctionDdl => true;
+    bool ISqlDialectCompatibility.SupportsDb2TriggerDdl => true;
+    bool ISqlDialectCompatibility.SupportsDb2ProcedureDdl => true;
     /// <summary>
     /// EN: Gets whether CREATE OR REPLACE FUNCTION is supported.
     /// PT: Obtém se CREATE OR REPLACE FUNCTION é suportado.
@@ -165,4 +170,3 @@ internal sealed class Db2Dialect : SqlDialectBase, ISqlDialect
     public override StringComparison TextComparison => StringComparison.Ordinal;
 
 }
-

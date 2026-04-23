@@ -91,6 +91,7 @@ internal sealed record SqlCreateTemporaryTableQuery : SqlQueryBase
     internal IReadOnlyList<Col> ColumnDefinitions { get; init; } = [];
     internal IReadOnlyList<string> ColumnNames { get; init; } = [];
     internal IReadOnlyList<string> PrimaryKeyColumns { get; init; } = [];
+    internal IReadOnlyList<SchemaSnapshotCheckConstraint> CheckConstraints { get; init; } = [];
     internal SqlSelectQuery? AsSelect { get; init; }
 }
 
@@ -135,6 +136,7 @@ internal sealed record SqlAlterTableAddColumnQuery : SqlQueryBase
     internal int? Size { get; init; }
     internal int? DecimalPlaces { get; init; }
     internal string? DefaultValueRaw { get; init; }
+    internal string? ComputedExpression { get; init; }
 }
 
 internal sealed record SqlCreateIndexQuery : SqlQueryBase

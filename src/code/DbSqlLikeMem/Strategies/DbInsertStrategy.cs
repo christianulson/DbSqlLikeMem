@@ -13,10 +13,7 @@ internal static class DbInsertStrategy
         ISqlDialect dialect)
     {
         var context = QueryExecutionContext.FromConnection(connection, pars);
-        if (!context.ThreadSafe)
-            return Execute(context, query);
-        lock (connection.Db.SyncRoot)
-            return Execute(context, query);
+        return connection.Db.ExecuteWithLock(() => Execute(context, query));
     }
 
     /// <summary>
@@ -28,10 +25,7 @@ internal static class DbInsertStrategy
         SqlInsertQuery query,
         QueryExecutionContext context)
     {
-        if (!context.ThreadSafe)
-            return Execute(context, query);
-        lock (connection.Db.SyncRoot)
-            return Execute(context, query);
+        return connection.Db.ExecuteWithLock(() => Execute(context, query));
     }
 
     /// <summary>
@@ -45,10 +39,7 @@ internal static class DbInsertStrategy
         ISqlDialect dialect)
     {
         var context = QueryExecutionContext.FromConnection(connection, pars);
-        if (!context.ThreadSafe)
-            return Execute(context, query with { IsReplace = true });
-        lock (connection.Db.SyncRoot)
-            return Execute(context, query with { IsReplace = true });
+        return connection.Db.ExecuteWithLock(() => Execute(context, query with { IsReplace = true }));
     }
 
     /// <summary>
@@ -60,10 +51,7 @@ internal static class DbInsertStrategy
         SqlInsertQuery query,
         QueryExecutionContext context)
     {
-        if (!context.ThreadSafe)
-            return Execute(context, query with { IsReplace = true });
-        lock (connection.Db.SyncRoot)
-            return Execute(context, query with { IsReplace = true });
+        return connection.Db.ExecuteWithLock(() => Execute(context, query with { IsReplace = true }));
     }
 
     private static DmlExecutionResult Execute(
@@ -198,7 +186,7 @@ internal static class DbInsertStrategy
                         for (int i = before; i < table.Count; i++) affectedIndexes.Add(i);
                     }
 
-                    var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                    var conflictIdx = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
                     if (conflictIdx is null)
                     {
                         pendingInsertRows.Add(newRow);
@@ -227,7 +215,7 @@ internal static class DbInsertStrategy
                         context,
                         simulatedUpdated);
                     if (hasForeignKeys)
-                        tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
+                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(simulatedUpdated);
 
                     if (hasBeforeUpdateTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
@@ -243,9 +231,9 @@ internal static class DbInsertStrategy
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
 
                     if (requiresOldSnapshotForIndex)
-                        tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
                     else
-                        tableMock.UpdateIndexesWithRow(conflictIdx.Value);
+                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value);
                     updatedCount++;
                     affectedIndexes.Add(conflictIdx.Value);
                 }
@@ -265,14 +253,14 @@ internal static class DbInsertStrategy
                     {
                         if (hasInsertConflictTargets)
                         {
-                            var conflictIdx1 = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                            var conflictIdx1 = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
                             if (conflictIdx1 is not null)
                                 continue;
                         }
                     }
 
                     if (hasForeignKeys)
-                        tableMock.ValidateForeignKeysOnRow(newRow);
+                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(newRow);
                     if (hasBeforeInsertTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
@@ -288,12 +276,12 @@ internal static class DbInsertStrategy
                 }
 
                 // Lógica ON DUPLICATE KEY UPDATE
-                var conflictIdx = tableMock.FindConflictingRowIndex(newRow, out _, out _);
+                var conflictIdx = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
                 if (conflictIdx is null)
                 {
                     // Sem conflito -> Insere
                     if (hasForeignKeys)
-                        tableMock.ValidateForeignKeysOnRow(newRow);
+                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(newRow);
                     if (hasBeforeInsertTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
@@ -326,7 +314,7 @@ internal static class DbInsertStrategy
                         context,
                         simulatedUpdated);
                     if (hasForeignKeys)
-                        tableMock.ValidateForeignKeysOnRow(simulatedUpdated);
+                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(simulatedUpdated);
 
                     if (hasBeforeUpdateTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
@@ -342,9 +330,9 @@ internal static class DbInsertStrategy
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
 
                     if (requiresOldSnapshotForIndex)
-                        tableMock.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
+                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
                     else
-                        tableMock.UpdateIndexesWithRow(conflictIdx.Value);
+                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value);
                     updatedCount++;
                     affectedIndexes.Add(conflictIdx.Value);
                 }
@@ -443,8 +431,8 @@ internal static class DbInsertStrategy
                 }
             }
 
-            if (hasForeignKeys)
-                tableMock.ValidateForeignKeysOnRow(newRow);
+                if (hasForeignKeys)
+                    tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(newRow);
             if (hasBeforeInsertTrigger)
                 TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
@@ -708,7 +696,7 @@ internal static class DbInsertStrategy
         pendingUniqueKeysForRow = pendingUniqueKeysBuffer;
 
         if (pendingPrimaryKeys is not null)
-            pendingPrimaryKey = tableMock.BuildPkKey(row);
+            pendingPrimaryKey = tableMock.IndexManager.BuildPkKey(row);
 
         if (pendingUniqueKeys is not null && pendingUniqueKeysForRow is not null)
         {
@@ -797,7 +785,7 @@ internal static class DbInsertStrategy
         if (context.Connection.IsTemporaryTable(table, tableName, schemaName))
             return true;
 
-        return !tableMock.HasRegisteredTriggers();
+        return !tableMock.TriggerManager.HasRegisteredTriggers();
     }
 
     private static void TrySetLastInsertId(QueryExecutionContext context, ITableMock table, IReadOnlyDictionary<int, object?> insertedRow)
@@ -1956,6 +1944,6 @@ internal static class DbInsertStrategy
         if (!dialect.SupportsTriggers) return;
         if (connection.IsTemporaryTable(table, tableName, schemaName)) return;
         if (table is TableMock tableMock)
-            tableMock.ExecuteTriggers(evt, oldRow, newRow);
+            tableMock.TriggerManager.ExecuteTriggers(evt, oldRow, newRow);
     }
 }

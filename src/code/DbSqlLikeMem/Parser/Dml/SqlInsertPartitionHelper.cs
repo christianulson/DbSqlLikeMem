@@ -13,12 +13,15 @@ internal static class SqlInsertPartitionHelper
             throw new InvalidOperationException("INSERT PARTITION clause requires a partition list.");
 
         var rawPartitions = ctx.ReadBalancedParenRawTokens().Trim();
-        var partitionNames = SqlRawCommaSplitterHelper.SplitRawByComma(rawPartitions)
-            .Select(static part => part.Trim().Trim('`', '"', '[', ']').NormalizeName())
-            .Where(static part => !string.IsNullOrWhiteSpace(part))
-            .ToArray();
+        var partitionNames = new List<string>();
+        foreach (var part in SqlRawCommaSplitterHelper.SplitRawByComma(rawPartitions))
+        {
+            var normalized = StringCompatibility.Trim(part.AsSpan(), '`', '"', '[', ']').NormalizeName();
+            if (!string.IsNullOrWhiteSpace(normalized))
+                partitionNames.Add(normalized);
+        }
 
-        if (partitionNames.Length == 0)
+        if (partitionNames.Count == 0)
             throw new InvalidOperationException("INSERT PARTITION clause requires at least one partition name.");
 
         return partitionNames;

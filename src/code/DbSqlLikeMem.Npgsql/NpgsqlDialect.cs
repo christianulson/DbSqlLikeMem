@@ -34,7 +34,12 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
             "&&", "||"
         ])
     {
-        NpgsqlScalarFunctionRegistry.Register(this, version);
+    }
+
+    /// <inheritdoc />
+    protected override void InitializeFunctionRegistry()
+    {
+        NpgsqlScalarFunctionRegistry.Register(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
         var jsonEachFunction = DbFunctionDef.CreateTable(
             "json_each",
@@ -151,7 +156,7 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     public override bool SupportsAlterTableAddColumn => true;
     public override bool SupportsFunctionDdl => true;
     public override bool SupportsCreateOrReplaceFunctionDdl => true;
-    bool ISqlDialect.SupportsPostgreSqlCreateFunctionDdl => true;
+    bool ISqlDialectCompatibility.SupportsPostgreSqlCreateFunctionDdl => true;
 
     public override bool SupportsSequenceDdl => true;
     /// <inheritdoc />
@@ -239,4 +244,3 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     }
 
 }
-

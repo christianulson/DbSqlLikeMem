@@ -95,14 +95,10 @@ internal static class SqlMatchAgainstExpressionParserHelper
         if (modeTokens.Count == 0)
             return string.Empty;
 
-        var words = modeTokens
-            .Select(t => t.Text.ToUpperInvariant())
-            .ToArray();
-
-        if (WordsEqual(words, SqlConst.IN, "BOOLEAN", "MODE")
-            || WordsEqual(words, SqlConst.IN, "NATURAL", SqlConst.LANGUAGE, "MODE")
-            || WordsEqual(words, SqlConst.IN, "NATURAL", SqlConst.LANGUAGE, "MODE", SqlConst.WITH, "QUERY", "EXPANSION")
-            || WordsEqual(words, SqlConst.WITH, "QUERY", "EXPANSION"))
+        if (WordsEqual(modeTokens, SqlConst.IN, "BOOLEAN", "MODE")
+            || WordsEqual(modeTokens, SqlConst.IN, "NATURAL", SqlConst.LANGUAGE, "MODE")
+            || WordsEqual(modeTokens, SqlConst.IN, "NATURAL", SqlConst.LANGUAGE, "MODE", SqlConst.WITH, "QUERY", "EXPANSION")
+            || WordsEqual(modeTokens, SqlConst.WITH, "QUERY", "EXPANSION"))
             return string.Join(" ", modeTokens.Select(TokenToSql)).Trim();
 
         throw ctx.Error(
@@ -110,14 +106,14 @@ internal static class SqlMatchAgainstExpressionParserHelper
             contextToken);
     }
 
-    private static bool WordsEqual(IReadOnlyList<string> actual, params string[] expected)
+    private static bool WordsEqual(IReadOnlyList<SqlToken> actual, params string[] expected)
     {
         if (actual.Count != expected.Length)
             return false;
 
         for (var i = 0; i < expected.Length; i++)
         {
-            if (!actual[i].Equals(expected[i], StringComparison.Ordinal))
+            if (!actual[i].Text.Equals(expected[i], StringComparison.OrdinalIgnoreCase))
                 return false;
         }
 

@@ -54,11 +54,11 @@ internal sealed class SqlTokenizer
                 continue;
             }
 
-            if (ch == ':' && Peek(1) == ':' && _dialect.Operators.Contains("::"))
+            if (RemainingSpan.StartsWith("::", StringComparison.Ordinal)
+                && _dialect.Operators.Any(op => op == "::"))
             {
                 var start = _pos;
-                Read();
-                Read();
+                _pos += 2;
                 tokens.Add(new SqlToken(SqlTokenKind.Operator, "::", start));
                 continue;
             }
@@ -225,7 +225,7 @@ internal sealed class SqlTokenizer
             while (!Eof && IsHexDigit(Peek()))
                 Read();
 
-            return new SqlToken(SqlTokenKind.Number, _sql[startPos.._pos], startPos);
+            return new SqlToken(SqlTokenKind.Number, RemainingSlice(startPos), startPos);
         }
 
         while (!Eof && char.IsDigit(Peek())) Read();
@@ -236,7 +236,7 @@ internal sealed class SqlTokenizer
             while (!Eof && char.IsDigit(Peek())) Read();
         }
 
-        return new SqlToken(SqlTokenKind.Number, _sql[startPos.._pos], startPos);
+        return new SqlToken(SqlTokenKind.Number, RemainingSlice(startPos), startPos);
     }
 
     private static bool IsHexDigit(char ch)
@@ -253,7 +253,7 @@ internal sealed class SqlTokenizer
         while (!Eof && IsIdentChar(Peek()))
             Read();
 
-        return new SqlToken(SqlTokenKind.Parameter, _sql[startPos.._pos], startPos);
+        return new SqlToken(SqlTokenKind.Parameter, RemainingSlice(startPos), startPos);
     }
 
     private SqlToken ReadIdentifierOrKeyword()
@@ -316,12 +316,12 @@ internal sealed class SqlTokenizer
         Read(); // 1o char
         while (!Eof && IsIdentChar(Peek())) Read();
 
-        var text = _sql[startPos.._pos];
+        var textSpan = _sql.AsSpan(startPos, _pos - startPos);
 
-        if (_dialect.IsKeyword(text))
-            return new SqlToken(SqlTokenKind.Keyword, text.ToUpperInvariant(), startPos);
+        if (_dialect.IsKeyword(textSpan))
+            return new SqlToken(SqlTokenKind.Keyword, textSpan.ToString(), startPos);
 
-        return new SqlToken(SqlTokenKind.Identifier, text, startPos);
+        return new SqlToken(SqlTokenKind.Identifier, textSpan.ToString(), startPos);
     }
 
     private bool TryReadOperator(out SqlToken token)
@@ -330,8 +330,8 @@ internal sealed class SqlTokenizer
 
         // Greedy safeguard for tokens like "<=>" even when the dialect does not
         // explicitly list the full operator (prevents tokenizing as "<=" + ">").
-        if (_pos + 3 <= _sql.Length
-            && string.CompareOrdinal(_sql, _pos, "<=>", 0, 3) == 0)
+        var remaining = RemainingSpan;
+        if (remaining.StartsWith("<=>", StringComparison.Ordinal))
         {
             var p = _pos;
             _pos += 3;
@@ -344,7 +344,7 @@ internal sealed class SqlTokenizer
         {
             foreach (var op in new[] { "#>>", "->>", "#>", "->" })
             {
-                if (_pos + op.Length <= _sql.Length && string.CompareOrdinal(_sql, _pos, op, 0, op.Length) == 0)
+                if (remaining.StartsWith(op, StringComparison.Ordinal))
                 {
                     var p = _pos;
                     _pos += op.Length;
@@ -356,7 +356,7 @@ internal sealed class SqlTokenizer
 
         foreach (var op in _dialect.Operators)
         {
-            if (_pos + op.Length <= _sql.Length && string.CompareOrdinal(_sql, _pos, op, 0, op.Length) == 0)
+            if (remaining.StartsWith(op, StringComparison.Ordinal))
             {
                 var p = _pos;
                 _pos += op.Length;
@@ -371,6 +371,8 @@ internal sealed class SqlTokenizer
     private bool Eof => _pos >= _sql.Length;
     private char Peek(int offset = 0) => _pos + offset < _sql.Length ? _sql[_pos + offset] : '\0';
     private char Read() => _sql[_pos++];
+    private ReadOnlySpan<char> RemainingSpan => _sql.AsSpan(_pos);
+    private string RemainingSlice(int startPos) => _sql.AsSpan(startPos, _pos - startPos).ToString();
 
     private void SkipWhiteSpace()
     {

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Description>SQLite provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
@@ -11,7 +11,7 @@
 	  <PackageReference Include="SQLitePCLRaw.bundle_winsqlite3" Version="2.1.6" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0'">
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'">
 	  <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.6" />
 	  <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.6" />
 	</ItemGroup>
