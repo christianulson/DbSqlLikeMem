@@ -1,10 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Description>MariaDb provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.SourceGenerators\DbSqlLikeMem.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />

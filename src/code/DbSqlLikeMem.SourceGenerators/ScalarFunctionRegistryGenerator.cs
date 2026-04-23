@@ -8,11 +8,23 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DbSqlLikeMem.SourceGenerators;
 
+/// <summary>
+/// EN: Source generator for registering scalar functions in the SQL dialect.
+/// PT: Gerador de código para registrar funções escalares no dialeto SQL.
+/// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
 {
     private const string AttributeMetadataName = "DbSqlLikeMem.ScalarFunctionAttribute";
 
+    /// <summary>
+    /// EN: Initializes the source generator with the provided context.
+    /// PT: Inicializa o gerador de código com o contexto fornecido.
+    /// </summary>
+    /// <param name="context">
+    /// EN: The initialization context.
+    /// PT: O contexto de inicialização.
+    /// </param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var registrations = context.SyntaxProvider.ForAttributeWithMetadataName(
@@ -46,8 +58,9 @@ public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
             return null;
         }
 
-        var invocationStyle = GetEnumNamedArgument(attribute, nameof(ScalarFunctionAttribute.InvocationStyle), "Call");
-        var temporalKind = GetNullableEnumNamedArgument(attribute, nameof(ScalarFunctionAttribute.TemporalKind));
+        var invocationStyle = GetEnumNamedArgument(attribute, "InvocationStyle", "Call");
+        var temporalKind = GetNullableEnumNamedArgument(attribute, "TemporalKind");
+        var minVersion = GetIntNamedArgument(attribute, "MinVersion");
 
         return new FunctionRegistration(
             NamespaceName: method.ContainingType.ContainingNamespace.IsGlobalNamespace
@@ -58,7 +71,8 @@ public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
             FunctionName: functionName,
             ReturnTypeSql: returnTypeSql,
             InvocationStyle: invocationStyle,
-            TemporalKind: temporalKind);
+            TemporalKind: temporalKind,
+            MinVersion: minVersion);
     }
 
     private static string GetEnumNamedArgument(AttributeData attribute, string name, string defaultValue)
@@ -85,6 +99,22 @@ public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
         }
 
         return null;
+    }
+
+    private static int GetIntNamedArgument(AttributeData attribute, string name)
+    {
+        foreach (var namedArgument in attribute.NamedArguments)
+        {
+            if (namedArgument.Key != name)
+                continue;
+
+            if (namedArgument.Value.Value is int value)
+                return value;
+
+            return 0;
+        }
+
+        return 0;
     }
 
     private static void Execute(SourceProductionContext context, ImmutableArray<FunctionRegistration?> registrations)
@@ -124,7 +154,19 @@ public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
 
         foreach (var registration in registrations)
         {
-            builder.Append("        dialect.AddScalarFunction(\"")
+            if (registration.MinVersion > 0)
+            {
+                builder.Append("        if (dialect.Version >= ")
+                    .Append(registration.MinVersion)
+                    .AppendLine(")");
+                builder.AppendLine("        {");
+            }
+
+            builder.Append("        ");
+            if (registration.MinVersion > 0)
+                builder.Append("    ");
+
+            builder.Append("dialect.AddScalarFunction(\"")
                 .Append(Escape(registration.FunctionName))
                 .Append("\", \"")
                 .Append(Escape(registration.ReturnTypeSql))
@@ -143,6 +185,9 @@ public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
             }
 
             builder.AppendLine(");");
+
+            if (registration.MinVersion > 0)
+                builder.AppendLine("        }");
         }
 
         builder.AppendLine("    }");
@@ -159,6 +204,7 @@ public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
         string FunctionName,
         string ReturnTypeSql,
         string InvocationStyle,
-        string? TemporalKind);
+        string? TemporalKind,
+        int MinVersion);
 }
 

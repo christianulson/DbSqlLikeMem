@@ -2,17 +2,19 @@
 namespace System;
 
 /// <summary>
-/// Minimal polyfill for frameworks where System.Index is not available.
+/// EN: Provides a minimal polyfill for System.Index on target frameworks that do not include it.
+/// PT: Fornece um polyfill minimo de System.Index para frameworks alvo que nao o incluem.
 /// </summary>
 public readonly struct Index : IEquatable<Index>
 {
     private readonly int _value;
 
     /// <summary>
-    /// Initializes a new index value.
+    /// EN: Initializes a new index value.
+    /// PT: Inicializa um novo valor de indice.
     /// </summary>
-    /// <param name="value">Zero-based index value.</param>
-    /// <param name="fromEnd">True to count from the end, false to count from the start.</param>
+    /// <param name="value">EN: Zero-based index value. PT: Valor do indice baseado em zero.</param>
+    /// <param name="fromEnd">EN: True to count from the end, false to count from the start. PT: True para contar a partir do fim, false para contar a partir do inicio.</param>
     public Index(int value, bool fromEnd = false)
     {
         if (value < 0)
@@ -22,30 +24,35 @@ public readonly struct Index : IEquatable<Index>
     }
 
     /// <summary>
-    /// Gets the first position in a sequence.
+    /// EN: Gets the first position in a sequence.
+    /// PT: Obtém a primeira posicao em uma sequencia.
     /// </summary>
     public static Index Start => new(0);
 
     /// <summary>
-    /// Gets the position after the last element in a sequence.
+    /// EN: Gets the position after the last element in a sequence.
+    /// PT: Obtém a posicao apos o ultimo elemento em uma sequencia.
     /// </summary>
     public static Index End => new(0, fromEnd: true);
 
     /// <summary>
-    /// Gets the underlying non-negative index value.
+    /// EN: Gets the underlying non-negative index value.
+    /// PT: Obtém o valor subjacente nao negativo do indice.
     /// </summary>
     public int Value => _value < 0 ? ~_value : _value;
 
     /// <summary>
-    /// Gets whether this index is measured from the end.
+    /// EN: Gets whether this index is measured from the end.
+    /// PT: Obtém se este indice é medido a partir do fim.
     /// </summary>
     public bool IsFromEnd => _value < 0;
 
     /// <summary>
-    /// Resolves this index to an absolute offset for a collection length.
+    /// EN: Resolves this index to an absolute offset for a collection length.
+    /// PT: Resolve este indice para um deslocamento absoluto para um comprimento de colecao.
     /// </summary>
-    /// <param name="length">The collection length.</param>
-    /// <returns>The resolved absolute offset.</returns>
+    /// <param name="length">EN: The collection length. PT: O comprimento da colecao.</param>
+    /// <returns>EN: The resolved absolute offset. PT: O deslocamento absoluto resolvido.</returns>
     public int GetOffset(int length)
     {
         var offset = IsFromEnd ? length - Value : Value;
@@ -60,10 +67,11 @@ public readonly struct Index : IEquatable<Index>
         => obj is Index other && Equals(other);
 
     /// <summary>
-    /// Determines whether this index equals another index.
+    /// EN: Determines whether this index equals another index.
+    /// PT: Determina se este indice e igual a outro indice.
     /// </summary>
-    /// <param name="other">Other index to compare.</param>
-    /// <returns>True when both _indexes represent the same value.</returns>
+    /// <param name="other">EN: Other index to compare. PT: Outro indice para comparar.</param>
+    /// <returns>EN: True when both indexes represent the same value. PT: True quando ambos os indices representam o mesmo valor.</returns>
     public bool Equals(Index other)
         => _value == other._value;
 
@@ -72,9 +80,10 @@ public readonly struct Index : IEquatable<Index>
         => _value;
 
     /// <summary>
-    /// Converts an integer into an index from the start.
+    /// EN: Converts an integer into an index from the start.
+    /// PT: Converte um inteiro em um indice contado a partir do inicio.
     /// </summary>
-    /// <param name="value">Zero-based index value.</param>
+    /// <param name="value">EN: Zero-based index value. PT: Valor do indice baseado em zero.</param>
     public static implicit operator Index(int value)
         => new(value);
 
@@ -84,52 +93,59 @@ public readonly struct Index : IEquatable<Index>
 }
 
 /// <summary>
-/// Minimal polyfill for frameworks where System.Range is not available.
+/// EN: Provides a minimal polyfill for System.Range on target frameworks that do not include it.
+/// PT: Fornece um polyfill minimo de System.Range para frameworks alvo que nao o incluem.
 /// </summary>
 /// <remarks>
-/// Initializes a new range with start and end _indexes.
+/// EN: Initializes a new range with start and end indexes.
+/// PT: Inicializa um novo range com indices inicial e final.
 /// </remarks>
-/// <param name="start">Start index, inclusive.</param>
-/// <param name="end">End index, exclusive.</param>
+/// <param name="start">EN: Start index, inclusive. PT: Indice inicial, inclusivo.</param>
+/// <param name="end">EN: End index, exclusive. PT: Indice final, exclusivo.</param>
 public readonly struct Range(Index start, Index end) : IEquatable<Range>
 {
-
     /// <summary>
-    /// Gets the start index of the range.
+    /// EN: Gets the start index of the range.
+    /// PT: Obtém o indice inicial do range.
     /// </summary>
     public Index Start { get; } = start;
 
     /// <summary>
-    /// Gets the end index of the range.
+    /// EN: Gets the end index of the range.
+    /// PT: Obtém o indice final do range.
     /// </summary>
     public Index End { get; } = end;
 
     /// <summary>
-    /// Gets a range that covers all elements.
+    /// EN: Gets a range that covers all elements.
+    /// PT: Obtém um range que cobre todos os elementos.
     /// </summary>
     public static Range All => new(Index.Start, Index.End);
 
     /// <summary>
-    /// Creates a range from the provided start index to the end.
+    /// EN: Creates a range from the provided start index to the end.
+    /// PT: Cria um range do indice inicial informado ate o fim.
     /// </summary>
-    /// <param name="start">Start index, inclusive.</param>
-    /// <returns>A range that starts at <paramref name="start"/> and goes to the end.</returns>
+    /// <param name="start">EN: Start index, inclusive. PT: Indice inicial, inclusivo.</param>
+    /// <returns>EN: A range that starts at the provided index and goes to the end. PT: Um range que começa no indice informado e vai ate o fim.</returns>
     public static Range StartAt(Index start)
         => new(start, Index.End);
 
     /// <summary>
-    /// Creates a range from the beginning to the provided end index.
+    /// EN: Creates a range from the beginning to the provided end index.
+    /// PT: Cria um range do inicio ate o indice final informado.
     /// </summary>
-    /// <param name="end">End index, exclusive.</param>
-    /// <returns>A range that starts at the beginning and ends at <paramref name="end"/>.</returns>
+    /// <param name="end">EN: End index, exclusive. PT: Indice final, exclusivo.</param>
+    /// <returns>EN: A range that starts at the beginning and ends at the provided index. PT: Um range que começa no inicio e termina no indice informado.</returns>
     public static Range EndAt(Index end)
         => new(Index.Start, end);
 
     /// <summary>
-    /// Resolves this range into absolute offset and length for a collection size.
+    /// EN: Resolves this range into absolute offset and length for a collection size.
+    /// PT: Resolve este range em deslocamento absoluto e comprimento para um tamanho de colecao.
     /// </summary>
-    /// <param name="length">The collection length.</param>
-    /// <returns>Tuple with resolved offset and length.</returns>
+    /// <param name="length">EN: The collection length. PT: O comprimento da colecao.</param>
+    /// <returns>EN: Tuple with resolved offset and length. PT: Tupla com deslocamento e comprimento resolvidos.</returns>
     public (int Offset, int Length) GetOffsetAndLength(int length)
     {
         var start = Start.GetOffset(length);
@@ -146,10 +162,11 @@ public readonly struct Range(Index start, Index end) : IEquatable<Range>
         => obj is Range other && Equals(other);
 
     /// <summary>
-    /// Determines whether this range equals another range.
+    /// EN: Determines whether this range equals another range.
+    /// PT: Determina se este range e igual a outro range.
     /// </summary>
-    /// <param name="other">Other range to compare.</param>
-    /// <returns>True when both ranges have equal start and end _indexes.</returns>
+    /// <param name="other">EN: Other range to compare. PT: Outro range para comparar.</param>
+    /// <returns>EN: True when both ranges have equal start and end indexes. PT: True quando ambos os ranges tem inicio e fim iguais.</returns>
     public bool Equals(Range other)
         => Start.Equals(other.Start) && End.Equals(other.End);
 
@@ -162,4 +179,3 @@ public readonly struct Range(Index start, Index end) : IEquatable<Range>
         => $"{Start}..{End}";
 }
 #endif
-

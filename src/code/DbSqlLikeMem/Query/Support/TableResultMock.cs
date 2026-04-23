@@ -1,11 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 
 namespace DbSqlLikeMem;
+
 /// <summary>
-/// EN: Represents a query result as a list of rows indexed by column, used to transport
-/// data returned by in-memory SQL execution.
-/// PT: Representa o resultado de uma consulta como uma lista de linhas indexadas por coluna,
-/// usado para transportar dados retornados pela execução do SQL em memória.
+/// EN: Represents a query result as a list of column-indexed rows returned by in-memory SQL execution.
+/// PT: Representa o resultado de uma consulta como uma lista de linhas indexadas por coluna retornadas pela execucao SQL em memoria.
 /// </summary>
 public class TableResultMock : List<Dictionary<int, object?>>
 {
@@ -52,12 +51,12 @@ public class TableResultMock : List<Dictionary<int, object?>>
 
 
 /// <summary>
-/// EN: Describes metadata for a column inside a query result.
-/// PT: Describe metadados de uma coluna dentro de um resultado de consulta.
+/// EN: Describes metadata for a column in a query result.
+/// PT: Descreve os metadados de uma coluna em um resultado de consulta.
 /// </summary>
 /// <remarks>
-/// EN: Initializes column metadata with alias, name, and type.
-/// PT: Inicializa um metadado de coluna com alias, nome e tipo.
+/// EN: Initializes column metadata with alias, name, index, type, nullability, and JSON fragment behavior.
+/// PT: Inicializa os metadados da coluna com alias, nome, indice, tipo, nulabilidade e comportamento de fragmento JSON.
 /// </remarks>
 /// <param name="tableAlias">EN: Table alias in the result. PT: Alias da tabela no resultado.</param>
 /// <param name="columnAlias">EN: Column alias in the result. PT: Alias da coluna no resultado.</param>

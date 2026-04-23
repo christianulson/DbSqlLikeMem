@@ -1,54 +1,16 @@
+using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.MariaDb;
 
-internal static class MariaDbScalarFunctionRegistry
+internal static partial class MariaDbScalarFunctionRegistry
 {
     internal static void Register(ISqlDialect dialect, int version)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
+        _ = version;
 
-        dialect.AddScalarFunction("LENGTHB", "BIGINT", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction("DECODE_ORACLE", "VARCHAR", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        if (version >= MariaDbDialect.Crc32cMinVersion)
-            dialect.AddScalarFunction("CRC32C", "BIGINT", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction("NATURAL_SORT_KEY", "VARCHAR", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction("SFORMAT", "VARCHAR", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction("KDF", "VARBINARY", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction("TRIM_ORACLE", "VARCHAR", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction("WEIGHT_STRING", "VARBINARY", QueryMariaDbFunctionHelper.TryEvalFunctions);
-
-        dialect.AddScalarFunction("JSON_COMPACT", "VARCHAR", QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunctions(
-            "VARCHAR",
-            QueryMariaDbFunctionHelper.TryEvalFunctions,
-            "JSON_PRETTY",
-            "JSON_DETAILED",
-            "JSON_LOOSE",
-            "JSON_NORMALIZE");
-        dialect.AddScalarFunctions(
-            "INT",
-            QueryMariaDbFunctionHelper.TryEvalFunctions,
-            "JSON_EQUALS",
-            "JSON_EXISTS",
-            "JSON_SCHEMA_VALID");
-        dialect.AddScalarFunction(
-            "JSON_ARRAY_INTERSECT",
-            "VARCHAR",
-            QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction(
-            "JSON_OBJECT_FILTER_KEYS",
-            "VARCHAR",
-            QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction(
-            "JSON_OBJECT_TO_ARRAY",
-            "VARCHAR",
-            QueryMariaDbFunctionHelper.TryEvalFunctions);
-        dialect.AddScalarFunction(
-            "JSON_KEY_VALUE",
-            "VARCHAR",
-            QueryMariaDbFunctionHelper.TryEvalFunctions);
-
+        RegisterGeneratedScalarFunctions(dialect);
         dialect.AddScalarFunction(new DbFunctionDef(SqlConst.SUM, null, DbFunctionCapability.Aggregate)
         {
             PromotesIntegralInputsToDecimal = true
@@ -57,53 +19,89 @@ internal static class MariaDbScalarFunctionRegistry
         {
             PromotesIntegralInputsToDecimal = true
         });
-
-        dialect.AddScalarFunctions(
-            "VARBINARY",
-            QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions,
-            "COLUMN_CREATE",
-            "COLUMN_ADD",
-            "COLUMN_DELETE");
-        dialect.AddScalarFunctions(
-            "INT",
-            QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions,
-            "COLUMN_EXISTS",
-            "COLUMN_CHECK");
-        dialect.AddScalarFunctions(
-            "VARCHAR",
-            QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions,
-            "COLUMN_JSON",
-            "COLUMN_LIST",
-            "COLUMN_GET",
-            "VEC_TOTEXT",
-            "WSREP_LAST_SEEN_GTID",
-            "WSREP_LAST_WRITTEN_GTID");
-        dialect.AddScalarFunctions(
-            "VARBINARY",
-            QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions,
-            "VECTOR",
-            "VEC_FROMTEXT");
-        dialect.AddScalarFunctions(
-            "DOUBLE",
-            QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions,
-            "VEC_DISTANCE",
-            "VEC_DISTANCE_EUCLIDEAN",
-            "VEC_DISTANCE_COSINE");
-        dialect.AddScalarFunction(
-            "WSREP_SYNC_WAIT_UPTO_GTID",
-            "INT",
-            QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions);
-
-        dialect.AddScalarFunction(
-            "NEXT_VALUE_FOR",
-            "BIGINT",
-            TryEvalSequenceFunction);
-        dialect.AddScalarFunction(
-            "PREVIOUS_VALUE_FOR",
-            "BIGINT",
-            TryEvalSequenceFunction);
     }
 
+    [ScalarFunction("LENGTHB", "BIGINT")]
+    [ScalarFunction("DECODE_ORACLE", "VARCHAR")]
+    [ScalarFunction("NATURAL_SORT_KEY", "VARCHAR")]
+    [ScalarFunction("SFORMAT", "VARCHAR")]
+    [ScalarFunction("KDF", "VARBINARY")]
+    [ScalarFunction("TRIM_ORACLE", "VARCHAR")]
+    [ScalarFunction("WEIGHT_STRING", "VARBINARY")]
+    [ScalarFunction("JSON_COMPACT", "VARCHAR")]
+    [ScalarFunction("JSON_PRETTY", "VARCHAR")]
+    [ScalarFunction("JSON_DETAILED", "VARCHAR")]
+    [ScalarFunction("JSON_LOOSE", "VARCHAR")]
+    [ScalarFunction("JSON_NORMALIZE", "VARCHAR")]
+    [ScalarFunction("JSON_EQUALS", "INT")]
+    [ScalarFunction("JSON_EXISTS", "INT")]
+    [ScalarFunction("JSON_SCHEMA_VALID", "INT")]
+    [ScalarFunction("JSON_ARRAY_INTERSECT", "VARCHAR")]
+    [ScalarFunction("JSON_OBJECT_FILTER_KEYS", "VARCHAR")]
+    [ScalarFunction("JSON_OBJECT_TO_ARRAY", "VARCHAR")]
+    [ScalarFunction("JSON_KEY_VALUE", "VARCHAR")]
+    private static bool TryEvalMariaDbFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryMariaDbFunctionHelper.TryEvalFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("CRC32C", "BIGINT", MinVersion = MariaDbDialect.Crc32cMinVersion)]
+    private static bool TryEvalGeneratedCrc32cFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryMariaDbFunctionHelper.TryEvalFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("COLUMN_CREATE", "VARBINARY")]
+    [ScalarFunction("COLUMN_ADD", "VARBINARY")]
+    [ScalarFunction("COLUMN_DELETE", "VARBINARY")]
+    [ScalarFunction("VECTOR", "VARBINARY")]
+    [ScalarFunction("VEC_FROMTEXT", "VARBINARY")]
+    private static bool TryEvalMariaDbVarbinaryFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("COLUMN_EXISTS", "INT")]
+    [ScalarFunction("COLUMN_CHECK", "INT")]
+    [ScalarFunction("WSREP_SYNC_WAIT_UPTO_GTID", "INT")]
+    private static bool TryEvalMariaDbIntFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("COLUMN_JSON", "VARCHAR")]
+    [ScalarFunction("COLUMN_LIST", "VARCHAR")]
+    [ScalarFunction("COLUMN_GET", "VARCHAR")]
+    [ScalarFunction("VEC_TOTEXT", "VARCHAR")]
+    [ScalarFunction("WSREP_LAST_SEEN_GTID", "VARCHAR")]
+    [ScalarFunction("WSREP_LAST_WRITTEN_GTID", "VARCHAR")]
+    private static bool TryEvalMariaDbVarcharFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("VEC_DISTANCE", "DOUBLE")]
+    [ScalarFunction("VEC_DISTANCE_EUCLIDEAN", "DOUBLE")]
+    [ScalarFunction("VEC_DISTANCE_COSINE", "DOUBLE")]
+    private static bool TryEvalMariaDbDoubleFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryMariaDbSpecialFunctionHelper.TryEvalSpecialFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("NEXT_VALUE_FOR", "BIGINT")]
+    [ScalarFunction("PREVIOUS_VALUE_FOR", "BIGINT")]
     private static bool TryEvalSequenceFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -147,4 +145,6 @@ internal static class MariaDbScalarFunctionRegistry
 
         return null;
     }
+
+    static partial void RegisterGeneratedScalarFunctions(ISqlDialect dialect);
 }

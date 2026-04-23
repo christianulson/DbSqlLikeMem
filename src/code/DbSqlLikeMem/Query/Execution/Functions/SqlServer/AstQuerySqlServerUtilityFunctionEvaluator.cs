@@ -547,7 +547,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         return true;
     }
 
-    private static bool TryEvalSqlServerGuidFunction(
+    internal static bool TryEvalSqlServerGuidFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,

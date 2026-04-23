@@ -103,7 +103,7 @@ Reduzir complexidade ciclomática e melhorar manutenibilidade dos "god classes".
 
 ### 2.1 Remover supressão global de CS1591
 
-**Estado atual:** A supressão global de `CS1591` já foi removida do `.csproj`; a próxima etapa é fechar os summaries que o compilador ainda apontar quando a validação for executada.
+**Estado atual:** A supressão global de `CS1591` já foi removida do `.csproj`; `SqlConst.cs`, `BatchMetricKeys.cs`, `DbPerformanceMetricKeys.cs`, `SqlUnsupported.cs`, `CommandScalarExecutionPrelude`, `LinqQueryExecutor`, `TranslationResult`, `FrameworkPolyfills.cs`, `RangeIndexPolyfill.cs`, `TableResultMock.cs`, `DbConnectionExecutionPlanManager.cs`, `DbConnectionSchemaSnapshotBridge.cs`, `DbConnectionTransactionStateManager.cs` e `DbConnectionSessionStateManager.cs` já foram documentados, e a próxima etapa é fechar os summaries que o compilador ainda apontar quando a validação for executada.
 
 **Plano:**
 - Remover a supressão do `.csproj`
@@ -269,7 +269,7 @@ else
 **Problema:** Os registries de funções escalares usam chamadas manuais repetitivas para registrar cada função.
 
 **Plano:**
-- Criar source generator que lê atributos `[ScalarFunction("UPPER")]` em métodos estáticos ✅ (infra criada e os primeiros casos reais `OPENJSON` e `JSON_OBJECT` já foram migrados)
+- Criar source generator que lê atributos `[ScalarFunction("UPPER")]` em métodos estáticos ✅ (infra criada e os primeiros casos reais `OPENJSON`, `JSON_OBJECT`, o bloco simples e o bloco condicional do `SqliteScalarFunctionRegistry`, parte do `MariaDbScalarFunctionRegistry`, os blocos de compatibilidade, temporais, texto, utilitários, rede, binário, arrays, JSON, `CBRT`, regex, `STARTS_WITH`, `CURRENT_*`/`CURRENT_QUERY`, `EXTRACT`, `CAST` e os JSON condicionais/versionados do `NpgsqlScalarFunctionRegistry`, além do bloco de `ROWCOUNT`/`SCOPE_IDENTITY`, dos utilitários simples/versionados, checksum, GUID, `STR`, compressão, temporais zero-arg, `EOMONTH`, `NEXT_VALUE_FOR`, parte do bloco temporal (`DATENAME`, `DATEPART`, `DATETRUNC`, `DATEADD`, `DATEDIFF`, `DATEDIFF_BIG`, `DAY`, `MONTH`, `YEAR`), das funções de conversão (`FORMAT`, `PARSE`, `TRY_PARSE`, `CAST`, `TRY_CAST`, `TRY_CONVERT`) e dos identificadores de usuário/sessão/metadata (`CURRENT_USER`, `SESSION_USER`, `SYSTEM_USER`, `CONNECTIONPROPERTY`, `CONTEXT_INFO`, `ERROR_*`, `DATABASEPROPERTYEX`, `DATABASE_PRINCIPAL_ID`, `COLUMNPROPERTY`, `COL_LENGTH`, `COL_NAME`, `DB_ID`, `DB_NAME`, `OBJECT_ID`, `OBJECTPROPERTY`, `OBJECTPROPERTYEX`, `OBJECT_NAME`, `OBJECT_SCHEMA_NAME`, `ORIGINAL_DB_NAME`, `TYPEPROPERTY`, `CURRENT_REQUEST_ID`, `CURRENT_TRANSACTION_ID`, `IS_MEMBER`, `IS_ROLEMEMBER`, `IS_SRVROLEMEMBER`, `ORIGINAL_LOGIN`, `SESSION_ID`, `SERVERPROPERTY`, `XACT_STATE`) do `SqlServerScalarFunctionRegistry`, e do bloco de temporais simples do `SqliteScalarFunctionRegistry`; o gerador também passou a suportar `MinVersion` para registros condicionais. O restante do bloco de metadata/conversão do `SqlServer` ainda depende de registracões manuais sem `AstExecutor` explícito e ficou para um corte futuro)
 - Gerar automaticamente o código de registro no `FunctionDictionaryProcess` (em andamento: o gerador já produz o método parcial de registro no registrador alvo)
 - Benefício: reduzir boilerplate e riscos de esquecer de registrar uma função
 

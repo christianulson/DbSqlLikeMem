@@ -4,6 +4,10 @@ internal delegate bool TransactionControlCommandHandler(string sqlRaw, out DmlEx
 
 internal static partial class CommandScalarExecutionPrelude
 {
+    /// <summary>
+    /// EN: Tries to execute a scalar statement through the execution prelude and returns the resulting value.
+    /// PT: Tenta executar uma instrução escalar pelo prelude de execucao e retorna o valor resultante.
+    /// </summary>
     public static bool TryHandleExecuteScalarPrelude(
         this DbConnectionMockBase connection,
         CommandType commandType,

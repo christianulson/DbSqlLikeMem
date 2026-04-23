@@ -18,5 +18,7 @@ internal sealed class ScalarFunctionAttribute : Attribute
     public DbInvocationStyle InvocationStyle { get; init; } = DbInvocationStyle.Call;
 
     public SqlTemporalFunctionKind? TemporalKind { get; init; }
+
+    public int MinVersion { get; init; }
 }
 

@@ -1,14 +1,16 @@
+using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.SqlServer;
 
-internal static class SqlServerScalarFunctionRegistry
+internal static partial class SqlServerScalarFunctionRegistry
 {
     internal static void Register(SqlServerDialect dialect, int version)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
 
         SqlSharedScalarFunctionRegistry.Register(dialect);
+        RegisterGeneratedScalarFunctions(dialect);
         if (version < SqlServerDialect.TranslateMinVersion)
             dialect.Functions.Remove("TRANSLATE");
 
@@ -33,7 +35,7 @@ internal static class SqlServerScalarFunctionRegistry
             out object? result)
             => utilityEvaluator.TryEvalSessionContextFunction(context, fn, evalArg, out result);
 
-        RegisterTemporalFunctions(dialect, version, TryEvalSqlServerUtilityFunction);
+        RegisterTemporalFunctions(dialect, version);
         RegisterMetadataFunctions(dialect, version);
         if (version >= SqlServerDialect.SessionContextMinVersion)
             dialect.AddScalarFunction(
@@ -68,335 +70,456 @@ internal static class SqlServerScalarFunctionRegistry
         };
     }
 
+    [ScalarFunction("CURRENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    private static bool TryEvalSqlServerCurrentTimestampFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        return context.TryEvaluateZeroArgIdentifier("CURRENT_TIMESTAMP", out result);
+    }
+
+    [ScalarFunction("GETDATE", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    private static bool TryEvalSqlServerGetDateFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        return context.TryEvaluateZeroArgCall("GETDATE", out result);
+    }
+
+    [ScalarFunction("GETUTCDATE", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    private static bool TryEvalSqlServerGetUtcDateFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        return context.TryEvaluateZeroArgCall("GETUTCDATE", out result);
+    }
+
+    [ScalarFunction("SYSTEMDATE", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    private static bool TryEvalSqlServerSystemDateFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        return context.TryEvaluateZeroArgIdentifier("SYSTEMDATE", out result);
+    }
+
+    [ScalarFunction("SYSDATETIME", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime, MinVersion = SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)]
+    private static bool TryEvalSqlServerSysDateTimeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        return context.TryEvaluateZeroArgCall("SYSDATETIME", out result);
+    }
+
+    [ScalarFunction("SYSUTCDATETIME", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime, MinVersion = SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)]
+    private static bool TryEvalSqlServerSysUtcDateTimeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        return context.TryEvaluateZeroArgCall("SYSUTCDATETIME", out result);
+    }
+
+    [ScalarFunction("SYSDATETIMEOFFSET", "DATETIMEOFFSET", TemporalKind = SqlTemporalFunctionKind.DateTimeOffset, MinVersion = SqlServerDialect.DateTimeOffsetFunctionsMinVersion)]
+    private static bool TryEvalSqlServerSysDateTimeOffsetFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        return context.TryEvaluateZeroArgCall("SYSDATETIMEOFFSET", out result);
+    }
+
+    [ScalarFunction("EOMONTH", "DATE", MinVersion = SqlServerDialect.EomonthMinVersion)]
+    private static bool TryEvalSqlServerEomonthFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        return AstQuerySqlServerCompatibilityFunctionEvaluator.TryEvalEomonthFunction(fn, evalArg, out result);
+    }
+
+    [ScalarFunction("DATENAME", "VARCHAR")]
+    private static bool TryEvalSqlServerDateNameFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        if (fn.Args.Count < 2)
+        {
+            result = null;
+            return true;
+        }
+
+        var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
+        var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
+        var unit = isIsoWeek
+            ? AstQueryExecutorBase.TemporalUnit.Week
+            : SqlServerTemporalUnitHelper.Resolve(unitText);
+        if (SqlServerTemporalUnitHelper.IsTimeZoneOffset(unitText))
+        {
+            var offsetValue = evalArg(1);
+            if (!SqlServerTemporalUnitHelper.TryResolveTimeZoneOffsetMinutes(offsetValue, out var offsetMinutes))
+            {
+                result = null;
+                return true;
+            }
+
+            result = offsetMinutes.ToString(CultureInfo.InvariantCulture);
+            return true;
+        }
+        if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion
+            && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+        var value = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(value)
+            || unit == AstQueryExecutorBase.TemporalUnit.Unknown
+            || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        if (isIsoWeek)
+        {
+            result = AstQueryExecutorBase.GetIsoWeekOfYear(dateTime).ToString(CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        result = unit switch
+        {
+            AstQueryExecutorBase.TemporalUnit.Year => dateTime.Year.ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Month => dateTime.ToString("MMMM", CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Day => dateTime.Day.ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.DayOfYear.ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.GetWeekOfYear(dateTime).ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Weekday => SqlServerTemporalUnitHelper.GetWeekdayName(dateTime),
+            AstQueryExecutorBase.TemporalUnit.Hour => dateTime.Hour.ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Minute => dateTime.Minute.ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Second => dateTime.Second.ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Millisecond => dateTime.Millisecond.ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Microsecond => ((int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L)).ToString(CultureInfo.InvariantCulture),
+            AstQueryExecutorBase.TemporalUnit.Nanosecond => ((int)((dateTime.Ticks % TimeSpan.TicksPerSecond) * 100L)).ToString(CultureInfo.InvariantCulture),
+            _ => null
+        };
+        return true;
+    }
+
+    [ScalarFunction("DATEPART", "INT")]
+    private static bool TryEvalSqlServerDatePartFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalSqlServerDatePartLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("DAY", "INT")]
+    private static bool TryEvalSqlServerDayFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalSqlServerDatePartLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("MONTH", "INT")]
+    private static bool TryEvalSqlServerMonthFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalSqlServerDatePartLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("YEAR", "INT")]
+    private static bool TryEvalSqlServerYearFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalSqlServerDatePartLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("DATETRUNC", "DATETIME", MinVersion = SqlServerDialect.DateTruncMinVersion)]
+    private static bool TryEvalSqlServerDateTruncFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 2)
+        {
+            result = null;
+            return true;
+        }
+
+        var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
+        var value = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(value)
+            || string.IsNullOrWhiteSpace(unitText)
+            || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
+        var unit = isIsoWeek
+            ? AstQueryExecutorBase.TemporalUnit.Week
+            : SqlServerTemporalUnitHelper.Resolve(unitText);
+        if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion
+            && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+        if (unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+        if (unit == AstQueryExecutorBase.TemporalUnit.Weekday)
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+        if (isIsoWeek)
+        {
+            result = SqlServerTemporalUnitHelper.TruncateToIsoWeekStart(dateTime);
+            return true;
+        }
+
+        result = unit switch
+        {
+            AstQueryExecutorBase.TemporalUnit.Year => new DateTime(dateTime.Year, 1, 1, 0, 0, 0, dateTime.Kind),
+            AstQueryExecutorBase.TemporalUnit.Month => new DateTime(dateTime.Year, dateTime.Month, 1, 0, 0, 0, dateTime.Kind),
+            AstQueryExecutorBase.TemporalUnit.Day => dateTime.Date,
+            AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.Date,
+            AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.TruncateToWeekStart(dateTime),
+            AstQueryExecutorBase.TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0, dateTime.Kind),
+            AstQueryExecutorBase.TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0, dateTime.Kind),
+            AstQueryExecutorBase.TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Kind),
+            AstQueryExecutorBase.TemporalUnit.Millisecond => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Millisecond, dateTime.Kind),
+            AstQueryExecutorBase.TemporalUnit.Microsecond => new DateTime(dateTime.Ticks - (dateTime.Ticks % 10), dateTime.Kind),
+            _ => dateTime
+        };
+        return true;
+    }
+
+    [ScalarFunction("DATEDIFF", "INT")]
+    private static bool TryEvalSqlServerDateDiffFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalSqlServerDateDiffLikeFunction(context, fn, evalArg, false, out result);
+
+    [ScalarFunction("DATEDIFF_BIG", "BIGINT", MinVersion = SqlServerDialect.DateDiffBigMinVersion)]
+    private static bool TryEvalSqlServerDateDiffBigFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => TryEvalSqlServerDateDiffLikeFunction(context, fn, evalArg, true, out result);
+
+    [ScalarFunction("DATEADD", "DATETIME")]
+    private static bool TryEvalSqlServerDateAddFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 3)
+        {
+            result = null;
+            return true;
+        }
+
+        var baseValue = evalArg(2);
+        if (AstQueryExecutorBase.IsNullish(baseValue)
+            || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var amountValue = evalArg(1);
+        if (AstQueryExecutorBase.IsNullish(amountValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
+        if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+        var unit = SqlServerTemporalUnitHelper.Resolve(unitText);
+        if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion
+            && unit == AstQueryExecutorBase.TemporalUnit.Microsecond)
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+        if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion
+            && unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+        if (unit == AstQueryExecutorBase.TemporalUnit.Unknown)
+        {
+            result = dateTime;
+            return true;
+        }
+
+        var amount = (int)decimal.Truncate(amountValue.ToDec());
+        result = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, amount);
+        return true;
+    }
+
     private static void RegisterTemporalFunctions(
         SqlServerDialect dialect,
-        int version,
-        AstQueryGeneralScalarFunctionHandler tryEvalSqlServerUtilityFunction)
+        int version)
     {
-        _ = version;
-        var supportsHighPrecisionTemporalFunctions = version >= SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion;
+        dialect.AddScalarFunctions(
+            DbFunctionDef.CreateScalar("PREVIOUS_VALUE_FOR", "BIGINT"),
+            "PREVIOUS_VALUE_FOR");
+    }
 
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "CURRENT_TIMESTAMP",
-                "DATETIME",
-                tryEvalSqlServerUtilityFunction,
-                DbInvocationStyle.Identifier,
-                SqlTemporalFunctionKind.DateTime));
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "GETDATE",
-                "DATETIME",
-                tryEvalSqlServerUtilityFunction,
-                DbInvocationStyle.Call,
-                SqlTemporalFunctionKind.DateTime));
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "GETUTCDATE",
-                "DATETIME",
-                tryEvalSqlServerUtilityFunction,
-                temporalKind: SqlTemporalFunctionKind.DateTime));
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "SYSTEMDATE",
-                "DATETIME",
-                tryEvalSqlServerUtilityFunction,
-                DbInvocationStyle.Identifier,
-                SqlTemporalFunctionKind.DateTime));
-
-        if (version >= SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)
+    private static bool TryEvalSqlServerDatePartLikeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name;
+        var isDatePart = name.Equals("DATEPART", StringComparison.OrdinalIgnoreCase);
+        var unitText = isDatePart
+            ? SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg)
+            : name;
+        var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
+        var valueIndex = isDatePart ? 1 : 0;
+        if ((isDatePart && fn.Args.Count < 2)
+            || (!isDatePart && fn.Args.Count == 0))
         {
-            dialect.AddScalarFunctions(
-                CreateScalarFunctionDef(
-                    "SYSDATETIME",
-                    "DATETIME",
-                    tryEvalSqlServerUtilityFunction,
-                    DbInvocationStyle.Call,
-                    SqlTemporalFunctionKind.DateTime),
-                "SYSDATETIME",
-                "SYSUTCDATETIME");
-
-            dialect.AddScalarFunctions(
-                CreateScalarFunctionDef(
-                    "SYSDATETIMEOFFSET",
-                    "DATETIMEOFFSET",
-                    tryEvalSqlServerUtilityFunction,
-                    DbInvocationStyle.Call,
-                    SqlTemporalFunctionKind.DateTimeOffset),
-                "SYSDATETIMEOFFSET");
-        }
-
-        if (version >= SqlServerDialect.DateTimeOffsetFunctionsMinVersion)
-            dialect.AddScalarFunctions(
-                CreateScalarFunctionDef(
-                    "TODATETIMEOFFSET",
-                    "DATETIMEOFFSET",
-                    tryEvalSqlServerUtilityFunction),
-                "TODATETIMEOFFSET",
-                "SWITCHOFFSET");
-
-        if (version >= SqlServerDialect.EomonthMinVersion)
-        {
-            static bool TryEvalSqlServerEomonthFunction(
-                QueryExecutionContext context,
-                FunctionCallExpr fn,
-                Func<int, object?> evalArg,
-                out object? result)
-            {
-                _ = context;
-                return AstQuerySqlServerCompatibilityFunctionEvaluator.TryEvalEomonthFunction(fn, evalArg, out result);
-            }
-
-            dialect.AddScalarFunction("EOMONTH", "DATE", TryEvalSqlServerEomonthFunction);
-        }
-
-        bool TryEvalSqlServerDateNameFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-        {
-            _ = context;
-            if (fn.Args.Count < 2)
-            {
-                result = null;
-                return true;
-            }
-
-            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
-            var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
-            var unit = isIsoWeek
-                ? AstQueryExecutorBase.TemporalUnit.Week
-                : SqlServerTemporalUnitHelper.Resolve(unitText);
-            if (SqlServerTemporalUnitHelper.IsTimeZoneOffset(unitText))
-            {
-                var offsetValue = evalArg(1);
-                if (!SqlServerTemporalUnitHelper.TryResolveTimeZoneOffsetMinutes(offsetValue, out var offsetMinutes))
-                {
-                    result = null;
-                    return true;
-                }
-
-                result = offsetMinutes.ToString(CultureInfo.InvariantCulture);
-                return true;
-            }
-            if (!supportsHighPrecisionTemporalFunctions
-                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
-                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-
-            var value = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(value)
-                || unit == AstQueryExecutorBase.TemporalUnit.Unknown
-                || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
-            {
-                result = null;
-                return true;
-            }
-
-            if (isIsoWeek)
-            {
-                result = AstQueryExecutorBase.GetIsoWeekOfYear(dateTime).ToString(CultureInfo.InvariantCulture);
-                return true;
-            }
-
-            result = unit switch
-            {
-                AstQueryExecutorBase.TemporalUnit.Year => dateTime.Year.ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Month => dateTime.ToString("MMMM", CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Day => dateTime.Day.ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.DayOfYear.ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.GetWeekOfYear(dateTime).ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Weekday => SqlServerTemporalUnitHelper.GetWeekdayName(dateTime),
-                AstQueryExecutorBase.TemporalUnit.Hour => dateTime.Hour.ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Minute => dateTime.Minute.ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Second => dateTime.Second.ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Millisecond => dateTime.Millisecond.ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Microsecond => ((int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L)).ToString(CultureInfo.InvariantCulture),
-                AstQueryExecutorBase.TemporalUnit.Nanosecond => ((int)((dateTime.Ticks % TimeSpan.TicksPerSecond) * 100L)).ToString(CultureInfo.InvariantCulture),
-                _ => null
-            };
+            result = null;
             return true;
         }
 
-        bool TryEvalSqlServerDatePartFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
+        var unit = isIsoWeek
+            ? AstQueryExecutorBase.TemporalUnit.Week
+            : SqlServerTemporalUnitHelper.Resolve(unitText);
+        if (SqlServerTemporalUnitHelper.IsTimeZoneOffset(unitText))
         {
-            _ = context;
-
-            var name = fn.Name.ToUpperInvariant();
-            var unitText = name == "DATEPART"
-                ? SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg)
-                : name;
-            var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
-            var valueIndex = name == "DATEPART" ? 1 : 0;
-            if ((name == "DATEPART" && fn.Args.Count < 2)
-                || (name != "DATEPART" && fn.Args.Count == 0))
+            var offsetValue = evalArg(valueIndex);
+            if (!SqlServerTemporalUnitHelper.TryResolveTimeZoneOffsetMinutes(offsetValue, out var offsetMinutes))
             {
                 result = null;
                 return true;
             }
 
-            var unit = isIsoWeek
-                ? AstQueryExecutorBase.TemporalUnit.Week
-                : SqlServerTemporalUnitHelper.Resolve(unitText);
-            if (SqlServerTemporalUnitHelper.IsTimeZoneOffset(unitText))
-            {
-                var offsetValue = evalArg(valueIndex);
-                if (!SqlServerTemporalUnitHelper.TryResolveTimeZoneOffsetMinutes(offsetValue, out var offsetMinutes))
-                {
-                    result = null;
-                    return true;
-                }
+            result = offsetMinutes;
+            return true;
+        }
+        if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion
+            && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
 
-                result = offsetMinutes;
-                return true;
-            }
-            if (!supportsHighPrecisionTemporalFunctions
-                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
-                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-
-            var value = evalArg(valueIndex);
-            if (AstQueryExecutorBase.IsNullish(value)
-                || unit == AstQueryExecutorBase.TemporalUnit.Unknown
-                || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
-            {
-                result = null;
-                return true;
-            }
-
-            if (isIsoWeek)
-            {
-                result = AstQueryExecutorBase.GetIsoWeekOfYear(dateTime);
-                return true;
-            }
-
-            result = unit switch
-            {
-                AstQueryExecutorBase.TemporalUnit.Year => dateTime.Year,
-                AstQueryExecutorBase.TemporalUnit.Month => dateTime.Month,
-                AstQueryExecutorBase.TemporalUnit.Day => dateTime.Day,
-                AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.DayOfYear,
-                AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.GetWeekOfYear(dateTime),
-                AstQueryExecutorBase.TemporalUnit.Weekday => SqlServerTemporalUnitHelper.GetWeekdayIndex(dateTime),
-                AstQueryExecutorBase.TemporalUnit.Hour => dateTime.Hour,
-                AstQueryExecutorBase.TemporalUnit.Minute => dateTime.Minute,
-                AstQueryExecutorBase.TemporalUnit.Second => dateTime.Second,
-                AstQueryExecutorBase.TemporalUnit.Millisecond => dateTime.Millisecond,
-                AstQueryExecutorBase.TemporalUnit.Microsecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L),
-                AstQueryExecutorBase.TemporalUnit.Nanosecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) * 100L),
-                _ => null
-            };
+        var value = evalArg(valueIndex);
+        if (AstQueryExecutorBase.IsNullish(value)
+            || unit == AstQueryExecutorBase.TemporalUnit.Unknown
+            || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
             return true;
         }
 
-        bool TryEvalSqlServerDateTruncFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
+        if (isIsoWeek)
         {
-            _ = context;
-
-            if (fn.Args.Count < 2)
-            {
-                result = null;
-                return true;
-            }
-
-            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
-            var value = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(value)
-                || string.IsNullOrWhiteSpace(unitText)
-                || !AstQueryExecutorBase.TryCoerceDateTime(value, out var dateTime))
-            {
-                result = null;
-                return true;
-            }
-
-            var isIsoWeek = SqlServerTemporalUnitHelper.IsIsoWeek(unitText);
-            var unit = isIsoWeek
-                ? AstQueryExecutorBase.TemporalUnit.Week
-                : SqlServerTemporalUnitHelper.Resolve(unitText);
-            if (!supportsHighPrecisionTemporalFunctions
-                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
-                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-            if (unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-            if (unit == AstQueryExecutorBase.TemporalUnit.Weekday)
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-
-            if (isIsoWeek)
-            {
-                result = SqlServerTemporalUnitHelper.TruncateToIsoWeekStart(dateTime);
-                return true;
-            }
-
-            result = unit switch
-            {
-                AstQueryExecutorBase.TemporalUnit.Year => new DateTime(dateTime.Year, 1, 1, 0, 0, 0, dateTime.Kind),
-                AstQueryExecutorBase.TemporalUnit.Month => new DateTime(dateTime.Year, dateTime.Month, 1, 0, 0, 0, dateTime.Kind),
-                AstQueryExecutorBase.TemporalUnit.Day => dateTime.Date,
-                AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.Date,
-                AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.TruncateToWeekStart(dateTime),
-                AstQueryExecutorBase.TemporalUnit.Hour => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, 0, 0, dateTime.Kind),
-                AstQueryExecutorBase.TemporalUnit.Minute => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, 0, dateTime.Kind),
-                AstQueryExecutorBase.TemporalUnit.Second => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Kind),
-                AstQueryExecutorBase.TemporalUnit.Millisecond => new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second, dateTime.Millisecond, dateTime.Kind),
-                AstQueryExecutorBase.TemporalUnit.Microsecond => new DateTime(dateTime.Ticks - (dateTime.Ticks % 10), dateTime.Kind),
-                _ => dateTime
-            };
+            result = AstQueryExecutorBase.GetIsoWeekOfYear(dateTime);
             return true;
         }
 
-        bool TryEvalSqlServerDateDiffFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
+        result = unit switch
         {
-            _ = context;
-            if (fn.Args.Count < 3)
-            {
-                result = null;
-                return true;
-            }
+            AstQueryExecutorBase.TemporalUnit.Year => dateTime.Year,
+            AstQueryExecutorBase.TemporalUnit.Month => dateTime.Month,
+            AstQueryExecutorBase.TemporalUnit.Day => dateTime.Day,
+            AstQueryExecutorBase.TemporalUnit.Yearday => dateTime.DayOfYear,
+            AstQueryExecutorBase.TemporalUnit.Week => SqlServerTemporalUnitHelper.GetWeekOfYear(dateTime),
+            AstQueryExecutorBase.TemporalUnit.Weekday => SqlServerTemporalUnitHelper.GetWeekdayIndex(dateTime),
+            AstQueryExecutorBase.TemporalUnit.Hour => dateTime.Hour,
+            AstQueryExecutorBase.TemporalUnit.Minute => dateTime.Minute,
+            AstQueryExecutorBase.TemporalUnit.Second => dateTime.Second,
+            AstQueryExecutorBase.TemporalUnit.Millisecond => dateTime.Millisecond,
+            AstQueryExecutorBase.TemporalUnit.Microsecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) / 10L),
+            AstQueryExecutorBase.TemporalUnit.Nanosecond => (int)((dateTime.Ticks % TimeSpan.TicksPerSecond) * 100L),
+            _ => null
+        };
+        return true;
+    }
 
-            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
-            if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-
-            var unit = SqlServerTemporalUnitHelper.Resolve(unitText);
-            if (!supportsHighPrecisionTemporalFunctions
-                && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
-                    || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-            if (unit == AstQueryExecutorBase.TemporalUnit.Weekday)
-                unit = AstQueryExecutorBase.TemporalUnit.Day;
-
-            var startValue = evalArg(1);
-            var endValue = evalArg(2);
-            if (AstQueryExecutorBase.IsNullish(startValue)
-                || AstQueryExecutorBase.IsNullish(endValue)
-                || unit == AstQueryExecutorBase.TemporalUnit.Unknown
-                || !AstQueryExecutorBase.TryCoerceDateTime(startValue, out var startDateTime)
-                || !AstQueryExecutorBase.TryCoerceDateTime(endValue, out var endDateTime))
-            {
-                result = null;
-                return true;
-            }
-
-            var difference = GetTemporalDifference(startDateTime, endDateTime, unit);
-            result = fn.Name.Equals("DATEDIFF_BIG", StringComparison.OrdinalIgnoreCase)
-                ? difference
-                : (int)difference;
+    private static bool TryEvalSqlServerDateDiffLikeFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        bool isBig,
+        out object? result)
+    {
+        if (fn.Args.Count < 3)
+        {
+            result = null;
             return true;
         }
+
+        var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
+        if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+
+        var unit = SqlServerTemporalUnitHelper.Resolve(unitText);
+        if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion
+            && (unit == AstQueryExecutorBase.TemporalUnit.Microsecond
+                || unit == AstQueryExecutorBase.TemporalUnit.Nanosecond))
+            throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
+        if (unit == AstQueryExecutorBase.TemporalUnit.Weekday)
+            unit = AstQueryExecutorBase.TemporalUnit.Day;
+
+        var startValue = evalArg(1);
+        var endValue = evalArg(2);
+        if (AstQueryExecutorBase.IsNullish(startValue)
+            || AstQueryExecutorBase.IsNullish(endValue)
+            || unit == AstQueryExecutorBase.TemporalUnit.Unknown
+            || !AstQueryExecutorBase.TryCoerceDateTime(startValue, out var startDateTime)
+            || !AstQueryExecutorBase.TryCoerceDateTime(endValue, out var endDateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        var difference = GetTemporalDifference(startDateTime, endDateTime, unit);
+        result = isBig ? difference : (int)difference;
+        return true;
 
         static long GetTemporalDifference(DateTime start, DateTime end, AstQueryExecutorBase.TemporalUnit unit)
             => unit switch
@@ -417,101 +540,6 @@ internal static class SqlServerScalarFunctionRegistry
 
         static int DiffMonths(DateTime start, DateTime end)
             => (end.Year - start.Year) * 12 + end.Month - start.Month;
-
-        bool TryEvalSqlServerDateAddFunction(
-            QueryExecutionContext context,
-            FunctionCallExpr fn,
-            Func<int, object?> evalArg,
-            out object? result)
-        {
-            _ = context;
-
-            if (fn.Args.Count < 3)
-            {
-                result = null;
-                return true;
-            }
-
-            var baseValue = evalArg(2);
-            if (AstQueryExecutorBase.IsNullish(baseValue)
-                || !AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
-            {
-                result = null;
-                return true;
-            }
-
-            var amountValue = evalArg(1);
-            if (AstQueryExecutorBase.IsNullish(amountValue))
-            {
-                result = null;
-                return true;
-            }
-
-            var unitText = SqlServerTemporalUnitHelper.GetUnitText(fn.Args[0], evalArg);
-            if (SqlServerTemporalUnitHelper.IsIsoWeek(unitText))
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-
-            var unit = SqlServerTemporalUnitHelper.Resolve(unitText);
-            if (!supportsHighPrecisionTemporalFunctions && unit == AstQueryExecutorBase.TemporalUnit.Microsecond)
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-            if (!supportsHighPrecisionTemporalFunctions && unit == AstQueryExecutorBase.TemporalUnit.Nanosecond)
-                throw SqlUnsupported.NotSupported(context.Dialect, $"{fn.Name}({unitText})");
-
-            if (unit == AstQueryExecutorBase.TemporalUnit.Unknown)
-            {
-                result = dateTime;
-                return true;
-            }
-
-            var amount = (int)decimal.Truncate(amountValue.ToDec());
-            result = AstQueryExecutorBase.ApplyDateDelta(dateTime, unit, amount);
-            return true;
-        }
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DATEDIFF", "INT", TryEvalSqlServerDateDiffFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DATENAME", "VARCHAR", TryEvalSqlServerDateNameFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DATEPART", "INT", TryEvalSqlServerDatePartFunction));
-        if (version >= SqlServerDialect.DateTruncMinVersion)
-            dialect.AddScalarFunction(CreateScalarFunctionDef("DATETRUNC", "DATETIME", TryEvalSqlServerDateTruncFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DAY", "INT", TryEvalSqlServerDatePartFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("MONTH", "INT", TryEvalSqlServerDatePartFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef(SqlConst.YEAR, "INT", TryEvalSqlServerDatePartFunction));
-
-        if (version >= SqlServerDialect.DateDiffBigMinVersion)
-            dialect.AddScalarFunction(CreateScalarFunctionDef("DATEDIFF_BIG", "BIGINT", TryEvalSqlServerDateDiffFunction));
-
-        if (version >= SqlServerDialect.FormatMinVersion)
-            dialect.AddScalarFunction(CreateScalarFunctionDef("FORMAT", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerFormatFunction));
-
-        if (version >= SqlServerDialect.ParseMinVersion)
-        {
-            dialect.AddScalarFunctions(
-                DbFunctionDef.CreateScalar("PARSE", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalParseLikeFunction),
-                "PARSE",
-                "TRY_PARSE");
-
-            dialect.AddScalarFunction(
-                DbFunctionDef.CreateScalar("TRY_PARSE", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalTryParseLikeFunction));
-        }
-
-        if (version >= SqlServerDialect.TryCastMinVersion)
-            dialect.AddScalarFunction(DbFunctionDef.CreateScalar("CAST", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalCastLikeFunction));
-
-        if (version >= SqlServerDialect.TryCastMinVersion)
-            dialect.AddScalarFunction(
-                DbFunctionDef.CreateScalar("TRY_CAST", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalTryCastLikeFunction));
-
-        if (version >= SqlServerDialect.TryConvertMinVersion)
-            dialect.AddScalarFunction(
-                DbFunctionDef.CreateScalar("TRY_CONVERT", "VARCHAR", AstQueryCastConversionFamilyEvaluator.TryEvalTryConvertLikeFunction));
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DATEADD", "DATETIME", TryEvalSqlServerDateAddFunction));
-
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef("NEXT_VALUE_FOR", "BIGINT", TryEvalSqlServerSequenceFunction));
-        dialect.AddScalarFunctions(
-            DbFunctionDef.CreateScalar("PREVIOUS_VALUE_FOR", "BIGINT"),
-            "PREVIOUS_VALUE_FOR");
     }
 
     private static void RegisterMetadataFunctions(SqlServerDialect dialect, int version)
@@ -591,11 +619,6 @@ internal static class SqlServerScalarFunctionRegistry
             return evaluator.TryEvaluate(fn, evalArg, out result);
         }
 
-        dialect.AddScalarFunction("APP_NAME", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalAppNameFunction);
-        dialect.AddScalarFunction("GETANSINULL", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalGetAnsiNullFunction);
-        dialect.AddScalarFunction("HOST_ID", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalHostIdFunction);
-        dialect.AddScalarFunction("HOST_NAME", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalHostNameFunction);
-
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar("APPLOCK_MODE", "VARCHAR"),
             "APPLOCK_MODE",
@@ -603,17 +626,7 @@ internal static class SqlServerScalarFunctionRegistry
             "ASSEMBLYPROPERTY",
             "CERTENCODED",
             "CERTPRIVATEKEY",
-            "CURRENT_REQUEST_ID",
-            "CURRENT_TRANSACTION_ID",
-            "DATABASE_PRINCIPAL_ID",
-            "DATABASEPROPERTYEX",
-            "CONNECTIONPROPERTY",
-            "COLUMNPROPERTY",
-            "COL_LENGTH",
-            "COL_NAME",
             "CURSOR_STATUS",
-            "DB_ID",
-            "DB_NAME",
             "FILE_ID",
             "FILE_IDEX",
             "FILE_NAME",
@@ -628,84 +641,14 @@ internal static class SqlServerScalarFunctionRegistry
             "INDEXKEY_PROPERTY",
             "INDEXPROPERTY",
             "MIN_ACTIVE_ROWVERSION",
-            "OBJECT_ID",
             "OBJECT_DEFINITION",
-            "OBJECTPROPERTY",
-            "OBJECTPROPERTYEX",
-            "OBJECT_NAME",
-            "OBJECT_SCHEMA_NAME",
-            "ORIGINAL_DB_NAME",
-            "ORIGINAL_LOGIN",
             "PWDCOMPARE",
             "PWDENCRYPT",
-            "IS_MEMBER",
-            "IS_ROLEMEMBER",
-            "IS_SRVROLEMEMBER",
-            "SCHEMA_ID",
-            "SCHEMA_NAME",
-            "SERVERPROPERTY",
-            "SESSION_ID",
-            "SUSER_ID",
-            "SUSER_NAME",
-            "SUSER_SID",
-            "SUSER_SNAME",
             "STATS_DATE",
-            "TYPE_ID",
-            "TYPE_NAME",
             "TYPEPROPERTY",
-            "USER_ID",
-            "USER_NAME",
             "XACT_STATE");
 
-        dialect.AddScalarFunction(
-            "CONNECTIONPROPERTY",
-            "VARCHAR",
-            TryEvalSqlServerConnectionPropertyFunction);
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DATABASEPROPERTYEX", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DATABASE_PRINCIPAL_ID", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("COLUMNPROPERTY", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("COL_LENGTH", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("COL_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DB_ID", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("DB_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECT_ID", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECTPROPERTY", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECTPROPERTYEX", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECT_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("OBJECT_SCHEMA_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ORIGINAL_DB_NAME", "VARCHAR", TryEvalSqlServerDatabaseMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("TYPEPROPERTY", "INT", TryEvalSqlServerDatabaseMetadataFunction));
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("CURRENT_REQUEST_ID", "INT", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("CURRENT_TRANSACTION_ID", "BIGINT", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("IS_MEMBER", "INT", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("IS_ROLEMEMBER", "INT", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("IS_SRVROLEMEMBER", "INT", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ORIGINAL_LOGIN", "VARCHAR", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SESSION_ID", "INT", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SERVERPROPERTY", "VARCHAR", TryEvalSqlServerSessionMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("XACT_STATE", "INT", TryEvalSqlServerSessionMetadataFunction));
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SCHEMA_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SCHEMA_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_SID", "VARBINARY", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("SUSER_SNAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("TYPE_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("TYPE_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("USER_ID", "INT", TryEvalSqlServerIdentityMetadataFunction));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("USER_NAME", "VARCHAR", TryEvalSqlServerIdentityMetadataFunction));
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("CONTEXT_INFO", "VARBINARY", TryEvalSqlServerContextInfoFunction));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar("GET_FILESTREAM_TRANSACTION_CONTEXT", "VARBINARY"));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_LINE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_MESSAGE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_NUMBER", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_PROCEDURE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_SEVERITY", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ERROR_STATE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions));
 
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateIdentifier("@@DATEFIRST", "INT"),
@@ -716,32 +659,6 @@ internal static class SqlServerScalarFunctionRegistry
         dialect.AddScalarFunction(DbFunctionDef.CreateIdentifier("@@IDENTITY", "BIGINT"));
 
         dialect.AddScalarFunction(DbFunctionDef.CreateIdentifier("@@ROWCOUNT", "BIGINT"));
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "SCOPE_IDENTITY",
-                "BIGINT",
-                TryEvalSqlServerScopeIdentityFunction));
-
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "CURRENT_USER",
-                "VARCHAR",
-                AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction,
-                DbInvocationStyle.Identifier));
-
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "SESSION_USER",
-                "VARCHAR",
-                AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSessionUserFunction,
-                DbInvocationStyle.Identifier));
-
-        dialect.AddScalarFunction(
-            CreateScalarFunctionDef(
-                "SYSTEM_USER",
-                "VARCHAR",
-                AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSystemUserFunction,
-                DbInvocationStyle.Identifier));
     }
 
     private static void RegisterScalarFunctions(
@@ -784,84 +701,119 @@ internal static class SqlServerScalarFunctionRegistry
             return true;
         }
 
-        dialect.AddScalarFunction("CHARINDEX", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCharIndexFunction);
-
-        dialect.AddScalarFunctions("INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerChecksumFunction,
-            "CHECKSUM",
-            "BINARY_CHECKSUM");
+        dialect.AddScalarFunctions("INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerChecksumFunction);
 
         dialect.AddScalarFunction(CreateScalarFunctionDef("ATN2", "DOUBLE", TryEvalSqlServerAtn2Function));
 
-        dialect.AddScalarFunction("DATALENGTH", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalDataLengthFunction);
         dialect.AddScalarFunction("LEN", "INT", AstQuerySharedTextFunctionEvaluator.TryEvaluate);
 
         dialect.AddScalarFunctions("INT", AstQueryGroupingFunctionEvaluator.TryEvaluate,
             "GROUPING",
             "GROUPING_ID");
 
-        dialect.AddScalarFunction("ISDATE", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsDateFunction);
-
-        if (version >= SqlServerDialect.JsonFunctionsMinVersion)
-            dialect.AddScalarFunction("ISJSON", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsJsonFunction);
-
-        dialect.AddScalarFunction("ISNUMERIC", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsNumericFunction);
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ROWCOUNT", "INT", TryEvalSqlServerRowCountFunction));
-
-        dialect.AddScalarFunction(CreateScalarFunctionDef("ROWCOUNT_BIG", "BIGINT", TryEvalSqlServerRowCountBigFunction));
-
-        dialect.AddScalarFunction("FORMATMESSAGE", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerFormatMessageFunction);
-
-        dialect.AddScalarFunctions("VARCHAR", AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate,
-            "QUOTENAME",
-            "REPLICATE",
-            "STUFF",
-            "PARSENAME");
-
         dialect.AddScalarFunction("LEN", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalLenFunction);
-
-        dialect.AddScalarFunction("SQUARE", "DOUBLE", AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate);
-
-        dialect.AddScalarFunction("ISNULL", "VARCHAR", QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions);
-
-        dialect.AddScalarFunctions("VARCHAR", tryEvalSqlServerUtilityFunction,
-            "NEWID",
-            "NEWSEQUENTIALID");
-
-        if (version >= SqlServerDialect.StringEscapeMinVersion)
-            dialect.AddScalarFunction("STRING_ESCAPE", "VARCHAR", tryEvalSqlServerUtilityFunction);
-
-        dialect.AddScalarFunction("STR", "VARCHAR", tryEvalSqlServerUtilityFunction);
-
-        if (version >= SqlServerDialect.CompressionFunctionsMinVersion)
-        {
-            dialect.AddScalarFunction(CreateScalarFunctionDef("COMPRESS", "VARBINARY", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerCompressFunction));
-            dialect.AddScalarFunction(CreateScalarFunctionDef("DECOMPRESS", "VARBINARY", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerDecompressFunction));
-        }
-
-        dialect.AddScalarFunctions("VARCHAR", QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions,
-            "IF",
-            "IIF");
-
-        if (version >= SqlServerDialect.JsonFunctionsMinVersion)
-        {
-            dialect.AddScalarFunction("JSON_MODIFY", "VARCHAR",
-                static (QueryExecutionContext context, FunctionCallExpr fn, Func<int, object?> evalArg, out object? result)
-                    => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerJsonModifyFunction(context, fn, evalArg, out result));
-            dialect.AddScalarFunction("JSON_QUERY", "VARCHAR", AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction);
-            dialect.AddScalarFunction("JSON_VALUE", "VARCHAR", AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction);
-        }
-
-        RegisterGeneralScalarFunctions(dialect);
 
     }
 
-    private static void RegisterGeneralScalarFunctions(
-        SqlServerDialect dialect)
+    static partial void RegisterGeneratedScalarFunctions(ISqlDialect dialect);
+
+    [ScalarFunction("APP_NAME", "VARCHAR")]
+    [ScalarFunction("GETANSINULL", "VARCHAR")]
+    [ScalarFunction("HOST_ID", "VARCHAR")]
+    [ScalarFunction("HOST_NAME", "VARCHAR")]
+    [ScalarFunction("CHARINDEX", "INT")]
+    [ScalarFunction("CHECKSUM", "INT")]
+    [ScalarFunction("BINARY_CHECKSUM", "INT")]
+    [ScalarFunction("DATALENGTH", "INT")]
+    [ScalarFunction("ISDATE", "INT")]
+    [ScalarFunction("ISNUMERIC", "INT")]
+    [ScalarFunction("FORMATMESSAGE", "VARCHAR")]
+    [ScalarFunction("SOUNDEX", "VARCHAR")]
+    [ScalarFunction("PATINDEX", "INT")]
+    [ScalarFunction("DIFFERENCE", "INT")]
+    [ScalarFunction("NEWID", "VARCHAR")]
+    [ScalarFunction("NEWSEQUENTIALID", "VARCHAR")]
+    [ScalarFunction("STR", "VARCHAR")]
+    [ScalarFunction("COMPRESS", "VARBINARY", MinVersion = SqlServerDialect.CompressionFunctionsMinVersion)]
+    [ScalarFunction("DECOMPRESS", "VARBINARY", MinVersion = SqlServerDialect.CompressionFunctionsMinVersion)]
+    [ScalarFunction("QUOTENAME", "VARCHAR")]
+    [ScalarFunction("REPLICATE", "VARCHAR")]
+    [ScalarFunction("STUFF", "VARCHAR")]
+    [ScalarFunction("PARSENAME", "VARCHAR")]
+    [ScalarFunction("SQUARE", "DOUBLE")]
+    private static bool TryEvalGeneratedSqlServerUtilityFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
     {
-        dialect.AddScalarFunction("SOUNDEX", "VARCHAR", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSoundexFunction);
-        dialect.AddScalarFunction("PATINDEX", "INT", AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate);
-        dialect.AddScalarFunction("DIFFERENCE", "INT", AstQuerySqlServerUtilityFunctionEvaluator.TryEvalDifferenceFunction);
+        var name = fn.Name.ToUpperInvariant();
+        return name switch
+        {
+            "APP_NAME" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalAppNameFunction(context, fn, evalArg, out result),
+            "GETANSINULL" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalGetAnsiNullFunction(context, fn, evalArg, out result),
+            "HOST_ID" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalHostIdFunction(context, fn, evalArg, out result),
+            "HOST_NAME" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalHostNameFunction(context, fn, evalArg, out result),
+            "CHARINDEX" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCharIndexFunction(context, fn, evalArg, out result),
+            "CHECKSUM" or "BINARY_CHECKSUM" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerChecksumFunction(context, fn, evalArg, out result),
+            "DATALENGTH" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalDataLengthFunction(context, fn, evalArg, out result),
+            "ISDATE" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsDateFunction(context, fn, evalArg, out result),
+            "ISNUMERIC" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsNumericFunction(context, fn, evalArg, out result),
+            "FORMATMESSAGE" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerFormatMessageFunction(context, fn, evalArg, out result),
+            "SOUNDEX" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSoundexFunction(context, fn, evalArg, out result),
+            "DIFFERENCE" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalDifferenceFunction(context, fn, evalArg, out result),
+            "NEWID" or "NEWSEQUENTIALID" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerGuidFunction(context, fn, evalArg, out result),
+            "STR" => new AstQuerySqlServerUtilityFunctionEvaluator(
+                getDialect: () => context.Dialect,
+                tryConvertNumericToDecimal: AstQueryExecutorBase.TryConvertNumericToDecimal,
+                tryCoerceDateTime: AstQueryExecutorBase.TryCoerceDateTime,
+                tryParseOffset: SqlTemporalFunctionEvaluator.TryParseOffset,
+                tryParseCachedDateTimeOffset: AstQueryExecutorBase.TryParseCachedDateTimeOffset)
+                .TryEvaluate(fn, context, evalArg, out result),
+            "COMPRESS" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerCompressFunction(context, fn, evalArg, out result),
+            "DECOMPRESS" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerDecompressFunction(context, fn, evalArg, out result),
+            "PATINDEX" => AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result),
+            "QUOTENAME" or "REPLICATE" or "STUFF" or "PARSENAME" or "SQUARE" => AstQuerySqlServerScalarFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result),
+            _ => throw new InvalidOperationException()
+        };
+    }
+
+    [ScalarFunction("IF", "VARCHAR")]
+    [ScalarFunction("IIF", "VARCHAR")]
+    [ScalarFunction("ISNULL", "VARCHAR")]
+    private static bool TryEvalGeneratedSqlServerConditionalNullFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => QueryConditionalNullFunctionHelper.TryEvalConditionalAndNullFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("ISJSON", "INT", MinVersion = SqlServerDialect.JsonFunctionsMinVersion)]
+    [ScalarFunction("STRING_ESCAPE", "VARCHAR", MinVersion = SqlServerDialect.StringEscapeMinVersion)]
+    [ScalarFunction("JSON_MODIFY", "VARCHAR", MinVersion = SqlServerDialect.JsonFunctionsMinVersion)]
+    [ScalarFunction("JSON_QUERY", "VARCHAR", MinVersion = SqlServerDialect.JsonFunctionsMinVersion)]
+    [ScalarFunction("JSON_VALUE", "VARCHAR", MinVersion = SqlServerDialect.JsonFunctionsMinVersion)]
+    private static bool TryEvalGeneratedSqlServerJsonFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var name = fn.Name.ToUpperInvariant();
+        return name switch
+        {
+            "ISJSON" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalIsJsonFunction(context, fn, evalArg, out result),
+            "STRING_ESCAPE" => new AstQuerySqlServerUtilityFunctionEvaluator(
+                getDialect: () => context.Dialect,
+                tryConvertNumericToDecimal: AstQueryExecutorBase.TryConvertNumericToDecimal,
+                tryCoerceDateTime: AstQueryExecutorBase.TryCoerceDateTime,
+                tryParseOffset: SqlTemporalFunctionEvaluator.TryParseOffset,
+                tryParseCachedDateTimeOffset: AstQueryExecutorBase.TryParseCachedDateTimeOffset)
+                .TryEvaluate(fn, context, evalArg, out result),
+            "JSON_MODIFY" => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerJsonModifyFunction(context, fn, evalArg, out result),
+            "JSON_QUERY" or "JSON_VALUE" => AstQueryJsonExtractionFunctionEvaluator.TryEvalJsonExtractionFunction(context, fn, evalArg, out result),
+            _ => throw new InvalidOperationException()
+        };
     }
 
     private static bool TryEvalSqlServerTryConvertFunction(
@@ -1001,6 +953,7 @@ internal static class SqlServerScalarFunctionRegistry
         }
     }
 
+    [ScalarFunction("NEXT_VALUE_FOR", "BIGINT", MinVersion = SqlServerDialect.SequenceMinVersion)]
     private static bool TryEvalSqlServerSequenceFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -1023,6 +976,199 @@ internal static class SqlServerScalarFunctionRegistry
             out result);
     }
 
+    [ScalarFunction("CURRENT_USER", "VARCHAR", InvocationStyle = DbInvocationStyle.Identifier)]
+    private static bool TryEvalSqlServerCurrentUserFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalCurrentUserFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("SESSION_USER", "VARCHAR", InvocationStyle = DbInvocationStyle.Identifier)]
+    private static bool TryEvalSqlServerSessionUserFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSessionUserFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("SYSTEM_USER", "VARCHAR", InvocationStyle = DbInvocationStyle.Identifier)]
+    private static bool TryEvalSqlServerSystemUserFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSystemUserFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("FORMAT", "VARCHAR", MinVersion = SqlServerDialect.FormatMinVersion)]
+    private static bool TryEvalSqlServerFormatGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalSqlServerFormatFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("PARSE", "VARCHAR", MinVersion = SqlServerDialect.ParseMinVersion)]
+    private static bool TryEvalSqlServerParseGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryCastConversionFamilyEvaluator.TryEvalParseLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("TRY_PARSE", "VARCHAR", MinVersion = SqlServerDialect.ParseMinVersion)]
+    private static bool TryEvalSqlServerTryParseGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryCastConversionFamilyEvaluator.TryEvalTryParseLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("CAST", "VARCHAR", MinVersion = SqlServerDialect.TryCastMinVersion)]
+    private static bool TryEvalSqlServerCastGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryCastConversionFamilyEvaluator.TryEvalCastLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("TRY_CAST", "VARCHAR", MinVersion = SqlServerDialect.TryCastMinVersion)]
+    private static bool TryEvalSqlServerTryCastGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryCastConversionFamilyEvaluator.TryEvalTryCastLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("TRY_CONVERT", "VARCHAR", MinVersion = SqlServerDialect.TryConvertMinVersion)]
+    private static bool TryEvalSqlServerTryConvertGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQueryCastConversionFamilyEvaluator.TryEvalTryConvertLikeFunction(context, fn, evalArg, out result);
+
+    [ScalarFunction("CONNECTIONPROPERTY", "VARCHAR")]
+    private static bool TryEvalSqlServerConnectionPropertyGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQuerySqlServerSessionFunctionEvaluator.TryEvalSqlServerConnectionPropertyFunction(fn, evalArg, out result);
+
+    [ScalarFunction("CONTEXT_INFO", "VARBINARY")]
+    private static bool TryEvalSqlServerContextInfoGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = fn;
+        _ = evalArg;
+        result = context.Connection.GetContextInfo();
+        return true;
+    }
+
+    [ScalarFunction("DATABASEPROPERTYEX", "VARCHAR")]
+    [ScalarFunction("DATABASE_PRINCIPAL_ID", "INT")]
+    [ScalarFunction("COLUMNPROPERTY", "INT")]
+    [ScalarFunction("COL_LENGTH", "INT")]
+    [ScalarFunction("COL_NAME", "VARCHAR")]
+    [ScalarFunction("DB_ID", "INT")]
+    [ScalarFunction("DB_NAME", "VARCHAR")]
+    [ScalarFunction("OBJECT_ID", "INT")]
+    [ScalarFunction("OBJECTPROPERTY", "INT")]
+    [ScalarFunction("OBJECTPROPERTYEX", "INT")]
+    [ScalarFunction("OBJECT_NAME", "VARCHAR")]
+    [ScalarFunction("OBJECT_SCHEMA_NAME", "VARCHAR")]
+    [ScalarFunction("ORIGINAL_DB_NAME", "VARCHAR")]
+    [ScalarFunction("TYPEPROPERTY", "INT")]
+    private static bool TryEvalSqlServerDatabaseMetadataGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var evaluator = new AstQuerySqlServerDatabaseFunctionEvaluator(
+            resolveDatabaseProperty: context.TryResolveSqlServerDatabaseProperty,
+            resolveDatabasePrincipalId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerDatabasePrincipalId,
+            resolveColumnProperty: context.TryResolveSqlServerColumnProperty,
+            resolveColumnLength: context.TryResolveSqlServerColumnLength,
+            resolveColumnName: context.TryResolveSqlServerColumnName,
+            resolveObjectId: context.TryResolveSqlServerObjectId,
+            resolveObjectProperty: context.TryResolveSqlServerObjectProperty,
+            resolveObjectName: context.TryResolveSqlServerObjectName,
+            resolveObjectSchemaName: context.TryResolveSqlServerObjectSchemaName,
+            resolveTypeProperty: AstQuerySqlServerResolutionHelper.TryResolveSqlServerTypeProperty,
+            getDatabaseName: () => context.Connection.Database);
+
+        return evaluator.TryEvaluate(fn, evalArg, out result);
+    }
+
+    [ScalarFunction("CURRENT_REQUEST_ID", "INT")]
+    [ScalarFunction("CURRENT_TRANSACTION_ID", "BIGINT")]
+    [ScalarFunction("IS_MEMBER", "INT")]
+    [ScalarFunction("IS_ROLEMEMBER", "INT")]
+    [ScalarFunction("IS_SRVROLEMEMBER", "INT")]
+    [ScalarFunction("ORIGINAL_LOGIN", "VARCHAR")]
+    [ScalarFunction("SESSION_ID", "INT")]
+    [ScalarFunction("SERVERPROPERTY", "VARCHAR")]
+    [ScalarFunction("XACT_STATE", "INT")]
+    private static bool TryEvalSqlServerSessionMetadataGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var evaluator = new AstQuerySqlServerSessionFunctionEvaluator(
+            getDialect: () => context.Dialect,
+            getContextInfo: context.Connection.GetContextInfo,
+            hasActiveTransaction: () => context.Connection.HasActiveTransaction || context.HasActiveTransaction,
+            tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,
+            tryResolveSqlServerServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerServerRoleMembership);
+
+        return evaluator.TryEvaluate(fn, evalArg, out result);
+    }
+
+    [ScalarFunction("SCHEMA_ID", "INT")]
+    [ScalarFunction("SCHEMA_NAME", "VARCHAR")]
+    [ScalarFunction("SUSER_ID", "INT")]
+    [ScalarFunction("SUSER_NAME", "VARCHAR")]
+    [ScalarFunction("SUSER_SID", "VARBINARY")]
+    [ScalarFunction("SUSER_SNAME", "VARCHAR")]
+    [ScalarFunction("TYPE_ID", "INT")]
+    [ScalarFunction("TYPE_NAME", "VARCHAR")]
+    [ScalarFunction("USER_ID", "INT")]
+    [ScalarFunction("USER_NAME", "VARCHAR")]
+    private static bool TryEvalSqlServerIdentityMetadataGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        var evaluator = new AstQuerySqlServerIdentityFunctionEvaluator(
+            getDialect: () => context.Dialect,
+            getLastInsertId: context.Connection.GetLastInsertId,
+            resolveSystemTypeId: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeId,
+            resolveSystemTypeName: AstQuerySqlServerResolutionHelper.TryResolveSqlServerSystemTypeName);
+
+        return evaluator.TryEvaluate(fn, evalArg, out result);
+    }
+
+    [ScalarFunction("ERROR_LINE", "VARCHAR")]
+    [ScalarFunction("ERROR_MESSAGE", "VARCHAR")]
+    [ScalarFunction("ERROR_NUMBER", "VARCHAR")]
+    [ScalarFunction("ERROR_PROCEDURE", "VARCHAR")]
+    [ScalarFunction("ERROR_SEVERITY", "VARCHAR")]
+    [ScalarFunction("ERROR_STATE", "VARCHAR")]
+    private static bool TryEvalSqlServerErrorFunctionsGenerated(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+        => AstQuerySqlServerUtilityFunctionEvaluator.TryEvalErrorFunctions(context, fn, evalArg, out result);
+
+    [ScalarFunction("ROWCOUNT", "INT")]
     private static bool TryEvalSqlServerRowCountFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -1035,6 +1181,7 @@ internal static class SqlServerScalarFunctionRegistry
         return true;
     }
 
+    [ScalarFunction("ROWCOUNT_BIG", "BIGINT")]
     private static bool TryEvalSqlServerRowCountBigFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -1047,6 +1194,7 @@ internal static class SqlServerScalarFunctionRegistry
         return true;
     }
 
+    [ScalarFunction("SCOPE_IDENTITY", "BIGINT")]
     private static bool TryEvalSqlServerScopeIdentityFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,

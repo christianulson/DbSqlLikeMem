@@ -4,7 +4,8 @@ using System.Linq.Expressions;
 namespace DbSqlLikeMem;
 
 /// <summary>
-/// Executa consultas LINQ traduzidas para SQL sem depender de Dapper.
+/// EN: Executes LINQ-translated SQL queries without depending on Dapper.
+/// PT: Executa consultas LINQ traduzidas para SQL sem depender de Dapper.
 /// </summary>
 public static class LinqQueryExecutor
 {
@@ -13,7 +14,8 @@ public static class LinqQueryExecutor
     private static readonly ConcurrentDictionary<string, IReadOnlyList<LinqRecordBinding>> RecordPlanCache = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Executa SQL e materializa o resultado no tipo esperado.
+    /// EN: Executes SQL and materializes the result into the expected type.
+    /// PT: Executa SQL e materializa o resultado no tipo esperado.
     /// </summary>
     public static TResult Execute<TResult>(IDbConnection connection, string sql, object? parameters)
     {
