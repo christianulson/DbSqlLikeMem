@@ -23,8 +23,8 @@ public static class DbSeedExtensions
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
-        if (!cnn.Db.ContainsTable(tableName, schemaName))
-            cnn.Db.AddTable(tableName, columns, rows);
+        if (!cnn.TryGetTable(tableName, out _, schemaName))
+            cnn.AddTable(tableName, columns, rows, schemaName);
 
         return cnn;
     }
@@ -41,8 +41,8 @@ public static class DbSeedExtensions
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
-        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
-            tb = cnn.Db.AddTable(tableName, columns, rows);
+        if (!cnn.TryGetTable(tableName, out var tb, schemaName))
+            tb = cnn.AddTable(tableName, columns, rows, schemaName);
         ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
         return tb!;
     }
@@ -106,7 +106,7 @@ public static class DbSeedExtensions
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
 
-        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName))
+        if (!cnn.TryGetTable(tableName, out var tb, schemaName))
             throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         ArgumentNullExceptionCompatible.ThrowIfNull(tb, nameof(tb));
         ArgumentNullExceptionCompatible.ThrowIfNull(column, nameof(column));
@@ -180,7 +180,7 @@ public static class DbSeedExtensions
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
-        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
+        if (!cnn.TryGetTable(tableName, out var tb, schemaName) || tb == null)
             throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         var fields = GetSeedFieldAccessors(typeof(T));
         var fieldIndexes = fields
@@ -210,7 +210,7 @@ public static class DbSeedExtensions
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(cnn, nameof(cnn));
         ArgumentNullExceptionCompatible.ThrowIfNull(rows, nameof(rows));
-        if (!cnn.Db.TryGetTable(tableName, out var tb, schemaName) || tb == null)
+        if (!cnn.TryGetTable(tableName, out var tb, schemaName) || tb == null)
             throw new InvalidOperationException(SqlExceptionMessages.TableNotYetDefined(tableName));
         IReadOnlyList<ColumnDef> orderedCols = tb is TableMock tableMock
             ? tableMock.ColumnsByOrdinal

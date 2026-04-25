@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace DbSqlLikeMem;
 
 internal abstract partial class SqlDialectBase

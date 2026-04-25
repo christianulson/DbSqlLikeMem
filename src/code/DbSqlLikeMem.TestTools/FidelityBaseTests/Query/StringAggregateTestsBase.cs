@@ -23,7 +23,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies ordered, distinct, custom-separator, and large-group string aggregation for the current provider.
     /// PT: Verifica agregacao de strings ordenada, distinta, com separador customizado e em grupo grande para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregationVariantsTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -45,7 +45,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies plain string aggregation returns the expected result for the current provider.
     /// PT: Verifica se a agregacao simples de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -59,7 +59,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies ordered string aggregation returns the expected result for the current provider.
     /// PT: Verifica se a agregacao ordenada de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregateOrderedTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -73,7 +73,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies distinct string aggregation returns the expected result for the current provider.
     /// PT: Verifica se a agregacao distinta de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregateDistinctTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -87,7 +87,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies custom-separator string aggregation returns the expected result for the current provider.
     /// PT: Verifica se a agregacao de strings com separador customizado retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregateCustomSeparatorTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -101,7 +101,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies large-group string aggregation returns the expected result for the current provider.
     /// PT: Verifica se a agregacao de strings em grupo grande retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregateLargeGroupTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -115,7 +115,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies string aggregation summary matrix returns the expected result for the current provider.
     /// PT: Verifica se a matriz resumo de agregacao de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregateSummaryMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -129,7 +129,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies grouped string aggregation matrix returns the expected result for the current provider.
     /// PT: Verifica se a matriz agrupada de agregacao de strings retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregateGroupCaseMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -148,7 +148,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies string aggregation together with total, distinct, and repeated-name counts for the current provider.
     /// PT: Verifica agregacao de strings junto com contagens total, distinta e de nomes repetidos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregationSummaryMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -162,7 +162,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     /// EN: Verifies grouped string aggregation with CASE, COALESCE, and distinct counts for the current provider.
     /// PT: Verifica agregacao agrupada de strings com CASE, COALESCE e contagens distintas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task StringAggregationGroupCaseMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -232,3 +232,4 @@ public abstract class StringAggregateTestsBase<T, T2>(
         return await testService.RunTestAsync<TScenario, TServiceTest>(runTest, args);
     }
 }
+

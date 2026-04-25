@@ -52,7 +52,7 @@ public sealed class FirebirdWhereParserAndExecutorTests(
             "SELECT id FROM users WHERE id = 1 OR id = 2 AND name = 'Jane' ORDER BY id")
             .ToList();
 
-        Assert.Equal([1, 2], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal([1, 2], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id")) )]);
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public sealed class FirebirdWhereParserAndExecutorTests(
             .ToList();
 
         Assert.Single(rows);
-        Assert.Equal(2, (int)rows[0].id);
+        Assert.Equal(2, Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "id")));
     }
 
     /// <summary>
@@ -90,13 +90,13 @@ SELECT id,
        CASE WHEN email IS NULL THEN 0 ELSE 1 END AS has_email,
        COALESCE(email, 'none') AS email_or_none
 FROM users
-ORDER BY id
+        ORDER BY id
 """)
             .ToList();
 
-        Assert.Equal([2, 3, 4], [.. rows.Select(r => (int)r.next_id)]);
-        Assert.Equal([1, 0, 1], [.. rows.Select(r => (int)r.has_email)]);
-        Assert.Equal(["john@x.com", "none", "bob@x.com"], [.. rows.Select(r => (string)r.email_or_none)]);
+        Assert.Equal([2, 3, 4], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "next_id")) )]);
+        Assert.Equal([1, 0, 1], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "has_email")) )]);
+        Assert.Equal(["john@x.com", "none", "bob@x.com"], [.. rows.Select(r => Convert.ToString(GetValueIgnoreCase((object)r, "email_or_none")) )!]);
     }
 
     /// <summary>
@@ -117,11 +117,25 @@ SELECT u.id AS uid, o.id AS oid
 FROM users u
 JOIN orders o ON (o.userid = u.id OR o.userid = 0)
 WHERE u.id IN (1, 2)
-ORDER BY u.id, o.id
+        ORDER BY u.id, o.id
 """)
             .ToList();
 
         Assert.Equal([(1, 10), (1, 13), (2, 11), (2, 12), (2, 13)],
-            [.. rows.Select(r => ((int)r.uid, (int)r.oid))]);
+            [.. rows.Select(r => (Convert.ToInt32(GetValueIgnoreCase((object)r, "uid")), Convert.ToInt32(GetValueIgnoreCase((object)r, "oid"))))]);
+    }
+
+    private static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 }

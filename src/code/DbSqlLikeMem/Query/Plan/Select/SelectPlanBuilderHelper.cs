@@ -63,7 +63,7 @@ internal static class SelectPlanBuilderHelper
                 expression,
                 evalExpression);
 
-            if (!hasRuntimeParameters && ContainsRuntimeParameter(expression))
+            if (!hasRuntimeParameters && (ContainsRuntimeParameter(expression) || ContainsSideEffectFunction(expression)))
                 hasRuntimeParameters = true;
         }
         //#if DEBUG
@@ -1602,8 +1602,10 @@ internal static class SelectPlanBuilderHelper
         => expression switch
         {
             FunctionCallExpr function => IsSideEffectFunctionName(function.Name)
+                || IsSequenceFunctionName(function.Name)
                 || ContainsSideEffectFunctionList(function.Args),
             CallExpr call => IsSideEffectFunctionName(call.Name)
+                || IsSequenceFunctionName(call.Name)
                 || ContainsSideEffectFunctionList(call.Args),
             BinaryExpr binary => ContainsSideEffectFunction(binary.Left)
                 || ContainsSideEffectFunction(binary.Right),

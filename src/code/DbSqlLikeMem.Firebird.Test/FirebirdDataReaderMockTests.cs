@@ -28,6 +28,8 @@ public sealed class FirebirdDataReaderMockTests(
         using var reader = new FirebirdDataReaderMock([table]);
 
         reader.Read().Should().BeTrue();
+        reader.GetName(0).Should().Be("ID");
+        reader.GetName(1).Should().Be("NAME");
         reader.GetOrdinal("Id").Should().Be(0);
         reader.GetInt32(0).Should().Be(1);
         reader.GetString(1).Should().Be("Ana");

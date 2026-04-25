@@ -11,8 +11,8 @@ public sealed class BatchReturningTests(
     ) : BatchReturningTestsBase<FirebirdConnectionMock, FbConnection>(
     helper,
     new FirebirdProviderSqlDialect(),
-    () => new FirebirdConnectionMock(),
-    s => new FbConnection(s)
+    () => new FirebirdConnectionMock(Get(FirebirdDbVersions.Default, _ => new FirebirdDbMock(_) { ThreadSafe = true })),
+    FirebirdConnectionFactory.Create
     )
 {
 }

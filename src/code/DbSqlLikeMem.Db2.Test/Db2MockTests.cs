@@ -293,6 +293,67 @@ public sealed class Db2MockTests
     }
 
     /// <summary>
+    /// EN: Verifies positional Db2 markers can resolve a named parameter when no positional parameters were added.
+    /// PT: Verifica se marcadores posicionais Db2 conseguem resolver um parametro nomeado quando nenhum parametro posicional foi adicionado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_WithPositionalMarkerAndNamedParameter_ShouldReturnExpectedName()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (13, 'Carla', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT Name FROM Users WHERE Id = ?";
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "id";
+        parameter.DbType = DbType.Int32;
+        parameter.Value = 13;
+        command.Parameters.Add(parameter);
+
+        Assert.Equal("Carla", Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies parameterized Db2 inserts keep their bound values available for a follow-up positional select.
+    /// PT: Verifica se inserts parametrizados Db2 mantêm os valores vinculados disponiveis para um select posicional seguinte.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Insert_WithPositionalMarkersAndNamedParameters_ShouldRoundTripName()
+    {
+        using var insert = _connection.CreateCommand();
+        insert.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (?, ?, NULL)";
+
+        var idParameter = insert.CreateParameter();
+        idParameter.ParameterName = "id";
+        idParameter.DbType = DbType.Int32;
+        idParameter.Value = 17;
+        insert.Parameters.Add(idParameter);
+
+        var nameParameter = insert.CreateParameter();
+        nameParameter.ParameterName = "name";
+        nameParameter.DbType = DbType.String;
+        nameParameter.Value = "Dora";
+        insert.Parameters.Add(nameParameter);
+
+        Assert.Equal(1, insert.ExecuteNonQuery());
+
+        using var select = _connection.CreateCommand();
+        select.CommandText = "SELECT Name FROM Users WHERE Id = ?";
+
+        var selectParameter = select.CreateParameter();
+        selectParameter.ParameterName = "id";
+        selectParameter.DbType = DbType.Int32;
+        selectParameter.Value = 17;
+        select.Parameters.Add(selectParameter);
+
+        Assert.Equal("Dora", Convert.ToString(select.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Verifies a literal string equality filter matches the seeded Bob row.
     /// PT: Verifica se um filtro literal de igualdade de string encontra a linha Bob semeada.
     /// </summary>

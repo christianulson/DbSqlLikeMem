@@ -89,7 +89,7 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     public void Select_Expressions_Arithmetic_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, id + 1 AS nextId FROM users ORDER BY id").ToList();
-        Assert.Equal([2, 3, 4], [.. rows.Select(r => (int)r.nextId)]);
+        Assert.Equal([2, 3, 4], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "nextId")))]);
     }
 
     /// <summary>
@@ -101,7 +101,7 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
     public void Select_Expressions_CASE_WHEN_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id, CASE WHEN email IS NULL THEN 0 ELSE 1 END AS hasEmail FROM users ORDER BY id").ToList();
-        Assert.Equal([1, 0, 1], [.. rows.Select(r => (int)r.hasEmail)]);
+        Assert.Equal([1, 0, 1], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "hasEmail")) )]);
     }
 
     /// <summary>
@@ -217,8 +217,8 @@ public sealed class PostgreSqlSqlCompatibilityGapTests : XUnitTestBase
             "ORDER BY userId").ToList();
 
         Assert.Single(rows);
-        Assert.Equal(2, (int)rows[0].userId);
-        Assert.Equal(210m, (decimal)rows[0].total);
+        Assert.Equal(2, Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")));
+        Assert.Equal(210m, Convert.ToDecimal(GetValueIgnoreCase((object)rows[0], "total")));
     }
 
     /// <summary>
@@ -351,5 +351,19 @@ ORDER BY id
     {
         _cnn?.Dispose();
         base.Dispose(disposing);
+    }
+
+    private static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 }

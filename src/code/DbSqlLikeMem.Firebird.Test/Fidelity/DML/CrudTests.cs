@@ -1,4 +1,5 @@
 using DbSqlLikeMem.TestTools.Tests.DML;
+using System.Diagnostics;
 
 namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
 
@@ -11,8 +12,8 @@ public class CrudTests(
     ) : CrudTestsBase<FirebirdConnectionMock, FbConnection>(
     helper,
     new FirebirdProviderSqlDialect(),
-    () => new FirebirdConnectionMock(),
-    s => new FbConnection(s)
+    () => new FirebirdConnectionMock(Get(FirebirdDbVersions.Default, _ => new FirebirdDbMock(_) { ThreadSafe = true })),
+    FirebirdConnectionFactory.Create
     )
 {
 }

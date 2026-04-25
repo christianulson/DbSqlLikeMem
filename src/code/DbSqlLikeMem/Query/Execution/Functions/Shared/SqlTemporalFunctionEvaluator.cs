@@ -299,6 +299,29 @@ internal static class SqlTemporalFunctionEvaluator
             return true;
         }
 
+        if (string.Equals(context.Connection.ProviderExecutionDialect.Name, "firebird", StringComparison.OrdinalIgnoreCase))
+        {
+            var firebirdNow = new DateTime(
+                localNow.Year,
+                localNow.Month,
+                localNow.Day,
+                localNow.Hour,
+                localNow.Minute,
+                localNow.Second,
+                localNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => firebirdNow.Date,
+                SqlTemporalFunctionKind.Time => firebirdNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(firebirdNow, TimeSpan.Zero),
+                _ => firebirdNow,
+            };
+
+            return true;
+        }
+
         value = kind switch
         {
             SqlTemporalFunctionKind.Date => localNow.Date,

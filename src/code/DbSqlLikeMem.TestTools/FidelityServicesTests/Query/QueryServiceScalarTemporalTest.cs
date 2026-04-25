@@ -384,13 +384,13 @@ public partial class QueryServiceTest
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
 SELECT
-    CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END AS NameGroup,
+    CAST(CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END AS CHAR(10)) AS NameGroup,
     COUNT(*) AS TotalCount,
     COUNT(DISTINCT Name) AS DistinctCount,
     COALESCE(MIN(Name), 'none') AS FirstName,
     COALESCE(MAX(Name), 'none') AS LastName
 FROM {Context.TbUsersFullName}
-GROUP BY CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END
+GROUP BY CAST(CASE WHEN Name = 'Bob' THEN 'B' ELSE 'Other' END AS CHAR(10))
 ORDER BY NameGroup
 """;
 
@@ -398,11 +398,11 @@ ORDER BY NameGroup
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "B", 2, 1, "Bob", "Bob");
-        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
+        rows.Add(NormalizeStringAggregateGroupCaseSnapshotRow(QueryResultSnapshotReader.CaptureRow(reader)));
 
         (await reader.ReadAsync()).Should().BeTrue();
         ValidateStringAggregateGroupCaseRow(reader, "Other", 3, 3, "Alice", "Delta");
-        rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
+        rows.Add(NormalizeStringAggregateGroupCaseSnapshotRow(QueryResultSnapshotReader.CaptureRow(reader)));
 
         (await reader.ReadAsync()).Should().BeFalse();
         return new QueryResultSnapshot
@@ -1171,7 +1171,9 @@ FROM SYSIBM.SYSDUMMY1
             AddParameter(command, "currencyValue", DbType.Currency, currencyValue);
         }
 
-        var value = Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture);
+        using var reader = command.ExecuteReader();
+        reader.Read();
+        var value = Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture);
         value.Should().Be("benchmark");
         GC.KeepAlive(value);
         GC.KeepAlive(createdAt);
@@ -1599,18 +1601,13 @@ ORDER BY rn
             var normalized = new string[columnNames.Length];
             for (var i = 0; i < columnNames.Length; i++)
             {
-                normalized[i] = columnNames[i] switch
-                {
-                    "Name" => "name",
-                    "Id" => "id",
-                    _ => columnNames[i]
-                };
+                normalized[i] = columnNames[i].ToLowerInvariant();
             }
 
             return normalized;
         }
 
-        if (Repo.Dialect.Provider is not ProviderId.Oracle and not ProviderId.Db2)
+        if (Repo.Dialect.Provider is not ProviderId.Oracle and not ProviderId.Db2 and not ProviderId.Firebird)
             return columnNames;
 
         var normalized2 = new string[columnNames.Length];
@@ -1659,5 +1656,36 @@ ORDER BY rn
     private static void ValidateNamePaginationRow(DbDataReader reader, string expectedName)
     {
         Convert.ToString(reader.GetValue(0), CultureInfo.InvariantCulture).Should().Be(expectedName);
+    }
+
+    private QueryResultRowSnapshot NormalizeStringAggregateGroupCaseSnapshotRow(QueryResultRowSnapshot row)
+    {
+        if (Repo.Dialect.Provider is not ProviderId.Firebird
+            and not ProviderId.Db2
+            and not ProviderId.Oracle
+            and not ProviderId.SqlServer
+            and not ProviderId.SqlAzure
+            and not ProviderId.Npgsql)
+            return row;
+
+        if (row.Values.Count == 0)
+            return row;
+
+        var nameGroup = Convert.ToString(row.Values[0], CultureInfo.InvariantCulture);
+        if (string.IsNullOrEmpty(nameGroup))
+            return row;
+
+        var trimmedNameGroup = nameGroup.TrimEnd();
+
+        if (trimmedNameGroup == nameGroup)
+            return row;
+
+        var values = row.Values.ToArray();
+        values[0] = trimmedNameGroup;
+
+        return new QueryResultRowSnapshot
+        {
+            Values = values,
+        };
     }
 }

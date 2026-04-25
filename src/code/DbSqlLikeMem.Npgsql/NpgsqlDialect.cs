@@ -1,5 +1,4 @@
 using DbSqlLikeMem.Models;
-using DbSqlLikeMem;
 
 namespace DbSqlLikeMem.Npgsql;
 

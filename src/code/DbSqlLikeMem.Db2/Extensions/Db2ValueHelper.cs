@@ -11,6 +11,7 @@ internal static class Db2ValueHelper
     // xUnit roda testes em paralelo por padrão. Se isso for global, um teste pisa no outro.
     // AsyncLocal resolve pra cenários async/await e também isola por fluxo de execução.
     private static readonly AsyncLocal<string?> _currentColumn = new();
+    private static readonly AsyncLocal<int> _positionalParameterCursor = new();
 
     /// <summary>
     /// Nome da coluna que está sendo processada (setado pelo caller antes de chamar <c>ResolveRowsFrameRange</c>).
@@ -21,6 +22,13 @@ internal static class Db2ValueHelper
         get => _currentColumn.Value;
         set => _currentColumn.Value = value;
     }
+
+    /// <summary>
+    /// EN: Resets the positional parameter cursor used to resolve DB2 `?` placeholders in order.
+    /// PT: Reinicia o cursor de parametros posicionais usado para resolver placeholders `?` do DB2 em ordem.
+    /// </summary>
+    internal static void ResetPositionalParameterCursor()
+        => _positionalParameterCursor.Value = 0;
 
     /// <summary>
     /// EN: Implements ResolveRowsFrameRange.
@@ -96,18 +104,11 @@ internal static class Db2ValueHelper
         if (pars is null || pars.Count == 0)
             return false;
 
-        foreach (IDataParameter parameter in pars)
+        var cursor = _positionalParameterCursor.Value;
+        if ((uint)cursor < (uint)pars.Count && pars[cursor] is IDataParameter parameter)
         {
-            if (!IsPositionalParameter(parameter.ParameterName))
-                continue;
-
+            _positionalParameterCursor.Value = cursor + 1;
             value = parameter.Value is DBNull ? null : parameter.Value;
-            return true;
-        }
-
-        if (pars[0] is IDataParameter first)
-        {
-            value = first.Value is DBNull ? null : first.Value;
             return true;
         }
 
@@ -145,38 +146,6 @@ internal static class Db2ValueHelper
         }
 
         return false;
-    }
-
-    private static bool IsPositionalParameter(string? parameterName)
-    {
-        if (string.IsNullOrWhiteSpace(parameterName))
-            return true;
-
-        var normalized = parameterName!.Trim().TrimStart('@', ':', '?');
-        if (normalized.Length == 0)
-            return true;
-
-        if (normalized.All(char.IsDigit))
-            return true;
-
-        if (normalized[0] is not ('p' or 'P'))
-            return false;
-
-        var hasDigit = false;
-        for (var i = 1; i < normalized.Length; i++)
-        {
-            var ch = normalized[i];
-            if (char.IsDigit(ch))
-            {
-                hasDigit = true;
-                continue;
-            }
-
-            if (ch != '_')
-                return false;
-        }
-
-        return hasDigit;
     }
 
     private static bool TryParseEnumOrSet(

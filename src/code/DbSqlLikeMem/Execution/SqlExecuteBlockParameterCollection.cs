@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// EN: Exposes execute block parameters through a read-only collection view.
+/// PT: Expõe os parametros do execute block por meio de uma view de colecao somente leitura.
+/// </summary>
 internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
 {
     private readonly DbParameterCollection _inner;
@@ -40,6 +44,10 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
         return new SqlExecuteBlockParameterCollection(inner, locals);
     }
 
+    /// <summary>
+    /// EN: Updates one local parameter value by normalized name.
+    /// PT: Atualiza o valor de um parametro local pelo nome normalizado.
+    /// </summary>
     internal bool TrySetLocalParameterValue(string parameterName, object? value)
     {
         var normalized = NormalizeParameterName(parameterName);
@@ -50,6 +58,10 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
         return true;
     }
 
+    /// <summary>
+    /// EN: Reads one local parameter value by normalized name.
+    /// PT: Lê o valor de um parametro local pelo nome normalizado.
+    /// </summary>
     internal bool TryGetLocalParameterValue(string parameterName, out object? value)
     {
         var normalized = NormalizeParameterName(parameterName);
@@ -111,6 +123,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
             ? string.Empty
             : rawName!.Trim().TrimStart('@', ':', '?');
 
+    /// <inheritdoc />
     protected override DbParameter GetParameter(int index)
     {
         if (index < _locals.Count)
@@ -128,6 +141,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
         throw new IndexOutOfRangeException();
     }
 
+    /// <inheritdoc />
     protected override DbParameter GetParameter(string parameterName)
     {
         var normalized = NormalizeParameterName(parameterName);
@@ -150,31 +164,41 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
         throw new ArgumentException(SqlExceptionMessages.ParameterNotFoundInCollection(parameterName), nameof(parameterName));
     }
 
+    /// <inheritdoc />
     protected override void SetParameter(int index, DbParameter value)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     protected override void SetParameter(string parameterName, DbParameter value)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     public override int Count => _locals.Count + _inner.Count;
 
+    /// <inheritdoc />
     public override object SyncRoot => _inner.SyncRoot;
 
+    /// <inheritdoc />
     public override int Add(object value)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     public override void AddRange(Array values)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     public override void Clear()
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     public override bool Contains(object value)
         => value is DbParameter parameter && (_locals.Contains(parameter) || _inner.Contains(value));
 
+    /// <inheritdoc />
     public override bool Contains(string value)
         => IndexOf(value) >= 0;
 
+    /// <inheritdoc />
     public override void CopyTo(Array array, int index)
     {
         foreach (var parameter in _locals)
@@ -184,6 +208,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
             array.SetValue(parameter, index++);
     }
 
+    /// <inheritdoc />
     public override IEnumerator GetEnumerator()
     {
         foreach (var parameter in _locals)
@@ -193,6 +218,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
             yield return parameter;
     }
 
+    /// <inheritdoc />
     public override int IndexOf(object value)
     {
         if (value is DbParameter parameter)
@@ -206,6 +232,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
         return innerIndex >= 0 ? innerIndex + _locals.Count : -1;
     }
 
+    /// <inheritdoc />
     public override int IndexOf(string parameterName)
     {
         var normalized = NormalizeParameterName(parameterName);
@@ -216,45 +243,61 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
         return innerIndex >= 0 ? innerIndex + _locals.Count : -1;
     }
 
+    /// <inheritdoc />
     public override void Insert(int index, object value)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     public override void Remove(object value)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     public override void RemoveAt(int index)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
+    /// <inheritdoc />
     public override void RemoveAt(string parameterName)
         => throw new NotSupportedException("The execute block parameter collection is read-only.");
 
 #pragma warning disable CS8764, CS8765
     private sealed class ScopedDbParameter : DbParameter
     {
+        /// <inheritdoc />
         public override DbType DbType { get; set; }
 
+        /// <inheritdoc />
         public override ParameterDirection Direction { get; set; } = ParameterDirection.Input;
 
+        /// <inheritdoc />
         public override bool IsNullable { get; set; }
 
+        /// <inheritdoc />
         public override string ParameterName { get; [param: System.Diagnostics.CodeAnalysis.AllowNull] set; } = string.Empty;
 
+        /// <inheritdoc />
         public override int Size { get; set; }
 
+        /// <inheritdoc />
         public override string SourceColumn { get; [param: System.Diagnostics.CodeAnalysis.AllowNull] set; } = string.Empty;
 
+        /// <inheritdoc />
         public override bool SourceColumnNullMapping { get; set; }
 
+        /// <inheritdoc />
         public override object? Value { get; set; }
 
+        /// <inheritdoc />
         public override void ResetDbType()
         {
         }
 
+        /// <inheritdoc />
         public override byte Precision { get; set; }
 
+        /// <inheritdoc />
         public override byte Scale { get; set; }
 
+        /// <inheritdoc />
         public override DataRowVersion SourceVersion { get; set; } = DataRowVersion.Current;
     }
 #pragma warning restore CS8764, CS8765

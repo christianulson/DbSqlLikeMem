@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools.Tests.Query;
+namespace DbSqlLikeMem.TestTools.Tests.Query;
 
 internal static class SelectTestsBaseSeeds
 {

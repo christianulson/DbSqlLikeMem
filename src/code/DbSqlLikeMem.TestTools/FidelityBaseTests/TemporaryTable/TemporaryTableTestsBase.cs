@@ -19,7 +19,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// EN: Verifies that creating a temporary table from a filtered source query returns the expected projected rows.
     /// PT: Verifica se criar uma tabela temporaria a partir de uma consulta filtrada retorna as linhas projetadas esperadas.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
         var result = (List<int>?)await RunFidelityTestAsync<TemporaryTableScenario>(
@@ -32,7 +32,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// EN: Verifies creating a temporary table from a filtered source query returns the expected projected rows.
     /// PT: Verifica se criar uma tabela temporaria a partir de uma consulta filtrada retorna as linhas projetadas esperadas.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public Task TempTableCreateAndUseTest()
         => CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows();
 
@@ -40,7 +40,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// EN: Verifies that rolling back a transaction clears rows written to a temporary users table.
     /// PT: Verifica se o rollback de uma transacao limpa as linhas gravadas em uma tabela temporaria de usuarios.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task CreateTemporaryUsersTable_Rollback_ShouldClearRows()
     {
         var result = await RunFidelityTestAsync<TemporaryUsersScenario>(
@@ -57,7 +57,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// EN: Verifies rolling back a transaction clears rows written to a temporary users table.
     /// PT: Verifica se o rollback de uma transacao limpa as linhas gravadas em uma tabela temporaria de usuarios.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public Task TempTableRollbackTest()
         => CreateTemporaryUsersTable_Rollback_ShouldClearRows();
 
@@ -65,7 +65,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// EN: Verifies that a temporary users table accepts inserts and returns the expected row count.
     /// PT: Verifica se uma tabela temporaria de usuarios aceita inserts e retorna a contagem esperada de linhas.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task CreateTemporaryUsersTable_CreateAndUse_ShouldReturnOne()
     {
         var result = (int?)await RunFidelityTestAsync<TemporaryUsersScenario>(
@@ -78,7 +78,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// EN: Verifies that a temporary users table is not visible from a secondary connection.
     /// PT: Verifica se uma tabela temporaria de usuarios nao fica visivel a partir de uma conexao secundaria.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero()
     {
         var result = (int?)await RunFidelityTestAsync<TemporaryUsersScenario>(
@@ -91,7 +91,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     /// EN: Verifies that a temporary users table is not visible from a secondary connection.
     /// PT: Verifica se uma tabela temporaria de usuarios nao fica visivel a partir de uma conexao secundaria.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public Task TempTableCrossConnectionIsolationTest()
         => CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero();
 
@@ -105,3 +105,4 @@ public abstract class TemporaryTableTestsBase<T, T2>(
         return await testService.RunTestAsync<TScenario, TemporaryTableServiceOpsTest>(runTest, args);
     }
 }
+

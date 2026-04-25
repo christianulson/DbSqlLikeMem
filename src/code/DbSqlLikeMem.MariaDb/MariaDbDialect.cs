@@ -26,6 +26,7 @@ internal sealed class MariaDbDialect
     /// <inheritdoc />
     protected override void InitializeFunctionRegistry()
     {
+        base.InitializeFunctionRegistry();
         MariaDbScalarFunctionRegistry.Register(this, Version);
         SqlSharedWindowFunctionRegistry.Register(this);
         MariaDbTableFunctionRegistry.Register(this, Version);

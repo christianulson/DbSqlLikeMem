@@ -8,5 +8,8 @@ public sealed class FirebirdDataReaderMock(
     IList<TableResultMock> tables
 ) : DbDataReaderMockBase(tables)
 {
+    /// <inheritdoc />
+    protected override string NormalizeColumnNameForGetName(string columnAlias, string columnName)
+        => base.NormalizeColumnNameForGetName(columnAlias, columnName).ToUpperInvariant();
 }
 

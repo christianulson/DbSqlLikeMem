@@ -239,8 +239,8 @@ ORDER BY id").ToList();
             Assert.Throws<NotSupportedException>(() =>
                 cnn.Query<dynamic>(@"
 SELECT id,
-       FIRST_VALUE(name) OVER (ORDER BY id) AS first_name,
-       LAST_VALUE(name) OVER (ORDER BY id) AS last_name
+       FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_name,
+       LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_name
 FROM users
 ORDER BY id").ToList());
             return;
@@ -248,8 +248,8 @@ ORDER BY id").ToList());
 
         var rows = cnn.Query<dynamic>(@"
 SELECT id,
-       FIRST_VALUE(name) OVER (ORDER BY id) AS first_name,
-       LAST_VALUE(name) OVER (ORDER BY id) AS last_name
+       FIRST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS first_name,
+       LAST_VALUE(name) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_name
 FROM users
 ORDER BY id").ToList();
 
@@ -275,7 +275,7 @@ ORDER BY id").ToList();
             Assert.Throws<NotSupportedException>(() =>
                 cnn.Query<dynamic>(@"
 SELECT id,
-       NTH_VALUE(name, 2) OVER (ORDER BY id) AS second_name
+       NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS second_name
 FROM users
 ORDER BY id").ToList());
             return;
@@ -283,7 +283,7 @@ ORDER BY id").ToList());
 
         var rows = cnn.Query<dynamic>(@"
 SELECT id,
-       NTH_VALUE(name, 2) OVER (ORDER BY id) AS second_name
+       NTH_VALUE(name, 2) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS second_name
 FROM users
 ORDER BY id").ToList();
 
@@ -449,7 +449,7 @@ ORDER BY tenantid, rn, id";
                 cnn.Query<dynamic>(@"
 SELECT id,
        LAG(id, 1 + 0, -1) OVER (ORDER BY id) AS lag_expr,
-       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id) AS nth_expr
+       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS nth_expr
 FROM users
 ORDER BY id").ToList());
             return;
@@ -458,7 +458,7 @@ ORDER BY id").ToList());
         var rows = cnn.Query<dynamic>(@"
 SELECT id,
        LAG(id, 1 + 0, -1) OVER (ORDER BY id) AS lag_expr,
-       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id) AS nth_expr
+       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS nth_expr
 FROM users
 ORDER BY id").ToList();
 

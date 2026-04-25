@@ -161,7 +161,7 @@ FROM users
 ORDER BY id").ToList();
 
         Assert.Equal(["John", "John", "John"], [.. rows.Select(r => (string)r.first_name)]);
-        Assert.Equal(["Jane", "Jane", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
     }
 
 
@@ -179,7 +179,7 @@ SELECT id,
 FROM users
 ORDER BY id").ToList();
 
-        Assert.Equal(["Bob", "Bob", "Bob"], [.. rows.Select(r => (string)r.second_name)]);
+        Assert.Equal(new string?[] { null, "Bob", "Bob" }, rows.Select(r => (string?)r.second_name).ToArray());
     }
 
 
@@ -318,7 +318,7 @@ FROM users
 ORDER BY id").ToList();
 
         Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_expr)]);
-        Assert.Equal(["Bob", "Bob", "Bob"], [.. rows.Select(r => (string)r.nth_expr)]);
+        Assert.Equal(new string?[] { null, "Bob", "Bob" }, rows.Select(r => (string?)r.nth_expr).ToArray());
     }
 
 

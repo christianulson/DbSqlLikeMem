@@ -55,15 +55,15 @@ public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : X
 
         try
         {
-            ExecuteNonQuery(connection, $"""
+            ExecuteNonQueryWithRetry(connection, $"""
 CREATE TABLE {tableName} (
     Id INT NOT NULL PRIMARY KEY,
     Name VARCHAR(100) NOT NULL
 )
 """);
-            ExecuteNonQuery(connection, $"CREATE INDEX IX_{tableName}_NAME ON {tableName} (Name)");
-            ExecuteNonQuery(connection, $"CREATE FUNCTION {functionName}(baseValue INT) RETURNS INT AS BEGIN RETURN baseValue + 1; END");
-            ExecuteNonQuery(connection, $"""
+            ExecuteNonQueryWithRetry(connection, $"CREATE INDEX IX_{tableName}_NAME ON {tableName} (Name)");
+            ExecuteNonQueryWithRetry(connection, $"CREATE FUNCTION {functionName}(baseValue INT) RETURNS INT AS BEGIN RETURN baseValue + 1; END");
+            ExecuteNonQueryWithRetry(connection, $"""
 CREATE OR ALTER PROCEDURE {procedureName}(tenantId INT)
 RETURNS (tenantEcho INT)
 AS
@@ -134,16 +134,45 @@ END
         command.ExecuteNonQuery();
     }
 
+    private static void ExecuteNonQueryWithRetry(FbConnection connection, string sql)
+    {
+        const int maxAttempts = 5;
+        var delay = TimeSpan.FromMilliseconds(200);
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                ExecuteNonQuery(connection, sql);
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts && ShouldRetryMetadataUpdate(ex))
+            {
+                Thread.Sleep(delay);
+                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
+            }
+        }
+    }
+
     private static void ExecuteNonQueryIgnoreErrors(FbConnection connection, string sql)
     {
         try
         {
-            ExecuteNonQuery(connection, sql);
+            ExecuteNonQueryWithRetry(connection, sql);
         }
         catch
         {
             // Cleanup is best-effort for benchmark schemas.
         }
+    }
+
+    private static bool ShouldRetryMetadataUpdate(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("deadlock", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("update conflicts with concurrent update", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("lock conflict on no wait transaction", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("concurrent transaction number", StringComparison.OrdinalIgnoreCase);
     }
 
     private SqlDatabaseMetadataProvider CreateProvider()

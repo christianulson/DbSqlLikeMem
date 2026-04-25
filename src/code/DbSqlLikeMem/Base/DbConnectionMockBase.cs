@@ -1159,9 +1159,19 @@ public abstract class DbConnectionMockBase(
             return tb;
         }
 
-        return Db.GetTable(
-            tableName,
-            ResolveSchemaName(schemaName));
+        var resolvedSchemaName = ResolveSchemaName(schemaName);
+        try
+        {
+            return Db.GetTable(
+                tableName,
+                resolvedSchemaName);
+        }
+        catch (InvalidOperationException) when (schemaName is null && !resolvedSchemaName.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase))
+        {
+            return Db.GetTable(
+                tableName,
+                "DefaultSchema");
+        }
     }
 
     /// <summary>
@@ -1189,10 +1199,21 @@ public abstract class DbConnectionMockBase(
             return true;
         }
 
-        return Db.TryGetTable(
+        var resolvedSchemaName = ResolveSchemaName(schemaName);
+        if (Db.TryGetTable(
             tableName,
             out tb,
-            ResolveSchemaName(schemaName));
+            resolvedSchemaName))
+        {
+            return true;
+        }
+
+        return schemaName is null
+            && !resolvedSchemaName.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase)
+            && Db.TryGetTable(
+                tableName,
+                out tb,
+                "DefaultSchema");
     }
 
     internal bool IsTemporaryTable(
@@ -2100,10 +2121,23 @@ public abstract class DbConnectionMockBase(
         string sequenceName,
         out SequenceDef? sequence,
         string? schemaName = null)
-        => Db.TryGetSequence(
+    {
+        var resolvedSchemaName = ResolveSchemaName(schemaName);
+        if (Db.TryGetSequence(
             sequenceName,
             out sequence,
-            ResolveSchemaName(schemaName));
+            resolvedSchemaName))
+        {
+            return true;
+        }
+
+        return schemaName is null
+            && !resolvedSchemaName.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase)
+            && Db.TryGetSequence(
+                sequenceName,
+                out sequence,
+                "DefaultSchema");
+    }
 
     internal void CreateSequence(
         string sequenceName,

@@ -38,6 +38,18 @@ public abstract class DbMock
     /// </summary>
     public virtual bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
 
+    /// <summary>
+    /// EN: Gets the implicit schema used when callers omit an explicit schema name.
+    /// PT: Obtém o schema implícito usado quando os chamadores omitem um nome de schema explicito.
+    /// </summary>
+    protected virtual string DefaultSchemaName => "DefaultSchema";
+
+    /// <summary>
+    /// EN: Gets the schema lookup order used when callers omit an explicit schema name.
+    /// PT: Obtém a ordem de consulta de schema usada quando os chamadores omitem um nome de schema explicito.
+    /// </summary>
+    protected virtual IReadOnlyList<string> ImplicitSchemaLookupOrder => [DefaultSchemaName];
+
     internal object SyncRoot { get; } = new();
 
     /// <summary>
@@ -139,9 +151,9 @@ public abstract class DbMock
     {
         if (schemaName == null)
         {
-            if (base.TryGetValue("DefaultSchema", out var defaultSchema)
+            if (base.TryGetValue(DefaultSchemaName, out var defaultSchema)
                 && defaultSchema != null)
-                return "DefaultSchema";
+                return DefaultSchemaName.NormalizeName();
 
             if (Count > 1)
                 throw new InvalidOperationException(SqlExceptionMessages.MultipleSchemasRequireExplicitName(string.Join(",", this.Keys)));
@@ -310,8 +322,18 @@ public abstract class DbMock
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
+        if (schemaName is null)
+        {
+            if (TryGetTable(tableName, out var implicitTable))
+                return implicitTable!;
+
+            throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
+        }
+
         var sc = GetSchemaName(schemaName);
-        if (!this[sc].TryGetTable(tableName, out var tb)
+        if (!base.TryGetValue(sc, out var schema)
+            || schema is null
+            || !schema.TryGetTable(tableName, out var tb)
             || tb == null)
             throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
         return tb;
@@ -331,6 +353,9 @@ public abstract class DbMock
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
+        if (schemaName is null)
+            return TryGetTableInImplicitSchemas(tableName, out tb);
+
         var sc = GetSchemaName(schemaName);
         if (!base.TryGetValue(sc, out var schema) || schema is null)
         {
@@ -354,6 +379,9 @@ public abstract class DbMock
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tableName, nameof(tableName));
+        if (schemaName is null)
+            return TryGetTableInImplicitSchemas(tableName, out var _);
+
         var sc = GetSchemaName(schemaName);
         return base.TryGetValue(sc, out var schema)
             && schema is not null
@@ -365,7 +393,9 @@ public abstract class DbMock
         string? schemaName = null)
     {
         var sc = GetSchemaName(schemaName);
-        return this[sc].Tables.Select(_ => _.Value).ToList().AsReadOnly();
+        return base.TryGetValue(sc, out var schema) && schema is not null
+            ? schema.Tables.Select(_ => _.Value).ToList().AsReadOnly()
+            : Array.Empty<ITableMock>();
     }
 
     internal void DropTable(
@@ -516,7 +546,8 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(name, nameof(name));
 
         var sc = GetSchemaName(schemaName);
-        var schema = this[sc];
+        if (!base.TryGetValue(sc, out var schema) || schema == null)
+            schema = (SchemaMock)CreateSchema(sc);
 
         if (schema.Views.ContainsKey(name!))
         {
@@ -544,7 +575,9 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
-        if (!this[sc].Views.TryGetValue(viewName, out var vw)
+        if (!base.TryGetValue(sc, out var schema)
+            || schema is null
+            || !schema.Views.TryGetValue(viewName, out var vw)
             || vw == null)
             throw new InvalidOperationException(SqlExceptionMessages.ViewDoesNotExist(viewName));
         return vw;
@@ -557,7 +590,13 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(viewName, nameof(viewName));
         var sc = GetSchemaName(schemaName);
-        return this[sc].Views.TryGetValue(viewName, out vw)
+        if (!base.TryGetValue(sc, out var schema) || schema is null)
+        {
+            vw = null;
+            return false;
+        }
+
+        return schema.Views.TryGetValue(viewName, out vw)
             && vw != null;
     }
 
@@ -659,7 +698,13 @@ public abstract class DbMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(procName, nameof(procName));
         var sc = GetSchemaName(schemaName);
-        return this[sc].TryGetProcedure(procName, out pr);
+        if (!base.TryGetValue(sc, out var schema) || schema is null)
+        {
+            pr = null;
+            return false;
+        }
+
+        return schema.TryGetProcedure(procName, out pr);
     }
 
     #endregion
@@ -674,12 +719,12 @@ public abstract class DbMock
         ArgumentNullExceptionCompatible.ThrowIfNull(functionName, nameof(functionName));
         if (schemaName is null)
         {
-            foreach (var schema in Values)
+            foreach (var schema1 in Values)
             {
-                if (schema is null)
+                if (schema1 is null)
                     continue;
 
-                if (schema.TryGetFunction(functionName, out function))
+                if (schema1.TryGetFunction(functionName, out function))
                     return true;
             }
 
@@ -688,7 +733,13 @@ public abstract class DbMock
         }
 
         var sc = GetSchemaName(schemaName);
-        return this[sc].TryGetFunction(functionName, out function);
+        if (!base.TryGetValue(sc, out var schema) || schema is null)
+        {
+            function = null;
+            return false;
+        }
+
+        return schema.TryGetFunction(functionName, out function);
     }
 
     internal bool ContainsRuntimeFunction(string functionName)
@@ -914,6 +965,9 @@ public abstract class DbMock
         string? schemaName = null)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(sequenceName, nameof(sequenceName));
+        if (schemaName is null)
+            return TryGetSequenceInImplicitSchemas(sequenceName, out sequence);
+
         var sc = GetSchemaName(schemaName);
         if (!TryGetValue(sc, out var schema) || schema == null)
         {
@@ -923,6 +977,47 @@ public abstract class DbMock
 
         return schema.Sequences.TryGetValue(sequenceName.NormalizeName(), out sequence)
             && sequence != null;
+    }
+
+    private bool TryGetTableInImplicitSchemas(
+        string tableName,
+        out ITableMock? tb)
+    {
+        foreach (var schemaName in ImplicitSchemaLookupOrder)
+        {
+            if (string.IsNullOrWhiteSpace(schemaName))
+                continue;
+
+            if (!base.TryGetValue(schemaName, out var schema) || schema is null)
+                continue;
+
+            if (schema.TryGetTable(tableName, out tb) && tb != null)
+                return true;
+        }
+
+        tb = null;
+        return false;
+    }
+
+    private bool TryGetSequenceInImplicitSchemas(
+        string sequenceName,
+        out SequenceDef? sequence)
+    {
+        foreach (var schemaName in ImplicitSchemaLookupOrder)
+        {
+            if (string.IsNullOrWhiteSpace(schemaName))
+                continue;
+
+            if (!base.TryGetValue(schemaName, out var schema) || schema is null)
+                continue;
+
+            if (schema.Sequences.TryGetValue(sequenceName.NormalizeName(), out sequence)
+                && sequence != null)
+                return true;
+        }
+
+        sequence = null;
+        return false;
     }
 
     internal void CreateSequence(

@@ -1,5 +1,9 @@
 namespace DbSqlLikeMem;
 
+/// <summary>
+/// EN: Carries execution-plan metrics used to format cost and row estimates.
+/// PT: Carrega metricas de execution plan usadas para formatar custo e estimativas de linhas.
+/// </summary>
 internal sealed record SqlPlanRuntimeMetrics(
     int InputTables,
     long EstimatedRowsRead,
@@ -10,6 +14,10 @@ internal sealed record SqlPlanRuntimeMetrics(
     public double SelectivityPct => EstimatedRowsRead <= 0 ? 0d : (double)ActualRows / EstimatedRowsRead * 100d;
 }
 
+/// <summary>
+/// EN: Carries mock runtime flags that affect execution-plan formatting.
+/// PT: Carrega flags de runtime do mock que afetam a formatação do execution plan.
+/// </summary>
 internal sealed record SqlPlanMockRuntimeContext(
     int SimulatedLatencyMs,
     double DropProbability,
@@ -18,6 +26,10 @@ internal sealed record SqlPlanMockRuntimeContext(
     public bool MetricsAreRelative => true;
 }
 
+/// <summary>
+/// EN: Describes one index suggestion shown in the execution-plan output.
+/// PT: Descreve uma sugestão de indice exibida na saida do execution plan.
+/// </summary>
 internal sealed record SqlIndexRecommendation(
     string Table,
     string SuggestedIndex,
@@ -32,6 +44,10 @@ internal sealed record SqlIndexRecommendation(
             : (double)(EstimatedRowsReadBefore - EstimatedRowsReadAfter) / EstimatedRowsReadBefore * 100d;
 }
 
+/// <summary>
+/// EN: Classifies execution-plan warnings by impact level.
+/// PT: Classifica avisos do execution plan por nivel de impacto.
+/// </summary>
 internal enum SqlPlanWarningSeverity
 {
     Info,
@@ -39,6 +55,10 @@ internal enum SqlPlanWarningSeverity
     High
 }
 
+/// <summary>
+/// EN: Identifies the runtime context used to tune severity hints.
+/// PT: Identifica o contexto de runtime usado para ajustar dicas de severidade.
+/// </summary>
 internal enum SqlPlanSeverityHintContext
 {
     Dev,
@@ -46,6 +66,10 @@ internal enum SqlPlanSeverityHintContext
     Prod
 }
 
+/// <summary>
+/// EN: Holds one formatted warning emitted by the execution-plan formatter.
+/// PT: Mantem um aviso formatado emitido pelo formatter do execution plan.
+/// </summary>
 internal sealed record SqlPlanWarning(
     string Code,
     string Message,
@@ -56,6 +80,10 @@ internal sealed record SqlPlanWarning(
     string? ObservedValue = null,
     string? Threshold = null);
 
+/// <summary>
+/// EN: Formats execution-plan summaries, warnings, and optimization hints.
+/// PT: Formata resumos, avisos e dicas de otimizacao do execution plan.
+/// </summary>
 internal static class SqlExecutionPlanFormatter
 {
     public static string FormatInsert(

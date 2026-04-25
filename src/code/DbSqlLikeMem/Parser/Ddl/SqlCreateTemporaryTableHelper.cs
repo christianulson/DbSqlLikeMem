@@ -175,6 +175,12 @@ internal static class SqlCreateTemporaryTableHelper
                 .Where(t => t.Kind != SqlTokenKind.EndOfFile)
                 .ToList();
 
+            if (TryParseCreateTemporaryTablePrimaryKeyConstraint(defTokens, out var tablePrimaryKeyColumns))
+            {
+                primaryKeyColumns.AddRange(tablePrimaryKeyColumns);
+                continue;
+            }
+
             if (TryParseCreateTemporaryTableCheckConstraint(defTokens, checkConstraintOrdinal, out var checkConstraint))
             {
                 checkConstraints.Add(checkConstraint!);
@@ -192,6 +198,62 @@ internal static class SqlCreateTemporaryTableHelper
         }
 
         return (columnDefinitions, primaryKeyColumns, checkConstraints);
+    }
+
+    private static bool TryParseCreateTemporaryTablePrimaryKeyConstraint(
+        IReadOnlyList<SqlToken> defTokens,
+        out List<string> primaryKeyColumns)
+    {
+        primaryKeyColumns = [];
+
+        if (defTokens.Count == 0)
+            return false;
+
+        var firstToken = defTokens[0];
+        var startIndex = 0;
+
+        if (firstToken.Text.Equals("CONSTRAINT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (defTokens.Count < 4)
+                return false;
+
+            startIndex = 2;
+        }
+
+        if (startIndex >= defTokens.Count - 1
+            || !defTokens[startIndex].Text.Equals(SqlConst.PRIMARY, StringComparison.OrdinalIgnoreCase)
+            || !defTokens[startIndex + 1].Text.Equals(SqlConst.KEY, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var openParenIndex = -1;
+        for (var i = startIndex + 2; i < defTokens.Count; i++)
+        {
+            if (defTokens[i].Text == "(")
+            {
+                openParenIndex = i;
+                break;
+            }
+        }
+
+        if (openParenIndex < 0)
+            return false;
+
+        var expressionTokens = ExtractBalancedTokens(defTokens, openParenIndex);
+        if (expressionTokens.Count == 0)
+            return false;
+
+        var colsSql = TokensToSql(StripOuterParentheses(expressionTokens));
+        primaryKeyColumns = colsSql
+            .Split(',')
+            .Select(x => x.Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(static name => name.NormalizeName())
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .ToList();
+
+        return primaryKeyColumns.Count > 0;
     }
 
     private static (Col Column, bool PrimaryKey)? ParseCreateTemporaryTableColumnDefinition(
@@ -702,8 +764,25 @@ internal static class SqlCreateTemporaryTableHelper
             ColumnNames = [.. columnDefinitions.Select(static c => c.name)],
             PrimaryKeyColumns = [.. primaryKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase)],
             CheckConstraints = checkConstraints.Count == 0 ? [] : [.. checkConstraints],
+            PartitionClauseSql = ExtractPartitionClauseSql(ctx.RawSql),
             AsSelect = sel
         };
+    }
+
+    private static string? ExtractPartitionClauseSql(string rawSql)
+    {
+        if (string.IsNullOrWhiteSpace(rawSql))
+            return null;
+
+        var partitionIndex = rawSql.IndexOf("PARTITION BY", StringComparison.OrdinalIgnoreCase);
+        if (partitionIndex < 0)
+            return null;
+
+        var partitionClause = rawSql[partitionIndex..].Trim();
+        if (string.IsNullOrWhiteSpace(partitionClause))
+            return null;
+
+        return partitionClause.TrimEnd(';').Trim();
     }
 
     private static void EnsureBodyExistsAfterAs(IReadOnlyList<SqlToken> tokens, string statementName)

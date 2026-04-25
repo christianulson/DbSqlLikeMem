@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-
 namespace DbSqlLikeMem;
 
 internal abstract partial class SqlDialectBase

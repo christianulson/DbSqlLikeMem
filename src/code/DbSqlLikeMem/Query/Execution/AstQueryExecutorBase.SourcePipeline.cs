@@ -22,8 +22,27 @@ internal abstract partial class AstQueryExecutorBase
             src = src.WithRequestedPartitions(requestedPartitions);
         }
 
-        src = PartitionHelper.ApplyPartitionPruning(src, where);
-        var sourceRows = IndexHelper.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
+        var parameterState = _context.SnapshotPositionalParameterState();
+        try
+        {
+            src = PartitionHelper.ApplyPartitionPruning(src, where);
+        }
+        finally
+        {
+            _context.RestorePositionalParameterState(parameterState);
+        }
+
+        parameterState = _context.SnapshotPositionalParameterState();
+        IEnumerable<Dictionary<string, object?>> sourceRows;
+        try
+        {
+            sourceRows = IndexHelper.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
+        }
+        finally
+        {
+            _context.RestorePositionalParameterState(parameterState);
+        }
+
         foreach (var r in sourceRows)
             yield return AstQueryRowSourceHelper.CreateSourceEvalRow(src, r);
     }

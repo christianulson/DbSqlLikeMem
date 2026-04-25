@@ -1,4 +1,3 @@
-using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Sqlite;
@@ -66,11 +65,11 @@ internal static partial class SqliteScalarFunctionRegistry
         out object? result)
         => AstQuerySqliteScalarFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
 
-    [ScalarFunction("NOW", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("CURRENT_DATE", "DATE", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.Date)]
-    [ScalarFunction("CURRENT_TIME", "TIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.Time)]
-    [ScalarFunction("CURRENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("SYSTEMDATE", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("NOW", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = 2)]
+    [ScalarFunction("CURRENT_DATE", "DATE", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = 0)]
+    [ScalarFunction("CURRENT_TIME", "TIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = 1)]
+    [ScalarFunction("CURRENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = 2)]
+    [ScalarFunction("SYSTEMDATE", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = 2)]
     private static bool TryEvalSqliteTemporalFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,

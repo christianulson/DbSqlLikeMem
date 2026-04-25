@@ -15,9 +15,9 @@ public class InsertTests(
     ) : InsertTestsBase<Db2ConnectionMock, DB2Connection>(
     helper,
     new Db2ProviderSqlDialect(),
-    static () => new Db2ConnectionMock(Db),
+    static () => new Db2ConnectionMock(Get(Db2DbVersions.Default, _ => new Db2DbMock(_) { ThreadSafe = true })),
     Db2ConnectionFactory.Create
     )
 {
-    private static readonly Db2DbMock Db = new() { ThreadSafe = true };
+
 }

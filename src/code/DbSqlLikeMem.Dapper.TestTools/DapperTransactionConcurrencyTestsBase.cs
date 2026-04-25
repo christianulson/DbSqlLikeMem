@@ -193,16 +193,16 @@ public abstract class DapperTransactionConcurrencyTestsBase(
         var txFirstTask = Task.Run(() =>
         {
             using var tx = first.BeginTransaction();
-            first.Execute("UPDATE tx_concurrency_commit SET amount = amount + 10 WHERE id = 1", transaction: tx);
             sync.SignalAndWait();
+            first.Execute("UPDATE tx_concurrency_commit SET amount = amount + 10 WHERE id = 1", transaction: tx);
             tx.Commit();
         });
 
         var txSecondTask = Task.Run(() =>
         {
             using var tx = second.BeginTransaction();
-            second.Execute("UPDATE tx_concurrency_commit SET amount = amount + 100 WHERE id = 1", transaction: tx);
             sync.SignalAndWait();
+            second.Execute("UPDATE tx_concurrency_commit SET amount = amount + 100 WHERE id = 1", transaction: tx);
             tx.Commit();
         });
 

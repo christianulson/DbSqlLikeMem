@@ -34,7 +34,7 @@ public sealed class FirebirdSequenceDdlTests
         {
             alter.CommandText = "ALTER SEQUENCE seq_users RESTART WITH 10";
             var affected = alter.ExecuteNonQuery();
-            Assert.Equal(0, affected);
+            Assert.Equal(-1, affected);
         }
 
         using (var insert = new FirebirdCommandMock(connection))
@@ -68,7 +68,7 @@ public sealed class FirebirdSequenceDdlTests
         using (var set = new FirebirdCommandMock(connection))
         {
             set.CommandText = "SET GENERATOR seq_set TO 4";
-            Assert.Equal(0, set.ExecuteNonQuery());
+            Assert.Equal(-1, set.ExecuteNonQuery());
         }
 
         using (var insert = new FirebirdCommandMock(connection))

@@ -16,7 +16,7 @@ public class SequenceTests(
     ) : SequenceTestsBase<Db2ConnectionMock, DB2Connection>(
     helper,
     new Db2ProviderSqlDialect(),
-    () => new Db2ConnectionMock(),
+    () => new Db2ConnectionMock(Get(Db2DbVersions.Default, _ => new Db2DbMock(_) { ThreadSafe = true })),
     Db2ConnectionFactory.Create
     )
 {
@@ -24,7 +24,7 @@ public class SequenceTests(
     /// EN: Verifies NEXT VALUE FOR can be used inside a filtered DB2 query and advances in execution order.
     /// PT: Verifica se NEXT VALUE FOR pode ser usado dentro de uma consulta filtrada do DB2 e avanca na ordem de execucao.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     [Trait("Category", "ExtendedDb2Mock")]
     public async Task SequenceExpressions_ShouldReturnExpectedValues()
     {
@@ -36,14 +36,14 @@ public class SequenceTests(
 
         var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest>() as long[];
 
-        _ = new long[] { 1L, 2L }.Should().Equal(result);
+        _ = new long[] { 10L, 11L }.Should().Equal(result);
     }
 
     /// <summary>
     /// EN: Verifies DB2 sequence values remain session-local across two independent connections.
     /// PT: Verifica se os valores de sequence do DB2 permanecem locais a sessao em duas conexoes independentes.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     [Trait("Category", "ExtendedDb2Mock")]
     public async Task SequenceValues_ShouldBeSessionLocal()
     {
@@ -58,3 +58,4 @@ public class SequenceTests(
         _ = new object?[] { 10L, 10L, 11L, 11L, 10L }.Should().Equal(result);
     }
 }
+

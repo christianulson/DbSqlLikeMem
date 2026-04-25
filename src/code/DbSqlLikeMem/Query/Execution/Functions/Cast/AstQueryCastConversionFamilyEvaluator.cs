@@ -348,7 +348,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return AstQueryExecutionRuntimeHelper.TryCoerceDateTime(v, out var dt) ? dt : DBNull.Value;
             }
 
-            return FormatTextCastValue(context, v!, fn.Args[0]);
+            return FormatTextCastValue(context, v!, type, fn.Args[0]);
         }
         catch
         {
@@ -507,7 +507,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
                 return bytes;
 
             if (IsTextCastTypeName(type))
-                return FormatTextCastValue(context, v!, fn.Args[0]);
+                return FormatTextCastValue(context, v!, type, fn.Args[0]);
 
             if (TryEvalCastIntegerResult(context, fn, v!, type, out var integerResult))
                 return integerResult;
@@ -524,7 +524,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
             if (TryEvalCastJsonResult(v!, type, out var jsonResult))
                 return jsonResult;
 
-            return FormatTextCastValue(context, v!, fn.Args[0]);
+            return FormatTextCastValue(context, v!, type, fn.Args[0]);
         }
 #pragma warning disable CA1031
         catch (Exception e)
@@ -735,6 +735,12 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
     private static bool IsFirebirdDialect(ISqlDialect? dialect)
         => dialect is not null && string.Equals(dialect.Name, "firebird", StringComparison.OrdinalIgnoreCase);
 
+    private static bool IsDb2Dialect(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "db2", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsNpgsqlDialect(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "npgsql", StringComparison.OrdinalIgnoreCase);
+
     private static bool IsDecimalCastTypeName(string typeName)
         => typeName.StartsWith("DECIMAL", StringComparison.OrdinalIgnoreCase)
            || typeName.StartsWith("NUMERIC", StringComparison.OrdinalIgnoreCase);
@@ -750,7 +756,7 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
            || typeName.StartsWith("SMALLDATETIME", StringComparison.OrdinalIgnoreCase)
            || typeName.StartsWith("TIMESTAMP", StringComparison.OrdinalIgnoreCase);
 
-    private static string FormatTextCastValue(QueryExecutionContext context, object value, SqlExpr? sourceExpression = null)
+    private static string FormatTextCastValue(QueryExecutionContext context, object value, string typeName, SqlExpr? sourceExpression = null)
     {
         if (string.Equals(context.Dialect.Name, "oracle", StringComparison.OrdinalIgnoreCase) && IsNumericValue(value))
             return AstQueryFormatFunctionHelper.FormatOracleNumber(value);
@@ -762,6 +768,20 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         }
 
         var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        if (IsDb2Dialect(context)
+            && TryGetFixedLengthTextCastWidth(typeName, out var fixedWidth)
+            && text.Length < fixedWidth)
+        {
+            return text.PadRight(fixedWidth);
+        }
+
+        if (IsNpgsqlDialect(context)
+            && TryGetFixedLengthTextCastWidth(typeName, out fixedWidth)
+            && text.Length < fixedWidth)
+        {
+            return text.PadRight(fixedWidth);
+        }
+
         if (!IsFirebirdDialect(context.Connection.ProviderExecutionDialect))
             return text;
 
@@ -787,6 +807,40 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
 
         var fn = (FunctionCallExpr)expression;
         return TryGetDecimalScaleFromCastCall(fn.Name, fn.Args);
+    }
+
+    private static bool TryGetFixedLengthTextCastWidth(string typeName, out int width)
+    {
+        width = 0;
+
+        if (string.IsNullOrWhiteSpace(typeName))
+            return false;
+
+        if (typeName.IndexOf("VARYING", StringComparison.OrdinalIgnoreCase) >= 0
+            || typeName.IndexOf("FOR BIT DATA", StringComparison.OrdinalIgnoreCase) >= 0)
+        {
+            return false;
+        }
+
+        if (!typeName.StartsWith("CHAR", StringComparison.OrdinalIgnoreCase)
+            && !typeName.StartsWith("NCHAR", StringComparison.OrdinalIgnoreCase)
+            && !typeName.StartsWith("CHARACTER", StringComparison.OrdinalIgnoreCase)
+            && !typeName.StartsWith("NCHARACTER", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var openParen = typeName.IndexOf('(');
+        if (openParen < 0)
+            return false;
+
+        var closeParen = typeName.IndexOf(')', openParen + 1);
+        if (closeParen < 0)
+            return false;
+
+        var widthText = typeName[(openParen + 1)..closeParen].Trim();
+        return int.TryParse(widthText, NumberStyles.Integer, CultureInfo.InvariantCulture, out width)
+            && width > 0;
     }
 
     private static int? TryGetDecimalScaleFromCastCall(string name, IReadOnlyList<SqlExpr> args)

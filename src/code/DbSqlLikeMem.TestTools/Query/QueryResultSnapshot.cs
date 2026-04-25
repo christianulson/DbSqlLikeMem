@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using FluentAssertions.Execution;
 
@@ -66,6 +67,9 @@ internal static class QueryResultSnapshotReader
         if (IsDateTimeLikeColumn(columnName))
             return NormalizeDateTimeOffsetColumnValue(value);
 
+        if (IsAmountTextColumn(columnName))
+            return NormalizeAmountTextValue(value);
+
         if (value is string or char)
         {
             var text = value.ToString();
@@ -128,6 +132,43 @@ internal static class QueryResultSnapshotReader
         return value;
     }
 
+    private static object? NormalizeAmountTextValue(object? value)
+    {
+        if (value is null || value is DBNull)
+            return null;
+
+        if (value is string or char)
+        {
+            var text = value.ToString();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var decimalValue))
+                    return decimalValue.ToString("0.00", CultureInfo.InvariantCulture);
+            }
+
+            return text;
+        }
+
+        if (value is IConvertible)
+        {
+            try
+            {
+                return Convert.ToDecimal(value, CultureInfo.InvariantCulture).ToString("0.00", CultureInfo.InvariantCulture);
+            }
+            catch (FormatException)
+            {
+            }
+            catch (InvalidCastException)
+            {
+            }
+            catch (OverflowException)
+            {
+            }
+        }
+
+        return value;
+    }
+
     private static object? NormalizeJsonElement(JsonElement jsonElement)
         => jsonElement.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined
             ? null
@@ -171,13 +212,12 @@ internal static class QueryResultSnapshotReader
         if (readerTypeName.Contains("DbSqlLikeMem.Npgsql", StringComparison.Ordinal)
             || readerTypeName.Contains("Npgsql.", StringComparison.Ordinal))
         {
-            return columnName switch
-            {
-                "Name" => "name",
-                "Id" => "id",
-                _ => columnName
-            };
+            return columnName.ToLowerInvariant();
         }
+
+        if (readerTypeName.Contains("DbSqlLikeMem.Firebird", StringComparison.Ordinal)
+            || readerTypeName.Contains("FirebirdSql.Data.FirebirdClient", StringComparison.Ordinal))
+            return columnName.ToUpperInvariant();
 
         if (readerTypeName.Contains("DbSqlLikeMem.Oracle", StringComparison.Ordinal)
             || readerTypeName.Contains("DbSqlLikeMem.Db2", StringComparison.Ordinal))
@@ -201,6 +241,9 @@ internal static class QueryResultSnapshotReader
     private static bool IsDateTimeLikeColumn(string columnName)
         => columnName.EndsWith("At", StringComparison.OrdinalIgnoreCase)
             || columnName.Contains("DateTime", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsAmountTextColumn(string columnName)
+        => columnName.Contains("AmountText", StringComparison.OrdinalIgnoreCase);
 
     private static object? NormalizeTimeOnlyValue(object? value)
     {

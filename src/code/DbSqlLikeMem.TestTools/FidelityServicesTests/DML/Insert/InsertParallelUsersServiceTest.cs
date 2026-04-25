@@ -28,7 +28,7 @@ public class InsertParallelUsersServiceTest(
             .Select(async offset =>
             {
                 var id = startId + offset;
-                using var parallelRepo = Repo.Clone();
+                using var parallelRepo = Repo.CloneWithSharedDatabase();
                 await ExecuteParameterizedInsertOnConnectionAsync(parallelRepo, id);
             })
             .ToArray();

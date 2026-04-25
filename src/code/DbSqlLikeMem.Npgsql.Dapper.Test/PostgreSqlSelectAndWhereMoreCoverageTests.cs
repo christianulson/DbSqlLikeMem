@@ -100,9 +100,9 @@ FROM users
 ORDER BY id").ToList();
 
         Assert.Equal(3, rows.Count);
-        Assert.Equal("Y", (string)rows[0].hasEmail);
-        Assert.Equal("N", (string)rows[1].hasEmail);
-        Assert.Equal("Y", (string)rows[2].hasEmail);
+        Assert.Equal("Y", (string)rows[0].hasemail);
+        Assert.Equal("N", (string)rows[1].hasemail);
+        Assert.Equal("Y", (string)rows[2].hasemail);
     }
 
     /// <summary>

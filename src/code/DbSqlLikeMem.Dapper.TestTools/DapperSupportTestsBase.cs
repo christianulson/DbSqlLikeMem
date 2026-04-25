@@ -769,10 +769,13 @@ public abstract class DapperCrudTestsBase(
         }
 
         result.Should().ContainSingle();
-        var row = result.First();
-        ((int)row.id).Should().Be(1);
-        ((string)row.name).Should().Be("John Doe");
-        ((DateTime)row.CreatedDate).Should().Be(dt);
+        var row = (object)result.First();
+        var id = Convert.ToInt32(GetValueIgnoreCase(row, "id"));
+        id.Should().Be(1);
+        var name = Convert.ToString(GetValueIgnoreCase(row, "name"));
+        name.Should().Be("John Doe");
+        var createdDate = Convert.ToDateTime(GetValueIgnoreCase(row, "CreatedDate"));
+        createdDate.Should().Be(dt);
     }
 
     /// <summary>
@@ -912,8 +915,11 @@ UPDATE users
 
         var users = resultSets[0].ToList();
         users.Should().ContainSingle();
-        ((int)users[0].id).Should().Be(1);
-        ((string)users[0].name).Should().Be("John Doe");
+        var userRow = (object)users[0];
+        var userId = Convert.ToInt32(GetValueIgnoreCase(userRow, "id"));
+        userId.Should().Be(1);
+        var userName = Convert.ToString(GetValueIgnoreCase(userRow, "name"));
+        userName.Should().Be("John Doe");
 
         var emails = resultSets[1].ToList();
         emails.Should().HaveCount(2);
@@ -921,12 +927,36 @@ UPDATE users
         var email1 = (object)emails[1];
         var email0Values = (IDictionary<string, object?>)email0;
         var email1Values = (IDictionary<string, object?>)email1;
-        Convert.ToInt32(email0Values["id"]).Should().Be(1);
-        Convert.ToString(email0Values["email"]).Should().Be("john.doe@example.com");
-        Convert.ToDateTime(email0Values["CreatedDate"]).Should().Be(dt);
-        Convert.ToInt32(email1Values["id"]).Should().Be(2);
-        Convert.ToString(email1Values["email"]).Should().Be("jane.doe@example.com");
-        Convert.ToDateTime(email1Values["CreatedDate"]).Should().Be(dt2);
+        var email0Id = Convert.ToInt32(GetValueIgnoreCase(email0Values, "id"));
+        email0Id.Should().Be(1);
+        var email0Address = Convert.ToString(GetValueIgnoreCase(email0Values, "email"));
+        email0Address.Should().Be("john.doe@example.com");
+        var email0CreatedDate = Convert.ToDateTime(GetValueIgnoreCase(email0Values, "CreatedDate"));
+        email0CreatedDate.Should().Be(dt);
+        var email1Id = Convert.ToInt32(GetValueIgnoreCase(email1Values, "id"));
+        email1Id.Should().Be(2);
+        var email1Address = Convert.ToString(GetValueIgnoreCase(email1Values, "email"));
+        email1Address.Should().Be("jane.doe@example.com");
+        var email1CreatedDate = Convert.ToDateTime(GetValueIgnoreCase(email1Values, "CreatedDate"));
+        email1CreatedDate.Should().Be(dt2);
+    }
+
+    /// <summary>
+    /// EN: Gets a Dapper row value using a case-insensitive column-name match.
+    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// </summary>
+    protected static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
     /// <inheritdoc />
@@ -1817,7 +1847,7 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
                   """;
 
         var rows = connection.Query<dynamic>(sql).ToList();
-        rows.Select(r => (int)r.id).Should().Contain(2);
+        rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id"))).Should().Contain(2);
     }
 
     /// <summary>
@@ -1834,7 +1864,11 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
                   """;
 
         var rows = connection.Query<dynamic>(sql)
-            .Select(r => new { Id = (int?)r.id, OrderId = (int)r.orderId })
+            .Select(r => new
+            {
+                Id = (int?)GetValueIgnoreCase((object)r, "id"),
+                OrderId = Convert.ToInt32(GetValueIgnoreCase((object)r, "orderId"))
+            })
             .ToList();
         rows.Should().Contain(r => r.Id == null && r.OrderId == 12);
     }
@@ -1854,7 +1888,25 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
 
         var rows = connection.Query<dynamic>(sql).ToList();
         rows.Should().ContainSingle();
-        ((int)rows[0].orderId).Should().Be(10);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "orderId")).Should().Be(10);
+    }
+
+    /// <summary>
+    /// EN: Gets a Dapper row value using a case-insensitive column-name match.
+    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// </summary>
+    protected static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
     private TConnection CreateOpenConnection()
@@ -2580,7 +2632,9 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE first = @f AND second = @s", new { f = "A", s = "X" }).ToList();
         result.Should().ContainSingle();
-        ((int)result[0].value).Should().Be(1);
+        var valueRow = (object)result[0];
+        var value = Convert.ToInt32(GetValueIgnoreCase(valueRow, "value"));
+        value.Should().Be(1);
     }
 
     /// <summary>
@@ -2599,8 +2653,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE name LIKE 'a%'").ToList();
         result.Should().ContainSingle();
         var row = (object)result[0];
-        var values = (IDictionary<string, object?>)row;
-        var name = Convert.ToString(values["name"]);
+        var name = Convert.ToString(GetValueIgnoreCase(row, "name"));
         name.Should().Be("alice");
     }
 
@@ -2619,7 +2672,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         using var connection = OpenConnection(db);
 
         var result = connection.Query<dynamic>("SELECT * FROM t WHERE id IN (1,3)").ToList();
-        var ids = result.Select(r => (int)r.id).OrderBy(static x => x).ToArray();
+        var ids = result.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id"))).OrderBy(static x => x).ToArray();
         ids.Should().Equal(new[] { 1, 3 });
     }
 
@@ -2639,7 +2692,9 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
         var result = connection.Query<dynamic>(DistinctPaginationSql).ToList();
         result.Should().ContainSingle();
-        ((int)result[0].id).Should().Be(1);
+        var row = (object)result[0];
+        var id = Convert.ToInt32(GetValueIgnoreCase(row, "id"));
+        id.Should().Be(1);
     }
 
     /// <summary>
@@ -2661,10 +2716,27 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
         var result = connection.Query<dynamic>(sql).ToList();
         result.Should().ContainSingle();
         var row = (object)result[0];
-        var values = (IDictionary<string, object?>)row;
-        var grp = Convert.ToString(values["grp"])?.TrimEnd();
+        var grp = Convert.ToString(GetValueIgnoreCase(row, "grp"))?.TrimEnd();
         grp.Should().Be("a");
-        Convert.ToInt64(values["C"]).Should().Be(2L);
+        Convert.ToInt64(GetValueIgnoreCase(row, "C")).Should().Be(2L);
+    }
+
+    /// <summary>
+    /// EN: Gets a Dapper row value using a case-insensitive column-name match.
+    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// </summary>
+    protected static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -2823,14 +2895,14 @@ SELECT id FROM t WHERE id = 1
 UNION ALL
 SELECT id FROM t WHERE id = 1
 ").ToList();
-        all.Select(r => (int)r.id).Should().Equal(new[] { 1, 1 });
+        all.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id"))).Should().Equal(new[] { 1, 1 });
 
         var distinct = Connection.Query<dynamic>(@"
 SELECT id FROM t WHERE id = 1
 UNION
 SELECT id FROM t WHERE id = 1
 ").ToList();
-        distinct.Select(r => (int)r.id).Should().Equal(new[] { 1 });
+        distinct.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id"))).Should().Equal(new[] { 1 });
     }
 
     /// <summary>
@@ -2875,7 +2947,25 @@ SELECT id AS x FROM t WHERE id = 3
 ORDER BY v
 ").ToList();
 
-        rows.Select(r => (int)r.v).Should().Equal(new[] { 1, 2, 3 });
+        rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "v"))).Should().Equal(new[] { 1, 2, 3 });
+    }
+
+    /// <summary>
+    /// EN: Gets a Dapper row value using a case-insensitive column-name match.
+    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// </summary>
+    protected static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
     /// <inheritdoc />
@@ -2975,12 +3065,17 @@ ORDER BY u.id
 ").ToList();
 
         rows.Count.Should().Be(3);
-        ((int)rows[0].id).Should().Be(1);
-        ((object?)rows[0].amount).Should().BeNull();
-        ((int)rows[1].id).Should().Be(2);
-        ((decimal)rows[1].amount).Should().Be(200m);
-        ((int)rows[2].id).Should().Be(3);
-        ((object?)rows[2].amount).Should().BeNull();
+        var row0 = (object)rows[0];
+        Convert.ToInt32(GetValueIgnoreCase(row0, "id")).Should().Be(1);
+        GetValueIgnoreCase(row0, "amount").Should().BeNull();
+
+        var row1 = (object)rows[1];
+        Convert.ToInt32(GetValueIgnoreCase(row1, "id")).Should().Be(2);
+        Convert.ToDecimal(GetValueIgnoreCase(row1, "amount")).Should().Be(200m);
+
+        var row2 = (object)rows[2];
+        Convert.ToInt32(GetValueIgnoreCase(row2, "id")).Should().Be(3);
+        GetValueIgnoreCase(row2, "amount").Should().BeNull();
     }
 
     /// <summary>
@@ -2995,8 +3090,8 @@ FROM orders
 ORDER BY amount DESC, id ASC
 ").ToList();
 
-        rows.Select(r => (int)r.id).Should().Equal(new[] { 11, 10, 12 });
-        rows.Select(r => (decimal)r.amount).Should().Equal(new[] { 200m, 50m, 10m });
+        rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id"))).Should().Equal(new[] { 11, 10, 12 });
+        rows.Select(r => Convert.ToDecimal(GetValueIgnoreCase((object)r, "amount"))).Should().Equal(new[] { 200m, 50m, 10m });
     }
 
     /// <summary>
@@ -3005,9 +3100,27 @@ ORDER BY amount DESC, id ASC
     /// </summary>
     protected void Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls()
     {
-        var row = Connection.QuerySingle<dynamic>("SELECT COUNT(*) c1, COUNT(email) c2 FROM users");
-        ((long)row.c1).Should().Be(3L);
-        ((long)row.c2).Should().Be(2L);
+        var row = (object)Connection.QuerySingle<dynamic>("SELECT COUNT(*) c1, COUNT(email) c2 FROM users");
+        Convert.ToInt64(GetValueIgnoreCase(row, "c1")).Should().Be(3L);
+        Convert.ToInt64(GetValueIgnoreCase(row, "c2")).Should().Be(2L);
+    }
+
+    /// <summary>
+    /// EN: Gets a Dapper row value using a case-insensitive column-name match.
+    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// </summary>
+    protected static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -3045,10 +3158,10 @@ ORDER BY userid
     {
         Connection.Execute("INSERT INTO users (name, id, email) VALUES (@name, @id, @email)", new { id = 4, name = "Zed", email = "zed@x.com" });
 
-        var row = Connection.QuerySingle<dynamic>("SELECT id, name, email FROM users WHERE id = 4");
-        ((int)row.id).Should().Be(4);
-        ((string)row.name).Should().Be("Zed");
-        ((string)row.email).Should().Be("zed@x.com");
+        var row = (object)Connection.QuerySingle<dynamic>("SELECT id, name, email FROM users WHERE id = 4");
+        Convert.ToInt32(GetValueIgnoreCase(row, "id")).Should().Be(4);
+        Convert.ToString(GetValueIgnoreCase(row, "name")).Should().Be("Zed");
+        Convert.ToString(GetValueIgnoreCase(row, "email")).Should().Be("zed@x.com");
     }
 
     /// <summary>
@@ -3085,9 +3198,9 @@ ORDER BY userid
         updated.Should().Be(2);
 
         var counters = connection.Query<dynamic>("SELECT id, counter FROM users ORDER BY id").ToList();
-        ((int)counters[0].counter).Should().Be(1);
-        ((int)counters[1].counter).Should().Be(1);
-        ((int)counters[2].counter).Should().Be(0);
+        Convert.ToInt32(GetValueIgnoreCase((object)counters[0], "counter")).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)counters[1], "counter")).Should().Be(1);
+        Convert.ToInt32(GetValueIgnoreCase((object)counters[2], "counter")).Should().Be(0);
     }
 
     /// <inheritdoc />

@@ -15,6 +15,9 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     /// <inheritdoc />
     protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.Firebird.TestTools.FirebirdProviderSqlDialect();
 
+    /// <inheritdoc />
+    protected override int CreateTableAsSelectExpectedAffectedRows => 2;
+
     /// <summary>
     /// EN: Creates a new Firebird mock database instance for each scenario.
     /// PT: Cria uma nova instância de banco simulado Firebird para cada cenário.

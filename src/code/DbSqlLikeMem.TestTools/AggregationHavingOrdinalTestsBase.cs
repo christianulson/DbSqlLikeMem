@@ -121,8 +121,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         var rows = Query(sql);
         rows.Count.Should().Be(2);
 
-        var first = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
-        var second = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
+        var first = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
+        var second = Convert.ToString(GetValueIgnoreCase((object)rows[1], "joined")) ?? string.Empty;
 
         first.Should().Contain("|");
         first.Should().Contain("10");
@@ -148,8 +148,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         ((object?)rows[0].note).Should().BeNull();
         ((object?)rows[1].note).Should().BeNull();
 
-        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
+        var secondJoined = Convert.ToString(GetValueIgnoreCase((object)rows[1], "joined")) ?? string.Empty;
 
         firstJoined.Should().NotBeEmpty();
         secondJoined.Should().NotBeEmpty();
@@ -173,8 +173,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         ((object?)rows[0].note).Should().BeNull();
         ((object?)rows[1].note).Should().BeNull();
 
-        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
+        var secondJoined = Convert.ToString(GetValueIgnoreCase((object)rows[1], "joined")) ?? string.Empty;
 
         firstJoined.Should().NotBeEmpty();
         secondJoined.Should().NotBeEmpty();
@@ -198,8 +198,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Convert.ToString((object?)rows[0].note).Should().Be("ok");
         ((object?)rows[1].note).Should().BeNull();
 
-        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
+        var secondJoined = Convert.ToString(GetValueIgnoreCase((object)rows[1], "joined")) ?? string.Empty;
 
         firstJoined.Should().NotBeEmpty();
         secondJoined.Should().NotBeEmpty();
@@ -223,8 +223,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Convert.ToString((object?)rows[0].note).Should().Be("primary");
         Convert.ToString((object?)rows[1].note).Should().Be("secondary");
 
-        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
+        var secondJoined = Convert.ToString(GetValueIgnoreCase((object)rows[1], "joined")) ?? string.Empty;
 
         firstJoined.Should().NotBeEmpty();
         secondJoined.Should().NotBeEmpty();
@@ -248,8 +248,8 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         Convert.ToInt32((object?)rows[0].note).Should().Be(100);
         Convert.ToInt32((object?)rows[1].note).Should().Be(200);
 
-        var firstJoined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
-        var secondJoined = Convert.ToString((object?)rows[1].joined) ?? string.Empty;
+        var firstJoined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
+        var secondJoined = Convert.ToString(GetValueIgnoreCase((object)rows[1], "joined")) ?? string.Empty;
 
         firstJoined.Should().NotBeEmpty();
         secondJoined.Should().NotBeEmpty();
@@ -302,7 +302,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         var rows = Query(querySql);
         rows.Should().ContainSingle();
 
-        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var joined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
         joined.Should().Contain("a");
         joined.Should().Contain("b");
         joined.Should().Contain("|");
@@ -327,7 +327,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         var rows = Query(querySql);
         rows.Should().ContainSingle();
 
-        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var joined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
         joined.Should().Be(expected);
     }
 
@@ -356,7 +356,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         var rows = Query(sql);
         rows.Should().ContainSingle();
 
-        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var joined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
         joined.Should().Be(expected);
     }
 
@@ -380,7 +380,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         var rows = Query(querySql);
         rows.Should().ContainSingle();
 
-        var joined = Convert.ToString((object?)rows[0].joined) ?? string.Empty;
+        var joined = Convert.ToString(GetValueIgnoreCase((object)rows[0], "joined")) ?? string.Empty;
         joined.Should().Be(expected);
     }
 
@@ -423,12 +423,12 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
         rows.Should().HaveCount(2);
 
         Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
-        ((int)rows[0].total).Should().Be(2);
-        ((decimal)rows[0].sumAmount).Should().Be(40m);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "total")).Should().Be(2);
+        Convert.ToDecimal(GetValueIgnoreCase((object)rows[0], "sumAmount")).Should().Be(40m);
 
         Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")).Should().Be(2);
-        ((int)rows[1].total).Should().Be(1);
-        ((decimal)rows[1].sumAmount).Should().Be(5m);
+        Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "total")).Should().Be(1);
+        Convert.ToDecimal(GetValueIgnoreCase((object)rows[1], "sumAmount")).Should().Be(5m);
     }
 
     /// <summary>
@@ -469,9 +469,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
         rows.Should().HaveCount(2);
         Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")).Should().Be(1);
-        ((decimal)rows[0].sumAmount).Should().Be(40m);
+        Convert.ToDecimal(GetValueIgnoreCase((object)rows[0], "sumAmount")).Should().Be(40m);
         Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")).Should().Be(2);
-        ((decimal)rows[1].sumAmount).Should().Be(5m);
+        Convert.ToDecimal(GetValueIgnoreCase((object)rows[1], "sumAmount")).Should().Be(5m);
     }
 
     /// <summary>

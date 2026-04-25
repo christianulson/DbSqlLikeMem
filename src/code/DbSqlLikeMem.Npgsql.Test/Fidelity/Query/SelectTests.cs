@@ -34,14 +34,7 @@ public class SelectTests(
     {
         var normalized = new string[columnNames.Length];
         for (var i = 0; i < columnNames.Length; i++)
-        {
-            normalized[i] = columnNames[i] switch
-            {
-                "Name" => "name",
-                "Id" => "id",
-                _ => columnNames[i]
-            };
-        }
+            normalized[i] = columnNames[i].ToLowerInvariant();
 
         return normalized;
     }

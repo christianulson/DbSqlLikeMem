@@ -1,4 +1,3 @@
-using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.SqlServer;
@@ -70,7 +69,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         };
     }
 
-    [ScalarFunction("CURRENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("CURRENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = 2)]
     private static bool TryEvalSqlServerCurrentTimestampFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -82,7 +81,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         return context.TryEvaluateZeroArgIdentifier("CURRENT_TIMESTAMP", out result);
     }
 
-    [ScalarFunction("GETDATE", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("GETDATE", "DATETIME", TemporalKind = 2)]
     private static bool TryEvalSqlServerGetDateFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -94,7 +93,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         return context.TryEvaluateZeroArgCall("GETDATE", out result);
     }
 
-    [ScalarFunction("GETUTCDATE", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("GETUTCDATE", "DATETIME", TemporalKind = 2)]
     private static bool TryEvalSqlServerGetUtcDateFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -106,7 +105,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         return context.TryEvaluateZeroArgCall("GETUTCDATE", out result);
     }
 
-    [ScalarFunction("SYSTEMDATE", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("SYSTEMDATE", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = 2)]
     private static bool TryEvalSqlServerSystemDateFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -118,7 +117,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         return context.TryEvaluateZeroArgIdentifier("SYSTEMDATE", out result);
     }
 
-    [ScalarFunction("SYSDATETIME", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime, MinVersion = SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)]
+    [ScalarFunction("SYSDATETIME", "DATETIME", TemporalKind = 2, MinVersion = SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)]
     private static bool TryEvalSqlServerSysDateTimeFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -130,7 +129,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         return context.TryEvaluateZeroArgCall("SYSDATETIME", out result);
     }
 
-    [ScalarFunction("SYSUTCDATETIME", "DATETIME", TemporalKind = SqlTemporalFunctionKind.DateTime, MinVersion = SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)]
+    [ScalarFunction("SYSUTCDATETIME", "DATETIME", TemporalKind = 2, MinVersion = SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)]
     private static bool TryEvalSqlServerSysUtcDateTimeFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -142,7 +141,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         return context.TryEvaluateZeroArgCall("SYSUTCDATETIME", out result);
     }
 
-    [ScalarFunction("SYSDATETIMEOFFSET", "DATETIMEOFFSET", TemporalKind = SqlTemporalFunctionKind.DateTimeOffset, MinVersion = SqlServerDialect.DateTimeOffsetFunctionsMinVersion)]
+    [ScalarFunction("SYSDATETIMEOFFSET", "DATETIMEOFFSET", TemporalKind = 3, MinVersion = SqlServerDialect.DateTimeOffsetFunctionsMinVersion)]
     private static bool TryEvalSqlServerSysDateTimeOffsetFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -397,6 +396,83 @@ internal static partial class SqlServerScalarFunctionRegistry
         return true;
     }
 
+    [ScalarFunction("TODATETIMEOFFSET", "DATETIMEOFFSET", MinVersion = SqlServerDialect.DateTimeOffsetFunctionsMinVersion)]
+    private static bool TryEvalSqlServerToDateTimeOffsetGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name}() expects value and offset.");
+
+        var baseValue = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(baseValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var offsetText = evalArg(1)?.ToString() ?? string.Empty;
+        if (!SqlTemporalFunctionEvaluator.TryParseOffset(offsetText, out var offset))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!AstQueryExecutorBase.TryCoerceDateTime(baseValue, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Unspecified), offset);
+        return true;
+    }
+
+    [ScalarFunction("SWITCHOFFSET", "DATETIMEOFFSET", MinVersion = SqlServerDialect.DateTimeOffsetFunctionsMinVersion)]
+    private static bool TryEvalSqlServerSwitchOffsetGeneratedFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException($"{fn.Name}() expects value and offset.");
+
+        var baseValue = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(baseValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var offsetText = evalArg(1)?.ToString() ?? string.Empty;
+        if (!SqlTemporalFunctionEvaluator.TryParseOffset(offsetText, out var offset))
+        {
+            result = null;
+            return true;
+        }
+
+        DateTimeOffset dto;
+        if (baseValue is DateTimeOffset directDto)
+        {
+            dto = directDto;
+        }
+        else if (!AstQueryExecutorBase.TryParseCachedDateTimeOffset(baseValue!.ToString()!, DateTimeStyles.AllowWhiteSpaces, out dto))
+        {
+            result = null;
+            return true;
+        }
+
+        result = dto.ToOffset(offset);
+        return true;
+    }
+
     private static void RegisterTemporalFunctions(
         SqlServerDialect dialect,
         int version)
@@ -544,6 +620,7 @@ internal static partial class SqlServerScalarFunctionRegistry
 
     private static void RegisterMetadataFunctions(SqlServerDialect dialect, int version)
     {
+#pragma warning disable CS8321
         static bool TryEvalSqlServerContextInfoFunction(
             QueryExecutionContext context,
             FunctionCallExpr fn,
@@ -618,6 +695,7 @@ internal static partial class SqlServerScalarFunctionRegistry
 
             return evaluator.TryEvaluate(fn, evalArg, out result);
         }
+#pragma warning restore CS8321
 
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar("APPLOCK_MODE", "VARCHAR"),

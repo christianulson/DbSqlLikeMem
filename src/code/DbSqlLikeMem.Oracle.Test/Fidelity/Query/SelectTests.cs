@@ -41,11 +41,11 @@ public class SelectTests(
     protected override decimal TextMatchAlreadyValue => 0m;
 
     /// <summary>
-    /// EN: Formats the decimal value as a string in the format expected by Oracle, using a comma as the decimal separator.
-    /// PT: Formata o valor decimal como uma string no formato esperado pelo Oracle, usando uma vírgula como separador decimal.
+    /// EN: Formats the decimal value as a fixed two-decimal invariant string for Oracle snapshot assertions.
+    /// PT: Formata o valor decimal como uma string invariavel com duas casas decimais para as assercoes de snapshot do Oracle.
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
     protected override string AmountText(decimal value)
-    => value.ToString("0.#############################", CultureInfo.InvariantCulture).Replace('.', ',');
+    => value.ToString("0.00", CultureInfo.InvariantCulture);
 }

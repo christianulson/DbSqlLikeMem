@@ -463,9 +463,13 @@ INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt,
         {
             ProviderId.Sqlite => ".0",
             ProviderId.Db2 => ".00",
+            ProviderId.Firebird => ".00",
             ProviderId.SqlServer or ProviderId.SqlAzure => ".00",
             _ => string.Empty
         };
+        var agePlusBalanceExpression = Repo.Dialect.Provider == ProviderId.Firebird
+            ? "CAST(COALESCE(Age, 0) + ROUND(Balance, 0) AS DECIMAL(18,2))"
+            : "COALESCE(Age, 0) + ROUND(Balance, 0)";
 
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = $"""
@@ -479,7 +483,7 @@ SELECT
     TRIM({Repo.Dialect.StringCastExpression("ABS(COALESCE(Age, 0) - 30)", 10)}) AS AgeDeltaText,
     TRIM({Repo.Dialect.StringCastExpression("CASE WHEN Email IS NULL THEN 0 ELSE 1 END", 1)}) AS EmailFlagText,
     TRIM({Repo.Dialect.StringCastExpression("CASE WHEN Balance > 15 THEN 0 ELSE 1 END", 1)}) AS BalanceNotGt15Text,
-    TRIM({Repo.Dialect.StringCastExpression("COALESCE(Age, 0) + ROUND(Balance, 0)", 10)}) AS AgePlusBalanceText
+    TRIM({Repo.Dialect.StringCastExpression(agePlusBalanceExpression, 10)}) AS AgePlusBalanceText
 FROM {Context.TbUsersFullName}
 ORDER BY Id
 """;

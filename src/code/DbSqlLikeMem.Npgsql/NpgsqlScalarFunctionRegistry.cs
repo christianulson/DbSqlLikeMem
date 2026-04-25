@@ -1,4 +1,3 @@
-using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 using System.Text;
 
@@ -9,7 +8,6 @@ internal static partial class NpgsqlScalarFunctionRegistry
     internal static void Register(ISqlDialect dialect, int version)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        _ = version;
 
         SqlSharedScalarFunctionRegistry.Register(dialect);
 
@@ -24,7 +22,7 @@ internal static partial class NpgsqlScalarFunctionRegistry
             });
         RegisterGeneratedScalarFunctions(dialect);
 
-        RegisterJsonFunctions(dialect);
+        RegisterJsonFunctions(dialect, version);
     }
 
     private static void RegisterDateFunctions(
@@ -214,16 +212,16 @@ internal static partial class NpgsqlScalarFunctionRegistry
         out object? result)
         => AstQueryCastConversionFamilyEvaluator.TryEvalCastLikeFunction(context, fn, evalArg, out result);
 
-    [ScalarFunction("CURRENT_DATE", "DATE", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.Date)]
-    [ScalarFunction("CURRENT_TIME", "TIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.Time)]
-    [ScalarFunction("CURRENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("SYSTEMDATE", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("NOW", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("LOCALTIME", "TIME", InvocationStyle = DbInvocationStyle.Call | DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.Time)]
-    [ScalarFunction("LOCALTIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call | DbInvocationStyle.Identifier, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("CLOCK_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("STATEMENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = SqlTemporalFunctionKind.DateTime)]
-    [ScalarFunction("TRANSACTION_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("CURRENT_DATE", "DATE", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = (int)SqlTemporalFunctionKind.Date)]
+    [ScalarFunction("CURRENT_TIME", "TIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = (int)SqlTemporalFunctionKind.Time)]
+    [ScalarFunction("CURRENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = (int)SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("SYSTEMDATE", "DATETIME", InvocationStyle = DbInvocationStyle.Identifier, TemporalKind = (int)SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("NOW", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = (int)SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("LOCALTIME", "TIME", InvocationStyle = DbInvocationStyle.Call | DbInvocationStyle.Identifier, TemporalKind = (int)SqlTemporalFunctionKind.Time)]
+    [ScalarFunction("LOCALTIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call | DbInvocationStyle.Identifier, TemporalKind = (int)SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("CLOCK_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = (int)SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("STATEMENT_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = (int)SqlTemporalFunctionKind.DateTime)]
+    [ScalarFunction("TRANSACTION_TIMESTAMP", "DATETIME", InvocationStyle = DbInvocationStyle.Call, TemporalKind = (int)SqlTemporalFunctionKind.DateTime)]
     private static bool TryEvalGeneratedPostgresTemporalFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -250,7 +248,8 @@ internal static partial class NpgsqlScalarFunctionRegistry
     }
 
     private static void RegisterJsonFunctions(
-        ISqlDialect dialect)
+        ISqlDialect dialect,
+        int version)
     {
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSONB_AGG, "VARCHAR"));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSONB_OBJECT_AGG, "VARCHAR"));
@@ -261,7 +260,21 @@ internal static partial class NpgsqlScalarFunctionRegistry
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSON_ARRAYAGG, "VARCHAR"));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSON_OBJECT_AGG, "VARCHAR"));
         dialect.AddScalarFunction(DbFunctionDef.CreateScalar(SqlConst.JSON_OBJECTAGG, "VARCHAR"));
+
+        if (version >= 15)
+        {
+            dialect.AddScalarFunction(CreateScalarDefinition("JSON_OBJECT", "VARCHAR", AstQueryPostgresJsonFunctionEvaluator.TryEvaluate));
+        }
     }
+
+    private static DbFunctionDef CreateScalarDefinition(
+        string name,
+        string returnTypeSql,
+        AstQueryGeneralScalarFunctionHandler astExecutor)
+        => DbFunctionDef.CreateScalar(name, returnTypeSql) with
+        {
+            AstExecutor = astExecutor
+        };
 
     [ScalarFunction("STRING_TO_ARRAY", "VARCHAR")]
     private static bool TryEvalGeneratedPostgresStringToArrayFunction(

@@ -110,7 +110,9 @@ internal sealed class QueryExecutionContext
     private readonly bool _sqliteDecimalRoundTrip;
     private readonly Dictionary<string, object?> _namedParameterValues;
     private readonly object?[] _positionalParameterValues;
+    private readonly object?[] _orderedParameterValues;
     private int _positionalParameterScopeDepth;
+    private int _orderedParameterCursor;
 
     /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
@@ -144,7 +146,7 @@ internal sealed class QueryExecutionContext
         var providerName = connection.ProviderExecutionDialect.Name;
         _oracleEmptyStringAsNull = string.Equals(providerName, "oracle", StringComparison.OrdinalIgnoreCase);
         _sqliteDecimalRoundTrip = string.Equals(providerName, "sqlite", StringComparison.OrdinalIgnoreCase);
-        BuildParameterLookupCaches(parameters, out _namedParameterValues, out _positionalParameterValues);
+        BuildParameterLookupCaches(parameters, out _namedParameterValues, out _positionalParameterValues, out _orderedParameterValues);
     }
 
     private QueryExecutionContext(
@@ -173,7 +175,9 @@ internal sealed class QueryExecutionContext
         _sqliteDecimalRoundTrip = source._sqliteDecimalRoundTrip;
         _namedParameterValues = source._namedParameterValues;
         _positionalParameterValues = source._positionalParameterValues;
+        _orderedParameterValues = source._orderedParameterValues;
         _positionalParameterCursor = positionalParameterCursor;
+        _orderedParameterCursor = source._orderedParameterCursor;
     }
 
     internal bool TryGetCachedTemporalZeroArgIdentifierValue(string functionName, out object? value)
@@ -199,7 +203,10 @@ internal sealed class QueryExecutionContext
     /// PT: Reinicia o cursor de parametros posicionais usado para resolver placeholders SQL `?` em ordem.
     /// </summary>
     internal void ResetPositionalParameterCursor()
-        => _positionalParameterCursor = 0;
+    {
+        _positionalParameterCursor = 0;
+        _orderedParameterCursor = 0;
+    }
 
     /// <summary>
     /// EN: Begins a positional-parameter evaluation scope and resets the cursor when entering the outermost scope.
@@ -255,14 +262,55 @@ internal sealed class QueryExecutionContext
     /// <returns>EN: True when a positional parameter was consumed. PT: Verdadeiro quando um parametro posicional foi consumido.</returns>
     internal bool TryResolveNextPositionalParameter(out object? value)
     {
-        if ((uint)_positionalParameterCursor >= (uint)_positionalParameterValues.Length)
+        if (_positionalParameterValues.Length > 0)
+        {
+            if ((uint)_positionalParameterCursor >= (uint)_positionalParameterValues.Length)
+            {
+                value = null;
+                return false;
+            }
+
+            value = _positionalParameterValues[_positionalParameterCursor++];
+            return true;
+        }
+
+        // Some providers use positional SQL markers but only expose named ADO.NET parameters.
+        // In that case we fall back to command order for '?' resolution.
+        if ((uint)_orderedParameterCursor >= (uint)_orderedParameterValues.Length)
         {
             value = null;
             return false;
         }
 
-        value = _positionalParameterValues[_positionalParameterCursor++];
+        value = _orderedParameterValues[_orderedParameterCursor++];
         return true;
+    }
+
+    /// <summary>
+    /// EN: Captures the current positional and ordered parameter cursor state.
+    /// PT: Captura o estado atual dos cursores posicional e ordenado dos parametros.
+    /// </summary>
+    /// <returns>EN: The current cursor positions. PT: As posicoes atuais dos cursores.</returns>
+    internal (int PositionalParameterCursor, int OrderedParameterCursor) SnapshotPositionalParameterState()
+        => (_positionalParameterCursor, _orderedParameterCursor);
+
+    /// <summary>
+    /// EN: Restores a previously captured positional and ordered parameter cursor state.
+    /// PT: Restaura um estado capturado anteriormente dos cursores posicional e ordenado dos parametros.
+    /// </summary>
+    /// <param name="state">EN: Captured cursor positions. PT: Posicoes capturadas dos cursores.</param>
+    internal void RestorePositionalParameterState((int PositionalParameterCursor, int OrderedParameterCursor) state)
+    {
+        _positionalParameterCursor = state.PositionalParameterCursor < 0
+            ? 0
+            : state.PositionalParameterCursor > _positionalParameterValues.Length
+                ? _positionalParameterValues.Length
+                : state.PositionalParameterCursor;
+        _orderedParameterCursor = state.OrderedParameterCursor < 0
+            ? 0
+            : state.OrderedParameterCursor > _orderedParameterValues.Length
+                ? _orderedParameterValues.Length
+                : state.OrderedParameterCursor;
     }
 
     /// <summary>
@@ -298,7 +346,8 @@ internal sealed class QueryExecutionContext
     private void BuildParameterLookupCaches(
         IDataParameterCollection parameters,
         out Dictionary<string, object?> namedParameterValues,
-        out object?[] positionalParameterValues)
+        out object?[] positionalParameterValues,
+        out object?[] orderedParameterValues)
     {
         var parameterCount = parameters.Count;
         Dictionary<string, object?>? namedValues = parameterCount > 0
@@ -307,10 +356,15 @@ internal sealed class QueryExecutionContext
         List<object?>? positionalValues = parameterCount > 0
             ? new List<object?>(parameterCount)
             : null;
+        List<object?>? orderedValues = parameterCount > 0
+            ? new List<object?>(parameterCount)
+            : null;
 
         foreach (IDataParameter parameter in parameters)
         {
             var resolvedValue = NormalizeResolvedValue(parameter.Value);
+            orderedValues ??= new List<object?>(parameterCount);
+            orderedValues.Add(resolvedValue);
 
             if (IsPositionalParameter(parameter.ParameterName))
             {
@@ -331,6 +385,7 @@ internal sealed class QueryExecutionContext
 
         namedParameterValues = namedValues ?? new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         positionalParameterValues = positionalValues is null ? Array.Empty<object?>() : [.. positionalValues];
+        orderedParameterValues = orderedValues is null ? Array.Empty<object?>() : [.. orderedValues];
     }
 
     private static void AddNamedParameterValueVariants(

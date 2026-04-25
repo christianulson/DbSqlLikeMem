@@ -2,6 +2,14 @@ namespace DbSqlLikeMem.Firebird;
 
 internal static class FirebirdNonQueryResultHelper
 {
+    private static readonly Regex CreateTableAsSelectPattern = new(
+        @"^\s*CREATE\s+TABLE\s+.+\s+AS\s+(SELECT|WITH)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+    private static readonly Regex SetGeneratorPattern = new(
+        @"^\s*SET\s+GENERATOR\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     private static readonly HashSet<string> NoCountDdlKeywords =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -25,6 +33,12 @@ internal static class FirebirdNonQueryResultHelper
         if (affectedRows != 0)
             return affectedRows;
 
+        if (IsCreateTableAsSelect(sqlText))
+            return affectedRows;
+
+        if (IsSetGenerator(sqlText))
+            return -1;
+
         var (hasCountableDml, hasNoCountDdl, hasStatement) = AnalyzeSql(sqlText, dialect);
         if (!hasStatement || hasCountableDml)
             return affectedRows;
@@ -43,6 +57,12 @@ internal static class FirebirdNonQueryResultHelper
 
         foreach (var sqlText in sqlTexts)
         {
+            if (IsCreateTableAsSelect(sqlText))
+                return affectedRows;
+
+            if (IsSetGenerator(sqlText))
+                return -1;
+
             var (commandHasDml, commandHasNoCountDdl, commandHasStatement) = AnalyzeSql(sqlText, dialect);
             hasStatement |= commandHasStatement;
             hasCountableDml |= commandHasDml;
@@ -57,6 +77,12 @@ internal static class FirebirdNonQueryResultHelper
 
         return hasNoCountDdl ? -1 : affectedRows;
     }
+
+    private static bool IsCreateTableAsSelect(string sqlText)
+        => !string.IsNullOrWhiteSpace(sqlText) && CreateTableAsSelectPattern.IsMatch(sqlText);
+
+    private static bool IsSetGenerator(string sqlText)
+        => !string.IsNullOrWhiteSpace(sqlText) && SetGeneratorPattern.IsMatch(sqlText);
 
     private static (bool HasCountableDml, bool HasNoCountDdl, bool HasStatement) AnalyzeSql(string sqlText, ISqlDialect dialect)
     {

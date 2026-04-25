@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Xunit.Sdk;
 
 namespace DbSqlLikeMem.TestTools;
 
@@ -87,7 +86,7 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+                throw new FidelityTestSkippedException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TServiceTest>(args, repoContainer, InitialData, context);
@@ -124,7 +123,7 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+                throw new FidelityTestSkippedException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(args, repoContainer, InitialData, context);
@@ -163,7 +162,7 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+                throw new FidelityTestSkippedException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
@@ -202,7 +201,7 @@ public class FidelityTestService<TCnn1, TCnn2>
         if (TestEnv.RunContainerTests.Value)
         {
             if (repoContainer == null)
-                throw SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+                throw new FidelityTestSkippedException($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
@@ -240,11 +239,11 @@ public class FidelityTestService<TCnn1, TCnn2>
         }
         catch (DbException ex)
         {
-            throw SkipException.ForSkip($"Container connection for provider {RepoMock.Dialect.Provider} is not available: {ex.Message}");
+            throw new FidelityTestSkippedException($"Container connection for provider {RepoMock.Dialect.Provider} is not available: {ex.Message}");
         }
         catch (InvalidOperationException ex)
         {
-            throw SkipException.ForSkip($"Container connection for provider {RepoMock.Dialect.Provider} is not available: {ex.Message}");
+            throw new FidelityTestSkippedException($"Container connection for provider {RepoMock.Dialect.Provider} is not available: {ex.Message}");
         }
     }
 

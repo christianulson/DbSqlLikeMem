@@ -114,6 +114,24 @@ CREATE TABLE {context.TbOrdersFullName} (
         "SELECT CURRENT_TIMESTAMP";
 
     /// <inheritdoc />
+    protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
+    {
+        if (dbType == DbType.DateTime2)
+        {
+            parameter.DbType = DbType.DateTime;
+            return;
+        }
+
+        parameter.DbType = dbType;
+    }
+
+    /// <inheritdoc />
+    protected override object? NormalizeParameterValue(DbType dbType, object? value) =>
+        dbType == DbType.DateTime2 && value is DateTime dateTime
+            ? dateTime.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)
+            : value;
+
+    /// <inheritdoc />
     public override string StringAggregate(FidelityTestContext context) =>
         $"SELECT GROUP_CONCAT(Name SEPARATOR ',') FROM {context.TbUsersFullName}";
 

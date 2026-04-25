@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2;
+namespace DbSqlLikeMem.Db2;
 
 /// <summary>
 /// EN: Represents Db2 Connection Mock.
@@ -16,9 +16,21 @@ public sealed class Db2ConnectionMock
     }
 
     /// <summary>
-    /// EN: Represents Db2 Connection Mock.
-    /// PT: Representa Db2 conexão simulada.
+    /// EN: Initializes a Db2 mock connection over an existing in-memory database.
+    /// PT: Inicializa uma conexao mock Db2 sobre um banco em memoria existente.
     /// </summary>
+    /// <param name="db">EN: Shared Db2 mock database. PT: Banco mock Db2 compartilhado.</param>
+    public Db2ConnectionMock(Db2DbMock? db)
+        : this(db, null)
+    {
+    }
+
+    /// <summary>
+    /// EN: Initializes a Db2 mock connection with an optional database and default schema.
+    /// PT: Inicializa uma conexao mock Db2 com banco opcional e schema padrao.
+    /// </summary>
+    /// <param name="db">EN: Db2 mock database to use. PT: Banco mock Db2 a usar.</param>
+    /// <param name="defaultDatabase">EN: Default schema/database name. PT: Nome padrao de schema/banco.</param>
     public Db2ConnectionMock(
        Db2DbMock? db = null,
        string? defaultDatabase = null

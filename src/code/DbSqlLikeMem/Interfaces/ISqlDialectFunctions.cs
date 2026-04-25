@@ -1,5 +1,3 @@
-using DbSqlLikeMem.Dialect;
-
 namespace DbSqlLikeMem;
 
 /// <summary>

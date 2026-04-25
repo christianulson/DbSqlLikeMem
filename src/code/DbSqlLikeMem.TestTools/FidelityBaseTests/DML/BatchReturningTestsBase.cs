@@ -19,7 +19,7 @@ public abstract class BatchReturningTestsBase<T, T2>(
     /// EN: Verifies that an INSERT RETURNING batch persists one row and returns one reader row for the current provider.
     /// PT: Verifica se um batch INSERT RETURNING persiste uma linha e retorna uma linha no reader para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task BatchReturningInsertTest()
     {
         Assert.True(dialect.SupportsInsertReturning, $"{dialect.DisplayName} does not support INSERT RETURNING.");
@@ -29,3 +29,4 @@ public abstract class BatchReturningTestsBase<T, T2>(
         await testService.RunTestAsync<InsertUsersScenario, BatchInsertReturningServiceTest>();
     }
 }
+

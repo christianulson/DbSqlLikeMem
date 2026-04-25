@@ -92,6 +92,7 @@ internal sealed record SqlCreateTemporaryTableQuery : SqlQueryBase
     internal IReadOnlyList<string> ColumnNames { get; init; } = [];
     internal IReadOnlyList<string> PrimaryKeyColumns { get; init; } = [];
     internal IReadOnlyList<SchemaSnapshotCheckConstraint> CheckConstraints { get; init; } = [];
+    internal string? PartitionClauseSql { get; init; }
     internal SqlSelectQuery? AsSelect { get; init; }
 }
 

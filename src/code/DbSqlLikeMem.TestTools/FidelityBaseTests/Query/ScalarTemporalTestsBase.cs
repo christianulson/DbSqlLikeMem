@@ -26,7 +26,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     /// EN: Verifies scalar temporal functions, current-time predicates, and ordered reads for the current provider.
     /// PT: Verifica funcoes temporais escalares, predicados de tempo atual e leituras ordenadas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ScalarTemporalMatrixTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -52,7 +52,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     /// EN: Verifies the scalar date benchmark returns a non-default temporal value for the current provider.
     /// PT: Verifica se o benchmark escalar de data retorna um valor temporal nao padrao para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task DateScalarTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
@@ -66,7 +66,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     /// EN: Verifies the current timestamp benchmark returns a non-default temporal value for the current provider.
     /// PT: Verifica se o benchmark de timestamp atual retorna um valor temporal nao padrao para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task TemporalCurrentTimestampTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
@@ -80,7 +80,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     /// EN: Verifies the temporal date-add benchmark returns a non-default temporal value for the current provider.
     /// PT: Verifica se o benchmark temporal de soma de data retorna um valor temporal nao padrao para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task TemporalDateAddTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
@@ -94,7 +94,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     /// EN: Verifies the current-time predicate benchmark counts the configured rows for the current provider.
     /// PT: Verifica se o benchmark de predicado de tempo atual conta as linhas configuradas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task TemporalNowWhereTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -113,7 +113,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     /// EN: Verifies the current-time ordering benchmark returns the expected first row for the current provider.
     /// PT: Verifica se o benchmark de ordenacao por tempo atual retorna a primeira linha esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task TemporalNowOrderByTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -187,3 +187,4 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
         return true;
     }
 }
+

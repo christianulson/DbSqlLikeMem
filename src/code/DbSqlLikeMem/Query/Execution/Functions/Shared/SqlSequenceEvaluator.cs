@@ -229,6 +229,15 @@ internal static class SqlSequenceEvaluator
             return true;
         }
 
+        if (sequenceRef.SchemaName is null
+            && !resolvedSchemaName.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase)
+            && connection.Db.TryGetSequence(sequenceRef.SequenceName, out sequence, "DefaultSchema")
+            && sequence is not null)
+        {
+            resolvedSchemaName = "DefaultSchema";
+            return true;
+        }
+
         sequence = null;
         return false;
     }

@@ -19,7 +19,7 @@ public abstract class TransactionTestsBase<T, T2>(
     /// EN: Verifies that a transaction commit persists the inserted row for the current provider.
     /// PT: Verifica se o commit de uma transacao persiste a linha inserida para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task TransactionCommitTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario>(
@@ -33,7 +33,7 @@ public abstract class TransactionTestsBase<T, T2>(
     /// EN: Verifies that a transaction rollback removes the inserted row for the current provider.
     /// PT: Verifica se o rollback de uma transacao remove a linha inserida para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task TransactionRollbackTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario>(
@@ -47,7 +47,7 @@ public abstract class TransactionTestsBase<T, T2>(
     /// EN: Verifies that creating a savepoint works for the current provider.
     /// PT: Verifica se a criacao de um savepoint funciona para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SavepointCreateTest()
     {
         var result = await RunFidelityTestAsync<NoopScenario>(
@@ -65,7 +65,7 @@ public abstract class TransactionTestsBase<T, T2>(
     /// EN: Verifies that rolling back to a savepoint keeps the expected row count for the current provider.
     /// PT: Verifica se o rollback para um savepoint mantem a contagem de linhas esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task RollbackToSavepointTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario>(
@@ -79,7 +79,7 @@ public abstract class TransactionTestsBase<T, T2>(
     /// EN: Verifies that releasing a savepoint works for the current provider.
     /// PT: Verifica se a liberacao de um savepoint funciona para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ReleaseSavepointTest()
     {
         if (!dialect.SupportsReleaseSavepoints)
@@ -110,7 +110,7 @@ public abstract class TransactionTestsBase<T, T2>(
     /// EN: Verifies that nested savepoints keep the expected row count for the current provider.
     /// PT: Verifica se savepoints aninhados mantem a contagem de linhas esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task NestedSavepointFlowTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario>(
@@ -134,3 +134,4 @@ public abstract class TransactionTestsBase<T, T2>(
             args);
 
 }
+

@@ -241,8 +241,8 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
         var rows = Query("SELECT CURRENT_DATE AS currentDate, CURRENT_TIME AS currentTime FROM orders WHERE CURRENT_DATE IS NOT NULL AND CURRENT_TIME IS NOT NULL");
 
         Assert.NotEmpty(rows);
-        Assert.NotNull(rows[0].currentDate);
-        Assert.NotNull(rows[0].currentTime);
+        Assert.NotNull(GetValueIgnoreCase((object)rows[0], "currentDate"));
+        Assert.NotNull(GetValueIgnoreCase((object)rows[0], "currentTime"));
     }
 
 
@@ -264,8 +264,8 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
             """);
 
         Assert.Equal(2, rows.Count);
-        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
-        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+        Assert.Equal(1, Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")));
+        Assert.Equal(2, Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")));
     }
 
 
@@ -334,11 +334,11 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
             GROUP BY userId
             HAVING NOW() IS NOT NULL
             ORDER BY NOW(), userId
-            """);
+        """);
 
         Assert.Equal(2, rows.Count);
-        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
-        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+        Assert.Equal(1, Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")));
+        Assert.Equal(2, Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")));
     }
 
 
@@ -361,8 +361,8 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
             """);
 
         Assert.Equal(2, rows.Count);
-        Assert.Equal(1, Convert.ToInt32(rows[0].userId));
-        Assert.Equal(2, Convert.ToInt32(rows[1].userId));
+        Assert.Equal(1, Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "userId")));
+        Assert.Equal(2, Convert.ToInt32(GetValueIgnoreCase((object)rows[1], "userId")));
     }
 
     /// <summary>

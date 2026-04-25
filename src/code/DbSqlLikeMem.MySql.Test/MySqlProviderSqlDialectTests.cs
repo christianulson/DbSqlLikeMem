@@ -38,4 +38,5 @@ public sealed class MySqlProviderSqlDialectTests
         Assert.Equal("ROLLBACK TO SAVEPOINT sp_1", dialect.RollbackToSavepoint("sp_1"));
         Assert.Equal("RELEASE SAVEPOINT sp_1", dialect.ReleaseSavepoint("sp_1"));
     }
+
 }

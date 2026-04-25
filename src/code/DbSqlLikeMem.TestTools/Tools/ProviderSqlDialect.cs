@@ -898,7 +898,6 @@ ORDER BY u.Id
 
         return (dbType, value) switch
         {
-            (DbType.Guid, Guid guid) => guid.ToString("D", CultureInfo.InvariantCulture),
             (DbType.DateTimeOffset, DateTimeOffset dateTimeOffset) => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
             _ => value
         };

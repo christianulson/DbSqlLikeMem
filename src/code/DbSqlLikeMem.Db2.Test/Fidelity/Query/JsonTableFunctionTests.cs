@@ -15,8 +15,8 @@ public class JsonTableFunctionTests(
     ) : JsonTableFunctionTestsBase<Db2ConnectionMock, DB2Connection>(
     helper,
     new Db2ProviderSqlDialect(),
-    () => new Db2ConnectionMock(),
-    s => new DB2Connection(s)
+    () => new Db2ConnectionMock(Get(Db2DbVersions.Default, _ => new Db2DbMock(_) { ThreadSafe = true })),
+    Db2ConnectionFactory.Create
     )
 {
 }

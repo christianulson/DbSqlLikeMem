@@ -14,6 +14,9 @@ public class StringAggregateTests(
     new NpgsqlProviderSqlDialect(),
     () => new NpgsqlConnectionMock(),
     s => new NpgsqlConnection(s)
-    )
+)
 {
+    /// <inheritdoc />
+    protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
+        => Array.ConvertAll(columnNames, static name => name.ToLowerInvariant());
 }

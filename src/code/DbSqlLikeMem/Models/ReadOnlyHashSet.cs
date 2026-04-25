@@ -1,7 +1,5 @@
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.Serialization;
-using DbSqlLikeMem.Interfaces;
 
 namespace DbSqlLikeMem.Models;
 

@@ -183,6 +183,30 @@ public class RepoService(
         {
             var sharedDb = mockCnn.Db;
             var connectionType = mockCnn.GetType();
+            var ctor = connectionType
+                .GetConstructors()
+                .FirstOrDefault(c =>
+                {
+                    var parameters = c.GetParameters();
+                    return parameters.Length is 1 or 2
+                        && parameters[0].ParameterType.IsInstanceOfType(sharedDb)
+                        && (parameters.Length == 1 || parameters[1].ParameterType == typeof(string));
+                });
+
+            if (ctor is not null)
+            {
+                return new RepoService(
+                    () =>
+                    {
+                        var parameters = ctor.GetParameters();
+                        object?[] args = parameters.Length == 1
+                            ? new object?[] { sharedDb }
+                            : new object?[] { sharedDb, null };
+                        return (DbConnection)ctor.Invoke(args);
+                    },
+                    dialect);
+            }
+
             return new RepoService(
                 () => (DbConnection)Activator.CreateInstance(connectionType, sharedDb)!,
                 dialect);

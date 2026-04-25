@@ -11,10 +11,18 @@ public class SelectTests(
     ) : SelectTestsBase<FirebirdConnectionMock, FbConnection>(
     helper,
     new FirebirdProviderSqlDialect(),
-    () => new FirebirdConnectionMock(),
-    s => new FbConnection(s)
+    () => new FirebirdConnectionMock(Get(FirebirdDbVersions.Default, _ => new FirebirdDbMock(_) { ThreadSafe = true })),
+    FirebirdConnectionFactory.Create
     )
 {
+    /// <inheritdoc />
+    protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
+        => [.. columnNames.Select(static name => name.ToUpperInvariant())];
+
+    /// <inheritdoc />
+    protected override string[] ApplyProjectionColumnNames()
+        => ["USERID", "USERNAME", "NOTE"];
+
     /// <inheritdoc />
     protected override decimal TextMatchAlreadyValue => 0m;
 }

@@ -20,7 +20,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
     /// EN: Verifies json_each returns keys and values from JSON array.
     /// PT: Verifica json_each retorna keys e valores de array JSON.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task JsonEachFromArrayTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -41,7 +41,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
     /// EN: Verifies json_each returns keys, values and types from JSON object.
     /// PT: Verifica json_each retorna keys, values e types de objeto JSON.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task JsonEachFromObjectTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -62,7 +62,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
     /// EN: Verifies json_tree returns full tree structure including path and parent.
     /// PT: Verifica json_tree retorna estrutura completa incluindo path e parent.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task JsonTreeStructureTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -79,3 +79,4 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
             async (s, a) => (object?)await s.RunJsonTreeStructureAsync());
     }
 }
+

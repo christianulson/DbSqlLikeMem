@@ -34,7 +34,9 @@ public sealed class UsersScenario(
     /// PT: Remove a tabela de usuarios criada para o fluxo.
     /// </summary>
     public Task DropScenarioAsync()
-    => Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbUsersFullName));
+    {
+        return DropTableIfPresentAsync();
+    }
 
     private static (int id, string name)[] ConvertSeedRows(object?[][] seedRows)
     {
@@ -96,6 +98,33 @@ public sealed class UsersScenario(
         }
 
         throw new ArgumentException($"Unsupported seed row value type: {value.GetType().FullName}.", nameof(value));
+    }
+
+    private async Task DropTableIfPresentAsync()
+    {
+        try
+        {
+            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbUsersFullName));
+        }
+        catch (Exception ex) when (ShouldIgnoreDropException(ex))
+        {
+        }
+    }
+
+    private static bool ShouldIgnoreDropException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("ora-00942", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("tabela ou view", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("given key was not present", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("lock conflict on no wait transaction", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("is in use", StringComparison.OrdinalIgnoreCase);
     }
 }
 

@@ -104,6 +104,20 @@ CREATE TABLE {context.TbOrdersFullName} (
     public override string JsonParameter(string name) =>
         $"TO_CLOB({Parameter(name)})";
 
+    /// <summary>
+    /// EN: Returns the Oracle SQL expression used to format decimal values with a fixed scale for fidelity checks.
+    /// PT: Retorna a expressao SQL do Oracle usada para formatar valores decimais com escala fixa nas verificacoes de fidelidade.
+    /// </summary>
+    /// <param name="expression">EN: The numeric SQL expression to format. PT: A expressao SQL numerica a formatar.</param>
+    /// <param name="scale">EN: The number of fractional digits to render. PT: A quantidade de casas fracionarias a exibir.</param>
+    /// <returns>EN: The Oracle SQL expression that renders the numeric value as fixed-point text. PT: A expressao SQL do Oracle que renderiza o valor numerico como texto de ponto fixo.</returns>
+    public override string DecimalTextExpression(string expression, int scale = 2)
+    {
+        var fractionalDigits = new string('0', Math.Max(1, scale));
+        var integerDigits = new string('9', Math.Max(1, scale + 8));
+        return $"TO_CHAR({expression}, 'FM{integerDigits}D{fractionalDigits}', 'NLS_NUMERIC_CHARACTERS = ''.,''')";
+    }
+
     /// <inheritdoc />
     protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
     {

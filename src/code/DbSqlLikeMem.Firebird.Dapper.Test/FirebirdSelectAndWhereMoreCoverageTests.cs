@@ -46,7 +46,7 @@ public sealed class FirebirdSelectAndWhereMoreCoverageTests : XUnitTestBase
     public void Where_Between_ShouldWork()
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id BETWEEN 2 AND 3 ORDER BY id").ToList();
-        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal([2, 3], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id")))]); 
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ public sealed class FirebirdSelectAndWhereMoreCoverageTests : XUnitTestBase
     {
         var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id NOT IN (1,3)").ToList();
         Assert.Single(rows);
-        Assert.Equal(2, (int)rows[0].id);
+        Assert.Equal(2, Convert.ToInt32(GetValueIgnoreCase((object)rows[0], "id")));
     }
 
     /// <summary>
@@ -79,9 +79,9 @@ WHERE EXISTS (
     WHERE o.userId = u.id
       AND o.amount > 100
 )
-ORDER BY u.id").ToList();
+        ORDER BY u.id").ToList();
 
-        Assert.Equal([2], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal([2], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id")))]); 
     }
 
     /// <summary>
@@ -102,9 +102,9 @@ ORDER BY id").ToList();
             _ => { },
             _ => { },
             _ => { });
-        Assert.Equal("Y", (string)rows[0].hasEmail);
-        Assert.Equal("N", (string)rows[1].hasEmail);
-        Assert.Equal("Y", (string)rows[2].hasEmail);
+        Assert.Equal("Y", Convert.ToString(GetValueIgnoreCase((object)rows[0], "hasEmail")));
+        Assert.Equal("N", Convert.ToString(GetValueIgnoreCase((object)rows[1], "hasEmail")));
+        Assert.Equal("Y", Convert.ToString(GetValueIgnoreCase((object)rows[2], "hasEmail")));
     }
 
     /// <summary>
@@ -116,7 +116,21 @@ ORDER BY id").ToList();
     public void Select_Coalesce_ShouldWork()
     {
         var row = _cnn.QuerySingle<dynamic>("SELECT COALESCE(email,'(none)') AS em FROM users WHERE id = 2");
-        Assert.Equal("(none)", (string)row.em);
+        Assert.Equal("(none)", Convert.ToString(GetValueIgnoreCase((object)row, "em")));
+    }
+
+    private static object? GetValueIgnoreCase(object row, string name)
+    {
+        if (row is IDictionary<string, object?> values)
+        {
+            foreach (var pair in values)
+            {
+                if (string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+                    return pair.Value;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

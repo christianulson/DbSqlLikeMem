@@ -100,6 +100,7 @@ public class Db2CommandMock(
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
+        Db2ValueHelper.ResetPositionalParameterCursor();
 
         // 1. Stored Procedure (sem parse SQL)
         if (CommandType == CommandType.StoredProcedure)
@@ -137,6 +138,7 @@ public class Db2CommandMock(
         connection!.ClearExecutionPlans();
         ArgumentNullExceptionCompatible.ThrowIfNull(CommandText, nameof(CommandText));
         using var _ = connection.Metrics.BeginAmbientScope();
+        Db2ValueHelper.ResetPositionalParameterCursor();
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -208,6 +210,7 @@ public class Db2CommandMock(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
         using var _ = connection!.Metrics.BeginAmbientScope();
         using var currentQueryScope = connection.BeginCurrentQueryScope(CommandText);
+        Db2ValueHelper.ResetPositionalParameterCursor();
 
         if (TryExecuteValuesSequenceScalar(CommandText, out var specialValue))
             return specialValue!;

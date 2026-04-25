@@ -22,9 +22,7 @@ internal static class AstQueryWindowFillHelper
 
         var valueExpr = args[0];
         var hasValueSelector = valueSelector is not null;
-        var frame = windowFunctionExpr.Spec.Frame;
-        if ((!fillLast && (frame is null || partitionContext.CoversWholePartition()))
-            || (fillLast && frame is not null && partitionContext.CoversWholePartition()))
+        if (partitionContext.CoversWholePartition())
         {
             var targetRow = part[fillLast ? partCount - 1 : 0];
             var value = hasValueSelector
@@ -107,8 +105,7 @@ internal static class AstQueryWindowFillHelper
         if (nth <= 0)
             return;
 
-        var frame = windowFunctionExpr.Spec.Frame;
-        if (frame is not null && partitionContext.CoversWholePartition())
+        if (partitionContext.CoversWholePartition())
         {
             var targetIndex = nth - 1;
             object? value = null;

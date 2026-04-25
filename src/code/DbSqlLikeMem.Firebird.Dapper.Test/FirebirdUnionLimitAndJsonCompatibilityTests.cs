@@ -8,7 +8,9 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 /// EN: Creates the in-memory Firebird connection used by the UNION, pagination, and JSON compatibility tests.
 /// PT: Cria a conexao Firebird em memoria usada pelos testes de compatibilidade de UNION, paginacao e JSON.
 /// </remarks>
-public sealed class FirebirdUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<FirebirdDbMock, FirebirdConnectionMock>(helper)
+public sealed class FirebirdUnionLimitAndJsonCompatibilityTests(
+    ITestOutputHelper helper
+    ) : DapperUnionLimitAndJsonCompatibilityTestsBase<FirebirdDbMock, FirebirdConnectionMock>(helper)
 {
     /// <inheritdoc />
     protected override FirebirdDbMock CreateDb(int? version) => new(version);
@@ -34,7 +36,7 @@ public sealed class FirebirdUnionLimitAndJsonCompatibilityTests(ITestOutputHelpe
     public void LimitOffset_ShouldWork()
     {
         var rows = Connection.Query<dynamic>("SELECT id FROM t ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY").ToList();
-        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal([2, 3], [.. rows.Select(r => Convert.ToInt32(GetValueIgnoreCase((object)r, "id")) )]);
     }
 
     /// <summary>

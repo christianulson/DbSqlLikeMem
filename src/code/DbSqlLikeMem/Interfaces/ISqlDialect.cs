@@ -21,11 +21,11 @@ internal interface ISqlDialect : ISqlDialectParser, ISqlDialectFunctions, ISqlDi
     /// EN: Gets the scalar function registry supported by this dialect.
     /// PT: Obtém o registry de funcoes escalares suportadas por este dialeto.
     /// </summary>
-    DbSqlLikeMem.Dialect.FunctionDictionaryProcess Functions { get; }
+    Dialect.FunctionDictionaryProcess Functions { get; }
 
     /// <summary>
     /// EN: Gets the stored procedure registry supported by this dialect.
     /// PT: Obtém o registry de procedimentos armazenados suportados por este dialeto.
     /// </summary>
-    DbSqlLikeMem.Interfaces.IDictionaryProcess<ProcedureDef> Procedures { get; }
+    IDictionaryProcess<ProcedureDef> Procedures { get; }
 }

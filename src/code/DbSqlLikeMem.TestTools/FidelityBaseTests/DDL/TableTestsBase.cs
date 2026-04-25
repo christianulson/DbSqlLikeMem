@@ -19,7 +19,7 @@ public abstract class TableTestsBase<T, T2>(
     /// EN: Verifies that table creation works for the current provider.
     /// PT: Verifica se a criacao de tabela funciona para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task CreateTableTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -31,7 +31,7 @@ public abstract class TableTestsBase<T, T2>(
     /// EN: Verifies that table creation with a foreign key works for the current provider.
     /// PT: Verifica se a criacao de tabela com chave estrangeira funciona para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task CreateTableWithFKTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -43,7 +43,7 @@ public abstract class TableTestsBase<T, T2>(
     /// EN: Verifies that a table created with a foreign key accepts a valid referenced insert for the current provider.
     /// PT: Verifica se uma tabela criada com chave estrangeira aceita um insert referenciado valido para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task InsertInTableWithFKTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -55,7 +55,7 @@ public abstract class TableTestsBase<T, T2>(
     /// EN: Verifies that table dropping works for the current provider.
     /// PT: Verifica se a remocao de tabela funciona para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task DropTableTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -63,3 +63,4 @@ public abstract class TableTestsBase<T, T2>(
         await testService.RunTestAsync<DropTableScenario, DropTableServiceTest>();
     }
 }
+

@@ -58,7 +58,34 @@ public sealed class UsersOrdersScenario(
     /// </summary>
     public async Task DropScenarioAsync()
     {
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbOrdersFullName));
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbUsersFullName));
+        try
+        {
+            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbOrdersFullName));
+        }
+        catch (Exception ex) when (IsMissingTableException(ex))
+        {
+        }
+
+        try
+        {
+            await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(Context.TbUsersFullName));
+        }
+        catch (Exception ex) when (IsMissingTableException(ex))
+        {
+        }
+    }
+
+    private static bool IsMissingTableException(Exception ex)
+    {
+        var message = ex.GetBaseException().Message;
+        return message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesn't exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("doesnt exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not exist", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("undefined name", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not found", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("ora-00942", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("tabela ou view", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("given key was not present", StringComparison.OrdinalIgnoreCase);
     }
 }

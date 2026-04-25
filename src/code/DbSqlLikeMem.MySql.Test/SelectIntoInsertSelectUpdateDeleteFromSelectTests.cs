@@ -16,6 +16,12 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
     protected override DbSqlLikeMem.TestTools.ProviderSqlDialect Dialect { get; } = new DbSqlLikeMem.MySql.TestTools.MySqlProviderSqlDialect();
 
     /// <summary>
+    /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in MySQL.
+    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no MySQL.
+    /// </summary>
+    protected override int CreateTableAsSelectExpectedAffectedRows => 2;
+
+    /// <summary>
     /// EN: Creates a new MySQL mock database for each scenario.
     /// PT: Cria um novo banco simulado de MySQL para cada cenário.
     /// </summary>

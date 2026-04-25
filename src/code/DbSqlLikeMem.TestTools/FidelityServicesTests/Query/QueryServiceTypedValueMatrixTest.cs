@@ -38,7 +38,9 @@ public partial class QueryServiceTest
         var fourthExpectedEmail = NormalizeOracleNullableText(fourthEmail);
         var fourthFixedCode = string.Empty;
         var fourthExpectedFixedCode = NormalizeOracleNullableText(fourthFixedCode);
-        var fourthBinaryValue = Array.Empty<byte>();
+        var fourthBinaryValue = Repo.Dialect.Provider == ProviderId.Firebird
+            ? new byte[] { 0x00 }
+            : Array.Empty<byte>();
         var fourthDateTimeOffsetValue = new DateTimeOffset(2026, 1, 22, 0, 0, 0, TimeSpan.Zero);
         var fourthExpectedDateTimeOffsetValue = NormalizeStoredDateTimeOffsetValue(fourthDateTimeOffsetValue);
 

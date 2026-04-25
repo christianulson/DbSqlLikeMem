@@ -1,5 +1,3 @@
-using System;
-
 namespace DbSqlLikeMem;
 
 internal abstract partial class SqlDialectBase

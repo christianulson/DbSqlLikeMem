@@ -13,7 +13,6 @@ using System.Globalization;
 using DB2Connection = IBM.Data.Db2.DB2Connection;
 using DB2ConnectionStringBuilder = IBM.Data.Db2.DB2ConnectionStringBuilder;
 #endif
-using Xunit.Sdk;
 
 namespace DbSqlLikeMem.Db2.Test;
 
@@ -34,15 +33,7 @@ internal static class Db2ConnectionFactory
     internal static DB2Connection Create(string connectionString)
     {
 #if NET462 || NET6_0
-        try
-        {
-            Db2NativeClientGuard.EnsureNativeClientAvailable();
-        }
-        catch (InvalidOperationException ex)
-        {
-            _ = ex;
-            throw SkipException.ForSkip("Db2 native client is not available.");
-        }
+        Db2NativeClientGuard.EnsureNativeClientAvailable();
 #endif
         var builder = new DB2ConnectionStringBuilder
         {

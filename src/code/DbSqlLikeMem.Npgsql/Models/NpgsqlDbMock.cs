@@ -6,7 +6,15 @@ namespace DbSqlLikeMem.Npgsql;
 /// </summary>
 public class NpgsqlDbMock : DbMock
 {
+    private const string DefaultNpgsqlSchemaName = "public";
+
     internal override SqlDialectBase Dialect { get; set; }
+
+    /// <summary>
+    /// EN: Gets the schema lookup order used by Npgsql when callers omit an explicit schema name.
+    /// PT: Obtém a ordem de consulta de schema usada pelo Npgsql quando os chamadores omitem um nome de schema explicito.
+    /// </summary>
+    protected override IReadOnlyList<string> ImplicitSchemaLookupOrder => [DefaultNpgsqlSchemaName, "DefaultSchema"];
 
     /// <summary>
     /// EN: Initializes an in-memory PostgreSQL mock database with the requested version.

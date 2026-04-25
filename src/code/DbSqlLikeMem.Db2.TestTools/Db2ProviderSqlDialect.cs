@@ -115,12 +115,30 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{TemporaryUsersTableName(context)} (
     {
         if (dbType == DbType.Currency)
         {
-            parameter = CreateDb2CurrencyParameter(command, Parameter(name), value);
+            parameter = CreateDb2CurrencyParameter(command, CommandParameter(name), value);
             return true;
         }
 
         parameter = null!;
         return false;
+    }
+
+    /// <inheritdoc />
+    public override void AddParameter(DbCommand command, string name, DbType dbType, object? value)
+    {
+        if (TryCreateSpecialParameter(command, name, dbType, value, out var specialParameter))
+        {
+            AddParameterToCollection(command, specialParameter);
+            return;
+        }
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = CommandParameter(name);
+        ConfigureParameter(parameter, dbType);
+        parameter.Value = NormalizeParameterValue(dbType, value) ?? DBNull.Value;
+        ApplyParameterSize(parameter, parameter.Value);
+
+        AddParameterToCollection(command, parameter);
     }
 
     /// <inheritdoc />
@@ -215,7 +233,7 @@ WHEN NOT MATCHED THEN
 
     /// <inheritdoc />
     public override string SelectNextSequenceValue(FidelityTestContext context) =>
-        $"VALUES NEXT VALUE FOR {context.Seq}";
+        $"SELECT NEXT VALUE FOR {context.Seq} AS SeqValue FROM SYSIBM.SYSDUMMY1";
     /// <inheritdoc />
     public override string CurrentSequenceValue(FidelityTestContext context) =>
         $"VALUES PREVIOUS VALUE FOR {context.Seq}";
@@ -279,11 +297,11 @@ WHEN NOT MATCHED THEN
 
     /// <inheritdoc />
     public override string TemporalNowWhere(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM {context.TempTbFullName} WHERE CURRENT TIMESTAMP IS NOT NULL";
+        $"SELECT COUNT(*) FROM {context.TbUsersFullName} WHERE CURRENT TIMESTAMP IS NOT NULL";
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(FidelityTestContext context) =>
-        $"SELECT Name FROM {context.TempTbFullName} ORDER BY Name FETCH FIRST 1 ROW ONLY";
+        $"SELECT Name FROM {context.TbUsersFullName} ORDER BY Name FETCH FIRST 1 ROW ONLY";
 
     /// <inheritdoc />
     public override string CrossApplyProjection(FidelityTestContext context) =>

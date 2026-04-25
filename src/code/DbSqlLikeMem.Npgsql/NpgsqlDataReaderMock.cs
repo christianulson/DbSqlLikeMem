@@ -12,9 +12,7 @@ public sealed class NpgsqlDataReaderMock(
 {
     /// <inheritdoc />
     protected override string NormalizeColumnNameForGetName(string columnAlias, string columnName)
-        => IsBareProjectedColumn(columnAlias, columnName)
-            ? ExtractIdentifierTail(columnAlias).ToLowerInvariant()
-            : columnAlias;
+        => ExtractIdentifierTail(columnAlias).ToLowerInvariant();
 
     /// <inheritdoc />
     public override DataTable GetSchemaTable()
@@ -28,9 +26,6 @@ public sealed class NpgsqlDataReaderMock(
 
         return table;
     }
-
-    private static bool IsBareProjectedColumn(string columnAlias, string columnName)
-        => string.Equals(ExtractIdentifierTail(columnAlias), ExtractIdentifierTail(columnName), StringComparison.OrdinalIgnoreCase);
 
     private static string ExtractIdentifierTail(string value)
     {

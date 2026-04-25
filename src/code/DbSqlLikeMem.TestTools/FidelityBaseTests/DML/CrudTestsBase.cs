@@ -19,7 +19,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies that an update followed by a delete keeps the expected row count and remaining value for the current provider.
     /// PT: Verifica se um update seguido de delete mantem a contagem esperada de linhas e o valor restante para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task UpdateDeleteRoundTripTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -35,7 +35,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies that update and delete actions committed inside a transaction keep the expected final state.
     /// PT: Verifica se acoes de update e delete confirmadas dentro de uma transacao mantem o estado final esperado.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task TransactionalUpdateDeleteCommitTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -51,7 +51,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies that updating a single user row persists the expected value for the current provider.
     /// PT: Verifica se a atualizacao de uma unica linha de usuario persiste o valor esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task UpdateByPkTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -67,7 +67,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies that deleting a single user row keeps the expected remaining row for the current provider.
     /// PT: Verifica se a exclusao de uma unica linha de usuario mantem a linha restante esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task DeleteByPkTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -88,7 +88,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies that an update reports a valid affected-row count and persists the new value for the current provider.
     /// PT: Verifica se uma atualizacao retorna uma contagem valida de linhas afetadas e persiste o novo valor para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task RowCountAfterUpdateTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -104,7 +104,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies typed provider parameters update and delete rows correctly in the users table for the current provider, including Oracle empty-string normalization in the updated email column.
     /// PT: Verifica se parametros tipados do provedor atualizam e excluem linhas corretamente na tabela de usuarios do provedor atual, incluindo a normalizacao de string vazia no email atualizado para Oracle.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ParameterUpdateDeleteRoundTripTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -130,7 +130,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies typed provider parameters insert rows correctly in the users table for the current provider.
     /// PT: Verifica se parametros tipados do provedor inserem linhas corretamente na tabela de usuarios do provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ParameterInsertRoundTripTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -166,7 +166,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies typed provider parameters insert nullable values correctly in the users table for the current provider.
     /// PT: Verifica se parametros tipados do provedor inserem valores anulaveis corretamente na tabela de usuarios do provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ParameterInsertNullRoundTripTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -191,7 +191,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies typed provider parameters insert rows correctly inside a committed transaction for the current provider.
     /// PT: Verifica se parametros tipados do provedor inserem linhas corretamente dentro de uma transacao confirmada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ParameterTransactionCommitTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -215,7 +215,7 @@ public abstract class CrudTestsBase<T, T2>(
     /// EN: Verifies typed provider parameters roll back correctly inside a transaction for the current provider.
     /// PT: Verifica se parametros tipados do provedor fazem rollback corretamente dentro de uma transacao para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ParameterTransactionRollbackTest()
     {
         using var testService = new FidelityTestService<T, T2>(
@@ -244,4 +244,5 @@ public abstract class CrudTestsBase<T, T2>(
     protected virtual DateTime NormalizeParameterDateTimeInput(DateTime value)
         => value;
 }
+
 

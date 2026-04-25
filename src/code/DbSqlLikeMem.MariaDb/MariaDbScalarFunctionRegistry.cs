@@ -1,4 +1,3 @@
-using DbSqlLikeMem;
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.MariaDb;

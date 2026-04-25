@@ -186,12 +186,12 @@ ORDER BY Name, Id
         var expectedFirstName = pars.Length > 0 ? (string)pars[0] : "Alice";
         var rows = new List<QueryResultRowSnapshot>(4);
         var percentRankExpr = Repo.Dialect.Provider == ProviderId.Firebird
-            ? "ROUND(CASE WHEN COUNT(*) OVER () <= 1 THEN 0 ELSE 1.0 * (RANK() OVER (ORDER BY Name, Id) - 1) / (COUNT(*) OVER () - 1) END, 6)"
+            ? "ROUND(CASE WHEN COUNT(*) OVER () <= 1 THEN 0 ELSE CAST(RANK() OVER (ORDER BY Name, Id) - 1 AS DOUBLE PRECISION) / CAST(COUNT(*) OVER () - 1 AS DOUBLE PRECISION) END, 6)"
             : Repo.Dialect.Provider == ProviderId.Npgsql
             ? "ROUND((PERCENT_RANK() OVER (ORDER BY Name, Id))::numeric, 6)"
             : "ROUND(PERCENT_RANK() OVER (ORDER BY Name, Id), 6)";
         var cumeDistExpr = Repo.Dialect.Provider == ProviderId.Firebird
-            ? "ROUND(CASE WHEN COUNT(*) OVER () = 0 THEN 0 ELSE 1.0 * COUNT(*) OVER (ORDER BY Name, Id) / COUNT(*) OVER () END, 6)"
+            ? "ROUND(CASE WHEN COUNT(*) OVER () = 0 THEN 0 ELSE CAST(COUNT(*) OVER (ORDER BY Name, Id) AS DOUBLE PRECISION) / CAST(COUNT(*) OVER () AS DOUBLE PRECISION) END, 6)"
             : Repo.Dialect.Provider == ProviderId.Npgsql
             ? "ROUND((CUME_DIST() OVER (ORDER BY Name, Id))::numeric, 6)"
             : "ROUND(CUME_DIST() OVER (ORDER BY Name, Id), 6)";
@@ -209,19 +209,35 @@ ORDER BY Name, Id
         using var reader = await command.ExecuteReaderAsync();
 
         (await reader.ReadAsync()).Should().BeTrue();
-        ValidateWindowPercentRankCumeDistRow(reader, expectedFirstName, 0.0m, 0.25m);
+        ValidateWindowPercentRankCumeDistRow(
+            reader,
+            expectedFirstName,
+            0.0m,
+            0.25m);
         rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
-        ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.333333m, 0.5m);
+        ValidateWindowPercentRankCumeDistRow(
+            reader,
+            "Bravo",
+            0.333333m,
+            0.5m);
         rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
-        ValidateWindowPercentRankCumeDistRow(reader, "Bravo", 0.666667m, 0.75m);
+        ValidateWindowPercentRankCumeDistRow(
+            reader,
+            "Bravo",
+            0.666667m,
+            0.75m);
         rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeTrue();
-        ValidateWindowPercentRankCumeDistRow(reader, "Charlie", 1.0m, 1.0m);
+        ValidateWindowPercentRankCumeDistRow(
+            reader,
+            "Charlie",
+            1.0m,
+            1.0m);
         rows.Add(QueryResultSnapshotReader.CaptureRow(reader));
 
         (await reader.ReadAsync()).Should().BeFalse();

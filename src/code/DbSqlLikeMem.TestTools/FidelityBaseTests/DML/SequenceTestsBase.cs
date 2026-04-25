@@ -19,7 +19,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that a created sequence returns the expected first and second values for the current provider.
     /// PT: Verifica se uma sequence criada retorna os valores esperado primeiro e segundo para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceNextValuesTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -33,7 +33,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that sequence values can be consumed by inserts and keep the expected row range for the current provider.
     /// PT: Verifica se valores de sequence podem ser consumidos por inserts e mantem a faixa esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceInsertRoundTripTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -45,7 +45,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that sequence expressions can be used directly inside inserts for the current provider.
     /// PT: Verifica se expressoes de sequence podem ser usadas diretamente dentro de inserts para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceInsertExpressionTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -57,7 +57,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that the current sequence value follows the last consumed value for the current provider.
     /// PT: Verifica se o valor corrente da sequence acompanha o ultimo valor consumido para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceCurrentValueTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -69,7 +69,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that a sequence value can be projected inside a SELECT for the current provider.
     /// PT: Verifica se um valor de sequence pode ser projetado dentro de um SELECT para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceSelectProjectionTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -81,7 +81,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that sequence values can participate in CASE and WHERE logic inside a single query for the current provider.
     /// PT: Verifica se valores de sequence podem participar de logica CASE e WHERE dentro de uma unica consulta para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceCaseWhereMatrixTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -106,7 +106,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that sequence values can be combined with temporal expressions inside a single query for the current provider.
     /// PT: Verifica se valores de sequence podem ser combinados com expressoes temporais dentro de uma unica consulta para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceTemporalMatrixTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -118,7 +118,7 @@ public abstract class SequenceTestsBase<T, T2>(
     /// EN: Verifies that sequence-generated keys can participate in a join aggregate workflow for the current provider.
     /// PT: Verifica se chaves geradas por sequence podem participar de um fluxo agregado com join para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SequenceJoinAggregateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -126,3 +126,4 @@ public abstract class SequenceTestsBase<T, T2>(
         await testService.RunTestAsync<SequenceScenario, UsersOrdersScenario, DmlMutationSequenceJoinAggregateServiceTest>();
     }
 }
+

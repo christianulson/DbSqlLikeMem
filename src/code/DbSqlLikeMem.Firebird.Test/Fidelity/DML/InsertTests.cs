@@ -11,9 +11,9 @@ public class InsertTests(
     ) : InsertTestsBase<FirebirdConnectionMock, FbConnection>(
     helper,
     new FirebirdProviderSqlDialect(),
-    static () => new FirebirdConnectionMock(Db),
-    s => new FbConnection(s)
+    static () => new FirebirdConnectionMock(Get(FirebirdDbVersions.Default, _ => new FirebirdDbMock(_) { ThreadSafe = true })),
+    FirebirdConnectionFactory.Create
     )
 {
-    private static readonly FirebirdDbMock Db = new() { ThreadSafe = true };
+
 }

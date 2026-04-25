@@ -18,6 +18,9 @@ public class TemporaryTableServiceOpsTest(
         var isMockConnection = Repo.Cnn is DbConnectionMockBase;
         var tempTable = BuildTemporaryTableName(Context.UId, isMockConnection);
         var sourceUsersTable = Repo.Dialect.TemporaryUsersTableName(Context);
+        var sessionSourceUsersTable = Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection
+            ? $"SESSION.{sourceUsersTable}"
+            : sourceUsersTable;
         var sessionTempTable = Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection
             ? $"SESSION.{tempTable}"
             : tempTable;
@@ -36,7 +39,7 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{tempTable} (
 ) ON COMMIT PRESERVE ROWS NOT LOGGED");
             await Repo.ExecuteNonQueryAsync($@"
 INSERT INTO SESSION.{tempTable} (Id, Name)
-SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
+SELECT Id, Name FROM {sessionSourceUsersTable} WHERE TenantId = 10");
         }
         else if (Repo.Dialect.Provider == ProviderId.Db2)
         {

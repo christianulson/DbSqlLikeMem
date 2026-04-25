@@ -21,6 +21,8 @@ public sealed class FirebirdProviderSqlDialectTests
         Assert.True(dialect.SupportsSequence);
         Assert.False(dialect.SupportsJsonScalarRead);
         Assert.True(dialect.SupportsReleaseSavepoints);
+        Assert.False(dialect.SupportsDateTimeOffsetInputOutputParameters);
+        Assert.False(dialect.SupportsGuidInputOutputParameters);
     }
 
     /// <summary>
@@ -39,15 +41,27 @@ public sealed class FirebirdProviderSqlDialectTests
         var sequenceSql = dialect.NextSequenceValue(context);
         var sequenceSelectSql = dialect.SelectNextSequenceValue(context);
         var batchInsertSql = dialect.InsertUsers(context, (1, "Ana"), (2, "Beto"));
+        var parameterProjectionSql = dialect.SelectParameterProjection("""
+    @dateValue AS DateValue,
+    @currencyValue AS CurrencyValue,
+    @textValue AS TextValue,
+    @dateTimeOffsetValue AS DateTimeOffsetValue,
+    @binaryValue AS BinaryValue
+""");
 
-        Assert.Contains("CREATE TABLE Users_ABCD1234", usersTable);
+        Assert.Contains($"CREATE TABLE {context.TbUsersFullName}", usersTable);
         Assert.Contains("BLOB SUB_TYPE TEXT", usersTable);
-        Assert.Contains("CREATE GLOBAL TEMPORARY TABLE Users", tempTable);
-        Assert.Contains("NEXT VALUE FOR SEQ_USERS", sequenceSql);
+        Assert.Contains($"CREATE GLOBAL TEMPORARY TABLE {context.TempTbFullName}", tempTable);
+        Assert.Contains($"NEXT VALUE FOR {context.Seq}", sequenceSql);
         Assert.Contains("FROM RDB$DATABASE", sequenceSelectSql);
-        Assert.Contains("INSERT INTO Users (Id, Name, IsActive, Balance, CreatedAt)", batchInsertSql);
+        Assert.Contains($"INSERT INTO {context.TbUsersFullName} (Id, Name, IsActive, Balance, CreatedAt)", batchInsertSql);
         Assert.Contains("FROM (", batchInsertSql);
         Assert.Contains("UNION ALL SELECT 2 AS counter FROM RDB$DATABASE", batchInsertSql);
         Assert.Contains("User-' || counter", batchInsertSql);
+        Assert.Contains("CAST(@dateValue AS DATE) AS DateValue", parameterProjectionSql);
+        Assert.Contains("CAST(@currencyValue AS DECIMAL(19,2)) AS CurrencyValue", parameterProjectionSql);
+        Assert.Contains("CAST(@textValue AS VARCHAR(100)) AS TextValue", parameterProjectionSql);
+        Assert.Contains("CAST(@dateTimeOffsetValue AS VARCHAR(40)) AS DateTimeOffsetValue", parameterProjectionSql);
+        Assert.Contains("CAST(@binaryValue AS VARBINARY(16)) AS BinaryValue", parameterProjectionSql);
     }
 }

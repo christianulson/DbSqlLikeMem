@@ -31,8 +31,15 @@ public class DmlMutationSequenceTemporalMatrixServiceTest(
         var secondValue = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.NextSequenceValue(Context))!, CultureInfo.InvariantCulture);
         var nowExpr = Repo.Dialect.TemporalCurrentTimestampExpression();
         var nextDayExpr = Repo.Dialect.TemporalDateAddExpression();
+        var singleRowSource = Repo.Dialect.Provider switch
+        {
+            ProviderId.Db2 => "FROM SYSIBM.SYSDUMMY1",
+            ProviderId.Firebird => "FROM RDB$DATABASE",
+            _ => string.Empty
+        };
 
-        var lst = await Repo.ExecuteReaderAsync($"""
+        var lst = Repo.Dialect.Provider == ProviderId.Db2
+            ? await Repo.ExecuteReaderAsync($"""
 SELECT
     {firstValue} AS SeqFirst,
     {secondValue} AS SeqSecond,
@@ -41,6 +48,18 @@ SELECT
     CASE WHEN {nowExpr} IS NOT NULL THEN 1 ELSE 0 END AS NowPresent,
     CASE WHEN {nextDayExpr} > {nowExpr} THEN 1 ELSE 0 END AS NextDayAfterNow,
     CASE WHEN {firstValue} < {secondValue} THEN 1 ELSE 0 END AS IsAscending
+{singleRowSource}
+""")
+            : await Repo.ExecuteReaderAsync($"""
+SELECT
+    {firstValue} AS SeqFirst,
+    {secondValue} AS SeqSecond,
+    CASE WHEN {firstValue} = 10 THEN 1 ELSE 0 END AS FirstIsTen,
+    CASE WHEN {secondValue} = 11 THEN 1 ELSE 0 END AS SecondIsEleven,
+    CASE WHEN {nowExpr} IS NOT NULL THEN 1 ELSE 0 END AS NowPresent,
+    CASE WHEN {nextDayExpr} > {nowExpr} THEN 1 ELSE 0 END AS NextDayAfterNow,
+    CASE WHEN {firstValue} < {secondValue} THEN 1 ELSE 0 END AS IsAscending
+{singleRowSource}
 """);
         if (lst?.Count != 1
             || lst[0].Count != 1

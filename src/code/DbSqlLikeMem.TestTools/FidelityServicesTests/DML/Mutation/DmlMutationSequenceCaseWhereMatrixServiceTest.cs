@@ -32,9 +32,17 @@ public class DmlMutationSequenceCaseWhereMatrixServiceTest(
         if (Repo.Dialect.Provider == ProviderId.MariaDb)
             return await RunMariaDbMatrixAsync();
 
+        var firstValue = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.NextSequenceValue(Context))!, CultureInfo.InvariantCulture);
+        var secondValue = Convert.ToInt64(await Repo.ExecuteScalarAsync(Repo.Dialect.NextSequenceValue(Context))!, CultureInfo.InvariantCulture);
+
+        var singleRowSource = Repo.Dialect.Provider switch
+        {
+            ProviderId.Db2 => "FROM SYSIBM.SYSDUMMY1",
+            ProviderId.Firebird => "FROM RDB$DATABASE",
+            _ => string.Empty
+        };
+
         var lst = await Repo.ExecuteReaderAsync($"""
-WITH {BuildSingleRowSequenceCte("seq_first")},
-{BuildSingleRowSequenceCte("seq_second")}
 SELECT
     s1.SeqValue,
     s2.SeqValue,
@@ -43,8 +51,8 @@ SELECT
     CASE WHEN s1.SeqValue < s2.SeqValue THEN 1 ELSE 0 END AS IsAscending,
     CASE WHEN s1.SeqValue = 10 THEN 1 ELSE 0 END AS FirstIsTen,
     CASE WHEN s2.SeqValue = 11 THEN 1 ELSE 0 END AS SecondIsEleven
-FROM seq_first s1
-CROSS JOIN seq_second s2
+FROM (SELECT {firstValue} AS SeqValue {singleRowSource}) s1
+CROSS JOIN (SELECT {secondValue} AS SeqValue {singleRowSource}) s2
 WHERE s1.SeqValue >= 10
   AND s2.SeqValue <= 11
 """);
@@ -134,8 +142,4 @@ WHERE s1.SeqValue >= 10
         return lst[0];
     }
 
-    private string BuildSingleRowSequenceCte(string alias)
-    {
-        return $"{alias} (SeqValue) AS ({Repo.Dialect.SelectNextSequenceValue(Context)})";
-    }
 }

@@ -657,6 +657,13 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             if (query.PrimaryKeyColumns.Count > 0)
                 newTable.AddPrimaryKeyIndexes([.. query.PrimaryKeyColumns]);
 
+            if (!string.IsNullOrWhiteSpace(query.PartitionClauseSql)
+                && !query.Temporary
+                && newTable is TableMock newTableMock2)
+            {
+                newTableMock2.PartitionClauseSql = query.PartitionClauseSql;
+            }
+
             return new DmlExecutionResult();
         }
 
@@ -686,6 +693,13 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
         if (query.PrimaryKeyColumns.Count > 0)
             newTable.AddPrimaryKeyIndexes([.. query.PrimaryKeyColumns]);
+
+        if (!string.IsNullOrWhiteSpace(query.PartitionClauseSql)
+            && !query.Temporary
+            && newTable is TableMock newTableMock)
+        {
+            newTableMock.PartitionClauseSql = query.PartitionClauseSql;
+        }
 
         foreach (var row in res)
         {

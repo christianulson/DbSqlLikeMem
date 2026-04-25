@@ -19,7 +19,7 @@ public abstract class InsertTestsBase<T, T2>(
     /// EN: Verifies that a single insert persists one row for the current provider.
     /// PT: Verifica se um insert unico persiste uma linha para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public Task InsertSingleTest()
         => RunInsertCountTest(1);
 
@@ -27,7 +27,7 @@ public abstract class InsertTestsBase<T, T2>(
     /// EN: Verifies the parameter insert benchmark persists one row for the current provider.
     /// PT: Verifica se o benchmark de insert parametrizado persiste uma linha para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ParameterInsertSingleTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -39,7 +39,7 @@ public abstract class InsertTestsBase<T, T2>(
     /// EN: Verifies that ten sequential inserts persist ten rows for the current provider.
     /// PT: Verifica se dez inserts sequenciais persistem dez linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public Task InsertBatch10Test()
         => RunInsertCountTest(10);
 
@@ -47,7 +47,7 @@ public abstract class InsertTestsBase<T, T2>(
     /// EN: Verifies that one hundred sequential inserts persist one hundred rows for the current provider.
     /// PT: Verifica se cem inserts sequenciais persistem cem linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public Task InsertBatch100Test()
         => RunInsertCountTest(100);
 
@@ -55,7 +55,7 @@ public abstract class InsertTestsBase<T, T2>(
     /// EN: Verifies that one hundred parallel inserts persist one hundred rows for the current provider.
     /// PT: Verifica se cem inserts paralelos persistem cem linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task InsertBatch100ParallelTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -67,7 +67,7 @@ public abstract class InsertTestsBase<T, T2>(
     /// EN: Verifies that a single insert reports a valid affected-row count for the current provider.
     /// PT: Verifica se um insert unico retorna uma contagem valida de linhas afetadas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task RowCountAfterInsertTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -79,7 +79,7 @@ public abstract class InsertTestsBase<T, T2>(
     /// EN: Verifies that inserts starting from a custom id persist the expected key range and row names for the current provider.
     /// PT: Verifica se inserts iniciando em um id customizado persistem a faixa de chaves e os nomes esperados para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task InsertCustomStartIdTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -94,3 +94,4 @@ public abstract class InsertTestsBase<T, T2>(
         await testService.RunTestAsync<InsertUsersScenario, InsertUsersServiceTest>(rowCount);
     }
 }
+

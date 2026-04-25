@@ -931,22 +931,24 @@ ORDER BY u.Id, o.Id
         var unsigned = sign.Length > 0 ? trimmed[1..] : trimmed;
 
         var parts = unsigned.Split(['.'], 2);
+        var integerPart = string.IsNullOrEmpty(parts[0]) ? "0" : parts[0];
+
         if (parts.Length == 1)
         {
-            return $"{sign}{parts[0]}.00";
+            return $"{sign}{integerPart}.00";
         }
 
         if (parts.Length == 2)
         {
             var fractional = parts[1];
             if (fractional.Length == 0)
-                return $"{sign}{parts[0]}.00";
+                return $"{sign}{integerPart}.00";
 
             if (fractional.Length == 1)
-                return $"{sign}{parts[0]}.{fractional}0";
+                return $"{sign}{integerPart}.{fractional}0";
 
             if (fractional.Length == 2)
-                return $"{sign}{parts[0]}.{fractional}";
+                return $"{sign}{integerPart}.{fractional}";
         }
 
         return trimmed;
@@ -1338,7 +1340,7 @@ ORDER BY u.Id
 
         using var reader = await command.ExecuteReaderAsync();
         var snapshot = QueryResultSnapshotReader.Capture(reader);
-        if (Repo.Dialect.Provider is ProviderId.Oracle or ProviderId.Db2)
+        if (Repo.Dialect.Provider is ProviderId.Oracle or ProviderId.Db2 or ProviderId.Firebird)
         {
             var columnNames = new string[snapshot.ColumnNames.Count];
             for (var i = 0; i < snapshot.ColumnNames.Count; i++)

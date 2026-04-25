@@ -13,13 +13,21 @@ public sealed class NpgsqlConnectionMock
     }
 
     /// <summary>
-    /// EN: Gets the default schema name.
-    /// PT: Obtém o nome do esquema padrão.
+    /// EN: Initializes a PostgreSQL mock connection over an existing in-memory database.
+    /// PT: Inicializa uma conexao mock PostgreSQL sobre um banco em memoria existente.
     /// </summary>
+    /// <param name="db">EN: Shared PostgreSQL mock database. PT: Banco mock PostgreSQL compartilhado.</param>
+    public NpgsqlConnectionMock(NpgsqlDbMock? db)
+        : this(db, "public")
+    {
+    }
+
     /// <summary>
-    /// EN: Represents Npgsql Connection Mock.
-    /// PT: Representa uma conexão simulada do Npgsql.
+    /// EN: Initializes a PostgreSQL mock connection with an optional database and default schema.
+    /// PT: Inicializa uma conexao mock PostgreSQL com banco opcional e schema padrao.
     /// </summary>
+    /// <param name="db">EN: PostgreSQL mock database to use. PT: Banco mock PostgreSQL a usar.</param>
+    /// <param name="defaultDatabase">EN: Default schema/database name. PT: Nome padrao de schema/banco.</param>
     public NpgsqlConnectionMock(
        NpgsqlDbMock? db = null,
        string? defaultDatabase = "public"

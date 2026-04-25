@@ -113,6 +113,7 @@ public class FirebirdCommandMock(
 
         if (CommandType == CommandType.StoredProcedure)
         {
+            ThrowIfUnsupportedGuidParameter();
             var affected = connection!.ExecuteStoredProcedure(CommandText, Parameters);
             connection.SetLastFoundRows(affected.AffectedRows);
             return affected.AffectedRows;
@@ -140,6 +141,9 @@ public class FirebirdCommandMock(
         connection!.ClearExecutionPlans();
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
         using var _ = connection.Metrics.BeginAmbientScope();
+
+        if (CommandType == CommandType.StoredProcedure)
+            ThrowIfUnsupportedGuidParameter();
 
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
@@ -281,6 +285,23 @@ public class FirebirdCommandMock(
             return null;
 
         return returningResult;
+    }
+
+    /// <summary>
+    /// EN: Rejects GUID parameters to match the Firebird provider behavior used by the fidelity tests.
+    /// PT: Rejeita parametros GUID para corresponder ao comportamento do provedor Firebird usado nos testes de fidelidade.
+    /// </summary>
+    private void ThrowIfUnsupportedGuidParameter()
+    {
+        foreach (DbParameter parameter in Parameters)
+        {
+            if (parameter.DbType == DbType.Guid)
+            {
+                throw new ArgumentOutOfRangeException(
+                    "startIndex",
+                    "Index was out of range. Must be non-negative and less than the size of the collection.");
+            }
+        }
     }
 
     /// <summary>

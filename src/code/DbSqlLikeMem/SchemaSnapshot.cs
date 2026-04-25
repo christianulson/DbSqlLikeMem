@@ -28,6 +28,7 @@ public sealed record SchemaSnapshot
     ]);
     private static readonly IReadOnlyList<string> UnsupportedObjectKinds = Array.AsReadOnly([
         "computed-column-generators",
+        "computed-default-expressions",
         "trigger-bodies",
         "procedure-bodies",
         "global-temporary-table-definitions"

@@ -1,5 +1,3 @@
-using System;
-
 namespace DbSqlLikeMem;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
@@ -17,7 +15,7 @@ internal sealed class ScalarFunctionAttribute : Attribute
 
     public DbInvocationStyle InvocationStyle { get; init; } = DbInvocationStyle.Call;
 
-    public SqlTemporalFunctionKind? TemporalKind { get; init; }
+    public int TemporalKind { get; init; } = -1;
 
     public int MinVersion { get; init; }
 }

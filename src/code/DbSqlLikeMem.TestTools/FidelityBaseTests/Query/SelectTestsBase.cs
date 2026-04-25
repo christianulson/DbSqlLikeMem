@@ -25,7 +25,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that primary-key selection returns the expected row for the current provider.
     /// PT: Verifica se a selecao por chave primaria retorna a linha esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectByPkTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -38,7 +38,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that selecting all rows returns the expected row count for the current provider.
     /// PT: Verifica se o select de todas as linhas retorna a contagem esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectAllRowsCountTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -57,7 +57,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that selecting all rows returns the full rowset snapshot for the current provider.
     /// PT: Verifica se o select de todas as linhas retorna o snapshot completo do conjunto de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectAllRowsSnapshotTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -76,7 +76,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a simple CTE query returns the expected rowset for the current provider.
     /// PT: Verifica se uma consulta CTE simples retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectCteSimpleTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
@@ -90,7 +90,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies correlated scalar subqueries with CASE expressions for the current provider.
     /// PT: Verifica subconsultas escalares correlacionadas com expressoes CASE para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectScalarSubqueryCaseMatrixTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -108,7 +108,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies the scalar CASE matrix over users and orders matches the current provider behavior.
     /// PT: Verifica se a matriz de CASE escalar nas tabelas de usuarios e pedidos coincide com o comportamento do provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectScalarCaseMatrixTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -126,7 +126,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a NOT EXISTS predicate returns the expected anti-join rowset for the current provider.
     /// PT: Verifica se um predicado NOT EXISTS retorna o conjunto de linhas esperado de anti-join para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectNotExistsPredicateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -141,7 +141,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a LEFT JOIN anti-join returns the expected rowset for the current provider.
     /// PT: Verifica se um anti-join com LEFT JOIN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectLeftJoinAntiJoinTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
@@ -156,7 +156,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a NOT IN subquery returns the expected anti-join rowset for the current provider.
     /// PT: Verifica se uma subconsulta NOT IN retorna o conjunto de linhas esperado de anti-join para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectNotInSubqueryTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -171,7 +171,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that an EXISTS predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado EXISTS retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectExistsPredicateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -186,7 +186,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a correlated count predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado de contagem correlacionada retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectCorrelatedCountTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -201,7 +201,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that an IN subquery returns the expected rowset for the current provider.
     /// PT: Verifica se uma subconsulta IN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectInSubqueryTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -216,7 +216,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a scalar subquery returns the expected result for the current provider.
     /// PT: Verifica se uma subconsulta escalar retorna o resultado esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectScalarSubqueryTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
@@ -231,7 +231,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a GROUP BY HAVING query returns the expected rowset for the current provider.
     /// PT: Verifica se uma consulta GROUP BY HAVING retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectGroupByHavingTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
@@ -246,7 +246,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a UNION ALL projection returns the expected rowset for the current provider.
     /// PT: Verifica se uma projecao UNION ALL retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectUnionAllProjectionTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Alice"), (2, "Bob")]]);
@@ -260,7 +260,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a DISTINCT projection returns the expected rowset for the current provider.
     /// PT: Verifica se uma projecao DISTINCT retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectDistinctProjectionTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Alice"), (2, "Alice"), (3, "Bob")]]);
@@ -274,7 +274,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a multi-join aggregate returns the expected rowset for the current provider.
     /// PT: Verifica se uma agregacao com multiplos joins retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectMultiJoinAggregateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
@@ -293,7 +293,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies an IN-list predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado IN com lista retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectInListPredicateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Alice"), (2, "Bob"), (3, "Charlie")]]);
@@ -309,7 +309,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a BETWEEN predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado BETWEEN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectBetweenPredicateTest()
     {
 
@@ -327,7 +327,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a LIKE predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado LIKE retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectLikePredicateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
@@ -342,7 +342,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a combined BETWEEN, LIKE, and ORDER BY query returns the expected row order for the current provider.
     /// PT: Verifica se uma consulta combinada com BETWEEN, LIKE e ORDER BY retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectBetweenLikeOrderByTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData2]);
@@ -358,7 +358,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies the combined BETWEEN, LIKE, and ORDER BY matrix against the current provider behavior.
     /// PT: Verifica a matriz combinada de BETWEEN, LIKE e ORDER BY contra o comportamento do provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectBetweenLikeOrderByMatrixTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData2]);
@@ -374,7 +374,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a NOT LIKE predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado NOT LIKE retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectNotLikePredicateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
@@ -392,7 +392,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a not-equal predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado diferente de retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectNotEqualPredicateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
@@ -411,7 +411,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies an equality predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado de igualdade retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectEqualPredicateTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
@@ -426,7 +426,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a parameterized name lookup returns the expected row for the current provider.
     /// PT: Verifica se uma consulta parametrizada por nome retorna a linha esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectParameterByNameTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
@@ -441,7 +441,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a parameterized id lookup returns the expected row for the current provider.
     /// PT: Verifica se uma consulta parametrizada por id retorna a linha esperada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectParameterByIdTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
@@ -457,7 +457,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies parameter roundtrips over typed user columns for string, numeric, boolean, date, and null values.
     /// PT: Verifica roundtrips de parametros sobre colunas tipadas de usuario para valores de texto, numericos, booleanos, data e nulos.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectParameterRoundTripMatrixTest()
     {
         var createdAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
@@ -479,10 +479,10 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies typed provider parameters roundtrip correctly for ANSI text, fixed-length text, numeric, boolean, temporal, GUID, binary, and null values.
-    /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, GUID, binario e nulos.
+    /// EN: Verifies typed provider parameters roundtrip correctly for ANSI text, fixed-length text, numeric, boolean, temporal, binary, and null values, and that Firebird rejects GUID binding in this matrix.
+    /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, binario e nulos, e que o Firebird rejeita o bind de GUID nesta matriz.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectParameterTypeMatrixTest()
     {
         var createdAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
@@ -490,6 +490,28 @@ public abstract class SelectTestsBase<T, T2>(
         var fixedText = "Fixed Text";
 
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
+
+        if (dialect.Provider == ProviderId.Firebird)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+                (s, a) => s.RunParameterTypeMatrixAsync(a),
+                    "Typed param",
+                    "Ansi param",
+                    ansiFixedText,
+                    fixedText,
+                    (short)12,
+                    34,
+                    56L,
+                    true,
+                    78.90m,
+                    12.5d,
+                    TimeSpan.FromHours(1.5),
+                    new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero),
+                    createdAt,
+                    Guid.Parse("11111111-2222-3333-4444-555555555555"),
+                    new byte[] { 1, 2, 3, 4 })).Should().ThrowAsync<ArgumentOutOfRangeException>();
+            return;
+        }
 
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, a) => s.RunParameterTypeMatrixAsync(a),
@@ -515,7 +537,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies typed provider parameters roundtrip correctly for date and currency values.
     /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para valores de data e moeda.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectParameterDateCurrencyMatrixTest()
     {
         var dateValue = new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Unspecified);
@@ -531,12 +553,20 @@ public abstract class SelectTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies the broad parameter projection benchmark returns the expected scalar value for the current provider.
-    /// PT: Verifica se o benchmark amplo de projeção de parametros retorna o valor escalar esperado para o provedor atual.
+    /// EN: Verifies the broad parameter projection benchmark returns the expected scalar value, and that Firebird rejects GUID binding in this projection.
+    /// PT: Verifica se o benchmark amplo de projeção de parametros retorna o valor escalar esperado, e que o Firebird rejeita o bind de GUID nesta projeção.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task ParameterProjectionTest()
     {
+        if (dialect.Provider == ProviderId.Firebird)
+        {
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<InsertUsersScenario, QueryServiceTest>(
+                [],
+                (s, a) => s.RunParameterProjection())).Should().ThrowAsync<ArgumentOutOfRangeException>();
+            return;
+        }
+
         var result = await RunFidelityTestAsync<InsertUsersScenario, QueryServiceTest>(
             [],
             (s, a) => s.RunParameterProjection());
@@ -548,7 +578,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a greater-than predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado maior que retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectGreaterThanPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -564,7 +594,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a less-than predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado menor que retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectLessThanPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -580,7 +610,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a greater-than-or-equal predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado maior ou igual retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectGreaterThanOrEqualPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -597,7 +627,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a less-than-or-equal predicate returns the expected rowset for the current provider.
     /// PT: Verifica se um predicado menor ou igual retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectLessThanOrEqualPredicateTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -614,7 +644,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies ordering by Name returns the expected row order for the current provider.
     /// PT: Verifica se a ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectOrderByNameTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -631,7 +661,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies ordering by Name matrix returns the expected row order for the current provider.
     /// PT: Verifica se a matriz de ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectOrderByNameMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -648,7 +678,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a UNION projection returns the expected distinct rowset for the current provider.
     /// PT: Verifica se uma projecao UNION retorna o conjunto de linhas distinto esperado para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectUnionDistinctProjectionTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -667,7 +697,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies grouped names by initial with distinct counts and HAVING filtering for the current provider.
     /// PT: Verifica nomes agrupados por inicial com contagens distintas e filtro HAVING para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectGroupByNameInitialMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -684,7 +714,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies GROUP BY Name with HAVING filtering over the configured users table for the current provider.
     /// PT: Verifica GROUP BY Name com filtro HAVING na tabela de usuarios configurada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectGroupByNameHavingTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -700,7 +730,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies GROUP BY ordinal resolution over the configured users table for the current provider.
     /// PT: Verifica a resolucao de GROUP BY ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectGroupByOrdinalTest()
     {
         object?[][] initialData = [[(1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris")]];
@@ -727,7 +757,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies ORDER BY ordinal resolution over the configured users table for the current provider.
     /// PT: Verifica a resolucao de ORDER BY ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectOrderByOrdinalTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -744,7 +774,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies ordering by ordinal matrix returns the expected row order for the current provider.
     /// PT: Verifica se a matriz de ordenacao por ordinal retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectOrderByOrdinalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -761,7 +791,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies DISTINCT ordering by ordinal over the configured users table for the current provider.
     /// PT: Verifica a ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectDistinctOrderByOrdinalTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -779,7 +809,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies DISTINCT ordering by ordinal matrix over the configured users table for the current provider.
     /// PT: Verifica a matriz de ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectDistinctOrderByOrdinalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -797,7 +827,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies DISTINCT with a text filter ordered by ordinal over the configured users table for the current provider.
     /// PT: Verifica DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectDistinctLikeOrderByOrdinalTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -814,7 +844,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies DISTINCT with a text filter ordered by ordinal matrix over the configured users table for the current provider.
     /// PT: Verifica a matriz DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectDistinctLikeOrderByOrdinalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -831,7 +861,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies descending ordering by Name returns the expected row order for the current provider.
     /// PT: Verifica se a ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectOrderByNameDescendingTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -848,7 +878,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies descending ordering by Name matrix returns the expected row order for the current provider.
     /// PT: Verifica se a matriz de ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectOrderByNameDescendingMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -865,7 +895,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a paged ordered query built with ROW_NUMBER for the current provider.
     /// PT: Verifica uma consulta ordenada e paginada construida com ROW_NUMBER para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectNamePaginationMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
@@ -882,7 +912,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies native pagination syntax over an ordered users table for the current provider.
     /// PT: Verifica sintaxe nativa de paginação sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectPagedNameProjectionTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [[(1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo")]]);
@@ -898,7 +928,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a relational query bundle across users and orders tables for the current provider.
     /// PT: Verifica um conjunto de consultas relacionais nas tabelas de usuarios e pedidos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectRelationalCompositeTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
@@ -912,7 +942,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that common window functions return the expected rowsets for the current provider.
     /// PT: Verifica se funcoes de janela comuns retornam os conjuntos de linhas esperados para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectWindowFunctionsTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -950,7 +980,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies ranking window functions with duplicate names for the current provider.
     /// PT: Verifica funcoes de janela de ranking com nomes duplicados para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectWindowRankDenseRankTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -974,7 +1004,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies FIRST_VALUE and LAST_VALUE window projections for the current provider.
     /// PT: Verifica projeções FIRST_VALUE e LAST_VALUE de janela para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectWindowFirstLastValueTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -999,7 +1029,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies NTILE distribution over an ordered users table for the current provider.
     /// PT: Verifica a distribuicao NTILE sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectWindowNtileTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -1023,7 +1053,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies PERCENT_RANK and CUME_DIST window projections for the current provider.
     /// PT: Verifica projeções de janela PERCENT_RANK e CUME_DIST para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectWindowPercentRankCumeDistTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -1047,7 +1077,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies NTH_VALUE over an ordered users table for the current provider.
     /// PT: Verifica NTH_VALUE sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectWindowNthValueTest()
     {
         if (!dialect.SupportsNthValueWindowFunction)
@@ -1086,7 +1116,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies range filtering and pivot-style aggregation for the current provider.
     /// PT: Verifica filtragem por faixa e agregacao no estilo pivot para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectRangeAndPivotTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -1111,7 +1141,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a partition-pruning style query returns the expected row count for the current provider.
     /// PT: Verifica se uma consulta no estilo partition pruning retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectPartitionPruningTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -1134,7 +1164,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a pivot-style count query returns the expected row count for the current provider.
     /// PT: Verifica se uma consulta de contagem no estilo pivot retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectPivotCountTest()
     {
         var result = await RunFidelityTestAsync<SelectTableScenario, QueryServiceTest>(
@@ -1157,7 +1187,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a grouped join projection that combines typed columns, aggregates, and calculations for the current provider.
     /// PT: Verifica uma projecao com junção agrupada que combina colunas tipadas, agregacoes e calculos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinTypedExpressionMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1177,7 +1207,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a left join aggregate projection that preserves users without orders for the current provider.
     /// PT: Verifica uma projeção agregada com left join que preserva usuarios sem pedidos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinNullAggregateMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1198,7 +1228,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a grouped left join projection that blends casts, null handling, and aggregate formatting for the current provider.
     /// PT: Verifica uma projeção agrupada com left join que mistura casts, tratamento de null e formatacao de agregados para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinCastNullMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1219,7 +1249,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a grouped left join projection that casts aggregate values to text and compares them for the current provider.
     /// PT: Verifica uma projeção agrupada com left join que converte agregados para texto e os compara para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinCastTextComparisonMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1240,7 +1270,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a grouped join query with HAVING filters and casted aggregate outputs for the current provider.
     /// PT: Verifica uma consulta agrupada com filtros HAVING e saidas agregadas convertidas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinHavingCastMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1259,7 +1289,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a grouped join projection that mixes string-length expressions with numeric conversions and aggregates for the current provider.
     /// PT: Verifica uma projeção agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinLengthNumericMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1280,7 +1310,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a grouped join projection that blends string case, string length, and aggregate comparisons for the current provider.
     /// PT: Verifica uma projeção agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinTextCaseLengthMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1301,7 +1331,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies grouped left-join reporting with distinct counts, repeated values, and CASE expressions for the current provider.
     /// PT: Verifica um relatorio agrupado com left join, contagens distintas, valores repetidos e expressoes CASE para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinDistinctCaseMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1318,7 +1348,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies grouped left-join filtering with HAVING and distinct note counts for the current provider.
     /// PT: Verifica filtragem agrupada com left join, HAVING e contagens distintas de notas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinDistinctHavingMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1334,7 +1364,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies that a user and order join returns the expected row count for the current provider.
     /// PT: Verifica se a junção entre usuarios e pedidos retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinCountTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, DmlMutationSelectJoinServiceTest>(
@@ -1348,7 +1378,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies the basic users and orders join against the current provider behavior.
     /// PT: Verifica o join basico entre usuarios e pedidos contra o comportamento do provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, DmlMutationSelectJoinServiceTest>(
@@ -1393,7 +1423,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a grouped join projection that blends temporal comparisons with aggregate counts for the current provider.
     /// PT: Verifica uma projeção agrupada que mistura comparacoes temporais com contagens agregadas para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinTemporalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1410,7 +1440,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies a joined window-function projection over the shared users and orders scenario for the current provider.
     /// PT: Verifica uma projeção com funcoes de janela em join no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinWindowMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1427,7 +1457,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies joined window projections together with temporal comparisons for the shared users and orders scenario.
     /// PT: Verifica projecoes com janela em join junto com comparacoes temporais no cenário compartilhado de usuarios e pedidos.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinWindowTemporalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1444,7 +1474,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies joined window projections together with aggregate and temporal comparisons for the shared users and orders scenario.
     /// PT: Verifica projecoes com janela em join junto com comparacoes agregadas e temporais no cenário compartilhado de usuarios e pedidos.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectJoinWindowAggregateTemporalMatrixTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1461,7 +1491,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies CROSS APPLY and OUTER APPLY projections against the shared users and orders scenario for the current provider.
     /// PT: Verifica projeções CROSS APPLY e OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectApplyProjectionTest()
     {
         if (!dialect.SupportsOuterApplyProjection)
@@ -1498,7 +1528,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies CROSS APPLY projection against the shared users and orders scenario for the current provider.
     /// PT: Verifica projeção CROSS APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectCrossApplyProjectionTest()
     {
         var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -1512,7 +1542,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies OUTER APPLY projection against the shared users and orders scenario for the current provider.
     /// PT: Verifica projeção OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectOuterApplyProjectionTest()
     {
         if (!dialect.SupportsOuterApplyProjection)
@@ -1535,7 +1565,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies APPLY projections together with temporal join comparisons for the shared users and orders scenario.
     /// PT: Verifica projeções APPLY junto com comparacoes temporais em join no cenário compartilhado de usuarios e pedidos.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectApplyTemporalCompositeTest()
     {
         if (!dialect.SupportsOuterApplyProjection)
@@ -1582,7 +1612,7 @@ public abstract class SelectTestsBase<T, T2>(
     /// EN: Verifies APPLY, window functions, and temporal join comparisons together for the shared users and orders scenario.
     /// PT: Verifica APPLY, funcoes de janela e comparacoes temporais em join juntas no cenário compartilhado de usuarios e pedidos.
     /// </summary>
-    [Fact]
+    [FidelityFact]
     public async Task SelectApplyWindowTemporalCompositeTest()
     {
         if (!dialect.SupportsOuterApplyProjection)
@@ -1854,3 +1884,4 @@ public abstract class SelectTestsBase<T, T2>(
         await serviceTest.Repo.ExecuteNonQueryAsync(serviceTest.Repo.Dialect.InsertOrder(serviceTest.Context, 12, 2, "C", "o-12", 5.50m, 4, false, serviceTest.Repo.Dialect.TemporalCurrentTimestampExpression()));
     }
 }
+

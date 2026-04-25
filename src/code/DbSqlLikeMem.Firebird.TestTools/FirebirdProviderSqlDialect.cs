@@ -28,6 +28,9 @@ public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsDateTimeOffsetInputOutputParameters => false;
 
     /// <inheritdoc />
+    public override bool SupportsGuidInputOutputParameters => false;
+
+    /// <inheritdoc />
     public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
 
     /// <inheritdoc />
@@ -98,8 +101,35 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     /// <inheritdoc />
     protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
     {
-        if (dbType == DbType.Currency || dbType == DbType.DateTimeOffset || dbType == DbType.Guid)
+        if (parameter is FirebirdSql.Data.FirebirdClient.FbParameter firebirdParameter)
         {
+            switch (dbType)
+            {
+                case DbType.Binary:
+                    firebirdParameter.FbDbType = FirebirdSql.Data.FirebirdClient.FbDbType.Binary;
+                    return;
+                case DbType.Currency:
+                    firebirdParameter.FbDbType = FirebirdSql.Data.FirebirdClient.FbDbType.Decimal;
+                    return;
+                case DbType.DateTime2:
+                    firebirdParameter.FbDbType = FirebirdSql.Data.FirebirdClient.FbDbType.TimeStamp;
+                    return;
+                case DbType.DateTimeOffset:
+                    firebirdParameter.FbDbType = FirebirdSql.Data.FirebirdClient.FbDbType.VarChar;
+                    parameter.DbType = DbType.String;
+                    parameter.Size = 40;
+                    return;
+            }
+        }
+
+        if (dbType == DbType.Currency || dbType == DbType.DateTimeOffset)
+        {
+            return;
+        }
+
+        if (dbType == DbType.DateTime2)
+        {
+            parameter.DbType = DbType.DateTime;
             return;
         }
 
@@ -178,7 +208,12 @@ FROM RDB$DATABASE
     public override string SelectParameterProjection(string projectionList) =>
         $@"
 SELECT
-    {projectionList}
+    {string.Join(
+            Environment.NewLine + "    ",
+            projectionList
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+                .Select(static item => item.Trim())
+                .Select(FormatProjectionItem))}
 FROM RDB$DATABASE";
 
     /// <inheritdoc />
@@ -212,6 +247,44 @@ ON target.Id = source.Id
 WHEN MATCHED THEN UPDATE SET Name = source.Name
 WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
+    private static string FormatProjectionItem(string projectionItem)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            projectionItem,
+            @"^(?<expr>.+?)\s+AS\s+(?<alias>[A-Za-z0-9_]+)(?<comma>,?)$",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        if (!match.Success)
+            return projectionItem;
+
+        var expr = match.Groups["expr"].Value.Trim();
+        var alias = match.Groups["alias"].Value;
+        var comma = match.Groups["comma"].Value;
+        var castType = alias switch
+        {
+            "DateValue" => "DATE",
+            "CurrencyValue" => "DECIMAL(19,2)",
+            "TextValue" or "AnsiTextValue" => "VARCHAR(100)",
+            "AnsiFixedTextValue" or "FixedTextValue" => "CHAR(20)",
+            "Int16Value" => "SMALLINT",
+            "Int32Value" => "INTEGER",
+            "Int64Value" => "BIGINT",
+            "BoolValue" => "BOOLEAN",
+            "DecimalValue" => "DECIMAL(19,4)",
+            "DoubleValue" => "DOUBLE PRECISION",
+            "TimeSpanValue" => "VARCHAR(32)",
+            "DateTimeOffsetValue" => "VARCHAR(40)",
+            "DateTimeValue" => "TIMESTAMP",
+            "GuidValue" => "VARCHAR(36)",
+            "BinaryValue" => "VARBINARY(16)",
+            _ => null
+        };
+
+        return castType is null
+            ? projectionItem
+            : $"CAST({expr} AS {castType}) AS {alias}{comma}";
+    }
+
     /// <inheritdoc />
     public override string CreateSequence(FidelityTestContext context) =>
         $"CREATE SEQUENCE {context.Seq} START WITH 10 INCREMENT BY 1";
@@ -242,7 +315,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string StringAggregateOrdered(FidelityTestContext context) =>
-        $"SELECT LIST(Name, ',') FROM {context.TbUsersFullName}";
+        $"SELECT LIST(Name, ',') FROM (SELECT Name FROM {context.TbUsersFullName} ORDER BY Name) q";
 
     /// <inheritdoc />
     public override string StringAggregateDistinct(FidelityTestContext context) =>
@@ -265,7 +338,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string TemporalDateAdd() =>
-        "SELECT DATEADD(1 DAY TO CURRENT_TIMESTAMP)";
+        "SELECT DATEADD(1 DAY TO CURRENT_TIMESTAMP) FROM RDB$DATABASE";
 
     /// <inheritdoc />
     public override string TemporalCurrentTimestampExpression() => "CURRENT_TIMESTAMP";
@@ -276,11 +349,11 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string TemporalNowWhere(FidelityTestContext context) =>
-        $"SELECT COUNT(*) FROM {context.TempTbFullName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
+        $"SELECT COUNT(*) FROM {context.TbUsersFullName} WHERE CURRENT_TIMESTAMP IS NOT NULL";
 
     /// <inheritdoc />
     public override string TemporalNowOrderBy(FidelityTestContext context) =>
-        $"SELECT FIRST 1 Name FROM {context.TempTbFullName} ORDER BY Name";
+        $"SELECT FIRST 1 Name FROM {context.TbUsersFullName} ORDER BY Name";
 
     /// <inheritdoc />
     public override string CrossApplyProjection(FidelityTestContext context) =>

@@ -12,7 +12,7 @@ public static class Db2NativeClientGuard
     /// EN: Ensures the Db2 native client is available in the current process.
     /// PT: Garante que o cliente nativo do Db2 esteja disponivel no processo atual.
     /// </summary>
-    /// <exception cref="InvalidOperationException">EN: Thrown when the Db2 native client cannot be loaded. PT: Lancada quando o cliente nativo do Db2 nao pode ser carregado.</exception>
+    /// <exception cref="DbSqlLikeMem.TestTools.FidelityTestSkippedException">EN: Thrown when the Db2 native client cannot be loaded. PT: Lancada quando o cliente nativo do Db2 nao pode ser carregado.</exception>
     public static void EnsureNativeClientAvailable()
     {
         var candidatePath = Path.Combine(AppContext.BaseDirectory, "clidriver", "bin", NativeLibraryName);
@@ -20,13 +20,13 @@ public static class Db2NativeClientGuard
 #if NET462
         if (!IsNativeLibraryAvailable(candidatePath) && !IsNativeLibraryAvailable(NativeLibraryName))
         {
-            throw new InvalidOperationException("Db2 native client 'db2app64.dll' is not available. Install the Db2 client/runtime or disable Db2 fidelity tests.");
+            throw new DbSqlLikeMem.TestTools.FidelityTestSkippedException("Db2 native client 'db2app64.dll' is not available. Install the Db2 client/runtime or disable Db2 fidelity tests.");
         }
 #else
         if (!System.Runtime.InteropServices.NativeLibrary.TryLoad(candidatePath, out var handle)
             && !System.Runtime.InteropServices.NativeLibrary.TryLoad(NativeLibraryName, out handle))
         {
-            throw new InvalidOperationException("Db2 native client 'db2app64.dll' is not available. Install the Db2 client/runtime or disable Db2 fidelity tests.");
+            throw new DbSqlLikeMem.TestTools.FidelityTestSkippedException("Db2 native client 'db2app64.dll' is not available. Install the Db2 client/runtime or disable Db2 fidelity tests.");
         }
 
         System.Runtime.InteropServices.NativeLibrary.Free(handle);
