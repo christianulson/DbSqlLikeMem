@@ -10,6 +10,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Query;
 /// EN: Runs Db2 fidelity tests for the shared string-aggregation workflows.
 /// PT: Executa testes de fidelidade Db2 para os fluxos compartilhados de agregacao de strings.
 /// </summary>
+[FidelityNativeClientSkip]
 public class StringAggregateTests(
     ITestOutputHelper helper
     ) : StringAggregateTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -23,3 +24,4 @@ public class StringAggregateTests(
     protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
         => Array.ConvertAll(columnNames, static name => name.ToUpperInvariant());
 }
+

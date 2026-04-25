@@ -38,7 +38,7 @@ public static class FirebirdConnectionFactory
         {
             throw new FidelityTestSkippedException("Firebird native client is not available.");
         }
-#else
+#elif NET6_0
         if (!NativeLibrary.TryLoad(candidatePath, out var handle)
             && !NativeLibrary.TryLoad(NativeLibraryName, out handle))
         {

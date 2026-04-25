@@ -10,6 +10,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Query;
 /// EN: Runs DB2 fidelity tests for the shared JSON table-valued function workflows.
 /// PT: Executa testes de fidelidade do DB2 para os fluxos compartilhados de funcoes tabulares JSON.
 /// </summary>
+[FidelityNativeClientSkip]
 public class JsonTableFunctionTests(
     ITestOutputHelper helper
     ) : JsonTableFunctionTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -20,3 +21,4 @@ public class JsonTableFunctionTests(
     )
 {
 }
+

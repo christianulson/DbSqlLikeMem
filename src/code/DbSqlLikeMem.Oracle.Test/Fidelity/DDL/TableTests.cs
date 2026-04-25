@@ -12,7 +12,7 @@ public class TableTests(
     ) : TableTestsBase<OracleConnectionMock, OracleConnection>(
     helper,
     new OracleProviderSqlDialect(),
-    () => new OracleConnectionMock(),
+    () => new OracleConnectionMock(Get(OracleDbVersions.Default, _ => new OracleDbMock(_) { ThreadSafe = true })),
     s => new OracleConnection(s)
     )
 {

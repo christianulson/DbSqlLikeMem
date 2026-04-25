@@ -6,6 +6,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;
 /// EN: Runs Firebird fidelity tests for the shared select workflows.
 /// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de select.
 /// </summary>
+[FidelityNativeClientSkip]
 public class SelectTests(
     ITestOutputHelper helper
     ) : SelectTestsBase<FirebirdConnectionMock, FbConnection>(
@@ -26,3 +27,4 @@ public class SelectTests(
     /// <inheritdoc />
     protected override decimal TextMatchAlreadyValue => 0m;
 }
+

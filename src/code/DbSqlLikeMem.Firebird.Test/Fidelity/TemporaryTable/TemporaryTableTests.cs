@@ -6,6 +6,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.TemporaryTable;
 /// EN: Runs Firebird fidelity tests for the shared temporary-table workflows.
 /// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de tabela temporaria.
 /// </summary>
+[FidelityNativeClientSkip]
 public class TemporaryTableTests(
     ITestOutputHelper helper
     ) : TemporaryTableTestsBase<FirebirdConnectionMock, FbConnection>(
@@ -16,3 +17,4 @@ public class TemporaryTableTests(
     )
 {
 }
+

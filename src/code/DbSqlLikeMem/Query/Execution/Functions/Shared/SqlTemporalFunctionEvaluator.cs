@@ -71,21 +71,21 @@ internal static class SqlTemporalFunctionEvaluator
             var trimmedFunctionName = functionName.AsSpan().Trim();
             if (trimmedFunctionName.Equals("TODAY", StringComparison.OrdinalIgnoreCase))
             {
-                value = localNow.Date;
+                value = utcNow.Date;
                 context.CacheTemporalZeroArgIdentifierValue(functionName, value);
                 return true;
             }
 
             if (trimmedFunctionName.Equals("TOMORROW", StringComparison.OrdinalIgnoreCase))
             {
-                value = localNow.Date.AddDays(1);
+                value = utcNow.Date.AddDays(1);
                 context.CacheTemporalZeroArgIdentifierValue(functionName, value);
                 return true;
             }
 
             if (trimmedFunctionName.Equals("YESTERDAY", StringComparison.OrdinalIgnoreCase))
             {
-                value = localNow.Date.AddDays(-1);
+                value = utcNow.Date.AddDays(-1);
                 context.CacheTemporalZeroArgIdentifierValue(functionName, value);
                 return true;
             }
@@ -302,13 +302,13 @@ internal static class SqlTemporalFunctionEvaluator
         if (string.Equals(context.Connection.ProviderExecutionDialect.Name, "firebird", StringComparison.OrdinalIgnoreCase))
         {
             var firebirdNow = new DateTime(
-                localNow.Year,
-                localNow.Month,
-                localNow.Day,
-                localNow.Hour,
-                localNow.Minute,
-                localNow.Second,
-                localNow.Millisecond,
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
                 DateTimeKind.Unspecified);
 
             value = kind switch

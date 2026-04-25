@@ -10,6 +10,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.DDL;
 /// EN: Runs Db2 fidelity tests for the shared table scenarios.
 /// PT: Executa testes de fidelidade do Db2 para os cenarios compartilhados de tabela.
 /// </summary>
+[FidelityNativeClientSkip]
 public class TableTests(
     ITestOutputHelper helper
     ) : TableTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -20,3 +21,4 @@ public class TableTests(
     )
 {
 }
+

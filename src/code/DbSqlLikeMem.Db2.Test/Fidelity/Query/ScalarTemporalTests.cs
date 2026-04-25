@@ -10,6 +10,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Query;
 /// EN: Runs Db2 fidelity tests for the shared scalar temporal workflow.
 /// PT: Executa testes de fidelidade Db2 para o fluxo escalar temporal compartilhado.
 /// </summary>
+[FidelityNativeClientSkip]
 public class ScalarTemporalTests(
     ITestOutputHelper helper
     ) : ScalarTemporalTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -22,3 +23,4 @@ public class ScalarTemporalTests(
     /// <inheritdoc />
     protected override TimeSpan TemporalComparisonTolerance => TimeSpan.FromSeconds(60);
 }
+

@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
@@ -7,11 +9,25 @@ namespace DbSqlLikeMem.TestTools;
 public sealed class FidelityTheoryAttribute : TheoryAttribute
 {
     /// <summary>
-    /// EN: Creates a fidelity theory that skips on <see cref="FidelityTestSkippedException"/>.
-    /// PT: Cria uma theory de fidelidade que ignora ao receber <see cref="FidelityTestSkippedException"/>.
+    /// EN: Creates a fidelity theory for the current xUnit target.
+    /// PT: Cria uma theory de fidelidade para o alvo atual do xUnit.
     /// </summary>
     public FidelityTheoryAttribute()
     {
-        SkipExceptions = new[] { typeof(FidelityTestSkippedException) };
     }
+
+#if NET8_0_OR_GREATER
+    /// <summary>
+    /// EN: Creates a fidelity theory with source information for xUnit analyzers.
+    /// PT: Cria uma theory de fidelidade com informacoes de origem para os analisadores do xUnit.
+    /// </summary>
+    /// <param name="filePath">EN: The source file path for the test attribute. PT: O caminho do arquivo fonte do atributo de teste.</param>
+    /// <param name="lineNumber">EN: The source line number for the test attribute. PT: O numero da linha fonte do atributo de teste.</param>
+    public FidelityTheoryAttribute(
+        [CallerFilePath] string? filePath = null,
+        [CallerLineNumber] int lineNumber = -1)
+        : base(filePath, lineNumber)
+    {
+    }
+#endif
 }

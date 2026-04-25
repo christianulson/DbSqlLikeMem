@@ -4,8 +4,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
-		<ProjectReference Include="..\DbSqlLikeMem.XUnit\DbSqlLikeMem.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	  <ProjectReference Include="..\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	  <ProjectReference Include="..\DbSqlLikeMem.XUnit\DbSqlLikeMem.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
 	</ItemGroup>
 
 	<ItemGroup>

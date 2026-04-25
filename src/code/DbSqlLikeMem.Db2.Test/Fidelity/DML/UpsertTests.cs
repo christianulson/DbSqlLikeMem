@@ -10,6 +10,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.DML;
 /// EN: Runs Db2 fidelity tests for the shared upsert workflows.
 /// PT: Executa testes de fidelidade Db2 para os fluxos compartilhados de upsert.
 /// </summary>
+[FidelityNativeClientSkip]
 public class UpsertTests(
     ITestOutputHelper helper
     ) : UpsertTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -20,3 +21,4 @@ public class UpsertTests(
     )
 {
 }
+

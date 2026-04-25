@@ -4,7 +4,7 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 		<PlatformTarget>x64</PlatformTarget>
-		<TargetFrameworks>net462;net8.0</TargetFrameworks>
+		<TargetFrameworks>net462;net6.0;net8.0</TargetFrameworks>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -17,6 +17,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="DbSqlLikeMem.Db2" />
 	</ItemGroup>
 
@@ -31,3 +32,4 @@
 	</ItemGroup>
 
 </Project>
+

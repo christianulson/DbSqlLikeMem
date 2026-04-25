@@ -7,6 +7,12 @@ namespace DbSqlLikeMem.Oracle;
 public static class OracleDbVersions
 {
     /// <summary>
+    /// EN: Default Oracle version used by the mock when none is specified.
+    /// PT: Versao padrao do Oracle usada pelo mock quando nenhuma e informada.
+    /// </summary>
+    public const int Default = 23;
+
+    /// <summary>
     /// EN: Returns Oracle versions supported by this provider mock.
     /// PT: Retorna as versões do Oracle suportadas por este mock de provedor.
     /// </summary>

@@ -10,6 +10,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Query;
 /// EN: Runs Db2 fidelity tests for the shared primary-key select scenario.
 /// PT: Executa testes de fidelidade do Db2 para o cenario compartilhado de selecao por chave primaria.
 /// </summary>
+[FidelityNativeClientSkip]
 public class SelectTests(
     ITestOutputHelper helper
     ) : SelectTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -44,3 +45,4 @@ public class SelectTests(
     /// <inheritdoc />
     protected override decimal TextMatchAlreadyValue => 0m;
 }
+

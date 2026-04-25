@@ -10,6 +10,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.DML;
 /// EN: Runs Db2 fidelity tests for the shared batch workflows.
 /// PT: Executa testes de fidelidade Db2 para os fluxos compartilhados de batch.
 /// </summary>
+[FidelityNativeClientSkip]
 public class BatchTests(
     ITestOutputHelper helper
     ) : BatchTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -20,3 +21,4 @@ public class BatchTests(
     )
 {
 }
+

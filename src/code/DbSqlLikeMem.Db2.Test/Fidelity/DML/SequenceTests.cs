@@ -11,6 +11,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.DML;
 /// EN: Runs DB2 fidelity tests for the shared sequence workflows.
 /// PT: Executa testes de fidelidade DB2 para os fluxos compartilhados de sequence.
 /// </summary>
+[FidelityNativeClientSkip]
 public class SequenceTests(
     ITestOutputHelper helper
     ) : SequenceTestsBase<Db2ConnectionMock, DB2Connection>(
@@ -58,4 +59,5 @@ public class SequenceTests(
         _ = new object?[] { 10L, 10L, 11L, 11L, 10L }.Should().Equal(result);
     }
 }
+
 

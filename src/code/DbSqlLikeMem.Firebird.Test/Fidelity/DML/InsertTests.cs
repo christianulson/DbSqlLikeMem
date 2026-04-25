@@ -6,6 +6,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
 /// EN: Runs Firebird fidelity tests for the shared insert workflows.
 /// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de insert.
 /// </summary>
+[FidelityNativeClientSkip]
 public class InsertTests(
     ITestOutputHelper helper
     ) : InsertTestsBase<FirebirdConnectionMock, FbConnection>(
@@ -17,3 +18,4 @@ public class InsertTests(
 {
 
 }
+

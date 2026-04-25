@@ -6,6 +6,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;
 /// EN: Runs Firebird fidelity tests for the shared string aggregation workflows.
 /// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de agregacao de strings.
 /// </summary>
+[FidelityNativeClientSkip]
 public class StringAggregateTests(
     ITestOutputHelper helper
     ) : StringAggregateTestsBase<FirebirdConnectionMock, FbConnection>(
@@ -19,3 +20,4 @@ public class StringAggregateTests(
     protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
         => [.. columnNames.Select(static name => name.ToUpperInvariant())];
 }
+

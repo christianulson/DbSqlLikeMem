@@ -6,6 +6,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
 /// EN: Runs Firebird fidelity tests for the shared batch workflows.
 /// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de batch.
 /// </summary>
+[FidelityNativeClientSkip]
 public sealed class BatchTests(
     ITestOutputHelper helper
     ) : BatchTestsBase<FirebirdConnectionMock, FbConnection>(
@@ -16,3 +17,4 @@ public sealed class BatchTests(
     )
 {
 }
+
