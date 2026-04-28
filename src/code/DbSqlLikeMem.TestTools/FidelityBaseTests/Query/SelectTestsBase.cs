@@ -93,7 +93,7 @@ public abstract class SelectTestsBase<T, T2>(
     [FidelityFact]
     public async Task SelectScalarSubqueryCaseMatrixTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders]);
 
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
@@ -165,6 +165,39 @@ public abstract class SelectTestsBase<T, T2>(
         var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
             (s, a) => s.RunSelectNotInSubqueryAsync(a));
         AssertSnapshot(RequireSnapshot(result, nameof(SelectNotInSubqueryTest)), Snapshot(["Id", "Name"], Row(3m, "Carla")));
+    }
+
+    /// <summary>
+    /// EN: Verifies that NOT IN with a NULL value inside the subquery returns no rows for the current provider.
+    /// PT: Verifica se NOT IN com um valor NULL dentro da subconsulta retorna nenhuma linha para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectNotInSubqueryNullTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
+
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            async (s, _) =>
+            {
+                using var command = s.Repo.Cnn.CreateCommand();
+                command.CommandText = $"""
+WITH blacklist(value) AS (
+    SELECT CAST(1 AS INTEGER)
+    UNION ALL
+    SELECT CAST(NULL AS INTEGER)
+)
+SELECT Id, Name
+FROM {s.Context.TbUsersFullName}
+WHERE Id NOT IN (SELECT value FROM blacklist)
+ORDER BY Id
+""";
+
+                using var reader = await command.ExecuteReaderAsync();
+                return QueryResultSnapshotReader.Capture(reader);
+            });
+
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectNotInSubqueryNullTest)), Snapshot(["Id", "Name"]));
     }
 
     /// <summary>

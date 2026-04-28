@@ -74,6 +74,57 @@ A API de `IndexDef` retorna dicionários somente-leitura criando cópias (`ToDic
   - `INSERT` em tabela com PK composta e índice único.
 - Comparar alocações (`Allocated MB/op`) e tempo (`Mean`, `P95`) antes/depois das correções.
 
+## Microbenchmarks e guards de fidelidade para SQLite
+
+Objetivo: medir os caminhos quentes sem mudar a semântica do mock.
+
+Status atual: os guards iniciais foram implementados em `src/benchmark/DbSqlLikeMem.Benchmarks.Test/SqliteHotPathGuardTests.cs`.
+
+Cada microbenchmark deve continuar usando a mesma consulta e o mesmo conjunto de dados do SQLite nativo.
+A validação de fidelidade continua vindo dos testes de paridade ou de guards equivalentes, sempre comparando
+com o comportamento do banco real.
+
+### 1) Bootstrap da conexão
+
+- Microbenchmark: `ConnectionOpen`.
+- Guard: abrir e fechar a conexão mock com o mesmo setup do SQLite nativo e confirmar que o estado inicial
+  continua compatível.
+
+### 2) Preparação de parâmetros
+
+- Microbenchmark: `ParameterProjection`.
+- Guard: binding por nome e por posição, inclusive `NULL`, tipo e tamanho, precisa continuar igual ao
+  SQLite real.
+
+### 3) Leitura simples e junção
+
+- Microbenchmarks: `SelectByPk`, `SelectJoin`.
+- Guard: coluna, ordem de linhas, `DBNull` e materialização do reader precisam continuar idênticos ao
+  SQLite real.
+
+### 4) Subqueries correlacionadas
+
+- Microbenchmarks: `SelectExistsPredicate`, `SelectInSubquery`, `SelectNotInSubquery`, `SelectScalarSubquery`.
+- Guard: `NULL` em `IN`/`NOT IN`, duplicados, correlação e short-circuit precisam bater com o SQLite real.
+- Guard já adicionado: `SelectNotInSubqueryNullTest` cobre `NOT IN` com `NULL` dentro da subconsulta.
+
+### 5) Janelas
+
+- Microbenchmarks: `WindowRowNumber`, `WindowRankDenseRank`, `WindowFirstLastValue`, `WindowNthValue`.
+- Guard: ordenação, empates, peer groups e frame semantics não podem mudar.
+
+### 6) Agregação de string
+
+- Microbenchmarks: `StringAggregate`, `StringAggregateOrdered`, `StringAggregateLargeGroup`.
+- Guard: separador, ordenação, `DISTINCT`, `NULL` e crescimento de buffer precisam seguir o SQLite real.
+
+### Regras de segurança
+
+- Não trocar regra de semântica por atalho de performance.
+- Se uma otimização vier de cache ou memoization, o guard precisa confirmar que o resultado continua
+  relacionalmente equivalente ao do SQLite nativo.
+- Se houver ganho de tempo mas mudança de fidelidade, a otimização volta para a fila de implementação.
+
 ## Pontos candidatos a paralelismo (e status)
 
 1. **Rebuild de múltiplos índices da mesma tabela**
