@@ -3165,6 +3165,43 @@ ORDER BY userid
     }
 
     /// <summary>
+    /// EN: Verifies binary keys round-trip through Dapper when the payload starts as Guid bytes.
+    /// PT: Verifica se chaves binarias retornam pelo Dapper quando o payload comeca como bytes de Guid.
+    /// </summary>
+    protected void BinaryGuidPrimaryKey_ShouldRoundTripThroughDapper()
+    {
+        var db = CreateDb();
+        var table = db.AddTable("binary_guid_users");
+        table.AddColumn("id", DbType.Binary, false);
+        table.AddColumn("name", DbType.String, false);
+
+        var guid = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
+        var guidBytes = guid.ToByteArray();
+
+        using var connection = CreateConnection(db);
+        connection.Open();
+
+        var parameters = new DynamicParameters();
+        parameters.Add("id", guidBytes, DbType.Binary);
+        parameters.Add("name", "Binary Guid");
+
+        connection.Execute("INSERT INTO binary_guid_users (id, name) VALUES (@id, @name)", parameters).Should().Be(1);
+
+        var fetchedBytes = connection.QuerySingle<byte[]>(
+            "SELECT id FROM binary_guid_users WHERE id = @id",
+            new { id = guidBytes });
+
+        fetchedBytes.Should().Equal(guidBytes);
+
+        var row = connection.QuerySingle<(byte[] id, string name)>(
+            "SELECT id, name FROM binary_guid_users WHERE id = @id",
+            new { id = guidBytes });
+
+        row.id.Should().Equal(guidBytes);
+        row.name.Should().Be("Binary Guid");
+    }
+
+    /// <summary>
     /// EN: Verifies deletes using an IN parameter list remove the expected rows.
     /// PT: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
     /// </summary>

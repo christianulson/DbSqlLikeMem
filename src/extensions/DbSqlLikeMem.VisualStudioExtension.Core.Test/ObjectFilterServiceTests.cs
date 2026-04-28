@@ -17,8 +17,8 @@ public class ObjectFilterServiceTests
         var service = new ObjectFilterService();
         var source = new[]
         {
-            new DatabaseObjectReference("dbo", "User", DatabaseObjectType.Table),
-            new DatabaseObjectReference("dbo", "Users", DatabaseObjectType.Table)
+            new DatabaseObjectReference("dbo", "User", DatabaseObjectType.Table, "public"),
+            new DatabaseObjectReference("dbo", "Users", DatabaseObjectType.Table, "public")
         };
 
         var result = service.Filter(source, "User", FilterMode.Equals);
@@ -38,9 +38,9 @@ public class ObjectFilterServiceTests
         var service = new ObjectFilterService();
         var source = new[]
         {
-            new DatabaseObjectReference("dbo", "Order", DatabaseObjectType.Table),
-            new DatabaseObjectReference("dbo", "OrderItem", DatabaseObjectType.Table),
-            new DatabaseObjectReference("dbo", "User", DatabaseObjectType.Table)
+            new DatabaseObjectReference("dbo", "Order", DatabaseObjectType.Table, "public"),
+            new DatabaseObjectReference("dbo", "OrderItem", DatabaseObjectType.Table, "public"),
+            new DatabaseObjectReference("dbo", "User", DatabaseObjectType.Table, "public")
         };
 
         var result = service.Filter(source, "order", FilterMode.Like);
@@ -59,9 +59,9 @@ public class ObjectFilterServiceTests
         var service = new ObjectFilterService();
         var source = new[]
         {
-            new DatabaseObjectReference("dbo", "Order", DatabaseObjectType.Table),
-            new DatabaseObjectReference("dbo", "OrderItem", DatabaseObjectType.Table),
-            new DatabaseObjectReference("dbo", "User", DatabaseObjectType.Table)
+            new DatabaseObjectReference("dbo", "Order", DatabaseObjectType.Table, "public"),
+            new DatabaseObjectReference("dbo", "OrderItem", DatabaseObjectType.Table, "public"),
+            new DatabaseObjectReference("dbo", "User", DatabaseObjectType.Table, "public")
         };
 
         var result = service.Filter(source, "   ", FilterMode.Like);

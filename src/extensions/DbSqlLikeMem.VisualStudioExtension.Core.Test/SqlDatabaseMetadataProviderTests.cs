@@ -38,7 +38,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
-        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -72,7 +72,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
-        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function);
+        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -103,7 +103,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MariaDb", "ERP", "Server=.;Database=erp;");
-        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function);
+        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -136,7 +136,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MariaDb", "ERP", "Server=.;Database=erp;");
-        var reference = new DatabaseObjectReference("dbo", "sp_update_customer", DatabaseObjectType.Procedure);
+        var reference = new DatabaseObjectReference("dbo", "sp_update_customer", DatabaseObjectType.Procedure, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -170,7 +170,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "Firebird", "ERP", "Server=.;Database=erp;");
-        var reference = new DatabaseObjectReference(string.Empty, "sp_update_customer", DatabaseObjectType.Procedure);
+        var reference = new DatabaseObjectReference(string.Empty, "sp_update_customer", DatabaseObjectType.Procedure, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -203,7 +203,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "Firebird", "ERP", "Server=.;Database=erp;");
-        var reference = new DatabaseObjectReference(string.Empty, "fn_total", DatabaseObjectType.Function);
+        var reference = new DatabaseObjectReference(string.Empty, "fn_total", DatabaseObjectType.Function, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -234,7 +234,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MySql", "ERP", "conn");
-        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function);
+        var reference = new DatabaseObjectReference("dbo", "fn_Total", DatabaseObjectType.Function, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -409,7 +409,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "SqlServer", "ERP", "Server=.;Initial Catalog=erp;");
-        var reference = new DatabaseObjectReference("dbo", "seq_orders", DatabaseObjectType.Sequence);
+        var reference = new DatabaseObjectReference("dbo", "seq_orders", DatabaseObjectType.Sequence, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 
@@ -438,7 +438,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         var provider = new SqlDatabaseMetadataProvider(executor);
         var conn = new ConnectionDefinition("1", "MariaDb", "ERP", "Server=.;Database=erp;");
-        var reference = new DatabaseObjectReference("dbo", "seq_orders", DatabaseObjectType.Sequence);
+        var reference = new DatabaseObjectReference("dbo", "seq_orders", DatabaseObjectType.Sequence, "public");
 
         var result = await provider.GetObjectAsync(conn, reference, TestContext.Current.CancellationToken);
 

@@ -1215,7 +1215,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                 if (!source.Physical.Columns.TryGetValue(columnName, out var column))
                     return false;
 
-                defaultValue = column.DefaultValue;
+                defaultValue = ResolveDefaultValue(column);
                 return true;
             }
 
@@ -1226,7 +1226,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
                 if (source.Physical.Columns.TryGetValue(columnName, out var column))
                 {
-                    defaultValue = column.DefaultValue;
+                    defaultValue = ResolveDefaultValue(column);
                     return true;
                 }
             }
@@ -1263,11 +1263,11 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
 
                 if (!string.IsNullOrWhiteSpace(qualifier))
                 {
-                    defaultValue = column.DefaultValue;
+                    defaultValue = ResolveDefaultValue(column);
                     return true;
                 }
 
-                matchingColumns.Add(column.DefaultValue);
+                matchingColumns.Add(ResolveDefaultValue(column));
             }
         }
 
@@ -1278,6 +1278,23 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         }
 
         return false;
+    }
+
+    private static object? ResolveDefaultValue(ColumnDef column)
+    {
+        if (column.DefaultValue is not SequenceDef sequenceDefault)
+            return column.DefaultValue;
+
+        var targetSchema = sequenceDefault.OwnedBySchema ?? column.Table.Schema.SchemaName;
+        if (!column.Table.Schema.Db.TryGetSequence(sequenceDefault.Name, out var sequence, targetSchema) || sequence is null)
+            sequence = column.Table.Schema.Db.AddSequence(
+                sequenceDefault.Name,
+                sequenceDefault.StartValue,
+                sequenceDefault.IncrementBy,
+                sequenceDefault.CurrentValue,
+                schemaName: targetSchema);
+
+        return sequence.NextValue();
     }
 
     private static bool TryEvalRegexFunctions(

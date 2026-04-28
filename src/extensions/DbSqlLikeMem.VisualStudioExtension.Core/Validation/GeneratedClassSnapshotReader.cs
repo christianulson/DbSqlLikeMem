@@ -48,6 +48,7 @@ public static class GeneratedClassSnapshotReader
             metadata.TryGetValue("Type", out var typeRaw) && Enum.TryParse<DatabaseObjectType>(typeRaw, true, out var parsedType)
                 ? parsedType
                 : fallbackReference.Type,
+            "public",
             BuildProperties(metadata, fallbackReference.Properties));
 
         return new LocalObjectSnapshot(reference, filePath, reference.Properties);

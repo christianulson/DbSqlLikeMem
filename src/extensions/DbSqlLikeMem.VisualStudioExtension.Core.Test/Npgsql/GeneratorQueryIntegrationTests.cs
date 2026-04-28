@@ -73,7 +73,7 @@ AS 'SELECT base_value + 1';
 
             var table = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference("public", tableName, DatabaseObjectType.Table),
+                new DatabaseObjectReference("public", tableName, DatabaseObjectType.Table, "public"),
                 CancellationToken.None);
 
             table.Should().NotBeNull();
@@ -84,7 +84,7 @@ AS 'SELECT base_value + 1';
 
             var routine = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference("public", functionName, DatabaseObjectType.Function),
+                new DatabaseObjectReference("public", functionName, DatabaseObjectType.Function, "public"),
                 CancellationToken.None);
 
             routine.Should().NotBeNull();

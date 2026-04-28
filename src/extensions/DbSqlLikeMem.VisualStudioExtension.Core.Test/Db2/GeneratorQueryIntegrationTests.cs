@@ -82,7 +82,7 @@ CREATE TABLE {tableName} (
 
             var table = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference(schemaName, tableName, DatabaseObjectType.Table),
+                new DatabaseObjectReference(schemaName, tableName, DatabaseObjectType.Table, "public"),
                 CancellationToken.None);
 
             table.Should().NotBeNull();
@@ -93,7 +93,7 @@ CREATE TABLE {tableName} (
 
             var function = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference(schemaName, functionName, DatabaseObjectType.Function),
+                new DatabaseObjectReference(schemaName, functionName, DatabaseObjectType.Function, "public"),
                 CancellationToken.None);
 
             function.Should().NotBeNull();
@@ -103,7 +103,7 @@ CREATE TABLE {tableName} (
 
             var procedure = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference(schemaName, procedureName, DatabaseObjectType.Procedure),
+                new DatabaseObjectReference(schemaName, procedureName, DatabaseObjectType.Procedure, "public"),
                 CancellationToken.None);
 
             procedure.Should().NotBeNull();

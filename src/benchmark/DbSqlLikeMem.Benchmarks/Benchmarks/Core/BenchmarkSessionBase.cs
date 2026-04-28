@@ -1142,8 +1142,8 @@ public abstract partial class BenchmarkSessionBase(
     /// EN: Tries to drop a temporary table using best-effort cleanup semantics.
     /// PT-br: Tenta remover uma tabela temporaria usando uma limpeza de melhor esforco.
     /// </summary>
-    /// <param name="connection">EN: The database connection used to execute the operation. PT-br: A conexao de banco de dados usada para executar a operacao.</param>
-    /// <param name="tableName">EN: The temporary table name targeted by the operation. PT-br: O nome da tabela temporaria alvo da operacao.</param>
+    /// <param name="connection">EN: The database connection used to execute the operation. PT-br: A conexao de banco de dados usada para executar a operação.</param>
+    /// <param name="tableName">EN: The temporary table name targeted by the operation. PT-br: O nome da tabela temporaria alvo da operação.</param>
     protected void SafeDropTemporaryTable(DbConnection connection, FidelityTestContext context)
     {
         SafeExecute(connection, Dialect.DropTemporaryUsersTable(context));

@@ -37,7 +37,7 @@ public static class OrdersTableFactory {}
 
         try
         {
-            var fallback = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+            var fallback = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
             var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback, TestContext.Current.CancellationToken);
             snapshot.Reference.Properties!["Triggers"].Should().Be("trg_orders_audit");
             snapshot.Reference.Properties!["RequiredIn"].Should().Be("CustomerId|Int32|1|");
@@ -47,6 +47,7 @@ public static class OrdersTableFactory {}
                 "dbo",
                 "Orders",
                 DatabaseObjectType.Table,
+                "public",
                 new Dictionary<string, string>
                 {
                     ["Columns"] = "Id|int|0|0|1||||int|;Name|varchar|1|1|0||||varchar|;Status|tinyint|2|1|0||||tinyint|",

@@ -666,9 +666,17 @@ public sealed record SchemaSnapshot
             JsonValueKind.Number when value.Value.TryGetInt64(out var l) => l,
             JsonValueKind.Number when value.Value.TryGetDecimal(out var d) => d,
             JsonValueKind.Number => value.Value.GetDouble(),
+            JsonValueKind.Object when IsSequenceDef(value.Value) => value.Value.Deserialize<SequenceDef>(JsonOptions),
             _ => value.Value.GetRawText()
         };
     }
+
+    private static bool IsSequenceDef(JsonElement value)
+        => value.TryGetProperty("sequenceName", out _)
+            && (value.TryGetProperty("schemaName", out _)
+                || value.TryGetProperty("startValue", out _)
+                || value.TryGetProperty("incrementBy", out _)
+                || value.TryGetProperty("currentValue", out _));
 }
 
 /// <summary>

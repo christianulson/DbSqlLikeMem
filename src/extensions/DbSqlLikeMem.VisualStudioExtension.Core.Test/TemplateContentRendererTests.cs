@@ -25,7 +25,7 @@ public sealed class TemplateContentRendererTests
             """;
 
         var connection = new ConnectionDefinition("1", "SqlServer", "Billing", "conn");
-        var dbObject = new DatabaseObjectReference("dbo", "vw_active_customers", DatabaseObjectType.View);
+        var dbObject = new DatabaseObjectReference("dbo", "vw_active_customers", DatabaseObjectType.View, "public");
 
         var content = TemplateContentRenderer.Render(
             template,
@@ -53,7 +53,7 @@ public sealed class TemplateContentRendererTests
     {
         const string template = "namespace {{Namespace}};";
         var connection = new ConnectionDefinition("1", "PostgreSql", "ERP", "conn");
-        var dbObject = new DatabaseObjectReference("public", "orders", DatabaseObjectType.Table);
+        var dbObject = new DatabaseObjectReference("public", "orders", DatabaseObjectType.Table, "public");
 
         var content = TemplateContentRenderer.Render(template, "OrdersTable", dbObject, connection);
 
@@ -79,7 +79,7 @@ public sealed class TemplateContentRendererTests
             """;
 
         var connection = new ConnectionDefinition("1", "SqlServer", "Billing", "conn");
-        var dbObject = new DatabaseObjectReference("dbo", "orders", DatabaseObjectType.Table);
+        var dbObject = new DatabaseObjectReference("dbo", "orders", DatabaseObjectType.Table, "public");
 
         var content = TemplateContentRenderer.Render(template, "OrdersModel", dbObject, connection);
 

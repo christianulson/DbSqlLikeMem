@@ -1116,7 +1116,7 @@ public abstract class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the fluent scenario composition benchmark.
-    /// PT: Executa o benchmark de composicao de cenario fluente.
+    /// PT: Executa o benchmark de composição de cenario fluente.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]

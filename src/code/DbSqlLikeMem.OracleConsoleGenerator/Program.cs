@@ -117,6 +117,7 @@ static partial class Program
                     GenerateTableFile(
                         destiny.Namespace,
                         destiny.ClassAccessibility,
+                        destiny.Schema,
                         tableName: clean,
                         columns: meta.Columns,
                         primaryKey: meta.PrimaryKey,
@@ -133,7 +134,13 @@ static partial class Program
                     if (string.IsNullOrEmpty(clean)) continue;
 
                     var meta = LoadSequenceMetadata(connection, destiny.Schema, clean);
-                    GenerateSequenceFile(destiny.Namespace, clean, destiny.Schema, meta, outputPath);
+                    GenerateSequenceFile(
+                        destiny.Namespace, 
+                        destiny.ClassAccessibility,
+                        clean,
+                        destiny.Schema,
+                        meta,
+                        outputPath);
                     Console.WriteLine($" - Sequence: {sequenceName} gerada.");
                 }
             }
@@ -288,6 +295,7 @@ static partial class Program
     private static void GenerateTableFile(
         string ns,
         string? classAccessibility,
+        string schema,
         string tableName,
         List<ColumnMeta> columns,
         List<string> primaryKey,
@@ -297,7 +305,10 @@ static partial class Program
     {
         var className = $"{GenerationRuleSet.ToPascalCase(tableName)}TableFactory";
         var methodName = $"CreateTable{GenerationRuleSet.ToPascalCase(tableName)}";
-        var fileName = Path.Combine(outputPath, $"{className}.cs");
+        var outputDir = Path.Combine(outputPath, "Tables");
+        var fileName = Path.Combine(outputDir, $"{className}.cs");
+        if (!Directory.Exists(outputDir))
+            Directory.CreateDirectory(outputDir);
 
         using var w = new StreamWriter(fileName, false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
@@ -314,7 +325,7 @@ static partial class Program
         if (normalizedAccessibility == "public")
             w.WriteLine("        ArgumentNullException.ThrowIfNull(db);");
 
-        w.WriteLine($"        var table = db.AddTable(\"{tableName}\");");
+        w.WriteLine($"        var table = db.AddTable(\"{tableName}\", schemaName: \"{schema}\");");
 
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
@@ -330,6 +341,9 @@ static partial class Program
 
             if (c.IsIdentity) ctor += ", identity: true";
             if (!string.IsNullOrEmpty(c.DefaultValue)
+                && GenerationRuleSet.TryFormatSequenceDefaultValue(c.DefaultValue!, DatabaseType, schema, out var sequenceCode))
+                ctor += $", defaultValue: {sequenceCode}";
+            else if (!string.IsNullOrEmpty(c.DefaultValue)
                 && GenerationRuleSet.IsSimpleLiteralDefault(c.DefaultValue!))
                 ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(c.DefaultValue!, dbType)}";
             if (c.CharMaxLen is > 0 and <= int.MaxValue)
@@ -380,6 +394,7 @@ static partial class Program
 
     private static void GenerateSequenceFile(
         string ns,
+        string? classAccessibility,
         string sequenceName,
         string schema,
         SequenceMeta meta,
@@ -389,6 +404,7 @@ static partial class Program
             schema,
             sequenceName,
             DatabaseObjectType.Sequence,
+            classAccessibility,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["StartValue"] = meta.StartValue?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
@@ -397,7 +413,10 @@ static partial class Program
             });
 
         var className = $"{GenerationRuleSet.ToPascalCase(sequenceName)}SequenceFactory";
-        var fileName = Path.Combine(outputPath, $"{className}.cs");
+        var outputDir = Path.Combine(outputPath, "Sequences");
+        var fileName = Path.Combine(outputDir, $"{className}.cs");
+        if (!Directory.Exists(outputDir))
+            Directory.CreateDirectory(outputDir);
         File.WriteAllText(fileName, StructuredClassContentFactory.Build(dbObject, ns), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
     }
 

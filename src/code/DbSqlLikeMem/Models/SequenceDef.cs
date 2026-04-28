@@ -20,6 +20,7 @@ public sealed class SequenceDef
     /// <param name="ownedBySchema">EN: Schema of the owning table when the sequence is attached to a column. PT: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
     /// <param name="ownedByTable">EN: Owning table name when the sequence is attached to a column. PT: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
     /// <param name="ownedByColumn">EN: Owning column name when the sequence is attached to a column. PT: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.</param>
+    [System.Text.Json.Serialization.JsonConstructor]
     public SequenceDef(
         string name,
         long startValue = 1,

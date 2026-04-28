@@ -889,6 +889,21 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             return true;
         }
 
+        if (column.DefaultValue is SequenceDef sequenceDefault)
+        {
+            var targetSchema = sequenceDefault.OwnedBySchema ?? target.Schema.SchemaName;
+            if (!target.Schema.Db.TryGetSequence(sequenceDefault.Name, out var sequence, targetSchema) || sequence is null)
+                sequence = target.Schema.Db.AddSequence(
+                    sequenceDefault.Name,
+                    sequenceDefault.StartValue,
+                    sequenceDefault.IncrementBy,
+                    sequenceDefault.CurrentValue,
+                    schemaName: targetSchema);
+
+            value = sequence.NextValue();
+            return true;
+        }
+
         value = column.DefaultValue;
         return value is not null;
     }

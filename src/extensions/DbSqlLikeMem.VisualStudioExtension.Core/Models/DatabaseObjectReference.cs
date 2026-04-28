@@ -10,11 +10,19 @@ public sealed record DatabaseObjectReference
     /// Initializes a new object reference.
     /// Inicializa uma nova referência de objeto.
     /// </summary>
-    public DatabaseObjectReference(string schema, string name, DatabaseObjectType type, IReadOnlyDictionary<string, string>? properties = null)
+    public DatabaseObjectReference(
+        string schema,
+        string name,
+        DatabaseObjectType type,
+        string? classAccessibility,
+        IReadOnlyDictionary<string, string>? properties = null)
     {
         Schema = schema;
         Name = name;
         Type = type;
+        NormalizedAccessibility = string.Equals(classAccessibility, "public", StringComparison.OrdinalIgnoreCase)
+            ? "public"
+            : "internal";
         Properties = properties;
     }
 
@@ -47,4 +55,10 @@ public sealed record DatabaseObjectReference
     /// Obtém o nome completo do objeto.
     /// </summary>
     public string FullName => string.IsNullOrWhiteSpace(Schema) ? Name : $"{Schema}.{Name}";
+    
+    /// <summary>
+    /// Gets the normalized accessibility (e.g., "public" or "internal").
+    /// Obtém a acessibilidade normalizada (por exemplo, "public" ou "internal").
+    /// </summary>
+    public string NormalizedAccessibility { get; init; } = string.Empty;
 }

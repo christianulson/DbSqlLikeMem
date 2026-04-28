@@ -15,7 +15,10 @@ public static class StructuredClassContentFactory
     /// EN: Builds the source content for the informed database object.
     /// PT: Monta o conteudo fonte para o objeto de banco informado.
     /// </summary>
-    public static string Build(DatabaseObjectReference dbObject, string? @namespace = null, string? databaseType = null)
+    public static string Build(
+        DatabaseObjectReference dbObject,
+        string? @namespace = null,
+        string? databaseType = null)
     {
         if (dbObject.Type == DatabaseObjectType.Sequence)
             return BuildSequence(dbObject, @namespace);
@@ -50,12 +53,14 @@ public static class StructuredClassContentFactory
 
         var sb = new StringBuilder();
         AppendFileHeader(sb, dbObject, @namespace);
-        sb.AppendLine($"public static class {className}");
+        sb.AppendLine($"{dbObject.NormalizedAccessibility} static class {className}");
         sb.AppendLine("{");
-        sb.AppendLine($"    public static ITableMock {methodName}(this DbMock db)");
+        sb.AppendLine($"    {dbObject.NormalizedAccessibility} static ITableMock {methodName}(this DbMock db)");
         sb.AppendLine("    {");
-        sb.AppendLine($"        var table = db.AddTable({Literal(dbObject.Name)});");
-        AppendColumns(sb, columns, effectiveDatabaseType);
+        if (dbObject.NormalizedAccessibility == "public")
+            sb.AppendLine("        ArgumentNullException.ThrowIfNull(db);");
+        sb.AppendLine($"        var table = db.AddTable({Literal(dbObject.Name)}, schemaName: {Literal(dbObject.Schema)});");
+        AppendColumns(sb, columns, effectiveDatabaseType, dbObject.Schema);
         sb.AppendLine();
 
         AppendPrimaryKey(sb, primaryKey);
@@ -93,11 +98,11 @@ public static class StructuredClassContentFactory
         sb.AppendLine($"// DBSqlLikeMem:ForeignKeys={Get(dbObject, "ForeignKeys")}");
     }
 
-    private static void AppendColumns(StringBuilder sb, IReadOnlyList<ColumnMeta> columns, string effectiveDatabaseType)
+    private static void AppendColumns(StringBuilder sb, IReadOnlyList<ColumnMeta> columns, string effectiveDatabaseType, string? schemaName)
     {
         foreach (var column in columns.OrderBy(c => c.Ordinal))
         {
-            var ctor = BuildColumnConstructor(column, effectiveDatabaseType);
+            var ctor = BuildColumnConstructor(column, effectiveDatabaseType, schemaName);
             sb.AppendLine();
             sb.Append($"        table.AddColumn({Literal(column.Name)}, {ctor})");
             if (!string.IsNullOrWhiteSpace(column.Generated)
@@ -110,7 +115,7 @@ public static class StructuredClassContentFactory
         }
     }
 
-    private static string BuildColumnConstructor(ColumnMeta column, string effectiveDatabaseType)
+    private static string BuildColumnConstructor(ColumnMeta column, string effectiveDatabaseType, string? schemaName)
     {
         var mappedDbType = GenerationRuleSet.MapDbType(
             column.DataType,
@@ -121,7 +126,10 @@ public static class StructuredClassContentFactory
         var ctor = $"DbType.{mappedDbType}, {Bool(column.IsNullable)}";
         if (column.IsIdentity)
             ctor += ", true";
-        if (!string.IsNullOrWhiteSpace(column.DefaultValue) && GenerationRuleSet.IsSimpleLiteralDefault(column.DefaultValue))
+        if (!string.IsNullOrWhiteSpace(column.DefaultValue)
+            && GenerationRuleSet.TryFormatSequenceDefaultValue(column.DefaultValue, effectiveDatabaseType, schemaName, out var sequenceCode))
+            ctor += $", defaultValue: {sequenceCode}";
+        else if (!string.IsNullOrWhiteSpace(column.DefaultValue) && GenerationRuleSet.IsSimpleLiteralDefault(column.DefaultValue))
             ctor += $", defaultValue: {GenerationRuleSet.FormatDefaultLiteral(column.DefaultValue, mappedDbType)}";
         if (column.CharMaxLen is > 0 and <= int.MaxValue)
             ctor += $", size: {(int)column.CharMaxLen.Value}";
@@ -233,10 +241,12 @@ public static class StructuredClassContentFactory
 
         var sb = new StringBuilder();
         AppendSequenceFileHeader(sb, dbObject, @namespace);
-        sb.AppendLine($"public static class {className}");
+        sb.AppendLine($"{dbObject.NormalizedAccessibility} static class {className}");
         sb.AppendLine("{");
-        sb.AppendLine($"    public static SequenceDef {methodName}(this DbMock db)");
+        sb.AppendLine($"    {dbObject.NormalizedAccessibility} static SequenceDef {methodName}(this DbMock db)");
         sb.AppendLine("    {");
+        if (dbObject.NormalizedAccessibility == "public")
+            sb.AppendLine("        ArgumentNullException.ThrowIfNull(db);");
         sb.AppendLine($"        return db.AddSequence({Literal(dbObject.Name)}, startValue: {startValue}L, incrementBy: {incrementBy}L, currentValue: {(currentValue.HasValue ? $"{currentValue.Value}L" : "null")}, schemaName: {Literal(dbObject.Schema)});");
         sb.AppendLine("    }");
         sb.AppendLine("}");

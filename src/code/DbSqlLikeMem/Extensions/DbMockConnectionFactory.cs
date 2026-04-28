@@ -43,7 +43,17 @@ public static class DbMockConnectionFactory
     /// EN: Creates a Oracle mock and resolves its matching connection.
     /// PT: Cria um mock Oracle e resolve sua conexao correspondente.
     /// </summary>
-    public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(params Action<DbMock>[] tableMappers)
+    public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(
+        string? defaultSchema,
+        params Action<DbMock>[] tableMappers)
+        => CreateWithTables("Oracle", defaultSchema, tableMappers);
+
+    /// <summary>
+    /// EN: Creates a Oracle mock and resolves its matching connection.
+    /// PT: Cria um mock Oracle e resolve sua conexao correspondente.
+    /// </summary>
+    public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(
+        params Action<DbMock>[] tableMappers)
         => CreateWithTables("Oracle", tableMappers);
 
     /// <summary>
@@ -272,6 +282,19 @@ public static class DbMockConnectionFactory
     public static (DbMock Db, IDbConnection Connection) CreateWithTables(
         string providerHint,
         params Action<DbMock>[] tableMappers)
+    => CreateWithTables(providerHint, defaultSchema: null, tableMappers);
+
+    /// <summary>
+    /// EN: Creates a provider-specific <see cref="DbMock"/> and resolves an <see cref="IDbConnection"/> for it.
+    /// PT: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
+    /// </summary>
+    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 ou Npgsql.</param>
+    /// <param name="defaultSchema"></param>
+    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
+    public static (DbMock Db, IDbConnection Connection) CreateWithTables(
+        string providerHint,
+        string? defaultSchema,
+        params Action<DbMock>[] tableMappers)
     {
         var canonicalProviderHint = CanonicalizeProviderHint(providerHint);
         var plan = ProviderPlans.GetOrAdd(canonicalProviderHint, BuildProviderResolutionPlan);
@@ -283,6 +306,8 @@ public static class DbMockConnectionFactory
         }
 
         var connection = plan.ResolveConnection(db);
+        if (defaultSchema != null)
+            connection.ChangeDatabase(defaultSchema);
         if (!IsConnectionTypeCompatibleForProvider(connection.GetType(), canonicalProviderHint))
         {
             ProviderPlans.TryRemove(canonicalProviderHint, out _);

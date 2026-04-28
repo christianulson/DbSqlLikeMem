@@ -91,7 +91,7 @@ END;
 
             var table = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference("dbo", tableName, DatabaseObjectType.Table),
+                new DatabaseObjectReference("dbo", tableName, DatabaseObjectType.Table, "public"),
                 CancellationToken.None);
 
             table.Should().NotBeNull();
@@ -102,7 +102,7 @@ END;
 
             var function = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference("dbo", functionName, DatabaseObjectType.Function),
+                new DatabaseObjectReference("dbo", functionName, DatabaseObjectType.Function, "public"),
                 CancellationToken.None);
 
             function.Should().NotBeNull();
@@ -112,7 +112,7 @@ END;
 
             var procedure = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference("dbo", procedureName, DatabaseObjectType.Procedure),
+                new DatabaseObjectReference("dbo", procedureName, DatabaseObjectType.Procedure, "public"),
                 CancellationToken.None);
 
             procedure.Should().NotBeNull();

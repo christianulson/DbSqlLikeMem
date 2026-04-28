@@ -75,7 +75,7 @@ END;
 
             var table = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference(schemaName, tableName, DatabaseObjectType.Table),
+                new DatabaseObjectReference(schemaName, tableName, DatabaseObjectType.Table, "public"),
                 CancellationToken.None);
 
             table.Should().NotBeNull();
@@ -86,7 +86,7 @@ END;
 
             var routine = await provider.GetObjectAsync(
                 definition,
-                new DatabaseObjectReference(schemaName, functionName, DatabaseObjectType.Function),
+                new DatabaseObjectReference(schemaName, functionName, DatabaseObjectType.Function, "public"),
                 CancellationToken.None);
 
             routine.Should().NotBeNull();

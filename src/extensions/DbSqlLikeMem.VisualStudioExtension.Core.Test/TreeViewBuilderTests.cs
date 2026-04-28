@@ -19,14 +19,14 @@ public sealed class TreeViewBuilderTests
         var objects =
             new[]
             {
-                new DatabaseObjectReference("dbo", "Invoices", DatabaseObjectType.Sequence),
-                new DatabaseObjectReference("dbo", "vw_Customers", DatabaseObjectType.View),
-                new DatabaseObjectReference("dbo", "fn_Tax", DatabaseObjectType.Function),
-                new DatabaseObjectReference("dbo", "Customers", DatabaseObjectType.Table),
-                new DatabaseObjectReference("dbo", "fn_Adjust", DatabaseObjectType.Function),
-                new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table),
-                new DatabaseObjectReference("dbo", "vw_Orders", DatabaseObjectType.View),
-                new DatabaseObjectReference("dbo", "seq_Audit", DatabaseObjectType.Sequence)
+                new DatabaseObjectReference("dbo", "Invoices", DatabaseObjectType.Sequence, "public"),
+                new DatabaseObjectReference("dbo", "vw_Customers", DatabaseObjectType.View, "public"),
+                new DatabaseObjectReference("dbo", "fn_Tax", DatabaseObjectType.Function, "public"),
+                new DatabaseObjectReference("dbo", "Customers", DatabaseObjectType.Table, "public"),
+                new DatabaseObjectReference("dbo", "fn_Adjust", DatabaseObjectType.Function, "public"),
+                new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public"),
+                new DatabaseObjectReference("dbo", "vw_Orders", DatabaseObjectType.View, "public"),
+                new DatabaseObjectReference("dbo", "seq_Audit", DatabaseObjectType.Sequence, "public")
             };
 
         var root = builder.Build(connection, objects);

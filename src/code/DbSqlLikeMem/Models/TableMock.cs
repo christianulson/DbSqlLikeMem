@@ -440,7 +440,11 @@ public abstract class TableMock
             object? value = column.DefaultValue;
 
             if (column.Identity)
-                value = NextIdentity++;
+                row[column.Index] = NextIdentity++;
+            else if (column.DefaultValue is SequenceDef sequenceDefault)
+                row[column.Index] = ResolveSequenceDefault(sequenceDefault);
+            else
+                row[column.Index] = column.DefaultValue;
 
             row[column.Index] = value;
 
@@ -875,8 +879,13 @@ public abstract class TableMock
 
             if (!col.Identity)
             {
-                if (col.DefaultValue != null && !hasExplicitValue && value[col.Index] == null)
-                    value[col.Index] = col.DefaultValue;
+                if (!hasExplicitValue && value[col.Index] == null)
+                {
+                    if (col.DefaultValue is SequenceDef sequenceDefault)
+                        value[col.Index] = ResolveSequenceDefault(sequenceDefault);
+                    else if (col.DefaultValue != null)
+                        value[col.Index] = col.DefaultValue;
+                }
             }
             else if (AllowIdentityInsert && currentValue is not null)
                 UpdateNextIdentityFromExplicitValue(currentValue);
@@ -889,6 +898,20 @@ public abstract class TableMock
             if (!col.Nullable && value[col.Index] == null)
                 throw ColumnCannotBeNull(col.Name);
         }
+    }
+
+    private object ResolveSequenceDefault(SequenceDef sequenceDefault)
+    {
+        var targetSchema = sequenceDefault.OwnedBySchema ?? Schema.SchemaName;
+        if (!Schema.Db.TryGetSequence(sequenceDefault.Name, out var sequence, targetSchema) || sequence is null)
+            sequence = Schema.Db.AddSequence(
+                sequenceDefault.Name,
+                sequenceDefault.StartValue,
+                sequenceDefault.IncrementBy,
+                sequenceDefault.CurrentValue,
+                schemaName: targetSchema);
+
+        return sequence.NextValue();
     }
 
     private void UpdateNextIdentityFromExplicitValue(object? explicitValue)

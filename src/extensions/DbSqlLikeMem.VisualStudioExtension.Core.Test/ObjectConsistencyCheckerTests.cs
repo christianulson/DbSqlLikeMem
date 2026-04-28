@@ -18,7 +18,7 @@ public class ObjectConsistencyCheckerTests
         var provider = new FakeMetadataProvider(null);
         var connection = new ConnectionDefinition("1", "SqlServer", "ERP", "conn");
         var local = new LocalObjectSnapshot(
-            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public"),
             "c:/classes/Orders.cs");
 
         var result = await checker.CheckAsync(connection, local, provider, TestContext.Current.CancellationToken);
@@ -36,11 +36,12 @@ public class ObjectConsistencyCheckerTests
     {
         var checker = new ObjectConsistencyChecker();
         var provider = new FakeMetadataProvider(new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table,
+            "public",
             new Dictionary<string, string> { ["Columns"] = "Id,Name" }));
 
         var connection = new ConnectionDefinition("1", "SqlServer", "ERP", "conn");
         var local = new LocalObjectSnapshot(
-            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public"),
             "c:/classes/Orders.cs",
             new Dictionary<string, string> { ["Columns"] = "Id,Name,Status" });
 
@@ -58,7 +59,7 @@ public class ObjectConsistencyCheckerTests
     public void EvaluateLocalArtifacts_WhenNothingExists_ReturnsMissingLocalArtifacts()
     {
         var checker = new ObjectConsistencyChecker();
-        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
 
         var result = checker.EvaluateLocalArtifacts(reference, "c:/classes/OrdersTests.cs", false, false, false, "missing");
 
@@ -75,7 +76,7 @@ public class ObjectConsistencyCheckerTests
     public void EvaluateLocalArtifacts_WhenOnlyPartOfTheTrioExists_ReturnsIncompleteLocalArtifacts()
     {
         var checker = new ObjectConsistencyChecker();
-        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
 
         var result = checker.EvaluateLocalArtifacts(reference, "c:/classes/OrdersTests.cs", true, false, true, "partial");
 
@@ -107,15 +108,15 @@ public class ObjectConsistencyCheckerTests
     public void GetDriftedArtifactKinds_WhenSnapshotsPointToDifferentObjects_ReturnsDeterministicOrder()
     {
         var checker = new ObjectConsistencyChecker();
-        var expected = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+        var expected = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
         var classSnapshot = new LocalObjectSnapshot(
-            new DatabaseObjectReference("dbo", "OrdersArchive", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "OrdersArchive", DatabaseObjectType.Table, "public"),
             "c:/classes/OrdersTests.cs");
         var modelSnapshot = new LocalObjectSnapshot(
-            new DatabaseObjectReference("dbo", "OrdersArchive", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "OrdersArchive", DatabaseObjectType.Table, "public"),
             "c:/models/OrdersModel.cs");
         var repositorySnapshot = new LocalObjectSnapshot(
-            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public"),
             "c:/repositories/OrdersRepository.cs");
 
         var driftedKinds = checker.GetDriftedArtifactKinds(expected, classSnapshot, modelSnapshot, repositorySnapshot);
@@ -132,12 +133,13 @@ public class ObjectConsistencyCheckerTests
     public void GetDriftedArtifactKinds_WhenCompanionSnapshotPropertiesDiffer_ReturnsArtifactKind()
     {
         var checker = new ObjectConsistencyChecker();
-        var expected = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+        var expected = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
         var primarySnapshot = new LocalObjectSnapshot(
             new DatabaseObjectReference(
                 "dbo",
                 "Orders",
                 DatabaseObjectType.Table,
+                "public",
                 new Dictionary<string, string>
                 {
                     ["Columns"] = "Id|int|0|0",
@@ -154,6 +156,7 @@ public class ObjectConsistencyCheckerTests
                 "dbo",
                 "Orders",
                 DatabaseObjectType.Table,
+                "public",
                 new Dictionary<string, string>
                 {
                     ["Columns"] = "Id|int|0|0",
@@ -170,6 +173,7 @@ public class ObjectConsistencyCheckerTests
                 "dbo",
                 "Orders",
                 DatabaseObjectType.Table,
+                "public",
                 new Dictionary<string, string>
                 {
                     ["Columns"] = "Id|int|0|0;Status|tinyint|1|1",
@@ -196,7 +200,7 @@ public class ObjectConsistencyCheckerTests
     public void EvaluateArtifactDrift_WhenArtifactsPointToAnotherObject_ReturnsDifferentFromDatabase()
     {
         var checker = new ObjectConsistencyChecker();
-        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
 
         var result = checker.EvaluateArtifactDrift(reference, "c:/classes/OrdersTests.cs", ["model"], "drift");
 
@@ -214,7 +218,7 @@ public class ObjectConsistencyCheckerTests
     public void EvaluateLocalArtifacts_WhenAllExpectedFilesExist_ReturnsNull()
     {
         var checker = new ObjectConsistencyChecker();
-        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table);
+        var reference = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public");
 
         var result = checker.EvaluateLocalArtifacts(reference, "c:/classes/OrdersTests.cs", true, true, true, "ok");
 

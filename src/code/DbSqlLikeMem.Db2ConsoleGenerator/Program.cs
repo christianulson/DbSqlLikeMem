@@ -129,7 +129,13 @@ static partial class Program
                     if (string.IsNullOrEmpty(clean)) continue;
 
                     var meta = LoadSequenceMetadata(connection, destiny.Schema, clean);
-                    GenerateSequenceFile(destiny.Namespace, clean, destiny.Schema, meta, outputPath);
+                    GenerateSequenceFile(
+                        destiny.Namespace,
+                        destiny.ClassAccessibility,
+                        clean,
+                        destiny.Schema,
+                        meta,
+                        outputPath);
                     Console.WriteLine($" - Sequence: {sequenceName} gerada.");
                 }
             }
@@ -370,6 +376,7 @@ static partial class Program
 
     private static void GenerateSequenceFile(
         string ns,
+        string? classAccessibility,
         string sequenceName,
         string schema,
         SequenceMeta meta,
@@ -379,6 +386,7 @@ static partial class Program
             schema,
             sequenceName,
             DatabaseObjectType.Sequence,
+            classAccessibility,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["StartValue"] = meta.StartValue?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,

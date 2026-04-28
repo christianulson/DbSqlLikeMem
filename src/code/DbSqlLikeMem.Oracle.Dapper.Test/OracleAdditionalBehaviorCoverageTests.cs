@@ -76,6 +76,14 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
     public void Insert_WithColumnsOutOfOrder_ShouldMapCorrectly_Test() => Insert_WithColumnsOutOfOrder_ShouldMapCorrectly();
 
     /// <summary>
+    /// EN: Verifies binary keys round-trip through Dapper when the payload starts as Guid bytes.
+    /// PT: Verifica se chaves binarias retornam pelo Dapper quando o payload comeca como bytes de Guid.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
+    public void BinaryGuidPrimaryKey_ShouldRoundTripThroughDapper_Test() => BinaryGuidPrimaryKey_ShouldRoundTripThroughDapper();
+
+    /// <summary>
     /// EN: Verifies deletes using an IN parameter list remove the expected rows.
     /// PT: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
     /// </summary>

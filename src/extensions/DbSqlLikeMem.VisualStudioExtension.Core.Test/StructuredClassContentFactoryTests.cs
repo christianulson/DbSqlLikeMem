@@ -18,6 +18,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "orders",
             DatabaseObjectType.Table,
+                "public",
             new Dictionary<string, string>
             {
                 ["Columns"] = "Id|int|0|0|1|||0|int|;CustomerId|int|1|0|0||||int|",
@@ -46,6 +47,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "active_orders",
             DatabaseObjectType.View,
+                "public",
             new Dictionary<string, string>
             {
                 ["Columns"] = "Id|int|0|0|1|||0|int|;CustomerId|int|1|0|0||||int|",
@@ -74,6 +76,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "order_items",
             DatabaseObjectType.Table,
+                "public",
             new Dictionary<string, string>
             {
                 ["Columns"] = "OrderId|int|0|0|0||||int|;ItemId|int|1|0|0||||int|;Qty|int|2|0|0||||int|",
@@ -100,6 +103,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "feature_flags",
             DatabaseObjectType.Table,
+                "public",
             new Dictionary<string, string>
             {
                 ["Columns"] = "IsEnabled|tinyint|0|0|0|1||0|tinyint(1)||1;BitMask|bit|1|0|0|0||0|bit(8)||8",
@@ -126,6 +130,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "feature_flags",
             DatabaseObjectType.Table,
+                "public",
             new Dictionary<string, string>
             {
                 ["Columns"] = "IsEnabled|tinyint|0|0|0|1||0|tinyint(1)||1;BitMask|bit|1|0|0|0||0|bit(8)||8",
@@ -153,6 +158,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "seq_orders",
             DatabaseObjectType.Sequence,
+                "public",
             new Dictionary<string, string>
             {
                 ["StartValue"] = "100",
@@ -168,6 +174,32 @@ public sealed class StructuredClassContentFactoryTests
     }
 
     /// <summary>
+    /// EN: Verifies Oracle sequence defaults are emitted as DbMock sequence lookups.
+    /// PT: Verifica se defaults de sequence do Oracle sao emitidos como consultas de sequence do DbMock.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
+    public void Build_OracleSequenceDefault_UsesDbMockSequenceReference()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "SCHEMA1",
+            "TABLE1",
+            DatabaseObjectType.Table,
+            "public",
+            new Dictionary<string, string>
+            {
+                ["Columns"] = "Id|NUMBER|0|1|0|\"SCHEMA1\".\"ISEQ$$_435165\".nextval|||NUMBER|",
+                ["PrimaryKey"] = "Id",
+                ["Indexes"] = "",
+                ["ForeignKeys"] = ""
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace", "Oracle");
+
+        Assert.Contains("defaultValue: db.TryGetSequence(\"ISEQ$$_435165\", out var seq, schemaName: \"SCHEMA1\") ? seq : null", content);
+    }
+
+    /// <summary>
     /// EN: Verifies procedure generation emits routine metadata and adds the procedure to the database snapshot.
     /// PT: Verifica se a geracao de procedure emite os metadados da rotina e adiciona a procedure ao snapshot do banco.
     /// </summary>
@@ -179,6 +211,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "sp_update_customer",
             DatabaseObjectType.Procedure,
+            "public",
             new Dictionary<string, string>
             {
                 ["RequiredIn"] = "CustomerId|Int32|1|",
@@ -206,6 +239,7 @@ public sealed class StructuredClassContentFactoryTests
             "dbo",
             "fn_total",
             DatabaseObjectType.Function,
+            "public",
             new Dictionary<string, string>
             {
                 ["Parameters"] = "CustomerId|int|1|0|0|0|",

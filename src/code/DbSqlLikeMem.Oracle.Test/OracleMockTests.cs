@@ -51,6 +51,42 @@ public sealed class OracleMockTests
     }
 
     /// <summary>
+    /// EN: Verifies sequence defaults assign the next Oracle value when the column is omitted.
+    /// PT: Verifica se defaults de sequence atribuem o proximo valor do Oracle quando a coluna e omitida.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void SequenceDefault_ShouldPopulateMissingColumnValue()
+    {
+        var db = new OracleDbMock();
+        db.CreateSchema("APP");
+        var sequence = db.AddSequence("SEQ_USERS", startValue: 10, incrementBy: 5, schemaName: "APP");
+        db.AddTable(
+            "Users",
+            [
+                new("Id", DbType.Int32, false, defaultValue: sequence),
+                new("Name", DbType.String, false, size: 50)
+            ],
+            schemaName: "APP");
+
+        using var connection = new OracleConnectionMock(db, "APP");
+        connection.Open();
+
+        using (var command = new OracleCommandMock(connection))
+        {
+            command.CommandText = "INSERT INTO Users (Name) VALUES ('Ana')";
+            Assert.Equal(1, command.ExecuteNonQuery());
+
+            command.CommandText = "INSERT INTO Users (Name) VALUES ('Bia')";
+            Assert.Equal(1, command.ExecuteNonQuery());
+        }
+
+        var users = connection.GetTable("Users", "APP");
+        Assert.Equal(10L, Convert.ToInt64(users[0][0], CultureInfo.InvariantCulture));
+        Assert.Equal(15L, Convert.ToInt64(users[1][0], CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Verifies ExecuteNonQuery applies each INSERT in a multi-statement script and returns the total affected rows.
     /// PT: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
     /// </summary>

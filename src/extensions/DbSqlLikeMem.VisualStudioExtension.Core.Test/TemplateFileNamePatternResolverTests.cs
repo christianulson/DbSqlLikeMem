@@ -15,7 +15,7 @@ public sealed class TemplateFileNamePatternResolverTests
     public void Resolve_WithDefaultPattern_ShouldUseNamePascalAndKindSuffix()
     {
         var connection = new ConnectionDefinition("1", "SqlServer", "ERP", "conn");
-        var dbObject = new DatabaseObjectReference("dbo", "sales_order", DatabaseObjectType.Table);
+        var dbObject = new DatabaseObjectReference("dbo", "sales_order", DatabaseObjectType.Table, "public");
 
         var modelFile = TemplateFileNamePatternResolver.Resolve(null, "Model", connection, dbObject);
         var repositoryFile = TemplateFileNamePatternResolver.Resolve(string.Empty, "Repository", connection, dbObject);
@@ -33,7 +33,7 @@ public sealed class TemplateFileNamePatternResolverTests
     public void Resolve_WithCustomPattern_ShouldExpandSupportedPlaceholders()
     {
         var connection = new ConnectionDefinition("1", "PostgreSql", "Billing", "conn");
-        var dbObject = new DatabaseObjectReference("sales", "monthly-report", DatabaseObjectType.View);
+        var dbObject = new DatabaseObjectReference("sales", "monthly-report", DatabaseObjectType.View, "public");
 
         var fileName = TemplateFileNamePatternResolver.Resolve(
             "{DatabaseType}_{DatabaseName}_{Schema}_{NamePascal}_{Type}_{Namespace}.g.cs",

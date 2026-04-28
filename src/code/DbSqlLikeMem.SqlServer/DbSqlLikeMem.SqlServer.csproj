@@ -13,7 +13,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
-		<ProjectReference Include="..\DbSqlLikeMem.SourceGenerators\DbSqlLikeMem.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\DbSqlLikeMem.SourceGenerators\DbSqlLikeMem.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="TargetFramework" />
 	</ItemGroup>
 	<ItemGroup>
 		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />

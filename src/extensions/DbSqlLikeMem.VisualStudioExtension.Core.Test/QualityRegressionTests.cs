@@ -86,8 +86,8 @@ public sealed class QualityRegressionTests
             var connection = new ConnectionDefinition("1", "SqlServer", "ERP", "conn");
             var objects = new[]
             {
-                new DatabaseObjectReference("dbo", "orders", DatabaseObjectType.Table),
-                new DatabaseObjectReference("dbo", "customers", DatabaseObjectType.Table)
+                new DatabaseObjectReference("dbo", "orders", DatabaseObjectType.Table, "public"),
+                new DatabaseObjectReference("dbo", "customers", DatabaseObjectType.Table, "public")
             };
 
             var request = new GenerationRequest(connection, objects);
@@ -156,6 +156,7 @@ public sealed class QualityRegressionTests
                 "dbo",
                 "Orders",
                 DatabaseObjectType.Table,
+                "public",
                 new Dictionary<string, string> { ["Columns"] = "Id|int|0|0|1||||int|" });
 
             var snapshot = await GeneratedClassSnapshotReader.ReadAsync(file, fallback, TestContext.Current.CancellationToken);
@@ -189,9 +190,9 @@ public sealed class QualityRegressionTests
             ["PrimaryKey"] = "Id"
         };
 
-        var dbObject = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, properties);
+        var dbObject = new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public", properties);
         var local = new LocalObjectSnapshot(
-            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table),
+            new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public"),
             "c:/classes/Orders.cs",
             new Dictionary<string, string>(properties));
 

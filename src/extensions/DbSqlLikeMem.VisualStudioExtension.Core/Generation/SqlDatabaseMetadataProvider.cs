@@ -714,7 +714,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
             return null;
         }
 
-        return new DatabaseObjectReference(schema, name, type);
+        return new DatabaseObjectReference(schema, name, type, "public");
     }
 
     private static bool ReadBoolFlexible(IReadOnlyDictionary<string, object?> row, string key)

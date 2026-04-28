@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 /// </summary>
 public static class BenchmarkLogPath
 {
-    private const string BenchmarkProjectRelativePath = @"src\benchmark\DbSqlLikeMem.Benchmarks\DbSqlLikeMem.Benchmarks.csproj";
+    private static readonly string BenchmarkProjectRelativePath = Path.Combine("src", "benchmark", "DbSqlLikeMem.Benchmarks", "DbSqlLikeMem.Benchmarks.csproj");
 
     /// <summary>
     /// EN: Returns the benchmark log directory inside the benchmark project folder.

@@ -17,7 +17,7 @@ public class ClassGenerationPlannerTests
         var planner = new ClassGenerationPlanner();
         var request = new GenerationRequest(
             new ConnectionDefinition("1", "SqlServer", "ERP", "Server=.;Database=ERP"),
-            [new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table)]);
+            [new DatabaseObjectReference("dbo", "Orders", DatabaseObjectType.Table, "public")]);
 
         var plan = planner.BuildPlan(request, null);
 
@@ -38,8 +38,8 @@ public class ClassGenerationPlannerTests
         var request = new GenerationRequest(
             new ConnectionDefinition("1", "SqlServer", "ERP", "Server=.;Database=ERP"),
             [
-                new DatabaseObjectReference("dbo", "sp_update_customer", DatabaseObjectType.Procedure),
-                new DatabaseObjectReference("dbo", "fn_total", DatabaseObjectType.Function)
+                new DatabaseObjectReference("dbo", "sp_update_customer", DatabaseObjectType.Procedure, "public"),
+                new DatabaseObjectReference("dbo", "fn_total", DatabaseObjectType.Function, "public")
             ]);
 
         var config = new ConnectionMappingConfiguration("1", new Dictionary<DatabaseObjectType, ObjectTypeMapping>

@@ -15,6 +15,11 @@ public static class GenerationRuleSet
         RegexOptions.IgnoreCase | RegexOptions.Compiled,
         TimeSpan.FromMilliseconds(500));
 
+    private static readonly Regex OracleSequenceDefaultExpression = new(
+        @"^\s*(?:(?<schema>""(?:[^""]|"""")*""|[A-Za-z_][A-Za-z0-9_$#]*)\s*\.\s*)?(?<sequence>""(?:[^""]|"""")*""|[A-Za-z_][A-Za-z0-9_$#]*)\s*\.\s*nextval(?:\s*\(\s*\))?\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(500));
+
     /// <summary>
     /// EN: Converts a database identifier into PascalCase for generated names.
     /// PT: Converte um identificador de banco para PascalCase nos nomes gerados.
@@ -86,6 +91,40 @@ public static class GenerationRuleSet
         }
 
         return value.Trim('(', ')', ' ');
+    }
+
+    /// <summary>
+    /// EN: Formats an Oracle sequence default as a DbMock sequence reference.
+    /// PT: Formata um default de sequence do Oracle como uma referencia de sequence do DbMock.
+    /// </summary>
+    /// <param name="value">EN: Oracle default expression. PT: Expressao de default do Oracle.</param>
+    /// <param name="databaseType">EN: Source database type. PT: Tipo de banco de origem.</param>
+    /// <param name="schemaName">EN: Fallback schema name when the expression omits it. PT: Nome do schema de fallback quando a expressao o omite.</param>
+    /// <param name="code">EN: Generated C# code when the expression is a sequence. PT: Codigo C# gerado quando a expressao for uma sequence.</param>
+    /// <returns>EN: True when the default is a sequence reference. PT: True quando o default for uma referencia de sequence.</returns>
+    public static bool TryFormatSequenceDefaultValue(
+        string value,
+        string? databaseType,
+        string? schemaName,
+        out string code)
+    {
+        code = string.Empty;
+        if (!string.Equals(databaseType, "Oracle", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var match = OracleSequenceDefaultExpression.Match(TrimOuterParentheses(value));
+        if (!match.Success)
+            return false;
+
+        var sequenceName = UnquoteIdentifier(match.Groups["sequence"].Value);
+        var sequenceSchema = match.Groups["schema"].Success
+            ? UnquoteIdentifier(match.Groups["schema"].Value)
+            : string.IsNullOrWhiteSpace(schemaName) ? null : schemaName;
+
+        code = string.IsNullOrWhiteSpace(sequenceSchema)
+            ? $"db.TryGetSequence({Literal(sequenceName)}, out var seq) ? seq : null"
+            : $"db.TryGetSequence({Literal(sequenceName)}, out var seq, schemaName: {Literal(sequenceSchema!)}) ? seq : null";
+        return true;
     }
 
     /// <summary>
@@ -174,5 +213,25 @@ public static class GenerationRuleSet
         }
 
         return string.Concat(char.ToUpper(cleaned[0], CultureInfo.InvariantCulture), cleaned.Substring(1));
+    }
+
+    private static string UnquoteIdentifier(string value)
+        => value.Length >= 2 && value[0] == '"' && value[value.Length - 1] == '"'
+            ? value.Substring(1, value.Length - 2).Replace("\"\"", "\"")
+            : value;
+
+    private static string TrimOuterParentheses(string value)
+    {
+        var result = value.Trim();
+        while (result.Length >= 2 && result[0] == '(' && result[result.Length - 1] == ')')
+        {
+            var inner = result.Substring(1, result.Length - 2).Trim();
+            if (inner.Length + 2 != result.Length)
+                break;
+
+            result = inner;
+        }
+
+        return result;
     }
 }

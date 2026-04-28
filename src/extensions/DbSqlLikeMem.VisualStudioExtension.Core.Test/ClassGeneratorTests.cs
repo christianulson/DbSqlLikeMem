@@ -27,7 +27,7 @@ public class ClassGeneratorTests
             var generator = new ClassGenerator();
             var request = new GenerationRequest(
                 new ConnectionDefinition("1", databaseType, "ERP", "conn"),
-                [new DatabaseObjectReference("dbo", "sales_order", DatabaseObjectType.Table)]);
+                [new DatabaseObjectReference("dbo", "sales_order", DatabaseObjectType.Table, "public")]);
 
             var config = new ConnectionMappingConfiguration(
                 "1",
@@ -66,7 +66,7 @@ public class ClassGeneratorTests
             var generator = new ClassGenerator();
             var request = new GenerationRequest(
                 new ConnectionDefinition("1", "PostgreSql", "Billing", "conn"),
-                [new DatabaseObjectReference("public", "vw.active-customers", DatabaseObjectType.View)]);
+                [new DatabaseObjectReference("public", "vw.active-customers", DatabaseObjectType.View, "public")]);
 
             var config = new ConnectionMappingConfiguration(
                 "1",
@@ -116,6 +116,7 @@ public class ClassGeneratorTests
                         "dbo",
                         "sp_update_customer",
                         DatabaseObjectType.Procedure,
+                        "public",
                         new Dictionary<string, string>
                         {
                             ["RequiredIn"] = "CustomerId|Int32|1|",
@@ -127,6 +128,7 @@ public class ClassGeneratorTests
                         "dbo",
                         "fn_total",
                         DatabaseObjectType.Function,
+                        "public",
                         new Dictionary<string, string>
                         {
                             ["Parameters"] = "CustomerId|int|1|0|0|0|",
