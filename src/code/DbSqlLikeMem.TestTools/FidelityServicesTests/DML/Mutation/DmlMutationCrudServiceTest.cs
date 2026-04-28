@@ -418,10 +418,13 @@ public class DmlMutationUpdateByPkServiceTest(
     /// EN: Reads a user name by primary key and validates the updated value.
     /// PT: Lê um nome de usuario pela chave primaria e valida o valor atualizado.
     /// </summary>
+    /// <param name="args">EN: Optional primary user id for the update flow. PT: Id principal opcional do usuario para o fluxo de update.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, 1, "Alice-v2"));
-        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, 1)), CultureInfo.InvariantCulture);
+        var userId = args.Length > 0 ? (int)args[0] : 1;
+
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, userId, "Alice-v2"));
+        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, userId)), CultureInfo.InvariantCulture);
         if (!string.Equals(value, "Alice-v2", StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"Unexpected update result for {Repo.Dialect.DisplayName}: {value ?? "<null>"}.");
@@ -448,10 +451,12 @@ public class DmlMutationDeleteByPkServiceTest(
     /// EN: Deletes one user row and validates the remaining row projection.
     /// PT: Exclui uma linha de usuario e valida a projeção da linha restante.
     /// </summary>
+    /// <param name="args">EN: Optional primary user id for the delete flow. PT: Id principal opcional do usuario para o fluxo de delete.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
+        var userId = args.Length > 0 ? (int)args[0] : 1;
 
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, 1));
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, userId));
         var lst = await Repo.ExecuteReaderAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
@@ -483,9 +488,11 @@ public class DmlMutationSelectJoinServiceTest(
     /// EN: Executes the join query between users and orders and validates the count.
     /// PT: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
     /// </summary>
+    /// <param name="args">EN: Optional primary user id for the join query. PT: Id principal opcional do usuario para a consulta de join.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountJoinForUser(Context, 1)), CultureInfo.InvariantCulture);
+        var userId = args.Length > 0 ? (int)args[0] : 1;
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountJoinForUser(Context, userId)), CultureInfo.InvariantCulture);
         if (value != 2)
         {
             throw new InvalidOperationException($"Unexpected join count for {Repo.Dialect.DisplayName}: {value}.");
@@ -512,9 +519,11 @@ public class DmlMutationRowCountAfterUpdateServiceTest(
     /// EN: Updates a row and validates the affected-row count reported by the provider.
     /// PT: Atualiza uma linha e valida a contagem de linhas afetadas informada pelo provedor.
     /// </summary>
+    /// <param name="args">EN: Optional user id for the update flow. PT: Id opcional do usuario para o fluxo de update.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        var affected = await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, 1, "Alice-v2"));
+        var userId = args.Length > 0 ? (int)args[0] : 1;
+        var affected = await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, userId, "Alice-v2"));
         if (affected < 1)
         {
             throw new InvalidOperationException($"Unexpected update rowcount for {Repo.Dialect.DisplayName}: {affected}.");
@@ -541,12 +550,16 @@ public class DmlMutationUpdateDeleteRoundTripServiceTest(
     /// EN: Updates one user row, deletes another row, and validates the final row count and remaining value.
     /// PT: Atualiza uma linha de usuario, exclui outra linha e valida a contagem final e o valor restante.
     /// </summary>
+    /// <param name="args">EN: Optional update and delete user ids. PT: Ids opcionais de usuario para update e delete.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, 1, "Alice-v2"));
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, 2));
+        var updateUserId = args.Length > 0 ? (int)args[0] : 1;
+        var deleteUserId = args.Length > 1 ? (int)args[1] : 2;
 
-        var remaining = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, 1)), CultureInfo.InvariantCulture);
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, updateUserId, "Alice-v2"));
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, deleteUserId));
+
+        var remaining = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, updateUserId)), CultureInfo.InvariantCulture);
         var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
         if (count != 1)
         {
@@ -575,15 +588,18 @@ public class DmlMutationTransactionalUpdateDeleteCommitServiceTest(
     /// EN: Updates one row and deletes another inside a transaction, then validates the committed result.
     /// PT: Atualiza uma linha e exclui outra dentro de uma transacao, depois valida o resultado confirmado.
     /// </summary>
+    /// <param name="args">EN: Optional update and delete user ids. PT: Ids opcionais de usuario para update e delete.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
+        var updateUserId = args.Length > 0 ? (int)args[0] : 1;
+        var deleteUserId = args.Length > 1 ? (int)args[1] : 2;
 
         using var transaction = Repo.BeginTransaction();
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, 1, "Alice-v2"), transaction);
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, 2), transaction);
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.UpdateUserNameById(Context, updateUserId, "Alice-v2"), transaction);
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, deleteUserId), transaction);
         transaction.Commit();
 
-        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, 1)), CultureInfo.InvariantCulture);
+        var value = Convert.ToString(await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, updateUserId)), CultureInfo.InvariantCulture);
         var count = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountRows(Context.TbUsersFullName)), CultureInfo.InvariantCulture);
         if (count != 1)
         {

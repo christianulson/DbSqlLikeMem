@@ -17,8 +17,8 @@ public abstract class DmlMutationCrudServiceTestBase(
     /// EN: Normalizes a string value for Oracle when the provider is Oracle and the value is null or empty. This is necessary because Oracle treats empty strings as null values, so this helper ensures that any empty string values are converted to null before being used in tests that involve Oracle. For other providers, the value is returned unchanged.
     /// PT: Normaliza um valor de string para Oracle quando o provedor é Oracle e o valor é nulo ou vazio. Isso é necessário porque o Oracle trata strings vazias como valores nulos, então este helper garante que quaisquer valores de string vazios sejam convertidos para nulos antes de serem usados em testes que envolvem Oracle. Para outros provedores, o valor é retornado sem alterações.
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">EN: The text value to normalize. PT: O valor de texto a normalizar.</param>
+    /// <returns>EN: Null for empty Oracle text values; otherwise, the original value. PT: Null para valores de texto vazios no Oracle; caso contrario, o valor original.</returns>
     protected string? NormalizeOracleNullableText(string? value)
     => Repo.Dialect.Provider == ProviderId.Oracle && string.IsNullOrEmpty(value) ? null : value;
 
@@ -36,7 +36,7 @@ public abstract class DmlMutationCrudServiceTestBase(
     /// <param name="updatedAt"></param>
     /// <param name="profileJson"></param>
     /// <param name="transaction"></param>
-    /// <returns></returns>
+    /// <returns>EN: A completed task once the insert has been verified. PT: Uma tarefa concluida quando o insert e validado.</returns>
     /// <exception cref="InvalidOperationException"></exception>
     protected async Task InsertTypedUserAsync(
         int id,
@@ -104,7 +104,6 @@ INSERT INTO {Context.TbUsersFullName} (
     /// <param name="createdAt"></param>
     /// <param name="updatedAt"></param>
     /// <param name="profileJson"></param>
-    /// <returns></returns>
     protected async Task VerifyInsertedTypedUserAsync(
         int id,
         string name,
@@ -157,9 +156,8 @@ WHERE Id = {id}
     /// EN: Normalizes a value that may be returned from the database as part of a DateTime column. This helper accounts for potential variations in how different providers may return date/time values, such as returning DateTimeOffset instead of DateTime, or returning date-only values as DateOnly. The goal is to ensure that the value can be consistently compared to an expected DateTime value in tests, regardless of the provider's specific behavior.
     /// PT: Normaliza um valor que pode ser retornado do banco de dados como parte de uma coluna DateTime. Este helper leva em consideração as variações potenciais em como diferentes provedores podem retornar valores de data/hora, como retornar DateTimeOffset em vez de DateTime, ou retornar valores apenas de data como DateOnly. O objetivo é garantir que o valor possa ser comparado de forma consistente a um valor DateTime esperado em testes, independentemente do comportamento específico do provedor.
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="value">EN: The database value to normalize. PT: O valor do banco de dados a normalizar.</param>
+    /// <returns>EN: The normalized string value, or null when the input is null. PT: O valor de string normalizado, ou null quando a entrada e null.</returns>
     protected static string? NormalizeNullableText(object? value)
         => value is null or DBNull
             ? null
@@ -169,8 +167,8 @@ WHERE Id = {id}
     /// EN: Normalizes a nullable DateTime value returned from the database into a readable string or null.
     /// PT: Normaliza um valor DateTime anulavel retornado do banco em uma string legivel ou null.
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">EN: The database value to normalize. PT: O valor do banco de dados a normalizar.</param>
+    /// <returns>EN: The normalized date-time text, or null when the input is null. PT: O texto normalizado da data/hora, ou null quando a entrada e null.</returns>
     protected static string? NormalizeNullableDateTimeText(object? value)
         => value is null or DBNull
             ? null
@@ -180,9 +178,8 @@ WHERE Id = {id}
     /// EN: Normalizes a value that may be returned from the database as part of a DateTime column into a DateTime object. This helper accounts for potential variations in how different providers may return date/time values, such as returning DateTimeOffset instead of DateTime, or returning date-only values as DateOnly. The goal is to ensure that the value can be consistently compared to an expected DateTime value in tests, regardless of the provider's specific behavior.
     /// PT: Normaliza um valor que pode ser retornado do banco de dados como parte de uma coluna DateTime em um objeto DateTime. Este helper leva em consideração as variações potenciais em como diferentes provedores podem retornar valores de data/hora, como retornar DateTimeOffset em vez de DateTime, ou retornar valores apenas de data como DateOnly. O objetivo é garantir que o valor possa ser comparado de forma consistente a um valor DateTime esperado em testes, independentemente do comportamento específico do provedor.
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidOperationException"></exception>
+    /// <param name="value">EN: The database value to normalize. PT: O valor do banco de dados a normalizar.</param>
+    /// <returns>EN: The normalized DateTime value. PT: O valor DateTime normalizado.</returns>
     protected static DateTime NormalizeDateTimeValue(object? value) => value switch
     {
         DateTime dateTime => dateTime,
@@ -197,9 +194,9 @@ WHERE Id = {id}
     /// EN: Attempts to normalize a value of type System.DateOnly to a DateTime with the time component set to midnight. This is necessary because some providers may return DateOnly values for date columns, and this helper allows for consistent comparison in tests that expect DateTime values.
     /// PT: Tenta normalizar um valor do tipo System.DateOnly para um DateTime com o componente de hora definido para meia-noite. Isso é necessário porque alguns provedores podem retornar valores DateOnly para colunas de data, e este helper permite uma comparação consistente em testes que esperam valores DateTime.
     /// </summary>
-    /// <param name="value"></param>
-    /// <param name="dateTime"></param>
-    /// <returns></returns>
+    /// <param name="value">EN: The value to inspect for a DateOnly payload. PT: O valor a inspecionar para um payload DateOnly.</param>
+    /// <param name="dateTime">EN: Receives the normalized DateTime when the value is DateOnly. PT: Recebe o DateTime normalizado quando o valor e DateOnly.</param>
+    /// <returns>EN: True when the value was normalized from DateOnly; otherwise, false. PT: True quando o valor foi normalizado a partir de DateOnly; caso contrario, false.</returns>
     protected static bool TryNormalizeDateOnlyValue(object? value, out DateTime dateTime)
     {
         dateTime = default;
@@ -226,9 +223,9 @@ WHERE Id = {id}
     /// EN: Attempts to strip a scenario token suffix from the table name if present. The expected format for the suffix is an underscore followed by an 8-character hexadecimal string (e.g., "_1A2B3C4D"). This allows for dynamic table naming in test scenarios while maintaining a consistent base name for SQL statements.
     /// PT: Tenta remover um sufixo de token de cenário do nome da tabela, se presente. O formato esperado para o sufixo é um sublinhado seguido por uma string hexadecimal de 8 caracteres (por exemplo, "_1A2B3C4D"). Isso permite a nomeação dinâmica de tabelas em cenários de teste, mantendo um nome base consistente para as instruções SQL.
     /// </summary>
-    /// <param name="tableName"></param>
-    /// <param name="stripped"></param>
-    /// <returns></returns>
+    /// <param name="tableName">EN: The table name to inspect. PT: O nome da tabela a inspecionar.</param>
+    /// <param name="stripped">EN: Receives the base table name when a scenario suffix is found. PT: Recebe o nome base da tabela quando um sufixo de cenario e encontrado.</param>
+    /// <returns>EN: True when a valid scenario suffix was removed; otherwise, false. PT: True quando um sufixo de cenario valido foi removido; caso contrario, false.</returns>
     protected static bool TryStripScenarioTokenSuffix(string tableName, out string stripped)
     {
         stripped = tableName;

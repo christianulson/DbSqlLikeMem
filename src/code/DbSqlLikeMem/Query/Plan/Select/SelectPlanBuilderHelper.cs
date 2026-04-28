@@ -247,25 +247,27 @@ internal static class SelectPlanBuilderHelper
                     windowSlotLookup,
                     evalExpression));
 
-                return WrapDebugEvaluatorIfNeeded(expression, windowAwareEvaluator);
+                return WrapDebugEvaluatorIfNeeded(context.Connection.IsDebugTraceCaptureEnabled, expression, windowAwareEvaluator);
             }
 
             var evaluator = (Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>)((row, group) => evalExpression(expression, row, group, ctes));
-            return WrapDebugEvaluatorIfNeeded(expression, evaluator);
+            return WrapDebugEvaluatorIfNeeded(context.Connection.IsDebugTraceCaptureEnabled, expression, evaluator);
         }
 
         var slotIndex = EnsureWindowSlot(windowFunction, windowSlots, windowSlotLookup, context);
         windowSlotIndexes.Add(slotIndex);
         return WrapDebugEvaluatorIfNeeded(
+            context.Connection.IsDebugTraceCaptureEnabled,
             expression,
             (row, group) => windowSlots[slotIndex].Map.TryGetValue(row, out var value) ? value : null);
     }
 
     private static Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?> WrapDebugEvaluatorIfNeeded(
+        bool debugTraceCaptureEnabled,
         SqlExpr expression,
         Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?> evaluator)
     {
-        if (!ContainsParameter(expression, "cutoff"))
+        if (!debugTraceCaptureEnabled || !ContainsParameter(expression, "cutoff"))
             return evaluator;
 
         var exprDebug = SqlExprPrinter.Print(expression);

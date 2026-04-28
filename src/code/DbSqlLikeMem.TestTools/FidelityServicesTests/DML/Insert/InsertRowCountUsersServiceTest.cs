@@ -14,11 +14,16 @@ public class InsertRowCountUsersServiceTest(
     /// EN: Inserts a single user row and returns the affected-row count.
     /// PT: Insere uma linha de usuario e retorna a contagem de linhas afetadas.
     /// </summary>
-    /// <param name="args">EN: The users table name, scenario token, and optional insert id. PT: O nome da tabela de usuarios, o token do cenario e o id de insert opcional.</param>
+    /// <param name="args">EN: Optional insert id, or the legacy users table name and scenario token followed by an optional id. PT: Id de insert opcional, ou o nome da tabela de usuarios e o token do cenario seguidos por um id opcional.</param>
     /// <returns>EN: The affected-row count reported by the provider. PT: A contagem de linhas afetadas informada pelo provedor.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
-        var id = args.Length > 2 ? (int)args[2] : 1;
+        var id = args.Length switch
+        {
+            > 2 => (int)args[2],
+            > 0 when args[0] is int directId => directId,
+            _ => 1
+        };
         var affected = await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id, "Alice"));
         if (affected < 1)
         {

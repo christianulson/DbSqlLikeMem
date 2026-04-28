@@ -116,7 +116,7 @@ Workflow preparado:
 
 - `.github/workflows/vsix-publish.yml`
 - O workflow executa `python scripts/check_release_readiness.py` antes do build e usa `--strict-marketplace-placeholders` ao publicar, bloqueando publish com `publisher` placeholder.
-- A versão operacional da VSIX sai de `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`; a tag automática deve seguir `vsix-v<versao-da-vsix>`.
+- A versão operacional da VSIX sai de `src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`; a tag automática deve seguir `vsix-v<versao-da-vsix>`.
 - O workflow também valida explicitamente essa origem antes do build, prendendo o contrato `tag vsix-v* -> source.extension.vsixmanifest -> publish`.
 
 ### Pré-requisitos
@@ -124,7 +124,7 @@ Workflow preparado:
 1. Criar PAT para publicação no Visual Studio Marketplace.
 2. Salvar no GitHub como secret `VS_MARKETPLACE_TOKEN`.
 3. Confirmar os campos operacionais finais em `eng/visualstudio/PublishManifest.json`, principalmente `publisher`.
-4. Garantir que exista um projeto VSIX (workflow usa `src/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj`).
+4. Garantir que exista um projeto VSIX (workflow usa `src/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj`).
 
 > O campo `repo` do manifesto já aponta para o repositório oficial; o `publisher` ainda deve ser confirmado antes da publicação final.
 
@@ -140,28 +140,28 @@ Workflow preparado:
 
 ## VS Code Extension (Marketplace)
 
-A extensão em `src/DbSqlLikeMem.VsCodeExtension` está preparada para empacotamento/publicação.
+A extensão em `src/extensions/DbSqlLikeMem.VsCodeExtension` está preparada para empacotamento/publicação.
 
 - Workflow: `.github/workflows/vscode-extension-publish.yml`
-- O workflow valida explicitamente `src/DbSqlLikeMem.VsCodeExtension/package.json` antes de empacotar, prendendo o contrato `tag vscode-v* -> package.json -> publish`.
+- O workflow valida explicitamente `src/extensions/DbSqlLikeMem.VsCodeExtension/package.json` antes de empacotar, prendendo o contrato `tag vscode-v* -> package.json -> publish`.
 - Secret necessário: `VSCE_PAT`
 - Tag para publicação automática: `vscode-v*`
 - O workflow executa `python3 scripts/check_release_readiness.py` antes de instalar dependências/empacotar.
-- A versão operacional da extensão sai de `src/DbSqlLikeMem.VsCodeExtension/package.json`; a tag automática deve seguir `vscode-v<versao-da-extensao>`.
+- A versão operacional da extensão sai de `src/extensions/DbSqlLikeMem.VsCodeExtension/package.json`; a tag automática deve seguir `vscode-v<versao-da-extensao>`.
 
 As URLs de repositório/bugs/homepage do `package.json` já foram alinhadas ao repositório oficial; mantenha a revisão do `publisher` e use `python3 scripts/check_release_readiness.py` como auditoria final de readiness.
 
 ## Mapa de versões e tags
 
 - NuGet: versão em `src/code/Directory.Build.props` e tag `v<versao>`.
-- VSIX: versão em `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest` e tag `vsix-v<versao-da-vsix>`.
-- VS Code: versão em `src/DbSqlLikeMem.VsCodeExtension/package.json` e tag `vscode-v<versao-da-extensao>`.
+- VSIX: versão em `src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest` e tag `vsix-v<versao-da-vsix>`.
+- VS Code: versão em `src/extensions/DbSqlLikeMem.VsCodeExtension/package.json` e tag `vscode-v<versao-da-extensao>`.
 - Os três fluxos exigem SemVer válido, mas não precisam compartilhar exatamente o mesmo número de versão.
 
 ### Publicação manual local
 
 ```bash
-cd src/DbSqlLikeMem.VsCodeExtension
+cd src/extensions/DbSqlLikeMem.VsCodeExtension
 npm install
 npm run compile
 npm run package

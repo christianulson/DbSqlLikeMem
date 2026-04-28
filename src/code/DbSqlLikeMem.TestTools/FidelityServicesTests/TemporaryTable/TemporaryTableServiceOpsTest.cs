@@ -24,6 +24,10 @@ public class TemporaryTableServiceOpsTest(
         var sessionTempTable = Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection
             ? $"SESSION.{tempTable}"
             : tempTable;
+        var cleanupTempTable = Repo.Dialect.Provider == ProviderId.Db2 && !isMockConnection
+            ? sessionTempTable
+            : tempTable;
+        await TryDropTemporaryTable(cleanupTempTable);
         if (Repo.Dialect.Provider == ProviderId.Npgsql)
         {
             await Repo.ExecuteNonQueryAsync($@"
@@ -117,7 +121,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10");
         }
         finally
         {
-            await TryDropTemporaryTable(tempTable);
+            await TryDropTemporaryTable(cleanupTempTable);
         }
     }
 

@@ -13,9 +13,10 @@ public class BatchInsertServiceTest(
         IBaseServiceTest
 {
     /// <summary>
-    /// EN: Inserts ten user rows in a batch and validates the final count.
-    /// PT: Insere dez linhas de usuario em lote e valida a contagem final.
+    /// EN: Inserts the requested number of user rows in a batch and validates the final count.
+    /// PT: Insere a quantidade solicitada de linhas de usuario em lote e valida a contagem final.
     /// </summary>
+    /// <param name="args">EN: The row count for the batch insert. PT: A contagem de linhas para o insert em lote.</param>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         using var transaction = Repo.BeginTransaction();

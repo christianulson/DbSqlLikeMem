@@ -74,7 +74,7 @@ internal abstract class DbSqlLikeMemBenchmarkSessionBase(ProviderSqlDialect dial
     /// </summary>
     protected override void RunStoredProcedureCall()
     {
-        var count = RunPreparedStoredProcedureCall("StoredProcedureCall");
+        var count = RunPreparedStoredProcedureCall("StoredProcedureCall", 10, "benchmark");
         GC.KeepAlive(count);
     }
 }

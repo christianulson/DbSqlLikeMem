@@ -16,6 +16,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Normalize shell scripts
+        run: |
+          sed -i 's/\r$//' scripts/run_cross_dialect_equivalence.sh
+          sed -i 's/\r$//' scripts/refresh_cross_dialect_snapshots.sh
+
       - name: Validate shell runners
         run: |
           bash -n scripts/run_cross_dialect_equivalence.sh
@@ -58,19 +63,19 @@ jobs:
       matrix:
         include:
           - provider: mysql
-            project: src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj
+            project: src/code/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj
           - provider: sqlserver
-            project: src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj
+            project: src/code/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj
           - provider: sqlazure
-            project: src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj
+            project: src/code/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj
           - provider: oracle
-            project: src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj
+            project: src/code/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj
           - provider: npgsql
-            project: src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj
+            project: src/code/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj
           - provider: sqlite
-            project: src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj
+            project: src/code/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj
           - provider: db2
-            project: src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj
+            project: src/code/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj
 
     steps:
       - name: Checkout

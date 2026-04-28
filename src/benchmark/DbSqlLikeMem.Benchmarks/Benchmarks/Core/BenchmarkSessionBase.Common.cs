@@ -220,8 +220,8 @@ public abstract partial class BenchmarkSessionBase
             key,
             () => new PreparedParameterTransactionUsersState(CreateBenchmarkRunner()));
 
-    protected int RunPreparedStoredProcedureCall(string key)
-        => GetPreparedStoredProcedureState(key).RunStoredProcedureCall();
+    protected int RunPreparedStoredProcedureCall(string key, int tenantId, string note)
+        => GetPreparedStoredProcedureState(key).RunStoredProcedureCall(tenantId, note);
 
     private PreparedStoredProcedureState GetPreparedStoredProcedureState(string key)
         => GetOrCreatePreparedState(
@@ -416,7 +416,6 @@ public abstract partial class BenchmarkSessionBase
         {
             try
             {
-                scope.Scenario.CreateScenarioAsync().GetAwaiter().GetResult();
                 var result = scope.Service.RunTestAsync().GetAwaiter().GetResult();
                 GC.KeepAlive(result);
             }
@@ -430,15 +429,23 @@ public abstract partial class BenchmarkSessionBase
                 {
                     // Ignore cleanup failures during benchmark teardown.
                 }
+
+                try
+                {
+                    scope.Scenario.CreateScenarioAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // Ignore restore failures during benchmark teardown.
+                }
             }
         }
 
-        public int RunCreateTableWithFkInsert()
+        public int RunCreateTableWithFkInsert(int userId, int orderId)
         {
             try
             {
-                scope.Scenario.CreateScenarioAsync().GetAwaiter().GetResult();
-                var result = scope.Service.RunTestAsync().GetAwaiter().GetResult();
+                var result = scope.Service.RunTestAsync(userId, orderId).GetAwaiter().GetResult();
                 GC.KeepAlive(result);
                 return Convert.ToInt32(result, CultureInfo.InvariantCulture);
             }
@@ -451,6 +458,15 @@ public abstract partial class BenchmarkSessionBase
                 catch
                 {
                     // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    scope.Scenario.CreateScenarioAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // Ignore restore failures during benchmark teardown.
                 }
             }
         }
@@ -466,7 +482,6 @@ public abstract partial class BenchmarkSessionBase
         {
             try
             {
-                scope.Scenario.CreateScenarioAsync().GetAwaiter().GetResult();
                 var result = scope.Service.RunTestAsync().GetAwaiter().GetResult();
                 GC.KeepAlive(result);
             }
@@ -474,11 +489,11 @@ public abstract partial class BenchmarkSessionBase
             {
                 try
                 {
-                    scope.Scenario.DropScenarioAsync().GetAwaiter().GetResult();
+                    scope.Scenario.CreateScenarioAsync().GetAwaiter().GetResult();
                 }
                 catch
                 {
-                    // Ignore cleanup failures during benchmark teardown.
+                    // Ignore restore failures during benchmark teardown.
                 }
             }
         }
@@ -491,8 +506,8 @@ public abstract partial class BenchmarkSessionBase
     {
         public int RunSequentialInsert(int rowCount)
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, InsertUsersServiceTest>(rowCount).GetAwaiter().GetResult();
-            return Convert.ToInt32(result, CultureInfo.InvariantCulture);
+            var result = runner.RunTestAsync<InsertUsersScenario, InsertUsersServiceTest>(rowCount, 1, rowCount).GetAwaiter().GetResult();
+            return ((List<List<object[]>>)result!)[0].Count;
         }
 
         public int RunParallelInsert(int rowCount)
@@ -503,19 +518,19 @@ public abstract partial class BenchmarkSessionBase
 
         public int RunRowCountAfterInsert()
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, InsertRowCountUsersServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, InsertRowCountUsersServiceTest>(1).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
         public int RunParameterInsertSingle()
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, InsertParameterUsersServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, InsertParameterUsersServiceTest>(1, "User 1").GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
         public (string firstName, string lastName) RunInsertCustomStartId()
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, InsertCustomStartUsersServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, InsertCustomStartUsersServiceTest>(10).GetAwaiter().GetResult();
             return ((string firstName, string lastName))result!;
         }
 
@@ -525,39 +540,39 @@ public abstract partial class BenchmarkSessionBase
 
     private sealed class PreparedCrudUsersState(NotFidelityTestService<DbConnection> runner) : IDisposable
     {
-        public string RunUpdateByPk()
+        public string RunUpdateByPk(int userId)
         {
-            var result = runner.RunTestAsync<UsersScenario, DmlMutationUpdateByPkServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<UsersScenario, DmlMutationUpdateByPkServiceTest>(userId).GetAwaiter().GetResult();
             return Convert.ToString(result, CultureInfo.InvariantCulture)!;
         }
 
-        public int RunDeleteByPk()
+        public int RunDeleteByPk(int userId)
         {
-            var result = runner.RunTestAsync<UsersScenario, DmlMutationDeleteByPkServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<UsersScenario, DmlMutationDeleteByPkServiceTest>(userId).GetAwaiter().GetResult();
             return ((List<List<object[]>>)result!).Count;
         }
 
         public int RunRowCountAfterUpdate()
         {
-            var result = runner.RunTestAsync<UsersScenario, DmlMutationRowCountAfterUpdateServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<UsersScenario, DmlMutationRowCountAfterUpdateServiceTest>(1).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
-        public int RunUpdateDeleteRoundTrip()
+        public int RunUpdateDeleteRoundTrip(int updateUserId, int deleteUserId)
         {
-            var result = runner.RunTestAsync<UsersScenario, DmlMutationUpdateDeleteRoundTripServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<UsersScenario, DmlMutationUpdateDeleteRoundTripServiceTest>(updateUserId, deleteUserId).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
-        public int RunTransactionalUpdateDeleteCommit()
+        public int RunTransactionalUpdateDeleteCommit(int updateUserId, int deleteUserId)
         {
-            var result = runner.RunTestAsync<UsersScenario, DmlMutationTransactionalUpdateDeleteCommitServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<UsersScenario, DmlMutationTransactionalUpdateDeleteCommitServiceTest>(updateUserId, deleteUserId).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
-        public string RunUpsert()
+        public string RunUpsert(int userId)
         {
-            var result = runner.RunTestAsync<UsersScenario, DmlMutationUpsertServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<UsersScenario, DmlMutationUpsertServiceTest>(userId).GetAwaiter().GetResult();
             return Convert.ToString(result, CultureInfo.InvariantCulture)!;
         }
 
@@ -588,7 +603,9 @@ public abstract partial class BenchmarkSessionBase
                 "bob@example.com",
                 new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified),
                 new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified)).GetAwaiter().GetResult();
-            return Convert.ToInt32(result, CultureInfo.InvariantCulture);
+            var count2 = (int)(result!.GetType().GetProperty("count2")?.GetValue(result)
+                ?? throw new InvalidOperationException("Parameter transaction rollback did not return a count2 value."));
+            return count2;
         }
 
         public void Dispose()
@@ -799,9 +816,9 @@ public abstract partial class BenchmarkSessionBase
     private sealed class PreparedStoredProcedureState(
         NotFidelityTestService<DbConnection> runner) : IDisposable
     {
-        public int RunStoredProcedureCall()
+        public int RunStoredProcedureCall(int tenantId, string note)
         {
-            var result = runner.RunTestAsync<NoopScenario, StoredProcedureBenchmarkServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<NoopScenario, StoredProcedureBenchmarkServiceTest>(tenantId, note).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
@@ -813,6 +830,36 @@ public abstract partial class BenchmarkSessionBase
         PreparedScenarioScope<InsertUsersScenario, BatchInsertReturningServiceTest> scope) : IDisposable
     {
         public BatchInsertReturningServiceTest Service => scope.Service;
+
+        public object? RunReturningInsert()
+        {
+            try
+            {
+                var value = scope.Service.RunTestAsync().GetAwaiter().GetResult();
+                GC.KeepAlive(value);
+                return value;
+            }
+            finally
+            {
+                try
+                {
+                    scope.Scenario.DropScenarioAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // Ignore cleanup failures during benchmark teardown.
+                }
+
+                try
+                {
+                    scope.Scenario.CreateScenarioAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // Ignore restore failures during benchmark teardown.
+                }
+            }
+        }
 
         public void Dispose()
             => scope.Dispose();
@@ -835,26 +882,26 @@ public abstract partial class BenchmarkSessionBase
     private sealed class PreparedBatchUsersState(
         NotFidelityTestService<DbConnection> runner) : IDisposable
     {
-        public string RunBatchMixedReadWrite()
+        public string RunBatchMixedReadWrite(int firstUserId, int secondUserId)
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, BatchMixedReadWriteServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, BatchMixedReadWriteServiceTest>(firstUserId, secondUserId).GetAwaiter().GetResult();
             return Convert.ToString(result, CultureInfo.InvariantCulture)!;
         }
 
-        public string RunBatchScalar()
+        public string RunBatchScalar(int firstUserId, int secondUserId)
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, BatchScalarServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, BatchScalarServiceTest>(firstUserId, secondUserId).GetAwaiter().GetResult();
             return Convert.ToString(result, CultureInfo.InvariantCulture)!;
         }
 
-        public int RunBatchNonQuery()
+        public int RunBatchNonQuery(int firstUserId, int secondUserId, int updateUserId, int deleteUserId)
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, BatchNonQueryServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, BatchNonQueryServiceTest>(firstUserId, secondUserId, updateUserId, deleteUserId).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
-        public object? RunBatchReaderMultiResult()
-            => runner.RunTestAsync<InsertUsersScenario, BatchReaderMultiResultServiceTest>().GetAwaiter().GetResult();
+        public object? RunBatchReaderMultiResult(int firstUserId, int secondUserId)
+            => runner.RunTestAsync<InsertUsersScenario, BatchReaderMultiResultServiceTest>(firstUserId, secondUserId).GetAwaiter().GetResult();
 
         public int RunBatchInsert(int rowCount)
         {
@@ -862,15 +909,15 @@ public abstract partial class BenchmarkSessionBase
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
-        public int RunRowCountInBatch()
+        public int RunRowCountInBatch(int firstUserId, int secondUserId)
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, BatchRowCountInServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, BatchRowCountInServiceTest>(firstUserId, secondUserId).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
-        public string RunBatchTransactionControl()
+        public string RunBatchTransactionControl(int firstUserId, int secondUserId)
         {
-            var result = runner.RunTestAsync<InsertUsersScenario, BatchTransactionControlServiceTest>().GetAwaiter().GetResult();
+            var result = runner.RunTestAsync<InsertUsersScenario, BatchTransactionControlServiceTest>(firstUserId, secondUserId).GetAwaiter().GetResult();
             return Convert.ToString(result, CultureInfo.InvariantCulture)!;
         }
 
@@ -930,8 +977,7 @@ public abstract partial class BenchmarkSessionBase
 
         public object? RunExecutionPlanDml()
         {
-            var value = scope.Service.RunTestAsync(_nextInsertId).GetAwaiter().GetResult();
-            _nextInsertId += 1;
+            var value = scope.Service.RunTestAsync(_nextInsertId++).GetAwaiter().GetResult();
             return value;
         }
 

@@ -1,3 +1,4 @@
+using DbSqlLikeMem.TestTools;
 using System.Text.Json;
 
 namespace DbSqlLikeMem.TestTools.DML;
@@ -23,13 +24,24 @@ public class InsertParallelUsersServiceTest(
         var rowCount = (int)args[0];
         var startId = args.Length > 1 ? (int)args[1] : 1;
         var expectedCount = args.Length > 2 ? (int)args[2] : rowCount;
+        var maxConcurrency = GetMaxConcurrency(rowCount);
+        using var throttler = new SemaphoreSlim(maxConcurrency, maxConcurrency);
 
         var tasks = Enumerable.Range(0, rowCount)
             .Select(async offset =>
             {
-                var id = startId + offset;
-                using var parallelRepo = Repo.CloneWithSharedDatabase();
-                await ExecuteParameterizedInsertOnConnectionAsync(parallelRepo, id);
+                await throttler.WaitAsync();
+
+                try
+                {
+                    var id = startId + offset;
+                    using var parallelRepo = Repo.CloneWithSharedDatabase();
+                    await ExecuteParameterizedInsertOnConnectionAsync(parallelRepo, id);
+                }
+                finally
+                {
+                    throttler.Release();
+                }
             })
             .ToArray();
 
@@ -43,6 +55,11 @@ public class InsertParallelUsersServiceTest(
 
         return lst[0].Count;
     }
+
+    private int GetMaxConcurrency(int rowCount)
+        => Math.Max(1, Repo.Dialect.Provider == ProviderId.Oracle
+            ? Math.Min(rowCount, 8)
+            : rowCount);
 
     private Task<int> ExecuteParameterizedInsertOnConnectionAsync(
         RepoService parallelRepo,

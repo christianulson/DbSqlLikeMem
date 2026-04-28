@@ -14,11 +14,12 @@ public class InsertParameterUsersServiceTest(
     /// EN: Inserts the requested number of user rows and validates the final count.
     /// PT: Insere a quantidade solicitada de linhas de usuario e valida a contagem final.
     /// </summary>
+    /// <param name="args">EN: Optional row id and name for the parameter insert. PT: Id de linha e nome opcionais para o insert parametrizado.</param>
     /// <returns>EN: The final row count. PT: A contagem final de linhas.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
-        var id = 1;
-        var name = $"User {id}";
+        var id = args.Length > 0 ? (int)args[0] : 1;
+        var name = args.Length > 1 ? (string)args[1] : $"User {id}";
 
         var affected = await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (

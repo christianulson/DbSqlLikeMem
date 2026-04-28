@@ -185,7 +185,7 @@ internal static class AstQueryAggregateEvaluator
         if (values.Count == 0)
             return name == SqlConst.TOTAL ? 0d : null;
 
-        return EvalCollectedAggregateValues(fn, group, ctes, eval, name, values);
+        return EvalCollectedAggregateValues(context, fn, group, ctes, eval, name, values);
     }
 
     internal static object? EvalAggregate(
@@ -209,7 +209,7 @@ internal static class AstQueryAggregateEvaluator
     }
 
     private static string? EvalSimpleStringAggregate(
-        QueryExecutionContext context,
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
@@ -226,6 +226,7 @@ internal static class AstQueryAggregateEvaluator
             defaultSeparator);
 
     private static object? EvalCollectedAggregateValues(
+        this QueryExecutionContext context,
         FunctionCallExpr fn,
         EvalGroup group,
         IDictionary<string, Source> ctes,
@@ -270,7 +271,8 @@ internal static class AstQueryAggregateEvaluator
             _ => null
         };
 
-        if (name == SqlConst.SUM
+        if (context.Connection.IsDebugTraceCaptureEnabled
+            && name == SqlConst.SUM
             && fn.Args.Count > 0
             && ContainsParameter(fn.Args[0], "cutoff"))
         {
@@ -1510,19 +1512,21 @@ internal static class AstQueryAggregateEvaluator
         if (fn.Args.Count == 0)
             return null;
 
-        var rowCount = group.Rows.Count;
+        var rows = group.Rows;
+        var rowCount = rows.Count;
         var values = new List<object?>(rowCount);
         HashSet<string>? seen = null;
         if (fn.Distinct)
         {
             seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal);
         }
-        var traceGroupedCaseWhen = fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
+        var traceGroupedCaseWhen = context.Connection.IsDebugTraceCaptureEnabled
+            && fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count > 0
             && ContainsParameter(fn.Args[0], "cutoff");
-        var rowIndex = 0;
-        foreach (var r in group.Rows)
+        for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
         {
+            var r = rows[rowIndex];
             var v = eval(fn.Args[0], r, null, ctes);
             if (traceGroupedCaseWhen)
             {
@@ -1539,8 +1543,6 @@ internal static class AstQueryAggregateEvaluator
                 }
                 values.Add(v);
             }
-
-            rowIndex++;
         }
         return values;
     }

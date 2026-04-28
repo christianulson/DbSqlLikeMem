@@ -14,7 +14,7 @@ public class CreateTableServiceTest(
     /// EN: Creates the users table used by the scenario.
     /// PT: Cria a tabela de usuarios usada pelo cenario.
     /// </summary>
-    /// <param name="args"></param>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var sql = Repo.Dialect.CreateUsersTable(Context);

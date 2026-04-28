@@ -78,6 +78,21 @@ internal sealed class DbConnectionTransactionStateManager
     }
 
     /// <summary>
+    /// EN: Removes a savepoint from the tracked state and reports whether it existed.
+    /// PT: Remove um savepoint do estado controlado e informa se ele existia.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name to remove. PT: Nome do savepoint a remover.</param>
+    /// <returns>EN: True when the savepoint existed and was removed. PT: Verdadeiro quando o savepoint existia e foi removido.</returns>
+    public bool TryRemoveSavepoint(string savepointName)
+    {
+        if (!_savepoints.Remove(savepointName))
+            return false;
+
+        RemoveSavepointOrderEntries(savepointName);
+        return true;
+    }
+
+    /// <summary>
     /// EN: Finds the last order index for a savepoint name.
     /// PT: Localiza o ultimo indice de ordem para um nome de savepoint.
     /// </summary>

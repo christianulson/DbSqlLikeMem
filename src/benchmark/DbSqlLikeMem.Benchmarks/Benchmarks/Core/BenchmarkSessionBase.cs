@@ -588,7 +588,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunCreateTableWithFKInsert()
     {
         var state = GetPreparedCreateTableWithFkState();
-        var count = state.RunCreateTableWithFkInsert();
+        var count = state.RunCreateTableWithFkInsert(1, 10);
         GC.KeepAlive(count);
     }
 
@@ -664,7 +664,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunSelectByPk()
     {
         var state = GetPreparedSelectByPkState();
-        var value = state.Service.RunTestAsync().GetAwaiter().GetResult();
+        var value = state.Service.RunTestAsync(1).GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -676,7 +676,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunSelectJoin()
     {
         var state = GetPreparedSelectJoinState();
-        var value = state.Service.RunTestAsync().GetAwaiter().GetResult();
+        var value = state.Service.RunTestAsync(1).GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -688,7 +688,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunUpdateByPk()
     {
         var state = GetPreparedCrudUsersState("CrudUsers");
-        var value = state.RunUpdateByPk();
+        var value = state.RunUpdateByPk(1);
         GC.KeepAlive(value);
     }
 
@@ -700,7 +700,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunDeleteByPk()
     {
         var state = GetPreparedCrudUsersState("CrudUsers");
-        var count = state.RunDeleteByPk();
+        var count = state.RunDeleteByPk(1);
         GC.KeepAlive(count);
     }
 
@@ -711,7 +711,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunUpdateDeleteRoundTrip()
     {
         var state = GetPreparedCrudUsersState("UpdateDeleteRoundTrip");
-        var count = state.RunUpdateDeleteRoundTrip();
+        var count = state.RunUpdateDeleteRoundTrip(1, 2);
         GC.KeepAlive(count);
     }
 
@@ -746,7 +746,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunTransactionalUpdateDeleteCommit()
     {
         var state = GetPreparedCrudUsersState("TransactionalUpdateDeleteCommit");
-        var count = state.RunTransactionalUpdateDeleteCommit();
+        var count = state.RunTransactionalUpdateDeleteCommit(1, 2);
         GC.KeepAlive(count);
     }
 
@@ -783,7 +783,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunUpsert()
     {
         var state = GetPreparedCrudUsersState("CrudUsers");
-        var value = state.RunUpsert();
+        var value = state.RunUpsert(1);
         GC.KeepAlive(value);
     }
 
@@ -1047,21 +1047,21 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunBatchMixedReadWrite()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
-        var value = state.RunBatchMixedReadWrite();
+        var value = state.RunBatchMixedReadWrite(1, 2);
         GC.KeepAlive(value);
     }
 
     protected virtual void RunBatchScalar()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
-        var second = state.RunBatchScalar();
+        var second = state.RunBatchScalar(1, 2);
         GC.KeepAlive(second);
     }
 
     protected virtual void RunBatchNonQuery()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
-        var count = state.RunBatchNonQuery();
+        var count = state.RunBatchNonQuery(1, 2, 2, 1);
         GC.KeepAlive(count);
     }
 
@@ -1102,6 +1102,11 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunJsonScalarRead()
     {
+        if (!Dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
         var state = GetPreparedNoopQueryState("NoopQuery");
         var service = state.Service;
         var value = service.RunJsonScalarReadAsync().GetAwaiter().GetResult();
@@ -1320,6 +1325,11 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunJsonPathRead()
     {
+        if (!Dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
         var state = GetPreparedNoopQueryState("NoopQuery");
         var service = state.Service;
         var value = service.RunJsonPathReadAsync().GetAwaiter().GetResult();
@@ -1332,6 +1342,11 @@ public abstract partial class BenchmarkSessionBase(
     /// </summary>
     protected virtual void RunJsonTypedFieldMatrix()
     {
+        if (!Dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
         var state = GetPreparedTypedFieldStorageMatrixState("JsonTypedFieldMatrix");
         var snapshot = state.RunJsonTypedFieldMatrix();
         GC.KeepAlive(snapshot);
@@ -1427,14 +1442,14 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunBatchReaderMultiResult()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
-        var value = state.RunBatchReaderMultiResult();
+        var value = state.RunBatchReaderMultiResult(1, 2);
         GC.KeepAlive(value);
     }
 
     protected virtual void RunBatchTransactionControl()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
-        var value = state.RunBatchTransactionControl();
+        var value = state.RunBatchTransactionControl(1, 2);
         GC.KeepAlive(value);
     }
 
@@ -1497,7 +1512,7 @@ public abstract partial class BenchmarkSessionBase(
     protected virtual void RunRowCountInBatch()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
-        var count = state.RunRowCountInBatch();
+        var count = state.RunRowCountInBatch(1, 2);
         GC.KeepAlive(count);
     }
 
@@ -1512,22 +1527,25 @@ public abstract partial class BenchmarkSessionBase(
     {
         if (Dialect.Provider != ProviderId.MariaDb)
         {
+            // Keep the benchmark runnable on providers without RETURNING/OUTPUT support.
             RunInsertSingle();
             return;
         }
 
         var state = GetPreparedReturningInsertState("ReturningInsert");
-        var value = state.Service.RunTestAsync().GetAwaiter().GetResult();
+        var value = state.RunReturningInsert();
         GC.KeepAlive(value);
     }
 
     protected virtual void RunReturningUpdate()
     {
+        // Keep the benchmark entry as an alias of the plain update/readback flow.
         RunUpdateByPk();
     }
 
     protected virtual void RunMergeBasic()
     {
+        // Keep the benchmark entry as an alias of the upsert flow.
         RunUpsert();
     }
 
@@ -1697,6 +1715,11 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunOuterApplyProjection()
     {
+        if (!Dialect.SupportsOuterApplyProjection)
+        {
+            return;
+        }
+
         var state = GetPreparedUsersOrdersQueryState(
             "UsersOrdersThreeRows",
             [(1, "Alice"), (2, "Bob"), (3, "Charlie")],
@@ -1720,8 +1743,9 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunExecutionPlan()
     {
-        var state = GetPreparedExecutionPlanState("ExecutionPlan", (1, "Alice"));
-        var plan = state.Service.RunTestAsync().GetAwaiter().GetResult();
+        (int id, string name)[] seedRows = [(1, "Alice")];
+        var state = GetPreparedExecutionPlanState("ExecutionPlan", seedRows);
+        var plan = state.Service.RunTestAsync(seedRows[0].id).GetAwaiter().GetResult();
         GC.KeepAlive(plan);
     }
 
@@ -1732,11 +1756,13 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunExecutionPlanJoin()
     {
+        (int id, string name)[] seedUsers = [(1, "Alice")];
+        (int id, int userId, string order)[] seedOrders = [(1, 1, "order-1")];
         var state = GetPreparedExecutionPlanJoinState(
             "ExecutionPlanJoin",
-            [(1, "Alice")],
-            [(1, 1, "order-1")]);
-        var plan = state.Service.RunTestAsync().GetAwaiter().GetResult();
+            seedUsers,
+            seedOrders);
+        var plan = state.Service.RunTestAsync(seedUsers[0].id).GetAwaiter().GetResult();
         GC.KeepAlive(plan);
     }
 
@@ -1749,8 +1775,9 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunDebugTraceSelect()
     {
-        var state = GetPreparedDebugTraceSelectState("DebugTraceSelect", (1, "Alice"));
-        var trace = state.Service.RunTestAsync().GetAwaiter().GetResult();
+        (int id, string name)[] seedRows = [(1, "Alice")];
+        var state = GetPreparedDebugTraceSelectState("DebugTraceSelect", seedRows);
+        var trace = state.Service.RunTestAsync(seedRows[0].id).GetAwaiter().GetResult();
         GC.KeepAlive(trace);
     }
 
@@ -1769,8 +1796,9 @@ public abstract partial class BenchmarkSessionBase(
 
     protected virtual void RunLastExecutionPlansHistory()
     {
-        var state = GetPreparedLastExecutionPlansHistoryState("LastExecutionPlansHistory", (1, "Alice"));
-        var plans = state.Service.RunTestAsync().GetAwaiter().GetResult();
+        (int id, string name)[] seedRows = [(1, "Alice")];
+        var state = GetPreparedLastExecutionPlansHistoryState("LastExecutionPlansHistory", seedRows);
+        var plans = state.Service.RunTestAsync(seedRows[0].id).GetAwaiter().GetResult();
         GC.KeepAlive(plans);
     }
 

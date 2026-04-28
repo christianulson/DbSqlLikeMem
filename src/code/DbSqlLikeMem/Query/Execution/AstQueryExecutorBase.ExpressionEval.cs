@@ -92,7 +92,7 @@ internal abstract partial class AstQueryExecutorBase
 
 
             case CaseExpr c:
-                if (ShouldTraceGroupedCaseWhenCase(c))
+                if (Cnn.IsDebugTraceCaptureEnabled && ShouldTraceGroupedCaseWhenCase(c))
                 {
                     Console.WriteLine(
                         $"[CaseDebug][ast] base={(c.BaseExpr is null ? "NULL" : c.BaseExpr.GetType().Name)} whenCount={c.Whens.Count} else={(c.ElseExpr is null ? "NULL" : c.ElseExpr.GetType().Name)}");
@@ -112,7 +112,7 @@ internal abstract partial class AstQueryExecutorBase
             case CallExpr ce:
                 return EvalCall(ce, row, group, ctes);
             case BetweenExpr b:
-                return AstQueryExpressionEvaluationHelper.EvalBetween(b, row, group, ctes, Eval);
+                return _context.EvalBetween(b, row, group, ctes, Eval);
             case SubqueryExpr sq:
                 return EvalScalarSubquery(sq, ctes, row);
             case RowExpr re:

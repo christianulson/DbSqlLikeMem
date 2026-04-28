@@ -304,6 +304,10 @@ def check_required_files(root: Path) -> list[str]:
             root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "source.extension.vsixmanifest",
             root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "source.extension.vsixmanifest",
         ),
+        (
+            root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "DbSqlLikeMem.VisualStudioExtension.csproj",
+            root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "DbSqlLikeMem.VisualStudioExtension.csproj",
+        ),
         (root / "eng" / "visualstudio" / "PublishManifest.json",),
     ]
 
@@ -338,6 +342,14 @@ def check_snapshots(root: Path) -> list[str]:
 def check_docs(root: Path) -> list[str]:
     wiki_paths = get_wiki_doc_paths(root)
     historical_multi_target_audit = root / "docs" / "info" / "multi-target-compat-audit.md"
+    vscode_readme_path = resolve_first_existing_path(
+        root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+    )
+    vsix_readme_path = resolve_first_existing_path(
+        root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+    )
     checks = {
         root / "templates" / "dbsqllikemem" / "README.md": [
             "vCurrent/",
@@ -375,8 +387,8 @@ def check_docs(root: Path) -> list[str]:
             ".github/workflows/vsix-publish.yml",
             ".github/workflows/vscode-extension-publish.yml",
             "src/code/Directory.Build.props",
-            "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
-            "src/DbSqlLikeMem.VsCodeExtension/package.json",
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
+            "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json",
             "v<versao>",
             "vsix-v<versao-da-vsix>",
             "vscode-v<versao-da-extensao>",
@@ -448,7 +460,14 @@ def check_docs(root: Path) -> list[str]:
             "net6.0",
             "src/code/Directory.Build.props",
         ],
-        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md": [
+        root / "CHANGELOG.md": [
+            "## [Unreleased]",
+            "Known limitations still open",
+        ],
+    }
+
+    if vscode_readme_path is not None:
+        checks[vscode_readme_path] = [
             ".github/workflows/vscode-extension-publish.yml",
             "VSCE_PAT",
             "publisher",
@@ -458,8 +477,10 @@ def check_docs(root: Path) -> list[str]:
             "vscode-v*",
             "npm run package",
             "npm run publish",
-        ],
-        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md": [
+        ]
+
+    if vsix_readme_path is not None:
+        checks[vsix_readme_path] = [
             "Visual Studio **2022",
             ".github/workflows/vsix-publish.yml",
             "VS_MARKETPLACE_TOKEN",
@@ -469,12 +490,7 @@ def check_docs(root: Path) -> list[str]:
             "eng/visualstudio/PublishManifest.json",
             "templates/dbsqllikemem/vCurrent",
             "scripts/check_release_readiness.py --strict-marketplace-placeholders",
-        ],
-        root / "CHANGELOG.md": [
-            "## [Unreleased]",
-            "Known limitations still open",
-        ],
-    }
+        ]
 
     if historical_multi_target_audit.exists():
         checks[historical_multi_target_audit] = [
@@ -513,8 +529,8 @@ def check_docs(root: Path) -> list[str]:
             "scripts/check_release_readiness.py",
             "scripts/check_nuget_package_metadata.py",
             "src/code/Directory.Build.props",
-            "src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
-            "src/DbSqlLikeMem.VsCodeExtension/package.json",
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
+            "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json",
             "v*",
             "vsix-v*",
             "vscode-v*",
@@ -567,14 +583,15 @@ def check_workflows(root: Path) -> list[str]:
             'tags:',
             '- "vsix-v*"',
             "VS_MARKETPLACE_TOKEN",
-            "source.extension.vsixmanifest",
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj",
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
             "--strict-marketplace-placeholders",
         ],
         root / ".github" / "workflows" / "vscode-extension-publish.yml": [
             'tags:',
             '- "vscode-v*"',
             "VSCE_PAT",
-            "src/DbSqlLikeMem.VsCodeExtension/package.json",
+            "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json",
             "npm run publish",
         ],
     }
@@ -591,6 +608,14 @@ def check_workflows(root: Path) -> list[str]:
 
 def check_release_communication(root: Path) -> list[str]:
     failures: list[str] = []
+    vscode_readme_path = resolve_first_existing_path(
+        root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+    )
+    vsix_readme_path = resolve_first_existing_path(
+        root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+    )
 
     changelog_path = root / "CHANGELOG.md"
     changelog_content = load_text(changelog_path)
@@ -610,19 +635,23 @@ def check_release_communication(root: Path) -> list[str]:
             "vsix-v<versao-da-vsix>",
             "vscode-v<versao-da-extensao>",
         ],
-        root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md": [
+    }
+
+    if vscode_readme_path is not None:
+        checks[vscode_readme_path] = [
             "CHANGELOG.md",
             "docs/publishing.md",
             "vscode-v*",
             "package.json",
-        ],
-        root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md": [
+        ]
+
+    if vsix_readme_path is not None:
+        checks[vsix_readme_path] = [
             "CHANGELOG.md",
             "docs/publishing.md",
             "vsix-v*",
             "source.extension.vsixmanifest",
-        ],
-    }
+        ]
 
     wiki_publishing = wiki_paths["publishing"]
     if wiki_publishing is not None:

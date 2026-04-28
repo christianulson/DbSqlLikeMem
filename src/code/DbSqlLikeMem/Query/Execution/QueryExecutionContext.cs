@@ -213,7 +213,7 @@ internal sealed class QueryExecutionContext
     /// PT: Inicia um escopo de avaliacao de parametros posicionais e reinicia o cursor ao entrar no escopo mais externo.
     /// </summary>
     /// <returns>EN: A disposable scope that restores the nesting depth on exit. PT: Um escopo descartavel que restaura a profundidade de aninhamento ao sair.</returns>
-    internal IDisposable BeginPositionalParameterScope()
+    internal PositionalParameterScope BeginPositionalParameterScope()
     {
         if (_positionalParameterScopeDepth++ == 0)
             ResetPositionalParameterCursor();
@@ -505,16 +505,10 @@ internal sealed class QueryExecutionContext
     public NotSupportedException NotSupported(string feature)
         => Dialect.NotSupported(feature);
 
-    private sealed class PositionalParameterScope(QueryExecutionContext context) : IDisposable
+    internal readonly struct PositionalParameterScope(QueryExecutionContext context) : IDisposable
     {
-        private bool disposed;
-
         public void Dispose()
         {
-            if (disposed)
-                return;
-
-            disposed = true;
             if (context._positionalParameterScopeDepth > 0)
                 context._positionalParameterScopeDepth--;
         }

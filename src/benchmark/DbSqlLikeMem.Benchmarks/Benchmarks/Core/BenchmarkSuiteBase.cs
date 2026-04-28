@@ -59,9 +59,8 @@ public abstract class BenchmarkSuiteBase
     /// PT: Prepara a sessao de benchmark antes do inicio das execucoes.
     /// </summary>
     [IterationSetup]
-    public Task IterationSetup()
+    public void IterationSetup()
     {
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -69,9 +68,8 @@ public abstract class BenchmarkSuiteBase
     /// PT: Libera a sessao de benchmark depois que as execucoes terminam.
     /// </summary>
     [IterationCleanup]
-    public Task IterationCleanup()
+    public void IterationCleanup()
     {
-        return Task.CompletedTask;
     }
 
 

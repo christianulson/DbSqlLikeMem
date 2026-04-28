@@ -154,9 +154,4 @@ public sealed class Db2TestcontainersSession()
         return builder.ConnectionString;
     }
 
-    public override void Dispose()
-    {
-        base.Dispose();
-        _container?.DisposeAsync().AsTask().GetAwaiter().GetResult();
-    }
 }

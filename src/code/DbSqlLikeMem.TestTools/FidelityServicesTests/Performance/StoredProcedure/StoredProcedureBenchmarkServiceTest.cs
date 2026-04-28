@@ -16,8 +16,12 @@ public class StoredProcedureBenchmarkServiceTest(
     /// EN: Registers a benchmark procedure on mock connections and executes it with input and output parameters.
     /// PT: Registra um procedimento de benchmark em conexoes mock e o executa com parametros de entrada e saida.
     /// </summary>
+    /// <param name="args">EN: Optional tenant id and note for the benchmark call. PT: Id do tenant e nota opcionais para a chamada do benchmark.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
+        var tenantId = args.Length > 0 ? (int)args[0] : 10;
+        var note = args.Length > 1 ? (string)args[1] : "benchmark";
+
         if (Repo.Cnn is DbConnectionMockBase mockConnection)
         {
             var procedure = new ProcedureDef(
@@ -44,8 +48,8 @@ public class StoredProcedureBenchmarkServiceTest(
         command.CommandType = CommandType.StoredProcedure;
         command.CommandText = "sp_benchmark";
 
-        Repo.Dialect.AddParameter(command, "tenantId", DbType.Int32, 10, ParameterDirection.Input);
-        Repo.Dialect.AddParameter(command, "note", DbType.String, "benchmark", ParameterDirection.Input);
+        Repo.Dialect.AddParameter(command, "tenantId", DbType.Int32, tenantId, ParameterDirection.Input);
+        Repo.Dialect.AddParameter(command, "note", DbType.String, note, ParameterDirection.Input);
         Repo.Dialect.AddParameter(command, "counter", DbType.Int32, DBNull.Value, ParameterDirection.Output);
         Repo.Dialect.AddParameter(command, "message", DbType.String, DBNull.Value, ParameterDirection.Output);
         var resultCodeApplied = Repo.Dialect.AddParameter(command, "resultCode", DbType.Int32, DBNull.Value, ParameterDirection.ReturnValue);

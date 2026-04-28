@@ -39,6 +39,22 @@ internal sealed class WindowPartitionExecutionContext(
         if (_singleOrderValueByRow is not null)
             return _singleOrderValueByRow;
 
+        if (_orderValuesByRow is not null)
+        {
+            var cachedSingleValues = new Dictionary<EvalRow, object?>(
+                Math.Max(1, part.Count),
+                ReferenceEqualityComparer<EvalRow>.Instance);
+            for (var i = 0; i < part.Count; i++)
+            {
+                var row = part[i];
+                var values = _orderValuesByRow[row];
+                cachedSingleValues[row] = values.Length == 0 ? null : values[0];
+            }
+
+            _singleOrderValueByRow = cachedSingleValues;
+            return _singleOrderValueByRow;
+        }
+
         var singleValues = new Dictionary<EvalRow, object?>(Math.Max(1, part.Count), ReferenceEqualityComparer<EvalRow>.Instance);
         var orderExpr = _spec.OrderBy[0].Expr;
         for (var i = 0; i < part.Count; i++)
@@ -63,11 +79,7 @@ internal sealed class WindowPartitionExecutionContext(
             var needsOrderValues = frame is not null
                 && frame.Unit != WindowFrameUnit.Rows
                 && orderBy.Count > 0;
-            var orderValuesByRow = needsOrderValues
-                ? orderBy.Count == 1
-                    ? GetRequiredSingleOrderValueByRow()
-                    : null
-                : null;
+            var orderValuesByRow = needsOrderValues ? _orderValuesByRow : null;
             for (var i = 0; i < partCount; i++)
             {
                 _frameRangesByRow[i] = AstQueryWindowFrameHelper.ResolveWindowFrameRange(
@@ -132,7 +144,12 @@ internal sealed class WindowPartitionExecutionContext(
             return _peerGroups = [(0, 0)];
 
         if (_spec.OrderBy.Count == 1)
+        {
+            if (_orderValuesByRow is not null)
+                return _peerGroups = BuildSingleOrderPeerGroups(part, _orderValuesByRow);
+
             return _peerGroups = BuildSingleOrderPeerGroups(part, GetRequiredSingleOrderValueByRow());
+        }
 
         var orderValuesByRow = GetRequiredOrderValuesByRow();
 
@@ -156,6 +173,35 @@ internal sealed class WindowPartitionExecutionContext(
         peerGroups.Add((start, partCount - 1));
         _peerGroups = peerGroups;
         return _peerGroups;
+    }
+
+    private List<(int Start, int End)> BuildSingleOrderPeerGroups(
+        List<EvalRow> part,
+        Dictionary<EvalRow, object?[]> orderValuesByRow)
+    {
+        var partCount = part.Count;
+        var peerGroups = new List<(int Start, int End)>(partCount);
+        var compareSql = QueryExecutionContext.CompareSql;
+        var start = 0;
+        var previousValues = orderValuesByRow[part[0]];
+
+        for (var i = 1; i < partCount; i++)
+        {
+            var currentRow = part[i];
+            var currentValues = orderValuesByRow[currentRow];
+            if (compareSql(previousValues[0], currentValues[0]) == 0)
+            {
+                previousValues = currentValues;
+                continue;
+            }
+
+            peerGroups.Add((start, i - 1));
+            start = i;
+            previousValues = currentValues;
+        }
+
+        peerGroups.Add((start, partCount - 1));
+        return peerGroups;
     }
 
     private List<(int Start, int End)> BuildSingleOrderPeerGroups(

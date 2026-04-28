@@ -16,8 +16,7 @@ public class ConnectionLifecycleOpenServiceTest(
     /// EN: Opens the shared connection for the lifecycle benchmark.
     /// PT: Abre a conexao compartilhada para o benchmark de ciclo de vida.
     /// </summary>
-    /// <param name="args"></param>
-    /// <returns></returns>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunTestAsync(params object[] args)
     {
         if (Repo.Cnn.State == ConnectionState.Open)

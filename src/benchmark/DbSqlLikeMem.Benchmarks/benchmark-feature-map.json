@@ -1883,22 +1883,22 @@
       "id": "ReturningInsert",
       "displayName": "Returning insert",
       "category": "AdvancedQuery",
-      "comparable": true,
-      "notes": "INSERT ... RETURNING / OUTPUT benchmark."
+      "comparable": false,
+      "notes": "MariaDB-specific INSERT RETURNING benchmark; other providers fall back to a plain insert path."
     },
     {
       "id": "ReturningUpdate",
       "displayName": "Returning update",
       "category": "AdvancedQuery",
-      "comparable": true,
-      "notes": "UPDATE ... RETURNING / OUTPUT benchmark."
+      "comparable": false,
+      "notes": "Provider-specific alias for a plain update/readback path when RETURNING or OUTPUT is unavailable."
     },
     {
       "id": "MergeBasic",
       "displayName": "Merge basic",
       "category": "AdvancedQuery",
-      "comparable": true,
-      "notes": "Backlog benchmark for MERGE-based upsert flows."
+      "comparable": false,
+      "notes": "Provider-specific alias for the upsert path."
     },
     {
       "id": "PartitionPruningSelect",

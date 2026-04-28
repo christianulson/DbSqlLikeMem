@@ -10,14 +10,16 @@ public class ExecutionPlanDmlServiceTest(
     ) : PerformanceServiceBase(repo, context),
         IBaseServiceTest
 {
+    private int _nextInsertId = 1;
+
     /// <summary>
     /// EN: Executes an insert and reads the provider execution plan diagnostic.
     /// PT: Executa um insert e lê o diagnostico de plano de execucao do provedor.
     /// </summary>
-    /// <param name="args">EN: The users table name and optional insert id. PT: O nome da tabela de usuarios e o id de insert opcional.</param>
+    /// <param name="args">EN: Optional insert id for the benchmark flow. PT: Id de insert opcional para o fluxo do benchmark.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        var id = args.Length > 0 ? (int)args[0] : 1;
+        var id = args.Length > 0 ? (int)args[0] : _nextInsertId++;
         await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id, "Alice"));
         var plan = TryReadDiagnosticValue(Repo.Cnn, "LastExecutionPlan");
         GC.KeepAlive(plan);

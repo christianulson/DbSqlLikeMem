@@ -16,8 +16,7 @@ public class ConnectionLifecycleResetVolatileDataServiceTest(
     /// EN: Invokes the provider reset volatile data helper for the lifecycle benchmark.
     /// PT: Invoca o helper de reset de dados volateis do provedor para o benchmark de ciclo de vida.
     /// </summary>
-    /// <param name="args"></param>
-    /// <returns></returns>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunTestAsync(params object[] args)
     {
         if (Repo.Cnn.State == ConnectionState.Open)

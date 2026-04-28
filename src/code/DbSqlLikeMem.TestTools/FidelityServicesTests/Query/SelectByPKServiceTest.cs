@@ -14,10 +14,11 @@ public class SelectByPKServiceTest(
     /// EN: Reads the seeded row by primary key and returns the full result snapshot.
     /// PT: Lê a linha inserida pela chave primaria e retorna o snapshot completo do resultado.
     /// </summary>
-    /// <param name="args">EN: Scenario arguments that include the users table name. PT: Argumentos do cenario que incluem o nome da tabela de usuarios.</param>
+    /// <param name="args">EN: Optional primary user id for the lookup. PT: Id principal opcional do usuario para a consulta.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
-        var sql = Repo.Dialect.SelectUserNameById(Context, 1);
+        var userId = args.Length > 0 ? (int)args[0] : 1;
+        var sql = Repo.Dialect.SelectUserNameById(Context, userId);
         using var command = Repo.Cnn.CreateCommand();
         command.CommandText = sql;
 

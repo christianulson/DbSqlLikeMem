@@ -26,11 +26,15 @@ internal static class AstQueryFunctionDispatchHelper
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
-        var traceGroupedCaseWhen = @case.Whens.Any(when => ContainsParameter(when.When, "cutoff") || ContainsParameter(when.Then, "cutoff"))
-            || (@case.BaseExpr is not null && ContainsParameter(@case.BaseExpr, "cutoff"))
-            || (@case.ElseExpr is not null && ContainsParameter(@case.ElseExpr, "cutoff"));
-        foreach (var whenThen in @case.Whens)
+        var whens = @case.Whens;
+        var traceGroupedCaseWhen = context.Connection.IsDebugTraceCaptureEnabled
+            && (whens.Any(when => ContainsParameter(when.When, "cutoff") || ContainsParameter(when.Then, "cutoff"))
+                || (@case.BaseExpr is not null && ContainsParameter(@case.BaseExpr, "cutoff"))
+                || (@case.ElseExpr is not null && ContainsParameter(@case.ElseExpr, "cutoff")));
+
+        for (var i = 0; i < whens.Count; i++)
         {
+            var whenThen = whens[i];
             var condition = eval(whenThen.When, row, group, ctes);
             if (!condition.ToBool())
                 continue;
@@ -91,8 +95,10 @@ internal static class AstQueryFunctionDispatchHelper
         var baseExpr = @case.BaseExpr ?? throw new InvalidOperationException("Simple CASE requires a base expression.");
         var baseValue = eval(baseExpr, row, group, ctes);
 
-        foreach (var whenThen in @case.Whens)
+        var whens = @case.Whens;
+        for (var i = 0; i < whens.Count; i++)
         {
+            var whenThen = whens[i];
             var whenValue = eval(whenThen.When, row, group, ctes);
             if (ShouldSkipSimpleCaseMatch(baseValue, whenValue))
                 continue;

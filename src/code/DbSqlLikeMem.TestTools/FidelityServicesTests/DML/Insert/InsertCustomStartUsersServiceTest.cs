@@ -18,21 +18,26 @@ public class InsertCustomStartUsersServiceTest(
     /// EN: Inserts three user rows starting at id 10 and validates the first and last persisted names.
     /// PT: Insere tres linhas de usuario a partir do id 10 e valida os primeiros e ultimos nomes persistidos.
     /// </summary>
+    /// <param name="args">EN: Optional starting user id for the insert sequence. PT: Id inicial opcional do usuario para a sequencia de insert.</param>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, 10, "User-10"));
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, 11, "User-11"));
-        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, 12, "User-12"));
+        var startId = args.Length > 0 ? (int)args[0] : 10;
+        var middleId = startId + 1;
+        var lastId = startId + 2;
+
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, startId, $"User-{startId}"));
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, middleId, $"User-{middleId}"));
+        await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, lastId, $"User-{lastId}"));
 
         var firstName = Convert.ToString(
-            await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, 10)),
+            await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, startId)),
             CultureInfo.InvariantCulture) ?? string.Empty;
         var lastName = Convert.ToString(
-            await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, 12)),
+            await Repo.ExecuteScalarAsync(Repo.Dialect.SelectUserNameById(Context, lastId)),
             CultureInfo.InvariantCulture) ?? string.Empty;
 
-        if (!string.Equals(firstName, "User-10", StringComparison.Ordinal)
-            || !string.Equals(lastName, "User-12", StringComparison.Ordinal))
+        if (!string.Equals(firstName, $"User-{startId}", StringComparison.Ordinal)
+            || !string.Equals(lastName, $"User-{lastId}", StringComparison.Ordinal))
         {
             throw new InvalidOperationException($"Unexpected custom-start insert result for {Repo.Dialect.DisplayName}: {JsonSerializer.Serialize(new { firstName, lastName })}.");
         }

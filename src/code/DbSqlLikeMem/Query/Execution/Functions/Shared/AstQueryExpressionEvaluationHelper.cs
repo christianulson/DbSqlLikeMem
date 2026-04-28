@@ -95,24 +95,37 @@ internal static class AstQueryExpressionEvaluationHelper
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
-        => [.. expression.Items.Select(item => eval(item, row, group, ctes))];
+    {
+        var items = expression.Items;
+        var values = new object?[items.Count];
+        for (var i = 0; i < items.Count; i++)
+            values[i] = eval(items[i], row, group, ctes);
+
+        return values;
+    }
 
     internal static object? EvalBetween(
+        this QueryExecutionContext context,
         BetweenExpr expression,
         EvalRow row,
         EvalGroup? group,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
-        var ge = new BinaryExpr(SqlBinaryOp.GreaterOrEqual, expression.Expr, expression.Low);
-        var le = new BinaryExpr(SqlBinaryOp.LessOrEqual, expression.Expr, expression.High);
-        var and = new BinaryExpr(SqlBinaryOp.And, ge, le);
+        var value = eval(expression.Expr, row, group, ctes);
+        var low = eval(expression.Low, row, group, ctes);
+        var matches = !IsNullish(value)
+            && !IsNullish(low)
+            && context.EvalComparisonBinary(SqlBinaryOp.GreaterOrEqual, value!, low!);
 
-        var res = eval(and, row, group, ctes);
-        if (expression.Negated)
-            return res is null ? null : !(bool)res;
+        if (!matches)
+            return expression.Negated;
 
-        return res;
+        var high = eval(expression.High, row, group, ctes);
+        matches = !IsNullish(high)
+            && context.EvalComparisonBinary(SqlBinaryOp.LessOrEqual, value!, high!);
+
+        return expression.Negated ? !matches : matches;
     }
 
     internal static object? EvalBinary(
@@ -146,7 +159,7 @@ internal static class AstQueryExpressionEvaluationHelper
             return false;
 
         var comparisonResult = context.EvalComparisonBinary(expression.Op, left, right);
-        if (ShouldTraceGroupedCaseWhenBinary(expression))
+        if (context.Connection.IsDebugTraceCaptureEnabled && ShouldTraceGroupedCaseWhenBinary(expression))
         {
             Console.WriteLine(
                 $"[CmpDebug][{expression.Op}] left={left ?? "NULL"} ({left!.GetType().Name}) right={right ?? "NULL"} ({right!.GetType().Name}) result={comparisonResult}");

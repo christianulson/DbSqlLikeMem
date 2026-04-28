@@ -2541,10 +2541,8 @@ public abstract class DbConnectionMockBase(
         if (!SupportsSavepoints || !SupportsReleaseSavepoint)
             throw SqlUnsupported.NotSupported(ExecutionDialect, "RELEASE SAVEPOINT");
 
-        if (!_transactionState.TryGetSavepointJournalPosition(normalizedName, out _))
+        if (!_transactionState.TryRemoveSavepoint(normalizedName))
             throw SqlUnsupported.ForSavepointNotFound(savepointName);
-
-        _transactionState.RemoveSavepoint(normalizedName);
     }
 
     private static string NormalizeSavepointName(string savepointName)

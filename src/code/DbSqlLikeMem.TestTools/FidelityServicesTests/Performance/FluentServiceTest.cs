@@ -13,6 +13,7 @@ public class FluentServiceTest(
     /// EN: Builds a representative fluent schema model.
     /// PT: Monta um modelo de schema fluent representativo.
     /// </summary>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunFluentSchemaBuildAsync(params object[] args)
     {
         var model = BuildFluentSchemaBuild();
@@ -38,6 +39,7 @@ public class FluentServiceTest(
     /// EN: Builds a representative fluent seed payload with one hundred rows.
     /// PT: Monta um payload fluent de seed com cem linhas.
     /// </summary>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunFluentSeed100Async(params object[] args)
     {
         var rows = BuildFluentSeed100();
@@ -58,6 +60,7 @@ public class FluentServiceTest(
     /// EN: Builds a representative fluent seed payload with one thousand rows.
     /// PT: Monta um payload fluent de seed com mil linhas.
     /// </summary>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunFluentSeed1000Async(params object[] args)
     {
         var rows = BuildFluentSeed1000();
@@ -78,6 +81,7 @@ public class FluentServiceTest(
     /// EN: Builds a representative fluent scenario composition payload.
     /// PT: Monta um payload representativo de composição de cenário fluent.
     /// </summary>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunFluentScenarioComposeAsync(params object[] args)
     {
         var scenario = BuildFluentScenarioCompose();

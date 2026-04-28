@@ -47,6 +47,7 @@ dotnet run -c Release -- --validate-catalog
 
 - `SqlAzure` está como **mock-only**. Para comparação com banco real, use a família `SqlServer` como proxy operacional mais próximo.
 - `MariaDB` usa o mesmo fluxo operacional do MySQL, mas com provider, dialeto e sessão próprios.
+- `ReturningInsert`, `ReturningUpdate` e `MergeBasic` continuam existindo como entradas de benchmark, mas agora ficam marcados como **não comparáveis** no catálogo porque o fluxo real muda entre provedores ou vira alias de outro caminho.
 - `Sqlite` usa `Microsoft.Data.Sqlite` em memória no lado real, porque SQLite normalmente não entra via container na mesma ergonomia dos demais provedores.
 - `Db2` ficou com a imagem em uma constante visível no código para você poder piná-la facilmente na família que quiser comparar (11.5.x para proximidade com o mock, ou a tag mais nova do módulo do Testcontainers).
 - `Firebird` já tem uma suíte em memória dedicada, incluindo um slice de `EXECUTE BLOCK` com `WHEN SQLSTATE`, e a comparação externa ainda está sendo concluída.

@@ -45,22 +45,12 @@ internal static class WindowPartitionHelper
         {
             var orderItem = orderBy[0];
             var cachedValues = new object?[partition.Count];
-            var hasCachedValues = new bool[partition.Count];
-
-            object? GetOrderValue(int index)
-            {
-                if (hasCachedValues[index])
-                    return cachedValues[index];
-
-                var value = evalOrderExpression(orderItem.Expr, partition[index]);
-                cachedValues[index] = value;
-                hasCachedValues[index] = true;
-                return value;
-            }
+            for (var i = 0; i < partition.Count; i++)
+                cachedValues[i] = evalOrderExpression(orderItem.Expr, partition[i]);
 
             Array.Sort(orderIndexes, (leftIndex, rightIndex) =>
             {
-                var comparison = compareSql(GetOrderValue(leftIndex), GetOrderValue(rightIndex));
+                var comparison = compareSql(cachedValues[leftIndex], cachedValues[rightIndex]);
                 if (comparison != 0)
                     return orderItem.Desc ? -comparison : comparison;
 
@@ -68,7 +58,16 @@ internal static class WindowPartitionHelper
             });
 
             ReorderPartition(partition, orderIndexes);
-            return null;
+            if (!includeOrderValues)
+                return null;
+
+            var orderValuesByRow = new Dictionary<AstQueryExecutorBase.EvalRow, object?[]>(
+                Math.Max(1, partition.Count),
+                ReferenceEqualityComparer<AstQueryExecutorBase.EvalRow>.Instance);
+            for (var i = 0; i < partition.Count; i++)
+                orderValuesByRow[partition[i]] = [cachedValues[orderIndexes[i]]];
+
+            return orderValuesByRow;
         }
 
         // EN: Ensure deterministic ordering for peers (equal ORDER BY values) so window functions like NTILE/LAG/LEAD
