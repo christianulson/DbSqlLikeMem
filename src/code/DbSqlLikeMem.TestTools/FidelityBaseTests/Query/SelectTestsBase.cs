@@ -515,8 +515,8 @@ ORDER BY Id
     }
 
     /// <summary>
-    /// EN: Verifies typed provider parameters roundtrip correctly for ANSI text, fixed-length text, numeric, boolean, temporal, binary, and null values, and that Firebird rejects GUID binding in this matrix.
-    /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, binario e nulos, e que o Firebird rejeita o bind de GUID nesta matriz.
+    /// EN: Verifies typed provider parameters roundtrip correctly for ANSI text, fixed-length text, numeric, boolean, temporal, binary, GUID, and null values.
+    /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, binario, GUID e nulos.
     /// </summary>
     [FidelityFact]
     public async Task SelectParameterTypeMatrixTest()
@@ -526,28 +526,6 @@ ORDER BY Id
         var fixedText = "Fixed Text";
 
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, [SelectTestsBaseSeeds.InicialData]);
-
-        if (dialect.Provider == ProviderId.Firebird)
-        {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (s, a) => s.RunParameterTypeMatrixAsync(a),
-                    "Typed param",
-                    "Ansi param",
-                    ansiFixedText,
-                    fixedText,
-                    (short)12,
-                    34,
-                    56L,
-                    true,
-                    78.90m,
-                    12.5d,
-                    TimeSpan.FromHours(1.5),
-                    new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero),
-                    createdAt,
-                    Guid.Parse("11111111-2222-3333-4444-555555555555"),
-                    new byte[] { 1, 2, 3, 4 })).Should().ThrowAsync<ArgumentOutOfRangeException>();
-            return;
-        }
 
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, a) => s.RunParameterTypeMatrixAsync(a),
@@ -589,20 +567,12 @@ ORDER BY Id
     }
 
     /// <summary>
-    /// EN: Verifies the broad parameter projection benchmark returns the expected scalar value, and that Firebird rejects GUID binding in this projection.
-    /// PT: Verifica se o benchmark amplo de projeção de parametros retorna o valor escalar esperado, e que o Firebird rejeita o bind de GUID nesta projeção.
+    /// EN: Verifies the broad parameter projection benchmark returns the expected scalar value, including GUID binding.
+    /// PT: Verifica se o benchmark amplo de projeção de parametros retorna o valor escalar esperado, incluindo o bind de GUID.
     /// </summary>
     [FidelityFact]
     public async Task ParameterProjectionTest()
     {
-        if (dialect.Provider == ProviderId.Firebird)
-        {
-            await FluentActions.Awaiting(() => RunFidelityTestAsync<InsertUsersScenario, QueryServiceTest>(
-                [],
-                (s, a) => s.RunParameterProjection())).Should().ThrowAsync<ArgumentOutOfRangeException>();
-            return;
-        }
-
         var result = await RunFidelityTestAsync<InsertUsersScenario, QueryServiceTest>(
             [],
             (s, a) => s.RunParameterProjection());

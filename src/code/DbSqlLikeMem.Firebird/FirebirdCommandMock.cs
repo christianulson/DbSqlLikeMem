@@ -142,9 +142,6 @@ public class FirebirdCommandMock(
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(CommandText, nameof(CommandText));
         using var _ = connection.Metrics.BeginAmbientScope();
 
-        if (CommandType == CommandType.StoredProcedure)
-            ThrowIfUnsupportedGuidParameter();
-
         if (connection.TryHandleExecuteReaderPrelude(
             CommandType,
             CommandText,
@@ -288,8 +285,8 @@ public class FirebirdCommandMock(
     }
 
     /// <summary>
-    /// EN: Rejects GUID parameters to match the Firebird provider behavior used by the fidelity tests.
-    /// PT: Rejeita parametros GUID para corresponder ao comportamento do provedor Firebird usado nos testes de fidelidade.
+    /// EN: Rejects GUID parameters to match the Firebird provider behavior used by stored procedure execution paths.
+    /// PT: Rejeita parametros GUID para corresponder ao comportamento do provedor Firebird usado nos caminhos de execucao de stored procedure.
     /// </summary>
     private void ThrowIfUnsupportedGuidParameter()
     {

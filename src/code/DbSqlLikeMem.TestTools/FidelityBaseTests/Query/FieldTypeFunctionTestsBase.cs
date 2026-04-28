@@ -56,20 +56,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies text, boolean, integer, exact and approximate numeric, fixed-length text, bigint, binary, time, DateTimeOffset, and temporal columns round-trip consistently, and that Firebird rejects GUID binding in this matrix.
-    /// PT: Verifica se colunas de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, binario, time, DateTimeOffset e colunas temporais retornam valores consistentes, e que o Firebird rejeita o bind de GUID nesta matriz.
+    /// EN: Verifies text, boolean, integer, exact and approximate numeric, fixed-length text, bigint, binary, time, DateTimeOffset, temporal, and GUID columns round-trip consistently.
+    /// PT: Verifica se colunas de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, binario, time, DateTimeOffset, temporais e GUID retornam valores consistentes.
     /// </summary>
     [FidelityFact]
     public async Task TypedFieldStorageMatrixTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
-
-        if (dialect.Provider == ProviderId.Firebird)
-        {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (s, a) => s.RunTypedFieldStorageMatrixAsync(a))).Should().ThrowAsync<ArgumentOutOfRangeException>();
-            return;
-        }
 
         await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             (s, a) => s.RunTypedFieldStorageMatrixAsync(a));
