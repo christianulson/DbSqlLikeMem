@@ -12,7 +12,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
     Func<SqlTableSource, IDictionary<string, Source>, Source> resolveSource,
     Func<SqlTableSource?, IDictionary<string, Source>, SqlExpr?, bool, bool, IEnumerable<EvalRow>> buildFrom,
     Func<EvalRow, EvalRow, EvalRow> attachOuterRow,
-    Func<SqlSelectQuery, IDictionary<string, Source>, EvalRow?, TableResultMock> executeSelect,
+    Func<SqlQueryBase, IDictionary<string, Source>?, EvalRow?, TableResultMock> executeQuery,
     AstQueryPartitionHelper? partitionHelper,
     AstQueryIndexHelper indexHelper,
     Func<string, SqlTableSource, IDictionary<string, Source>, Source> buildCorrelatedExistsPatternSource,
@@ -25,7 +25,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
     private readonly Func<SqlTableSource, IDictionary<string, Source>, Source> _resolveSource = resolveSource ?? throw new ArgumentNullException(nameof(resolveSource));
     private readonly Func<SqlTableSource?, IDictionary<string, Source>, SqlExpr?, bool, bool, IEnumerable<EvalRow>> _buildFrom = buildFrom ?? throw new ArgumentNullException(nameof(buildFrom));
     private readonly Func<EvalRow, EvalRow, EvalRow> _attachOuterRow = attachOuterRow ?? throw new ArgumentNullException(nameof(attachOuterRow));
-    private readonly Func<SqlSelectQuery, IDictionary<string, Source>, EvalRow?, TableResultMock> _executeSelect = executeSelect ?? throw new ArgumentNullException(nameof(executeSelect));
+    private readonly Func<SqlQueryBase, IDictionary<string, Source>?, EvalRow?, TableResultMock> _executeQuery = executeQuery ?? throw new ArgumentNullException(nameof(executeQuery));
     private readonly AstQueryPartitionHelper? _partitionHelper = partitionHelper;
     private readonly AstQueryIndexHelper _indexHelper = indexHelper ?? throw new ArgumentNullException(nameof(indexHelper));
     private readonly Func<string, SqlTableSource, IDictionary<string, Source>, Source> _buildCorrelatedExistsPatternSource = buildCorrelatedExistsPatternSource ?? throw new ArgumentNullException(nameof(buildCorrelatedExistsPatternSource));
@@ -41,23 +41,31 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         var query = sq.Parsed ?? throw new InvalidOperationException(
             $"{SqlConst.EXISTS}: SubqueryExpr sem AST parseado (Parsed vazio).");
 
-        if (TryEvaluateCorrelatedExistsPreAggregation(query, row, ctes, out var correlatedExists))
-            return correlatedExists;
+        if (query is SqlSelectQuery selectQuery)
+        {
+            if (TryEvaluateCorrelatedExistsPreAggregation(selectQuery, row, ctes, out var correlatedExists))
+                return correlatedExists;
 
-        var cacheKey = TryBuildCorrelatedExistsPatternCacheKey(query, row, ctes, out var correlatedCacheKey)
-            ? correlatedCacheKey
-            : AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(SqlConst.EXISTS, sq.Sql, row);
+            var cacheKey = TryBuildCorrelatedExistsPatternCacheKey(selectQuery, row, ctes, out var correlatedCacheKey)
+                ? correlatedCacheKey
+                : AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(SqlConst.EXISTS, sq.Sql, row);
 
+            return _cache.GetOrAddExists(
+                cacheKey,
+                _ =>
+                {
+                    if (TryEvaluateExistsFast(selectQuery, row, ctes, out var exists))
+                        return exists;
+
+                    var sub = _executeQuery(AstQuerySubqueryLookupSupport.LimitToSingleRow(selectQuery), ctes, row);
+                    return sub.Count > 0;
+                });
+        }
+
+        var fallbackCacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(SqlConst.EXISTS, sq.Sql, row);
         return _cache.GetOrAddExists(
-            cacheKey,
-            _ =>
-            {
-                if (TryEvaluateExistsFast(query, row, ctes, out var exists))
-                    return exists;
-
-                var sub = _executeSelect(AstQuerySubqueryLookupSupport.LimitToSingleRow(query), ctes, row);
-                return sub.Count > 0;
-            });
+            fallbackCacheKey,
+            _ => _executeQuery(AstQuerySubqueryLookupSupport.LimitToSingleRow(query), ctes, row).Count > 0);
     }
 
     internal bool TryEvaluateCorrelatedExistsPreAggregation(
@@ -575,8 +583,9 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
         if (!AstQueryComparisonSupport.TryGetDecimalLiteral(otherSide, out var literalValue))
             return false;
 
-        var query = subquery.Parsed ?? throw new InvalidOperationException(
-            "COUNT comparison: SubqueryExpr sem AST parseado (Parsed vazio).");
+        if (subquery.Parsed is not SqlSelectQuery query)
+            return false;
+
         if (query.SelectItems.Count != 1)
             return false;
 

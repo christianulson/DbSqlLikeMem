@@ -249,9 +249,37 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
 
     private async Task TryDropTemporaryTable(string tempTable)
     {
+        if (Repo.Dialect.Provider == ProviderId.Oracle
+            && Repo.Cnn is not DbConnectionMockBase)
+        {
+            await CleanupOracleTemporaryTableAsync(tempTable);
+            return;
+        }
+
         try
         {
             await Repo.ExecuteNonQueryAsync(Repo.Dialect.DropTable(tempTable));
+        }
+        catch
+        {
+            // Ignore cleanup failures during benchmark teardown.
+        }
+    }
+
+    private async Task CleanupOracleTemporaryTableAsync(string tableName)
+    {
+        try
+        {
+            await Repo.ExecuteNonQueryAsync($"TRUNCATE TABLE {tableName}");
+        }
+        catch
+        {
+            // Ignore cleanup failures during benchmark teardown.
+        }
+
+        try
+        {
+            await Repo.ExecuteNonQueryAsync($"DROP TABLE {tableName} PURGE");
         }
         catch
         {

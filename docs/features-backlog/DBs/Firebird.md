@@ -69,7 +69,7 @@
 - Agregação Firebird com `COUNT`, `SUM`, `HAVING`, `ORDER BY` ordinal e `LIST()` já está coberta nas surfaces de mock e Dapper.
 - As variáveis de trigger Firebird `INSERTING`, `UPDATING` e `DELETING` já estão cobertas durante a execução de triggers da surface mock e Dapper.
 - `RDB$SET_CONTEXT` já está coberto para `USER_SESSION` e `USER_TRANSACTION`.
-- Surface do provider já inclui factory, data source, batch, projection/returning, suíte de testes dedicada e benchmarks Firebird em memória, incluindo o slice `ExecuteBlockSqlState23000` (`EXECUTE BLOCK` com `WHEN SQLSTATE`), e o projeto `benchmark/DbSqlLikeMem.Benchmarks` já ganhou a suíte Firebird em memória e os catálogos da matriz; o que ainda falta é fechar a comparação externa, publicar a Wiki e completar as matrizes de performance do Firebird.
+- Surface do provider já inclui factory, data source, batch, projection/returning, suíte de testes dedicada e benchmarks Firebird em memória, incluindo o slice `ExecuteBlockSqlState23000` (`EXECUTE BLOCK` com `WHEN SQLSTATE`), e o projeto `benchmark/DbSqlLikeMem.Benchmarks` já ganhou as suítes Firebird em memória e Firebird Testcontainers e os catálogos da matriz; o que ainda falta é ampliar a comparação externa, publicar a Wiki e completar as matrizes de performance do Firebird.
 - `EXECUTE STATEMENT ... INTO` no caso simples já está coberto no mock e na surface Dapper, com atribuição da primeira linha retornada às variáveis locais do bloco.
 
 ### TODO Implementação
@@ -83,8 +83,8 @@
 
 ### TODO Benchmark
 
-- TODO: completar a cobertura Firebird no projeto `benchmark/DbSqlLikeMem.Benchmarks`, fechando o catálogo/wiki e a comparação externa além da suíte `DbSqlLikeMem` já criada.
-- TODO: fechar a comparação externa do Firebird no benchmark e revisar a publicação da Wiki com os relatórios gerados.
+- TODO: completar a cobertura Firebird no projeto `benchmark/DbSqlLikeMem.Benchmarks`, fechando o catálogo/wiki e ampliando a comparação externa além da suíte `DbSqlLikeMem` já criada.
+- TODO: ampliar a comparação externa do Firebird no benchmark e revisar a publicação da Wiki com os relatórios gerados.
 - TODO: configurar benchmarks separados para `EXECUTE STATEMENT` simples, `EXECUTE STATEMENT ... INTO`, `FOR EXECUTE STATEMENT` parametrizado e cenários com transacao/autenticacao externa.
 - TODO: criar mais benchmarks para as novas variações PSQL assim que os caminhos de execução entrarem no mock.
 

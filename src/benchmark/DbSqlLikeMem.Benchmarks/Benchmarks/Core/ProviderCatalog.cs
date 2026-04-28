@@ -105,9 +105,9 @@ public static class ProviderCatalog
             SupportsUpsert: true,
             SupportsSequence: true,
             SupportsStringAggregate: true,
-            SupportsComparableBenchmarks: false,
+            SupportsComparableBenchmarks: true,
             IndexRefs: [],
-            Notes: "Benchmark Firebird em memória usando DbSqlLikeMem; o provisionamento externo via container já existe, mas a comparação externa ainda está sendo concluída."),
+            Notes: "Benchmark Firebird usa DbSqlLikeMem na suíte em memória e Firebird Testcontainers na suíte externa real."),
         new(
             ProviderId.Db2,
             "DB2",

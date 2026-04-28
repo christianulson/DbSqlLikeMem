@@ -22,6 +22,7 @@ Estrutura pensada para comparar **DbSqlLikeMem** contra **banco real** usando o 
 dotnet run -c Release --filter *MariaDb_DbSqlLikeMem_Benchmarks*
 dotnet run -c Release --filter *MariaDb_Testcontainers_Benchmarks*
 dotnet run -c Release --filter *Firebird_DbSqlLikeMem_Benchmarks*
+dotnet run -c Release --filter *Firebird_Testcontainers_Benchmarks*
 dotnet run -c Release --filter *MySql_DbSqlLikeMem_Benchmarks*
 dotnet run -c Release --filter *MySql_Testcontainers_Benchmarks*
 dotnet run -c Release --filter *Npgsql_DbSqlLikeMem_Benchmarks*
@@ -50,7 +51,7 @@ dotnet run -c Release -- --validate-catalog
 - `ReturningInsert`, `ReturningUpdate` e `MergeBasic` continuam existindo como entradas de benchmark, mas agora ficam marcados como **não comparáveis** no catálogo porque o fluxo real muda entre provedores ou vira alias de outro caminho.
 - `Sqlite` usa `Microsoft.Data.Sqlite` em memória no lado real, porque SQLite normalmente não entra via container na mesma ergonomia dos demais provedores.
 - `Db2` ficou com a imagem em uma constante visível no código para você poder piná-la facilmente na família que quiser comparar (11.5.x para proximidade com o mock, ou a tag mais nova do módulo do Testcontainers).
-- `Firebird` já tem uma suíte em memória dedicada, incluindo um slice de `EXECUTE BLOCK` com `WHEN SQLSTATE`, e a comparação externa ainda está sendo concluída.
+- `Firebird` já tem uma suíte em memória dedicada e agora também uma suíte externa real em Testcontainers; ambas cobrem o slice `EXECUTE BLOCK` com `WHEN SQLSTATE`.
 - O gerador da wiki já lê o catálogo de features; ele não precisa de lógica especial para MariaDB, apenas dos relatórios publicados.
 - Os runners `run-core-matrix.ps1`, `run-benchmarks-preprovisioned.ps1`, `start-benchmark-databases.ps1` e `start-benchmark-databases.robust.ps1` já conhecem MariaDB e Firebird.
 
@@ -86,3 +87,4 @@ docker compose -f docker-compose.benchmarks.yml up -d
 powershell -ExecutionPolicy Bypass -File ./Scripts/start-benchmark-databases.robust.ps1
 powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*DbSqlLikeMem*"
 powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*Sqlite*"
+powershell -ExecutionPolicy Bypass -File ./Scripts/run-benchmarks-preprovisioned.ps1 --inprocess --filter "*Firebird*"

@@ -154,8 +154,32 @@ public class RepoService(
     internal async Task EnsureConnectionOpenAsync()
     {
         if (Cnn.State == ConnectionState.Open) return;
-        await Cnn.OpenAsync();
+
+        if (dialect.Provider != ProviderId.Oracle)
+        {
+            await Cnn.OpenAsync();
+            return;
+        }
+
+        const int maxAttempts = 5;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await Cnn.OpenAsync();
+                return;
+            }
+            catch (DbException ex) when (attempt < maxAttempts && IsOracleListenerBusy(ex))
+            {
+                // Oracle can briefly reject concurrent handler requests under load.
+                await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt));
+            }
+        }
     }
+
+    private static bool IsOracleListenerBusy(DbException ex)
+        => ex.Message.Contains("ORA-12516", StringComparison.OrdinalIgnoreCase);
 
     private static IEnumerable<string> SplitStatements(string sql)
     {

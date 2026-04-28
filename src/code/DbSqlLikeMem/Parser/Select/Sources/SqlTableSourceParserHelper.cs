@@ -23,7 +23,12 @@ internal static class SqlTableSourceParserHelper
             var innerSql = ctx.ReadBalancedParenRawTokens();
             var alias = ctx.ReadOptionalAlias(aliasStopWords);
 
-            var parsedSql = SqlQueryParser.NormalizeWrappedSubquerySql(innerSql, ctx.Dialect);
+            // `ReadBalancedParenRawTokens` already returns the SQL inside the outer table-source parentheses.
+            // Normalize only when the inner SQL still starts with an extra wrapper, so plain SELECT subqueries
+            // are parsed exactly as they were read.
+            var parsedSql = innerSql.TrimStart().StartsWith("(", StringComparison.Ordinal)
+                ? SqlQueryParser.NormalizeWrappedSubquerySql(innerSql, ctx.Dialect)
+                : innerSql.Trim();
             var parsed = ctx.ParseQuery(parsedSql) with { RawSql = innerSql };
             if (parsed is SqlUnionQuery union)
             {

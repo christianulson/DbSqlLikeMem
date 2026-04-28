@@ -11,7 +11,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
     Func<SqlTableSource, IDictionary<string, Source>, Source> resolveSource,
     AstQueryIndexHelper? indexHelper,
     Func<EvalRow, EvalRow, EvalRow> attachOuterRow,
-    Func<SqlSelectQuery, IDictionary<string, Source>, EvalRow?, TableResultMock> executeSelect,
+    Func<SqlQueryBase, IDictionary<string, Source>?, EvalRow?, TableResultMock> executeQuery,
     AstQueryPartitionHelper? partitionHelper)
 {
     private readonly AstSubqueryEvaluationCache _cache = cache ?? throw new ArgumentNullException(nameof(cache));
@@ -22,7 +22,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
     private readonly Func<SqlTableSource, IDictionary<string, Source>, Source> _resolveSource = resolveSource ?? throw new ArgumentNullException(nameof(resolveSource));
     private readonly AstQueryIndexHelper? _indexHelper = indexHelper;
     private readonly Func<EvalRow, EvalRow, EvalRow> _attachOuterRow = attachOuterRow ?? throw new ArgumentNullException(nameof(attachOuterRow));
-    private readonly Func<SqlSelectQuery, IDictionary<string, Source>, EvalRow?, TableResultMock> _executeSelect = executeSelect ?? throw new ArgumentNullException(nameof(executeSelect));
+    private readonly Func<SqlQueryBase, IDictionary<string, Source>?, EvalRow?, TableResultMock> _executeQuery = executeQuery ?? throw new ArgumentNullException(nameof(executeQuery));
     private readonly AstQueryPartitionHelper? _partitionHelper = partitionHelper;
 
     internal void Clear() => _cache.Clear();
@@ -282,10 +282,11 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         var query = sq.Parsed ?? throw new InvalidOperationException(
             $"{operation}: SubqueryExpr sem AST parseado (Parsed vazio).");
 
-        if (TryEvaluateSimpleFirstColumnValues(query, row, ctes, out var values))
+        if (query is SqlSelectQuery selectQuery
+            && TryEvaluateSimpleFirstColumnValues(selectQuery, row, ctes, out var values))
             return values;
 
-        var subqueryResult = _executeSelect(query, ctes, row);
+        var subqueryResult = _executeQuery(query, ctes, row);
         var rowCount = subqueryResult.Count;
         values = new List<object?>(rowCount);
         for (var i = 0; i < rowCount; i++)
@@ -376,7 +377,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         EvalRow row,
         IDictionary<string, Source> ctes)
     {
-        var subqueryResult = _executeSelect(
+        var subqueryResult = _executeQuery(
             sq.Parsed ?? throw new InvalidOperationException(
                 $"{operation}: SubqueryExpr sem AST parseado (Parsed vazio)."),
             ctes,

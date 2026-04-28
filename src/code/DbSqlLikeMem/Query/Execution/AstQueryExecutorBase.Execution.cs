@@ -10,16 +10,29 @@ internal abstract partial class AstQueryExecutorBase
         string? sqlContextForErrors = null)
     {
         ClearSubqueryEvaluationCaches();
-        return _context.ExecuteUnion(
-            parts,
-            allFlags,
-            orderBy,
-            rowLimit,
-            sqlContextForErrors,
-            parts1 => ExecuteSelect(parts1, null, null),
-            (result, query, ctes, trace) => context.ApplyQueryOrderLimit(
+        return ExecuteUnion(
+            new SqlUnionQuery(parts, allFlags, orderBy ?? [], rowLimit)
+            {
+                RawSql = sqlContextForErrors ?? string.Empty
+            },
+            inheritedCtes: null,
+            outerRow: null);
+    }
+
+    private TableResultMock ExecuteUnion(
+        SqlUnionQuery query,
+        IDictionary<string, Source>? inheritedCtes,
+        EvalRow? outerRow)
+        => _context.ExecuteUnion(
+            query.Parts,
+            query.AllFlags,
+            query.OrderBy,
+            query.RowLimit,
+            query.RawSql,
+            parts1 => ExecuteSelect(parts1, inheritedCtes, outerRow),
+            (result, selectQuery, ctes, trace) => context.ApplyQueryOrderLimit(
                 result,
-                query,
+                selectQuery,
                 ctes,
                 ParseExpr,
                 (expr, row) => Eval(expr, row, group: null, ctes),
@@ -27,7 +40,17 @@ internal abstract partial class AstQueryExecutorBase
                 trace),
             AstQueryPlanMetricsHelper.CountKnownInputTables
             );
-    }
+
+    private TableResultMock ExecuteQuery(
+        SqlQueryBase query,
+        IDictionary<string, Source>? inheritedCtes,
+        EvalRow? outerRow)
+        => query switch
+        {
+            SqlSelectQuery select => ExecuteSelect(select, inheritedCtes, outerRow),
+            SqlUnionQuery union => ExecuteUnion(union, inheritedCtes, outerRow),
+            _ => throw new NotSupportedException($"Subquery query type '{query.GetType().Name}' is not supported.")
+        };
 
     /// <summary>
     /// EN: Implements ExecuteSelect.

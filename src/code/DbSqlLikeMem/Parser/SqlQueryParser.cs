@@ -1066,7 +1066,12 @@ internal sealed class SqlQueryParser
     {
         var normalizedSql = NormalizeWrappedSubquerySql(sql, dialect);
         var q = Parse(normalizedSql, db, dialect);
-        if (q is SqlSelectQuery sq) return new SubqueryExpr(sql, sq with { RawSql = sql });
+        if (q is SqlSelectQuery select)
+            return new SubqueryExpr(sql, select with { RawSql = sql });
+
+        if (q is SqlUnionQuery union)
+            return new SubqueryExpr(sql, union with { RawSql = sql });
+
         throw new InvalidOperationException("Subquery deve ser SELECT " + ctx + " | " + t.Text);
     }
 

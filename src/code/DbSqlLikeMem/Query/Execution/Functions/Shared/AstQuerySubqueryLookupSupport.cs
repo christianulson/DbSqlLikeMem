@@ -84,16 +84,27 @@ internal static class AstQuerySubqueryLookupSupport
         return built;
     }
 
-    internal static SqlSelectQuery LimitToSingleRow(SqlSelectQuery query)
-        => query with
+    internal static SqlQueryBase LimitToSingleRow(SqlQueryBase query)
+        => query switch
         {
-            RowLimit = query.RowLimit switch
+            SqlSelectQuery select => select with
             {
-                SqlLimitOffset limit => new SqlLimitOffset(new LiteralExpr(1m), limit.Offset),
-                SqlTop => new SqlTop(new LiteralExpr(1m)),
-                SqlFetch fetch => new SqlFetch(new LiteralExpr(1m), fetch.Offset),
-                _ => new SqlLimitOffset(new LiteralExpr(1m), null)
-            }
+                RowLimit = CreateSingleRowLimit(select.RowLimit)
+            },
+            SqlUnionQuery union => union with
+            {
+                RowLimit = CreateSingleRowLimit(union.RowLimit)
+            },
+            _ => query
+        };
+
+    private static SqlRowLimit CreateSingleRowLimit(SqlRowLimit? current)
+        => current switch
+        {
+            SqlLimitOffset limit => new SqlLimitOffset(new LiteralExpr(1m), limit.Offset),
+            SqlTop => new SqlTop(new LiteralExpr(1m)),
+            SqlFetch fetch => new SqlFetch(new LiteralExpr(1m), fetch.Offset),
+            _ => new SqlLimitOffset(new LiteralExpr(1m), null)
         };
 
     internal static bool TryCreateInLookupScalarKey(object? value, ISqlDialect? dialect, out InLookupScalarKey key)

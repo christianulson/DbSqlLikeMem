@@ -755,7 +755,16 @@ internal static class SqlExecutionPlanFormatter
     /// PT: Estima overhead de predicado com subconsulta com sobretaxa base de aninhamento e custo do SELECT aninhado.
     /// </summary>
     private static int EstimateSubqueryPredicateCost(SubqueryExpr subquery)
-        => 4 + SqlExecutionPlanFormatterCostHelper.EstimateSelectCost(subquery.Parsed);
+        => 4 + subquery.Parsed switch
+        {
+            SqlSelectQuery select => SqlExecutionPlanFormatterCostHelper.EstimateSelectCost(select),
+            SqlUnionQuery union => SqlExecutionPlanFormatterCostHelper.EstimateUnionCost(
+                union.Parts,
+                union.AllFlags,
+                union.OrderBy,
+                union.RowLimit),
+            _ => 0
+        };
 
     /// <summary>
     /// EN: Estimates extra cost contributed by source shape (base table, derived query, or union subquery).

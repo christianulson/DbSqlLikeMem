@@ -14,4 +14,12 @@ public class MariaDb_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     protected override IBenchmarkSession CreateSession()
         => new MariaDbDbSqlLikeMemSession();
+
+    /// <summary>
+    /// EN: Executes the sequence-next-value benchmark.
+    /// PT: Executa o benchmark de sequence next value.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("dialect")]
+    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }

@@ -30,7 +30,10 @@ internal sealed class FirebirdDbSqlLikeMemSession()
     {
         if (feature is BenchmarkFeatureId.JsonScalarRead
             or BenchmarkFeatureId.JsonPathRead
-            or BenchmarkFeatureId.JsonInsertCast)
+            or BenchmarkFeatureId.JsonInsertCast
+            or BenchmarkFeatureId.ParameterProjection
+            or BenchmarkFeatureId.ParameterTypeMatrix
+            or BenchmarkFeatureId.TypedFieldStorageMatrix)
         {
             return;
         }

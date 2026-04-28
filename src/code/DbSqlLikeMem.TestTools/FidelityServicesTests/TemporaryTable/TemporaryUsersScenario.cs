@@ -16,6 +16,12 @@ public class TemporaryUsersScenario(
     /// </summary>
     public virtual Task CreateScenarioAsync()
     {
+        if (Repo.Dialect.Provider == ProviderId.Oracle
+            && Repo.Cnn is not DbConnectionMockBase)
+        {
+            return CreateOracleTemporaryUsersTableAsync();
+        }
+
         return Repo.ExecuteNonQueryAsync(GetCreateTemporaryUsersTableSql());
     }
 
@@ -25,6 +31,13 @@ public class TemporaryUsersScenario(
     /// </summary>
     public async Task DropScenarioAsync()
     {
+        if (Repo.Dialect.Provider == ProviderId.Oracle
+            && Repo.Cnn is not DbConnectionMockBase)
+        {
+            await CleanupOracleTemporaryTableAsync(Repo.Dialect.TemporaryUsersTableName(Context));
+            return;
+        }
+
         try
         {
             await Repo.ExecuteNonQueryAsync(GetDropTemporaryUsersTableSql());
@@ -52,6 +65,33 @@ CREATE TEMPORARY TABLE {Repo.Dialect.TemporaryUsersTableName(Context)} (
     TenantId INT NOT NULL
 )"
             : Repo.Dialect.CreateTemporaryUsersTable(Context);
+    }
+
+    private async Task CreateOracleTemporaryUsersTableAsync()
+    {
+        await CleanupOracleTemporaryTableAsync(Repo.Dialect.TemporaryUsersTableName(Context));
+        await Repo.ExecuteNonQueryAsync(GetCreateTemporaryUsersTableSql());
+    }
+
+    private async Task CleanupOracleTemporaryTableAsync(string tableName)
+    {
+        try
+        {
+            await Repo.ExecuteNonQueryAsync($"TRUNCATE TABLE {tableName}");
+        }
+        catch
+        {
+            // Ignore cleanup failures during benchmark teardown.
+        }
+
+        try
+        {
+            await Repo.ExecuteNonQueryAsync($"DROP TABLE {tableName} PURGE");
+        }
+        catch
+        {
+            // Ignore cleanup failures during benchmark teardown.
+        }
     }
 
     private static bool IsMissingTableException(Exception ex)

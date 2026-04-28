@@ -202,7 +202,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         _context.Consume(); // IS
 
         bool neg = false;
-        if (_context.IsKeyword(SqlConst.NOT))
+        if (_context.IsKeywordOrIdentifierWord(SqlConst.NOT))
         {
             _context.Consume();
             neg = true;
@@ -226,7 +226,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     private bool TryParseNotInfix(ref SqlExpr left, int minBp)
     {
         var t = _context.Peek();
-        if (!SqlExpressionParserContext.IsKeyword(t, SqlConst.NOT))
+        if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.NOT))
             return false;
 
         var t2 = _context.Peek(1);
@@ -418,7 +418,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
         var caseInsensitive = false;
 
-        if (SqlExpressionParserContext.IsKeyword(t, SqlConst.NOT))
+        if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.NOT))
         {
             var next = _context.Peek(1);
             if (SqlExpressionParserContext.IsKeyword(next, "LIKE"))
@@ -476,7 +476,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         var t = _context.Peek();
         var negate = false;
 
-        if (SqlExpressionParserContext.IsKeyword(t, SqlConst.NOT))
+        if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.NOT))
         {
             var next = _context.Peek(1);
             if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(next, "REGEXP"))
@@ -943,7 +943,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     {
         expr = default!;
 
-        if (!SqlExpressionParserContext.IsKeyword(t, SqlConst.NOT))
+        if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.NOT))
             return false;
 
         _context.Consume();

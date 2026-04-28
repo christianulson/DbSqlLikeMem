@@ -88,7 +88,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             (tableSource, scope) => ResolveSource(tableSource, scope),
             IndexHelper,
             AttachOuterRow,
-            (select, scope, outerRow) => ExecuteSelect(select, scope, outerRow),
+            ExecuteQuery,
             PartitionHelper);
     private AstQueryJoinService JoinService
         => _joinService ??= new AstQueryJoinService(
@@ -142,7 +142,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             (tableSource, scope) => ResolveSource(tableSource, scope),
             BuildFrom,
             AttachOuterRow,
-            (select, scope, outerRow) => ExecuteSelect(select, scope, outerRow),
+            ExecuteQuery,
             PartitionHelper,
             IndexHelper,
             BuildCorrelatedExistsPatternSource,
@@ -287,10 +287,11 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             {
                 var query = sq.Parsed ?? throw new InvalidOperationException(
                     "EVAL subquery: SubqueryExpr sem AST parseado (Parsed vazio).");
-                if (TryEvaluateScalarSubqueryFast(query, row, ctes, out var fastValue))
+                if (query is SqlSelectQuery selectQuery
+                    && TryEvaluateScalarSubqueryFast(selectQuery, row, ctes, out var fastValue))
                     return fastValue;
 
-                var r = ExecuteSelect(AstQuerySubqueryLookupSupport.LimitToSingleRow(query), ctes, row);
+                var r = ExecuteQuery(AstQuerySubqueryLookupSupport.LimitToSingleRow(query), ctes, row);
                 return r.Count > 0 && r[0].TryGetValue(0, out var v) ? v : null;
             });
     }

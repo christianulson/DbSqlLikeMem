@@ -182,14 +182,17 @@ public abstract class SelectTestsBase<T, T2>(
             {
                 using var command = s.Repo.Cnn.CreateCommand();
                 command.CommandText = $"""
-WITH blacklist(value) AS (
-    SELECT CAST(1 AS INTEGER)
-    UNION ALL
-    SELECT CAST(NULL AS INTEGER)
-)
 SELECT Id, Name
 FROM {s.Context.TbUsersFullName}
-WHERE Id NOT IN (SELECT value FROM blacklist)
+WHERE Id NOT IN (
+    SELECT 1
+    FROM {s.Context.TbUsersFullName} u
+    WHERE u.Id = 1
+    UNION ALL
+    SELECT NULL
+    FROM {s.Context.TbUsersFullName} u
+    WHERE u.Id = 1
+)
 ORDER BY Id
 """;
 
