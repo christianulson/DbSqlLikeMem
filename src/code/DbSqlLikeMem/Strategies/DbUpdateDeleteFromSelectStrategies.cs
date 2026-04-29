@@ -224,13 +224,21 @@ internal static class DbUpdateDeleteFromSelectStrategies
                 var oldSnapshot = requiresOldSnapshotForIndex
                     ? TableMock.CloneRow(row)
                     : null;
-                target.UpdateRowColumn(i, setInfo.Index, newVal);
+                var simulatedRow = oldSnapshot is null
+                    ? TableMock.CloneRow(row)
+                    : TableMock.CloneRow(oldSnapshot);
+                simulatedRow[setInfo.Index] = newVal;
+
                 if (target is TableMock targetTableMock)
+                    targetTableMock.ValidateCheckConstraintsOnRow(simulatedRow);
+
+                target.UpdateRowColumn(i, setInfo.Index, newVal);
+                if (target is TableMock targetTableMock2)
                 {
                     if (requiresOldSnapshotForIndex)
-                        targetTableMock.IndexManager.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
+                        targetTableMock2.IndexManager.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
                     else
-                        targetTableMock.IndexManager.UpdateIndexesWithRow(i);
+                        targetTableMock2.IndexManager.UpdateIndexesWithRow(i);
                 }
                 else
                 {

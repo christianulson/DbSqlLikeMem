@@ -97,6 +97,8 @@ internal static class DbUpdateStrategy
             if (hasBeforeUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
 
+            tableMock.ValidateCheckConstraintsOnRow(simulated);
+
             UpdateRowValues(table, setPairs, parsedSetPairs, rowIdx, row, rowSetContext);
 
             if (hasAfterUpdateTrigger)

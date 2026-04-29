@@ -61,7 +61,7 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
         var persistedRequiredNoDefault = Convert.ToInt32(row[0], CultureInfo.InvariantCulture);
         var persistedNullableWithDefault = Convert.ToInt32(row[1], CultureInfo.InvariantCulture);
         var persistedNullableNoDefault = row[2] is null or DBNull
-            ? null
+            ? (int?)null
             : Convert.ToInt32(row[2], CultureInfo.InvariantCulture);
 
         persistedRequiredNoDefault.Should().Be(requiredNoDefault);

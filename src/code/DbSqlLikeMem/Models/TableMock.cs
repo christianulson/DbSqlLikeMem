@@ -135,6 +135,8 @@ public abstract class TableMock
     private readonly ReadOnlyDictionary<string, IndexDef> _indexesView;
     private readonly List<IndexDef> _uniqueIndexes = [];
     private readonly List<SchemaSnapshotCheckConstraint> _checkConstraints = [];
+    private IReadOnlyList<CompiledCheckConstraint>? _compiledCheckConstraints;
+    private int _compiledCheckConstraintCount = -1;
     private bool _hasPersistedComputedColumns;
     private bool _hasPersistedComputedColumnsInitialized;
     private int _indexVersion;
@@ -724,6 +726,7 @@ public abstract class TableMock
             ApplyDefaultValues(row);
             if (hasPersistedComputedColumns)
                 RefreshPersistedComputedValues(row);
+            ValidateCheckConstraintsOnRow(row);
             if (hasForeignKeys)
                 _foreignKeyManager.ValidateForeignKeysOnRow(row);
 
@@ -801,6 +804,7 @@ public abstract class TableMock
             ApplyDefaultValues(row);
             if (hasPersistedComputedColumns)
                 RefreshPersistedComputedValues(row);
+            ValidateCheckConstraintsOnRow(row);
             if (hasForeignKeys)
                 _foreignKeyManager.ValidateForeignKeysOnRow(row);
 
@@ -847,6 +851,7 @@ public abstract class TableMock
         ApplyDefaultValues(value);
         if (hasPersistedComputedColumns)
             RefreshPersistedComputedValues(value);
+        ValidateCheckConstraintsOnRow(value);
         if (_foreignKeyManager.HasForeignKeys)
             _foreignKeyManager.ValidateForeignKeysOnRow(value);
         _indexManager.EnsureUniqueOnInsert(value);
@@ -871,17 +876,17 @@ public abstract class TableMock
         foreach (var col in _columnsByOrdinal)
         {
             var hasExplicitValue = value.TryGetValue(col.Index, out var currentValue);
-            if (!hasExplicitValue)
-                value[col.Index] = null;
 
             if (!col.Identity)
             {
-                if (!hasExplicitValue && value[col.Index] == null)
+                if (!hasExplicitValue)
                 {
                     if (col.DefaultValue is SequenceDef sequenceDefault)
                         value[col.Index] = ResolveSequenceDefault(sequenceDefault);
                     else if (col.DefaultValue != null)
                         value[col.Index] = col.DefaultValue;
+                    else
+                        value[col.Index] = null;
                 }
             }
             else if (AllowIdentityInsert && currentValue is not null)
@@ -892,9 +897,35 @@ public abstract class TableMock
             if (col.GetGenValue != null && col.PersistComputedValue)
                 value[col.Index] = col.GetGenValue(value, this);
 
-            if (!col.Nullable && value[col.Index] == null)
+            if (!col.Nullable && AstQueryExecutorBase.IsNullish(value[col.Index]))
                 throw ColumnCannotBeNull(col.Name);
         }
+    }
+
+    internal void ValidateCheckConstraintsOnRow(IReadOnlyDictionary<int, object?> row)
+    {
+        if (_checkConstraints.Count == 0)
+            return;
+
+        var compiledConstraints = GetCompiledCheckConstraints();
+        TableCheckConstraintEvaluator.Validate(this, row, compiledConstraints);
+    }
+
+    private IReadOnlyList<CompiledCheckConstraint> GetCompiledCheckConstraints()
+    {
+        if (_compiledCheckConstraints is not null
+            && _compiledCheckConstraintCount == _checkConstraints.Count)
+        {
+            return _compiledCheckConstraints;
+        }
+
+        var compiledConstraints = new List<CompiledCheckConstraint>(_checkConstraints.Count);
+        for (var i = 0; i < _checkConstraints.Count; i++)
+            compiledConstraints.Add(TableCheckConstraintEvaluator.Compile(this, _checkConstraints[i]));
+
+        _compiledCheckConstraints = compiledConstraints;
+        _compiledCheckConstraintCount = _checkConstraints.Count;
+        return _compiledCheckConstraints;
     }
 
     private object ResolveSequenceDefault(SequenceDef sequenceDefault)

@@ -220,6 +220,8 @@ internal static class DbInsertStrategy
                     if (hasBeforeUpdateTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
 
+                    tableMock.ValidateCheckConstraintsOnRow(simulatedUpdated);
+
                     ApplyOnDuplicateUpdateAst(
                         table,
                         conflictIdx.Value,
@@ -318,6 +320,8 @@ internal static class DbInsertStrategy
 
                     if (hasBeforeUpdateTrigger)
                         TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
+
+                    tableMock.ValidateCheckConstraintsOnRow(simulatedUpdated);
 
                     ApplyOnDuplicateUpdateAst(
                         table,

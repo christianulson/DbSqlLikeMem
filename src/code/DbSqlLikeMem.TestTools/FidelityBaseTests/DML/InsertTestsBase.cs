@@ -123,7 +123,7 @@ public abstract class InsertTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        (await testService.RunTestAsync<InsertNullabilityScenario, InsertNotNullWithoutDefaultServiceTest>())
+        Convert.ToBoolean(await testService.RunTestAsync<InsertNullabilityScenario, InsertNotNullWithoutDefaultServiceTest>())
             .Should()
             .BeTrue();
     }

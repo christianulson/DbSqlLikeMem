@@ -72,4 +72,15 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
             balance = Convert.ToDecimal(row[2], CultureInfo.InvariantCulture)
         };
     }
+
+    /// <summary>
+    /// EN: Normalizes a nullable text value returned by the provider for comparisons in tests.
+    /// PT: Normaliza um valor textual anulavel retornado pelo provedor para comparacoes em testes.
+    /// </summary>
+    /// <param name="value">EN: Database value to normalize. PT: Valor do banco a normalizar.</param>
+    /// <returns>EN: The normalized string or null. PT: A string normalizada ou null.</returns>
+    private static string? NormalizeNullableText(object? value)
+        => value is null or DBNull
+            ? null
+            : Convert.ToString(value, CultureInfo.InvariantCulture);
 }

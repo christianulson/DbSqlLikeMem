@@ -233,6 +233,45 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
     }
 
     /// <summary>
+    /// EN: Verifies UPDATE against a derived select rejects rows that violate a check constraint.
+    /// PT: Verifica se o UPDATE sobre um select derivado rejeita linhas que violam uma restricao check.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void UpdateJoinDerivedSelect_ShouldRejectCheckViolation()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.AddColumn("total", DbType.Decimal, true, decimalPlaces: 2);
+        AddCheckConstraint(users, "CK_users_total_positive", "total > 0");
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 }, { 2, null } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 20 }, { 2, null } });
+
+        var orders = db.AddTable("orders");
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
+        orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, -10m } });
+
+        var sql = Dialect.UpdateJoinDerivedSelectSql;
+
+        if (!Dialect.SupportsUpdateDeleteJoinRuntime)
+        {
+            var action = () => ExecuteNonQuery(db, sql);
+            var ex = action.Should().Throw<NotSupportedException>().Which;
+            ex.Message.Should().Contain(SqlConst.UPDATE);
+            ex.Message.Should().Contain(SqlConst.JOIN);
+            return;
+        }
+
+        var actionToReject = () => ExecuteNonQuery(db, sql);
+        actionToReject.Should().Throw<InvalidOperationException>();
+        users[0][2].Should().BeNull();
+        users[1][2].Should().BeNull();
+    }
+
+    /// <summary>
     /// EN: Verifies DELETE against a derived select removes the matching rows.
     /// PT: Verifica se o DELETE sobre um select derivado remove as linhas correspondentes.
     /// </summary>
@@ -262,5 +301,27 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
         deleted.Should().Be(2);
         users.Should().ContainSingle();
         ((int)users[0][0]!).Should().Be(3);
+    }
+
+    private static void AddCheckConstraint(
+        ITableMock table,
+        string name,
+        string expression)
+    {
+        var field = typeof(global::DbSqlLikeMem.TableMock).GetField(
+            "_checkConstraints",
+            global::System.Reflection.BindingFlags.Instance
+            | global::System.Reflection.BindingFlags.NonPublic);
+
+        if (field?.GetValue(table) is not IList<global::DbSqlLikeMem.SchemaSnapshotCheckConstraint> constraints)
+        {
+            throw new InvalidOperationException("Unable to access the table check-constraint collection.");
+        }
+
+        constraints.Add(new global::DbSqlLikeMem.SchemaSnapshotCheckConstraint
+        {
+            Name = name,
+            Expression = expression
+        });
     }
 }
