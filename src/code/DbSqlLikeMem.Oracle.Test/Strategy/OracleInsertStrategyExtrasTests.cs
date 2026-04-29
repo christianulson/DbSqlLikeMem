@@ -68,6 +68,31 @@ public sealed class OracleInsertStrategyExtrasTests(
     }
 
     /// <summary>
+    /// EN: Verifies AddItem keeps omitted properties so column defaults are applied.
+    /// PT: Verifica se AddItem preserva propriedades omitidas para aplicar defaults de coluna.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void AddItemMissingPropertyShouldUseColumnDefaultValue()
+    {
+        // Arrange
+        var db = new OracleDbMock();
+        var table = db.AddTable("t");
+        table.AddColumn("id", DbType.Int32, false, defaultValue: 1);
+        table.AddColumn("name", DbType.String, false);
+        table.AddColumn("failed", DbType.Int16, false, defaultValue: 0);
+
+        // Act
+        table.AddItem(new { name = "Ana" });
+
+        // Assert
+        Assert.Single(table);
+        Assert.Equal(1, Convert.ToInt32(table[0][0]));
+        Assert.Equal("Ana", table[0][1]);
+        Assert.Equal(0, Convert.ToInt32(table[0][2]));
+    }
+
+    /// <summary>
     /// EN: Verifies that duplicate primary keys raise an error.
     /// PT: Verifica se chaves primarias duplicadas geram erro.
     /// </summary>

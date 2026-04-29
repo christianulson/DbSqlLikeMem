@@ -612,10 +612,7 @@ public abstract class TableMock
         foreach (var p in Columns)
         {
             if (!accessors.TryGetValue(p.Key, out var getter))
-            {
-                row[p.Value.Index] = null;
                 continue;
-            }
 
             object? value;
 #pragma warning disable CA1031 // Do not catch general exception types
