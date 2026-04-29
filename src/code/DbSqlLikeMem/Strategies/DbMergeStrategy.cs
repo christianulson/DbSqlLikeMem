@@ -151,11 +151,20 @@ internal static class DbMergeStrategy
                 if (parsedUpdates.Length > 0)
                 {
                     var oldSnapshot = TableMock.CloneRow(table[existingIndex]);
-                    foreach (var assignment in parsedUpdates)
+                    var simulatedUpdated = TableMock.CloneRow(table[existingIndex]);
+                    var resolvedUpdates = new (int ColumnIndex, object? Value)[parsedUpdates.Length];
+                    for (var updateIndex = 0; updateIndex < parsedUpdates.Length; updateIndex++)
                     {
+                        var assignment = parsedUpdates[updateIndex];
                         var value = ResolveMergeValue(assignment.ValueToken, sourceAlias, srcValues, table, assignment.TargetColumn.Name, context);
-                        table.UpdateRowColumn(existingIndex, assignment.TargetColumn.Index, value);
+                        simulatedUpdated[assignment.TargetColumn.Index] = value;
+                        resolvedUpdates[updateIndex] = (assignment.TargetColumn.Index, value);
                     }
+
+                    table.ValidateCheckConstraintsOnRow(simulatedUpdated);
+
+                    foreach (var resolvedUpdate in resolvedUpdates)
+                        table.UpdateRowColumn(existingIndex, resolvedUpdate.ColumnIndex, resolvedUpdate.Value);
 
                     table.IndexManager.UpdateIndexesWithRow(existingIndex, oldSnapshot, table[existingIndex]);
                 }

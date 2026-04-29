@@ -87,6 +87,32 @@ public sealed class OracleMockTests
     }
 
     /// <summary>
+    /// EN: Verifies AddItem preserves omitted properties so column defaults can be applied.
+    /// PT: Verifica se AddItem preserva propriedades omitidas para que defaults de coluna sejam aplicados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleMock")]
+    public void AddItem_MissingProperty_ShouldUseColumnDefaultValue()
+    {
+        var db = new OracleDbMock();
+        db.AddTable(
+            "Users",
+            [
+                new("Id", DbType.Int32, false, defaultValue: 1),
+                new("Name", DbType.String, false, size: 50),
+                new("FailedLoginAttempts", DbType.Int16, false, defaultValue: 0)
+            ]);
+
+        var users = db.GetTable("Users");
+        users.AddItem(new { Name = "Ana" });
+
+        Assert.Single(users);
+        Assert.Equal(1, Convert.ToInt32(users[0][0], CultureInfo.InvariantCulture));
+        Assert.Equal("Ana", users[0][1]);
+        Assert.Equal(0, Convert.ToInt32(users[0][2], CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
     /// EN: Verifies ExecuteNonQuery applies each INSERT in a multi-statement script and returns the total affected rows.
     /// PT: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
     /// </summary>

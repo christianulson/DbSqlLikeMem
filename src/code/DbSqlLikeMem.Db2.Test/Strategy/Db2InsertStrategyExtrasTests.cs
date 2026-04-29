@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
+namespace DbSqlLikeMem.Db2.Test.Strategy;
 /// <summary>
 /// EN: Covers extra INSERT scenarios in the Db2 mock.
 /// PT: Cobre cenarios extras de INSERT no mock Db2.
@@ -65,6 +65,31 @@ public sealed class Db2InsertStrategyExtrasTests(
         Assert.Equal(1, table[0][0]);
         Assert.Equal("DEF", table[0][1]);
         Assert.Equal(2, table[1][0]);
+    }
+
+    /// <summary>
+    /// EN: Verifies AddItem keeps omitted properties so column defaults are applied.
+    /// PT: Verifica se AddItem preserva propriedades omitidas para aplicar defaults de coluna.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Strategy")]
+    public void AddItemMissingPropertyShouldUseColumnDefaultValue()
+    {
+        // Arrange
+        var db = new Db2DbMock();
+        var table = db.AddTable("t");
+        table.AddColumn("id", DbType.Int32, false, defaultValue: 1);
+        table.AddColumn("name", DbType.String, false);
+        table.AddColumn("failed", DbType.Int16, false, defaultValue: 0);
+
+        // Act
+        table.AddItem(new { name = "Ana" });
+
+        // Assert
+        Assert.Single(table);
+        Assert.Equal(1, Convert.ToInt32(table[0][0]));
+        Assert.Equal("Ana", table[0][1]);
+        Assert.Equal(0, Convert.ToInt32(table[0][2]));
     }
 
     /// <summary>

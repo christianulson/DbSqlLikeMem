@@ -98,4 +98,100 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
     public void Update_SetExpression_ShouldUpdateRows_Test() => Update_SetExpression_ShouldUpdateRows();
+
+    /// <summary>
+    /// EN: Verifies a JSON body stored as text round-trips through Dapper together with a binary notification identifier.
+    /// PT: Verifica se um corpo JSON armazenado como texto faz round-trip pelo Dapper junto com um identificador binario de notificacao.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
+    public void BinaryGuidJsonBody_ShouldRoundTripThroughDapper_Test()
+    {
+        var db = CreateDb();
+        var table = db.AddTable("notification_messages");
+        table.AddColumn("notification_id", DbType.Binary, false);
+        table.AddColumn("body", DbType.String, false);
+
+        using var connection = CreateConnection(db);
+        connection.Open();
+
+        var notificationId = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
+        var payload = new NotificationBody("ok", 2);
+        var bodyJson = JsonSerializer.Serialize(payload);
+
+        connection.Execute(
+            "INSERT INTO notification_messages (notification_id, body) VALUES (@notificationId, @body)",
+            new { notificationId = notificationId.ToByteArray(), body = bodyJson });
+
+        var row = connection.QuerySingle<(byte[] NotificationId, string Body)>(
+            "SELECT notification_id NotificationId, body Body FROM notification_messages WHERE notification_id = @notificationId",
+            new { notificationId = notificationId.ToByteArray() });
+
+        row.NotificationId.Should().Equal(notificationId.ToByteArray());
+        row.Body.Should().Be(bodyJson);
+
+        var loaded = JsonSerializer.Deserialize<NotificationBody>(row.Body);
+        loaded.Should().NotBeNull();
+        loaded!.Message.Should().Be("ok");
+        loaded.Attempts.Should().Be(2);
+    }
+
+    /// <summary>
+    /// EN: Verifies an updated JSON body and status round-trip through Dapper after replacing the stored row values.
+    /// PT: Verifica se um corpo JSON atualizado e o status fazem round-trip pelo Dapper depois de substituir os valores da linha armazenada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
+    public void BinaryGuidJsonBodyUpdate_ShouldPersistUpdatedValuesThroughDapper_Test()
+    {
+        var db = CreateDb();
+        var table = db.AddTable("notification_messages");
+        table.AddColumn("notification_id", DbType.Binary, false);
+        table.AddColumn("status", DbType.String, false);
+        table.AddColumn("error_message", DbType.String, true);
+        table.AddColumn("body", DbType.String, false);
+
+        using var connection = CreateConnection(db);
+        connection.Open();
+
+        var notificationId = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef");
+        var initialBody = new NotificationBody("init", 1);
+        var updatedBody = new NotificationBody("changed", 3);
+
+        connection.Execute(
+            "INSERT INTO notification_messages (notification_id, status, error_message, body) VALUES (@notificationId, @status, @errorMessage, @body)",
+            new
+            {
+                notificationId = notificationId.ToByteArray(),
+                status = "S",
+                errorMessage = (string?)null,
+                body = JsonSerializer.Serialize(initialBody)
+            });
+
+        connection.Execute(
+            "UPDATE notification_messages SET status = @status, error_message = @errorMessage, body = @body WHERE notification_id = @notificationId",
+            new
+            {
+                notificationId = notificationId.ToByteArray(),
+                status = "E",
+                errorMessage = "falha",
+                body = JsonSerializer.Serialize(updatedBody)
+            });
+
+        var row = connection.QuerySingle<(byte[] NotificationId, string Status, string? ErrorMessage, string Body)>(
+            "SELECT notification_id NotificationId, status Status, error_message ErrorMessage, body Body FROM notification_messages WHERE notification_id = @notificationId",
+            new { notificationId = notificationId.ToByteArray() });
+
+        row.NotificationId.Should().Equal(notificationId.ToByteArray());
+        row.Status.Should().Be("E");
+        row.ErrorMessage.Should().Be("falha");
+        row.Body.Should().Be(JsonSerializer.Serialize(updatedBody));
+
+        var loaded = JsonSerializer.Deserialize<NotificationBody>(row.Body);
+        loaded.Should().NotBeNull();
+        loaded!.Message.Should().Be("changed");
+        loaded.Attempts.Should().Be(3);
+    }
+
+    private sealed record NotificationBody(string Message, int Attempts);
 }
