@@ -20,12 +20,11 @@ internal static class SqlTableSourceParserHelper
     {
         if (ctx.IsSymbol("("))
         {
-            var innerSql = ctx.ReadBalancedParenRawTokens();
+            var innerSql = ReadBalancedParenSql(ctx);
             var alias = ctx.ReadOptionalAlias(aliasStopWords);
 
-            // `ReadBalancedParenRawTokens` already returns the SQL inside the outer table-source parentheses.
-            // Normalize only when the inner SQL still starts with an extra wrapper, so plain SELECT subqueries
-            // are parsed exactly as they were read.
+            // Rebuild the inner SQL from tokens so derived tables keep a parseable query body even when
+            // raw slicing would trim the leading keyword in some dialect-specific paths.
             var parsedSql = innerSql.TrimStart().StartsWith("(", StringComparison.Ordinal)
                 ? SqlQueryParser.NormalizeWrappedSubquerySql(innerSql, ctx.Dialect)
                 : innerSql.Trim();
@@ -94,6 +93,134 @@ internal static class SqlTableSourceParserHelper
             Pivot: null,
             PartitionNames: partitionNames,
             MySqlIndexHints: mySqlIndexHints);
+    }
+
+    private static string ReadBalancedParenSql(SqlQueryParserContext ctx)
+    {
+        if (!(ctx.Peek().Kind == SqlTokenKind.Symbol && ctx.Peek().Text == "("))
+            throw new InvalidOperationException("Expected '('.");
+
+        ctx.Consume();
+
+        var buf = new List<SqlToken>();
+        var depth = 1;
+        while (true)
+        {
+            var token = ctx.Peek();
+            if (token.Kind == SqlTokenKind.EndOfFile)
+                throw new InvalidOperationException("Derived table was not closed correctly.");
+
+            ctx.Consume();
+
+            if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+                depth++;
+            else if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+            {
+                depth--;
+                if (depth == 0)
+                    break;
+            }
+
+            buf.Add(token);
+        }
+
+        return TokensToSql(buf, ctx.Dialect);
+    }
+
+    private static string TokensToSql(List<SqlToken> tokens, ISqlDialect dialect)
+    {
+        var sb = new StringBuilder();
+        SqlToken? prev = null;
+
+        foreach (var token in tokens)
+        {
+            var text = token.Kind switch
+            {
+                SqlTokenKind.String => $"'{EscapeStringLiteral(token.Text)}'",
+                SqlTokenKind.Identifier => NeedsIdentifierQuoting(token.Text, dialect) ? QuoteIdentifier(token.Text, dialect) : token.Text,
+                _ => token.Text
+            };
+
+            if (sb.Length > 0 && NeedsSpace(prev, token))
+                sb.Append(' ');
+
+            sb.Append(text);
+            prev = token;
+        }
+
+        return sb.ToString().Trim();
+
+        static string EscapeStringLiteral(string value)
+            => value.Replace("'", "''");
+
+        static bool NeedsIdentifierQuoting(string ident, ISqlDialect dialect)
+        {
+            if (string.IsNullOrWhiteSpace(ident))
+                return true;
+
+            if (dialect.IsKeyword(ident))
+                return true;
+
+            if (!Regex.IsMatch(ident, @"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant))
+                return true;
+
+            return ident.Contains(' ')
+                   || ident.Contains('\t')
+                   || ident.Contains('\n')
+                   || ident.Contains('\r');
+        }
+
+        static string QuoteIdentifier(string ident, ISqlDialect dialect)
+        {
+            var style = dialect.IdentifierEscapeStyle;
+
+            if (style == SqlIdentifierEscapeStyle.double_quote && dialect.IsStringQuote('"'))
+            {
+                if (dialect.AllowsBacktickIdentifiers)
+                    style = SqlIdentifierEscapeStyle.backtick;
+                else if (dialect.AllowsBracketIdentifiers)
+                    style = SqlIdentifierEscapeStyle.bracket;
+            }
+
+            return style switch
+            {
+                SqlIdentifierEscapeStyle.backtick => $"`{ident.Replace("`", "``")}`",
+                SqlIdentifierEscapeStyle.double_quote => $"\"{ident.Replace("\"", "\"\"")}\"",
+                SqlIdentifierEscapeStyle.bracket => $"[{ident.Replace("]", "]]")}]",
+                _ => ident
+            };
+        }
+
+        static bool IsWordLike(SqlToken tok)
+            => tok.Kind is SqlTokenKind.Identifier
+            or SqlTokenKind.Keyword
+            or SqlTokenKind.Number
+            or SqlTokenKind.Parameter
+            or SqlTokenKind.String;
+
+        static bool NeedsSpace(SqlToken? p, SqlToken c)
+        {
+            if (p is null)
+                return false;
+
+            if (c.Kind == SqlTokenKind.Symbol && (c.Text is "." or ")" or "," or ";"))
+                return false;
+            if (p.Value.Kind == SqlTokenKind.Symbol && (p.Value.Text is "." or "("))
+                return false;
+            if (p.Value.Kind == SqlTokenKind.Symbol && (p.Value.Text is ")" or ","))
+                return IsWordLike(c) || c.Kind == SqlTokenKind.Number || c.Kind == SqlTokenKind.String;
+            if (p.Value.Kind == SqlTokenKind.Symbol && p.Value.Text == ";")
+                return false;
+            if (c.Kind == SqlTokenKind.Symbol && c.Text == "(")
+                return false;
+            if (IsWordLike(p.Value) && IsWordLike(c))
+                return true;
+            if ((p.Value.Kind == SqlTokenKind.Operator && c.Kind != SqlTokenKind.Symbol)
+                || (c.Kind == SqlTokenKind.Operator && p.Value.Kind != SqlTokenKind.Symbol))
+                return true;
+
+            return true;
+        }
     }
 
     /// <summary>
