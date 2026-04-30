@@ -1899,7 +1899,7 @@ public abstract class TableMock
     {
         var m = Regex.Match(
             subquerySql,
-            @"^SELECT\s+(?<col>[A-Za-z0-9_`\.]+)\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?(?:\s+WHERE\s+(?<where>[\s\S]+))?$",
+            @"^SELECT\s+(?<col>[A-Za-z0-9_`\.]+)\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?(?:\s+(?:AS\s+)?(?<alias>[A-Za-z0-9_]+))?(?:\s+WHERE\s+(?<where>[\s\S]+))?$",
             RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         if (!m.Success)

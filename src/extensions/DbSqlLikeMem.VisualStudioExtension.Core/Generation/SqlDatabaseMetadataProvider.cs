@@ -359,6 +359,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
         var dataType = ReadString(row, "DataType");
         var charMaxLen = ReadNullableLong(row, "CharMaxLen");
         var numPrecision = ReadNullableInt(row, "NumPrecision");
+        var numScale = ReadNullableInt(row, "NumScale");
         var columnName = ReadString(row, "ParameterName");
 
         if (string.IsNullOrWhiteSpace(dataType))
@@ -368,7 +369,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
 
         try
         {
-            return GenerationRuleSet.MapDbType(dataType, charMaxLen, numPrecision, columnName, databaseType);
+            return GenerationRuleSet.MapDbType(dataType, charMaxLen, numPrecision, numScale, columnName, databaseType);
         }
         catch
         {

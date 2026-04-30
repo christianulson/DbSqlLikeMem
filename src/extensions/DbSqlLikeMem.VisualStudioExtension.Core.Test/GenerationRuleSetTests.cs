@@ -56,6 +56,23 @@ public sealed class GenerationRuleSetTests
     }
 
     /// <summary>
+    /// EN: Verifies Oracle NUMBER columns switch to Decimal when the source column has a fractional scale.
+    /// PT: Verifica se colunas Oracle NUMBER mudam para Decimal quando a coluna de origem tem escala fracionaria.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "GenerationRuleSet")]
+    [InlineData(5, 0, "Int32")]
+    [InlineData(5, 2, "Decimal")]
+    public void MapDbType_UsesDecimalForOracleNumberWithScale(
+        int numPrecision,
+        int numScale,
+        string expected)
+    {
+        var type = GenerationRuleSet.MapDbType("number", null, numPrecision, numScale, "Price", "Oracle");
+        Assert.Equal(expected, type);
+    }
+
+    /// <summary>
     /// EN: Verifies GUID heuristics for binary and character columns.
     /// PT: Verifica heuristicas de GUID para colunas binaria e de caractere.
     /// </summary>

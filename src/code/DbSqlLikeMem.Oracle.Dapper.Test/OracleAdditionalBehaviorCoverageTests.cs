@@ -102,6 +102,99 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
     public void Update_SetExpression_ShouldUpdateRows_Test() => Update_SetExpression_ShouldUpdateRows();
 
     /// <summary>
+    /// EN: Verifies UPDATE statements can match rows through an IN subquery that uses a table alias.
+    /// PT: Verifica se UPDATEs podem casar linhas por meio de uma subquery IN que usa alias de tabela.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "OracleAdditionalBehaviorCoverage")]
+    public void Update_WithInSubqueryAndAlias_ShouldUpdateMatchingRows_Test()
+    {
+        var db = CreateDb();
+
+        var wallet = db.AddTable("wallet");
+        wallet.AddColumn("wlt_id", DbType.Int64, false);
+        wallet.AddColumn("ven_id", DbType.Int16, false);
+        wallet.AddColumn("usr_id", DbType.Int64, false);
+        wallet.AddColumn("wlt_deviceid", DbType.String, false);
+        wallet.AddColumn("wlt_status", DbType.String, false);
+
+        var hotlist = db.AddTable("wallethotlist");
+        hotlist.AddColumn("wlthot_id", DbType.Int64, false);
+        hotlist.AddColumn("wlt_id", DbType.Int64, false);
+        hotlist.AddColumn("wlthot_status", DbType.String, false);
+        hotlist.AddColumn("wlthot_dtcreated", DbType.DateTime, false);
+        hotlist.AddColumn("wlthot_dtdeleted", DbType.DateTime, true);
+
+        wallet.Add(new Dictionary<int, object?>
+        {
+            { 0, 101L },
+            { 1, (short)7 },
+            { 2, 1L },
+            { 3, "DEVICE-1" },
+            { 4, "A" }
+        });
+
+        wallet.Add(new Dictionary<int, object?>
+        {
+            { 0, 202L },
+            { 1, (short)9 },
+            { 2, 1L },
+            { 3, "DEVICE-2" },
+            { 4, "A" }
+        });
+
+        var created = new DateTime(2026, 4, 30, 10, 0, 0, DateTimeKind.Utc);
+        var untouchedCreated = new DateTime(2026, 4, 30, 11, 0, 0, DateTimeKind.Utc);
+
+        hotlist.Add(new Dictionary<int, object?>
+        {
+            { 0, 1L },
+            { 1, 101L },
+            { 2, "A" },
+            { 3, created },
+            { 4, null }
+        });
+
+        hotlist.Add(new Dictionary<int, object?>
+        {
+            { 0, 2L },
+            { 1, 202L },
+            { 2, "A" },
+            { 3, untouchedCreated },
+            { 4, null }
+        });
+
+        using var connection = CreateConnection(db);
+        connection.Open();
+
+        var affected = connection.Execute(
+            @"
+UPDATE WALLETHOTLIST
+   SET WLTHOT_DTDELETED = :dateTime
+     , WLTHOT_Status = 'I'
+ WHERE WLT_ID IN (
+    SELECT W.WLT_ID
+      FROM WALLET W
+     WHERE W.WLT_DEVICEID = :deviceId
+       AND W.USR_ID = :userId
+       AND W.WLT_STATUS = 'A'
+)
+   AND WLTHOT_DTDELETED IS NULL",
+            new
+            {
+                userId = 1L,
+                deviceId = "DEVICE-1",
+                dateTime = created.AddHours(2)
+            });
+
+        affected.Should().Be(1);
+        hotlist[0][2].Should().Be("I");
+        hotlist[0][4].Should().Be(created.AddHours(2));
+        hotlist[1][2].Should().Be("A");
+        hotlist[1][4].Should().BeNull();
+    }
+
+    /// <summary>
     /// EN: Verifies a JSON body stored as text round-trips through Dapper together with a binary notification identifier.
     /// PT: Verifica se um corpo JSON armazenado como texto faz round-trip pelo Dapper junto com um identificador binario de notificacao.
     /// </summary>
@@ -136,6 +229,13 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
         loaded.Should().NotBeNull();
         loaded!.Message.Should().Be("ok");
         loaded.Attempts.Should().Be(2);
+
+        var typedRow = connection.QuerySingle<NotificationMessageRow>(
+            "SELECT notification_id NotificationId, body Body FROM notification_messages WHERE notification_id = @notificationId",
+            new { notificationId = notificationId.ToByteArray() });
+
+        typedRow.NotificationId.Should().Be(notificationId);
+        typedRow.Body.Should().Be(bodyJson);
     }
 
     /// <summary>
@@ -196,4 +296,6 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
     }
 
     private sealed record NotificationBody(string Message, int Attempts);
+
+    private sealed record NotificationMessageRow(Guid NotificationId, string Body);
 }

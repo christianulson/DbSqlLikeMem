@@ -56,9 +56,22 @@ public static class GenerationRuleSet
         int? numPrecision,
         string columnName,
         string? databaseType = null)
+        => MapDbType(dataType, charMaxLen, numPrecision, null, columnName, databaseType);
+
+    /// <summary>
+    /// EN: Maps a database column type to a CLR-friendly generated type name, including numeric scale when available.
+    /// PT: Mapeia um tipo de coluna de banco para um nome de tipo amigavel ao CLR, incluindo a escala numerica quando disponivel.
+    /// </summary>
+    public static string MapDbType(
+        string dataType,
+        long? charMaxLen,
+        int? numPrecision,
+        int? numScale,
+        string columnName,
+        string? databaseType = null)
     {
         var strategy = GenerationRuleStrategyResolver.Resolve(databaseType);
-        return strategy.MapDbType(new GenerationTypeContext(dataType, charMaxLen, numPrecision, columnName));
+        return strategy.MapDbType(new GenerationTypeContext(dataType, charMaxLen, numPrecision, numScale, columnName));
     }
 
     /// <summary>
@@ -121,9 +134,11 @@ public static class GenerationRuleSet
             ? UnquoteIdentifier(match.Groups["schema"].Value)
             : string.IsNullOrWhiteSpace(schemaName) ? null : schemaName;
 
+        var ex = $"throw new ArgumentException(\"Sequence \" + {Literal(sequenceName)} + \" not found\")";
+
         code = string.IsNullOrWhiteSpace(sequenceSchema)
-            ? $"db.TryGetSequence({Literal(sequenceName)}, out var seq) ? seq : null"
-            : $"db.TryGetSequence({Literal(sequenceName)}, out var seq, schemaName: {Literal(sequenceSchema!)}) ? seq : null";
+            ? $"db.TryGetSequence({Literal(sequenceName)}, out var seq) ? seq : {ex}"
+            : $"db.TryGetSequence({Literal(sequenceName)}, out var seq, schemaName: {Literal(sequenceSchema!)}) ? seq : {ex}";
         return true;
     }
 

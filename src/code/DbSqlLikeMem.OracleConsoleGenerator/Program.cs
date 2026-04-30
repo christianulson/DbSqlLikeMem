@@ -333,6 +333,7 @@ static partial class Program
                 c.DataType,
                 c.CharMaxLen,
                 c.NumPrecision,
+                c.NumScale,
                 c.ColumnName,
                 DatabaseType);
 

@@ -1,3 +1,5 @@
+using DbSqlLikeMem.TestTools;
+using DbSqlLikeMem.TestTools.DML;
 using DbSqlLikeMem.Oracle.TestTools;
 using DbSqlLikeMem.TestTools.Tests.DML;
 
@@ -16,4 +18,17 @@ public class CrudTests(
     s => new OracleConnection(s)
     )
 {
+    /// <summary>
+    /// EN: Verifies UPDATE statements can match and soft-delete rows through an IN subquery that uses a table alias.
+    /// PT: Verifica se UPDATEs podem casar e fazer soft delete de linhas por meio de uma subquery IN que usa alias de tabela.
+    /// </summary>
+    [FidelityFact]
+    public async Task UpdateWithInSubqueryAlias_ShouldRoundTripAcrossMockAndOracle()
+        => await FidelityTestService<OracleConnectionMock, OracleConnection>.RunAsync<
+            UpdateWithInSubqueryScenario,
+            UpdateWithInSubqueryServiceTest>(
+            () => new OracleConnectionMock(),
+            s => new OracleConnection(s),
+            new OracleProviderSqlDialect(),
+            Array.Empty<object?[]>());
 }

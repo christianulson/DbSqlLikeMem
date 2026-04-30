@@ -121,6 +121,7 @@ public static class StructuredClassContentFactory
             column.DataType,
             column.CharMaxLen,
             column.NumPrecision,
+            column.NumScale,
             column.Name,
             effectiveDatabaseType);
         var ctor = $"DbType.{mappedDbType}, {Bool(column.IsNullable)}";

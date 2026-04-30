@@ -323,6 +323,7 @@ SELECT KCU.CONSTRAINT_NAME
                 c.DataType,
                 c.CharMaxLen,
                 c.NumPrecision,
+                c.NumScale,
                 c.ColumnName,
                 DatabaseType);
             var nullable = c.IsNullable ? "true" : "false";

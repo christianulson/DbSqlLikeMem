@@ -200,6 +200,32 @@ public sealed class StructuredClassContentFactoryTests
     }
 
     /// <summary>
+    /// EN: Verifies Oracle numeric columns with scale are generated as Decimal columns with matching decimal places.
+    /// PT: Verifica se colunas numericas Oracle com escala sao geradas como Decimal com a mesma quantidade de casas decimais.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "StructuredClassContentFactory")]
+    public void Build_OracleNumberWithScale_UsesDecimalType()
+    {
+        var dbObject = new DatabaseObjectReference(
+            "SCHEMA1",
+            "PRICE",
+            DatabaseObjectType.Table,
+            "public",
+            new Dictionary<string, string>
+            {
+                ["Columns"] = "PriceValue|NUMBER|0|0|0|||2|NUMBER(5,2)||5",
+                ["PrimaryKey"] = "",
+                ["Indexes"] = "",
+                ["ForeignKeys"] = ""
+            });
+
+        var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace", "Oracle");
+
+        Assert.Contains("table.AddColumn(\"PriceValue\", DbType.Decimal, false, decimalPlaces: 2);", content);
+    }
+
+    /// <summary>
     /// EN: Verifies procedure generation emits routine metadata and adds the procedure to the database snapshot.
     /// PT: Verifica se a geracao de procedure emite os metadados da rotina e adiciona a procedure ao snapshot do banco.
     /// </summary>

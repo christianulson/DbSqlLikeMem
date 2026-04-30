@@ -20,7 +20,9 @@ internal sealed class OracleGenerationRuleStrategy : IGenerationRuleStrategy
                 : "UInt64",
             "timestamp" => "Time",
             "raw" => "Binary",
-            "number" => context.NumPrecision == 1
+            "number" => context.NumScale is > 0
+                ? "Decimal"
+                : context.NumPrecision == 1
                     ? "Byte"
                     : context.NumPrecision <= 4
                         ? "Int16"
