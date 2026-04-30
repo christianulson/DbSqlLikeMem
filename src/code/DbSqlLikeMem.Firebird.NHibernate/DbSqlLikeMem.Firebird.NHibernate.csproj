@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>NHibernate integration helpers for DbSqlLikeMem Firebird provider.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NHibernate" Version="5.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NHibernate.Driver" />
+  </ItemGroup>
+</Project>

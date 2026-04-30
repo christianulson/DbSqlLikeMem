@@ -9,6 +9,14 @@ import zipfile
 from pathlib import Path
 
 
+def resolve_first_existing_path(*paths: Path) -> Path | None:
+    for path in paths:
+        if path.exists():
+            return path
+
+    return None
+
+
 def get_child(parent: ET.Element, local_name: str) -> ET.Element | None:
     for child in parent:
         tag = child.tag.split("}", 1)[-1] if "}" in child.tag else child.tag
@@ -202,7 +210,7 @@ def main() -> int:
     parser.add_argument("--artifacts-dir", default="artifacts", help="Directory containing .nupkg files.")
     parser.add_argument(
         "--props",
-        default="src/Directory.Build.props",
+        default="src/code/Directory.Build.props",
         help="MSBuild props file used as source of truth for package metadata.",
     )
     parser.add_argument(
@@ -227,9 +235,18 @@ def main() -> int:
         print(f"[FAIL] No publishable packages found in {artifacts_dir}.")
         return 0 if args.allow_missing_artifacts else 1
 
-    props_path = Path(args.props)
-    if not props_path.exists():
-        print(f"[FAIL] props file not found: {props_path}")
+    requested_props = Path(args.props)
+    props_candidates = [Path(args.props)]
+    legacy_props = Path("src") / "Directory.Build.props"
+    if args.props == "src/code/Directory.Build.props":
+        props_candidates.append(Path("src/code/Directory.Build.props"))
+        props_candidates.append(legacy_props)
+    elif args.props == str(legacy_props):
+        props_candidates.append(Path("src/code/Directory.Build.props"))
+
+    props_path = resolve_first_existing_path(*props_candidates)
+    if props_path is None:
+        print(f"[FAIL] props file not found: {requested_props}")
         return 1
 
     expected_metadata = parse_expected_metadata(props_path)

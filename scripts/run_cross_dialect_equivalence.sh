@@ -18,42 +18,48 @@ USAGE
 }
 
 smoke_projects=(
-  "src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
-  "src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
-  "src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
-  "src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
-  "src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
-  "src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
-  "src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
+  "src/code/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
+  "src/code/DbSqlLikeMem.Firebird.Test/DbSqlLikeMem.Firebird.Test.csproj"
+  "src/code/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
+  "src/code/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
+  "src/code/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
+  "src/code/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
+  "src/code/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
+  "src/code/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
 )
 
 aggregation_projects=(
-  "src/DbSqlLikeMem.MySql.Dapper.Test/DbSqlLikeMem.MySql.Dapper.Test.csproj"
-  "src/DbSqlLikeMem.SqlServer.Dapper.Test/DbSqlLikeMem.SqlServer.Dapper.Test.csproj"
-  "src/DbSqlLikeMem.Oracle.Dapper.Test/DbSqlLikeMem.Oracle.Dapper.Test.csproj"
-  "src/DbSqlLikeMem.Npgsql.Dapper.Test/DbSqlLikeMem.Npgsql.Dapper.Test.csproj"
-  "src/DbSqlLikeMem.Sqlite.Dapper.Test/DbSqlLikeMem.Sqlite.Dapper.Test.csproj"
-  "src/DbSqlLikeMem.Db2.Dapper.Test/DbSqlLikeMem.Db2.Dapper.Test.csproj"
+  "src/code/DbSqlLikeMem.MySql.Dapper.Test/DbSqlLikeMem.MySql.Dapper.Test.csproj"
+  "src/code/DbSqlLikeMem.Firebird.Dapper.Test/DbSqlLikeMem.Firebird.Dapper.Test.csproj"
+  "src/code/DbSqlLikeMem.SqlServer.Dapper.Test/DbSqlLikeMem.SqlServer.Dapper.Test.csproj"
+  "src/code/DbSqlLikeMem.Oracle.Dapper.Test/DbSqlLikeMem.Oracle.Dapper.Test.csproj"
+  "src/code/DbSqlLikeMem.Npgsql.Dapper.Test/DbSqlLikeMem.Npgsql.Dapper.Test.csproj"
+  "src/code/DbSqlLikeMem.Sqlite.Dapper.Test/DbSqlLikeMem.Sqlite.Dapper.Test.csproj"
+  "src/code/DbSqlLikeMem.Db2.Dapper.Test/DbSqlLikeMem.Db2.Dapper.Test.csproj"
 )
 
 parser_projects=(
-  "src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
-  "src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
-  "src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
-  "src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
-  "src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
-  "src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
-  "src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
+  "src/code/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
+  "src/code/DbSqlLikeMem.MariaDb.Test/DbSqlLikeMem.MariaDb.Test.csproj"
+  "src/code/DbSqlLikeMem.Firebird.Test/DbSqlLikeMem.Firebird.Test.csproj"
+  "src/code/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
+  "src/code/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
+  "src/code/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
+  "src/code/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
+  "src/code/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
+  "src/code/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
 )
 
 strategy_projects=(
-  "src/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
-  "src/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
-  "src/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
-  "src/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
-  "src/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
-  "src/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
-  "src/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
+  "src/code/DbSqlLikeMem.MySql.Test/DbSqlLikeMem.MySql.Test.csproj"
+  "src/code/DbSqlLikeMem.MariaDb.Test/DbSqlLikeMem.MariaDb.Test.csproj"
+  "src/code/DbSqlLikeMem.Firebird.Test/DbSqlLikeMem.Firebird.Test.csproj"
+  "src/code/DbSqlLikeMem.SqlServer.Test/DbSqlLikeMem.SqlServer.Test.csproj"
+  "src/code/DbSqlLikeMem.SqlAzure.Test/DbSqlLikeMem.SqlAzure.Test.csproj"
+  "src/code/DbSqlLikeMem.Oracle.Test/DbSqlLikeMem.Oracle.Test.csproj"
+  "src/code/DbSqlLikeMem.Npgsql.Test/DbSqlLikeMem.Npgsql.Test.csproj"
+  "src/code/DbSqlLikeMem.Sqlite.Test/DbSqlLikeMem.Sqlite.Test.csproj"
+  "src/code/DbSqlLikeMem.Db2.Test/DbSqlLikeMem.Db2.Test.csproj"
 )
 
 smoke_filters=(
@@ -173,15 +179,17 @@ if [[ "$dry_run" == "true" ]]; then
   exit 0
 fi
 
+echo "Restoring solution for cross-dialect checks"
+if ! dotnet restore src/DbSqlLikeMem.slnx >/dev/null; then
+  echo "Solution restore failed for cross-dialect checks" >&2
+  exit 1
+fi
+
 checks_total=0
 checks_failed=0
 
 for project in "${projects[@]}"; do
-  echo "==> Restoring ${project}"
-  restore_status="PASS"
-  if ! dotnet restore "${project}" -p:TargetFramework=net8.0 >/dev/null; then
-    restore_status="FAIL"
-  fi
+  echo "==> Running ${project}"
 
   for filter_name in "${filters[@]}"; do
     echo "==> ${project} :: ${filter_name}"
@@ -192,16 +200,12 @@ for project in "${projects[@]}"; do
       test_filter="FullyQualifiedName~.${filter_name}"
     fi
 
-    if [[ "$restore_status" == "PASS" ]]; then
-      if ! dotnet test "${project}" \
-        --framework net8.0 \
-        --configuration Release \
-        --no-restore \
-        --verbosity minimal \
-        --filter "${test_filter}"; then
-        status="FAIL"
-      fi
-    else
+    if ! dotnet test "${project}" \
+      --framework net8.0 \
+      --configuration Release \
+      --no-restore \
+      --verbosity minimal \
+      --filter "${test_filter}"; then
       status="FAIL"
     fi
 

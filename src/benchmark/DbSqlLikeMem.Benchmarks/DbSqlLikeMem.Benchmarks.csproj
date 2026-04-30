@@ -1,0 +1,80 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<StartupObject>DbSqlLikeMem.Benchmarks.Program</StartupObject>
+		<IsTestingPlatformApplication>false</IsTestingPlatformApplication>
+		<GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+
+		<!--<ErrorReport>prompt</ErrorReport>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+		<AnalysisMode>all</AnalysisMode>
+		<AnalysisLevel>latest-all</AnalysisLevel>-->
+		<NoWarn>CA1707;CA1303</NoWarn>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+		<PackageReference Include="Testcontainers" Version="4.11.0" />
+		<PackageReference Include="Testcontainers.Db2" Version="4.11.0" />
+		<PackageReference Include="Testcontainers.MariaDb" Version="4.11.0" />
+		<PackageReference Include="Testcontainers.MsSql" Version="4.11.0" />
+		<PackageReference Include="Testcontainers.MySql" Version="4.11.0" />
+		<PackageReference Include="Testcontainers.Oracle" Version="4.11.0" />
+		<PackageReference Include="Testcontainers.PostgreSql" Version="4.11.0" />
+
+		<PackageReference Include="AsyncFixer" Version="2.1.0" PrivateAssets="All" />
+		<PackageReference Include="AsyncFriendlyStackTrace" Version="1.7.0" PrivateAssets="All" />
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.Analyzers" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.CodeFixes" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.CSharp" Version="4.15.0" PrivateAssets="All" />
+		<PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.15.0" PrivateAssets="All" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Db2\DbSqlLikeMem.Db2.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.MiniProfiler.TestTools\DbSqlLikeMem.MiniProfiler.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Firebird\DbSqlLikeMem.Firebird.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Firebird.TestTools\DbSqlLikeMem.Firebird.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.MariaDb\DbSqlLikeMem.MariaDb.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Db2.TestTools\DbSqlLikeMem.Db2.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.TestTools\DbSqlLikeMem.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.MariaDb.TestTools\DbSqlLikeMem.MariaDb.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.MySql.TestTools\DbSqlLikeMem.MySql.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Npgsql\DbSqlLikeMem.Npgsql.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Npgsql.TestTools\DbSqlLikeMem.Npgsql.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Oracle\DbSqlLikeMem.Oracle.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Oracle.TestTools\DbSqlLikeMem.Oracle.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.SqlAzure\DbSqlLikeMem.SqlAzure.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.SqlAzure.TestTools\DbSqlLikeMem.SqlAzure.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Sqlite\DbSqlLikeMem.Sqlite.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.Sqlite.TestTools\DbSqlLikeMem.Sqlite.TestTools.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.SqlServer\DbSqlLikeMem.SqlServer.csproj" />
+		<ProjectReference Include="..\..\code\DbSqlLikeMem.SqlServer.TestTools\DbSqlLikeMem.SqlServer.TestTools.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Benchmarks.Test" />
+	</ItemGroup>
+		
+	<ItemGroup>
+		<Using Include="BenchmarkDotNet.Attributes" />
+		<Using Include="BenchmarkDotNet.Running" />
+		<Using Include="DbSqlLikeMem.Benchmarks.Core" />
+		<Using Include="DbSqlLikeMem.Firebird" />
+		<Using Include="DbSqlLikeMem.Firebird.TestTools" />
+		<Using Include="DbSqlLikeMem.TestTools" />
+		<Using Include="System.Data.Common" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Logs\" />
+	</ItemGroup>
+</Project>

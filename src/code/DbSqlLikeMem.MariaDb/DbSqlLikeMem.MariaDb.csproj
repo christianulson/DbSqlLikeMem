@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>MariaDb provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.MySql\DbSqlLikeMem.MySql.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.SourceGenerators\DbSqlLikeMem.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="TargetFramework" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.MariaDb.Test" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.MySql" />
+		<Using Include="DbSqlLikeMem.Resources" />
+		<Using Include="MySql.Data.MySqlClient" />
+		<Using Include="System.Collections" />
+		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Diagnostics.CodeAnalysis" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Linq.Expressions" />
+		<Using Include="System.Reflection" />
+		<Using Include="System.Text" />
+		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Compile Update="MariaDbConnectionMock.cs">
+	    <SubType>Component</SubType>
+	  </Compile>
+	</ItemGroup>
+</Project>

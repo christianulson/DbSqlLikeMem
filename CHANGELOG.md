@@ -111,6 +111,7 @@ Este arquivo registra mudanças relevantes por impacto funcional, com foco em pr
 - O gate pós-pack do NuGet agora também valida `requireLicenseAcceptance` no `.nuspec`, mantendo esse contrato alinhado ao `PackageRequireLicenseAcceptance` centralizado em `src/Directory.Build.props`.
 - O checker de cobertura da solução `.slnx` agora normaliza separadores de caminho também do lado do XML, com suíte Python dedicada para evitar falso positivo entre barras invertidas do Windows e a validação em CI Linux.
 - Auditoria de release agora valida também o formato SemVer das versões do core e das extensões, reduzindo risco de versionamento inválido antes da publicação.
+- O auditor de release agora também sugere o impacto SemVer a partir das notas de `CHANGELOG.md` em `## [Unreleased]`, padronizando a triagem entre `PATCH`, `MINOR` e `MAJOR`.
 - Os workflows de publish agora validam explicitamente a fonte de versão de cada artefato (`src/Directory.Build.props`, `source.extension.vsixmanifest`, `package.json`), e o auditor passou a exigir esse contrato junto dos prefixos de tag documentados.
 - Os READMEs operacionais das extensões agora repetem explicitamente o contrato `workflow -> fonte de versão -> publish`, e o auditor passou a vigiar essa mensagem também no ponto de execução manual.
 - O workflow NuGet agora também suporta `vars.NUGET_PUBLISH_ENVIRONMENT` com fallback para `nuget-publish`, alinhando o YAML ao contrato já documentado e tornando esse detalhe parte do gate de readiness.

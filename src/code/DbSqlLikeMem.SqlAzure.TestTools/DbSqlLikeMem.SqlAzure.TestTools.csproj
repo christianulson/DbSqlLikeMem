@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>false</IsTestProject>
+		<IsTestToolsProject>true</IsTestToolsProject>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.SqlAzure\DbSqlLikeMem.SqlAzure.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.SqlServer.TestTools\DbSqlLikeMem.SqlServer.TestTools.csproj" />
+	</ItemGroup>
+</Project>

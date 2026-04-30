@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.SqlServer.XUnit\DbSqlLikeMem.SqlServer.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+		<ProjectReference Include="..\DbSqlLikeMem.SqlServer.TestTools\DbSqlLikeMem.SqlServer.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.SqlServer" />
+		<Using Include="Microsoft.Data.SqlClient" />
+	</ItemGroup>
+
+</Project>

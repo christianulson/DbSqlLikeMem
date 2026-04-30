@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Description>PostgreSQL (Npgsql) provider for the DbSqlLikeMem in-memory SQL-like database.</Description>
+	</PropertyGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+		<PackageReference Include="Npgsql" Version="6.0.12" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<PackageReference Include="Npgsql" Version="8.0.8" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net9.0'">
+		<PackageReference Include="Npgsql" Version="10.0.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem\DbSqlLikeMem.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.SourceGenerators\DbSqlLikeMem.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="TargetFramework" />
+	</ItemGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DbSqlLikeMem.Auto" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.NHibernate" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.Dapper.Test" />
+		<InternalsVisibleTo Include="DbSqlLikeMem.Npgsql.NHibernate.Test" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Resources" />
+		<Using Include="System.Data" />
+		<Using Include="System.Data.Common" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Text.RegularExpressions" />
+	</ItemGroup>
+</Project>

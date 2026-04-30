@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<PlatformTarget>x64</PlatformTarget>
+		<TargetFrameworks>net462;net6.0;net8.0</TargetFrameworks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.Db2.XUnit\DbSqlLikeMem.Db2.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2.TestTools\DbSqlLikeMem.Db2.TestTools.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.TestTools" />
+		<Using Include="DbSqlLikeMem.Db2" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+		<PackageReference Include="IBM.Data.DB2.Core" Version="1.3.0.100" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+		<Using Include="IBM.Data.DB2.Core" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<Using Include="IBM.Data.Db2" />
+	</ItemGroup>
+
+</Project>
+

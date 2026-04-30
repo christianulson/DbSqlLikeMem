@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+		<PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.LinqToDb.TestTools\DbSqlLikeMem.LinqToDb.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2.TestTools\DbSqlLikeMem.Db2.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Db2.LinqToDb\DbSqlLikeMem.Db2.LinqToDb.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.LinqToDb" />
+		<Using Include="DbSqlLikeMem.LinqToDb.TestTools" />
+		<Using Include="DbSqlLikeMem.Db2.TestTools" />
+		<Using Include="DbSqlLikeMem.Db2.LinqToDb" />
+	</ItemGroup>
+</Project>

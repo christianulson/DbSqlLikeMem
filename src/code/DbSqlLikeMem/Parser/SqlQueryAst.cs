@@ -1,0 +1,398 @@
+namespace DbSqlLikeMem;
+
+internal abstract record SqlQueryBase
+{
+    /// <summary>
+    /// EN: Gets or sets RawSql.
+    /// PT: Obtém ou define RawSql.
+    /// </summary>
+    public string RawSql { get; init; } = "";
+
+    /// <summary>
+    /// EN: Gets or sets Table.
+    /// PT: Obtém ou define Table.
+    /// </summary>
+    public SqlTableSource? Table { get; init; }
+}
+
+internal sealed record SqlSelectQuery(
+    IReadOnlyList<SqlCte> Ctes,
+    bool Distinct,
+    IReadOnlyList<SqlSelectItem> SelectItems,
+    IReadOnlyList<SqlJoin> Joins,
+    SqlExpr? Where,
+    IReadOnlyList<SqlOrderByItem> OrderBy,
+    SqlRowLimit? RowLimit,
+    IReadOnlyList<string> GroupBy,
+    SqlExpr? Having,
+    SqlForJsonClause? ForJson = null
+) : SqlQueryBase;
+
+internal sealed record SqlUnionQuery(
+    IReadOnlyList<SqlSelectQuery> Parts,
+    IReadOnlyList<bool> AllFlags,
+    IReadOnlyList<SqlOrderByItem> OrderBy,
+    SqlRowLimit? RowLimit
+) : SqlQueryBase;
+
+internal sealed record SqlInsertQuery : SqlQueryBase
+{
+    internal IReadOnlyList<string> Columns { get; init; } = [];              // pode ser vazio (INSERT INTO t VALUES...)
+    internal IReadOnlyList<List<string>> ValuesRaw { get; init; } = [];      // tokens raw por valor (ou expressão raw)
+    internal IReadOnlyList<List<SqlExpr?>> ValuesExpr { get; init; } = [];   // best-effort parsed values (aligned with ValuesRaw)
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
+    internal IReadOnlyList<string> PartitionNames { get; init; } = [];
+    internal bool IsReplace { get; init; }
+    internal bool HasOnDuplicateKeyUpdate { get; init; }
+    /// <summary>
+    /// EN: Gets the ON DUPLICATE KEY assignments preserved by the parser.
+    /// PT: Obtem as atribuicoes de ON DUPLICATE KEY preservadas pelo parser.
+    /// </summary>
+    public IReadOnlyList<(string Col, string ExprRaw)> OnDupAssigns { get; init; } = [];
+    /// <summary>
+    /// EN: Gets or sets OnDupAssignsParsed.
+    /// PT: Obtém ou define OnDupAssignsParsed.
+    /// </summary>
+    public IReadOnlyList<SqlAssignment> OnDupAssignsParsed { get; init; } = [];
+    /// <summary>
+    /// EN: Gets or sets whether ON CONFLICT uses DO NOTHING semantics.
+    /// PT: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
+    /// </summary>
+    internal bool IsOnConflictDoNothing { get; init; }
+    internal string? OnConflictUpdateWhereRaw { get; init; }
+    internal SqlExpr? OnConflictUpdateWhereExpr { get; init; }
+    internal SqlSelectQuery? InsertSelect { get; init; }               // INSERT INTO t (...) SELECT ...
+}
+
+internal sealed record SqlUpdateQuery : SqlQueryBase
+{
+    internal List<(string Col, string ExprRaw)> Set { get; init; } = [];
+    internal IReadOnlyList<SqlAssignment> SetParsed { get; init; } = [];
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
+    internal SqlExpr? Where { get; init; }
+    internal string? WhereRaw { get; init; }                           // ou SqlExpr se você já tem
+    internal SqlSelectQuery? UpdateFromSelect { get; init; }           // se você quiser UPDATE ... JOIN (SELECT..)
+}
+
+internal sealed record SqlDeleteQuery : SqlQueryBase
+{
+    internal string? WhereRaw { get; init; }
+    internal IReadOnlyList<SqlSelectItem> Returning { get; init; } = [];
+    internal SqlExpr? Where { get; init; }
+    internal SqlSelectQuery? DeleteFromSelect { get; init; }           // DELETE ... USING (SELECT..)
+}
+
+
+internal sealed record SqlCreateTemporaryTableQuery : SqlQueryBase
+{
+    internal bool Temporary { get; init; } = true;
+    internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.Connection;
+    internal bool IfNotExists { get; init; }
+    internal IReadOnlyList<Col> ColumnDefinitions { get; init; } = [];
+    internal IReadOnlyList<string> ColumnNames { get; init; } = [];
+    internal IReadOnlyList<string> PrimaryKeyColumns { get; init; } = [];
+    internal IReadOnlyList<SchemaSnapshotCheckConstraint> CheckConstraints { get; init; } = [];
+    internal string? PartitionClauseSql { get; init; }
+    internal SqlSelectQuery? AsSelect { get; init; }
+}
+
+internal enum TemporaryTableScope
+{
+    None,
+    Connection,
+    Global
+}
+
+internal sealed record SqlCreateViewQuery : SqlQueryBase
+{
+    internal bool OrReplace { get; init; }
+    // MySQL doesn't support IF NOT EXISTS for VIEW, but accepting it keeps the mock flexible.
+    internal bool IfNotExists { get; init; }
+    internal IReadOnlyList<string> ColumnNames { get; init; } = [];
+    internal SqlSelectQuery Select { get; init; } = null!;
+}
+
+internal sealed record SqlCreateSchemaQuery : SqlQueryBase
+{
+    internal bool IfNotExists { get; init; }
+}
+
+internal sealed record SqlDropViewQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlDropTableQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+    internal bool Temporary { get; init; }
+    internal TemporaryTableScope Scope { get; init; } = TemporaryTableScope.None;
+}
+
+internal sealed record SqlAlterTableAddColumnQuery : SqlQueryBase
+{
+    internal string ColumnName { get; init; } = "";
+    internal DbType ColumnType { get; init; }
+    internal bool Nullable { get; init; } = true;
+    internal int? Size { get; init; }
+    internal int? DecimalPlaces { get; init; }
+    internal string? DefaultValueRaw { get; init; }
+    internal string? ComputedExpression { get; init; }
+}
+
+internal sealed record SqlCreateIndexQuery : SqlQueryBase
+{
+    internal string IndexName { get; init; } = "";
+    internal bool Unique { get; init; }
+    internal IReadOnlyList<string> KeyColumns { get; init; } = [];
+}
+
+internal sealed record SqlDropIndexQuery : SqlQueryBase
+{
+    internal string IndexName { get; init; } = "";
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlCreateSequenceQuery : SqlQueryBase
+{
+    internal bool IfNotExists { get; init; }
+    internal long StartValue { get; init; } = 1;
+    internal long IncrementBy { get; init; } = 1;
+    internal long? MinValue { get; init; }
+    internal long? MaxValue { get; init; }
+    internal bool IsCycle { get; init; }
+    internal bool IsOwnedByNone { get; init; }
+    internal SqlTableSource? OwnedByTable { get; init; }
+    internal string? OwnedByColumn { get; init; }
+}
+
+internal sealed record SqlDropSequenceQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlAlterSequenceQuery : SqlQueryBase
+{
+    internal long? RestartWith { get; init; }
+    internal long? IncrementBy { get; init; }
+    internal bool IsOwnedByNone { get; init; }
+    internal SqlTableSource? OwnedByTable { get; init; }
+    internal string? OwnedByColumn { get; init; }
+}
+
+internal sealed record SqlCreateFunctionQuery : SqlQueryBase
+{
+    internal bool OrReplace { get; init; }
+    internal DbFunctionDef Definition { get; init; } = null!;
+}
+
+internal sealed record SqlCreateProcedureQuery : SqlQueryBase
+{
+    internal bool OrReplace { get; init; }
+    internal ProcedureDef Definition { get; init; } = null!;
+}
+
+internal sealed record SqlCreateTriggerQuery : SqlQueryBase
+{
+    internal bool OrReplace { get; init; }
+    internal string TriggerName { get; init; } = "";
+    internal bool IsBefore { get; init; }
+    internal TableTriggerEvent Event { get; init; }
+}
+
+internal sealed record SqlDropFunctionQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlDropProcedureQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlDropTriggerQuery : SqlQueryBase
+{
+    internal bool IfExists { get; init; }
+}
+
+internal sealed record SqlExecuteBlockQuery : SqlQueryBase
+{
+    public IReadOnlyList<ProcParam> InputParameters { get; init; } = [];
+
+    public IReadOnlyList<ProcParam> ReturnParameters { get; init; } = [];
+
+    public string BodySql { get; init; } = "";
+}
+
+internal sealed record SqlMergeQuery : SqlQueryBase
+{
+    internal SqlTableSource? Source { get; init; } // opcional (pode deixar null por enquanto)
+}
+
+internal sealed record SqlSelectItem(string Raw, string? Alias);
+
+internal sealed record SqlTableSource(
+    string? DbName,
+    string? Name,
+    string? Alias,
+    SqlSelectQuery? Derived,
+    SqlQueryParser.UnionChain? DerivedUnion,
+    string? DerivedSql,
+    SqlPivotSpec? Pivot,
+    IReadOnlyList<SqlMySqlIndexHint>? MySqlIndexHints = null,
+    FunctionCallExpr? TableFunction = null,
+    SqlOpenJsonWithClause? OpenJsonWithClause = null,
+    SqlJsonTableClause? JsonTableClause = null,
+    SqlUnpivotSpec? Unpivot = null,
+    IReadOnlyList<string>? PartitionNames = null,
+    bool IsLateral = false
+);
+
+internal sealed record SqlOpenJsonWithClause(
+    IReadOnlyList<SqlOpenJsonWithColumn> Columns
+);
+
+internal sealed record SqlOpenJsonWithColumn(
+    string Name,
+    string SqlType,
+    DbType DbType,
+    string? Path,
+    bool AsJson
+);
+
+internal sealed record SqlJsonTableClause(
+    IReadOnlyList<SqlJsonTableEntry> Entries
+)
+{
+    internal SqlJsonTableClause(IReadOnlyList<SqlJsonTableColumn> columns)
+        : this([.. columns.Cast<SqlJsonTableEntry>()])
+    {
+    }
+
+    internal IReadOnlyList<SqlJsonTableColumn> Columns
+        => [.. Entries.OfType<SqlJsonTableColumn>()];
+
+    internal IReadOnlyList<SqlJsonTableNestedPath> NestedPaths
+        => [.. Entries.OfType<SqlJsonTableNestedPath>()];
+}
+
+internal abstract record SqlJsonTableEntry;
+
+internal sealed record SqlJsonTableColumn(
+    string Name,
+    string SqlType,
+    DbType DbType,
+    string? Path,
+    bool ForOrdinality,
+    bool ExistsPath = false,
+    SqlJsonTableColumnFallback? OnEmpty = null,
+    SqlJsonTableColumnFallback? OnError = null
+) : SqlJsonTableEntry;
+
+internal sealed record SqlJsonTableNestedPath(
+    string Path,
+    SqlJsonTableClause Clause
+) : SqlJsonTableEntry;
+
+internal enum SqlJsonTableColumnFallbackKind
+{
+    Null,
+    Default,
+    Error
+}
+
+internal sealed record SqlJsonTableColumnFallback(
+    SqlJsonTableColumnFallbackKind Kind,
+    string? DefaultValueRaw = null);
+
+internal enum SqlMySqlIndexHintKind
+{
+    Use,
+    Ignore,
+    Force
+}
+
+internal enum SqlMySqlIndexHintScope
+{
+    Any,
+    Join,
+    OrderBy,
+    GroupBy
+}
+
+internal sealed record SqlMySqlIndexHint(
+    SqlMySqlIndexHintKind Kind,
+    SqlMySqlIndexHintScope Scope,
+    IReadOnlyList<string> IndexNames
+);
+
+internal sealed record SqlPivotSpec(
+    string AggregateFunction,
+    string AggregateArgRaw,
+    string ForColumnRaw,
+    IReadOnlyList<SqlPivotInItem> InItems
+);
+
+internal sealed record SqlPivotInItem(
+    string ValueRaw,
+    string Alias
+);
+
+internal sealed record SqlUnpivotSpec(
+    string ValueColumnName,
+    string NameColumnName,
+    IReadOnlyList<SqlUnpivotInItem> InItems
+);
+
+internal sealed record SqlUnpivotInItem(
+    string SourceColumnName,
+    string OutputName
+);
+
+internal sealed record SqlForJsonClause(
+    SqlForJsonMode Mode,
+    string? RootName,
+    bool IncludeNullValues,
+    bool WithoutArrayWrapper
+);
+
+internal enum SqlForJsonMode
+{
+    Auto,
+    Path
+}
+
+/// <summary>
+/// EN: Join types represented in the SQL AST.
+/// PT: Tipos de join representados na AST SQL.
+/// </summary>
+internal enum SqlJoinType
+{
+    Inner,
+    Left,
+    Right,
+    Cross,
+    CrossApply,
+    OuterApply,
+    //Full
+}
+
+internal sealed record SqlJoin(SqlJoinType Type, SqlTableSource Table, SqlExpr On);
+
+internal sealed record SqlOrderByItem(string Raw, bool Desc, bool? NullsFirst = null);
+
+internal abstract record SqlRowLimit;
+internal sealed record SqlLimitOffset(SqlExpr Count, SqlExpr? Offset) : SqlRowLimit;
+internal sealed record SqlTop(SqlExpr Count) : SqlRowLimit;
+internal sealed record SqlFetch(SqlExpr Count, SqlExpr? Offset) : SqlRowLimit;
+
+internal sealed record SqlCte(string Name, SqlQueryBase Query);
+
+internal sealed record SqlOnDuplicateKeyUpdate(
+    IReadOnlyList<SqlAssignment> Assignments,
+    bool IsDoNothing = false,
+    string? UpdateWhereRaw = null,
+    SqlExpr? UpdateWhereExpr = null
+);
+
+internal sealed record SqlAssignment(string Column, string ValueRaw, SqlExpr? ValueExpr = null);

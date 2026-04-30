@@ -1,0 +1,170 @@
+namespace DbSqlLikeMem;
+
+internal static class SqlExprPrinter
+{
+    /// <summary>
+    /// EN: Implements Print.
+    /// PT: Implementa Print.
+    /// </summary>
+    public static string Print(SqlExpr e)
+    {
+        var sb = new StringBuilder();
+        Write(e, sb);
+        return sb.ToString();
+    }
+
+    private static void Write(SqlExpr e, StringBuilder sb)
+    {
+        switch (e)
+        {
+            case IdentifierExpr x:
+                sb.Append(x.Name);
+                break;
+            case ColumnExpr c:
+                sb.Append($"{c.Qualifier}.{c.Name}");
+                break;
+            case RawSqlExpr r:
+                sb.Append(r.Sql);
+                break;
+
+            case ParameterExpr p:
+                sb.Append(p.Name);
+                break;
+
+            case LiteralExpr l:
+                sb.Append(l.Value is null
+                    ? SqlConst.NULL
+                    : l.Value is bool b
+                        ? b
+                            ? SqlConst.TRUE
+                            : SqlConst.FALSE
+                        : l.Value is string s
+                            ? $"'{s}'"
+                            : l.Value);
+                break;
+
+            case UnaryExpr u:
+                sb.Append("NOT ");
+                Wrap(u.Expr, sb);
+                break;
+
+            case BinaryExpr bi:
+                Wrap(bi.Left, sb);
+                sb.Append(' ').Append(OpText(bi.Op)).Append(' ');
+                Wrap(bi.Right, sb);
+                break;
+
+            case InExpr i:
+                Wrap(i.Left, sb);
+                sb.Append(" IN (");
+                sb.Append(string.Join(", ", i.Items.Select(Print)));
+                sb.Append(')');
+                break;
+
+            case LikeExpr l:
+                Wrap(l.Left, sb);
+                sb.Append(l.CaseInsensitive ? " ILIKE " : " LIKE ");
+                Wrap(l.Pattern, sb);
+                if (l.Escape is not null)
+                {
+                    sb.Append(" ESCAPE ");
+                    Wrap(l.Escape, sb);
+                }
+                break;
+
+            case IsNullExpr n:
+                Wrap(n.Expr, sb);
+                sb.Append(n.Negated ? " IS NOT NULL" : " IS NULL");
+                break;
+            case ExistsExpr ee:
+                sb.Append($"EXISTS ({ee.Subquery.Sql})");
+                break;
+            case QuantifiedComparisonExpr qc:
+                Wrap(qc.Left, sb);
+                sb.Append(' ').Append(OpText(qc.Op)).Append(' ');
+                sb.Append(qc.Quantifier == SqlQuantifier.Any ? "ANY" : SqlConst.ALL);
+                sb.Append(" (").Append(qc.Subquery.Sql).Append(')');
+                break;
+            case JsonAccessExpr j:
+                Write(j.Target, sb);
+                sb.Append(j.Unquote ? " ->> " : " -> ");
+                Write(j.Path, sb);
+                break;
+            case FunctionCallExpr f:
+                sb.Append($"{f.Name}({string.Join(", ", f.Args.Select(Print))})");
+                break;
+            case CallExpr c:
+                sb.Append(c.Name);
+                sb.Append('(');
+                if (c.Distinct) sb.Append("DISTINCT ");
+                sb.Append(string.Join(", ", c.Args.Select(Print)));
+                sb.Append(')');
+                break;
+            case CaseExpr c:
+                sb.Append("CASE");
+                if (c.BaseExpr is not null)
+                {
+                    sb.Append(' ');
+                    Write(c.BaseExpr, sb);
+                }
+
+                foreach (var wt in c.Whens)
+                {
+                    sb.Append(" WHEN ");
+                    Write(wt.When, sb);
+                    sb.Append(" THEN ");
+                    Write(wt.Then, sb);
+                }
+
+                if (c.ElseExpr is not null)
+                {
+                    sb.Append(" ELSE ");
+                    Write(c.ElseExpr, sb);
+                }
+
+                sb.Append(" END");
+                break;
+            case BetweenExpr bt:
+                Wrap(bt.Expr, sb);
+                if (bt.Negated) sb.Append(" NOT");
+                sb.Append(" BETWEEN ");
+                Wrap(bt.Low, sb);
+                sb.Append(SqlConst._AND_);
+                Wrap(bt.High, sb);
+                break;
+
+            case StarExpr:
+                sb.Append('*');
+                break;
+
+            default:
+                sb.Append(e.GetType().Name);
+                break;
+        }
+    }
+
+    private static void Wrap(SqlExpr e, StringBuilder sb)
+    {
+        var need = e is BinaryExpr or UnaryExpr;
+        if (need) sb.Append('(');
+        Write(e, sb);
+        if (need) sb.Append(')');
+    }
+
+    private static string OpText(SqlBinaryOp op) => op switch
+    {
+        SqlBinaryOp.And => SqlConst.AND,
+        SqlBinaryOp.Or => SqlConst.OR,
+        SqlBinaryOp.Eq => "=",
+        SqlBinaryOp.Neq => "!=",
+        SqlBinaryOp.Greater => ">",
+        SqlBinaryOp.GreaterOrEqual => ">=",
+        SqlBinaryOp.Less => "<",
+        SqlBinaryOp.LessOrEqual => "<=",
+        SqlBinaryOp.NullSafeEq => "<=>",
+        SqlBinaryOp.Regexp => "REGEXP",
+        SqlBinaryOp.SoundLike => "SOUNDS LIKE",
+        SqlBinaryOp.Concat => "||",
+        _ => op.ToString()
+    };
+}

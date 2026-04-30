@@ -1,0 +1,3045 @@
+using System.Diagnostics.CodeAnalysis;
+
+namespace DbSqlLikeMem;
+
+/// <summary>
+/// EN: In-memory mock connection with table support, transactions, and simulated latency.
+/// PT: Conexão simulado em memória com suporte a tabelas, transações e latência simulada.
+/// </summary>
+public abstract class DbConnectionMockBase(
+    DbMock db,
+    string? defaultDatabase = null
+    ) : DbConnection
+{
+    internal enum TransactionJournalEntryKind
+    {
+        Insert,
+        Update,
+        Delete,
+        CreateTable,
+        DropTable,
+        CreateIndex,
+        DropIndex,
+        UpsertView,
+        DropView,
+        CreateSequence,
+        DropSequence,
+        UpdateSequence,
+        UpsertFunction,
+        DropFunction,
+        DropProcedure,
+        DropTrigger,
+        UpsertProcedure
+    }
+
+    internal enum TransactionTableRegistrationKind
+    {
+        Schema,
+        ConnectionTemporary,
+        GlobalTemporary
+    }
+
+    private sealed class TableReferenceComparer : IEqualityComparer<ITableMock>
+    {
+        public static readonly TableReferenceComparer Instance = new();
+
+        public bool Equals(ITableMock? x, ITableMock? y) => ReferenceEquals(x, y);
+
+        public int GetHashCode(ITableMock obj)
+            => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+    }
+
+    internal sealed record TransactionJournalEntry(
+        TableMock Table,
+        TransactionJournalEntryKind Kind,
+        int RowIndex,
+        Dictionary<int, object?>? Row,
+        Dictionary<int, object?>? OldRowSnapshot,
+        int PreviousNextIdentity,
+        TransactionTableRegistrationKind RegistrationKind,
+        string RegistrationKey,
+        Idx? IndexDefinition = null,
+        TransactionViewState? ViewState = null,
+        TransactionSequenceState? SequenceState = null,
+        TransactionFunctionState? FunctionState = null,
+        TransactionProcedureState? ProcedureState = null,
+        TransactionTriggerState? TriggerState = null,
+        Dictionary<int, object?>? NewRowSnapshot = null);
+
+    internal sealed record TransactionViewState(
+        string SchemaName,
+        string ViewName,
+        SqlSelectQuery? PreviousDefinition);
+
+    internal sealed record TransactionSequenceState(
+        string SchemaName,
+        string SequenceName,
+        SequenceDef? PreviousDefinition,
+        bool HadSessionValue,
+        long SessionValue);
+
+    internal sealed record TransactionFunctionState(
+        string SchemaName,
+        string FunctionName,
+        DbFunctionDef? PreviousDefinition);
+
+    internal sealed record TransactionProcedureState(
+        string SchemaName,
+        string ProcedureName,
+        ProcedureDef? PreviousDefinition);
+
+    internal sealed record TransactionTriggerState(
+        string SchemaName,
+        string TriggerName,
+        TableTriggerEvent PreviousEvent);
+
+    private bool _disposed;
+    private readonly HashSet<TableMock> _journalObservedTables = [];
+    private readonly DbConnectionTransactionStateManager _transactionState = new();
+    private readonly DbConnectionSessionStateManager _sessionState = new();
+    private readonly DbConnectionTransactionJournalManager _transactionJournalManager = new();
+    private DbConnectionSchemaSnapshotBridge? _schemaSnapshotBridge;
+    private static readonly AsyncLocal<DbConnectionMockBase?> _ambientMutationConnection = new();
+
+    /// <summary>
+    /// EN: In-memory database associated with this connection.
+    /// PT: Banco em memória associado a esta conexão.
+    /// </summary>
+    public DbMock Db { get; } = db;
+
+    /// <summary>
+    /// EN: Connection usage and performance metrics.
+    /// PT: Métricas de uso e desempenho da conexão.
+    /// </summary>
+    public DbMetrics Metrics { get; } = new();
+
+    /// <summary>
+    /// EN: Enables or disables execution-plan capture for this connection by delegating to the underlying database.
+    /// PT: Habilita ou desabilita a captura de planos de execução nesta conexão delegando para o banco subjacente.
+    /// </summary>
+    public bool CaptureExecutionPlans
+    {
+        get => Db.CaptureExecutionPlans;
+        set => Db.CaptureExecutionPlans = value;
+    }
+
+    /// <summary>
+    /// EN: Controls whether affected-row snapshots should be captured for diagnostics.
+    /// PT: Controla se snapshots de linhas afetadas devem ser capturados para diagnóstico.
+    /// </summary>
+    public bool CaptureAffectedRowSnapshots { get; set; } = true;
+
+    private readonly DbConnectionExecutionPlanManager _executionPlanManager = new();
+    private readonly DbConnectionDebugTraceManager _debugTraceManager = new();
+    private long _lastFoundRows;
+    private long _lastChangesRows;
+    private object? _lastInsertId;
+    private readonly ISqlDialect _providerSqlDialect = db.Dialect;
+    private readonly ISqlDialect _autoSqlDialect = AutoDialectFactory.Create(db.Version);
+    private readonly HashSet<string> _runtimeFunctions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, DbFunctionDef> _runtimeFunctionDefinitions = new(StringComparer.OrdinalIgnoreCase);
+    private string? _currentQueryText;
+    private static readonly AsyncLocal<TableTriggerEvent?> _ambientTriggerEvent = new();
+
+    internal void ClearExecutionPlans()
+    {
+        _executionPlanManager.ClearExecutionPlans();
+        _debugTraceManager.Clear();
+    }
+
+    internal void ClearSelectPlanCache()
+    {
+        _executionPlanManager.ClearSelectPlanCache();
+    }
+
+    internal int GetSelectPlanCacheGeneration()
+        => _executionPlanManager.GetSelectPlanCacheGeneration();
+
+    internal bool TryGetCachedSelectPlan(
+        string cacheKey,
+        out SelectPlan? plan)
+        => _executionPlanManager.TryGetCachedSelectPlan(cacheKey, out plan);
+
+    internal void TryCacheSelectPlan(string cacheKey, SelectPlan plan)
+        => _executionPlanManager.TryCacheSelectPlan(cacheKey, plan);
+
+    internal void RegisterExecutionPlan(string executionPlan)
+    {
+        if (!Db.CaptureExecutionPlans || string.IsNullOrWhiteSpace(executionPlan))
+            return;
+
+        _executionPlanManager.RegisterExecutionPlan(executionPlan);
+    }
+
+    internal string? GetCurrentQueryText()
+        => _currentQueryText;
+
+    internal IDisposable BeginCurrentQueryScope(string? sql)
+        => new CurrentQueryScope(this, sql);
+
+    internal static TableTriggerEvent? CurrentTriggerEvent => _ambientTriggerEvent.Value;
+
+    internal static IDisposable BeginTriggerScope(TableTriggerEvent evt)
+        => new TriggerScope(evt);
+
+    /// <summary>
+    /// EN: Last runtime query debug trace captured for this connection.
+    /// PT: Ultimo trace de debug de query em runtime capturado para esta conexao.
+    /// </summary>
+    public QueryDebugTrace? LastDebugTrace => _debugTraceManager.LastDebugTrace;
+
+    /// <summary>
+    /// EN: Runtime query debug traces captured during the last command execution.
+    /// PT: Traces de debug de query em runtime capturados durante a ultima execucao de comando.
+    /// </summary>
+    public IReadOnlyList<QueryDebugTrace> LastDebugTraces => _debugTraceManager.LastDebugTraces;
+
+    /// <summary>
+    /// EN: Last execution plan generated by this connection.
+    /// PT: Último plano de execução gerado por esta conexão.
+    /// </summary>
+    public string? LastExecutionPlan => _executionPlanManager.LastExecutionPlan;
+
+    /// <summary>
+    /// EN: Execution plans generated during the last command execution.
+    /// PT: Planos de execução gerados durante a última execução de comando.
+    /// </summary>
+    public IReadOnlyList<string> LastExecutionPlans => _executionPlanManager.LastExecutionPlans;
+
+    private bool _useAutoSqlDialect;
+
+    /// <summary>
+    /// EN: Enables automatic SQL dialect compatibility mode for parsing and execution on this connection.
+    /// PT: Habilita o modo automatico de compatibilidade de dialeto SQL para parsing e execucao nesta conexao.
+    /// </summary>
+    public bool UseAutoSqlDialect
+    {
+        get => _useAutoSqlDialect;
+        set
+        {
+            if (_useAutoSqlDialect == value)
+                return;
+
+            _useAutoSqlDialect = value;
+            Db.Dialect = (SqlDialectBase)(value ? _autoSqlDialect : _providerSqlDialect);
+        }
+    }
+
+    /// <summary>
+    /// EN: Maximum number of runtime debug traces retained in connection history.
+    /// PT: Numero maximo de traces de debug em runtime retidos no historico da conexao.
+    /// </summary>
+    public int DebugTraceRetentionLimit
+    {
+        get => _debugTraceManager.DebugTraceRetentionLimit;
+        set => _debugTraceManager.DebugTraceRetentionLimit = value;
+    }
+
+    /// <summary>
+    /// EN: Clears the runtime debug trace history kept by this connection.
+    /// PT: Limpa o historico de traces de debug em runtime mantido por esta conexao.
+    /// </summary>
+    public void ClearDebugTraces()
+    {
+        _debugTraceManager.Clear();
+    }
+
+    /// <summary>
+    /// EN: Wraps this mock connection with the ADO.NET interception pipeline.
+    /// PT: Encapsula esta conexao mock com o pipeline de interceptacao ADO.NET.
+    /// </summary>
+    /// <param name="interceptors">EN: Interceptors applied in registration order. PT: Interceptors aplicados na ordem de registro.</param>
+    /// <returns>EN: Wrapped connection. PT: Conexao encapsulada.</returns>
+    public DbConnection Intercept(params DbConnectionInterceptor[] interceptors)
+        => DbInterceptionPipeline.Wrap(this, interceptors);
+
+    internal bool IsDebugTraceCaptureEnabled => _debugTraceManager.IsDebugTraceCaptureEnabled;
+
+    internal ISqlDialect ExecutionDialect => UseAutoSqlDialect ? _autoSqlDialect : _providerSqlDialect;
+
+    internal ISqlDialect ProviderExecutionDialect => _providerSqlDialect;
+
+    internal IDisposable BeginDebugTraceCapture()
+        => _debugTraceManager.BeginCapture();
+
+    internal void RegisterDebugTrace(QueryDebugTrace trace)
+        => _debugTraceManager.Register(trace);
+
+    internal void RestoreDebugTraces(IReadOnlyList<QueryDebugTrace> traces)
+        => _debugTraceManager.Restore(traces);
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the captured runtime operator traces for the reader statements in that execution.
+    /// PT: Executa um comando SQL e retorna os traces de operadores em runtime capturados para os statements de leitura dessa execucao.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Captured runtime traces for the executed command. PT: Traces de runtime capturados para o comando executado.</returns>
+    public IReadOnlyList<QueryDebugTrace> DebugSqlBatch(string sql)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
+
+        var shouldOpen = State != ConnectionState.Open;
+        List<QueryDebugTrace>? retainedTraces = null;
+        if (shouldOpen)
+            Open();
+
+        try
+        {
+            using var scope = BeginDebugTraceCapture();
+            using var command = CreateCommand();
+            command.CommandText = sql;
+            using var reader = command.ExecuteReader();
+
+            do
+            {
+                while (reader.Read())
+                {
+                }
+            }
+            while (reader.NextResult());
+
+            if (_debugTraceManager.LastDebugTraces.Count == 0)
+                throw new InvalidOperationException("No runtime debug trace was captured for the executed SQL.");
+
+            _debugTraceManager.Contextualize(sql, ExecutionDialect);
+            return _debugTraceManager.LastDebugTraces;
+        }
+        finally
+        {
+            if (shouldOpen && LastDebugTrace is not null)
+                retainedTraces = [.. _debugTraceManager.LastDebugTraces];
+
+            if (shouldOpen && State == ConnectionState.Open)
+                Close();
+
+            if (retainedTraces is not null)
+                RestoreDebugTraces(retainedTraces);
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the captured runtime operator trace for the last reader query.
+    /// PT: Executa um comando SQL e retorna o trace de operadores em runtime capturado para a ultima query de leitura.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Captured runtime trace for the executed command. PT: Trace de runtime capturado para o comando executado.</returns>
+    public QueryDebugTrace DebugSql(string sql)
+        => DebugSqlBatch(sql).Last();
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the formatted runtime trace for the last reader query.
+    /// PT: Executa um comando SQL e retorna o trace de runtime formatado para a ultima query de leitura.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Formatted runtime trace. PT: Trace de runtime formatado.</returns>
+    public string DebugSqlText(string sql)
+        => QueryDebugTraceFormatter.Format(DebugSql(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the formatted runtime traces for all reader statements in the batch.
+    /// PT: Executa um comando SQL e retorna os traces de runtime formatados para todos os statements de leitura do lote.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: Formatted runtime trace batch. PT: Lote formatado de traces de runtime.</returns>
+    public string DebugSqlBatchText(string sql)
+        => QueryDebugTraceFormatter.FormatBatch(DebugSqlBatch(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the runtime trace for the last reader query as structured JSON.
+    /// PT: Executa um comando SQL e retorna o trace de runtime da ultima query de leitura como JSON estruturado.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: JSON runtime trace. PT: Trace de runtime em JSON.</returns>
+    public string DebugSqlJson(string sql)
+        => QueryDebugTraceFormatter.FormatJson(DebugSql(sql));
+
+    /// <summary>
+    /// EN: Executes a SQL command and returns the runtime traces for all reader statements in the batch as structured JSON.
+    /// PT: Executa um comando SQL e retorna os traces de runtime de todos os statements de leitura do lote como JSON estruturado.
+    /// </summary>
+    /// <param name="sql">EN: SQL text to execute. PT: Texto SQL a executar.</param>
+    /// <returns>EN: JSON runtime trace batch. PT: Lote de traces de runtime em JSON.</returns>
+    public string DebugSqlBatchJson(string sql)
+        => QueryDebugTraceFormatter.FormatBatchJson(DebugSqlBatch(sql));
+
+    /// <summary>
+    /// EN: Returns a snapshot of the currently retained runtime debug traces without executing new SQL.
+    /// PT: Retorna um snapshot dos traces de debug em runtime atualmente retidos sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Snapshot of the retained runtime traces. PT: Snapshot dos traces de runtime retidos.</returns>
+    public IReadOnlyList<QueryDebugTrace> GetDebugTraceSnapshot()
+        => _debugTraceManager.Snapshot();
+
+    /// <summary>
+    /// EN: Returns the currently retained runtime debug traces formatted as text without executing new SQL.
+    /// PT: Retorna os traces de debug em runtime atualmente retidos formatados como texto sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Formatted runtime trace snapshot. PT: Snapshot formatado dos traces de runtime.</returns>
+    public string GetDebugTraceSnapshotText()
+        => QueryDebugTraceFormatter.FormatBatch(GetDebugTraceSnapshot());
+
+    /// <summary>
+    /// EN: Returns the currently retained runtime debug traces as JSON without executing new SQL.
+    /// PT: Retorna os traces de debug em runtime atualmente retidos como JSON sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: JSON runtime trace snapshot. PT: Snapshot JSON dos traces de runtime.</returns>
+    public string GetDebugTraceSnapshotJson()
+        => QueryDebugTraceFormatter.FormatBatchJson(GetDebugTraceSnapshot());
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Last retained runtime trace, when available. PT: Ultimo trace de runtime retido, quando disponivel.</returns>
+    public QueryDebugTrace? GetLastDebugTraceSnapshot()
+        => LastDebugTrace;
+
+    /// <summary>
+    /// EN: Tries to get the last retained runtime debug trace without throwing when none is available.
+    /// PT: Tenta obter o ultimo trace de debug em runtime retido sem lancar excecao quando nenhum estiver disponivel.
+    /// </summary>
+    /// <param name="trace">EN: Last retained trace when available; otherwise null. PT: Ultimo trace retido quando disponivel; caso contrario, null.</param>
+    /// <returns>EN: True when a retained trace exists; otherwise false. PT: True quando existe um trace retido; caso contrario, false.</returns>
+    public bool TryGetLastDebugTraceSnapshot(
+#if NET6_0_OR_GREATER
+        [NotNullWhen(true)]
+#endif
+    out QueryDebugTrace? trace)
+    {
+        trace = LastDebugTrace;
+        return trace is not null;
+    }
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace formatted as text without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido formatado como texto sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: Formatted last runtime trace. PT: Ultimo trace de runtime formatado.</returns>
+    public string GetLastDebugTraceSnapshotText()
+    {
+        if (LastDebugTrace is null)
+            throw new InvalidOperationException("No runtime debug trace is currently retained.");
+
+        return QueryDebugTraceFormatter.Format(LastDebugTrace);
+    }
+
+    /// <summary>
+    /// EN: Returns the last retained runtime debug trace as JSON without executing new SQL.
+    /// PT: Retorna o ultimo trace de debug em runtime retido como JSON sem executar novo SQL.
+    /// </summary>
+    /// <returns>EN: JSON payload for the last runtime trace. PT: Payload JSON do ultimo trace de runtime.</returns>
+    public string GetLastDebugTraceSnapshotJson()
+    {
+        if (LastDebugTrace is null)
+            throw new InvalidOperationException("No runtime debug trace is currently retained.");
+
+        return QueryDebugTraceFormatter.FormatJson(LastDebugTrace);
+    }
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao.
+    /// </summary>
+    /// <returns>EN: Exported schema snapshot. PT: Snapshot de schema exportado.</returns>
+    public SchemaSnapshot ExportSchemaSnapshot()
+        => SchemaSnapshotBridge.ExportSchemaSnapshot();
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database as JSON.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao como JSON.
+    /// </summary>
+    /// <returns>EN: Serialized schema snapshot JSON. PT: JSON serializado do snapshot de schema.</returns>
+    public string ExportSchemaSnapshotJson()
+        => ExportSchemaSnapshot().ToJson();
+
+    /// <summary>
+    /// EN: Returns the supported schema snapshot subset profile for this connection database.
+    /// PT: Retorna o perfil do subset suportado de schema snapshot para o banco desta conexao.
+    /// </summary>
+    /// <returns>EN: Supported schema snapshot profile. PT: Perfil suportado de schema snapshot.</returns>
+    public SchemaSnapshotSupportProfile GetSchemaSnapshotSupportProfile()
+        => SchemaSnapshotBridge.GetSchemaSnapshotSupportProfile();
+
+    /// <summary>
+    /// EN: Returns the supported schema snapshot subset profile for this connection database as text.
+    /// PT: Retorna o perfil do subset suportado de schema snapshot para o banco desta conexao como texto.
+    /// </summary>
+    /// <returns>EN: Multi-line support profile text. PT: Texto multilinha do perfil de suporte.</returns>
+    public string GetSchemaSnapshotSupportProfileText()
+        => GetSchemaSnapshotSupportProfile().ToText();
+
+    /// <summary>
+    /// EN: Exports the current structural schema snapshot of this connection database to a JSON file.
+    /// PT: Exporta o snapshot estrutural atual do banco associado a esta conexao para um arquivo JSON.
+    /// </summary>
+    /// <param name="path">EN: Target JSON file path. PT: Caminho do arquivo JSON de destino.</param>
+    public void ExportSchemaSnapshotToFile(string path)
+        => ExportSchemaSnapshot().SaveToFile(path);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON into the database associated with this connection.
+    /// PT: Importa um JSON de snapshot estrutural de schema para o banco associado a esta conexao.
+    /// </summary>
+    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
+    public void ImportSchemaSnapshot(string json)
+        => ImportSchemaSnapshot(json, ensureCompatibility: false);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON into the database associated with this connection with optional compatibility validation.
+    /// PT: Importa um JSON de snapshot estrutural de schema para o banco associado a esta conexao com validacao opcional de compatibilidade.
+    /// </summary>
+    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    public void ImportSchemaSnapshot(
+        string json,
+        bool ensureCompatibility)
+        => ImportSchemaSnapshotCore(SchemaSnapshot.Load(json), ensureCompatibility);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON file into the database associated with this connection.
+    /// PT: Importa um arquivo JSON de snapshot estrutural de schema para o banco associado a esta conexao.
+    /// </summary>
+    /// <param name="path">EN: Source JSON file path. PT: Caminho do arquivo JSON de origem.</param>
+    public void ImportSchemaSnapshotFromFile(string path)
+        => ImportSchemaSnapshotFromFile(path, ensureCompatibility: false);
+
+    /// <summary>
+    /// EN: Imports a structural schema snapshot JSON file into the database associated with this connection with optional compatibility validation.
+    /// PT: Importa um arquivo JSON de snapshot estrutural de schema para o banco associado a esta conexao com validacao opcional de compatibilidade.
+    /// </summary>
+    /// <param name="path">EN: Source JSON file path. PT: Caminho do arquivo JSON de origem.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    public void ImportSchemaSnapshotFromFile(
+        string path,
+        bool ensureCompatibility)
+        => ImportSchemaSnapshotCore(SchemaSnapshot.LoadFromFile(path), ensureCompatibility);
+
+    internal void ImportSchemaSnapshotCore(
+        SchemaSnapshot snapshot,
+        bool ensureCompatibility)
+        => SchemaSnapshotBridge.ImportSchemaSnapshotCore(snapshot, ensureCompatibility);
+
+    private DbConnectionSchemaSnapshotBridge SchemaSnapshotBridge
+        => _schemaSnapshotBridge ??= new DbConnectionSchemaSnapshotBridge(this);
+
+    private sealed class CurrentQueryScope : IDisposable
+    {
+        private DbConnectionMockBase? _connection;
+        private readonly string? _previousQueryText;
+        private readonly DbConnectionMockBase? _previousMutationConnection;
+
+        public CurrentQueryScope(DbConnectionMockBase connection, string? sql)
+        {
+            _connection = connection;
+            _previousQueryText = connection._currentQueryText;
+            _previousMutationConnection = _ambientMutationConnection.Value;
+            connection._currentQueryText = sql;
+            _ambientMutationConnection.Value = connection;
+        }
+
+        public void Dispose()
+        {
+            if (_connection is null)
+                return;
+
+            _connection._currentQueryText = _previousQueryText;
+            _ambientMutationConnection.Value = _previousMutationConnection;
+            _connection = null;
+        }
+    }
+
+    private sealed class TriggerScope : IDisposable
+    {
+        private readonly TableTriggerEvent? _previousEvent;
+        private bool _disposed;
+
+        public TriggerScope(TableTriggerEvent evt)
+        {
+            _previousEvent = _ambientTriggerEvent.Value;
+            _ambientTriggerEvent.Value = evt;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _ambientTriggerEvent.Value = _previousEvent;
+            _disposed = true;
+        }
+    }
+
+    internal void SetLastFoundRows(long value)
+    {
+        var normalized = Math.Max(0, value);
+        _lastFoundRows = normalized;
+        _lastChangesRows = normalized;
+    }
+
+    internal void SetLastSelectRows(long value)
+        => _lastFoundRows = Math.Max(0, value);
+
+    internal long GetLastFoundRows()
+        => _lastFoundRows;
+
+    internal long GetLastChangesRows()
+        => _lastChangesRows;
+
+    internal void SetLastInsertId(object? value)
+        => _lastInsertId = value;
+
+    internal object? GetLastInsertId()
+        => _lastInsertId;
+
+    internal int GetCurrentTransactionId()
+        => _transactionState.CurrentTransactionId;
+
+    internal void SetSessionSequenceValue(
+        string sequenceName,
+        long value,
+        string? schemaName = null)
+        => _sessionState.SetSessionSequenceValue(sequenceName, value, ResolveSchemaName(schemaName));
+
+    internal bool TryGetSessionSequenceValue(
+        string sequenceName,
+        out long value,
+        string? schemaName = null)
+        => _sessionState.TryGetSessionSequenceValue(sequenceName, out value, ResolveSchemaName(schemaName));
+
+    internal bool TryGetLastSessionSequenceValue(out long value)
+        => _sessionState.TryGetLastSessionSequenceValue(out value);
+
+    internal void SetSessionContextValue(string key, object? value)
+        => _sessionState.SetSessionContextValue(key, value);
+
+    internal bool TryGetSessionContextValue(string key, out object? value)
+        => _sessionState.TryGetSessionContextValue(key, out value);
+
+    internal void SetTransactionContextValue(string key, object? value)
+        => _sessionState.SetTransactionContextValue(key, value);
+
+    internal bool TryGetTransactionContextValue(string key, out object? value)
+        => _sessionState.TryGetTransactionContextValue(key, out value);
+
+    internal void SetContextInfo(byte[]? value)
+        => _sessionState.SetContextInfo(value);
+
+    internal byte[]? GetContextInfo()
+        => _sessionState.GetContextInfo();
+
+    internal void ClearSessionSequenceValue(
+        string sequenceName,
+        string? schemaName)
+        => _sessionState.ClearSessionSequenceValue(sequenceName, ResolveSchemaName(schemaName));
+
+    /// <summary>
+    /// EN: Simulated latency in milliseconds for each operation.
+    /// PT: Latência simulada em milissegundos para cada operação.
+    /// </summary>
+    public int SimulatedLatencyMs { get; set; }
+    /// <summary>
+    /// EN: Probability of simulated network failure (0 to 1).
+    /// PT: Probabilidade de falha simulada de rede (0 a 1).
+    /// </summary>
+    public double DropProbability { get; set; }
+
+    /// <summary>
+    /// EN: Simulated connection string.
+    /// PT: String de conexão simulada.
+    /// </summary>
+    [AllowNull]
+    public override string ConnectionString
+    {
+        get => _connectionString;
+        set
+        {
+            _connectionString = value ?? string.Empty;
+            _dataSource = ParseConnectionStringDataSource(_connectionString);
+        }
+    }
+
+    /// <summary>
+    /// EN: Simulated connection timeout.
+    /// PT: Tempo limite de conexão simulada.
+    /// </summary>
+    public override int ConnectionTimeout { get; } = 1;
+
+    private string _database = ResolveInitialDatabase(db, defaultDatabase);
+    /// <summary>
+    /// EN: Current database/schema name.
+    /// PT: Nome do banco/schema atual.
+    /// </summary>
+    public override string Database => _database;
+
+    private ConnectionState _state = ConnectionState.Closed;
+    /// <summary>
+    /// EN: Current connection state.
+    /// PT: Estado atual da conexão.
+    /// </summary>
+    public override ConnectionState State => _state;
+
+    private string _dataSource = "";
+    /// <summary>
+    /// EN: Simulated data source.
+    /// PT: Fonte de dados simulada.
+    /// </summary>
+    public override string DataSource => _dataSource;
+
+    /// <summary>
+    /// EN: Firebird session user used by context resolvers.
+    /// PT: Usuario de sessao Firebird usado pelos resolvedores de contexto.
+    /// </summary>
+    internal string FirebirdCurrentUser { get; set; } = "SYSDBA";
+
+    /// <summary>
+    /// EN: Firebird session role used by context resolvers.
+    /// PT: Role de sessao Firebird usada pelos resolvedores de contexto.
+    /// </summary>
+    internal string FirebirdCurrentRole { get; set; } = "NONE";
+
+    private static string ResolveInitialDatabase(DbMock db, string? defaultDatabase)
+    {
+        if (!string.IsNullOrWhiteSpace(defaultDatabase))
+            return defaultDatabase!;
+
+        if (db.TryGetValue("DefaultSchema", out _))
+            return "DefaultSchema";
+
+        return db.GetSchemaName(null);
+    }
+
+    private string _connectionString = "";
+
+    private static string ParseConnectionStringDataSource(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+            return string.Empty;
+
+        var span = connectionString.AsSpan();
+        var start = 0;
+        while (start < span.Length)
+        {
+            var separator = span[start..].IndexOf(';');
+            var part = separator >= 0
+                ? span[start..(start + separator)]
+                : span[start..];
+
+            part = part.Trim();
+            if (part.Length == 0)
+            {
+                if (separator < 0)
+                    break;
+
+                start += separator + 1;
+                continue;
+            }
+
+            var equalsIndex = part.IndexOf('=');
+            if (equalsIndex <= 0)
+            {
+                if (separator < 0)
+                    break;
+
+                start += separator + 1;
+                continue;
+            }
+
+            var key = part[..equalsIndex].Trim();
+            if (key.Equals("DATA SOURCE", StringComparison.OrdinalIgnoreCase))
+                return part[(equalsIndex + 1)..].Trim().ToString();
+
+            if (separator < 0)
+                break;
+
+            start += separator + 1;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// EN: Backing field for the simulated server version.
+    /// PT: Campo de suporte para a versão simulada do servidor.
+    /// </summary>
+    protected string _serverVersion = "";
+    /// <summary>
+    /// EN: Simulated server version.
+    /// PT: Versão do servidor simulada.
+    /// </summary>
+    public override string ServerVersion => _serverVersion;
+
+    /// <summary>
+    /// EN: Current active transaction, if any.
+    /// PT: Transação ativa atual, se houver.
+    /// </summary>
+    protected DbTransaction? CurrentTransaction { get; private set; }
+
+    /// <summary>
+    /// EN: Indicates whether there is an active transaction in this connection.
+    /// PT: Indica se existe transação ativa nesta conexão.
+    /// </summary>
+    public bool HasActiveTransaction => CurrentTransaction != null;
+
+    /// <summary>
+    /// EN: Active transaction isolation level for the current connection.
+    /// PT: Nível de isolamento ativo da transação atual da conexão.
+    /// </summary>
+    public IsolationLevel CurrentIsolationLevel { get; private set; } = IsolationLevel.Unspecified;
+
+    /// <summary>
+    /// EN: Indicates whether savepoints are supported by this provider.
+    /// PT: Indica se savepoints são suportados por este provedor.
+    /// </summary>
+    protected virtual bool SupportsSavepoints => true;
+
+    /// <summary>
+    /// EN: Indicates whether release savepoint is supported by this provider.
+    /// PT: Indica se RELEASE SAVEPOINT é suportado por este provedor.
+    /// </summary>
+    protected virtual bool SupportsReleaseSavepoint => true;
+
+    /// <summary>
+    /// EN: Gets the default schema name for this connection.
+    /// PT: Obtem o nome do esquema padrao para esta conexao.
+    /// </summary>
+    protected virtual string DefaultSchemaName => Database;
+
+    internal string ResolveSchemaName(string? schemaName)
+        => Db.GetSchemaName(schemaName ?? DefaultSchemaName);
+
+    private readonly Dictionary<string, ITableMock> _temporaryTables =
+        new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ITableMock> _globalTemporaryTables =
+        new(StringComparer.OrdinalIgnoreCase);
+
+    #region Table
+
+    private string BuildTemporaryTableKey(
+        string tableName,
+        string? schemaName)
+    {
+        var schema = Db.GetSchemaName(schemaName ?? Database);
+        return $"{schema}:{tableName.NormalizeName()}";
+    }
+
+    private IEnumerable<ITableMock> ListTemporaryTables(
+        string? schemaName = null)
+    {
+        var schema = Db.GetSchemaName(schemaName ?? Database);
+        var prefix = $"{schema}:";
+        foreach (var entry in _temporaryTables)
+        {
+            if (entry.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                yield return entry.Value;
+        }
+    }
+
+    /// <summary>
+    /// EN: Creates and adds a temporary table to the connection scope.
+    /// PT: Cria e adiciona uma tabela temporária no escopo da conexão.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Created table. PT: Tabela criada.</returns>
+    public ITableMock AddTemporaryTable(
+        string tableName,
+        IEnumerable<Col>? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        var schemaKey = Db.GetSchemaName(schemaName ?? Database);
+        var key = BuildTemporaryTableKey(tableName, schemaKey);
+        if (!Db.TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
+            schemaMock = Db.CreateSchema(schemaKey);
+        var schema = (SchemaMock)schemaMock;
+        var materializedRows = rows as IReadOnlyList<Dictionary<int, object?>> ?? rows?.ToList();
+        var table = schema.CreateTableInstance(
+            tableName,
+            columns ?? [],
+            CurrentTransaction == null ? materializedRows : null);
+        _temporaryTables.Add(key, table);
+        if (CurrentTransaction != null)
+        {
+            AttachTransactionJournal(table);
+            RecordCreatedTable(table, TransactionTableRegistrationKind.ConnectionTemporary, key);
+            if (materializedRows is { Count: > 0 })
+            {
+                var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
+                for (var i = 0; i < materializedRows.Count; i++)
+                    clonedRows.Add(new Dictionary<int, object?>(materializedRows[i]));
+                table.AddRange(clonedRows);
+            }
+        }
+        ClearSelectPlanCache();
+        return table;
+    }
+
+    private static ITableMock CloneGlobalTemporaryTable(
+        TableMock source,
+        bool includeRows)
+    {
+        var sourceColumns = source.ColumnsByOrdinal;
+        var columnDefinitions = new Col[sourceColumns.Count];
+        for (var i = 0; i < sourceColumns.Count; i++)
+        {
+            var column = sourceColumns[i];
+            columnDefinitions[i] = new Col(
+                column.Name,
+                column.DbType,
+                column.Nullable,
+                column.Size,
+                column.DecimalPlaces,
+                column.Identity,
+                column.DefaultValue,
+                [.. column.EnumValues],
+                column.ComputedExpression);
+        }
+
+        IEnumerable<Dictionary<int, object?>>? rows = null;
+        if (includeRows)
+        {
+            var sourceRows = source.Items;
+            var clonedRows = new Dictionary<int, object?>[sourceRows.Count];
+            for (var i = 0; i < sourceRows.Count; i++)
+            {
+                var row = sourceRows[i];
+                var clonedRow = row is Dictionary<int, object?> rowDictionary
+                    ? new Dictionary<int, object?>(rowDictionary)
+                    : CloneDictionaryRow(row);
+
+                clonedRows[i] = clonedRow;
+            }
+
+            rows = clonedRows;
+        }
+
+        var clone = source.Schema.CreateTableInstance(source.TableName, columnDefinitions, rows);
+        clone.NextIdentity = source.NextIdentity;
+        clone.AllowIdentityInsert = source.AllowIdentityInsert;
+        clone.PartitionClauseSql = source.PartitionClauseSql;
+
+        if (source.CheckConstraints.Count > 0 && clone is TableMock cloneTable)
+        {
+            cloneTable.CheckConstraintsMutable.AddRange(source.CheckConstraints);
+        }
+
+        if (source.PkIndexArray.Length > 0)
+        {
+            var primaryKeyColumns = new string[source.PkIndexArray.Length];
+            for (var i = 0; i < source.PkIndexArray.Length; i++)
+                primaryKeyColumns[i] = source.GetColumnByIndex(source.PkIndexArray[i]).Name;
+
+            clone.AddPrimaryKeyIndexes(primaryKeyColumns);
+        }
+
+        var sourceIndexes = source.IndexesRaw.Values;
+        foreach (var index in sourceIndexes)
+        {
+            var include = index.Include as string[] ?? [.. index.Include];
+            clone.CreateIndex(index.Name, index.KeyCols, include, index.Unique);
+        }
+
+        return clone;
+    }
+
+    private static Dictionary<int, object?> CloneDictionaryRow(IReadOnlyDictionary<int, object?> row)
+    {
+        var clonedRow = new Dictionary<int, object?>(row.Count);
+        foreach (var entry in row)
+            clonedRow[entry.Key] = entry.Value;
+
+        return clonedRow;
+    }
+
+    private ITableMock CreateConnectionGlobalTemporaryTable(
+        string tableName,
+        IEnumerable<Col>? columns,
+        IEnumerable<Dictionary<int, object?>>? rows,
+        string? schemaName)
+    {
+        var schemaKey = Db.GetSchemaName(schemaName ?? Database);
+        if (!Db.TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
+            schemaMock = Db.CreateSchema(schemaKey);
+
+        var schema = (SchemaMock)schemaMock;
+        var materializedRows = rows as IReadOnlyList<Dictionary<int, object?>> ?? rows?.ToList();
+        var table = schema.CreateTableInstance(
+            tableName,
+            columns ?? [],
+            CurrentTransaction == null ? materializedRows : null);
+
+        if (CurrentTransaction != null)
+        {
+            AttachTransactionJournal(table);
+            RecordCreatedTable(
+                (TableMock)table,
+                TransactionTableRegistrationKind.GlobalTemporary,
+                BuildTemporaryTableKey(tableName, schemaName));
+            if (materializedRows is { Count: > 0 })
+            {
+                var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
+                for (var i = 0; i < materializedRows.Count; i++)
+                    clonedRows.Add(new Dictionary<int, object?>(materializedRows[i]));
+                table.AddRange(clonedRows);
+            }
+        }
+
+        return table;
+    }
+
+    internal ITableMock AddGlobalTemporaryTable(
+        string tableName,
+        IEnumerable<Col>? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        var materializedRows = rows as IReadOnlyList<Dictionary<int, object?>> ?? rows?.ToList();
+        var key = BuildTemporaryTableKey(tableName, schemaName);
+
+        if (!Db.GlobalTemporaryTablesShareDefinitionAcrossConnections)
+        {
+            var connectionTable = CreateConnectionGlobalTemporaryTable(tableName, columns, materializedRows, schemaName);
+            _globalTemporaryTables[key] = connectionTable;
+            ClearSelectPlanCache();
+            return connectionTable;
+        }
+
+        var definitionRows = Db.GlobalTemporaryTablesShareRowsAcrossConnections && CurrentTransaction == null
+            ? materializedRows
+            : null;
+        var definition = Db.AddGlobalTemporaryTable(
+            tableName,
+            columns,
+            definitionRows,
+            schemaName);
+        var table = Db.GlobalTemporaryTablesShareRowsAcrossConnections && CurrentTransaction == null
+            ? definition
+            : CloneGlobalTemporaryTable((TableMock)definition, includeRows: false);
+        _globalTemporaryTables[key] = table;
+
+        if (CurrentTransaction != null)
+        {
+            AttachTransactionJournal(table);
+            RecordCreatedTable(
+                (TableMock)table,
+                TransactionTableRegistrationKind.GlobalTemporary,
+                key);
+            if (materializedRows is { Count: > 0 })
+            {
+                var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
+                for (var i = 0; i < materializedRows.Count; i++)
+                    clonedRows.Add(new Dictionary<int, object?>(materializedRows[i]));
+                table.AddRange(clonedRows);
+            }
+        }
+        else if (!Db.GlobalTemporaryTablesShareRowsAcrossConnections
+            && materializedRows is { Count: > 0 })
+        {
+            var clonedRows = new List<Dictionary<int, object?>>(materializedRows.Count);
+            for (var i = 0; i < materializedRows.Count; i++)
+                clonedRows.Add(new Dictionary<int, object?>(materializedRows[i]));
+            table.AddRange(clonedRows);
+        }
+
+        ClearSelectPlanCache();
+        return table;
+    }
+
+    /// <summary>
+    /// EN: Tries to get a temporary table by name.
+    /// PT: Tenta obter uma tabela temporária pelo nome.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="tb">EN: Found table, if any. PT: Tabela encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetTemporaryTable(
+        string tableName,
+        out ITableMock? tb,
+        string? schemaName = null)
+        => _temporaryTables.TryGetValue(
+            BuildTemporaryTableKey(tableName, schemaName),
+            out tb);
+
+    internal bool TryGetGlobalTemporaryTable(
+        string tableName,
+        out ITableMock? tb,
+        string? schemaName = null)
+    {
+        var key = BuildTemporaryTableKey(tableName, schemaName);
+        if (_globalTemporaryTables.TryGetValue(key, out tb))
+        {
+            if (!Db.GlobalTemporaryTablesShareDefinitionAcrossConnections
+                || Db.TryGetGlobalTemporaryTable(tableName, out _, schemaName))
+            {
+                return true;
+            }
+
+            _globalTemporaryTables.Remove(key);
+            tb = null;
+            return false;
+        }
+
+        if (!Db.GlobalTemporaryTablesShareDefinitionAcrossConnections)
+        {
+            tb = null;
+            return false;
+        }
+
+        if (!Db.TryGetGlobalTemporaryTable(tableName, out var globalTable, schemaName)
+            || globalTable is not TableMock globalTableMock)
+        {
+            tb = null;
+            return false;
+        }
+
+        tb = Db.GlobalTemporaryTablesShareRowsAcrossConnections
+            ? globalTableMock
+            : CloneGlobalTemporaryTable(globalTableMock, includeRows: false);
+        _globalTemporaryTables[key] = tb;
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Creates and adds a table to the database.
+    /// PT: Cria e adiciona uma tabela ao banco.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Created table. PT: Tabela criada.</returns>
+    public ITableMock AddTable(
+        string tableName,
+        IEnumerable<Col>? columns = null,
+        IEnumerable<Dictionary<int, object?>>? rows = null,
+        string? schemaName = null)
+    {
+        var table = Db.AddTable(
+            tableName,
+            columns,
+            rows,
+            ResolveSchemaName(schemaName));
+
+        if (CurrentTransaction != null && table is TableMock tableMock)
+        {
+            AttachTransactionJournal(tableMock);
+            RecordCreatedTable(
+                tableMock,
+                TransactionTableRegistrationKind.Schema,
+                tableMock.TableName);
+        }
+
+        ClearSelectPlanCache();
+        return table;
+    }
+
+    /// <summary>
+    /// EN: Gets a table by name, throwing if it does not exist.
+    /// PT: Obtém uma tabela pelo nome, lançando erro se não existir.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Found table. PT: Tabela encontrada.</returns>
+    public ITableMock GetTable(
+        string tableName,
+        string? schemaName = null)
+    {
+        if (TryGetTemporaryTable(tableName, out var tb, schemaName)
+            && tb != null)
+        {
+            return tb;
+        }
+
+        if (TryGetGlobalTemporaryTable(tableName, out tb, schemaName)
+            && tb != null)
+        {
+            return tb;
+        }
+
+        var resolvedSchemaName = ResolveSchemaName(schemaName);
+        try
+        {
+            return Db.GetTable(
+                tableName,
+                resolvedSchemaName);
+        }
+        catch (InvalidOperationException) when (schemaName is null && !resolvedSchemaName.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase))
+        {
+            return Db.GetTable(
+                tableName,
+                "DefaultSchema");
+        }
+    }
+
+    /// <summary>
+    /// EN: Tries to get a table by name.
+    /// PT: Tenta obter uma tabela pelo nome.
+    /// </summary>
+    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
+    /// <param name="tb">EN: Found table, if any. PT: Tabela encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetTable(
+        string tableName,
+        out ITableMock? tb,
+        string? schemaName = null)
+    {
+        if (TryGetTemporaryTable(tableName, out tb, schemaName)
+            && tb != null)
+        {
+            return true;
+        }
+
+        if (TryGetGlobalTemporaryTable(tableName, out tb, schemaName)
+            && tb != null)
+        {
+            return true;
+        }
+
+        var resolvedSchemaName = ResolveSchemaName(schemaName);
+        if (Db.TryGetTable(
+            tableName,
+            out tb,
+            resolvedSchemaName))
+        {
+            return true;
+        }
+
+        return schemaName is null
+            && !resolvedSchemaName.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase)
+            && Db.TryGetTable(
+                tableName,
+                out tb,
+                "DefaultSchema");
+    }
+
+    internal bool IsTemporaryTable(
+        ITableMock table,
+        string tableName,
+        string? schemaName = null)
+    {
+        if (TryGetTemporaryTable(tableName, out var connectionTemp, schemaName)
+            && connectionTemp != null
+            && ReferenceEquals(connectionTemp, table))
+            return true;
+
+        if (TryGetGlobalTemporaryTable(tableName, out var globalTemp, schemaName)
+            && globalTemp != null
+            && ReferenceEquals(globalTemp, table))
+            return true;
+
+        return false;
+    }
+
+    private TransactionTableRegistrationKind GetRegistrationKind(TableMock table)
+    {
+        foreach (var candidate in _temporaryTables.Values)
+        {
+            if (ReferenceEquals(candidate, table))
+                return TransactionTableRegistrationKind.ConnectionTemporary;
+        }
+
+        foreach (var candidate in Db.ListGlobalTemporaryTables(table.Schema.SchemaName))
+        {
+            if (ReferenceEquals(candidate, table))
+                return TransactionTableRegistrationKind.GlobalTemporary;
+        }
+
+        foreach (var candidate in _globalTemporaryTables.Values)
+        {
+            if (ReferenceEquals(candidate, table))
+                return TransactionTableRegistrationKind.GlobalTemporary;
+        }
+
+        return TransactionTableRegistrationKind.Schema;
+    }
+
+    private string GetRegistrationKey(TableMock table, TransactionTableRegistrationKind registrationKind)
+        => registrationKind switch
+        {
+            TransactionTableRegistrationKind.ConnectionTemporary or TransactionTableRegistrationKind.GlobalTemporary
+                => BuildTemporaryTableKey(table.TableName, table.Schema.SchemaName),
+            _ => table.TableName
+        };
+
+    private void RecordCreatedTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.CreateIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            registrationKind,
+            registrationKey));
+    }
+
+    private void RecordDroppedTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.DropIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            registrationKind,
+            registrationKey));
+    }
+
+    private void RecordCreatedIndex(
+        TableMock table,
+        Idx indexDefinition)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        var registrationKind = GetRegistrationKind(table);
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.CreateIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            registrationKind,
+            GetRegistrationKey(table, registrationKind),
+            indexDefinition));
+    }
+
+    private void RecordDroppedIndex(
+        TableMock table,
+        Idx indexDefinition)
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        var registrationKind = GetRegistrationKind(table);
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            table,
+            TransactionJournalEntryKind.DropIndex,
+            -1,
+            null,
+            null,
+            table.NextIdentity,
+            registrationKind,
+            GetRegistrationKey(table, registrationKind),
+            indexDefinition));
+    }
+
+    private bool TryResolveDroppedIndex(
+        string indexName,
+        string? tableName,
+        string schemaName,
+        out TableMock table,
+        out Idx indexDefinition)
+    {
+        table = null!;
+        indexDefinition = null!;
+        var normalizedIndexName = indexName.NormalizeName();
+
+        if (!string.IsNullOrWhiteSpace(tableName))
+        {
+            if (Db.GetTable(tableName!, schemaName) is not TableMock namedTable
+                || !namedTable.Indexes.TryGetValue(normalizedIndexName, out var namedIndex))
+                return false;
+
+            table = namedTable;
+            indexDefinition = new Idx(
+                namedIndex.Name,
+                [.. namedIndex.KeyCols],
+                namedIndex.Unique,
+                [.. namedIndex.Include]);
+            return true;
+        }
+
+        TableMock? matchingTable = null;
+        IndexDef? resolvedIndex = null;
+        foreach (var candidate in Db.ListTables(schemaName))
+        {
+            if (candidate is not TableMock candidateTable)
+                continue;
+
+            if (!candidateTable.Indexes.TryGetValue(normalizedIndexName, out var candidateIndex))
+                continue;
+
+            matchingTable = candidateTable;
+            resolvedIndex = candidateIndex;
+            break;
+        }
+
+        if (matchingTable is null || resolvedIndex is null)
+            return false;
+
+        table = matchingTable;
+        indexDefinition = new Idx(
+            resolvedIndex.Name,
+            [.. resolvedIndex.KeyCols],
+            resolvedIndex.Unique,
+            [.. resolvedIndex.Include]);
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Lists the tables in the current schema.
+    /// PT: Lista as tabelas do schema atual.
+    /// </summary>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Table list. PT: Lista de tabelas.</returns>
+    public IReadOnlyList<ITableMock> ListTables(
+        string? schemaName = null)
+    {
+        var targetSchema = ResolveSchemaName(schemaName);
+        var tables = Db.ListTables(targetSchema).ToList();
+        foreach (var globalTable in Db.ListGlobalTemporaryTables(targetSchema))
+        {
+            if (globalTable is TableMock globalTableMock
+                && TryGetGlobalTemporaryTable(globalTableMock.TableName, out var table, schemaName))
+            {
+                if (table is not null)
+                {
+                    tables.Add(table);
+                }
+            }
+        }
+
+        tables.AddRange(ListTemporaryTables(schemaName));
+        return tables.AsReadOnly();
+    }
+
+    /// <summary>
+    /// EN: Resets all volatile in-memory state for the current connection and backing database.
+    /// PT: Reseta todo o estado volátil em memória da conexão atual e do banco associado.
+    /// </summary>
+    public void ResetAllVolatileData()
+    {
+        if (!Db.ThreadSafe)
+        {
+            ResetAllVolatileDataCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            ResetAllVolatileDataCore();
+    }
+
+    #endregion
+
+    #region View
+
+    internal void AddView(
+        SqlCreateViewQuery query)
+    {
+        var schemaName = ResolveSchemaName(query.Table?.DbName);
+        var viewName = query.Table?.Name?.NormalizeName();
+        SqlSelectQuery? previousDefinition = null;
+        if (!string.IsNullOrWhiteSpace(viewName))
+            Db.TryGetView(viewName!, out previousDefinition, schemaName);
+
+        Db.AddView(query, schemaName);
+        ClearSelectPlanCache();
+
+        if (CurrentTransaction == null || string.IsNullOrWhiteSpace(viewName))
+            return;
+
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpsertView,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            ViewState: new TransactionViewState(schemaName, viewName!, previousDefinition)));
+    }
+
+    internal SqlSelectQuery GetView(
+        string viewName,
+        string? schemaName = null)
+        => Db.GetView(
+            viewName,
+            ResolveSchemaName(schemaName));
+
+    internal bool TryGetView(
+        string viewName,
+        out SqlSelectQuery? vw,
+        string? schemaName = null)
+        => Db.TryGetView(
+            viewName,
+            out vw,
+            ResolveSchemaName(schemaName));
+
+    internal void DropView(
+        string viewName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        var targetSchema = ResolveSchemaName(schemaName);
+        if (CurrentTransaction != null
+            && Db.TryGetView(viewName, out var previousDefinition, targetSchema)
+            && previousDefinition is not null)
+        {
+            _transactionJournalManager.Append(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropView,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                ViewState: new TransactionViewState(targetSchema, viewName.NormalizeName(), previousDefinition)));
+        }
+
+        Db.DropView(viewName, ifExists, targetSchema);
+        ClearSelectPlanCache();
+    }
+
+    internal void DropTable(
+        string tableName,
+        bool ifExists,
+        bool temporary,
+        TemporaryTableScope scope,
+        string? schemaName = null)
+    {
+        var targetSchema = schemaName ?? Database;
+        var regularSchema = ResolveSchemaName(schemaName);
+
+        if (scope == TemporaryTableScope.Global)
+        {
+            var temporaryKey = BuildTemporaryTableKey(tableName, targetSchema);
+            if (CurrentTransaction != null
+                && _globalTemporaryTables.TryGetValue(temporaryKey, out var globalTable)
+                && globalTable is TableMock globalTableMock)
+            {
+                RecordDroppedTable(
+                    globalTableMock,
+                    TransactionTableRegistrationKind.GlobalTemporary,
+                    temporaryKey);
+            }
+            _globalTemporaryTables.Remove(temporaryKey);
+            Db.DropGlobalTemporaryTable(tableName, ifExists, targetSchema);
+            ClearSelectPlanCache();
+            return;
+        }
+
+        if (temporary || scope == TemporaryTableScope.Connection)
+        {
+            var temporaryKey = BuildTemporaryTableKey(tableName, targetSchema);
+            if (_temporaryTables.TryGetValue(temporaryKey, out var connectionTemp)
+                && connectionTemp is TableMock connectionTempMock)
+            {
+                if (CurrentTransaction != null)
+                {
+                    RecordDroppedTable(
+                        connectionTempMock,
+                        TransactionTableRegistrationKind.ConnectionTemporary,
+                        temporaryKey);
+                }
+
+                _temporaryTables.Remove(temporaryKey);
+                ClearSelectPlanCache();
+                return;
+            }
+
+            if (ifExists)
+            {
+                ClearSelectPlanCache();
+                return;
+            }
+
+            throw SqlUnsupported.ForNormalizedTableDoesNotExist(tableName);
+        }
+
+        var tableExists = Db.TryGetTable(tableName, out var schemaTable, regularSchema);
+        var schemaTableMock = schemaTable as TableMock;
+        var canDropTable = tableExists && schemaTableMock is not null;
+
+        if (CurrentTransaction != null && canDropTable)
+        {
+            RecordDroppedTable(
+                schemaTableMock!,
+                TransactionTableRegistrationKind.Schema,
+                schemaTableMock!.TableName);
+        }
+
+        if (canDropTable)
+        {
+            var ownedSequences = Db.ListOwnedSequenceNames(tableName, regularSchema);
+            foreach (var ownedSequence in ownedSequences)
+                DropSequence(ownedSequence, true, regularSchema);
+        }
+
+        Db.DropTable(tableName, ifExists, regularSchema);
+        ClearSelectPlanCache();
+    }
+
+    internal void CreateIndex(
+        string indexName,
+        string tableName,
+        IEnumerable<string> keyColumns,
+        bool unique,
+        string? schemaName = null)
+    {
+        Db.CreateIndex(
+            indexName,
+            tableName,
+            keyColumns,
+            unique,
+            ResolveSchemaName(schemaName));
+        ClearSelectPlanCache();
+
+        if (CurrentTransaction == null)
+            return;
+
+        if (Db.GetTable(tableName, ResolveSchemaName(schemaName)) is not TableMock table)
+            return;
+
+        var createdIndex = table.Indexes[indexName.NormalizeName()];
+        RecordCreatedIndex(
+            table,
+            new Idx(
+                createdIndex.Name,
+                [.. createdIndex.KeyCols],
+                createdIndex.Unique,
+                [.. createdIndex.Include]));
+    }
+
+    internal void DropIndex(
+        string indexName,
+        bool ifExists,
+        string? tableName = null,
+        string? schemaName = null)
+    {
+        if (CurrentTransaction != null
+            && TryResolveDroppedIndex(indexName, tableName, ResolveSchemaName(schemaName), out var table, out var indexDefinition))
+        {
+            RecordDroppedIndex(table, indexDefinition);
+        }
+
+        Db.DropIndex(
+            indexName,
+            ifExists,
+            tableName,
+            ResolveSchemaName(schemaName));
+        ClearSelectPlanCache();
+    }
+
+    internal void AlterTableAddColumn(
+        string tableName,
+        string columnName,
+        DbType dbType,
+        bool nullable,
+        int? size = null,
+        int? decimalPlaces = null,
+        object? defaultValue = null,
+        string? computedExpression = null,
+        string? schemaName = null)
+    {
+        Db.AlterTableAddColumn(
+            tableName,
+            columnName,
+            dbType,
+            nullable,
+            size,
+            decimalPlaces,
+            defaultValue,
+            computedExpression,
+            ResolveSchemaName(schemaName));
+        ClearSelectPlanCache();
+    }
+
+    #endregion
+
+    #region Procedures
+
+    /// <summary>
+    /// EN: Registers a stored procedure in the current database schema.
+    /// PT: Registra um procedimento armazenado no schema atual do banco.
+    /// </summary>
+    /// <param name="procedure">EN: Procedure definition. PT: Definicao do procedimento.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddProcedure(
+        ProcedureDef procedure,
+        string? schemaName = null)
+        => CreateProcedure(
+            procedure.Name,
+            procedure,
+            orReplace: true,
+            ResolveSchemaName(schemaName));
+
+    /// <summary>
+    /// EN: Registers a stored procedure.
+    /// PT: Registra um procedimento armazenado.
+    /// </summary>
+    /// <param name="pr">EN: Procedure definition. PT: Definição do procedimento.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddProdecure(
+        ProcedureDef pr,
+        string? schemaName = null)
+        => AddProcedure(pr, schemaName);
+
+    /// <summary>
+    /// EN: Registers a user-defined function in the current database schema.
+    /// PT: Registra uma funcao definida pelo usuario no schema atual do banco.
+    /// </summary>
+    /// <param name="function">EN: Function definition. PT: Definicao da funcao.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddFunction(
+        DbFunctionDef function,
+        string? schemaName = null)
+        => CreateFunction(
+            function,
+            orReplace: true,
+            ResolveSchemaName(schemaName));
+
+    /// <summary>
+    /// EN: Tries to get a stored procedure.
+    /// PT: Tenta obter um procedimento armazenado.
+    /// </summary>
+    /// <param name="procName">EN: Procedure name. PT: Nome do procedimento.</param>
+    /// <param name="pr">EN: Found procedure, if any. PT: Procedimento encontrado, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetProcedure(
+        string procName,
+        out ProcedureDef? pr,
+        string? schemaName = null)
+        => Db.TryGetProcedure(
+            procName,
+            out pr,
+            ResolveSchemaName(schemaName));
+
+    #endregion
+
+    #region Functions
+
+    internal bool TryGetFunction(
+        string functionName,
+        out DbFunctionDef? function,
+        string? schemaName = null)
+        => Db.TryGetFunction(
+            functionName,
+            out function,
+            schemaName);
+
+    internal bool ContainsRuntimeFunction(string functionName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        return _runtimeFunctions.Contains(functionName.NormalizeName());
+    }
+
+    internal bool TryGetRuntimeFunction(
+        string functionName,
+        out DbFunctionDef? function)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
+        return _runtimeFunctionDefinitions.TryGetValue(functionName.NormalizeName(), out function)
+            && function is not null;
+    }
+
+    private void SyncRuntimeFunctionDefinition(
+        DbFunctionDef? definition,
+        string functionName)
+    {
+        var runtimeDefinition = definition;
+        if (runtimeDefinition is null
+            && !Db.TryGetFunction(functionName, out runtimeDefinition, null))
+        {
+            runtimeDefinition = null;
+        }
+
+        if (runtimeDefinition is null)
+        {
+            _runtimeFunctions.Remove(functionName.NormalizeName());
+            _runtimeFunctionDefinitions.Remove(functionName.NormalizeName());
+        }
+        else
+        {
+            _runtimeFunctions.Add(functionName.NormalizeName());
+            _runtimeFunctionDefinitions[functionName.NormalizeName()] = runtimeDefinition;
+        }
+
+        SyncRuntimeFunctionDefinition(Db.Dialect, functionName, runtimeDefinition);
+        SyncRuntimeFunctionDefinition(_providerSqlDialect, functionName, runtimeDefinition);
+        SyncRuntimeFunctionDefinition(_autoSqlDialect, functionName, runtimeDefinition);
+    }
+
+    private static void SyncRuntimeFunctionDefinition(
+        ISqlDialect dialect,
+        string functionName,
+        DbFunctionDef? definition)
+    {
+        if (dialect is not SqlDialectBase sqlDialect)
+            return;
+
+        if (definition is null)
+        {
+            sqlDialect.Functions.Remove(functionName);
+            return;
+        }
+
+        sqlDialect.Functions.Add(definition);
+    }
+
+    /// <summary>
+    /// EN: Replaces or registers a user-defined function in the current database schema.
+    /// PT: Substitui ou registra uma funcao definida pelo usuario no schema atual do banco.
+    /// </summary>
+    /// <param name="definition">EN: Function definition. PT: Definicao da funcao.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definicao existente.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void CreateFunction(
+        DbFunctionDef definition,
+        bool orReplace = false,
+        string? schemaName = null)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(definition.Name, nameof(definition.Name));
+
+        var targetSchema = ResolveSchemaName(schemaName);
+        DbFunctionDef? previousDefinition = null;
+        Db.TryGetFunction(definition.Name, out previousDefinition, targetSchema);
+
+        Db.CreateFunction(definition, orReplace, targetSchema);
+        SyncRuntimeFunctionDefinition(definition, definition.Name);
+        SqlQueryParser.ClearAstCache();
+
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpsertFunction,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            FunctionState: new TransactionFunctionState(
+                targetSchema,
+                definition.Name.NormalizeName(),
+                previousDefinition)));
+    }
+
+    internal void DropFunction(
+        string functionName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        var targetSchema = ResolveSchemaName(schemaName);
+        if (CurrentTransaction != null
+            && Db.TryGetFunction(functionName, out var previousDefinition, targetSchema)
+            && previousDefinition is not null)
+        {
+            _transactionJournalManager.Append(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropFunction,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                FunctionState: new TransactionFunctionState(
+                    targetSchema,
+                    functionName.NormalizeName(),
+                    previousDefinition)));
+        }
+
+        Db.DropFunction(functionName, ifExists, targetSchema);
+        SyncRuntimeFunctionDefinition(null, functionName);
+        SqlQueryParser.ClearAstCache();
+    }
+
+    internal void DropProcedure(
+        string procedureName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        var targetSchema = ResolveSchemaName(schemaName);
+        if (!Db.TryGetProcedure(procedureName, out var previousDefinition, targetSchema)
+            || previousDefinition is null)
+        {
+            if (ifExists)
+                return;
+
+            throw new InvalidOperationException($"Procedure '{procedureName}' does not exist.");
+        }
+
+        if (CurrentTransaction != null)
+        {
+            _transactionJournalManager.Append(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropProcedure,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                ProcedureState: new TransactionProcedureState(
+                    targetSchema,
+                    procedureName.NormalizeName(),
+                    previousDefinition)));
+        }
+
+        Db.RemoveProcedure(procedureName, targetSchema);
+        SqlQueryParser.ClearAstCache();
+    }
+
+    /// <summary>
+    /// EN: Replaces or registers a stored procedure in the current database schema.
+    /// PT: Substitui ou registra um procedimento armazenado no schema atual do banco.
+    /// </summary>
+    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
+    /// <param name="procedure">EN: Procedure definition. PT: Definicao da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definicao existente.</param>
+    public void CreateProcedure(
+        string procedureName,
+        ProcedureDef procedure,
+        bool orReplace = false,
+        string? schemaName = null)
+    {
+        var targetSchema = ResolveSchemaName(schemaName);
+        ProcedureDef? previousDefinition = null;
+        Db.TryGetProcedure(procedureName, out previousDefinition, targetSchema);
+
+        Db.CreateProcedure(
+            procedureName,
+            procedure,
+            orReplace,
+            targetSchema);
+
+        if (CurrentTransaction == null)
+            return;
+
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpsertProcedure,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            ProcedureState: new TransactionProcedureState(
+                targetSchema,
+                procedureName.NormalizeName(),
+                previousDefinition)));
+    }
+
+    internal DmlExecutionResult CreateTrigger(
+        string triggerName,
+        SqlTableSource table,
+        bool isBefore,
+        TableTriggerEvent evt,
+        bool orReplace = false)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
+        ArgumentNullExceptionCompatible.ThrowIfNull(table, nameof(table));
+
+        var targetSchema = ResolveSchemaName(table.DbName);
+        var targetTable = Db.GetTable(table.Name!, targetSchema);
+        if (targetTable is not TableMock tableMock)
+            throw new InvalidOperationException($"Table '{table.Name}' is not a supported in-memory table type.");
+
+        tableMock.TriggerManager.AddOrReplaceTrigger(triggerName, evt, static _ => { }, orReplace);
+        _ = isBefore;
+        SetLastFoundRows(0);
+
+        return new DmlExecutionResult();
+    }
+
+    internal DmlExecutionResult CreateTrigger(SqlCreateTriggerQuery query)
+    {
+        if (!Db.ThreadSafe)
+            return CreateTrigger(
+                query.TriggerName,
+                query.Table!,
+                query.IsBefore,
+                query.Event,
+                query.OrReplace);
+
+        lock (Db.SyncRoot)
+            return CreateTrigger(
+                query.TriggerName,
+                query.Table!,
+                query.IsBefore,
+                query.Event,
+                query.OrReplace);
+    }
+
+    internal void DropTrigger(
+        string triggerName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(triggerName, nameof(triggerName));
+        var normalizedTriggerName = triggerName.NormalizeName();
+        var normalizedSchemaName = string.IsNullOrWhiteSpace(schemaName) ? null : Db.GetSchemaName(schemaName);
+
+        TableMock? match = null;
+        TableTriggerEvent previousEvent = default;
+        foreach (var table in Db.ListAllTablesBestEffort())
+        {
+            if (table is not TableMock tableMock)
+                continue;
+
+            if (normalizedSchemaName is not null
+                && !tableMock.Schema.SchemaName.Equals(normalizedSchemaName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!tableMock.TriggerManager.TryGetTriggerEvent(normalizedTriggerName, out previousEvent))
+                continue;
+
+            if (!tableMock.TriggerManager.RemoveTrigger(normalizedTriggerName))
+                continue;
+
+            match = tableMock;
+            break;
+        }
+
+        if (match is null)
+        {
+            if (ifExists)
+                return;
+
+            throw new InvalidOperationException($"Trigger '{normalizedTriggerName}' does not exist.");
+        }
+
+        if (CurrentTransaction != null)
+        {
+            _transactionJournalManager.Append(new TransactionJournalEntry(
+                match!,
+                TransactionJournalEntryKind.DropTrigger,
+                -1,
+                null,
+                null,
+                0,
+                TransactionTableRegistrationKind.Schema,
+                match!.Schema.SchemaName,
+                TriggerState: new TransactionTriggerState(
+                    match.Schema.SchemaName,
+                    normalizedTriggerName,
+                    previousEvent)));
+        }
+
+        _ = schemaName;
+        SqlQueryParser.ClearAstCache();
+    }
+
+    #endregion
+
+    #region Sequences
+
+    /// <summary>
+    /// EN: Registers a sequence.
+    /// PT: Registra uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Sequence definition. PT: Definição da sequence.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    public void AddSequence(
+        string sequenceName,
+        SequenceDef sequence,
+        string? schemaName = null)
+        => Db.AddSequence(
+            sequenceName,
+            sequence,
+            ResolveSchemaName(schemaName));
+
+    /// <summary>
+    /// EN: Creates and registers a sequence.
+    /// PT: Cria e registra uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
+    /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
+    /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
+    /// <param name="minValue">EN: Minimum allowed value when the sequence is bounded. PT: Valor minimo permitido quando a sequence e limitada.</param>
+    /// <param name="maxValue">EN: Maximum allowed value when the sequence is bounded. PT: Valor maximo permitido quando a sequence e limitada.</param>
+    /// <param name="isCycle">EN: Whether the sequence wraps around when it reaches a bound. PT: Indica se a sequence reinicia ao atingir um limite.</param>
+    /// <param name="ownedBySchema">EN: Schema of the owning table when the sequence is attached to a column. PT: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByTable">EN: Owning table name when the sequence is attached to a column. PT: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByColumn">EN: Owning column name when the sequence is attached to a column. PT: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
+    public SequenceDef AddSequence(
+        string sequenceName,
+        long startValue = 1,
+        long incrementBy = 1,
+        long? currentValue = null,
+        long? minValue = null,
+        long? maxValue = null,
+        bool isCycle = false,
+        string? ownedBySchema = null,
+        string? ownedByTable = null,
+        string? ownedByColumn = null,
+        string? schemaName = null)
+        => Db.AddSequence(
+            sequenceName,
+            startValue,
+            incrementBy,
+            currentValue,
+            minValue,
+            maxValue,
+            isCycle,
+            ownedBySchema,
+            ownedByTable,
+            ownedByColumn,
+            ResolveSchemaName(schemaName));
+
+    /// <summary>
+    /// EN: Tries to get a sequence.
+    /// PT: Tenta obter uma sequence.
+    /// </summary>
+    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
+    /// <param name="sequence">EN: Found sequence, if any. PT: Sequence encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    public bool TryGetSequence(
+        string sequenceName,
+        out SequenceDef? sequence,
+        string? schemaName = null)
+    {
+        var resolvedSchemaName = ResolveSchemaName(schemaName);
+        if (Db.TryGetSequence(
+            sequenceName,
+            out sequence,
+            resolvedSchemaName))
+        {
+            return true;
+        }
+
+        return schemaName is null
+            && !resolvedSchemaName.Equals("DefaultSchema", StringComparison.OrdinalIgnoreCase)
+            && Db.TryGetSequence(
+                sequenceName,
+                out sequence,
+                "DefaultSchema");
+    }
+
+    internal void CreateSequence(
+        string sequenceName,
+        bool ifNotExists,
+        long startValue = 1,
+        long incrementBy = 1,
+        long? minValue = null,
+        long? maxValue = null,
+        bool isCycle = false,
+        string? ownedBySchema = null,
+        string? ownedByTable = null,
+        string? ownedByColumn = null,
+        string? schemaName = null)
+    {
+        var targetSchema = ResolveSchemaName(schemaName);
+        var existedBefore = Db.TryGetSequence(sequenceName, out _, targetSchema);
+        Db.CreateSequence(
+            sequenceName,
+            ifNotExists,
+            startValue,
+            incrementBy,
+            minValue,
+            maxValue,
+            isCycle,
+            ownedBySchema,
+            ownedByTable,
+            ownedByColumn,
+            targetSchema);
+
+        if (CurrentTransaction == null || existedBefore)
+            return;
+
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.CreateSequence,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            SequenceState: new TransactionSequenceState(
+                targetSchema,
+                sequenceName.NormalizeName(),
+                null,
+                false,
+                default)));
+    }
+
+    internal void DropSequence(
+        string sequenceName,
+        bool ifExists,
+        string? schemaName = null)
+    {
+        var targetSchema = ResolveSchemaName(schemaName);
+        if (CurrentTransaction != null
+            && Db.TryGetSequence(sequenceName, out var previousSequence, targetSchema)
+            && previousSequence is not null)
+        {
+            var hadSessionValue = TryGetSessionSequenceValue(sequenceName, out var sessionValue, targetSchema);
+            _transactionJournalManager.Append(new TransactionJournalEntry(
+                null!,
+                TransactionJournalEntryKind.DropSequence,
+                -1,
+                null,
+                null,
+                0,
+                default,
+                string.Empty,
+                SequenceState: new TransactionSequenceState(
+                    targetSchema,
+                    sequenceName.NormalizeName(),
+                    CloneSequence(previousSequence),
+                    hadSessionValue,
+                    sessionValue)));
+        }
+
+        ClearSessionSequenceValue(sequenceName, targetSchema);
+        Db.DropSequence(sequenceName, ifExists, targetSchema);
+    }
+
+    internal static SequenceDef CloneSequence(SequenceDef sequence)
+    {
+        var clone = new SequenceDef(
+            sequence.Name,
+            sequence.StartValue,
+            sequence.IncrementBy,
+            sequence.CurrentValue,
+            sequence.MinValue,
+            sequence.MaxValue,
+            sequence.IsCycle,
+            sequence.OwnedBySchema,
+            sequence.OwnedByTable,
+            sequence.OwnedByColumn);
+        if (sequence.CurrentValue.HasValue && !sequence.IsCalled)
+            clone.SetValue(sequence.CurrentValue.Value, false);
+
+        return clone;
+    }
+
+    internal void CaptureSequenceStateForRollback(
+        string sequenceName,
+        string? schemaName = null)
+    {
+        if (CurrentTransaction == null
+            || !Db.TryGetSequence(sequenceName, out var sequence, ResolveSchemaName(schemaName))
+            || sequence is null)
+            return;
+
+        var targetSchema = ResolveSchemaName(schemaName);
+        var hadSessionValue = TryGetSessionSequenceValue(sequenceName, out var sessionValue, targetSchema);
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            null!,
+            TransactionJournalEntryKind.UpdateSequence,
+            -1,
+            null,
+            null,
+            0,
+            default,
+            string.Empty,
+            SequenceState: new TransactionSequenceState(
+                targetSchema,
+                sequenceName.NormalizeName(),
+                CloneSequence(sequence),
+                hadSessionValue,
+                sessionValue)));
+    }
+
+    #endregion
+
+    /// <summary>
+    /// EN: Begins a database transaction with the specified isolation level.
+    /// PT: Inicia uma transação com o nível de isolamento especificado.
+    /// </summary>
+    /// <param name="isolationLevel">EN: Isolation level. PT: Nível de isolamento.</param>
+    /// <returns>EN: Created transaction. PT: Transação criada.</returns>
+    protected override DbTransaction BeginDbTransaction(
+        IsolationLevel isolationLevel)
+    {
+        if (!Db.ThreadSafe)
+            return BeginTransactionCore(isolationLevel);
+
+        lock (Db.SyncRoot)
+            return BeginTransactionCore(isolationLevel);
+    }
+
+    private DbTransaction BeginTransactionCore(IsolationLevel isolationLevel)
+    {
+        CurrentIsolationLevel = isolationLevel;
+        CurrentTransaction = CreateTransaction(isolationLevel);
+        _transactionState.CurrentTransactionId = Db.AllocateFirebirdTransactionId();
+        _sessionState.ClearTransactionContextValues();
+        ClearTransactionStateCore(detachObservers: false);
+        AttachTransactionJournalToCurrentTables();
+        _transactionState.TransactionBeginJournalPosition = _transactionJournalManager.JournalCount;
+        if (SupportsSavepoints)
+            CreateSavepointCore("__tx_begin__");
+        return CurrentTransaction;
+    }
+
+    /// <summary>
+    /// EN: Creates a provider-specific transaction instance.
+    /// PT: Cria uma instância de transação específica do provedor.
+    /// </summary>
+    /// <returns>EN: Transaction instance. PT: Instância da transação.</returns>
+    protected abstract DbTransaction CreateTransaction(IsolationLevel isolationLevel);
+
+    /// <summary>
+    /// EN: Changes the current database/schema of the connection.
+    /// PT: Altera o database/schema atual da conexão.
+    /// </summary>
+    /// <param name="databaseName">EN: Database name. PT: Nome do database.</param>
+    public override void ChangeDatabase(string databaseName)
+    {
+        if (string.Equals(_database, databaseName, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _database = databaseName;
+        ClearSelectPlanCache();
+    }
+
+    /// <summary>
+    /// EN: Closes the simulated connection.
+    /// PT: Fecha a conexão simulada.
+    /// </summary>
+    public override void Close()
+    {
+        if (!Db.ThreadSafe)
+        {
+            CloseCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            CloseCore();
+    }
+
+    private void CloseCore()
+    {
+        CurrentTransaction?.Dispose();
+        CurrentTransaction = null;
+        _transactionState.CurrentTransactionId = 0;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        ClearTransactionStateCore(detachObservers: false);
+
+        foreach (var table in _temporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+        }
+
+        _temporaryTables.Clear();
+
+        if (!Db.GlobalTemporaryTablesShareRowsAcrossConnections)
+        {
+            foreach (var table in _globalTemporaryTables.Values)
+            {
+                while (table.Count > 0)
+                    table.RemoveAt(table.Count - 1);
+
+                table.NextIdentity = 1;
+            }
+        }
+
+        _globalTemporaryTables.Clear();
+        _sessionState.ClearAll();
+        _lastInsertId = 0;
+        SetLastFoundRows(0);
+        ClearExecutionPlans();
+        ClearSelectPlanCache();
+        _state = ConnectionState.Closed;
+    }
+
+    /// <summary>
+    /// EN: Creates a command associated with the current transaction.
+    /// PT: Cria um comando associado à transação atual.
+    /// </summary>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
+    protected override DbCommand CreateDbCommand()
+        => CreateDbCommandCore(CurrentTransaction);
+
+    /// <summary>
+    /// EN: Creates a provider-specific command tied to a transaction.
+    /// PT: Cria um comando específico do provedor atrelado a uma transação.
+    /// </summary>
+    /// <param name="transaction">EN: Current transaction. PT: Transação atual.</param>
+    /// <returns>EN: Command instance. PT: Instância do comando.</returns>
+    protected abstract DbCommand CreateDbCommandCore(
+        DbTransaction? transaction);
+
+    /// <summary>
+    /// EN: Opens the simulated connection.
+    /// PT: Abre a conexão simulada.
+    /// </summary>
+    public override void Open()
+    {
+        _state = ConnectionState.Open;
+        Debug.WriteLine("Opended");
+    }
+
+    /// <summary>
+    /// EN: Commits the current transaction, releasing backups.
+    /// PT: Confirma a transação atual, liberando backups.
+    /// </summary>
+    public void CommitTransaction()
+    {
+        if (!Db.ThreadSafe)
+        {
+            CommitCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            CommitCore();
+    }
+
+    private void CommitCore()
+    {
+        Debug.WriteLine("Transaction Committed");
+        ClearTransactionStateCore(detachObservers: false);
+        CurrentTransaction = null;
+        _transactionState.CurrentTransactionId = 0;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        _sessionState.ClearTransactionContextValues();
+    }
+
+    /// <summary>
+    /// EN: Rolls back the current transaction restoring the backup.
+    /// PT: Desfaz a transação atual restaurando o backup.
+    /// </summary>
+    public void RollbackTransaction()
+    {
+        if (!Db.ThreadSafe)
+        {
+            RollbackCore();
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            RollbackCore();
+    }
+
+    private void RollbackCore()
+    {
+        if (CurrentTransaction == null)
+            return;
+
+        Debug.WriteLine("Transaction Rolled Back");
+        RollbackJournalTo(_transactionState.TransactionBeginJournalPosition);
+        ClearTransactionStateCore(detachObservers: false);
+        CurrentTransaction = null;
+        _transactionState.CurrentTransactionId = 0;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        _sessionState.ClearTransactionContextValues();
+    }
+
+    /// <summary>
+    /// EN: Creates a named savepoint inside the active transaction.
+    /// PT: Cria um savepoint nomeado dentro da transação ativa.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void CreateSavepoint(string savepointName)
+    {
+        if (!Db.ThreadSafe)
+        {
+            CreateSavepointCore(savepointName);
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            CreateSavepointCore(savepointName);
+    }
+
+    /// <summary>
+    /// EN: Rolls back to a named savepoint inside the active transaction.
+    /// PT: Executa rollback para um savepoint nomeado dentro da transação ativa.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void RollbackTransaction(string savepointName)
+    {
+        if (!Db.ThreadSafe)
+        {
+            RollbackToSavepointCore(savepointName);
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            RollbackToSavepointCore(savepointName);
+    }
+
+    /// <summary>
+    /// EN: Releases a named savepoint from the active transaction.
+    /// PT: Libera um savepoint nomeado da transação ativa.
+    /// </summary>
+    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    public void ReleaseSavepoint(string savepointName)
+    {
+        if (!Db.ThreadSafe)
+        {
+            ReleaseSavepointCore(savepointName);
+            return;
+        }
+
+        lock (Db.SyncRoot)
+            ReleaseSavepointCore(savepointName);
+    }
+
+    private void CreateSavepointCore(string savepointName)
+    {
+        EnsureActiveTransaction();
+        if (!SupportsSavepoints)
+            throw SqlUnsupported.NotSupported(ExecutionDialect, "SAVEPOINT");
+
+        var normalizedName = NormalizeSavepointName(savepointName);
+        _transactionState.SetSavepoint(normalizedName, _transactionJournalManager.JournalCount);
+    }
+
+    private void RollbackToSavepointCore(string savepointName)
+    {
+        EnsureActiveTransaction();
+        if (!SupportsSavepoints)
+            throw SqlUnsupported.NotSupported(ExecutionDialect, "ROLLBACK TO SAVEPOINT");
+
+        var normalizedName = NormalizeSavepointName(savepointName);
+        if (!_transactionState.TryGetSavepointJournalPosition(normalizedName, out var journalPosition))
+            throw SqlUnsupported.ForSavepointNotFound(savepointName);
+
+        RollbackJournalTo(journalPosition);
+
+        var savepointIndex = _transactionState.FindSavepointOrderIndex(normalizedName);
+        if (savepointIndex >= 0)
+            _transactionState.RemoveSavepointsAfterIndex(savepointIndex);
+    }
+
+    private void ReleaseSavepointCore(string savepointName)
+    {
+        EnsureActiveTransaction();
+        var normalizedName = NormalizeSavepointName(savepointName);
+        if (!SupportsSavepoints || !SupportsReleaseSavepoint)
+            throw SqlUnsupported.NotSupported(ExecutionDialect, "RELEASE SAVEPOINT");
+
+        if (!_transactionState.TryRemoveSavepoint(normalizedName))
+            throw SqlUnsupported.ForSavepointNotFound(savepointName);
+    }
+
+    private static string NormalizeSavepointName(string savepointName)
+    {
+        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(savepointName, nameof(savepointName));
+        var trimmed = savepointName.AsSpan().Trim();
+        return trimmed.Length == savepointName.Length ? savepointName : trimmed.ToString();
+    }
+
+    private void EnsureActiveTransaction()
+    {
+        if (CurrentTransaction == null)
+            throw SqlUnsupported.ForNoActiveTransactionForSavepointOperation();
+    }
+
+    private void AttachTransactionJournalToCurrentTables()
+    {
+        var seenTables = new HashSet<ITableMock>(TableReferenceComparer.Instance);
+
+        AttachTransactionJournalToCurrentTables(Db.ListAllTablesBestEffort(), seenTables);
+        AttachTransactionJournalToCurrentTables(_globalTemporaryTables.Values, seenTables);
+        AttachTransactionJournalToCurrentTables(_temporaryTables.Values, seenTables);
+    }
+
+    private void AttachTransactionJournalToCurrentTables(
+        IEnumerable<ITableMock> tables,
+        HashSet<ITableMock> seenTables)
+    {
+        foreach (var table in tables)
+        {
+            if (!seenTables.Add(table))
+                continue;
+
+            AttachTransactionJournal(table);
+        }
+    }
+
+    private void AttachTransactionJournal(ITableMock table)
+    {
+        if (table is not TableMock tableMock || !_journalObservedTables.Add(tableMock))
+            return;
+
+        tableMock.MutationApplied += OnTableMutationApplied;
+    }
+
+    private void OnTableMutationApplied(TableMutationNotification mutation)
+    {
+        if (_transactionState.IsReplayingTransactionJournal || CurrentTransaction == null)
+            return;
+
+        var registrationKind = GetRegistrationKind(mutation.Table);
+        var ambientConnection = _ambientMutationConnection.Value;
+        if (ambientConnection is not null
+            && !ReferenceEquals(ambientConnection, this)
+            && registrationKind is not TransactionTableRegistrationKind.ConnectionTemporary)
+            return;
+
+        _transactionJournalManager.Append(new TransactionJournalEntry(
+            mutation.Table,
+            mutation.Kind switch
+            {
+                TableMutationKind.Insert => TransactionJournalEntryKind.Insert,
+                TableMutationKind.Update => TransactionJournalEntryKind.Update,
+                _ => TransactionJournalEntryKind.Delete
+            },
+            mutation.RowIndex,
+            mutation.Row,
+            mutation.OldRowSnapshot,
+            mutation.PreviousNextIdentity,
+            registrationKind,
+            GetRegistrationKey(mutation.Table, registrationKind),
+            NewRowSnapshot: mutation.Kind == TableMutationKind.Update ? TableMock.CloneRow(mutation.Row) : null));
+    }
+
+    private void RollbackJournalTo(int journalPosition)
+        => _transactionJournalManager.RollbackJournalTo(journalPosition, this, _transactionState);
+
+    private void ReplayTransactionJournalEntry(TransactionJournalEntry entry)
+    {
+        switch (entry.Kind)
+        {
+            case TransactionJournalEntryKind.Insert:
+                entry.Table!.RemoveRowByReference(entry.Row!);
+                entry.Table.NextIdentity = entry.PreviousNextIdentity;
+                break;
+            case TransactionJournalEntryKind.Update:
+                ReplayUpdateJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.Delete:
+                entry.Table!.InsertRestoredRow(entry.RowIndex, entry.Row!);
+                break;
+            case TransactionJournalEntryKind.CreateTable:
+                UnregisterTable(entry.Table!, entry.RegistrationKind, entry.RegistrationKey);
+                break;
+            case TransactionJournalEntryKind.DropTable:
+                RegisterTable(entry.Table!, entry.RegistrationKind, entry.RegistrationKey);
+                break;
+            case TransactionJournalEntryKind.CreateIndex:
+                if (entry.IndexDefinition is not null)
+                    entry.Table!.IndexManager.DropIndex(entry.IndexDefinition.Name, ifExists: true);
+                break;
+            case TransactionJournalEntryKind.DropIndex:
+                ReplayDropIndexJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.UpsertView:
+                ReplayUpsertViewJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.DropView:
+                ReplayDropViewJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.CreateSequence:
+                if (entry.SequenceState is not null)
+                {
+                    Db.DropSequence(entry.SequenceState.SequenceName, true, entry.SequenceState.SchemaName);
+                    ClearSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SchemaName);
+                }
+                break;
+            case TransactionJournalEntryKind.DropSequence:
+            case TransactionJournalEntryKind.UpdateSequence:
+                ReplaySequenceJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.UpsertFunction:
+                ReplayUpsertFunctionJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.DropFunction:
+                ReplayDropFunctionJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.DropProcedure:
+                ReplayDropProcedureJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.DropTrigger:
+                ReplayDropTriggerJournalEntry(entry);
+                break;
+            case TransactionJournalEntryKind.UpsertProcedure:
+                ReplayUpsertProcedureJournalEntry(entry);
+                break;
+        }
+    }
+
+    private static void ReplayUpdateJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.NewRowSnapshot is not null && entry.OldRowSnapshot is not null)
+        {
+            entry.Table!.RestoreRowSnapshot(
+                entry.Row!,
+                MergeConcurrentUpdateRollback(
+                    entry.Row!,
+                    entry.OldRowSnapshot,
+                    entry.NewRowSnapshot));
+        }
+        else
+        {
+            entry.Table!.RestoreRowSnapshot(
+                entry.Row!,
+                entry.OldRowSnapshot ?? new Dictionary<int, object?>());
+        }
+    }
+
+    private static void ReplayDropIndexJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.IndexDefinition is not null
+            && !entry.Table!.Indexes.ContainsKey(entry.IndexDefinition.Name))
+        {
+            entry.Table.CreateIndex(
+                entry.IndexDefinition.Name,
+                entry.IndexDefinition.KeyCols,
+                [.. entry.IndexDefinition.Include],
+                entry.IndexDefinition.Unique);
+        }
+    }
+
+    private void ReplayUpsertViewJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.ViewState is null)
+            return;
+
+        if (entry.ViewState.PreviousDefinition is null)
+            Db.RemoveView(entry.ViewState.ViewName, entry.ViewState.SchemaName);
+        else
+            Db.RestoreView(
+                entry.ViewState.ViewName,
+                entry.ViewState.PreviousDefinition,
+                entry.ViewState.SchemaName);
+    }
+
+    private void ReplayDropViewJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.ViewState?.PreviousDefinition is not null)
+        {
+            Db.RestoreView(
+                entry.ViewState.ViewName,
+                entry.ViewState.PreviousDefinition,
+                entry.ViewState.SchemaName);
+        }
+    }
+
+    private void ReplaySequenceJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.SequenceState?.PreviousDefinition is null)
+            return;
+
+        Db.RestoreSequence(
+            entry.SequenceState.SequenceName,
+            CloneSequence(entry.SequenceState.PreviousDefinition),
+            entry.SequenceState.SchemaName);
+        if (entry.SequenceState.HadSessionValue)
+            SetSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SessionValue, entry.SequenceState.SchemaName);
+        else
+            ClearSessionSequenceValue(entry.SequenceState.SequenceName, entry.SequenceState.SchemaName);
+    }
+
+    private void ReplayUpsertFunctionJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.FunctionState is null)
+            return;
+
+        if (entry.FunctionState.PreviousDefinition is null)
+            Db.RemoveFunction(entry.FunctionState.FunctionName, entry.FunctionState.SchemaName);
+        else
+            Db.RestoreFunction(
+                entry.FunctionState.FunctionName,
+                entry.FunctionState.PreviousDefinition,
+                entry.FunctionState.SchemaName);
+    }
+
+    private void ReplayDropFunctionJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.FunctionState?.PreviousDefinition is not null)
+        {
+            Db.RestoreFunction(
+                entry.FunctionState.FunctionName,
+                entry.FunctionState.PreviousDefinition,
+                entry.FunctionState.SchemaName);
+        }
+    }
+
+    private void ReplayDropProcedureJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.ProcedureState?.PreviousDefinition is not null)
+        {
+            Db.RestoreProcedure(
+                entry.ProcedureState.ProcedureName,
+                entry.ProcedureState.PreviousDefinition,
+                entry.ProcedureState.SchemaName);
+        }
+    }
+
+    private void ReplayDropTriggerJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.TriggerState is not null)
+        {
+            entry.Table!.TriggerManager.AddOrReplaceTrigger(
+                entry.TriggerState.TriggerName,
+                entry.TriggerState.PreviousEvent,
+                static _ => { },
+                orReplace: true);
+        }
+    }
+
+    private void ReplayUpsertProcedureJournalEntry(TransactionJournalEntry entry)
+    {
+        if (entry.ProcedureState is null)
+            return;
+
+        if (entry.ProcedureState.PreviousDefinition is null)
+            Db.RemoveProcedure(entry.ProcedureState.ProcedureName, entry.ProcedureState.SchemaName);
+        else
+            Db.RestoreProcedure(
+                entry.ProcedureState.ProcedureName,
+                entry.ProcedureState.PreviousDefinition,
+                entry.ProcedureState.SchemaName);
+    }
+
+    internal void RestoreIndexesAfterJournalReplay(IEnumerable<TableMock> touchedTableList)
+    {
+        if (Db.ThreadSafe && touchedTableList is ICollection<TableMock> collection && collection.Count > 1)
+            Parallel.ForEach(collection, table => table.RestoreIndexesAfterJournalReplay());
+        else
+            foreach (var table in touchedTableList)
+                table.RestoreIndexesAfterJournalReplay();
+    }
+
+    internal void RegisterTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        switch (registrationKind)
+        {
+            case TransactionTableRegistrationKind.ConnectionTemporary:
+                _temporaryTables[registrationKey] = table;
+                break;
+            case TransactionTableRegistrationKind.GlobalTemporary:
+                _globalTemporaryTables[registrationKey] = table;
+                Db.RestoreGlobalTemporaryTable(table, table.Schema.SchemaName);
+                break;
+            default:
+                table.Schema.Tables[table.TableName] = table;
+                break;
+        }
+    }
+
+    internal void UnregisterTable(
+        TableMock table,
+        TransactionTableRegistrationKind registrationKind,
+        string registrationKey)
+    {
+        switch (registrationKind)
+        {
+            case TransactionTableRegistrationKind.ConnectionTemporary:
+                _temporaryTables.Remove(registrationKey);
+                break;
+            case TransactionTableRegistrationKind.GlobalTemporary:
+                _globalTemporaryTables.Remove(registrationKey);
+                Db.RemoveGlobalTemporaryTable(table.TableName, table.Schema.SchemaName);
+                break;
+            default:
+                table.Schema.Tables.Remove(table.TableName);
+                break;
+        }
+    }
+
+    private void ClearTransactionStateCore(bool detachObservers)
+    {
+        var hasRuntimeState = _transactionState.HasRuntimeState(_transactionJournalManager.JournalCount);
+
+        if (detachObservers
+            ? _journalObservedTables.Count == 0 && !hasRuntimeState
+            : !hasRuntimeState)
+        {
+            return;
+        }
+
+        if (detachObservers && _journalObservedTables.Count > 0)
+        {
+            var observedTableCount = _journalObservedTables.Count;
+            if (Db.ThreadSafe && observedTableCount > 1)
+            {
+                Parallel.ForEach(_journalObservedTables.ToArray(), table => table.MutationApplied -= OnTableMutationApplied);
+            }
+            else
+            {
+                foreach (var table in _journalObservedTables)
+                    table.MutationApplied -= OnTableMutationApplied;
+            }
+
+            _journalObservedTables.Clear();
+        }
+
+        _transactionJournalManager.Clear();
+        _transactionState.Clear();
+    }
+
+    private static IReadOnlyDictionary<int, object?> MergeConcurrentUpdateRollback(
+        IDictionary<int, object?> currentRow,
+        IReadOnlyDictionary<int, object?> oldSnapshot,
+        IReadOnlyDictionary<int, object?> newSnapshot)
+    {
+        var merged = new Dictionary<int, object?>(oldSnapshot.Count);
+        foreach (var entry in oldSnapshot)
+        {
+            var columnIndex = entry.Key;
+            var oldValue = entry.Value;
+            newSnapshot.TryGetValue(columnIndex, out var newValue);
+            currentRow.TryGetValue(columnIndex, out var currentValue);
+
+            if (TryRestoreConcurrentNumericValue(oldValue, newValue, currentValue, out var restoredValue))
+            {
+                merged[columnIndex] = restoredValue;
+                continue;
+            }
+
+            merged[columnIndex] = oldValue;
+        }
+
+        return merged;
+    }
+
+    private static bool TryRestoreConcurrentNumericValue(
+        object? oldValue,
+        object? newValue,
+        object? currentValue,
+        out object? restoredValue)
+    {
+        restoredValue = null;
+        if (oldValue is null || newValue is null || currentValue is null)
+            return false;
+
+        if (!TryConvertToDecimal(oldValue, out var oldDecimal)
+            || !TryConvertToDecimal(newValue, out var newDecimal)
+            || !TryConvertToDecimal(currentValue, out var currentDecimal))
+        {
+            return false;
+        }
+
+        var delta = newDecimal - oldDecimal;
+        var restoredDecimal = currentDecimal - delta;
+        restoredValue = ConvertDecimalLikeValue(restoredDecimal, currentValue);
+        return true;
+    }
+
+    private static bool TryConvertToDecimal(object value, out decimal decimalValue)
+    {
+        try
+        {
+            decimalValue = Convert.ToDecimal(value, CultureInfo.InvariantCulture);
+            return true;
+        }
+        catch
+        {
+            decimalValue = default;
+            return false;
+        }
+    }
+
+    private static object ConvertDecimalLikeValue(decimal value, object sample)
+        => sample switch
+        {
+            decimal => value,
+            int => (int)value,
+            long => (long)value,
+            short => (short)value,
+            byte => (byte)value,
+            sbyte => (sbyte)value,
+            uint => (uint)value,
+            ulong => (ulong)value,
+            ushort => (ushort)value,
+            double => (double)value,
+            float => (float)value,
+            _ => Convert.ChangeType(value, sample.GetType(), CultureInfo.InvariantCulture)
+        };
+
+    private void ResetAllVolatileDataCore()
+    {
+        CurrentTransaction?.Dispose();
+        CurrentTransaction = null;
+        CurrentIsolationLevel = IsolationLevel.Unspecified;
+        ClearTransactionStateCore(detachObservers: true);
+
+        Db.ResetVolatileData(includeGlobalTemporaryTables: true);
+
+        foreach (var table in _temporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+        }
+
+        _temporaryTables.Clear();
+
+        foreach (var table in _globalTemporaryTables.Values)
+        {
+            while (table.Count > 0)
+                table.RemoveAt(table.Count - 1);
+
+            table.NextIdentity = 1;
+        }
+
+        _globalTemporaryTables.Clear();
+    }
+
+    internal void MaybeDelayOrDrop()
+    {
+        if (DropProbability > 0 && new Random().NextDouble() < DropProbability)
+            throw new IOException("Simulated network drop");
+        if (SimulatedLatencyMs > 0)
+            Thread.Sleep(SimulatedLatencyMs);
+    }
+
+    /// <summary>
+    /// EN: Creates a new provider-specific exception.
+    /// PT: Cria uma nova excecao especifica do provedor.
+    /// </summary>
+    protected internal abstract Exception NewException(string message, int code);
+
+    /// <summary>
+    /// EN: Disposes the connection and associated resources.
+    /// PT: Descarta a conexão e os recursos associados.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed)
+        {
+            base.Dispose(disposing);
+            return;
+        }
+
+        if (disposing)
+        {
+            CurrentTransaction?.Dispose();
+            _temporaryTables.Clear();
+            _globalTemporaryTables.Clear();
+        }
+
+        _disposed = true;
+        base.Dispose(disposing);
+    }
+}

@@ -1,0 +1,351 @@
+namespace DbSqlLikeMem;
+
+internal static class SqlTemporalFunctionEvaluator
+{
+    private static readonly HashSet<string> KnownTemporalFunctionNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CURRENT_DATE",
+        "CURRENT DATE",
+        "CURDATE",
+        "CURRENT_TIME",
+        "CURRENT TIME",
+        "CURRENT_TIMESTAMP",
+        "CURRENT TIMESTAMP",
+        "CURTIME",
+        "NOW",
+        "LOCALTIME",
+        "LOCALTIMESTAMP",
+        "UTC_DATE",
+        "UTC_TIME",
+        "UTC_TIMESTAMP",
+        "SYSDATE",
+        "SYSTEMDATE",
+        "GETDATE",
+        "GETUTCDATE",
+        "SYSDATETIME",
+        "SYSDATETIMEOFFSET",
+        "SYSUTCDATETIME",
+        "SYSTIMESTAMP",
+    };
+
+    /// <summary>
+    /// EN: Checks whether the provided function name is a known temporal token/call across supported dialects.
+    /// PT: Verifica se o nome informado é um token/chamada temporal conhecido entre os dialetos suportados.
+    /// </summary>
+    /// <param name="functionName">EN: Function/token name to inspect. PT: Nome da função/token a inspecionar.</param>
+    /// <returns>EN: True when the name is recognized as temporal in at least one supported dialect. PT: True quando o nome é reconhecido como temporal em ao menos um dialeto suportado.</returns>
+    public static bool IsKnownTemporalTokenName(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && KnownTemporalFunctionNames.Contains(functionName);
+
+    /// <summary>
+    /// EN: Checks whether the provided temporal name is known by the current execution context dialect or by compatibility fallback.
+    /// PT: Verifica se o nome temporal informado é conhecido pelo dialeto atual ou pelo fallback de compatibilidade.
+    /// </summary>
+    /// <param name="context">EN: Execution context used to inspect registry-backed temporal support. PT: Contexto de execução usado para inspecionar suporte temporal baseado em registry.</param>
+    /// <param name="functionName">EN: Function/token name to inspect. PT: Nome da função/token a inspecionar.</param>
+    /// <returns>EN: True when the name is recognized as temporal in the context dialect or compatibility list. PT: True quando o nome é reconhecido como temporal no dialeto do contexto ou na lista de compatibilidade.</returns>
+    public static bool IsKnownTemporalFunctionName(this QueryExecutionContext context, string functionName)
+        => context.Dialect is not null
+            && !string.IsNullOrWhiteSpace(functionName)
+            && (context.Dialect.AllowsTemporalIdentifier(functionName)
+                || context.Dialect.AllowsTemporalCall(functionName)
+                || IsKnownTemporalTokenName(functionName));
+
+    public static bool TryEvaluateZeroArgIdentifier(
+        this QueryExecutionContext context,
+        string functionName,
+        DateTime localNow,
+        DateTime utcNow,
+        out object? value)
+    {
+        value = null;
+        if (context.Dialect is null || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        if (context.TryGetCachedTemporalZeroArgIdentifierValue(functionName, out value))
+            return true;
+
+        if (context.Dialect.Name.Equals("firebird", StringComparison.OrdinalIgnoreCase))
+        {
+            var trimmedFunctionName = functionName.AsSpan().Trim();
+            if (trimmedFunctionName.Equals("TODAY", StringComparison.OrdinalIgnoreCase))
+            {
+                value = utcNow.Date;
+                context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+                return true;
+            }
+
+            if (trimmedFunctionName.Equals("TOMORROW", StringComparison.OrdinalIgnoreCase))
+            {
+                value = utcNow.Date.AddDays(1);
+                context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+                return true;
+            }
+
+            if (trimmedFunctionName.Equals("YESTERDAY", StringComparison.OrdinalIgnoreCase))
+            {
+                value = utcNow.Date.AddDays(-1);
+                context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+                return true;
+            }
+        }
+
+        if (!context.Dialect.AllowsTemporalIdentifier(functionName))
+            return false;
+
+        if (!context.Dialect.TryGetTemporalFunctionKind(functionName, out var kind))
+            return false;
+
+        var success = TryMapKind(context, kind, localNow, utcNow, out value);
+        if (success)
+            context.CacheTemporalZeroArgIdentifierValue(functionName, value);
+
+        return success;
+    }
+
+    public static bool TryEvaluateZeroArgIdentifier(this QueryExecutionContext context, string functionName, out object? value)
+        => TryEvaluateZeroArgIdentifier(context, functionName, context.EvaluationLocalNow, context.EvaluationUtcNow, out value);
+
+    public static bool TryEvaluateZeroArgCall(
+        this QueryExecutionContext context,
+        string functionName,
+        DateTime localNow,
+        DateTime utcNow,
+        out object? value)
+    {
+        value = null;
+        if (context.Dialect is null || string.IsNullOrWhiteSpace(functionName))
+            return false;
+
+        if (context.TryGetCachedTemporalZeroArgCallValue(functionName, out value))
+            return true;
+
+        if (!context.Dialect.AllowsTemporalCall(functionName))
+            return false;
+
+        if (!context.Dialect.TryGetTemporalFunctionKind(functionName, out var kind))
+            return false;
+
+        var success = TryMapKind(context, kind, localNow, utcNow, out value);
+        if (success)
+            context.CacheTemporalZeroArgCallValue(functionName, value);
+
+        return success;
+    }
+
+    public static bool TryEvaluateZeroArgCall(this QueryExecutionContext context, string functionName, out object? value)
+        => TryEvaluateZeroArgCall(context, functionName, context.EvaluationLocalNow, context.EvaluationUtcNow, out value);
+
+    internal static bool TryParseOffset(string value, out TimeSpan offset)
+    {
+        offset = default;
+
+        var trimmed = value.AsSpan().Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (trimmed.Equals("UTC", StringComparison.OrdinalIgnoreCase))
+        {
+            offset = TimeSpan.Zero;
+            return true;
+        }
+
+        var trimmedText = trimmed.ToString();
+
+        if (ReadOnlySpanCompatibility.TryParseTimeSpan(trimmedText.AsSpan(), CultureInfo.InvariantCulture, out offset))
+            return true;
+
+        if (ReadOnlySpanCompatibility.TryParseDateTime(trimmedText.AsSpan(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var parsedDate))
+        {
+            offset = parsedDate.TimeOfDay;
+            return true;
+        }
+
+        if (trimmed.Length == 6
+            && (trimmed[0] == '+' || trimmed[0] == '-')
+            && trimmed[3] == ':')
+        {
+            if (ReadOnlySpanCompatibility.TryParseInt32(trimmed[1..3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                && ReadOnlySpanCompatibility.TryParseInt32(trimmed[4..6], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            {
+                offset = new TimeSpan(hours, minutes, 0);
+                if (trimmed[0] == '-')
+                    offset = -offset;
+                return true;
+            }
+        }
+
+        if (trimmed.Length == 5 && (trimmed[0] == '+' || trimmed[0] == '-'))
+        {
+            if (ReadOnlySpanCompatibility.TryParseInt32(trimmed[1..3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                && ReadOnlySpanCompatibility.TryParseInt32(trimmed[3..5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            {
+                offset = new TimeSpan(hours, minutes, 0);
+                if (trimmed[0] == '-')
+                    offset = -offset;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryMapKind(QueryExecutionContext context, SqlTemporalFunctionKind kind, DateTime localNow, DateTime utcNow, out object? value)
+    {
+        if (IsSqliteProvider(context))
+        {
+            var sqliteNow = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, utcNow.Hour, utcNow.Minute, utcNow.Second, DateTimeKind.Unspecified);
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => sqliteNow.Date,
+                SqlTemporalFunctionKind.Time => sqliteNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(sqliteNow, TimeSpan.Zero),
+                _ => sqliteNow,
+            };
+
+            return true;
+        }
+
+        if (IsSqlServerProvider(context))
+        {
+            var sqlServerNow = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => sqlServerNow.Date,
+                SqlTemporalFunctionKind.Time => sqlServerNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(sqlServerNow, TimeSpan.Zero),
+                _ => sqlServerNow,
+            };
+
+            return true;
+        }
+
+        if (IsPostgresProvider(context))
+        {
+            var postgresNow = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Utc);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => postgresNow.Date,
+                SqlTemporalFunctionKind.Time => postgresNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(postgresNow),
+                _ => postgresNow,
+            };
+
+            return true;
+        }
+
+        if (IsMySqlFamilyProvider(context))
+        {
+            var mysqlNow = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => mysqlNow.Date,
+                SqlTemporalFunctionKind.Time => mysqlNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(mysqlNow, TimeSpan.Zero),
+                _ => mysqlNow,
+            };
+
+            return true;
+        }
+
+        if (IsDb2Provider(context))
+        {
+            var db2Now = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => db2Now.Date,
+                SqlTemporalFunctionKind.Time => db2Now.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(db2Now, TimeSpan.Zero),
+                _ => db2Now,
+            };
+
+            return true;
+        }
+
+        if (string.Equals(context.Connection.ProviderExecutionDialect.Name, "firebird", StringComparison.OrdinalIgnoreCase))
+        {
+            var firebirdNow = new DateTime(
+                utcNow.Year,
+                utcNow.Month,
+                utcNow.Day,
+                utcNow.Hour,
+                utcNow.Minute,
+                utcNow.Second,
+                utcNow.Millisecond,
+                DateTimeKind.Unspecified);
+
+            value = kind switch
+            {
+                SqlTemporalFunctionKind.Date => firebirdNow.Date,
+                SqlTemporalFunctionKind.Time => firebirdNow.TimeOfDay,
+                SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(firebirdNow, TimeSpan.Zero),
+                _ => firebirdNow,
+            };
+
+            return true;
+        }
+
+        value = kind switch
+        {
+            SqlTemporalFunctionKind.Date => localNow.Date,
+            SqlTemporalFunctionKind.Time => localNow.TimeOfDay,
+            SqlTemporalFunctionKind.DateTimeOffset => new DateTimeOffset(localNow),
+            _ => localNow,
+        };
+
+        return true;
+    }
+
+    private static bool IsSqliteProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "sqlite", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSqlServerProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsPostgresProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "postgresql", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsMySqlFamilyProvider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "mysql", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(context.Connection.ProviderExecutionDialect.Name, "mariadb", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDb2Provider(QueryExecutionContext context)
+        => string.Equals(context.Connection.ProviderExecutionDialect.Name, "db2", StringComparison.OrdinalIgnoreCase);
+}

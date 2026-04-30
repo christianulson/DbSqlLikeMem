@@ -1,0 +1,739 @@
+namespace DbSqlLikeMem.SqlServer.Dapper.Test;
+
+/// <summary>
+/// EN: Covers version-gated SQL Server gap scenarios that are not fully implemented in the in-memory mock yet.
+/// PT: Cobre cenarios de gap do SQL Server controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
+/// </summary>
+public sealed class SqlServerAdvancedSqlGapTests : XUnitTestBase
+{
+    private readonly SqlServerConnectionMock _cnn;
+
+    /// <summary>
+    /// EN: Creates the in-memory SQL Server connection used by the advanced gap tests.
+    /// PT: Cria a conexao SQL Server em memoria usada pelos testes de gap avancados.
+    /// </summary>
+    public SqlServerAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
+    {
+        var db = new SqlServerDbMock();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.AddColumn("created", DbType.DateTime, false);
+
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10, [3] = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local) });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10, [3] = new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local) });
+        users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20, [3] = new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local) });
+
+        var orders = db.AddTable("orders");
+        orders.AddColumn("id", DbType.Int32, false);
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
+
+        orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 10m });
+        orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 1, [2] = 5m });
+        orders.Add(new Dictionary<int, object?> { [0] = 12, [1] = 2, [2] = 7m });
+
+        var eventsTable = db.AddTable("events");
+        eventsTable.AddColumn("id", DbType.Int32, false);
+        eventsTable.AddColumn("occurred", DbType.DateTime, false);
+        eventsTable.Add(new Dictionary<int, object?> { [0] = 1, [1] = new DateTime(2020, 1, 1, 12, 0, 0, DateTimeKind.Local) });
+        eventsTable.Add(new Dictionary<int, object?> { [0] = 2, [1] = new DateTime(2020, 1, 1, 12, 1, 0, DateTimeKind.Local) });
+        eventsTable.Add(new Dictionary<int, object?> { [0] = 3, [1] = new DateTime(2020, 1, 1, 12, 2, 0, DateTimeKind.Local) });
+
+        _cnn = new SqlServerConnectionMock(db);
+        _cnn.Open();
+    }
+
+    /// <summary>
+    /// EN: Verifies ROW_NUMBER respects the configured SQL Server version.
+    /// PT: Verifica se ROW_NUMBER respeita a versao SQL Server configurada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RowNumber_PartitionBy_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id, tenantid,
+       ROW_NUMBER() OVER (PARTITION BY tenantid ORDER BY id) AS rn
+FROM users
+ORDER BY tenantid, id").ToList();
+
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies RANK and DENSE_RANK respect the configured SQL Server version.
+    /// PT: Verifica se RANK e DENSE_RANK respeitam a versao SQL Server configurada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_Rank_And_DenseRank_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid) AS rk,
+       DENSE_RANK() OVER (ORDER BY tenantid) AS dr
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rk)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dr)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NTILE respects the configured SQL Server version.
+    /// PT: Verifica se NTILE respeita a versao SQL Server configurada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_Ntile_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       NTILE(2) OVER (ORDER BY id) AS tile
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies PERCENT_RANK and CUME_DIST respect the configured SQL Server version.
+    /// PT: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao SQL Server configurada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_PercentRank_And_CumeDist_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       PERCENT_RANK() OVER (ORDER BY tenantid) AS pr,
+       CUME_DIST() OVER (ORDER BY tenantid) AS cd
+FROM users
+ORDER BY id").ToList();
+
+        var pr = rows.Select(r => Convert.ToDouble(r.pr)).ToArray();
+        var cd = rows.Select(r => Convert.ToDouble(r.cd)).ToArray();
+
+        Assert.Equal([0d, 0d, 1d], pr);
+        Assert.True(Math.Abs(cd[0] - (2d / 3d)) <= 1e-9);
+        Assert.True(Math.Abs(cd[1] - (2d / 3d)) <= 1e-9);
+        Assert.True(Math.Abs(cd[2] - 1d) <= 1e-9);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies LAG and LEAD respect the configured SQL Server version.
+    /// PT: Verifica se LAG e LEAD respeitam a versao SQL Server configurada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_Lag_And_Lead_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id) OVER (ORDER BY id) AS prev_id,
+       LEAD(id, 1, 99) OVER (ORDER BY id) AS next_id
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([null, 1, 2], [.. rows.Select(r => (int?)r.prev_id)]);
+        Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.next_id)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies FIRST_VALUE and LAST_VALUE respect the configured SQL Server version.
+    /// PT: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao SQL Server configurada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_FirstValue_And_LastValue_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       FIRST_VALUE(name) OVER (ORDER BY id) AS first_name,
+       LAST_VALUE(name) OVER (ORDER BY id) AS last_name
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal(["John", "John", "John"], [.. rows.Select(r => (string)r.first_name)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NTH_VALUE respects the configured SQL Server version.
+    /// PT: Verifica se NTH_VALUE respeita a versao SQL Server configurada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_NthValue_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       NTH_VALUE(name, 2) OVER (ORDER BY id) AS second_name
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal(new object?[] { null, "Bob", "Bob" }, rows.Select(r => (object?)r.second_name).ToArray());
+    }
+
+
+    /// <summary>
+    /// EN: Verifies zero-offset LAG and LEAD return the current row.
+    /// PT: Verifica se LAG e LEAD com offset zero retornam a linha atual.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_Lag_Lead_WithZeroOffset_ShouldReturnCurrentRow()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 0, -1) OVER (ORDER BY id) AS lag0,
+       LEAD(id, 0, -1) OVER (ORDER BY id) AS lead0
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lag0)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies a SQL Server reference query combining CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do SQL Server combinando CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void ProviderSignature_CteOuterApplyTopAndWindow_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+WITH tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_rollup AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           SUM(CAST(o.amount AS DECIMAL(10,2))) AS total_amount,
+           STRING_AGG(CAST(o.id AS NVARCHAR(20)), '|') WITHIN GROUP (ORDER BY o.id DESC) AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked_orders AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           calc.normalized_id,
+           calc.shifted_created,
+           calc.days_from_anchor,
+           calc.user_code,
+           ISNULL(rollup.order_count, CAST(0 AS INT)) AS order_count,
+           ISNULL(rollup.total_amount, CAST(0 AS DECIMAL(10,2))) AS total_amount,
+           ISNULL(rollup.order_ids, CAST('' AS NVARCHAR(20))) AS order_ids,
+           latest.last_order_id,
+           ISNULL(latest.last_order_amount, CAST(0 AS DECIMAL(10,2))) AS last_order_amount,
+           CASE
+               WHEN EXISTS (SELECT 1 FROM orders ox WHERE ox.userid = u.id AND ox.amount >= CAST(10 AS DECIMAL(10,2))) THEN CAST(1 AS BIT)
+               ELSE CAST(0 AS BIT)
+           END AS has_big_order,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY ISNULL(latest.last_order_amount, CAST(0 AS DECIMAL(10,2))) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_rollup rollup ON rollup.userid = u.id
+    CROSS APPLY (
+        SELECT CAST(u.id AS INT) AS normalized_id,
+               DATEADD(DAY, 1, u.created) AS shifted_created,
+               DATEDIFF(DAY, CAST('2020-01-01' AS DATETIME), u.created) AS days_from_anchor,
+               CONCAT(CAST(u.tenantid AS NVARCHAR(10)), '-', CAST(u.id AS NVARCHAR(10))) AS user_code
+    ) calc
+    OUTER APPLY (
+        SELECT TOP 1
+               CAST(o.id AS INT) AS last_order_id,
+               CAST(o.amount AS DECIMAL(10,2)) AS last_order_amount
+        FROM orders o
+        WHERE o.userid = u.id
+        ORDER BY o.id DESC
+    ) latest
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, total_amount, order_ids, last_order_id, last_order_amount, has_big_order, rn
+FROM ranked_orders
+ORDER BY tenantid, rn, id").ToList();
+
+        Assert.Equal([2, 1, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["Bob", "John", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([2, 1, 3], [.. rows.Select(r => (int)r.normalized_id)]);
+        Assert.Equal(
+            [new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.shifted_created)]);
+        Assert.Equal([1, 0, 2], [.. rows.Select(r => (int?)r.days_from_anchor)]);
+        Assert.Equal(["10-2", "10-1", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([1, 2, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([7m, 15m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["12", "11|10", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([12, 11, null], [.. rows.Select(r => (int?)r.last_order_id)]);
+        Assert.Equal([7m, 5m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.last_order_amount))]);
+        Assert.Equal([false, true, false], [.. rows.Select(r => Convert.ToBoolean(r.has_big_order))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NOT REGEXP filters rows as expected.
+    /// PT: Verifica se NOT REGEXP filtra as linhas como esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Regexp_NotOperator_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name NOT REGEXP '^J' ORDER BY id").ToList();
+        Assert.Equal([2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NOT LIKE filters rows as expected.
+    /// PT: Verifica se NOT LIKE filtra as linhas como esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Like_NotOperator_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name NOT LIKE 'J%' ORDER BY id").ToList();
+        Assert.Equal([2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies expression-based offsets in LAG and NTH_VALUE return the expected rows.
+    /// PT: Verifica se offsets baseados em expressao em LAG e NTH_VALUE retornam as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_Lag_And_NthValue_WithExpressionOffset_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       LAG(id, 1 + 0, -1) OVER (ORDER BY id) AS lag_expr,
+       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id) AS nth_expr
+        FROM users
+        ORDER BY id").ToList();
+
+        Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_expr)]);
+        Assert.Equal(new object?[] { null, "Bob", "Bob" }, rows.Select(r => (object?)r.nth_expr).ToArray());
+    }
+
+
+    /// <summary>
+    /// EN: Verifies expression-based bucket counts in NTILE return the expected rows.
+    /// PT: Verifica se contagens de buckets baseadas em expressao no NTILE retornam as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_Ntile_WithExpressionBuckets_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id,
+       NTILE(1 + 1) OVER (ORDER BY id) AS tile_expr
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_expr)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects frame clauses on ranking and offset window functions.
+    /// PT: Verifica se o SQL Server rejeita clausulas de frame em funcoes de ranking e janelas com offset.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeFrame_WithRankingFunctions_ShouldThrowUnsupportedFrameError()
+    {
+        AssertWindowFrameUnsupported(() => _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS rk_range,
+       DENSE_RANK() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS dr_range,
+       PERCENT_RANK() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS pr_range,
+       CUME_DIST() OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS cd_range,
+       NTILE(2) OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS ntile_range,
+       LAG(id, 1, -1) OVER (ORDER BY id RANGE BETWEEN CURRENT ROW AND 1 FOLLOWING) AS lag_range,
+       LEAD(id, 1, 99) OVER (ORDER BY id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS lead_range
+FROM users
+ORDER BY id").ToList(), "RANK");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects GROUPS frames on ranking window functions.
+    /// PT: Verifica se o SQL Server rejeita frames GROUPS em funcoes de ranking.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_GroupsFrame_WithRankingFunctions_ShouldThrowUnsupportedFrameError()
+    {
+        AssertWindowFrameUnsupported(() => _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_groups,
+       DENSE_RANK() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS dr_groups,
+       PERCENT_RANK() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS pr_groups,
+       CUME_DIST() OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS cd_groups,
+       NTILE(2) OVER (ORDER BY tenantid GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS ntile_groups
+FROM users
+ORDER BY id").ToList(), "RANK");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects RANGE frames with offset on composite ORDER BY.
+    /// PT: Verifica se o SQL Server rejeita frames RANGE com offset em ORDER BY composto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeOffset_WithCompositeOrder_ShouldThrowClearError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       FIRST_VALUE(id) OVER (ORDER BY tenantid, id RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS fv_bad
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("RANGE frames with PRECEDING/FOLLOWING offsets", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects RANGE frames with offset on text ORDER BY.
+    /// PT: Verifica se o SQL Server rejeita frames RANGE com offset em ORDER BY textual.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeOffset_WithTextOrder_ShouldThrowUnsupportedError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       FIRST_VALUE(name) OVER (ORDER BY name RANGE BETWEEN 1 PRECEDING AND CURRENT ROW) AS fv_bad_type
+FROM users
+ORDER BY id").ToList());
+
+        Assert.Contains("RANGE frames with PRECEDING/FOLLOWING offsets", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects RANGE CURRENT ROW on ranking window functions.
+    /// PT: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeCurrentRow_WithCompositeOrder_ShouldThrowUnsupportedFrameError()
+    {
+        AssertWindowFrameUnsupported(() => _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid, id RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_range_current,
+       DENSE_RANK() OVER (ORDER BY tenantid, id RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS dr_range_current,
+       CUME_DIST() OVER (ORDER BY tenantid, id RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS cd_range_current
+FROM users
+ORDER BY id").ToList(), "RANK");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects RANGE CURRENT ROW on ranking window functions with text ORDER BY.
+    /// PT: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking com ORDER BY textual.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeCurrentRow_WithTextOrder_ShouldThrowUnsupportedFrameError()
+    {
+        AssertWindowFrameUnsupported(() => _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY name RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_name_range,
+       DENSE_RANK() OVER (ORDER BY name RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS dr_name_range,
+       NTILE(2) OVER (ORDER BY name RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS ntile_name_range
+FROM users
+ORDER BY id").ToList(), "RANK");
+    }
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects RANGE CURRENT ROW on ranking window functions with DESC ordering.
+    /// PT: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking com ordenacao DESC.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeCurrentRow_WithDescOrderAndPeers_ShouldThrowUnsupportedFrameError()
+    {
+        AssertWindowFrameUnsupported(() => _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_desc_range,
+       DENSE_RANK() OVER (ORDER BY tenantid DESC RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS dr_desc_range,
+       CUME_DIST() OVER (ORDER BY tenantid DESC RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS cd_desc_range,
+       NTILE(2) OVER (ORDER BY tenantid DESC RANGE BETWEEN CURRENT ROW AND CURRENT ROW) AS ntile_desc_range
+FROM users
+ORDER BY id").ToList(), "RANK");
+    }
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects RANGE frames with DateTime ORDER BY offsets.
+    /// PT: Verifica se o SQL Server rejeita frames RANGE com offsets em ORDER BY DateTime.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeOffset_WithDateTimeOrder_ShouldThrowUnsupportedError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(@"
+SELECT id,
+       FIRST_VALUE(id) OVER (ORDER BY occurred RANGE BETWEEN 900000000 PRECEDING AND CURRENT ROW) AS first_id_90s,
+       LAST_VALUE(id) OVER (ORDER BY occurred RANGE BETWEEN 900000000 PRECEDING AND CURRENT ROW) AS last_id_90s
+FROM events
+ORDER BY id").ToList());
+
+        Assert.Contains("RANGE frames with PRECEDING/FOLLOWING offsets", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects GROUPS frames on ranking window functions with mixed-direction ORDER BY.
+    /// PT: Verifica se o SQL Server rejeita frames GROUPS em funcoes de ranking com ORDER BY de direcoes mistas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_GroupsFrame_WithCompositeMixedDirectionOrder_ShouldThrowUnsupportedFrameError()
+    {
+        AssertWindowFrameUnsupported(() => _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC, tenantid ASC GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS rk_groups_mix,
+       NTILE(2) OVER (ORDER BY tenantid DESC, tenantid ASC GROUPS BETWEEN CURRENT ROW AND CURRENT ROW) AS ntile_groups_mix
+FROM users
+ORDER BY id").ToList(), "RANK");
+    }
+
+    /// <summary>
+    /// EN: Verifies SQL Server rejects RANGE frames that exclude the current row on ranking window functions.
+    /// PT: Verifica se o SQL Server rejeita frames RANGE que excluem a linha atual em funcoes de ranking.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Window_RangeFrame_ExcludingCurrentRow_ShouldThrowUnsupportedFrameError()
+    {
+        AssertWindowFrameUnsupported(() => _cnn.Query<dynamic>(@"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid DESC RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS rk_excluded_range,
+       DENSE_RANK() OVER (ORDER BY tenantid DESC RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS dr_excluded_range,
+       PERCENT_RANK() OVER (ORDER BY tenantid DESC RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS pr_excluded_range,
+       CUME_DIST() OVER (ORDER BY tenantid DESC RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS cd_excluded_range,
+       NTILE(2) OVER (ORDER BY tenantid DESC RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS ntile_excluded_range,
+       LAG(id, 1, -1) OVER (ORDER BY tenantid DESC RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS lag_excluded_range,
+       LEAD(id, 1, 99) OVER (ORDER BY tenantid DESC RANGE BETWEEN 1 FOLLOWING AND 1 FOLLOWING) AS lead_excluded_range
+FROM users
+ORDER BY id").ToList(), "RANK");
+    }
+
+
+    /// <summary>
+    /// EN: Verifies correlated subqueries in the select list return the expected totals.
+    /// PT: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void CorrelatedSubquery_InSelectList_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT u.id,
+       (SELECT SUM(o.amount) FROM orders o WHERE o.userid = u.id) AS total
+FROM users u
+ORDER BY u.id").ToList();
+
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => (decimal)(r.total ?? 0m))]);
+    }
+
+    /// <summary>
+    /// EN: Verifies DATE_ADD with a day interval returns the expected dates.
+    /// PT: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void DateAdd_IntervalDay_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id, DATEADD(day, 1, created) AS d
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([
+            new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.d)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies string-to-int casts return the expected integer value.
+    /// PT: Verifica se casts de string para int retornam o valor inteiro esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Cast_StringToInt_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INT) AS v").ToList();
+        Assert.Single(rows);
+        Assert.Equal(42, (int)rows[0].v);
+    }
+
+    /// <summary>
+    /// EN: Verifies REGEXP filters rows as expected.
+    /// PT: Verifica se REGEXP filtra as linhas como esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Regexp_Operator_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
+        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies FIELD can be used to order rows explicitly.
+    /// PT: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void OrderBy_Field_Function_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY CASE id WHEN 3 THEN 1 WHEN 1 THEN 2 WHEN 2 THEN 3 ELSE 4 END").ToList();
+        Assert.Equal([3, 1, 2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies string comparison follows the configured column collation.
+    /// PT: Verifica se a comparacao de strings segue a collation configurada da coluna.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
+    {
+        // Example expectation in MySQL: behavior depends on column collation.
+        // This is intentionally a gap test — decide the mock rule, then implement it consistently.
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john' ORDER BY id").ToList();
+        Assert.Equal([1], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies PIVOT counting by tenant returns the expected rows.
+    /// PT: Verifica se o PIVOT de contagem por tenant retorna as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Pivot_Count_ByTenant_ShouldWork()
+    {
+        var row = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    COUNT(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        Assert.Equal(2, (int)row.t10);
+        Assert.Equal(1, (int)row.t20);
+    }
+
+    /// <summary>
+    /// EN: Verifies PIVOT supports SUM, MIN, MAX and AVG for SQL Server buckets.
+    /// PT: Verifica se o PIVOT suporta SUM, MIN, MAX e AVG para buckets do SQL Server.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqlServerAdvancedSqlGap")]
+    public void Pivot_CommonNumericAggregates_ByTenant_ShouldWork()
+    {
+        var sumRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    SUM(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        Assert.Equal(3m, (decimal)sumRow.t10);
+        Assert.Equal(3m, (decimal)sumRow.t20);
+
+        var minRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    MIN(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        var maxRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    MAX(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        var avgRow = _cnn.QuerySingle<dynamic>(@"
+SELECT t10, t20
+FROM (
+    SELECT tenantid, id
+    FROM users
+) src
+PIVOT (
+    AVG(id)
+    FOR tenantid IN (10 AS t10, 20 AS t20)
+) p");
+
+        Assert.Equal(1m, (decimal)minRow.t10);
+        Assert.Equal(3m, (decimal)minRow.t20);
+        Assert.Equal(2m, (decimal)maxRow.t10);
+        Assert.Equal(3m, (decimal)maxRow.t20);
+        Assert.Equal(1m, (decimal)avgRow.t10);
+        Assert.Equal(3m, (decimal)avgRow.t20);
+    }
+
+    private static void AssertWindowFrameUnsupported(Action queryAction, string functionName)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(queryAction);
+        Assert.Contains(
+            $"Window function '{functionName}' does not support ROWS, RANGE or GROUPS clauses.",
+            ex.Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    protected override void Dispose(bool disposing)
+    {
+        _cnn?.Dispose();
+        base.Dispose(disposing);
+    }
+}

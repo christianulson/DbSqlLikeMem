@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.NHibernate.TestTools\DbSqlLikeMem.NHibernate.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Firebird.NHibernate\DbSqlLikeMem.Firebird.NHibernate.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Firebird" />
+		<Using Include="DbSqlLikeMem.Firebird.NHibernate" />
+		<Using Include="DbSqlLikeMem.NHibernate.TestTools" />
+		<Using Include="System.Data.Common" />
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+</Project>

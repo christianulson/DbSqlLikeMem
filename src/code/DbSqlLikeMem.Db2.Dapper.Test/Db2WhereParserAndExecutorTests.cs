@@ -1,0 +1,282 @@
+﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
+
+/// <summary>
+/// EN: Covers DB2 WHERE parser and executor scenarios over a direct mock connection.
+/// PT: Cobre cenarios do parser e executor de WHERE DB2 sobre uma conexao mock direta.
+/// </summary>
+public sealed class Db2WhereParserAndExecutorTests : XUnitTestBase
+{
+    private readonly Db2ConnectionMock _cnn;
+
+    /// <summary>
+    /// EN: Creates the in-memory DB2 database used by the WHERE parser and executor coverage tests.
+    /// PT: Cria o banco DB2 em memoria usado pelos testes de cobertura do parser e executor de WHERE.
+    /// </summary>
+    public Db2WhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
+    {
+        var db = new Db2DbMock();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("email", DbType.String, true);
+        users.AddColumn("tags", DbType.String, true); // CSV-like "a,b,c"
+
+        users.CreateIndex("ix_users_name", ["name"]);
+        users.CreateIndex("ix_users_name_email", ["name", "email"]);
+        users.CreateIndex("ix_users_name_include_email", ["name"], ["email"]);
+
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = "john@x.com", [3] = "a,b" });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Jane", [2] = null, [3] = "b,c" });
+        users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Bob", [2] = "bob@x.com", [3] = null });
+
+        _cnn = new Db2ConnectionMock(db);
+        _cnn.Open();
+    }
+
+    /// <summary>
+    /// EN: Verifies indexed equality predicates update index lookup metrics.
+    /// PT: Verifica se predicados de igualdade indexada atualizam as metricas de busca por indice.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_IndexedEquality_ShouldUseIndexLookupMetric()
+    {
+        var before = _cnn.Metrics.IndexLookups;
+        var beforeIndexHint = _cnn.Metrics.IndexHints.TryGetValue("ix_users_name", out var ih) ? ih : 0;
+        var beforeTableHint = _cnn.Metrics.TableHints.TryGetValue("users", out var th) ? th : 0;
+
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'John'").ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+        Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
+        Assert.Equal(beforeIndexHint + 1, _cnn.Metrics.IndexHints["ix_users_name"]);
+        Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
+    }
+
+    /// <summary>
+    /// EN: Verifies parameterized indexed equality predicates update composite index lookup metrics.
+    /// PT: Verifica se predicados de igualdade indexada parametrizados atualizam as metricas de busca por indice composto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_IndexedEqualityWithParameter_ShouldUseCompositeIndexLookupMetric()
+    {
+        var before = _cnn.Metrics.IndexLookups;
+        var beforeIndexHint = _cnn.Metrics.IndexHints.TryGetValue("ix_users_name_email", out var ih) ? ih : 0;
+        var beforeTableHint = _cnn.Metrics.TableHints.TryGetValue("users", out var th) ? th : 0;
+
+        var rows = _cnn.Query<dynamic>(
+            "SELECT id FROM users WHERE name = @name AND email = @email",
+            new
+            {
+                name = "Bob",
+                email = "bob@x.com"
+            })
+            .ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(3, (int)rows[0].id);
+        Assert.Equal(before + 1, _cnn.Metrics.IndexLookups);
+        Assert.Equal(beforeIndexHint + 1, _cnn.Metrics.IndexHints["ix_users_name_email"]);
+        Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
+    }
+
+    /// <summary>
+    /// EN: Verifies covering indexes expose the requested columns.
+    /// PT: Verifica se indices de cobertura expõem as colunas solicitadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_IndexWithIncludeCoveringProjection_ShouldExposeRequestedColumnsInIndex()
+    {
+        var table = _cnn.GetTable("users");
+        var idx = table.Indexes["ix_users_name_include_email"];
+
+        var lookup = table.Lookup(idx, new IndexKey("John"));
+
+        Assert.NotNull(lookup);
+        var idxRow = lookup!.Single().Value;
+        Assert.Equal("John", idxRow["name"]);
+        Assert.Equal("john@x.com", idxRow["email"]);
+        Assert.Equal(1, idxRow["id"]);
+
+        var rows = _cnn.Query<dynamic>("SELECT id, email FROM users WHERE name = 'John'").ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+        Assert.Equal("john@x.com", (string)rows[0].email);
+    }
+
+    /// <summary>
+    /// EN: Verifies missing indexed columns fall back to the table row.
+    /// PT: Verifica se colunas ausentes no indice voltam para a linha da tabela.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_IndexWithoutRequestedColumn_ShouldFallbackToTableRow()
+    {
+        var table = _cnn.GetTable("users");
+        var idx = table.Indexes["ix_users_name_include_email"];
+
+        var lookup = table.Lookup(idx, new IndexKey("John"));
+
+        Assert.NotNull(lookup);
+        var idxRow = lookup!.Single().Value;
+        Assert.False(idxRow.ContainsKey("tags"));
+
+        var rows = _cnn.Query<dynamic>("SELECT tags FROM users WHERE name = 'John'").ToList();
+        Assert.Single(rows);
+        Assert.Equal("a,b", (string)rows[0].tags);
+    }
+
+    /// <summary>
+    /// EN: Verifies non-indexed predicates do not increase index lookup metrics.
+    /// PT: Verifica se predicados nao indexados nao aumentam as metricas de busca por indice.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_NonIndexedPredicate_ShouldNotIncreaseIndexLookupMetric()
+    {
+        var before = _cnn.Metrics.IndexLookups;
+        var beforeTableHint = _cnn.Metrics.TableHints.TryGetValue("users", out var th) ? th : 0;
+
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1").ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+        Assert.Equal(before, _cnn.Metrics.IndexLookups);
+        Assert.Equal(beforeTableHint + 1, _cnn.Metrics.TableHints["users"]);
+    }
+
+    /// <summary>
+    /// EN: Verifies IN filters rows as expected.
+    /// PT: Verifica se IN filtra as linhas como esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_IN_ShouldFilter()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id IN (1,3)").ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.Contains(rows, r => (int)r.id == 1);
+        Assert.Contains(rows, r => (int)r.id == 3);
+    }
+
+    /// <summary>
+    /// EN: Verifies IS NOT NULL filters rows as expected.
+    /// PT: Verifica se IS NOT NULL filtra as linhas como esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_IsNotNull_ShouldFilter()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE email IS NOT NULL").ToList();
+        Assert.Equal(2, rows.Count);
+    }
+
+    /// <summary>
+    /// EN: Verifies comparison operators return the expected rows.
+    /// PT: Verifica se operadores de comparacao retornam as linhas esperadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_Operators_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id >= 2 AND id <= 3").ToList();
+        Assert.Equal([2, 3], [.. rows.Select(r => (int)r.id).OrderBy(_ => _)]);
+
+        var rows2 = _cnn.Query<dynamic>("SELECT id FROM users WHERE id != 2").ToList();
+        Assert.Equal([1, 3], [.. rows2.Select(r => (int)r.id).OrderBy(_ => _)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies LIKE filters rows as expected.
+    /// PT: Verifica se LIKE filtra as linhas como esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_Like_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name LIKE '%oh%'").ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+    }
+
+    /// <summary>
+    /// EN: Verifies LIKE ESCAPE matches literal wildcard characters through the DB2 parser and executor path.
+    /// PT: Verifica se LIKE ESCAPE casa curingas literais pelo fluxo de parser e executor do DB2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_LikeEscapeClause_ShouldMatchLiteralWildcardCharacters()
+    {
+        var users = _cnn.GetTable("users");
+        users.Add(new Dictionary<int, object?> { [0] = 4, [1] = "Jo_n", [2] = "jon_@x.com", [3] = null });
+        users.Add(new Dictionary<int, object?> { [0] = 5, [1] = "Joan", [2] = "joan@x.com", [3] = null });
+
+        var rows = _cnn.Query<dynamic>(
+            "SELECT id FROM users WHERE name LIKE 'Jo#_%' ESCAPE '#' ORDER BY id")
+            .ToList();
+
+        Assert.Single(rows);
+        Assert.Equal(4, (int)rows[0].id);
+    }
+
+    /// <summary>
+    /// EN: Verifies LIKE ESCAPE rejects parameter values that evaluate to more than one character.
+    /// PT: Verifica se LIKE ESCAPE rejeita valores de parâmetro que resultam em mais de um caractere.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_LikeEscapeClause_WithMultiCharacterParameter_ShouldThrowActionableError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            _cnn.Query<dynamic>(
+                "SELECT id FROM users WHERE name LIKE 'Jo#_%' ESCAPE @esc",
+                new { esc = "##" })
+            .ToList());
+
+        Assert.Contains("single character", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies FIND_IN_SET filters rows as expected.
+    /// PT: Verifica se FIND_IN_SET filtra as linhas como esperado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_FindInSet_ShouldWork()
+    {
+        // FIND_IN_SET('b', tags) -> John(a,b) e Jane(b,c)
+        var ex = Assert.Throws<NotSupportedException>(() => _cnn
+            .Query<dynamic>("SELECT id FROM users WHERE FIND_IN_SET('b', tags)")
+            .ToList());
+        Assert.Contains("FIND_IN_SET", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies mixed-case AND is parsed as a logical conjunction.
+    /// PT: Verifica se AND em maiusculas e minusculas mistas e interpretado como conjuncao logica.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2WhereParserAndExecutor")]
+    public void Where_AND_ShouldBeCaseInsensitive_InRealLife()
+    {
+        // esse teste é pra pegar o bug clássico: split só em SqlConst._AND_ / " and "
+        // Se falhar, você sabe o que arrumar: split por regex com IgnoreCase.
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE id = 1 aNd name = 'John'").ToList();
+        Assert.Single(rows);
+        Assert.Equal(1, (int)rows[0].id);
+    }
+
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    protected override void Dispose(bool disposing)
+    {
+        _cnn?.Dispose();
+        base.Dispose(disposing);
+    }
+}

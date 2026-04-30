@@ -1,0 +1,57 @@
+namespace DbSqlLikeMem.Sqlite.Test;
+
+/// <summary>
+/// EN: Contains tests for sqlite connector factory mock.
+/// PT: Contém testes para sqlite fábrica de conectores simulada.
+/// </summary>
+public sealed class SqliteConnectorFactoryMockTests(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
+{
+    /// <summary>
+    /// EN: Creates a new core members_should return provider mocks instance.
+    /// PT: Verifica se os membros principais retornam mocks do provedor.
+    /// </summary>
+    [Fact]
+    public void CreateCoreMembers_ShouldReturnProviderMocks()
+    {
+        var factory = SqliteConnectorFactoryMock.GetInstance([]);
+
+        factory.CreateCommand().Should().BeOfType<SqliteCommandMock>();
+        factory.CreateConnection().Should().BeOfType<SqliteConnectionMock>();
+        factory.CreateDataAdapter().Should().BeOfType<SqliteDataAdapterMock>();
+        factory.CreateConnectionStringBuilder().Should().BeOfType<DbConnectionStringBuilder>();
+        factory.CreateParameter().Should().NotBeNull();
+    }
+
+#if NET8_0_OR_GREATER
+    /// <summary>
+    /// EN: Creates a new batch members_should return provider mocks instance.
+    /// PT: Verifica se os membros de lote retornam mocks do provedor.
+    /// </summary>
+    [Fact]
+    public void CreateBatchMembers_ShouldReturnProviderMocks()
+    {
+        var factory = SqliteConnectorFactoryMock.GetInstance([]);
+
+        factory.CanCreateBatch.Should().BeTrue();
+        factory.CreateBatch().Should().BeOfType<SqliteBatchMock>();
+        factory.CreateBatchCommand().Should().BeOfType<SqliteBatchCommandMock>();
+    }
+#endif
+
+#if NET7_0_OR_GREATER
+    /// <summary>
+    /// EN: Creates a new data source_should return provider data source mock instance.
+    /// PT: Verifica se a fonte de dados do provedor retorna um objeto de fonte de dados simulada.
+    /// </summary>
+    [Fact]
+    public void CreateDataSource_ShouldReturnProviderDataSourceMock()
+    {
+        var factory = SqliteConnectorFactoryMock.GetInstance([]);
+
+        var dataSource = factory.CreateDataSource("Host=mock");
+        dataSource.Should().BeOfType<SqliteDataSourceMock>();
+    }
+#endif
+}

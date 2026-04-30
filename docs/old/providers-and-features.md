@@ -16,7 +16,7 @@
 
 ## Compatibilidade de frameworks para consumidores
 
-- Os pacotes de produção seguem a fonte de verdade central em `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+- Os pacotes de produção seguem a fonte de verdade central em `src/code/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
 - Os projetos de teste e test-tools usam o override dedicado: `net462`, `net6.0` e `net8.0`.
 - Para instalação e exemplos de adoção, use `docs/getting-started.md`.
 - Para impacto de distribuição, versionamento e publicação, use `docs/publishing.md`.

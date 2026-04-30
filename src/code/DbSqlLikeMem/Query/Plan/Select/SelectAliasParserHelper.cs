@@ -1,0 +1,311 @@
+namespace DbSqlLikeMem;
+
+internal static class SelectAliasParserHelper
+{
+    internal static (string expr, string? alias) SplitTrailingAsAlias(
+        string raw,
+        string? alreadyAlias)
+    {
+        var rawSpan = raw.AsSpan().Trim();
+        if (!string.IsNullOrWhiteSpace(alreadyAlias))
+            return (rawSpan.ToString(), alreadyAlias);
+
+        if (!ContainsWhitespace(rawSpan))
+            return (rawSpan.ToString(), null);
+
+        var depth = GetDepthAlias(rawSpan);
+        var asPosition = -1;
+        FindPositionOfAs(rawSpan, ref depth, ref asPosition);
+
+        if (asPosition < 0)
+        {
+            if (TrySplitTrailingImplicitAlias(rawSpan, out var expr, out var alias))
+            {
+                if (rawSpan.IndexOf("<=>", StringComparison.Ordinal) >= 0
+                    || EndsWithNextValueForPattern(rawSpan))
+                {
+                    Console.WriteLine($"[SPLIT-ALIAS-SUSPECT] Raw='{raw}' Expr='{expr}' Alias='{alias}'");
+                }
+
+                return (expr, alias);
+            }
+
+            return (rawSpan.ToString(), null);
+        }
+
+        var after = rawSpan[(asPosition + 2)..].Trim();
+        if (after.Length == 0)
+            return (rawSpan.ToString(), null);
+
+        if (!TryParseSimpleAlias(after, out var explicitAlias))
+            return (rawSpan.ToString(), null);
+
+        var beforeAs = rawSpan[..asPosition].TrimEnd();
+        if (beforeAs.Length == 0)
+            return (rawSpan.ToString(), null);
+
+        return (beforeAs.ToString(), explicitAlias);
+    }
+
+    private static bool TrySplitTrailingImplicitAlias(
+        ReadOnlySpan<char> raw,
+        out string expr,
+        out string alias)
+    {
+        expr = string.Empty;
+        alias = string.Empty;
+
+        var depth = 0;
+        var i = raw.Length - 1;
+        while (i >= 0 && char.IsWhiteSpace(raw[i]))
+            i--;
+
+        if (i < 0)
+            return false;
+
+        var end = i;
+        while (i >= 0)
+        {
+            var ch = raw[i];
+            if (ch == ')')
+            {
+                depth++;
+                i--;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth = Math.Max(0, depth - 1);
+                i--;
+                continue;
+            }
+
+            if (depth == 0 && char.IsWhiteSpace(ch))
+                break;
+
+            i--;
+        }
+
+        var start = i + 1;
+        if (start > end)
+            return false;
+
+        var token = raw.Slice(start, end - start + 1).Trim();
+        if (token.Length == 0)
+            return false;
+
+        if (!TryParseSimpleAlias(token, out var parsedAlias))
+            return false;
+
+        if (IsLikelyKeyword(parsedAlias))
+            return false;
+
+        var before = raw[..start].TrimEnd();
+        if (before.Length == 0 || before.EndsWith(".", StringComparison.Ordinal))
+            return false;
+
+        if (EndsWithOperatorToken(before))
+            return false;
+
+        if (EndsWithNextValueForPattern(before))
+            return false;
+
+        expr = before.ToString();
+        alias = parsedAlias;
+        return true;
+    }
+
+    private static bool ContainsWhitespace(ReadOnlySpan<char> value)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            if (char.IsWhiteSpace(value[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsLikelyKeyword(string value)
+        => value.Equals(SqlConst.FROM, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.WHERE, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.JOIN, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.LEFT, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.INNER, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.OUTER, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.ON, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.GROUP, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.BY, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.HAVING, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.ORDER, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.LIMIT, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.UNION, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.ALL, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.DISTINCT, StringComparison.OrdinalIgnoreCase)
+            || value.Equals("ASC", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("DESC", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("CASE", StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.WHEN, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.THEN, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.ELSE, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.END, StringComparison.OrdinalIgnoreCase)
+            || value.Equals("DATE", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("TIME", StringComparison.OrdinalIgnoreCase)
+            || value.Equals("TIMESTAMP", StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.NULL, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.TRUE, StringComparison.OrdinalIgnoreCase)
+            || value.Equals(SqlConst.FALSE, StringComparison.OrdinalIgnoreCase);
+
+    private static void FindPositionOfAs(ReadOnlySpan<char> raw, ref int depth, ref int asPosition)
+    {
+        for (var i = 0; i < raw.Length - 1; i++)
+        {
+            UpdateParenDepth(raw[i], ref depth);
+            if (depth != 0 || !IsAsAt(raw, i) || !IsWordBoundary(raw, i, 2))
+                continue;
+
+            asPosition = i;
+        }
+    }
+
+    private static void UpdateParenDepth(char ch, ref int depth)
+    {
+        if (ch == '(')
+        {
+            depth++;
+            return;
+        }
+
+        if (ch == ')')
+            depth = Math.Max(0, depth - 1);
+    }
+
+    private static bool IsAsAt(ReadOnlySpan<char> value, int index)
+        => (value[index] == 'A' || value[index] == 'a')
+            && (value[index + 1] == 'S' || value[index + 1] == 's');
+
+    private static bool IsWordBoundary(ReadOnlySpan<char> value, int start, int length)
+    {
+        var left = start - 1;
+        var right = start + length;
+
+        var leftOk = left < 0 || !IsIdentifierChar(value[left]);
+        var rightOk = right >= value.Length || !IsIdentifierChar(value[right]);
+        return leftOk && rightOk;
+    }
+
+    private static bool IsIdentifierChar(char c)
+        => char.IsLetterOrDigit(c) || c == '_';
+
+    private static bool TryParseSimpleAlias(string value, out string alias)
+        => TryParseSimpleAlias(value.AsSpan(), out alias);
+
+    private static bool TryParseSimpleAlias(ReadOnlySpan<char> value, out string alias)
+    {
+        alias = string.Empty;
+        var trimmed = value.Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (trimmed[0] == '`')
+        {
+            if (trimmed.Length < 3 || trimmed[^1] != '`')
+                return false;
+
+            trimmed = trimmed[1..^1];
+        }
+
+        if (trimmed.Length == 0 || !IsAliasStartChar(trimmed[0]))
+            return false;
+
+        for (var i = 1; i < trimmed.Length; i++)
+        {
+            if (!IsIdentifierChar(trimmed[i]))
+                return false;
+        }
+
+        alias = trimmed.ToString();
+        return true;
+    }
+
+    private static bool IsAliasStartChar(char ch)
+        => char.IsLetter(ch) || ch == '_';
+
+    private static bool EndsWithOperatorToken(ReadOnlySpan<char> value)
+    {
+        var span = value.TrimEnd();
+        if (span.Length == 0)
+            return false;
+
+        if (span.EndsWith("<=>", StringComparison.Ordinal)
+            || span.EndsWith("<>", StringComparison.Ordinal)
+            || span.EndsWith("!=", StringComparison.Ordinal)
+            || span.EndsWith(">=", StringComparison.Ordinal)
+            || span.EndsWith("<=", StringComparison.Ordinal)
+            || span.EndsWith("||", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var last = span[^1];
+        return last is '=' or '>' or '<' or '+' or '-' or '*' or '/' or ',';
+    }
+
+    private static bool EndsWithNextValueForPattern(ReadOnlySpan<char> value)
+    {
+        if (!TryPopLastWord(value, out var beforeFor, out var forWord) || !forWord.Equals("FOR", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!TryPopLastWord(beforeFor, out var beforeValue, out var valueWord) || !valueWord.Equals("VALUE", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (!TryPopLastWord(beforeValue, out _, out var firstWord))
+            return false;
+
+        return firstWord.Equals("NEXT", StringComparison.OrdinalIgnoreCase)
+            || firstWord.Equals("PREVIOUS", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryPopLastWord(
+        ReadOnlySpan<char> text,
+        out ReadOnlySpan<char> remainder,
+        out ReadOnlySpan<char> word)
+    {
+        var span = text.TrimEnd();
+        if (span.Length == 0)
+        {
+            remainder = [];
+            word = [];
+            return false;
+        }
+
+        var end = span.Length - 1;
+        var start = end;
+        while (start >= 0 && !char.IsWhiteSpace(span[start]))
+            start--;
+
+        word = span[(start + 1)..(end + 1)];
+        remainder = span[..(start + 1)].TrimEnd();
+        return word.Length > 0;
+    }
+
+    private static int GetDepthAlias(ReadOnlySpan<char> raw)
+    {
+        var depth = 0;
+        for (var i = raw.Length - 1; i >= 0; i--)
+        {
+            var ch = raw[i];
+            if (ch == ')')
+                depth++;
+            else if (ch == '(')
+                depth = Math.Max(0, depth - 1);
+
+            if (depth != 0)
+                continue;
+        }
+
+        return depth;
+    }
+}

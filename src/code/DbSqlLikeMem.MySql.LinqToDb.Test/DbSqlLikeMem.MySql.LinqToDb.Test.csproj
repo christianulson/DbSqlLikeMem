@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DbSqlLikeMem.LinqToDb.TestTools\DbSqlLikeMem.LinqToDb.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.MySql.TestTools\DbSqlLikeMem.MySql.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.MySql.LinqToDb\DbSqlLikeMem.MySql.LinqToDb.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="DbSqlLikeMem.LinqToDb" />
+    <Using Include="DbSqlLikeMem.LinqToDb.TestTools" />
+    <Using Include="DbSqlLikeMem.MySql.TestTools" />
+    <Using Include="DbSqlLikeMem.MySql.LinqToDb" />
+  </ItemGroup>
+</Project>

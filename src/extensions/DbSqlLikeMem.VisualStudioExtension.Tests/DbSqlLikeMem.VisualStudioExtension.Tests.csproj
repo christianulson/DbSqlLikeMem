@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+	<PlatformTarget>x64</PlatformTarget>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <IsExtensionProject>true</IsExtensionProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension\DbSqlLikeMem.VisualStudioExtension.csproj" />
+    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="DbSqlLikeMem.VisualStudioExtension.UI" />
+    <Using Include="DbSqlLikeMem.VisualStudioExtension.Core.Models" />
+  </ItemGroup>
+</Project>

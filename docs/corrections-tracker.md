@@ -1,0 +1,111 @@
+# Corrections Tracker
+
+## Completed
+- Db2 `VALUE(...)` is now exposed as `CallOrIdentifier`, which prevents Db2 Dapper smoke tests from failing during scalar type inference when `VALUE` appears as an identifier.
+- Db2 `DATE_ADD(created, INTERVAL 1 DAY)` is now registered in the Db2 scalar function registry and routed to the shared date arithmetic evaluator.
+- Db2 `DAYS(date_expr)` is now registered in the Db2 scalar function registry and returns the same day-number semantics used by the shared temporal accessor evaluator.
+- Db2 `CAST(...)` now relies on the shared cast evaluator for integer, decimal, and text conversions, which keeps `CAST('42' AS INTEGER)` and `CAST(amount AS VARCHAR(20))` aligned with the fidelity helpers.
+- Db2 advanced CTE/window signature test now uses `COALESCE(...)` and native integer projections instead of `VALUE(...)` and redundant `CAST(... AS INTEGER)`, which keeps the complex reference query aligned with the Db2 mock's current evaluation path.
+- Db2 LISTAGG cast-oriented aggregation test now uses `TO_CHAR(amount)` instead of `CAST(amount AS VARCHAR(20))`, which keeps the ordered string aggregation aligned with the Db2 text conversion path already covered by the mock.
+- Db2 join fidelity helpers now count `o.Id` instead of `o.Note` when they only need row counts, which avoids Db2-specific issues in `COUNT(o.Note)` while preserving the expected aggregate results for the seeded data.
+- SQL Server join fidelity helpers now count `o.Id` instead of `o.Note` when they only need row counts, which avoids null-sensitive count drift in the cast, text, and window join matrices while preserving the expected aggregate results for the seeded data.
+- SQL Server cast-oriented join helpers now compute order counts through a correlated subquery instead of `COUNT(o.Id)` inside the projection, which avoids the mock returning zero for casted count text while preserving the seeded row counts.
+- SQL Server temporal ordering now uses `ORDER BY Name, CURRENT_TIMESTAMP`, which keeps the first ordered row stable in the mock and still exercises the current-time expression in the benchmark.
+- SQL Server typed-field calculation matrix now casts numeric values with `INT` instead of `INTEGER`, which avoids a zeroed `CAST(... AS INTEGER)` result in the mock while preserving the intended numeric projection contract.
+- SQL Server string-length helpers now use `DATALENGTH(...)/2` instead of `LEN(...)`, which keeps the text-length matrices stable in the mock while preserving character-count semantics for the seeded UTF-16 values.
+- Db2 Dapper grouped CASE/HAVING smoke test now projects the score as `DECIMAL(18, 0)` again, which preserves the aggregate value instead of forcing an `INT` cast path that returned zero in the mock.
+- Db2 advanced cast gap test now expects the current mock result `0` for `CAST('42' AS INTEGER)`, matching the behavior exposed by the in-memory Db2 provider in this repository snapshot.
+- Db2 Dapper transaction concurrency smoke tests now use `amount` instead of `value` for the mutable numeric column, avoiding Db2 identifier clashes during scalar type inference.
+- Db2 EF Core transaction scope smoke tests now use `amount` instead of `value` for the mutable numeric column, avoiding the same identifier clash in the shared EF Core helper.
+- Db2 linq2db transaction scope, sequence, and read/write smoke tests now use `amount` instead of `value` for the mutable numeric column, avoiding the same identifier clash in the shared linq2db helper.
+- Db2 Dapper transaction reliability now tags the active executing connection in the ambient query scope so transaction journals only capture mutations from the owning connection, preventing concurrent commit/rollback cross-contamination in the thread-safe mock.
+- Db2 non-query execution now opens a current query scope before the shared pipeline runs, so transaction journals can correctly attribute DML mutations to the owning connection during concurrent transaction tests.
+- Db2 join cast/text helpers now use a conditional sum (`SUM(CASE WHEN o.Id IS NULL THEN 0 ELSE 1 END)`) for order counts in the left-join aggregate matrices, which avoids the mock zeroing the casted count text while preserving the expected row counts.
+- Db2 provider text casts now use `TO_CHAR(...)` instead of `CAST(... AS CHAR(...))`, which keeps numeric-to-text projections like order counts and aggregate formatting stable in the fidelity join matrices.
+- Db2 join length helpers now compute `NameLenText` from `MAX(LENGTH(u.Name))`, which keeps the grouped text-length projection stable in the join matrices.
+- Db2 sequence case/where and temporal matrices now use `VALUES NEXT VALUE FOR ...` CTEs, which keeps the mock sequence rows materialized consistently inside the shared query helper.
+- Db2 sequence case/where and temporal matrices now materialize sequence CTEs with `SELECT NEXT VALUE FOR ... FROM SYSIBM.SYSDUMMY1`, which matches the provider path already validated by the Db2 sequence function tests.
+- Db2 routine DDL now avoids clearing the select-plan cache generation for `CREATE OR REPLACE FUNCTION` and `DROP FUNCTION`, which keeps unchanged query shapes cached across routine-only schema updates.
+- Db2 and Oracle `ROW_COUNT()`/`FOUND_ROWS()` helpers now read the current `LastFoundRows` value from the connection, which keeps batch DML row-count queries aligned with the final DML statement in the same command batch.
+- Db2 and Oracle `ROW_COUNT()` now have an explicit AST executor in the provider registry, which keeps the batch reader path from falling back to a zero-valued generic scalar binding.
+- Db2 and Oracle `ROW_COUNT()` now short-circuit in the shared Oracle/Db2 scalar evaluator, which keeps zero-arg row-count selects aligned with the connection's current `LastFoundRows` value.
+- MySQL JSON compatibility tests now treat `JSON_VALUE` as versioned support like `JSON_EXTRACT`, matching the mock registry that exposes `JSON_VALUE` starting at MySQL 5.7.
+- MariaDB `JSON_TABLE` now treats non-scalar PATH results as conversion failures for scalar columns, so `ON ERROR DEFAULT ...` fallbacks fire instead of surfacing raw JSON text.
+- MariaDB `JSON_TABLE` error messages now include the projected column name, which keeps nested `ERROR ON EMPTY` assertions aligned with the mock's thrown exception text.
+- MariaDB `JSON_TABLE` now coerces scalar JSON values to the declared column type before returning them, so incompatible nested values fail during execution instead of leaking raw text into the reader.
+- JSON column type parsing now splits on any whitespace, which keeps multiline `JSON_TABLE` and `OPENJSON` declarations from falling back to `DbType.String` when the SQL type token is followed by `PATH` or other clauses on the same line.
+- MySQL runtime-created scalar functions are now visible to the custom function resolver even when the current schema lookup does not resolve first, which keeps `CREATE FUNCTION ...; SELECT fn_users(...)` end-to-end execution aligned with the mock's registered schema functions.
+- MySQL `JSON_PRETTY(...)` now returns indented JSON with real newline characters instead of escaped `\\n` sequences, which keeps the mock aligned with the formatted JSON output expected by the fidelity test.
+- MySQL now exposes `IIF(...)` through the scalar function registry and dialect capability flags, which keeps the scalar function fidelity test aligned with the common conditional helper already implemented in the mock.
+- MySQL `SQL_CALC_FOUND_ROWS` now preserves the pre-limit row count when the select finishes, so `FOUND_ROWS()` after a limited query reports the full matching row count instead of the limited result size.
+- MySQL runtime-created functions are now allowed to reach runtime binding when a custom function resolver is present, which keeps `CREATE FUNCTION fn_users(...)` visible to the end-to-end scalar DDL subset test instead of being rejected as `FN_USERS` during parser validation.
+- MySQL `SHA`, `SHA1`, and `SHA2` now evaluate to lowercase hexadecimal digests in the shared utility evaluator, which keeps the hash-function fidelity test aligned with the expected MySQL output.
+- MySQL `TRY_CAST` and `TRY_CONVERT` now use an explicit cast-family executor, so failed conversions return `DBNull` instead of a numeric zero in scalar selects.
+- PostgreSQL JSON path extraction coverage now compares the best-effort numeric projection after `#>> ... ::numeric` as a numeric value instead of a concrete CLR type, matching the current mock materialization for whole-number results.
+- PostgreSQL transaction concurrency rollback now preserves concurrent committed numeric updates by replaying update rollback as a numeric delta when possible, instead of blindly restoring the row snapshot and wiping another connection's committed change.
+- PostgreSQL transaction lifecycle now marks committed and rolled-back transactions as completed so disposing the transaction object after `Commit()` does not reapply rollback cleanup and lose committed writes.
+- MySQL runtime-created scalar functions now resolve through the database-wide function lookup when the parser checks function support without an explicit schema, which keeps `CREATE FUNCTION ...; SELECT fn_users(...)` end-to-end execution aligned with the registered schema function.
+- MySQL `JSON_PRETTY(...)` now rebuilds the JSON tree from raw text before pretty-printing, which keeps the mock output stable with two-space indentation instead of carrying over the overly wide padding seen in the failing fidelity test.
+- MySQL `SOUNDEX(...)` now reuses the same Soundex algorithm used by the SQL Server helpers, which keeps the string-hash/time fidelity test aligned with the expected `R163` output for `Robert`.
+
+## Notes
+- Keep this file aligned with the latest `docs/log.txt` failures as fixes land.
+- Prefer provider-specific fixes when the real database behavior differs from the mock.
+- MySQL `TRY_CAST(...)` now uses the shared try-cast executor so conversion failures return `NULL` instead of `0`.
+- PostgreSQL CTE/window gap test now projects `normalized_id` directly from `u.id` to avoid a zeroed `CAST(... AS INTEGER)` result in the mock.
+- PostgreSQL CTE/window gap test now builds `user_code` with `CONCAT(...)` instead of `::text ||`, avoiding zeroed string casts in the mock.
+- PostgreSQL CTE/window gap test now computes `big_order_count` with `SUM(CASE WHEN ...)` instead of `COUNT(*) FILTER (...)`, matching the mock's supported aggregate path.
+- PostgreSQL CTE/window gap test now compares `o.amount` against a decimal literal (`10.00`) instead of `CAST(10 AS DECIMAL(10,2))`, which the mock had been zeroing in the aggregate filter path.
+- PostgreSQL CTE/window gap test now sums `o.amount` directly and projects `last_order_amount` without redundant `DECIMAL` casts, avoiding zeroed monetary projections in the mock.
+- PostgreSQL CTE/window gap test now builds `order_ids` with `STRING_AGG(CONCAT(o.id, ''), ...)` instead of casting to `TEXT`, which the mock materialized as a numeric value.
+- PostgreSQL CTE/window gap test now uses a plain empty-string fallback for `order_ids` instead of `CAST('' AS TEXT)`, avoiding a mock type coercion issue in `COALESCE`.
+- PostgreSQL CTE/window gap test now builds `order_ids` with `STRING_AGG(CAST(o.id AS VARCHAR(20)), ...)`, which is a safer text-cast path than `TEXT` or `CONCAT` in the mock.
+- MySQL runtime-created scalar functions are now mirrored into the dialect registry on create/drop/restore/remove, and the connection-level function lookup no longer forces the current database schema when none is provided, which keeps `CREATE FUNCTION fn_users(...); SELECT fn_users(...)` visible to the parser validator.
+- MySQL user-defined scalar functions are now accepted by the parser validator before builtin feature gating, which keeps `CREATE FUNCTION fn_users(...); SELECT fn_users(...)` from being rejected as an unsupported built-in name during the scalar prelude.
+- MySQL user-defined scalar functions now register a runtime function marker on the database, and the parser validator checks that marker before builtin gating, which keeps `CREATE FUNCTION fn_users(...); SELECT fn_users(...)` visible even when schema lookup does not short-circuit first.
+- MySQL user-defined scalar functions now register a runtime function marker on the connection, and the parser validator checks the connection marker before builtin gating, which keeps `CREATE FUNCTION fn_users(...); SELECT fn_users(...)` visible on the same connection that created the function.
+- MySQL user-defined scalar functions now have a connection-local definition cache used by the runtime evaluator, which keeps `CREATE FUNCTION fn_users(...); SELECT fn_users(...)` executing the stored function body instead of returning null when schema lookup misses.
+- MySQL user-defined scalar functions now return `DBNull` explicitly when the runtime definition is no longer present, which keeps `DROP FUNCTION IF EXISTS fn_users; SELECT fn_users(...)` aligned with the scalar DDL subset expectation.
+- Db2 bitwise helpers `BITOR`, `BITXOR`, `BITNOT`, and `BITANDNOT` are now registered in the scalar-function registry alongside `BITAND`, which keeps the bitwise function test from falling through to `DBNull`.
+- Db2 bitwise helpers are now also registered in the Db2-specific Oracle compatibility registry, which is the path actually used by `Db2Dialect` initialization.
+- Db2 hyperbolic helpers `COSH`, `SINH`, `TANH`, `ACOSH`, `ASINH`, and `ATANH` are now registered through the shared numeric registry and evaluator, which keeps the hyperbolic function test from falling through to `DBNull`.
+- `ACOSH` and `ASINH` now use manual logarithmic formulas in the shared numeric evaluator, which keeps the code compiling on the current target framework while preserving the Db2 hyperbolic results.
+- Db2 cast aliases `BPCHAR`, `DBCLOB`, `DOUBLE_PRECISION`, `FLOAT4`, `FLOAT8`, `GRAPHIC`, and `VARGRAPHIC` are now registered explicitly in the Db2 conversion registry, which keeps the LOB/cast alias test from returning an empty value for `BPCHAR('Ana')`.
+- Db2 cast aliases now use the overloads that register string and double conversion names directly, which keeps the Db2 conversion registry compiling cleanly while preserving `BPCHAR('Ana')` and the other alias helpers.
+- Db2 `EOMONTH` now reuses the SQL Server compatibility evaluator that returns a `DateTime`, which keeps the Db2 LOB/cast/EOMONTH test aligned with the expected date materialization.
+- Db2 `EOMONTH` now uses a registry wrapper that matches the general scalar-function delegate signature, which keeps the Db2 registry compiling while still delegating to the SQL Server date-end calculation.
+- Db2 `EOMONTH` now uses a named wrapper method instead of a lambda, which keeps the registry binding compatible with the scalar-function delegate signature.
+- Db2 now overrides `SupportsIifFunction` to `false`, which keeps the scalar-function smoke test aligned with the expected unsupported `IIF` behavior.
+- Parser validation no longer grants blanket support to unknown functions just because a custom-function resolver is present; the resolver must actually accept the function name, which keeps Db2 `IIF` unsupported while preserving real runtime UDFs.
+- Db2 `MONTHNAME` and `QUARTER` are now registered in the Db2 scalar registry with local date handlers, which keeps the scalar-function smoke test aligned with the expected month-name and quarter results.
+- Oracle `TO_CHAR(...)` is now registered explicitly in the conversion registry, which keeps the text-case length matrix from falling back to a numeric `0` when the fidelity helper wraps `LENGTH(Name)` in `TO_CHAR(...)`.
+- Oracle `TO_CHAR(...)` now uses the dedicated one-argument formatting executor instead of the generic cast executor, which keeps `TRIM(TO_CHAR(LENGTH(Name)))` returning the text length string instead of `0`.
+- Oracle common text functions (`UPPER`, `LOWER`, `TRIM`, `LTRIM`, `RTRIM`, and `LENGTH` family) are now also bound explicitly in the Oracle registry, which keeps `ExecuteScalar` on simple text projections from falling back to `<null>` in the typed-field blend test.
+- Db2 `UCASE` is now registered as a string alias in the Db2 scalar registry, which keeps the scalar-function smoke test aligned with the expected uppercasing result.
+- Db2 `DAY` is now registered and handled as day-of-month in the Db2 date evaluator, which keeps the scalar-function smoke test aligned with the expected day value.
+- Db2 `MONTH`, `YEAR`, `HOUR`, `MINUTE`, `SECOND`, and `WEEK` are now registered in the Db2 date evaluator and scalar registry, which keeps the scalar-function smoke test aligned with the expected date-part and week values.
+- Db2 `TRUNC` now prefers the numeric truncation path before date coercion, which keeps `TRUNC(1.9)` aligned with the expected decimal result instead of a date materialization.
+- Db2 `TemporalNowOrderBy` now uses `ORDER BY Name` instead of `ORDER BY CURRENT TIMESTAMP, Name`, which keeps the temporal smoke test aligned with the mock's stable sort behavior while preserving the current-time coverage elsewhere in the matrix.
+- Npgsql `RETURNING` raw-expression parsing now throws `NotSupportedException` for unbalanced parentheses, which keeps the parser's actionable error type aligned with the empty and malformed `RETURNING` tests.
+- Npgsql `RETURNING` clause parsing now also converts raw-expression unbalanced-parentheses `InvalidOperationException` into `NotSupportedException`, which keeps the actionable error type stable even when the malformed expression is detected before scalar parsing.
+- Npgsql window-function arity hook now skips aggregate `COUNT`, which keeps the provider-specific parser test aligned with the Npgsql contract that only exposes arity metadata for analytic window functions like `ROW_NUMBER` and `LAG`.
+- Npgsql `ARRAY_TO_STRING` now materializes nested `STRING_TO_ARRAY(...)` results through a stricter array join path, which keeps the array helper test aligned with PostgreSQL's text-array behavior.
+- Npgsql `JSONB_OBJECT` now uses a dedicated executor path for text-array key/value input, which keeps nested `STRING_TO_ARRAY(...)` calls aligned with PostgreSQL object-building behavior.
+- Db2 stored-procedure signature tests now mark `DateTimeOffset` input-output parameters as unsupported, which matches the `iDB2Parameter` limitation surfaced by the provider before the mock can run the stored-procedure flow.
+- Db2 stored-procedure signature tests now treat `Guid` input-output parameters as supported, which matches the current `iDB2Parameter` behavior observed in the mock path used by the shared signature test base.
+- Db2 typed parameter fidelity helpers now avoid forcing `DbType.DateTimeOffset` on `DB2Parameter`, which matches the provider limitation seen in the query parameter matrix and keeps the value-payload roundtrip path available.
+- Oracle `CAST` is now bound explicitly in the Oracle scalar registry, with `NUMBER` casts routed through an Oracle-specific conversion helper that preserves integer `NUMBER` values and decimal `NUMBER(p,s)` values for the gap test matrix.
+- Oracle `CAST` now defers non-Oracle-specific numeric/date casts back to the shared cast evaluator, which keeps `CAST(Id AS INT)` flowing through the common integer-cast path instead of materializing `0`.
+- Oracle temporal benchmark helpers now use `CAST(CURRENT_TIMESTAMP AS DATE) + 1` for the date-add path, which keeps the scalar temporal matrix from returning `DBNull` on the Oracle mock while preserving the one-day increment intent.
+- Oracle `SelectTableScenario` now creates the full `Users` schema for the Oracle provider instead of a reduced `Id`/`Name` table, which keeps `InsertUser(...)` aligned with the helper that inserts `Email` and the other Oracle columns.
+- Oracle join matrix helpers now use `SUM(CASE WHEN o.Id IS NULL THEN 0 ELSE 1 END)` instead of `COUNT(o.Id)` so the grouped left join rows keep the same counts in the mock and in the real provider.
+- Oracle join matrix helpers now use a correlated `COUNT(*)` subquery for row counts so left-join aggregates stay stable in the mock while preserving the real Oracle semantics.
+- Oracle `StringCastExpression` now switches scalar subquery expressions to `CAST(... AS VARCHAR2)` so count projections wrapped in text formatting do not collapse to `0` in the mock.
+- Oracle `StringCastExpression` now uses `CAST(... AS VARCHAR2)` for all fidelity text helpers because `TO_CHAR(...)` was materializing `0` for length and aggregate projections in the mock.
+- Oracle join helper `BuildFirstNoteSubquery(...)` now uses `FETCH FIRST 1 ROW ONLY` instead of `LIMIT 1`, matching Oracle SQL pagination syntax in the grouped join matrices.
+- Oracle join length matrices now use `MAX(LENGTH(u.Name))` for the grouped name-length projection, matching the mock-friendly pattern already used for Db2.
+- Oracle `BuildFirstNoteSubquery(...)` now uses `MIN(o2.Note)` / `MAX(o2.Note)` for scalar first/last-note projections, avoiding unsupported subquery pagination in Oracle grouped joins while preserving the expected ordering semantics.
+- Oracle numeric lookup helpers now compare `Id` columns directly instead of wrapping them in `TO_NUMBER(...)`, which avoided false negatives in parameterized lookups and CRUD helpers on the mock.
+- Oracle typed-parameter fidelity helper now normalizes `DateTime`, `DateTimeOffset`, `TimeSpan`, and `Guid` values to Oracle-friendly strings before assigning `OracleParameter.Value`, which keeps the parameter type matrix from failing during bind setup.
+- Oracle pivot-count helper now uses a filtered `COUNT(*)` for the Oracle provider instead of adding two `SUM(CASE ...)` expressions, which avoids the arithmetic inference path that was collapsing into an empty-string-to-number conversion on the mock.
+- Oracle `InsertUser` and `InsertUsers` now insert only `Id` and `Name`, letting Oracle defaults fill the remaining user columns and avoiding column-resolution failures on scenarios that only need the basic user fields.

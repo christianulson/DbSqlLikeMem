@@ -8,6 +8,8 @@ DOC = ROOT / "docs" / "old" / "p7-p10-implementation-plan.md"
 
 PROVIDERS = [
     ("MySQL", "MySql"),
+    ("MariaDB", "MariaDb"),
+    ("Firebird", "Firebird"),
     ("SQL Server", "SqlServer"),
     ("SQL Azure", "SqlAzure"),
     ("Oracle", "Oracle"),
@@ -55,9 +57,9 @@ PILLARS = {
 
 def find_test_paths(provider_folder: str, tokens: list[str]) -> list[str]:
     candidate_bases = [
-        ROOT / "src" / f"DbSqlLikeMem.{provider_folder}.Test",
-        ROOT / "src" / f"DbSqlLikeMem.{provider_folder}.Dapper.Test",
-        ROOT / "src" / f"DbSqlLikeMem.{provider_folder}.NHibernate.Test",
+        ROOT / "src" / "code" / f"DbSqlLikeMem.{provider_folder}.Test",
+        ROOT / "src" / "code" / f"DbSqlLikeMem.{provider_folder}.Dapper.Test",
+        ROOT / "src" / "code" / f"DbSqlLikeMem.{provider_folder}.NHibernate.Test",
     ]
 
     found: list[str] = []

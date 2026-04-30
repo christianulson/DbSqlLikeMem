@@ -1,0 +1,771 @@
+namespace DbSqlLikeMem.Db2.Test;
+
+/// <summary>
+/// EN: Covers Db2 mock CRUD, transactions, row-count, batch, and procedure behavior.
+/// PT: Cobre comportamento de CRUD, transacoes, contagem de linhas, batch e procedimentos do mock Db2.
+/// </summary>
+public sealed class Db2MockTests
+    : XUnitTestBase
+{
+    private readonly Db2ConnectionMock _connection;
+
+    /// <summary>
+    /// EN: Creates the Db2 mock database used by the test suite.
+    /// PT: Cria o banco mock Db2 usado pela suite de testes.
+    /// </summary>
+    public Db2MockTests(
+        ITestOutputHelper helper
+        ) : base(helper)
+    {
+        var db = new Db2DbMock();
+        db.AddTable("Users", [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false) ,
+            new ("Email", DbType.String, true)
+        ]);
+        db.AddTable("Orders", [
+            new("OrderId",  DbType.Int32, false),
+            new("UserId",  DbType.Int32, false),
+            new("Amount",  DbType.Decimal, false, decimalPlaces: 2)
+        ]);
+
+        _connection = new Db2ConnectionMock(db);
+        _connection.Open();
+    }
+
+    /// <summary>
+    /// EN: Verifies INSERT adds a row to the Db2 mock.
+    /// PT: Verifica se INSERT adiciona uma linha no mock Db2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestInsert()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')"
+        };
+        var rowsAffected = command.ExecuteNonQuery();
+        Assert.Equal(1, rowsAffected);
+        Assert.Equal("John Doe", _connection.GetTable("users")[0][1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies ExecuteNonQuery applies each INSERT in a multi-statement script and returns the total affected rows.
+    /// PT: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void ExecuteNonQuery_MultiStatementInsertScript_ShouldInsertAllRowsAndReturnTotalAffected()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = """
+                INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+                INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+                """
+        };
+
+        var rowsAffected = command.ExecuteNonQuery();
+
+        Assert.Equal(3, rowsAffected);
+        var users = _connection.GetTable("users");
+        Assert.Equal(3, users.Count);
+        Assert.Equal("Ana", users[0][1]);
+        Assert.Equal("Bia", users[1][1]);
+        Assert.Equal("Caio", users[2][1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies UPDATE modifies an existing row in the Db2 mock.
+    /// PT: Verifica se UPDATE modifica uma linha existente no mock Db2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestUpdate()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "UPDATE Users SET Name = 'Jane Doe' WHERE Id = 1";
+        var rowsAffected = command.ExecuteNonQuery();
+        Assert.Equal(1, rowsAffected);
+        Assert.Equal("Jane Doe", _connection.GetTable("users")[0][1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies DELETE removes an existing row in the Db2 mock.
+    /// PT: Verifica se DELETE remove uma linha existente no mock Db2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestDelete()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')"
+        };
+        command.ExecuteNonQuery();
+
+        command.CommandText = "DELETE FROM Users WHERE Id = 1";
+        var rowsAffected = command.ExecuteNonQuery();
+        Assert.Equal(1, rowsAffected);
+        Assert.Empty(_connection.GetTable("users"));
+    }
+
+    /// <summary>
+    /// EN: Verifies routine DDL does not invalidate the select-plan cache when the query shape does not change.
+    /// PT: Verifica se DDL de rotinas nao invalida o cache de plano de select quando o shape da consulta nao muda.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void RoutineDdl_ShouldKeepSelectPlanCacheGenerationWhenQueryShapeIsUnchanged()
+    {
+        using (var seed = new Db2CommandMock(_connection))
+        {
+            seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', NULL)";
+            Assert.Equal(1, seed.ExecuteNonQuery());
+        }
+
+        using (var warmup = new Db2CommandMock(_connection))
+        {
+            warmup.CommandText = "SELECT Name FROM Users WHERE Id = 1";
+            Assert.Equal("Ana", warmup.ExecuteScalar());
+        }
+
+        var generationBefore = _connection.GetSelectPlanCacheGeneration();
+
+        using (var createFunction = new Db2CommandMock(_connection))
+        {
+            createFunction.CommandText = "CREATE OR REPLACE FUNCTION fn_cache_guard(baseValue INT) RETURNS INT RETURN baseValue + 1";
+            createFunction.ExecuteNonQuery();
+        }
+
+        using (var createProcedure = new Db2CommandMock(_connection))
+        {
+            createProcedure.CommandText = "CREATE OR REPLACE PROCEDURE sp_cache_guard(IN tenantId INT) BEGIN END";
+            createProcedure.ExecuteNonQuery();
+        }
+
+        var generationAfter = _connection.GetSelectPlanCacheGeneration();
+
+        Assert.Equal(generationBefore, generationAfter);
+    }
+
+    /// <summary>
+    /// EN: Verifies CREATE TABLE with an inline primary key allows inserts.
+    /// PT: Verifica se CREATE TABLE com chave primaria inline permite insercoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void CreateTable_WithInlinePrimaryKey_ShouldCreateColumnAndAllowInsert()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "CREATE TABLE users_nh (id INT PRIMARY KEY, name VARCHAR(100))";
+        cmd.ExecuteNonQuery();
+
+        cmd.CommandText = "INSERT INTO users_nh (id, name) VALUES (1, 'Alice')";
+        var rows = cmd.ExecuteNonQuery();
+
+        Assert.Equal(1, rows);
+        Assert.Equal("Alice", _connection.GetTable("users_nh")[0][1]);
+    }
+
+    /// <summary>
+    /// EN: Verifies committed transactions persist their changes.
+    /// PT: Verifica se transacoes confirmadas persistem suas alteracoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestTransactionCommit()
+    {
+        using (var transaction = _connection.BeginTransaction())
+        {
+            using var command = new Db2CommandMock(_connection, (Db2TransactionMock)transaction)
+            {
+                CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')"
+            };
+            command.ExecuteNonQuery();
+            transaction.Commit();
+        }
+
+        using var queryCommand = new Db2CommandMock(_connection)
+        {
+            CommandText = "SELECT * FROM Users"
+        };
+        using var reader = queryCommand.ExecuteReader();
+        var users = new List<Dictionary<int, object>>();
+        while (reader.Read())
+        {
+            var user = new Dictionary<int, object>();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                user[i] = reader.GetValue(i);
+            }
+            users.Add(user);
+        }
+        Assert.Single(users);
+    }
+
+    /// <summary>
+    /// EN: Verifies insert and update changes survive a committed transaction.
+    /// PT: Verifica se alteracoes de insert e update sobrevivem a uma transacao confirmada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestTransactionCommitInsertUpdate()
+    {
+        using var cmd = _connection.CreateCommand();
+        cmd.CommandText = "INSERT INTO users (id, name) VALUES (1, 'Alice')";
+        cmd.ExecuteNonQuery();
+
+        _connection.BeginTransaction();
+        cmd.CommandText = "UPDATE users SET name = 'Bob' WHERE id = 1";
+        cmd.ExecuteNonQuery();
+        _connection.CommitTransaction();
+
+        cmd.CommandText = "SELECT name FROM users WHERE id = 1";
+        var name = (string?)cmd.ExecuteScalar();
+
+        Assert.Equal("Bob", name);
+    }
+
+    /// <summary>
+    /// EN: Verifies positional parameters still resolve when a named parameter appears before them.
+    /// PT: Verifica se parametros posicionais continuam sendo resolvidos quando um parametro nomeado aparece antes deles.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_WithMixedNamedAndPositionalParameters_ShouldReturnExpectedRow()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (10, 'Beta', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT Name FROM Users WHERE Name = @name FETCH FIRST ? ROWS ONLY";
+
+        var named = command.CreateParameter();
+        named.ParameterName = "name";
+        named.DbType = DbType.String;
+        named.Value = "Beta";
+        command.Parameters.Add(named);
+
+        var positional = command.CreateParameter();
+        positional.ParameterName = "p0";
+        positional.DbType = DbType.Int32;
+        positional.Value = 1;
+        command.Parameters.Add(positional);
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("Beta", reader.GetString(0));
+        Assert.False(reader.Read());
+    }
+
+    /// <summary>
+    /// EN: Verifies a simple named parameter lookup returns the matching user name.
+    /// PT: Verifica se uma consulta simples com parametro nomeado retorna o nome de usuario correspondente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_WithNamedParameter_ShouldReturnExpectedName()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (12, 'Bob', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT Name FROM Users WHERE Name = @name";
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "name";
+        parameter.DbType = DbType.String;
+        parameter.Value = "Bob";
+        command.Parameters.Add(parameter);
+
+        Assert.Equal("Bob", Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies positional Db2 markers can resolve a named parameter when no positional parameters were added.
+    /// PT: Verifica se marcadores posicionais Db2 conseguem resolver um parametro nomeado quando nenhum parametro posicional foi adicionado.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_WithPositionalMarkerAndNamedParameter_ShouldReturnExpectedName()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (13, 'Carla', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT Name FROM Users WHERE Id = ?";
+
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = "id";
+        parameter.DbType = DbType.Int32;
+        parameter.Value = 13;
+        command.Parameters.Add(parameter);
+
+        Assert.Equal("Carla", Convert.ToString(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies parameterized Db2 inserts keep their bound values available for a follow-up positional select.
+    /// PT: Verifica se inserts parametrizados Db2 mantêm os valores vinculados disponiveis para um select posicional seguinte.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Insert_WithPositionalMarkersAndNamedParameters_ShouldRoundTripName()
+    {
+        using var insert = _connection.CreateCommand();
+        insert.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (?, ?, NULL)";
+
+        var idParameter = insert.CreateParameter();
+        idParameter.ParameterName = "id";
+        idParameter.DbType = DbType.Int32;
+        idParameter.Value = 17;
+        insert.Parameters.Add(idParameter);
+
+        var nameParameter = insert.CreateParameter();
+        nameParameter.ParameterName = "name";
+        nameParameter.DbType = DbType.String;
+        nameParameter.Value = "Dora";
+        insert.Parameters.Add(nameParameter);
+
+        Assert.Equal(1, insert.ExecuteNonQuery());
+
+        using var select = _connection.CreateCommand();
+        select.CommandText = "SELECT Name FROM Users WHERE Id = ?";
+
+        var selectParameter = select.CreateParameter();
+        selectParameter.ParameterName = "id";
+        selectParameter.DbType = DbType.Int32;
+        selectParameter.Value = 17;
+        select.Parameters.Add(selectParameter);
+
+        Assert.Equal("Dora", Convert.ToString(select.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies a literal string equality filter matches the seeded Bob row.
+    /// PT: Verifica se um filtro literal de igualdade de string encontra a linha Bob semeada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_CountWithLiteralStringEquality_ShouldReturnExpectedCount()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (12, 'Bob', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM Users WHERE Name = 'Bob'";
+
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies a string equality filter on a non-primary-key column still matches the seeded row.
+    /// PT: Verifica se um filtro de igualdade de string em uma coluna que nao e chave primaria continua encontrando a linha semeada.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_CountWithStringEqualityOnNonPrimaryKeyColumn_ShouldReturnExpectedCount()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (11, 'Bob', NULL)";
+        Assert.Equal(1, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM Users WHERE Name = 'Bob'";
+
+        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies a scalar subquery count on a foreign-key column returns the seeded row total.
+    /// PT: Verifica se uma subconsulta escalar de contagem em uma coluna de chave estrangeira retorna o total de linhas semeadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void Select_ScalarSubqueryCountOnForeignKeyColumn_ShouldReturnExpectedValue()
+    {
+        using var seed = _connection.CreateCommand();
+        seed.CommandText = """
+            INSERT INTO Orders (OrderId, UserId, Amount) VALUES (201, 1, 10.00);
+            INSERT INTO Orders (OrderId, UserId, Amount) VALUES (202, 1, 20.00);
+            INSERT INTO Orders (OrderId, UserId, Amount) VALUES (203, 2, 30.00);
+            """;
+        Assert.Equal(3, seed.ExecuteNonQuery());
+
+        using var command = _connection.CreateCommand();
+        command.CommandText = "SELECT (SELECT COUNT(*) FROM Orders o WHERE o.UserId = 1) FROM SYSIBM.SYSDUMMY1";
+
+        Assert.Equal(2L, Convert.ToInt64(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// EN: Verifies rolled back transactions discard their changes.
+    /// PT: Verifica se transacoes revertidas descartam suas alteracoes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestTransactionRollback()
+    {
+        using (var transaction = _connection.BeginTransaction())
+        {
+            using var command = new Db2CommandMock(_connection, (Db2TransactionMock)transaction)
+            {
+                CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'John Doe', 'john@example.com')"
+            };
+            command.ExecuteNonQuery();
+            transaction.Rollback();
+        }
+
+        using var queryCommand = new Db2CommandMock(_connection)
+        {
+            CommandText = "SELECT * FROM Users"
+        };
+        using var reader = queryCommand.ExecuteReader();
+        var users = new List<Dictionary<int, object>>();
+        while (reader.Read())
+        {
+            var user = new Dictionary<int, object>();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                user[i] = reader.GetValue(i);
+            }
+            users.Add(user);
+        }
+        Assert.Empty(users);
+    }
+
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    protected override void Dispose(bool disposing)
+    {
+        _connection.Dispose();
+        base.Dispose(disposing);
+    }
+
+    /// <summary>
+    /// EN: Verifies DB2 rejects FOUND_ROWS because the provider exposes ROW_COUNT for row-count inspection.
+    /// PT: Verifica que o DB2 rejeita FOUND_ROWS porque o provider expoe ROW_COUNT para inspecao de contagem de linhas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestSelect_FoundRows_ShouldThrowNotSupportedException()
+    {
+        using var command = new Db2CommandMock(_connection);
+        command.CommandText = """
+            INSERT INTO Users (Id, Name, Email) VALUES (101, 'Ana', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (102, 'Bia', NULL);
+            INSERT INTO Users (Id, Name, Email) VALUES (103, 'Caio', NULL);
+            """;
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT FOUND_ROWS();";
+        var ex = Assert.Throws<NotSupportedException>(command.ExecuteReader);
+
+        Assert.Contains("FOUND_ROWS", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT returns the row count from the last SELECT statement.
+    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas do ultimo SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestSelect_RowCountFunction_ShouldReturnLastSelectRowCount()
+    {
+        using var command = new Db2CommandMock(_connection);
+        command.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (201, 'RowCount Seed', NULL)";
+        command.ExecuteNonQuery();
+
+        command.CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; SELECT ROW_COUNT();";
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT returns zero after BEGIN TRANSACTION in a batch.
+    /// PT: Verifica se ROW_COUNT retorna zero apos BEGIN TRANSACTION em um batch.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_BeginTransactionThenRowCount_ShouldReturnZero()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT returns zero after CALL in a batch.
+    /// PT: Verifica se ROW_COUNT retorna zero apos CALL em um batch.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_CallThenRowCount_ShouldReturnZero()
+    {
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
+
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Verifies CREATE OR REPLACE PROCEDURE registers the procedure and allows CALL.
+    /// PT: Verifica se CREATE OR REPLACE PROCEDURE registra o procedimento e permite CALL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Db2Mock")]
+    [MemberDataDb2Version]
+    public void CreateOrReplaceProcedure_ShouldRegisterProcedureAndAllowCall(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        ExecuteNonQuery(connection, "CREATE OR REPLACE PROCEDURE sp_echo(IN tenantId INT) BEGIN END");
+
+        using var command = new Db2CommandMock(connection)
+        {
+            CommandType = CommandType.StoredProcedure,
+            CommandText = "sp_echo"
+        };
+
+        var tenantId = command.CreateParameter();
+        tenantId.ParameterName = "tenantId";
+        tenantId.DbType = DbType.Int32;
+        tenantId.Value = 10;
+        command.Parameters.Add(tenantId);
+
+        var affectedRows = command.ExecuteNonQuery();
+
+        Assert.Equal(0, affectedRows);
+        Assert.True(connection.Db.TryGetProcedure("sp_echo", out var procedure));
+        Assert.NotNull(procedure);
+        Assert.Single(procedure!.RequiredIn);
+    }
+
+    /// <summary>
+    /// EN: Verifies DB2 registers CREATE OR REPLACE TRIGGER and keeps table DML working.
+    /// PT: Verifica que o DB2 registre CREATE OR REPLACE TRIGGER e mantenha DML da tabela funcionando.
+    /// </summary>
+    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    [Theory]
+    [Trait("Category", "Db2Mock")]
+    [MemberDataDb2Version]
+    public void CreateOrReplaceTrigger_ShouldRegisterTriggerAndAllowInsert(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+
+        ExecuteNonQuery(connection, "CREATE OR REPLACE TRIGGER trg_users_ai AFTER INSERT ON Users BEGIN ATOMIC END");
+
+        var table = connection.Db.GetTable("Users");
+        Assert.True(table.HasTriggers(TableTriggerEvent.AfterInsert));
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (3, 'Carol', NULL)");
+        Assert.Equal(3, table.Count);
+    }
+
+    private static Db2ConnectionMock CreateOpenConnection(int? version = null)
+    {
+        var db = new Db2DbMock(version);
+        db.AddSequence("seq_users");
+        db.AddTable("Users",
+        [
+            new("Id", DbType.Int32, false),
+            new("Name", DbType.String, false),
+            new("Email", DbType.String, true),
+        ]);
+
+        var connection = new Db2ConnectionMock(db);
+        connection.Open();
+
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Ana', '{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
+        ExecuteNonQuery(connection, "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Bob', '{\"profile\":{\"active\":false,\"name\":\"Bob\"}}')");
+        return connection;
+    }
+
+    private static void ExecuteNonQuery(Db2ConnectionMock connection, string sql)
+    {
+        using var command = new Db2CommandMock(connection)
+        {
+            CommandText = sql
+        };
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT returns zero after UPDATE followed by COMMIT.
+    /// PT: Verifica se ROW_COUNT retorna zero apos UPDATE seguido de COMMIT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_UpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'After Commit' WHERE Id = 1; COMMIT; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT returns zero after ROLLBACK TO SAVEPOINT.
+    /// PT: Verifica se ROW_COUNT retorna zero apos ROLLBACK TO SAVEPOINT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_RollbackToSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; UPDATE Users SET Name = 'Tmp' WHERE Id = 1; ROLLBACK TO SAVEPOINT sp1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT returns zero after RELEASE SAVEPOINT.
+    /// PT: Verifica se ROW_COUNT retorna zero apos RELEASE SAVEPOINT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_ReleaseSavepointThenRowCount_ShouldReturnZero()
+    {
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "BEGIN TRANSACTION; SAVEPOINT sp1; RELEASE SAVEPOINT sp1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT reflects the last DML statement in a mixed batch.
+    /// PT: Verifica se ROW_COUNT reflete a ultima instrucao DML em um batch misto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_SelectThenUpdateThenRowCount_ShouldReflectLastDml()
+    {
+        using var seed = new Db2CommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed User', NULL)"
+        };
+        seed.ExecuteNonQuery();
+
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "SELECT Name FROM Users ORDER BY Id FETCH FIRST 1 ROWS ONLY; UPDATE Users SET Name = 'Mixed Batch User' WHERE Id = 1; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(1L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT returns zero after CALL, UPDATE, and COMMIT in a batch.
+    /// PT: Verifica se ROW_COUNT retorna zero apos CALL, UPDATE e COMMIT em um batch.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_CallUpdateCommitThenRowCount_ShouldReturnZeroAfterCommit()
+    {
+        _connection.AddProdecure(new ProcedureDef("sp_ping", [], [], [], null));
+
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "CALL sp_ping(); UPDATE Users SET Name = 'Call Dml User' WHERE Id = 1; COMMIT; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(0L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies ROW_COUNT reflects the last SELECT result set in a mixed batch.
+    /// PT: Verifica se ROW_COUNT reflete o ultimo conjunto de resultados SELECT em um batch misto.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Db2Mock")]
+    public void TestBatch_UpdateThenSelectThenRowCount_ShouldReflectLastSelect()
+    {
+        using var seed = new Db2CommandMock(_connection)
+        {
+            CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (1, 'Seed A', NULL)"
+        };
+        seed.ExecuteNonQuery();
+        seed.CommandText = "INSERT INTO Users (Id, Name, Email) VALUES (2, 'Seed B', NULL)";
+        seed.ExecuteNonQuery();
+
+        using var command = new Db2CommandMock(_connection)
+        {
+            CommandText = "UPDATE Users SET Name = 'Last Select User' WHERE Id = 1; SELECT Name FROM Users ORDER BY Id FETCH FIRST 2 ROWS ONLY; SELECT ROW_COUNT();"
+        };
+
+        using var reader = command.ExecuteReader();
+
+        var rows = 0;
+        while (reader.Read()) rows++;
+        Assert.Equal(2, rows);
+
+        Assert.True(reader.NextResult());
+        Assert.True(reader.Read());
+        Assert.Equal(2L, Convert.ToInt64(reader.GetValue(0)));
+    }
+
+}
+

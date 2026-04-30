@@ -1,8 +1,8 @@
 # DbSqlLikeMem
 
-**EN:** In-memory C# database engine for unit tests that emulates SQL dialects and ADO.NET behavior for **MySQL**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite**, and **DB2**.
+**EN:** In-memory C# database engine for unit tests that emulates SQL dialects and ADO.NET behavior for **MySQL**, **MariaDB**, **Firebird**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite**, and **DB2**.
 
-**PT-BR:** Mecanismo de banco de dados em memória para testes unitários em C# que emula dialetos SQL e o comportamento de ADO.NET para **MySQL**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite** e **DB2**.
+**PT-BR:** Mecanismo de banco de dados em memória para testes unitários em C# que emula dialetos SQL e o comportamento de ADO.NET para **MySQL**, **MariaDB**, **Firebird**, **SQL Server**, **SQL Azure**, **Oracle**, **PostgreSQL (Npgsql)**, **SQLite** e **DB2**.
 
 <img src="./image.png" width="300" alt="Logo DbSqlLikeMem">
 
@@ -18,7 +18,8 @@
 - [Getting started (installation and usage) | Começando rápido (instalação e uso)](docs/getting-started.md)
 - [EN: .NET Fiddle quick start (all providers) | Test DbSqlLikeMem in the browser](docs/Wiki/DotNet-Fiddle-Quick-Start.md)
 - [PT-BR: Começando no .NET Fiddle (todos os provedores) | Teste o DbSqlLikeMem no navegador](docs/Wiki/DotNet-Fiddle-Quick-Start.pt-BR.md)
-- [Providers, versions, and SQL compatibility | Provedores, versões e compatibilidade SQL](docs/old/providers-and-features.md)
+- [Providers and compatibility | Provedores e compatibilidade](docs/Wiki/Providers-and-Compatibility.md)
+- [Legacy providers, versions, and SQL compatibility | Provedores legados, versões e compatibilidade SQL](docs/old/providers-and-features.md)
 - [AI playbook for external repository/integration tests | Playbook de IA para testes de repositório/integração](docs/ai-nuget-test-projects-playbook.md)
 - [Publishing (NuGet, VSIX, and VS Code) | Publicação (NuGet, VSIX e VS Code)](docs/publishing.md)
 - [GitHub Wiki guide | Guia para Wiki do GitHub](docs/wiki/README.md)
@@ -30,8 +31,8 @@
 
 ## Features (summary) | Funcionalidades (resumo)
 
-- **EN:** Support for 7 providers: MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite, and DB2.  
-  **PT-BR:** Suporte a 7 provedores: MySQL, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite e DB2.
+- **EN:** Support for 9 providers: MySQL, MariaDB, Firebird, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite, and DB2.
+  **PT-BR:** Suporte a 9 provedores: MySQL, MariaDB, Firebird, SQL Server, SQL Azure, Oracle, PostgreSQL (Npgsql), SQLite e DB2.
 - **EN:** Provider-specific ADO.NET mocks.  
   **PT-BR:** Mocks ADO.NET específicos por provedor.
 - **EN:** SQL parser + executor for common DDL/DML operations.  
@@ -50,6 +51,7 @@
 **EN:** Full compatibility details are available here:  
 **PT-BR:** Os detalhes completos de compatibilidade estão aqui:
 
+- [docs/Wiki/Providers-and-Compatibility.md](docs/Wiki/Providers-and-Compatibility.md)
 - [docs/old/providers-and-features.md](docs/old/providers-and-features.md)
 
 ## When to use | Quando usar
@@ -58,6 +60,8 @@
   **PT-BR:** Testes unitários e de integração que exigem comportamento SQL sem executar um servidor de banco real.
 - **EN:** Fast feedback scenarios in CI/CD pipelines where deterministic setup matters.  
   **PT-BR:** Cenários de feedback rápido em pipelines CI/CD onde setup determinístico é importante.
+- **EN:** Vibe coding workflows that benefit from shorter test cycles and faster iteration.  
+  **PT-BR:** Fluxos de vibe coding que se beneficiam de ciclos de teste mais curtos e iteração mais rápida.
 - **EN:** Multi-dialect test suites where the same repository/service logic is validated against different providers.  
   **PT-BR:** Suítes de teste multi-dialeto onde a mesma lógica de repositório/serviço é validada em provedores diferentes.
 
@@ -100,10 +104,14 @@ var name = (string?)cmd.ExecuteScalar();
 
 - **EN:** SQL Server: `NEXT VALUE FOR schema.seq_name`  
   **PT-BR:** SQL Server: `NEXT VALUE FOR schema.seq_name`
+- **EN:** MariaDB: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
+  **PT-BR:** MariaDB: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
 - **EN:** PostgreSQL: `nextval('schema.seq_name')`, `currval('schema.seq_name')`, `setval('schema.seq_name', value, is_called)`, `lastval()`  
   **PT-BR:** PostgreSQL: `nextval('schema.seq_name')`, `currval('schema.seq_name')`, `setval('schema.seq_name', value, is_called)`, `lastval()`
 - **EN:** Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`  
   **PT-BR:** Oracle: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+- **EN:** Firebird: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
+  **PT-BR:** Firebird: `schema.seq_name.NEXTVAL`, `schema.seq_name.CURRVAL`
 - **EN:** DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`  
   **PT-BR:** DB2: `NEXT VALUE FOR schema.seq_name`, `PREVIOUS VALUE FOR schema.seq_name`
 
@@ -126,8 +134,8 @@ var plan = cnn.LastExecutionPlan;
 
 ## Requirements | Requisitos
 
-- **EN:** Production core and provider packages follow the central targets in `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`**, and **`net8.0`**.  
-  **PT-BR:** Os pacotes de produção do núcleo e dos provedores seguem os alvos centrais de `src/Directory.Build.props`: **`net462`**, **`netstandard2.0`** e **`net8.0`**.
+- **EN:** Production core and provider packages follow the central targets in `src/code/Directory.Build.props`: **`net462`**, **`netstandard2.0`**, and **`net8.0`**.
+  **PT-BR:** Os pacotes de produção do núcleo e dos provedores seguem os alvos centrais de `src/code/Directory.Build.props`: **`net462`**, **`netstandard2.0`** e **`net8.0`**.
 - **EN:** Test and test-tools projects use the dedicated override target set: **`net462`**, **`net6.0`**, and **`net8.0`**.  
   **PT-BR:** Os projetos de teste e test-tools usam o conjunto de alvos do override dedicado: **`net462`**, **`net6.0`** e **`net8.0`**.
 - **EN:** Some tooling or integration-specific projects may use narrower target sets (for example, extension/tooling projects outside the main NuGet package flow).  
@@ -138,6 +146,8 @@ var plan = cnn.LastExecutionPlan;
 | Provider / Provedor | Package/Project / Pacote/Projeto |
 | --- | --- |
 | MySQL | `DbSqlLikeMem.MySql` |
+| MariaDB | `DbSqlLikeMem.MariaDb` |
+| Firebird | `DbSqlLikeMem.Firebird` |
 | SQL Server | `DbSqlLikeMem.SqlServer` |
 | SQL Azure | `DbSqlLikeMem.SqlAzure` |
 | Oracle | `DbSqlLikeMem.Oracle` |
@@ -150,20 +160,24 @@ var plan = cnn.LastExecutionPlan;
 | Provider / Provedor | Simulated versions / Versões simuladas |
 | --- | --- |
 | MySQL | 3.0, 4.0, 5.5, 5.6, 5.7, 8.0, 8.4 |
+| MariaDB | 10.3, 10.5, 10.6, 10.8, 11.0 |
+| Firebird | 2.1, 2.5, 3.0, 4.0, 5.0 |
 | SQL Server | 7, 2000, 2005, 2008, 2012, 2014, 2016, 2017, 2019, 2022 |
 | SQL Azure | 100, 110, 120, 130, 140, 150, 160, 170 |
 | Oracle | 7, 8, 9, 10, 11, 12, 18, 19, 21, 23 |
 | PostgreSQL (Npgsql) | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 |
-| SQLite (Sqlite) | 3 |
+| SQLite (Sqlite) | 3.24, 3.25, 3.33, 3.35, 3.38, 3.40, 3.51 |
 | DB2 | 8, 9, 10, 11 |
 
-For MySQL, documentation uses dotted versions (`8.0`, `8.4`), while the provider API keeps integer values (`80`, `84`).
-Para MySQL, a documentação usa versões com ponto (`8.0`, `8.4`), enquanto a API do provider mantém valores inteiros (`80`, `84`).
+For MySQL, documentation uses dotted versions (`8.0`, `8.4`), while the provider API keeps integer values (`80`, `84`). MariaDB follows the same pattern (`10.3` -> `103`, `10.5` -> `105`, `10.6` -> `106`, `10.8` -> `108`, `11.0` -> `110`). SQLite documentation uses the 3.x release family (`3.24`, `3.25`, `3.33`, `3.35`, `3.38`, `3.40`, `3.51`), while the provider API keeps integer tokens (`324`, `325`, `333`, `335`, `338`, `340`, `351`).
+Para MySQL, a documentação usa versões com ponto (`8.0`, `8.4`), enquanto a API do provider mantém valores inteiros (`80`, `84`). MariaDB segue o mesmo padrão (`10.3` -> `103`, `10.5` -> `105`, `10.6` -> `106`, `10.8` -> `108`, `11.0` -> `110`). A documentação de SQLite usa a família de releases 3.x (`3.24`, `3.25`, `3.33`, `3.35`, `3.38`, `3.40`, `3.51`), enquanto a API do provider mantém tokens inteiros (`324`, `325`, `333`, `335`, `338`, `340`, `351`).
 
 ## Runtime provider factory example | Exemplo de factory de provider em runtime
 
 ```csharp
 using DbSqlLikeMem.Db2;
+using DbSqlLikeMem.Firebird;
+using DbSqlLikeMem.MariaDb;
 using DbSqlLikeMem.MySql;
 using DbSqlLikeMem.Npgsql;
 using DbSqlLikeMem.Oracle;
@@ -178,6 +192,8 @@ public static class DbSqlLikeMemFactory
         return provider.ToLowerInvariant() switch
         {
             "mysql" => new MySqlConnectionMock(new MySqlDbMock()),
+            "mariadb" or "maria" => new MariaDbConnectionMock(new MariaDbDbMock()),
+            "firebird" or "fb" => new FirebirdConnectionMock(new FirebirdDbMock()),
             "sqlserver" => new SqlServerConnectionMock(new SqlServerDbMock()),
             "sqlazure" or "azure-sql" or "azuresql" or "azure_sql" => new SqlAzureConnectionMock(new SqlAzureDbMock()),
             "oracle" => new OracleConnectionMock(new OracleDbMock()),
@@ -210,14 +226,17 @@ public static class DbSqlLikeMemFactory
   **PT-BR:** Factory de provider em runtime.
 - **EN:** `InternalsVisibleTo` configuration.  
   **PT-BR:** Configuração de `InternalsVisibleTo`.
-- **EN:** SQL Server and PostgreSQL examples.  
-  **PT-BR:** Exemplos com SQL Server e PostgreSQL.
+- **EN:** SQL Server, PostgreSQL, and SQL DDL examples.
+  **PT-BR:** Exemplos com SQL Server, PostgreSQL e DDL SQL.
 
 ## Tests | Testes
 
 ```bash
 dotnet test src/DbSqlLikeMem.slnx
 ```
+
+**EN:** For benchmark and fidelity comparison runs, keep the default fast path unless you explicitly enable the suite-specific container flags such as `RUN_PERFORMANCE_CONTAINER_TESTS`, `RUN_TEMPORARY_TABLE_CONTAINER_TESTS`, `RUN_TABLE_CONTAINER_TESTS`, `RUN_INSERT_CONTAINER_TESTS`, `RUN_SELECT_CONTAINER_TESTS`, `RUN_SCHEMA_CONTAINER_TESTS`, or `RUN_TRANSACTION_CONTAINER_TESTS`. MariaDB, Firebird, and Db2 comparisons also require `RUN_MARIADB_CONTAINER_TESTS`, `RUN_FIREBIRD_CONTAINER_TESTS`, or `RUN_DB2_CONTAINER_TESTS`. Diagnostic benchmark features should stay disabled unless you are measuring `ExecutionPlan`, `DebugTrace`, or `LastExecutionPlansHistory`.
+**PT-BR:** Para execuções de benchmark e comparação de fidelidade, mantenha o caminho rápido padrão a menos que você habilite explicitamente as flags específicas de container, como `RUN_PERFORMANCE_CONTAINER_TESTS`, `RUN_TEMPORARY_TABLE_CONTAINER_TESTS`, `RUN_TABLE_CONTAINER_TESTS`, `RUN_INSERT_CONTAINER_TESTS`, `RUN_SELECT_CONTAINER_TESTS`, `RUN_SCHEMA_CONTAINER_TESTS` ou `RUN_TRANSACTION_CONTAINER_TESTS`. Comparações de MariaDB, Firebird e Db2 também exigem `RUN_MARIADB_CONTAINER_TESTS`, `RUN_FIREBIRD_CONTAINER_TESTS` ou `RUN_DB2_CONTAINER_TESTS`. Os recursos diagnósticos de benchmark devem permanecer desligados, salvo quando você estiver medindo `ExecutionPlan`, `DebugTrace` ou `LastExecutionPlansHistory`.
 
 **EN:** To run one test project only:  
 **PT-BR:** Para executar apenas um projeto de teste:

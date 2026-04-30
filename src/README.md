@@ -15,6 +15,8 @@
 
 - `DbSqlLikeMem` (core)
 - `DbSqlLikeMem.MySql`
+- `DbSqlLikeMem.MariaDb`
+- `DbSqlLikeMem.Firebird`
 - `DbSqlLikeMem.SqlServer`
 - `DbSqlLikeMem.SqlAzure`
 - `DbSqlLikeMem.Oracle`
@@ -53,16 +55,45 @@ cmd.CommandText = "INSERT INTO users (Id, Name) VALUES (1, 'Alice')";
 cmd.ExecuteNonQuery();
 ```
 
+You can also exercise the DDL path directly with a `CREATE TABLE` statement, then read the inserted row back with `SELECT`:
+
+```csharp
+using DbSqlLikeMem.MySql;
+
+var db = new MySqlDbMock(version: 80);
+using var cnn = new MySqlConnectionMock(db);
+cnn.Open();
+
+using (var create = cnn.CreateCommand())
+{
+    create.CommandText = "CREATE TABLE users (Id INT PRIMARY KEY, Name VARCHAR(100) NOT NULL)";
+    create.ExecuteNonQuery();
+}
+
+using (var insert = cnn.CreateCommand())
+{
+    insert.CommandText = "INSERT INTO users (Id, Name) VALUES (1, 'Alice')";
+    insert.ExecuteNonQuery();
+}
+
+using (var select = cnn.CreateCommand())
+{
+    select.CommandText = "SELECT Id, Name FROM users ORDER BY Id";
+    using var reader = select.ExecuteReader();
+}
+```
+
 ### Target frameworks
 
-Core and provider packages follow the central production targets from `src/Directory.Build.props`: `net462`, `netstandard2.0`, and `net8.0`.
+Core and provider packages follow the central production targets from `src/code/Directory.Build.props`: `net462`, `netstandard2.0`, and `net8.0`.
 Test and test-tools projects use the dedicated override target set: `net462`, `net6.0`, and `net8.0`.
 
 ### Documentation and contribution
 
 - Repository docs: `README.md` (project root)
 - Getting started: `docs/getting-started.md`
-- Compatibility notes: `docs/old/providers-and-features.md`
+- Compatibility notes: `docs/Wiki/Providers-and-Compatibility.md`
+- Legacy compatibility notes: `docs/old/providers-and-features.md`
 
 Contributions are welcome through issues and pull requests.
 
@@ -83,6 +114,8 @@ Contributions are welcome through issues and pull requests.
 
 - `DbSqlLikeMem` (core)
 - `DbSqlLikeMem.MySql`
+- `DbSqlLikeMem.MariaDb`
+- `DbSqlLikeMem.Firebird`
 - `DbSqlLikeMem.SqlServer`
 - `DbSqlLikeMem.SqlAzure`
 - `DbSqlLikeMem.Oracle`
@@ -124,15 +157,45 @@ cmd.CommandText = "INSERT INTO users (Id, Name) VALUES (1, 'Alice')";
 cmd.ExecuteNonQuery();
 ```
 
+Você também pode exercitar o caminho de DDL diretamente com uma instrução `CREATE TABLE`, e depois ler a linha inserida com `SELECT`:
+
+```csharp
+using DbSqlLikeMem.MySql;
+
+var db = new MySqlDbMock(version: 80);
+using var cnn = new MySqlConnectionMock(db);
+cnn.Open();
+
+using (var create = cnn.CreateCommand())
+{
+    create.CommandText = "CREATE TABLE users (Id INT PRIMARY KEY, Name VARCHAR(100) NOT NULL)";
+    create.ExecuteNonQuery();
+}
+
+using (var insert = cnn.CreateCommand())
+{
+    insert.CommandText = "INSERT INTO users (Id, Name) VALUES (1, 'Alice')";
+    insert.ExecuteNonQuery();
+}
+
+using (var select = cnn.CreateCommand())
+{
+    select.CommandText = "SELECT Id, Name FROM users ORDER BY Id";
+    using var reader = select.ExecuteReader();
+}
+```
+
 ### Frameworks alvo
 
-Os pacotes core e de provedores seguem os alvos de produção centrais de `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+Os pacotes core e de provedores seguem os alvos de produção centrais de `src/code/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
 Os projetos de teste e test-tools usam o conjunto de override dedicado: `net462`, `net6.0` e `net8.0`.
 
 ### Documentação e contribuição
 
 - Documentação principal: `README.md` (raiz do projeto)
 - Guia de início: `docs/getting-started.md`
-- Notas de compatibilidade: `docs/old/providers-and-features.md`
+- Notas de compatibilidade: `docs/Wiki/Providers-and-Compatibility.pt-BR.md`
+- Notas legadas de compatibilidade: `docs/old/providers-and-features.md`
+- Exemplos com SQL Server, PostgreSQL e DDL SQL: `docs/getting-started.md`
 
 Contribuições são bem-vindas por meio de issues e pull requests.

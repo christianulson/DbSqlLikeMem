@@ -7,6 +7,20 @@ import sys
 from pathlib import Path
 
 PROJECT_PATTERN = re.compile(r'Project Path="([^"]+\.csproj)"')
+ALLOWED_ROOT_LEVEL_PROJECT_STEMS = {
+    'DbSqlLikeMem',
+    'DbSqlLikeMem.CsvReader',
+    'DbSqlLikeMem.Dapper.TestTools',
+    'DbSqlLikeMem.EfCore',
+    'DbSqlLikeMem.EfCore.TestTools',
+    'DbSqlLikeMem.LinqToDb',
+    'DbSqlLikeMem.LinqToDb.TestTools',
+    'DbSqlLikeMem.MiniProfiler.TestTools',
+    'DbSqlLikeMem.NHibernate.TestTools',
+    'DbSqlLikeMem.Test',
+    'DbSqlLikeMem.TestTools',
+    'DbSqlLikeMem.XUnit',
+}
 
 
 def normalize_path_text(path_text: str) -> str:
@@ -25,6 +39,15 @@ def collect_csproj(search_dir: Path) -> set[str]:
     return {
         normalize_path_text(str(path.resolve()))
         for path in search_dir.rglob('*.csproj')
+    }
+
+
+def collect_root_level_projects(search_dir: Path) -> set[str]:
+    search_root = search_dir.resolve()
+    return {
+        normalize_path_text(path.name)
+        for path in search_dir.rglob('*.csproj')
+        if path.parent.resolve() == search_root
     }
 
 
@@ -59,6 +82,7 @@ def main() -> int:
         resolve_included_project_path(project_path, slnx_path.parent, src_dir)
         for project_path in included_relative
     }
+    root_level_projects = collect_root_level_projects(src_dir)
 
     missing_absolute = sorted(discovered_absolute - included_absolute)
     extra_relative = sorted(
@@ -66,10 +90,16 @@ def main() -> int:
         for project_path in included_relative
         if resolve_included_project_path(project_path, slnx_path.parent, src_dir) not in discovered_absolute
     )
+    organization_drift = sorted(
+        project_name
+        for project_name in root_level_projects
+        if Path(project_name).stem not in ALLOWED_ROOT_LEVEL_PROJECT_STEMS
+    )
 
     print(
         f"csproj_total={len(discovered_absolute)} included_total={len(included_relative)} "
-        f"missing={len(missing_absolute)} extra={len(extra_relative)}"
+        f"missing={len(missing_absolute)} extra={len(extra_relative)} "
+        f"root_level_unbalanced={len(organization_drift)}"
     )
 
     if missing_absolute:
@@ -82,7 +112,12 @@ def main() -> int:
         for item in extra_relative:
             print(f"  - {item}")
 
-    return 0 if not missing_absolute and not extra_relative else 1
+    if organization_drift:
+        print('\nRoot-level projects outside the shared organization buckets:')
+        for item in organization_drift:
+            print(f"  - {item}")
+
+    return 0 if not missing_absolute and not extra_relative and not organization_drift else 1
 
 
 if __name__ == '__main__':

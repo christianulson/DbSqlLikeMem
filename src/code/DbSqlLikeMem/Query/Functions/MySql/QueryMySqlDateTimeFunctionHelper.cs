@@ -1,0 +1,399 @@
+using System.Collections.Concurrent;
+
+namespace DbSqlLikeMem;
+
+internal delegate bool TryConvertNumericToDoubleDelegate(object? value, out double result);
+internal delegate bool TryParseExactCachedDateTimeDelegate(string text, string format, DateTimeStyles styles, out DateTime dt);
+
+internal static class QueryMySqlDateTimeFunctionHelper
+{
+    private static readonly ConcurrentDictionary<string, string> _dateFormatCache = new(StringComparer.Ordinal);
+
+    private delegate bool MySqlDateTimeFunctionHandler(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result);
+
+    private static readonly IReadOnlyDictionary<string, MySqlDateTimeFunctionHandler> _handlers =
+        CreateHandlers();
+
+    public static bool TryEvalFunctions(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result)
+    {
+        if (_handlers.TryGetValue(fn.Name, out var handler))
+            return handler(
+                context,
+                fn,
+                evalArg,
+                tryConvertNumericToDouble,
+                tryConvertNumericToInt64,
+                tryCoerceDateTime,
+                tryParseExactCachedDateTime,
+                out result);
+
+        result = null;
+        return false;
+    }
+
+    private static Dictionary<string, MySqlDateTimeFunctionHandler> CreateHandlers()
+    {
+        var handlers = new Dictionary<string, MySqlDateTimeFunctionHandler>(StringComparer.OrdinalIgnoreCase);
+        Register(handlers, TryEvalMySqlDateFormatFunction, "DATE_FORMAT");
+        Register(handlers, TryEvalMySqlStrToDateFunction, "STR_TO_DATE");
+        Register(handlers, TryEvalMySqlFromUnixTimeFunction, "FROM_UNIXTIME");
+        Register(handlers, TryEvalMySqlFromDaysFunction, "FROM_DAYS");
+        Register(handlers, TryEvalMySqlGetFormatFunction, "GET_FORMAT");
+        Register(handlers, TryEvalMySqlConvertTzFunction, "CONVERT_TZ");
+        return handlers;
+    }
+
+    private static void Register(
+        IDictionary<string, MySqlDateTimeFunctionHandler> handlers,
+        MySqlDateTimeFunctionHandler handler,
+        params string[] names)
+    {
+        foreach (var name in names)
+            handlers[name] = handler;
+    }
+
+    private static bool TryEvalMySqlDateFormatFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result)
+    {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryParseExactCachedDateTime;
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("DATE_FORMAT() espera data e formato.");
+
+        var value = evalArg(0);
+        var formatValue = evalArg(1)?.ToString();
+        if (IsNullish(value) || string.IsNullOrWhiteSpace(formatValue) || !tryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        result = dateTime.ToString(GetMySqlDateFormatPattern(formatValue!), CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryEvalMySqlStrToDateFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result)
+    {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryCoerceDateTime;
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("STR_TO_DATE() espera texto e formato.");
+
+        var textValue = evalArg(0)?.ToString();
+        var formatValue = evalArg(1)?.ToString();
+        if (string.IsNullOrWhiteSpace(textValue) || string.IsNullOrWhiteSpace(formatValue))
+        {
+            result = null;
+            return true;
+        }
+
+        var text = textValue!;
+        var format = formatValue!;
+
+        if (tryParseExactCachedDateTime(
+            text,
+            GetMySqlDateFormatPattern(format),
+            DateTimeStyles.AllowWhiteSpaces,
+            out var parsed))
+        {
+            result = parsed;
+            return true;
+        }
+
+        result = null;
+        return true;
+    }
+
+    private static bool TryEvalMySqlFromUnixTimeFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result)
+    {
+        _ = tryConvertNumericToInt64;
+        _ = tryCoerceDateTime;
+        _ = tryParseExactCachedDateTime;
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FROM_UNIXTIME() espera um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !tryConvertNumericToDouble(value, out var seconds))
+        {
+            result = null;
+            return true;
+        }
+
+        var dateTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(seconds);
+        if (fn.Args.Count > 1)
+        {
+            var formatValue = evalArg(1)?.ToString();
+            if (string.IsNullOrWhiteSpace(formatValue))
+            {
+                result = null;
+                return true;
+            }
+
+            result = dateTime.ToString(GetMySqlDateFormatPattern(formatValue!), CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        result = dateTime;
+        return true;
+    }
+
+    private static bool TryEvalMySqlFromDaysFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result)
+    {
+        _ = tryConvertNumericToDouble;
+        _ = tryCoerceDateTime;
+        _ = tryParseExactCachedDateTime;
+        if (fn.Args.Count == 0)
+            throw new InvalidOperationException("FROM_DAYS() espera um argumento.");
+
+        var value = evalArg(0);
+        if (IsNullish(value) || !tryConvertNumericToInt64(value!, out var days) || days < 1)
+        {
+            result = null;
+            return true;
+        }
+
+        result = new DateTime(1, 1, 1).AddDays(days - 1);
+        return true;
+    }
+
+    private static bool TryEvalMySqlGetFormatFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result)
+    {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryCoerceDateTime;
+        _ = tryParseExactCachedDateTime;
+        if (fn.Args.Count < 2)
+            throw new InvalidOperationException("GET_FORMAT() espera tipo e formato.");
+
+        var typeValue = fn.Args[0] switch
+        {
+            IdentifierExpr id => id.Name,
+            RawSqlExpr raw => raw.Sql,
+            _ => evalArg(0)?.ToString()
+        };
+
+        var formatValue = fn.Args[1] switch
+        {
+            IdentifierExpr id => id.Name,
+            RawSqlExpr raw => raw.Sql,
+            _ => evalArg(1)?.ToString()
+        };
+
+        if (string.IsNullOrWhiteSpace(typeValue) || string.IsNullOrWhiteSpace(formatValue))
+        {
+            result = null;
+            return true;
+        }
+
+        result = ResolveMySqlGetFormatPattern(typeValue!, formatValue!);
+        return true;
+    }
+
+    private static bool TryEvalMySqlConvertTzFunction(
+        this QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        TryConvertNumericToDoubleDelegate tryConvertNumericToDouble,
+        TryConvertNumericToInt64Delegate tryConvertNumericToInt64,
+        TryCoerceDateTimeDelegate tryCoerceDateTime,
+        TryParseExactCachedDateTimeDelegate tryParseExactCachedDateTime,
+        out object? result)
+    {
+        _ = tryConvertNumericToDouble;
+        _ = tryConvertNumericToInt64;
+        _ = tryParseExactCachedDateTime;
+        if (fn.Args.Count < 3)
+            throw new InvalidOperationException("CONVERT_TZ() espera data e dois fusos.");
+
+        var value = evalArg(0);
+        var fromValue = evalArg(1)?.ToString();
+        var toValue = evalArg(2)?.ToString();
+        if (IsNullish(value) || string.IsNullOrWhiteSpace(fromValue) || string.IsNullOrWhiteSpace(toValue) || !tryCoerceDateTime(value, out var dateTime))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!TryParseMySqlTimeZoneOffset(fromValue!, out var fromOffset)
+            || !TryParseMySqlTimeZoneOffset(toValue!, out var toOffset))
+        {
+            result = null;
+            return true;
+        }
+
+        result = dateTime - fromOffset + toOffset;
+        return true;
+    }
+
+    private static string GetMySqlDateFormatPattern(string format)
+        => _dateFormatCache.GetOrAdd(format, static rawFormat => ConvertMySqlDateFormatToDotNet(rawFormat));
+
+    private static string ConvertMySqlDateFormatToDotNet(string format)
+    {
+        var builder = new StringBuilder();
+        for (var i = 0; i < format.Length; i++)
+        {
+            var ch = format[i];
+            if (ch != '%')
+            {
+                builder.Append(ch);
+                continue;
+            }
+
+            if (i + 1 >= format.Length)
+                break;
+
+            i++;
+            builder.Append(format[i] switch
+            {
+                'Y' => "yyyy",
+                'y' => "yy",
+                'm' => "MM",
+                'c' => "M",
+                'd' => "dd",
+                'e' => "d",
+                'H' => "HH",
+                'k' => "H",
+                'h' or 'I' => "hh",
+                'l' => "h",
+                'i' => "mm",
+                's' or 'S' => "ss",
+                'f' => "ffffff",
+                'p' => "tt",
+                'T' => "HH:mm:ss",
+                'r' => "hh:mm:ss tt",
+                'b' => "MMM",
+                'M' => "MMMM",
+                'a' => "ddd",
+                'W' => "dddd",
+                '%' => "%",
+                _ => format[i].ToString()
+            });
+        }
+
+        return builder.ToString();
+    }
+
+    private static string? ResolveMySqlGetFormatPattern(string type, string format)
+    {
+        var typeKey = type.Trim().ToUpperInvariant();
+        var formatKey = format.Trim().ToUpperInvariant();
+        return typeKey switch
+        {
+            "DATE" => formatKey switch
+            {
+                "USA" => "%m.%d.%Y",
+                "JIS" or "ISO" => "%Y-%m-%d",
+                "EUR" => "%d.%m.%Y",
+                "INTERNAL" => "%Y%m%d",
+                _ => null
+            },
+            "TIME" => formatKey switch
+            {
+                "USA" => "%h:%i:%s %p",
+                "JIS" or "ISO" => "%H:%i:%s",
+                "EUR" => "%H.%i.%s",
+                "INTERNAL" => "%H%i%s",
+                _ => null
+            },
+            "DATETIME" or "TIMESTAMP" => formatKey switch
+            {
+                "USA" => "%m.%d.%Y %h:%i:%s %p",
+                "JIS" or "ISO" => "%Y-%m-%d %H:%i:%s",
+                "EUR" => "%d.%m.%Y %H.%i.%s",
+                "INTERNAL" => "%Y%m%d%H%i%s",
+                _ => null
+            },
+            _ => null
+        };
+    }
+
+    private static bool TryParseMySqlTimeZoneOffset(string text, out TimeSpan offset)
+    {
+        offset = TimeSpan.Zero;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        var normalized = text.Trim().ToUpperInvariant();
+        if (normalized is "UTC" or "GMT" or "SYSTEM")
+        {
+            offset = TimeSpan.Zero;
+            return true;
+        }
+
+        if (normalized.Length == 6 && (normalized[0] == '+' || normalized[0] == '-') && normalized[3] == ':')
+        {
+            var hoursText = normalized.Substring(1, 2);
+            var minutesText = normalized.Substring(4, 2);
+            if (int.TryParse(hoursText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var hours)
+                && int.TryParse(minutesText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutes))
+            {
+                offset = new TimeSpan(hours, minutes, 0);
+                if (normalized[0] == '-')
+                    offset = -offset;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsNullish(object? value) => value is null or DBNull;
+}

@@ -34,12 +34,14 @@ jobs:
       - name: Validate NuGet version source contract
         shell: bash
         run: |
-          if [ ! -f src/Directory.Build.props ]; then
-            echo "::error::Version source file not found: src/Directory.Build.props"
+          version_source="src/code/Directory.Build.props"
+
+          if [ ! -f "$version_source" ]; then
+            echo "::error::Version source file not found: src/code/Directory.Build.props"
             exit 1
           fi
 
-          echo "NuGet version source: src/Directory.Build.props"
+          echo "NuGet version source: $version_source"
 
       - name: Pack
         run: dotnet pack src/DbSqlLikeMem.slnx -c Release -o ./artifacts

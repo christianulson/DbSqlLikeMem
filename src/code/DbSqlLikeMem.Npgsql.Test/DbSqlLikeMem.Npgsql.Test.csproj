@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.Npgsql.XUnit\DbSqlLikeMem.Npgsql.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Npgsql.TestTools\DbSqlLikeMem.Npgsql.TestTools.csproj" />
+	</ItemGroup>
+	
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Npgsql" />
+		<Using Include="Npgsql" />
+	</ItemGroup>
+</Project>

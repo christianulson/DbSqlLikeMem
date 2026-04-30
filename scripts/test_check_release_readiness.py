@@ -48,6 +48,17 @@ class CheckReleaseReadinessWikiPathTests(unittest.TestCase):
             self.assertEqual(paths["providers"], legacy_providers)
 
 
+class CheckReleaseReadinessPropsTests(unittest.TestCase):
+    def test_parse_directory_build_props_returns_none_for_missing_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            missing_props = Path(temp_dir) / "src" / "code" / "Directory.Build.props"
+
+            version, repository_url = sut.parse_directory_build_props(missing_props)
+
+            self.assertIsNone(version)
+            self.assertIsNone(repository_url)
+
+
 class CheckReleaseReadinessCommunicationTests(unittest.TestCase):
     def test_check_release_communication_accepts_current_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -61,11 +72,11 @@ class CheckReleaseReadinessCommunicationTests(unittest.TestCase):
                 "CHANGELOG.md\nlimitação\nv<versao>\nvsix-v<versao-da-vsix>\nvscode-v<versao-da-extensao>\n",
             )
             self._write(
-                root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+                root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
                 "CHANGELOG.md\ndocs/publishing.md\nvscode-v*\npackage.json\n",
             )
             self._write(
-                root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+                root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
                 "CHANGELOG.md\ndocs/publishing.md\nvsix-v*\nsource.extension.vsixmanifest\n",
             )
             self._write(
@@ -89,11 +100,11 @@ class CheckReleaseReadinessCommunicationTests(unittest.TestCase):
                 "CHANGELOG.md\nlimitação\nv<versao>\nvsix-v<versao-da-vsix>\nvscode-v<versao-da-extensao>\n",
             )
             self._write(
-                root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+                root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
                 "docs/publishing.md\nvscode-v*\npackage.json\n",
             )
             self._write(
-                root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+                root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
                 "CHANGELOG.md\ndocs/publishing.md\nvsix-v*\nsource.extension.vsixmanifest\n",
             )
             self._write(
@@ -103,12 +114,69 @@ class CheckReleaseReadinessCommunicationTests(unittest.TestCase):
 
             failures = sut.check_release_communication(root)
 
-            self.assertTrue(any("DbSqlLikeMem.VsCodeExtension/README.md" in failure for failure in failures))
+            self.assertTrue(any("extensions/DbSqlLikeMem.VsCodeExtension/README.md" in failure for failure in failures))
 
     @staticmethod
     def _write(path: Path, content: str) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
+
+
+class CheckReleaseReadinessSemVerImpactTests(unittest.TestCase):
+    def test_analyze_release_semver_impact_prefers_major_when_breaking_note_exists(self) -> None:
+        content = "\n".join(
+            [
+                "## [Unreleased]",
+                "### Tooling and docs",
+                "- Breaking change: remove the legacy public contract.",
+                "- Added support for automated impact classification.",
+                "- Fixed the release notes wording.",
+            ]
+        )
+
+        summary = sut.analyze_release_semver_impact(content)
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary.suggested_bump, "MAJOR")
+        self.assertEqual(summary.breaking_count, 1)
+        self.assertEqual(summary.feature_count, 1)
+        self.assertEqual(summary.fix_count, 1)
+
+    def test_analyze_release_semver_impact_prefers_minor_for_feature_notes(self) -> None:
+        content = "\n".join(
+            [
+                "## [Unreleased]",
+                "### Tooling and docs",
+                "- Added support for automated release notes grouping.",
+                "- Updated documentation references.",
+            ]
+        )
+
+        summary = sut.analyze_release_semver_impact(content)
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary.suggested_bump, "MINOR")
+        self.assertEqual(summary.breaking_count, 0)
+        self.assertEqual(summary.feature_count, 1)
+        self.assertEqual(summary.fix_count, 1)
+
+    def test_analyze_release_semver_impact_defaults_to_patch_for_fix_notes(self) -> None:
+        content = "\n".join(
+            [
+                "## [Unreleased]",
+                "### Tooling and docs",
+                "- Fixed the wording of the release checklist.",
+                "- Hardened the release audit output.",
+            ]
+        )
+
+        summary = sut.analyze_release_semver_impact(content)
+
+        self.assertIsNotNone(summary)
+        self.assertEqual(summary.suggested_bump, "PATCH")
+        self.assertEqual(summary.breaking_count, 0)
+        self.assertEqual(summary.feature_count, 0)
+        self.assertEqual(summary.fix_count, 2)
 
 
 class CheckReleaseReadinessWorkflowTests(unittest.TestCase):
@@ -117,15 +185,15 @@ class CheckReleaseReadinessWorkflowTests(unittest.TestCase):
             root = Path(temp_dir)
             self._write(
                 root / ".github" / "workflows" / "nuget-publish.yml",
-                'tags:\n- "v*"\nNUGET_API_KEY\nvars.NUGET_PUBLISH_ENVIRONMENT\nscripts/check_release_readiness.py\nsrc/Directory.Build.props\nscripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts\n',
+                'tags:\n- "v*"\nNUGET_API_KEY\nvars.NUGET_PUBLISH_ENVIRONMENT\nscripts/check_release_readiness.py\nsrc/code/Directory.Build.props\nscripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts\n',
             )
             self._write(
                 root / ".github" / "workflows" / "vsix-publish.yml",
-                'tags:\n- "vsix-v*"\nVS_MARKETPLACE_TOKEN\nsource.extension.vsixmanifest\n--strict-marketplace-placeholders\n',
+                'tags:\n- "vsix-v*"\nVS_MARKETPLACE_TOKEN\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest\n--strict-marketplace-placeholders\n',
             )
             self._write(
                 root / ".github" / "workflows" / "vscode-extension-publish.yml",
-                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
+                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
             )
 
             failures = sut.check_workflows(root)
@@ -141,31 +209,31 @@ class CheckReleaseReadinessWorkflowTests(unittest.TestCase):
             )
             self._write(
                 root / ".github" / "workflows" / "vsix-publish.yml",
-                'tags:\n- "vsix-v*"\nVS_MARKETPLACE_TOKEN\nsource.extension.vsixmanifest\n--strict-marketplace-placeholders\n',
+                'tags:\n- "vsix-v*"\nVS_MARKETPLACE_TOKEN\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest\n--strict-marketplace-placeholders\n',
             )
             self._write(
                 root / ".github" / "workflows" / "vscode-extension-publish.yml",
-                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
+                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
             )
 
             failures = sut.check_workflows(root)
 
-            self.assertTrue(any("nuget-publish.yml" in failure and "src/Directory.Build.props" in failure for failure in failures))
+            self.assertTrue(any("nuget-publish.yml" in failure and "src/code/Directory.Build.props" in failure for failure in failures))
 
     def test_check_workflows_reports_missing_nuget_readiness_gate(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             self._write(
                 root / ".github" / "workflows" / "nuget-publish.yml",
-                'tags:\n- "v*"\nNUGET_API_KEY\nvars.NUGET_PUBLISH_ENVIRONMENT\nsrc/Directory.Build.props\nscripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts\n',
+                'tags:\n- "v*"\nNUGET_API_KEY\nvars.NUGET_PUBLISH_ENVIRONMENT\nsrc/code/Directory.Build.props\nscripts/check_nuget_package_metadata.py --artifacts-dir ./artifacts\n',
             )
             self._write(
                 root / ".github" / "workflows" / "vsix-publish.yml",
-                'tags:\n- "vsix-v*"\nVS_MARKETPLACE_TOKEN\nsource.extension.vsixmanifest\n--strict-marketplace-placeholders\n',
+                'tags:\n- "vsix-v*"\nVS_MARKETPLACE_TOKEN\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest\n--strict-marketplace-placeholders\n',
             )
             self._write(
                 root / ".github" / "workflows" / "vscode-extension-publish.yml",
-                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
+                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
             )
 
             failures = sut.check_workflows(root)
@@ -190,7 +258,7 @@ class CheckReleaseReadinessDocsTests(unittest.TestCase):
             self._write_doc_set(root)
             self._write(
                 root / "docs" / "old" / "providers-and-features.md",
-                "src/Directory.Build.props\nnet462\nnetstandard2.0\nnet8.0\ndocs/getting-started.md\ndocs/publishing.md\n",
+                "src/code/Directory.Build.props\nnet462\nnetstandard2.0\nnet8.0\ndocs/getting-started.md\ndocs/publishing.md\n",
             )
 
             failures = sut.check_docs(root)
@@ -238,7 +306,7 @@ class CheckReleaseReadinessDocsTests(unittest.TestCase):
         )
         cls._write(
             root / "docs" / "publishing.md",
-            "CHANGELOG.md\ndocs/features-backlog/index.md\ndocs/features-backlog/status-operational.md\nscripts/refresh_cross_dialect_snapshots.sh\nscripts/check_nuget_package_metadata.py\n.github/workflows/nuget-publish.yml\n.github/workflows/vsix-publish.yml\n.github/workflows/vscode-extension-publish.yml\nsrc/Directory.Build.props\nsrc/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest\nsrc/DbSqlLikeMem.VsCodeExtension/package.json\nv<versao>\nvsix-v<versao-da-vsix>\nvscode-v<versao-da-extensao>\nstrategy\n",
+            "CHANGELOG.md\ndocs/features-backlog/index.md\ndocs/features-backlog/status-operational.md\nscripts/refresh_cross_dialect_snapshots.sh\nscripts/check_nuget_package_metadata.py\n.github/workflows/nuget-publish.yml\n.github/workflows/vsix-publish.yml\n.github/workflows/vscode-extension-publish.yml\nsrc/code/Directory.Build.props\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nv<versao>\nvsix-v<versao-da-vsix>\nvscode-v<versao-da-extensao>\nstrategy\n",
         )
         cls._write(
             root / "docs" / "README.md",
@@ -246,11 +314,11 @@ class CheckReleaseReadinessDocsTests(unittest.TestCase):
         )
         cls._write(
             root / "docs" / "getting-started.md",
-            "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/Directory.Build.props\ndocs/publishing.md\nWiki/Home.md\n",
+            "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/code/Directory.Build.props\ndocs/publishing.md\nWiki/Home.md\n",
         )
         cls._write(
             root / "docs" / "info" / "multi-target-compat-audit.md",
-            "artefato histórico\nsrc/Directory.Build.props\nREADME.md\ndocs/getting-started.md\n",
+            "artefato histórico\nsrc/code/Directory.Build.props\nREADME.md\ndocs/getting-started.md\n",
         )
         cls._write(
             root / "docs" / "wiki_setup" / "README.md",
@@ -264,14 +332,14 @@ class CheckReleaseReadinessDocsTests(unittest.TestCase):
             root / ".github" / "pull_request_template.md",
             "Backlog item or section:\nPercentual updated in `docs/features-backlog/index.md`:\nEvidence checklist reference: `docs/features-backlog/progress-update-checklist.md`\nValidation evidence is recorded above\n",
         )
-        cls._write(root / "README.md", "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/Directory.Build.props\n")
-        cls._write(root / "src" / "README.md", "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/Directory.Build.props\n")
+        cls._write(root / "README.md", "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/code/Directory.Build.props\n")
+        cls._write(root / "src" / "README.md", "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/code/Directory.Build.props\n")
         cls._write(
-            root / "src" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
+            root / "src" / "extensions" / "DbSqlLikeMem.VsCodeExtension" / "README.md",
             ".github/workflows/vscode-extension-publish.yml\nVSCE_PAT\npublisher\npackage.json\nContrato do workflow\ntemplates/dbsqllikemem/vCurrent\nvscode-v*\nnpm run package\nnpm run publish\n",
         )
         cls._write(
-            root / "src" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
+            root / "src" / "extensions" / "DbSqlLikeMem.VisualStudioExtension" / "README.md",
             "Visual Studio **2022\n.github/workflows/vsix-publish.yml\nVS_MARKETPLACE_TOKEN\nvsix-v*\nsource.extension.vsixmanifest\nContrato do workflow\neng/visualstudio/PublishManifest.json\ntemplates/dbsqllikemem/vCurrent\nscripts/check_release_readiness.py --strict-marketplace-placeholders\n",
         )
         cls._write(root / "CHANGELOG.md", "## [Unreleased]\nKnown limitations still open\n")
@@ -281,15 +349,15 @@ class CheckReleaseReadinessDocsTests(unittest.TestCase):
         )
         cls._write(
             root / "docs" / "Wiki" / "Getting-Started.md",
-            "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/Directory.Build.props\ndocs/publishing.md\n",
+            "net462\nnetstandard2.0\nnet8.0\nnet6.0\nsrc/code/Directory.Build.props\ndocs/publishing.md\n",
         )
         cls._write(
             root / "docs" / "Wiki" / "Publishing.md",
-            ".github/workflows/nuget-publish.yml\n.github/workflows/vsix-publish.yml\n.github/workflows/vscode-extension-publish.yml\nscripts/check_release_readiness.py\nscripts/check_nuget_package_metadata.py\nsrc/Directory.Build.props\nsrc/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest\nsrc/DbSqlLikeMem.VsCodeExtension/package.json\nv*\nvsix-v*\nvscode-v*\nstrategy\n",
+            ".github/workflows/nuget-publish.yml\n.github/workflows/vsix-publish.yml\n.github/workflows/vscode-extension-publish.yml\nscripts/check_release_readiness.py\nscripts/check_nuget_package_metadata.py\nsrc/code/Directory.Build.props\nsrc/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nv*\nvsix-v*\nvscode-v*\nstrategy\n",
         )
         cls._write(
             root / "docs" / "Wiki" / "Providers-and-Compatibility.md",
-            "MySQL\nSQL Server\nSQL Azure\nOracle\nPostgreSQL\nSQLite\nDB2\ndocs/old/providers-and-features.md\n",
+            "MySQL\nMariaDB\nFirebird\nSQL Server\nSQL Azure\nOracle\nPostgreSQL\nSQLite\nDB2\ndocs/old/providers-and-features.md\n",
         )
 
     @staticmethod

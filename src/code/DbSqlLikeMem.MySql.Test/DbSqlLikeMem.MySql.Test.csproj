@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.MySql.TestTools\DbSqlLikeMem.MySql.TestTools.csproj" />
+		<ProjectReference Include="..\DbSqlLikeMem.MySql.XUnit\DbSqlLikeMem.MySql.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.MySql" />
+		<Using Include="MySql.Data.MySqlClient" />
+	</ItemGroup>
+
+</Project>

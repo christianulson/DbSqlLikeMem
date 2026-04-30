@@ -1,0 +1,181 @@
+namespace DbSqlLikeMem.SqlServer.Test;
+
+/// <summary>
+/// EN: Execution plan coverage tests for SqlServer mock commands.
+/// PT: Testes de cobertura de plano de execução para comandos simulado SqlServer.
+/// </summary>
+/// <remarks>
+/// EN: Creates the execution plan test helper with xUnit output integration.
+/// PT: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
+/// </remarks>
+/// <param name="helper">EN: xUnit output helper. PT: Helper de saída do xUnit.</param>
+public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase(helper)
+{
+
+    /// <summary>
+    /// EN: Verifies command execution prints a readable plan to test output.
+    /// PT: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldGenerateExecutionPlan_AndPrintOnTestOutput()
+    {
+        using var cnn = new SqlServerConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+        cnn.Seed("users", null,
+            [1, 1],
+            [2, 0],
+            [3, 1]);
+
+        using var cmd = new SqlServerCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1 ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        var ids = new List<int>();
+        while (reader.Read())
+            ids.Add(reader.GetInt32(0));
+
+        ids.Should().Equal(1, 3);
+        cnn.LastExecutionPlan.Should().NotBeNullOrWhiteSpace();
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.QueryTypeLabel()}: SELECT");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedCostLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.InputTablesLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.SelectivityPctLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.RowsPerMsLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.PerformanceDisclaimerLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain(SqlExecutionPlanMessages.PerformanceDisclaimerMessage());
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.ActualRowsLabel()}: 2");
+
+        Console.WriteLine("[ExecutionPlan][SqlServer]\n" + cnn.LastExecutionPlan);
+    }
+
+    /// <summary>
+    /// EN: Ensures execution plan suggests missing index for filter/sort columns.
+    /// PT: Garante que o plano de execução sugira índice ausente para colunas de filtro/ordenação.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldSuggestMissingIndex_WhenNoMatchingIndexExists()
+    {
+        using var cnn = new SqlServerConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+        cnn.Seed("users", null,
+            [1, 1],
+            [2, 0],
+            [3, 1]);
+
+        using var cmd = new SqlServerCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1 ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.IndexRecommendationsLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain("CREATE INDEX IX_users_Active_Id ON users (Active, Id);");
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures index recommendations include estimated before/after and gain metrics.
+    /// PT: Garante que recomendações de índice incluam métricas estimadas de antes/depois e ganho.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldIncludeEstimatedGainMetrics_WhenRecommendingIndex()
+    {
+        using var cnn = new SqlServerConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+        cnn.Seed("users", null,
+            [1, 1],
+            [2, 0],
+            [3, 1]);
+
+        using var cmd = new SqlServerCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1 ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadBeforeLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedRowsReadAfterLabel()}:");
+        cnn.LastExecutionPlan.Should().Contain($"{SqlExecutionPlanMessages.EstimatedGainPctLabel()}:");
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures advisor skips recommendation for tiny scans to reduce noise.
+    /// PT: Garante que o advisor não recomende índice para scans muito pequenos, reduzindo ruído.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotSuggestMissingIndex_WhenEstimatedRowsReadIsTooLow()
+    {
+        using var cnn = new SqlServerConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+        cnn.Seed("users", null,
+            [1, 1],
+            [2, 0]);
+
+        using var cmd = new SqlServerCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1 ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain($"hasIndexRecommendations:false");
+    }
+
+    /// <summary>
+    /// EN: Ensures execution plan does not suggest index when a matching index already exists.
+    /// PT: Garante que o plano não sugira índice quando já existe índice aderente.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExecutionPlan")]
+    public void ExecuteReader_ShouldNotSuggestMissingIndex_WhenMatchingIndexAlreadyExists()
+    {
+        using var cnn = new SqlServerConnectionMock();
+
+        cnn.Define("users");
+        cnn.Column<int>("users", "Id");
+        cnn.Column<int>("users", "Active");
+        cnn.DefineTable("users").Index("ix_users_active_id", ["Active", "Id"]);
+        cnn.Seed("users", null,
+            [1, 1],
+            [2, 0],
+            [3, 1]);
+
+        using var cmd = new SqlServerCommandMock(cnn)
+        {
+            CommandText = "SELECT Id FROM users WHERE Active = 1 ORDER BY Id"
+        };
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) { }
+
+        cnn.LastExecutionPlan.Should().Contain($"hasIndexRecommendations:false");
+    }
+
+}

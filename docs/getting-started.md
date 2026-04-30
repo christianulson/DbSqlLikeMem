@@ -49,7 +49,7 @@ Dica: escolha **um provider por projeto de teste** (ou por suíte), conforme o d
 
 ## Compatibilidade de frameworks
 
-Os pacotes de produção seguem os alvos centrais de `src/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
+Os pacotes de produção seguem os alvos centrais de `src/code/Directory.Build.props`: `net462`, `netstandard2.0` e `net8.0`.
 
 Os projetos de teste e test-tools usam o override dedicado: `net462`, `net6.0` e `net8.0`.
 
@@ -123,6 +123,24 @@ connection.Execute(
 
 var users = connection.Query("SELECT * FROM user").ToList();
 ```
+
+### Exemplo 1b: criação de tabela via SQL + seed básico (SQL Server)
+
+```csharp
+using DbSqlLikeMem.SqlServer;
+
+var db = new SqlServerDbMock { ThreadSafe = true };
+using var connection = new SqlServerConnectionMock(db);
+
+connection.Open();
+connection.Execute("CREATE TABLE users (Id INT PRIMARY KEY, Name VARCHAR(100) NOT NULL)");
+connection.Execute("INSERT INTO users (Id, Name) VALUES (1, 'Alice')");
+
+var users = connection.Query("SELECT * FROM users").ToList();
+```
+
+**EN:** This path is useful when you want to validate the DDL parser in addition to the fluent `AddTable` mapping.
+**PT-BR:** Esse caminho é útil quando você quer validar o parser de DDL além do mapeamento fluente via `AddTable`.
 
 ### Exemplo 2: schema manual + seed (PostgreSQL)
 

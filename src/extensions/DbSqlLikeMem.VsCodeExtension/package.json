@@ -1,0 +1,380 @@
+{
+  "name": "dbsqllikemem-vscode-extension",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.3.0",
+  "publisher": "dbsqllikemem",
+  "license": "SEE LICENSE IN ../../README.md",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/christianulson/DbSqlLikeMem.git"
+  },
+  "bugs": {
+    "url": "https://github.com/christianulson/DbSqlLikeMem/issues"
+  },
+  "homepage": "https://github.com/christianulson/DbSqlLikeMem#readme",
+  "icon": "resources/icon.png",
+  "galleryBanner": {
+    "color": "#1f2937",
+    "theme": "dark"
+  },
+  "keywords": [
+    "dbsqllikemem",
+    "database",
+    "sql",
+    "poco",
+    "code-generation"
+  ],
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:dbSqlLikeMem.addConnection",
+    "onCommand:dbSqlLikeMem.checkConsistency",
+    "onCommand:dbSqlLikeMem.configureMappings",
+    "onCommand:dbSqlLikeMem.configureTemplates",
+    "onCommand:dbSqlLikeMem.generateClasses",
+    "onCommand:dbSqlLikeMem.generateModelClasses",
+    "onCommand:dbSqlLikeMem.generateRepositoryClasses",
+    "onCommand:dbSqlLikeMem.openManager",
+    "onView:dbSqlLikeMem.connections",
+    "onCommand:dbSqlLikeMem.editConnection",
+    "onCommand:dbSqlLikeMem.removeConnection"
+  ],
+  "main": "./out/extension.js",
+  "l10n": "./l10n",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dbSqlLikeMem",
+          "title": "%viewsContainer.title%",
+          "icon": "resources/database.svg"
+        }
+      ]
+    },
+    "views": {
+      "dbSqlLikeMem": [
+        {
+          "id": "dbSqlLikeMem.connections",
+          "name": "%views.connections.name%"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "dbSqlLikeMem.openManager",
+        "title": "DbSqlLikeMem: Open Manager"
+      },
+      {
+        "command": "dbSqlLikeMem.addConnection",
+        "title": "DbSqlLikeMem: Add Connection"
+      },
+      {
+        "command": "dbSqlLikeMem.configureMappings",
+        "title": "DbSqlLikeMem: Configure Mappings"
+      },
+      {
+        "command": "dbSqlLikeMem.generateClasses",
+        "title": "DbSqlLikeMem: Generate Test Classes"
+      },
+      {
+        "command": "dbSqlLikeMem.generateModelClasses",
+        "title": "DbSqlLikeMem: Generate Model Classes"
+      },
+      {
+        "command": "dbSqlLikeMem.generateRepositoryClasses",
+        "title": "DbSqlLikeMem: Generate Repository Classes"
+      },
+      {
+        "command": "dbSqlLikeMem.configureTemplates",
+        "title": "DbSqlLikeMem: Configure Templates"
+      },
+      {
+        "command": "dbSqlLikeMem.checkConsistency",
+        "title": "DbSqlLikeMem: Check Consistency"
+      },
+      {
+        "command": "dbSqlLikeMem.refresh",
+        "title": "DbSqlLikeMem: Refresh"
+      },
+      {
+        "command": "dbSqlLikeMem.exportState",
+        "title": "DbSqlLikeMem: Export State"
+      },
+      {
+        "command": "dbSqlLikeMem.importState",
+        "title": "DbSqlLikeMem: Import State"
+      },
+      {
+        "command": "dbSqlLikeMem.setFilter",
+        "title": "DbSqlLikeMem: Set Filter"
+      },
+      {
+        "command": "dbSqlLikeMem.editConnection",
+        "title": "DbSqlLikeMem: Edit Connection"
+      },
+      {
+        "command": "dbSqlLikeMem.removeConnection",
+        "title": "DbSqlLikeMem: Remove Connection"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dbSqlLikeMem.openManager",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation@0",
+          "icon": {
+            "id": "database"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.addConnection",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation",
+          "icon": {
+            "id": "add"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.refresh",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation",
+          "icon": {
+            "id": "refresh"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.setFilter",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation",
+          "icon": {
+            "id": "filter"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.configureTemplates",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation",
+          "icon": {
+            "id": "file"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.exportState",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation@8",
+          "icon": {
+            "id": "export"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.importState",
+          "when": "view == dbSqlLikeMem.connections",
+          "group": "navigation@9",
+          "icon": {
+            "id": "import"
+          }
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "dbSqlLikeMem.configureMappings",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@0",
+          "icon": {
+            "id": "settings-gear"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@1",
+          "icon": {
+            "id": "gear"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateModelClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@2",
+          "icon": {
+            "id": "symbol-class"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateRepositoryClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@3",
+          "icon": {
+            "id": "repo"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.checkConsistency",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@4",
+          "icon": {
+            "id": "check"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.removeConnection",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "inline@5",
+          "icon": {
+            "id": "trash"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.editConnection",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "1_connection",
+          "icon": {
+            "id": "edit"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.removeConnection",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-database",
+          "group": "1_connection@1",
+          "icon": {
+            "id": "trash"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-objectType",
+          "group": "inline@0",
+          "icon": {
+            "id": "gear"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.checkConsistency",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-objectType",
+          "group": "inline@3",
+          "icon": {
+            "id": "check"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-object",
+          "group": "inline@0",
+          "icon": {
+            "id": "gear"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateModelClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-object",
+          "group": "inline@1",
+          "icon": {
+            "id": "symbol-class"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateRepositoryClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-object",
+          "group": "inline@2",
+          "icon": {
+            "id": "repo"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.checkConsistency",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-object",
+          "group": "inline@3",
+          "icon": {
+            "id": "check"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateModelClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-objectType",
+          "group": "inline@1",
+          "icon": {
+            "id": "symbol-class"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateRepositoryClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-objectType",
+          "group": "inline@2",
+          "icon": {
+            "id": "repo"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-dbType",
+          "group": "inline@0",
+          "icon": {
+            "id": "gear"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateModelClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-dbType",
+          "group": "inline@1",
+          "icon": {
+            "id": "symbol-class"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.generateRepositoryClasses",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-dbType",
+          "group": "inline@2",
+          "icon": {
+            "id": "repo"
+          }
+        },
+        {
+          "command": "dbSqlLikeMem.checkConsistency",
+          "when": "view == dbSqlLikeMem.connections && viewItem == db-dbType",
+          "group": "inline@3",
+          "icon": {
+            "id": "check"
+          }
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dbSqlLikeMem.openManager"
+        },
+        {
+          "command": "dbSqlLikeMem.exportState"
+        },
+        {
+          "command": "dbSqlLikeMem.importState"
+        },
+        {
+          "command": "dbSqlLikeMem.configureMappings"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile:bridge": "node ./scripts/build-bridge.js",
+    "compile": "npm run compile:bridge && tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run generate:icon && npm run compile",
+    "lint": "tsc -p ./ --noEmit",
+    "test": "node --test tests/*.test.js",
+    "package": "npm run generate:icon && npx @vscode/vsce package",
+    "publish": "npm run generate:icon && npx @vscode/vsce publish",
+    "generate:icon": "node ./scripts/generate-icon.js"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.7.1",
+    "@types/node": "^20.19.37",
+    "@types/vscode": "^1.109.0",
+    "eslint": "^9.39.4",
+    "typescript": "^5.9.3"
+  }
+}

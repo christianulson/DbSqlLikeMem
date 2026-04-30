@@ -1,0 +1,25 @@
+using DbSqlLikeMem.Benchmarks.Sessions.External;
+
+namespace DbSqlLikeMem.Benchmarks.Suites;
+
+/// <summary>
+/// EN: Defines the Npgsql benchmark suite backed by Testcontainers.
+/// PT: Define a suite de benchmark de Npgsql apoiada por Testcontainers.
+/// </summary>
+public class Npgsql_Testcontainers_Benchmarks : BenchmarkSuiteBase
+{
+    /// <summary>
+    /// EN: Creates the benchmark session used by the Npgsql Testcontainers suite.
+    /// PT: Cria a sessao de benchmark usada pela suite Npgsql Testcontainers.
+    /// </summary>
+    protected override IBenchmarkSession CreateSession() => new NpgsqlTestcontainersSession();
+
+    /// <summary>
+    /// EN: Executes the sequence-next-value benchmark.
+    /// PT: Executa o benchmark de sequence next value.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("dialect")]
+    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+}
+

@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DbSqlLikeMem.Sqlite.XUnit\DbSqlLikeMem.Sqlite.XUnit.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+		<ProjectReference Include="..\DbSqlLikeMem.Sqlite.TestTools\DbSqlLikeMem.Sqlite.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+		<PackageReference Include="SQLitePCLRaw.bundle_winsqlite3" Version="2.1.6" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0'">
+		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.6" />
+		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.6" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Sqlite" />
+		<Using Include="Microsoft.Data.Sqlite" />
+	</ItemGroup>
+
+</Project>

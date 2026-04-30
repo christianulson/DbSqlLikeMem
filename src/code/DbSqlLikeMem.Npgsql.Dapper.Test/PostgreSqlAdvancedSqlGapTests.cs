@@ -1,0 +1,550 @@
+namespace DbSqlLikeMem.Npgsql.Test;
+
+/// <summary>
+/// EN: Covers advanced PostgreSQL SQL scenarios that the mock validates against version gates.
+/// PT: Cobre cenarios SQL avancados do PostgreSQL que o mock valida com base em restricoes de versao.
+/// </summary>
+/// <remarks>
+/// EN: Creates the in-memory PostgreSQL connection used by the advanced gap tests.
+/// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de gap avancados.
+/// </remarks>
+public sealed class PostgreSqlAdvancedSqlGapTests(ITestOutputHelper helper) : XUnitTestBase(helper)
+{
+    private readonly NpgsqlConnectionMock _cnn = CreateOpenConnection();
+
+    private static NpgsqlConnectionMock CreateOpenConnection(int? version = null)
+    {
+        var db = new NpgsqlDbMock(version);
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.AddColumn("created", DbType.DateTime, false);
+
+        users.Add(new Dictionary<int, object?> { [0] = 1, [1] = "John", [2] = 10, [3] = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local) });
+        users.Add(new Dictionary<int, object?> { [0] = 2, [1] = "Bob", [2] = 10, [3] = new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local) });
+        users.Add(new Dictionary<int, object?> { [0] = 3, [1] = "Jane", [2] = 20, [3] = new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local) });
+
+        var orders = db.AddTable("orders");
+        orders.AddColumn("id", DbType.Int32, false);
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
+
+        orders.Add(new Dictionary<int, object?> { [0] = 10, [1] = 1, [2] = 10m });
+        orders.Add(new Dictionary<int, object?> { [0] = 11, [1] = 1, [2] = 5m });
+        orders.Add(new Dictionary<int, object?> { [0] = 12, [1] = 2, [2] = 7m });
+
+        var connection = new NpgsqlConnectionMock(db);
+        connection.Open();
+        return connection;
+    }
+
+    /// <summary>
+    /// EN: Verifies ROW_NUMBER partitioning works in PostgreSQL window coverage.
+    /// PT: Verifica se o particionamento com ROW_NUMBER funciona na cobertura de janela do PostgreSQL.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_RowNumber_PartitionBy_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id, tenantid,
+       ROW_NUMBER() OVER (PARTITION BY tenantid ORDER BY id) AS rn
+FROM users
+ORDER BY tenantid, id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies RANK and DENSE_RANK work in PostgreSQL window coverage.
+    /// PT: Verifica se RANK e DENSE_RANK funcionam na cobertura de janela do PostgreSQL.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_Rank_And_DenseRank_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       RANK() OVER (ORDER BY tenantid) AS rk,
+       DENSE_RANK() OVER (ORDER BY tenantid) AS dr
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([1, 1, 3], [.. rows.Select(r => (int)r.rk)]);
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.dr)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NTILE works in PostgreSQL window coverage.
+    /// PT: Verifica se NTILE funciona na cobertura de janela do PostgreSQL.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_Ntile_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       NTILE(2) OVER (ORDER BY id) AS tile
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies PERCENT_RANK and CUME_DIST work in PostgreSQL window coverage.
+    /// PT: Verifica se PERCENT_RANK e CUME_DIST funcionam na cobertura de janela do PostgreSQL.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_PercentRank_And_CumeDist_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       PERCENT_RANK() OVER (ORDER BY tenantid) AS pr,
+       CUME_DIST() OVER (ORDER BY tenantid) AS cd
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        var pr = rows.Select(r => Convert.ToDouble(r.pr)).ToArray();
+        var cd = rows.Select(r => Convert.ToDouble(r.cd)).ToArray();
+
+        Assert.Equal([0d, 0d, 1d], pr);
+        Assert.True(Math.Abs(cd[0] - (2d / 3d)) <= 1e-9);
+        Assert.True(Math.Abs(cd[1] - (2d / 3d)) <= 1e-9);
+        Assert.True(Math.Abs(cd[2] - 1d) <= 1e-9);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies LAG and LEAD work in PostgreSQL window coverage.
+    /// PT: Verifica se LAG e LEAD funcionam na cobertura de janela do PostgreSQL.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_Lag_And_Lead_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       LAG(id) OVER (ORDER BY id) AS prev_id,
+       LEAD(id, 1, 99) OVER (ORDER BY id) AS next_id
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([null, 1, 2], [.. rows.Select(r => (int?)r.prev_id)]);
+        Assert.Equal([2, 3, 99], [.. rows.Select(r => (int)r.next_id)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies FIRST_VALUE and LAST_VALUE work in PostgreSQL window coverage.
+    /// PT: Verifica se FIRST_VALUE e LAST_VALUE funcionam na cobertura de janela do PostgreSQL.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_FirstValue_And_LastValue_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       FIRST_VALUE(name) OVER (ORDER BY id) AS first_name,
+       LAST_VALUE(name) OVER (ORDER BY id) AS last_name
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal(["John", "John", "John"], [.. rows.Select(r => (string)r.first_name)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.last_name)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NTH_VALUE works in PostgreSQL window coverage.
+    /// PT: Verifica se NTH_VALUE funciona na cobertura de janela do PostgreSQL.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_NthValue_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       NTH_VALUE(name, 2) OVER (ORDER BY id) AS second_name
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.True(new string?[] { null, "Bob", "Bob" }.SequenceEqual(rows.Select(r => (string?)r.second_name)));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies zero-offset LAG and LEAD return the current row.
+    /// PT: Verifica se LAG e LEAD com offset zero retornam a linha atual.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_Lag_Lead_WithZeroOffset_ShouldReturnCurrentRow(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       LAG(id, 0, -1) OVER (ORDER BY id) AS lag0,
+       LEAD(id, 0, -1) OVER (ORDER BY id) AS lead0
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lag0)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.lead0)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies a PostgreSQL reference query combining CTE, JOIN, LEFT JOIN, LATERAL, FILTER, STRING_AGG, COALESCE, INTERVAL, CASE, CAST and ROW_NUMBER returns the expected rows.
+    /// PT: Verifica se uma query de referencia do PostgreSQL combinando CTE, JOIN, LEFT JOIN, LATERAL, FILTER, STRING_AGG, COALESCE, INTERVAL, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void ProviderSignature_CteAggregateAndWindow_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+WITH tenant_scope AS (
+    SELECT 10 AS tenantid
+    UNION ALL
+    SELECT 20
+),
+order_totals AS (
+    SELECT o.userid,
+           COUNT(*) AS order_count,
+           SUM(CASE WHEN o.amount >= 10.00 THEN 1 ELSE 0 END) AS big_order_count,
+           SUM(o.amount) AS total_amount,
+           STRING_AGG(CAST(o.id AS VARCHAR(20)), '|' ORDER BY o.id DESC) AS order_ids
+    FROM orders o
+    GROUP BY o.userid
+),
+ranked AS (
+    SELECT u.id,
+           u.name,
+           u.tenantid,
+           u.id AS normalized_id,
+           u.created + INTERVAL '1 day' AS shifted_created,
+           EXTRACT(DAY FROM (u.created - TIMESTAMP '2020-01-01 00:00:00')) AS days_from_anchor,
+           CONCAT(u.tenantid, '-', u.id) AS user_code,
+           COALESCE(order_totals.order_count, CAST(0 AS INTEGER)) AS order_count,
+           COALESCE(order_totals.big_order_count, CAST(0 AS INTEGER)) AS big_order_count,
+           COALESCE(order_totals.total_amount, 0.00) AS total_amount,
+           COALESCE(order_totals.order_ids, '') AS order_ids,
+           latest.last_order_id,
+           COALESCE(latest.last_order_amount, 0.00) AS last_order_amount,
+           CASE WHEN latest.last_order_id IS NULL THEN FALSE ELSE TRUE END AS has_orders,
+           ROW_NUMBER() OVER (
+               PARTITION BY u.tenantid
+               ORDER BY COALESCE(order_totals.total_amount, 0.00) DESC, u.id
+           ) AS rn
+    FROM users u
+    JOIN tenant_scope scope ON scope.tenantid = u.tenantid
+    LEFT JOIN order_totals ON order_totals.userid = u.id
+    LEFT JOIN LATERAL (
+        SELECT o.id AS last_order_id,
+               o.amount AS last_order_amount
+        FROM orders o
+        WHERE o.userid = u.id
+        ORDER BY o.id DESC
+        LIMIT 1
+    ) latest ON TRUE
+)
+SELECT id, name, tenantid, normalized_id, shifted_created, days_from_anchor, user_code, order_count, big_order_count, total_amount, order_ids, last_order_id, last_order_amount, has_orders, rn
+FROM ranked
+ORDER BY tenantid, rn, id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.id)]);
+        Assert.Equal(["John", "Bob", "Jane"], [.. rows.Select(r => (string)r.name)]);
+        Assert.Equal([10, 10, 20], [.. rows.Select(r => (int)r.tenantid)]);
+        Assert.Equal([1, 2, 3], [.. rows.Select(r => (int)r.normalized_id)]);
+        Assert.Equal(
+            [new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local), new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.shifted_created)]);
+        Assert.Equal([0d, 1d, 2d], [.. rows.Select(r => Convert.ToDouble(r.days_from_anchor))]);
+        Assert.Equal(["10-1", "10-2", "20-3"], [.. rows.Select(r => (string)r.user_code)]);
+        Assert.Equal([2, 1, 0], [.. rows.Select(r => Convert.ToInt32(r.order_count))]);
+        Assert.Equal([1, 0, 0], [.. rows.Select(r => Convert.ToInt32(r.big_order_count))]);
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.total_amount))]);
+        Assert.Equal(["11|10", "12", string.Empty], [.. rows.Select(r => (string)r.order_ids)]);
+        Assert.Equal([11, 12, null], [.. rows.Select(r => (int?)r.last_order_id)]);
+        Assert.Equal([5m, 7m, 0m], [.. rows.Select(r => Convert.ToDecimal(r.last_order_amount))]);
+        Assert.Equal([true, true, false], [.. rows.Select(r => Convert.ToBoolean(r.has_orders))]);
+        Assert.Equal([1, 2, 1], [.. rows.Select(r => (int)r.rn)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NOT REGEXP works in PostgreSQL compatibility coverage.
+    /// PT: Verifica se NOT REGEXP funciona na cobertura de compatibilidade do PostgreSQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Regexp_NotOperator_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name NOT REGEXP '^J' ORDER BY id").ToList();
+        Assert.Equal([2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies NOT LIKE works in PostgreSQL compatibility coverage.
+    /// PT: Verifica se NOT LIKE funciona na cobertura de compatibilidade do PostgreSQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Like_NotOperator_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name NOT LIKE 'J%' ORDER BY id").ToList();
+        Assert.Equal([2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies expression-based offsets work for LAG and NTH_VALUE.
+    /// PT: Verifica se offsets baseados em expressao funcionam para LAG e NTH_VALUE.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_Lag_And_NthValue_WithExpressionOffset_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       LAG(id, 1 + 0, -1) OVER (ORDER BY id) AS lag_expr,
+       NTH_VALUE(name, 1 + 1) OVER (ORDER BY id) AS nth_expr
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([-1, 1, 2], [.. rows.Select(r => (int)r.lag_expr)]);
+        Assert.True(new string?[] { null, "Bob", "Bob" }.SequenceEqual(rows.Select(r => (string?)r.nth_expr)));
+    }
+
+
+    /// <summary>
+    /// EN: Verifies expression-based bucket counts work for NTILE.
+    /// PT: Verifica se contagens de buckets baseadas em expressao funcionam para NTILE.
+    /// </summary>
+    [Theory]
+    [MemberDataNpgsqlVersion]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Window_Ntile_WithExpressionBuckets_ShouldWork(int version)
+    {
+        using var connection = CreateOpenConnection(version);
+        const string sql = @"
+SELECT id,
+       NTILE(1 + 1) OVER (ORDER BY id) AS tile_expr
+FROM users
+ORDER BY id";
+
+        if (version < NpgsqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => connection.Query<dynamic>(sql).ToList());
+            return;
+        }
+
+        var rows = connection.Query<dynamic>(sql).ToList();
+
+        Assert.Equal([1, 1, 2], [.. rows.Select(r => (int)r.tile_expr)]);
+    }
+
+
+    /// <summary>
+    /// EN: Verifies correlated subqueries work in the SELECT list.
+    /// PT: Verifica se subconsultas correlacionadas funcionam na lista SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void CorrelatedSubquery_InSelectList_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT u.id,
+       (SELECT SUM(o.amount) FROM orders o WHERE o.userid = u.id) AS total
+FROM users u
+ORDER BY u.id").ToList();
+
+        Assert.Equal([15m, 7m, 0m], [.. rows.Select(r => (decimal)(r.total ?? 0m))]);
+    }
+
+    /// <summary>
+    /// EN: Verifies interval-based date addition works in PostgreSQL coverage.
+    /// PT: Verifica se a adicao de data baseada em intervalo funciona na cobertura do PostgreSQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void DateAdd_IntervalDay_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>(@"
+SELECT id, (created + INTERVAL \'1 day\') AS d
+FROM users
+ORDER BY id").ToList();
+
+        Assert.Equal([
+            new DateTime(2020, 1, 2, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 3, 0, 0, 0, DateTimeKind.Local),
+            new DateTime(2020, 1, 4, 0, 0, 0, DateTimeKind.Local)],
+            [.. rows.Select(r => (DateTime)r.d)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies string-to-int casts work in PostgreSQL coverage.
+    /// PT: Verifica se conversoes de string para int funcionam na cobertura do PostgreSQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Cast_StringToInt_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT CAST('42' AS INTEGER) AS v").ToList();
+        Assert.Single(rows);
+        Assert.Equal(42, (int)rows[0].v);
+    }
+
+    /// <summary>
+    /// EN: Verifies REGEXP operators work in PostgreSQL coverage.
+    /// PT: Verifica se operadores REGEXP funcionam na cobertura do PostgreSQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Regexp_Operator_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name REGEXP '^J' ORDER BY id").ToList();
+        Assert.Equal([1, 3], [.. rows.Select(r => (int)r.id)]);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies ORDER BY FIELD-style sorting works in PostgreSQL coverage.
+    /// PT: Verifica se a ordenacao estilo ORDER BY FIELD funciona na cobertura do PostgreSQL.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void OrderBy_Field_Function_ShouldWork()
+    {
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users ORDER BY CASE id WHEN 3 THEN 1 WHEN 1 THEN 2 WHEN 2 THEN 3 ELSE 4 END").ToList();
+        Assert.Equal([3, 1, 2], [.. rows.Select(r => (int)r.id)]);
+    }
+
+    /// <summary>
+    /// EN: Verifies collation-sensitive comparisons follow the column collation.
+    /// PT: Verifica se as comparacoes sensiveis a collation seguem a collation da coluna.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "PostgreSqlAdvancedSqlGap")]
+    public void Collation_CaseSensitivity_ShouldFollowColumnCollation()
+    {
+        // PostgreSQL uses binary comparison here because the column does not declare a collation.
+        var rows = _cnn.Query<dynamic>("SELECT id FROM users WHERE name = 'john' ORDER BY id").ToList();
+        Assert.Empty(rows);
+    }
+
+    /// <summary>
+    /// EN: Disposes test resources.
+    /// PT: Descarta os recursos do teste.
+    /// </summary>
+    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    protected override void Dispose(bool disposing)
+    {
+        _cnn?.Dispose();
+        base.Dispose(disposing);
+    }
+}

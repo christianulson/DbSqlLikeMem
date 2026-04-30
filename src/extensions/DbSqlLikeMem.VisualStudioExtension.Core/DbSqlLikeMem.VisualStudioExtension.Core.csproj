@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+		<IsPackable>false</IsPackable>
+		<Description>Core domain and services for the DbSqlLikeMem Visual Studio extension prototype.</Description>
+	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Include="..\..\code\DbSqlLikeMem\Compatibility\FrameworkPolyfills.cs" Link="Compatibility\FrameworkPolyfills.cs" />
+	</ItemGroup>
+	
+</Project>

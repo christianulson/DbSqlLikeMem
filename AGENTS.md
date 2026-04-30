@@ -10,6 +10,7 @@ This file defines the minimum operating rules for any agent working in this repo
 
 - Repository: `DbSqlLikeMem`
 - Main stack: `.NET / C#`
+- Im using windows so the end line must be windows ending (CR LF)
 - Main concern in the current maintenance cycle:
   - remove `CS1591` warnings and errors
   - standardize XML documentation
@@ -75,10 +76,10 @@ Example:
 
 ## File Editing Rules
 
-- Prefer minimal diffs.
 - Do not reformat unrelated code.
 - Do not replace meaningful summaries with generic summaries.
 - Do not remove existing valid XML comments just to restyle them unless consistency is the goal of the current task.
+- nunca deixe um erros do tipo: CS8600, CS8602, CS8604
 
 ## Validation Guidance
 

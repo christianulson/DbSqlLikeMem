@@ -1,0 +1,4480 @@
+namespace DbSqlLikeMem.MySql.Test.Parser;
+
+/// <summary>
+/// EN: Covers MySQL-specific parser feature behavior.
+/// PT: Cobre o comportamento de recursos de parser específicos do MySQL.
+/// </summary>
+public sealed class MySqlDialectFeatureParserTests(
+    ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
+{
+    /// <summary>
+    /// EN: Ensures MySQL preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o MySQL preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseAlterTableAddBinaryColumn_ShouldPreserveSize(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE users ADD payload VARBINARY(16) NULL",
+            db, d));
+
+        Assert.Equal(DbType.Binary, parsed.ColumnType);
+        Assert.Equal(16, parsed.Size);
+        Assert.True(parsed.Nullable);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
+    /// PT: Garante que o MySQL preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseAlterTableAddDecimalColumn_ShouldPreservePrecisionAndScale(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlAlterTableAddColumnQuery>(SqlQueryParser.Parse(
+            "ALTER TABLE users ADD amount DECIMAL(10, 4) NOT NULL DEFAULT 0",
+            db, d));
+
+        Assert.Equal(DbType.Decimal, parsed.ColumnType);
+        Assert.Equal(10, parsed.Size);
+        Assert.Equal(4, parsed.DecimalPlaces);
+        Assert.False(parsed.Nullable);
+        Assert.Equal("0", parsed.DefaultValueRaw);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
+    /// PT: Garante que o MySQL rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseAlterTableAddColumn_NotNullWithDefaultNull_ShouldReject(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users ADD status VARCHAR(20) NOT NULL DEFAULT NULL",
+            db, d));
+
+        Assert.Contains("default null", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
+    /// PT: Garante que o MySQL rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseAlterTableAddColumn_WithTableAlias_ShouldReject(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE users u ADD age INT",
+            db, d));
+
+        Assert.Contains("alias", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
+    /// PT: Garante que o MySQL rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseAlterTableAddColumn_WithDerivedTable_ShouldReject(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(
+            "ALTER TABLE (SELECT * FROM users) u ADD age INT",
+            db, d));
+
+        Assert.Contains("concrete table name", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parses the pragmatic provider-real scalar FUNCTION DDL subset.
+    /// PT: Garante que o MySQL interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalarFunctionDdlSubset_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var create = Assert.IsType<SqlCreateFunctionQuery>(SqlQueryParser.Parse(
+            "CREATE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
+            db, d));
+
+        Assert.Equal("fn_users", create.Table?.Name, ignoreCase: true);
+        Assert.Equal("INT", create.Definition.ReturnTypeSql, ignoreCase: true);
+        Assert.Equal(2, create.Definition.Parameters.Count);
+        Assert.Equal("baseValue", create.Definition.Parameters[0].Name, ignoreCase: true);
+        Assert.Equal("incrementValue", create.Definition.Parameters[1].Name, ignoreCase: true);
+        Assert.IsType<BinaryExpr>(create.Definition.Body);
+
+        var drop = Assert.IsType<SqlDropFunctionQuery>(SqlQueryParser.Parse(
+            "DROP FUNCTION IF EXISTS fn_users",
+            db, d));
+
+        Assert.True(drop.IfExists);
+        Assert.Equal("fn_users", drop.Table?.Name, ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL rejects CREATE OR REPLACE FUNCTION outside the supported provider-real subset.
+    /// PT: Garante que o MySQL rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseCreateOrReplaceScalarFunctionDdlSubset_ShouldReject(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "CREATE OR REPLACE FUNCTION fn_users(baseValue INT, incrementValue INT) RETURNS INT RETURN baseValue + incrementValue",
+            db, d));
+        Assert.Contains("CREATE OR REPLACE FUNCTION", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL accepts JSON_TABLE in table-source position for supported versions and rejects it below the gate.
+    /// PT: Garante que o MySQL aceite JSON_TABLE em posicao de table source nas versoes suportadas e rejeite abaixo do gate.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_JsonTable_ShouldFollowVersionSupport(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = """
+            SELECT jt.Id, jt.TagName
+            FROM JSON_TABLE(
+                '[{"id":1,"tags":[{"name":"vip"}]}]',
+                '$[*]' COLUMNS(
+                    Id INT PATH '$.id',
+                    NESTED PATH '$.tags[*]' COLUMNS(
+                        TagName VARCHAR(30) PATH '$.name'
+                    )
+                )
+            ) jt
+            """;
+
+        var dialect = Get(version, v => new MySqlDialect(v));
+        if (version < MySqlDialect.JsonArrowOperatorsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            Assert.Contains(SqlConst.JSON_TABLE, ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+        Assert.NotNull(parsed.Table);
+        var tableSource = parsed.Table;
+
+        Assert.NotNull(tableSource.JsonTableClause);
+        var clause = tableSource.JsonTableClause;
+        Assert.Single(clause.Columns);
+        Assert.Single(clause.NestedPaths);
+        Assert.Equal("jt", tableSource.Alias, ignoreCase: true);
+        Assert.Equal("Id", clause.Columns[0].Name);
+        Assert.Equal("TagName", Assert.Single(clause.NestedPaths[0].Clause.Columns).Name);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL dialect exposes MATCH ... AGAINST through an explicit capability hook.
+    /// PT: Garante que o dialeto MySQL exponha MATCH ... AGAINST por um hook de capability explicito.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void MatchAgainstCapability_ShouldBeEnabled(int version)
+    {
+        Assert.True(Get(version, v => new MySqlDialect(v)).SupportsMatchAgainstPredicate);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL rejects ORDER BY NULLS FIRST and NULLS LAST modifiers in SELECT queries.
+    /// PT: Garante que o MySQL rejeite os modificadores ORDER BY NULLS FIRST e NULLS LAST em consultas SELECT.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseSelect_OrderByNullsModifier_ShouldReject()
+    {
+        var db = Get(MySqlDbVersions.Default, v => new MySqlDbMock(v));
+        var dialect = Get(MySqlDbVersions.Default, v => new MySqlDialect(v));
+
+        var firstEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS FIRST",
+            db,
+            dialect));
+
+        Assert.Contains("NULLS FIRST", firstEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var lastEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY name NULLS LAST",
+            db,
+            dialect));
+
+        Assert.Contains("NULLS LAST", lastEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
+    /// PT: Garante que o MySQL rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Parser")]
+    public void ParseWithCte_MaterializedHint_ShouldReject()
+    {
+        var db = Get(MySqlDbVersions.Default, v => new MySqlDbMock(v));
+        var dialect = Get(MySqlDbVersions.Default, v => new MySqlDialect(v));
+
+        var materializedEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "WITH x AS MATERIALIZED (SELECT 1 AS id) SELECT id FROM x",
+            db,
+            dialect));
+
+        Assert.Contains("WITH ... AS MATERIALIZED", materializedEx.Message, StringComparison.OrdinalIgnoreCase);
+
+        var notMaterializedEx = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(
+            "WITH x AS NOT MATERIALIZED (SELECT 1 AS id) SELECT id FROM x",
+            db,
+            dialect));
+
+        Assert.Contains("WITH ... AS NOT MATERIALIZED", notMaterializedEx.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Verifies ANSI_QUOTES mode enables double-quoted identifiers in the MySQL dialect.
+    /// PT: Verifica se o modo ANSI_QUOTES habilita identificadores entre aspas duplas no dialeto MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void AnsiQuotesMode_ShouldEnableDoubleQuotedIdentifiers(int version)
+    {
+        var dialect = Get(version, v => new MySqlDialect(v, ansiQuotes: true));
+
+        Assert.True(dialect.AllowsDoubleQuoteIdentifiers);
+        Assert.False(dialect.IsStringQuote('"'));
+        Assert.Equal(SqlIdentifierEscapeStyle.double_quote, dialect.IdentifierEscapeStyle);
+    }
+
+    /// <summary>
+    /// EN: Verifies ANSI_QUOTES parses double-quoted identifiers even when the same SQL was cached under default MySQL mode.
+    /// PT: Verifica se ANSI_QUOTES interpreta identificadores entre aspas duplas mesmo quando o mesmo SQL foi cacheado no modo MySQL padrao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void AnsiQuotesMode_ShouldNotReuseCachedLiteralParsing(int version)
+    {
+        var db = Get(version, v => new MySqlDbMock(v));
+        var defaultDialect = Get(version, v => new MySqlDialect(v));
+        var ansiDialect = Get(version, v => new MySqlDialect(v, ansiQuotes: true));
+
+        var defaultExpr = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", db, defaultDialect);
+        var defaultIsNull = Assert.IsType<IsNullExpr>(defaultExpr);
+        Assert.IsType<LiteralExpr>(defaultIsNull.Expr);
+
+        var ansiExpr = SqlExpressionParser.ParseWhere("\"DeletedDtt\" IS NULL", db, ansiDialect);
+        var ansiIsNull = Assert.IsType<IsNullExpr>(ansiExpr);
+        var id = Assert.IsType<IdentifierExpr>(ansiIsNull.Expr);
+        Assert.Equal("DeletedDtt", id.Name);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL keeps FOUND_ROWS/ROW_COUNT wired through the dialect capability used by the executor.
+    /// PT: Garante que o MySQL mantenha FOUND_ROWS/ROW_COUNT ligados pela capability de dialeto usada pelo executor.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void LastFoundRowsCapability_ShouldExposeMySqlFunctions(int version)
+    {
+        var dialect = Get(version, v => new MySqlDialect(v));
+
+        Assert.True(dialect.SupportsLastFoundRowsFunction("FOUND_ROWS"));
+        Assert.True(dialect.SupportsLastFoundRowsFunction("ROW_COUNT"));
+        Assert.False(dialect.SupportsLastFoundRowsFunction("CHANGES"));
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL exposes join-based mutation syntax and UPSERT rowcount semantics through dialect-owned capabilities.
+    /// PT: Garante que o MySQL exponha sintaxes de mutacao com join e a semantica de rowcount de UPSERT por capabilities do proprio dialeto.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void MutationCapabilities_ShouldExposeMySqlContract(int version)
+    {
+        var dialect = Get(version, v => new MySqlDialect(v));
+
+        Assert.True(dialect.SupportsUpdateJoinFromSubquerySyntax);
+        Assert.False(dialect.SupportsUpdateFromJoinSubquerySyntax);
+        Assert.True(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
+        Assert.False(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.True(dialect.SupportsSqlCalcFoundRowsModifier);
+        Assert.Equal(3, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts the SQL_CALC_FOUND_ROWS select modifier through dialect capability.
+    /// PT: Garante que o parser MySQL aceite o modificador SQL_CALC_FOUND_ROWS via capability do dialeto.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_SqlCalcFoundRows_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(
+            SqlQueryParser.Parse("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", db, d));
+
+        Assert.Equal("SELECT SQL_CALC_FOUND_ROWS name FROM users LIMIT 1", parsed.RawSql);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts its row-count helper functions and still rejects foreign aliases.
+    /// PT: Garante que o parser MySQL aceite suas funções de row-count e continue rejeitando aliases de outros bancos.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_LastFoundRowsFunctions_ShouldFollowDialectCapability(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        Assert.Equal("FOUND_ROWS", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("FOUND_ROWS()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("ROW_COUNT", Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("ROW_COUNT()", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("CHANGES()", db, d));
+        Assert.Contains("CHANGES", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures CURDATE/CURTIME temporal functions are exposed by the dialect across all MySQL versions.
+    /// PT: Garante que as funcoes temporais CURDATE/CURTIME sejam expostas pelo dialeto em todas as versoes do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void TemporalFunctions_ShouldExposeCurDateAndCurTime(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        Assert.True(d.TemporalFunctionNames.ContainsKey("CURDATE"));
+        Assert.True(d.TemporalFunctionNames.ContainsKey("CURTIME"));
+        Assert.Contains("CURDATE", d.TemporalFunctionCallNames);
+        Assert.Contains("CURTIME", d.TemporalFunctionCallNames);
+
+        Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURDATE()", db, d));
+        Assert.IsType<CallExpr>(SqlExpressionParser.ParseScalar("CURTIME()", db, d));
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser/tokenizer still rejects SQL Server double-at system identifiers.
+    /// PT: Garante que o parser/tokenizer MySQL continue rejeitando identificadores de sistema com double-at do SQL Server.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_SystemRowCountIdentifier_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        Assert.Throws<InvalidOperationException>(() => SqlExpressionParser.ParseScalar("@@ROWCOUNT", db, d));
+    }
+
+    /// <summary>
+    /// EN: Ensures CREATE SEQUENCE remains rejected for MySQL with an actionable dialect gate.
+    /// PT: Garante que CREATE SEQUENCE continue rejeitado no MySQL com gate de dialeto acionavel.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseCreateSequence_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("CREATE SEQUENCE seq_orders START WITH 1 INCREMENT BY 1", db, d));
+
+        Assert.Contains("CREATE SEQUENCE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT syntax is rejected for MySQL.
+    /// PT: Garante que a sintaxe ON CONFLICT do PostgreSQL seja rejeitada no MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflict_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parses the INSERT PARTITION subset and captures the requested partition names.
+    /// PT: Garante que o MySQL interprete o subset de INSERT PARTITION e capture os nomes de particao solicitados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_PartitionClause_ShouldCapturePartitionNames(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(
+            "INSERT INTO archive_events PARTITION (p2024, pmax) VALUES (1, 10, '2025-01-01')",
+            db, d));
+
+        Assert.Equal(2, parsed.PartitionNames.Count);
+        Assert.Equal("p2024", parsed.PartitionNames[0], StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("pmax", parsed.PartitionNames[1], StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parses the table-source PARTITION subset and captures the requested partition names.
+    /// PT: Garante que o MySQL interprete o subset de PARTITION na fonte da tabela e capture os nomes de particao solicitados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_ShouldCapturePartitionNames(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events PARTITION (p2024) ORDER BY Id",
+            db, d));
+
+        var table = parsed.Table;
+        Assert.NotNull(table);
+        Assert.NotNull(table!.PartitionNames);
+        var partitionNames = table!.PartitionNames!;
+        Assert.Single(partitionNames);
+        Assert.Equal("p2024", partitionNames[0], ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parses the MAXVALUE partition subset in the table source clause.
+    /// PT: Garante que o MySQL interprete o subset de particionamento MAXVALUE na clausula da fonte da tabela.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_MaxValue_ShouldCapturePartitionNames(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events PARTITION (pmax) ORDER BY Id",
+            db, d));
+
+        var table = parsed.Table;
+        Assert.NotNull(table);
+        Assert.NotNull(table!.PartitionNames);
+        var partitionNames = table!.PartitionNames!;
+        Assert.Single(partitionNames);
+        Assert.Equal("pmax", partitionNames[0], ignoreCase: true);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with IN.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com IN.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearInPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) IN (2024, 2026) ORDER BY Id",
+            db, d));
+
+        var where = Assert.IsType<InExpr>(parsed.Where);
+        var extract = Assert.IsType<CallExpr>(where.Left);
+        Assert.Equal("EXTRACT", extract.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.YEAR, Assert.IsType<RawSqlExpr>(extract.Args[0]).Sql, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CreatedAt", Assert.IsType<IdentifierExpr>(extract.Args[1]).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, where.Items.Count);
+        Assert.Equal(2024, Assert.IsType<LiteralExpr>(where.Items[0]).Value);
+        Assert.Equal(2026, Assert.IsType<LiteralExpr>(where.Items[1]).Value);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with BETWEEN.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com BETWEEN.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearBetweenPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2026 ORDER BY Id",
+            db, d));
+
+        var where = Assert.IsType<BetweenExpr>(parsed.Where);
+        var extract = Assert.IsType<CallExpr>(where.Expr);
+        Assert.Equal("EXTRACT", extract.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(SqlConst.YEAR, Assert.IsType<RawSqlExpr>(extract.Args[0]).Sql, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("CreatedAt", Assert.IsType<IdentifierExpr>(extract.Args[1]).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2024, Assert.IsType<LiteralExpr>(where.Low).Value);
+        Assert.Equal(2026, Assert.IsType<LiteralExpr>(where.High).Value);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with comparison bounds.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com limites de comparacao.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearComparisonPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) >= 2024 AND EXTRACT(YEAR FROM CreatedAt) < 2025 ORDER BY Id",
+            db, d));
+
+        var andExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        var left = Assert.IsType<BinaryExpr>(andExpr.Left);
+        var right = Assert.IsType<BinaryExpr>(andExpr.Right);
+        Assert.Equal(SqlBinaryOp.GreaterOrEqual, left.Op);
+        Assert.Equal(SqlBinaryOp.Less, right.Op);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(left.Left).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(right.Left).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when comparison bounds are written in reverse order.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando os limites de comparacao sao escritos na ordem inversa.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearReversedComparisonPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE 2025 > EXTRACT(YEAR FROM CreatedAt) AND 2024 <= EXTRACT(YEAR FROM CreatedAt) ORDER BY Id",
+            db, d));
+
+        var andExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        var left = Assert.IsType<BinaryExpr>(andExpr.Left);
+        var right = Assert.IsType<BinaryExpr>(andExpr.Right);
+        Assert.Equal(SqlBinaryOp.Greater, left.Op);
+        Assert.Equal(SqlBinaryOp.LessOrEqual, right.Op);
+        Assert.Equal(2025, Assert.IsType<LiteralExpr>(left.Left).Value);
+        Assert.Equal(2024, Assert.IsType<LiteralExpr>(right.Left).Value);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(left.Right).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(right.Right).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when safe comparison branches are combined with OR.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de comparacao sao combinados com OR.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearOrPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) = 2024 OR EXTRACT(YEAR FROM CreatedAt) = 2026 ORDER BY Id",
+            db, d));
+
+        var orExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        Assert.Equal(SqlBinaryOp.Or, orExpr.Op);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(Assert.IsType<BinaryExpr>(orExpr.Left).Left).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("EXTRACT", Assert.IsType<CallExpr>(Assert.IsType<BinaryExpr>(orExpr.Right).Left).Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when safe BETWEEN branches are combined with OR.
+    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de BETWEEN sao combinados com OR.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_TablePartitionClause_WithExtractYearOrBetweenPredicate_ShouldCaptureWhereClause(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT Id FROM archive_events WHERE EXTRACT(YEAR FROM CreatedAt) BETWEEN 2024 AND 2024 OR EXTRACT(YEAR FROM CreatedAt) BETWEEN 2026 AND 2026 ORDER BY Id",
+            db, d));
+
+        var orExpr = Assert.IsType<BinaryExpr>(parsed.Where);
+        Assert.Equal(SqlBinaryOp.Or, orExpr.Op);
+        Assert.IsType<BetweenExpr>(orExpr.Left);
+        Assert.IsType<BetweenExpr>(orExpr.Right);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoNothingWithReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoNothingWithInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoNothingWithUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoNothingWithEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures JSON_EXTRACT follows the configured MySQL version support.
+    /// PT: Garante que JSON_EXTRACT siga o suporte configurado por versão do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_JsonExtract_ShouldFollowMySqlVersionSupport(int version)
+    {
+        const string sql = "JSON_EXTRACT(payload, '$.name')";
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        if (version < MySqlDialect.JsonArrowOperatorsMinVersion)
+        {
+            var ex = Assert.Throws<NotSupportedException>(() =>
+                SqlExpressionParser.ParseScalar(sql, db, d));
+
+            Assert.Contains("JSON_EXTRACT", ex.Message, StringComparison.OrdinalIgnoreCase);
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar(sql, db, d);
+        var call = Assert.IsType<CallExpr>(expr);
+        Assert.Equal("JSON_EXTRACT", call.Name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL accepts DATE_ADD/TIMESTAMPADD and rejects SQL Server DATEADD syntax.
+    /// PT: Garante que o MySQL aceite DATE_ADD/TIMESTAMPADD e rejeite a sintaxe DATEADD do SQL Server.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_DateAddFamily_ShouldRespectMySqlDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var dateAddExpr = SqlExpressionParser.ParseScalar("DATE_ADD(created_at, INTERVAL 1 DAY)", db, d);
+        Assert.Equal("DATE_ADD", Assert.IsType<CallExpr>(dateAddExpr).Name, StringComparer.OrdinalIgnoreCase);
+
+        var timestampAddExpr = SqlExpressionParser.ParseScalar("TIMESTAMPADD(DAY, 1, created_at)", db, d);
+        Assert.Equal("TIMESTAMPADD", Assert.IsType<CallExpr>(timestampAddExpr).Name, StringComparer.OrdinalIgnoreCase);
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("DATEADD(DAY, 1, created_at)", db, d));
+
+        Assert.Contains("DATEADD", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothing_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE without predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereWithoutPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE terminated by semicolon-only remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereOnlySemicolon_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereInvalidPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id = DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with unexpected continuation token remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com token de continuação inesperado do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingUnexpectedContinuationToken_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with FROM clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingWithFromClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING FROM users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with USING clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingWithUsingClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING USING users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with SET clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingWithSetClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING SET name = 'b'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with UPDATE clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula UPDATE do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingWithUpdateClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING UPDATE SET name = 'b'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with additional WHERE clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula WHERE adicional do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereDoNothingWithWhereClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereDoNothing_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereDoNothingReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereDoNothingInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereDoNothingUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING (id";
+
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereDoNothingEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with FROM clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingWithFromClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING FROM users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with USING clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingWithUsingClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING USING users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with SET clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingWithSetClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING SET name = 'b'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with UPDATE clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula UPDATE do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingWithUpdateClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING UPDATE SET name = 'b'";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with additional WHERE clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula WHERE adicional do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingWithWhereClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with unexpected continuation token remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com token de continuação inesperado do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoNothingWithUnexpectedContinuationToken_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING EXTRA";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with FROM clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWithFromClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name FROM users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with USING clause remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWithUsingClause_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name USING users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by FROM remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetFromWithoutAssignments_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET FROM users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by USING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetUsingWithoutAssignments_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET USING users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without DO branch remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem ramo DO do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintWithoutDoBranch_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without constraint name remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome da constraint do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintWithoutName_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without name at end-of-statement remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintWithoutNameAtEndOfStatement_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO with invalid continuation remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO com continuação inválida do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoInvalidContinuation_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO SKIP";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE without SET remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE sem SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWithoutSet_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET without assignments remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET sem atribuições do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetWithoutAssignments_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with leading comma remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula inicial do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetLeadingComma_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET , name = EXCLUDED.name";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with trailing comma remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula final do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetTrailingComma_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name,";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET assignments without comma separator remain rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuições sem separador por vírgula do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetAssignmentsWithoutCommaSeparator_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with repeated SET keyword remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com palavra-chave SET repetida do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetRepeatedSetKeyword_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET SET name = EXCLUDED.name";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET assignment without equals remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuição sem sinal de igual do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetAssignmentWithoutEquals_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name EXCLUDED.name";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with malformed assignment expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com expressão de atribuição malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateSetInvalidAssignmentExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = (EXCLUDED.name";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWithReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWithInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWithUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWithEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE with semicolon-only predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereOnlySemicolon_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE with semicolon-only predicate remains rejected for MySQL with actionable guidance even without RETURNING.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereOnlySemicolonWithoutReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE without predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereWithoutPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereInvalidPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão malformada em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE with valid WHERE and empty RETURNING list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e lista vazia em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictDoUpdateWhereEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintUpdateWhereReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintUpdateWhereInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintUpdateWhereUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintUpdateWhereEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE remains rejected for MySQL with actionable guidance even without RETURNING.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE do PostgreSQL continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintUpdateWhereWithoutReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereUpdateWhereReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereUpdateWhereInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereUpdateWhereUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereUpdateWhereEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id
+RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE remains rejected for MySQL with actionable guidance even without RETURNING.
+    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE do PostgreSQL continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictTargetWhereUpdateWhereWithoutReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = @"INSERT INTO users (id, name)
+VALUES (1, 'a')
+ON CONFLICT (id) WHERE id > 0
+DO UPDATE SET name = EXCLUDED.name
+WHERE users.id = EXCLUDED.id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE without predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereWithoutPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE terminated by semicolon-only remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereOnlySemicolon_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE; DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintTargetWhereInvalidPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO NOTHING";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE with semicolon-only predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWhereOnlySemicolon_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE terminated by semicolon-only remains rejected for MySQL with actionable guidance even without RETURNING.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWhereOnlySemicolonWithoutReturning_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE without predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWhereWithoutPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWhereInvalidPredicate_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão malformada em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWhereInvalidReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWhereUnbalancedReturningExpression_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and empty RETURNING list remains rejected for MySQL with actionable guidance.
+    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e lista vazia em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnConflictOnConstraintDoUpdateWhereEmptyReturningList_ShouldRespectDialectRule(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures valid ON DUPLICATE KEY UPDATE assignments materialize parsed scalar expressions in AST.
+    /// PT: Garante que atribuições válidas de ON DUPLICATE KEY UPDATE materializem expressões escalares parseadas na AST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateValidAssignments_ShouldMaterializeParsedExpressions(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name), updated_at = NOW()";
+
+        var parsed = Assert.IsType<SqlInsertQuery>(SqlQueryParser.Parse(sql, db, d));
+
+        Assert.True(parsed.HasOnDuplicateKeyUpdate);
+        Assert.Equal(2, parsed.OnDupAssignsParsed.Count);
+        Assert.All(parsed.OnDupAssignsParsed, a => Assert.NotNull(a.ValueExpr));
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL RETURNING clause is rejected for MySQL INSERT statements.
+    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em INSERT no MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithReturning_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING list in MySQL INSERT remains blocked by dialect gate.
+    /// PT: Garante que lista vazia em RETURNING no INSERT do MySQL continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING clause remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
+    /// PT: Garante que a cláusula RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
+    /// PT: Garante que expressão malformada em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING list remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
+    /// PT: Garante que lista vazia em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures unbalanced parentheses in RETURNING remain rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
+    /// PT: Garante que parênteses desbalanceados em RETURNING continuem rejeitados em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithUnbalancedReturningExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading comma in RETURNING remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
+    /// PT: Garante que vírgula inicial em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithLeadingCommaReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures trailing comma in RETURNING remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
+    /// PT: Garante que vírgula final em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithTrailingCommaReturning_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL RETURNING clause is rejected for MySQL UPDATE statements.
+    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithReturning_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING list in MySQL UPDATE remains blocked by dialect gate.
+    /// PT: Garante que lista vazia em RETURNING no UPDATE do MySQL continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL RETURNING clause is rejected for MySQL DELETE statements.
+    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em DELETE no MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithReturning_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty RETURNING list in MySQL DELETE remains blocked by dialect gate.
+    /// PT: Garante que lista vazia em RETURNING no DELETE do MySQL continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithEmptyReturningList_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING;";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression in MySQL INSERT remains blocked by dialect gate.
+    /// PT: Garante que expressão malformada em RETURNING no INSERT do MySQL continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with leading comma in MySQL INSERT remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula inicial no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithMalformedReturningLeadingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with trailing comma in MySQL INSERT remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula final no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with unbalanced parentheses in MySQL INSERT remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in MySQL INSERT remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression in MySQL UPDATE remains blocked by dialect gate.
+    /// PT: Garante que expressão malformada em RETURNING no UPDATE do MySQL continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with leading comma in MySQL UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula inicial no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithMalformedReturningLeadingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with trailing comma in MySQL UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula final no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with unbalanced parentheses in MySQL UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in MySQL UPDATE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET assignment without equals is rejected with actionable message.
+    /// PT: Garante que atribuição em UPDATE SET sem sinal de igual seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetAssignmentWithoutEquals_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET without assignments and followed by WHERE is rejected with actionable token context.
+    /// PT: Garante que UPDATE SET sem atribuições e seguido por WHERE seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetWithoutAssignmentsBeforeWhere_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET with repeated SET keyword is rejected with actionable message.
+    /// PT: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetRepeatedSetKeyword_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET SET name = 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET leading comma is rejected with actionable token context.
+    /// PT: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetLeadingComma_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET , name = 'b' WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("unexpected comma before assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE SET trailing comma is rejected with actionable token context.
+    /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_SetTrailingComma_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b', WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("trailing comma without assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE without predicate is rejected with actionable token context.
+    /// PT: Garante que UPDATE com WHERE sem predicado seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures UPDATE WHERE terminated only by semicolon is rejected with actionable token context.
+    /// PT: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUpdate_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "UPDATE users SET name = 'b' WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING expression in MySQL DELETE remains blocked by dialect gate.
+    /// PT: Garante que expressão malformada em RETURNING no DELETE do MySQL continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithMalformedReturningInvalidExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id +";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with leading comma in MySQL DELETE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula inicial no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithMalformedReturningLeadingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING, id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with trailing comma in MySQL DELETE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com vírgula final no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithMalformedReturningTrailingComma_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING id,";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed RETURNING with unbalanced parentheses in MySQL DELETE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithMalformedReturningUnbalancedParenthesis_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING (id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures RETURNING alias without expression in MySQL DELETE remains blocked by dialect gate.
+    /// PT: Garante que RETURNING com alias sem expressão no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WithMalformedReturningAliasWithoutExpression_ShouldBeRejectedByDialectGate(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE id = 1 RETURNING AS user_id";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.RETURNING, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE without predicate is rejected with actionable token context.
+    /// PT: Garante que DELETE com WHERE sem predicado seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WhereWithoutPredicate_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures DELETE WHERE terminated only by semicolon is rejected with actionable token context.
+    /// PT: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseDelete_WhereOnlySemicolon_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "DELETE FROM users WHERE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("WHERE requires a predicate", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE assignments without comma separator are rejected with actionable message.
+    /// PT: Garante que atribuições em ON DUPLICATE KEY UPDATE sem separação por vírgula sejam rejeitadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateAssignmentsWithoutCommaSeparator_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) updated_at = NOW()";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("must separate assignments with commas", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE assignment with malformed expression is rejected with actionable message.
+    /// PT: Garante que atribuição em ON DUPLICATE KEY UPDATE com expressão malformada seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateInvalidAssignmentExpression_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = (VALUES(name)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("assignment for 'name' has an invalid expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE trailing comma is rejected with actionable message.
+    /// PT: Garante que vírgula final em ON DUPLICATE KEY UPDATE seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateTrailingComma_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name),";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("trailing comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignments_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found '<end-of-statement>'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and followed by RETURNING is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e seguido por RETURNING seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithReturning_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with empty RETURNING list is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com lista vazia em RETURNING seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithEmptyReturningList_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and terminated by semicolon is rejected with actionable token context.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithSemicolon_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE;";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ';'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with unbalanced RETURNING expression is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com expressão RETURNING desbalanceada seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithUnbalancedReturningExpression_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE RETURNING (id";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires at least one assignment", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'RETURNING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with WHERE clause is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula WHERE seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithWhereClause_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("does not support a WHERE clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with FROM clause is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula FROM seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithFromClause_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE FROM users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with USING clause is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula USING seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithoutAssignmentsWithUsingClause_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE USING users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with repeated SET keyword is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com palavra-chave SET repetida seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithRepeatedSetKeyword_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE SET name = VALUES(name)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("must not repeat SET keyword", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'SET'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE assignment without equals is rejected with actionable message.
+    /// PT: Garante que atribuição em ON DUPLICATE KEY UPDATE sem sinal de igual seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateAssignmentWithoutEquals_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name VALUES(name)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("requires '=' between column and expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE leading comma is rejected with actionable message.
+    /// PT: Garante que vírgula inicial em ON DUPLICATE KEY UPDATE seja rejeitada com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateLeadingComma_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE , name = VALUES(name)";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("unexpected comma", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found ','", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with WHERE clause is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula WHERE seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithWhereClause_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) WHERE id = 1";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("does not support a WHERE clause", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'WHERE'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with table-source clause is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula de table-source seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithFromClause_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) FROM users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'FROM'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ON DUPLICATE KEY UPDATE with USING clause is rejected with actionable message.
+    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula USING seja rejeitado com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_OnDuplicateWithUsingClause_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON DUPLICATE KEY UPDATE name = VALUES(name) USING users";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("does not support table-source clauses", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("found 'USING'", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures INSERT VALUES reports row/position for malformed expression in later rows.
+    /// PT: Garante que INSERT VALUES reporte linha/posição para expressão malformada em linhas posteriores.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseInsert_ValuesSecondRowInvalidExpression_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        const string sql = "INSERT INTO users (id, name) VALUES (1, 'a'), (2 +, 'b')";
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("row 2 expression 1 is invalid", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures WITH RECURSIVE support follows the configured MySQL version.
+    /// PT: Garante que o suporte a with recursive siga a versão configurada do MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithRecursive_ShouldRespectVersion(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte";
+
+        if (version < MySqlDialect.WithCteMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+            return;
+        }
+
+        var parsed = SqlQueryParser.Parse(sql, db, d);
+        Assert.IsType<SqlSelectQuery>(parsed);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies unsupported WITH RECURSIVE versions return actionable MySQL guidance.
+    /// PT: Verifica que versões sem suporte a WITH RECURSIVE retornam orientação acionável para MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion(VersionLowerThan = MySqlDialect.WithCteMinVersion)]
+    public void ParseSelect_WithRecursive_UnsupportedVersion_ShouldProvideActionableMessage(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("WITH RECURSIVE cte(n) AS (SELECT 1) SELECT n FROM cte", db, d));
+
+        Assert.Contains(SqlConst.WITH_CTE, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL index/keyword hints are parsed.
+    /// PT: Garante que hints de índice/palavras-chave do MySQL sejam interpretados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithIndexHints_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT u.id FROM users AS u USE INDEX (idx_users_id) IGNORE KEY FOR ORDER BY (idx_users_name)";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+        Assert.NotNull(parsed.Table);
+        Assert.Equal(2, parsed.Table!.MySqlIndexHints?.Count ?? 0);
+    }
+
+
+
+
+    /// <summary>
+    /// EN: Ensures MySQL index hint scope FOR ORDER BY is captured in AST.
+    /// PT: Garante que o escopo FOR ORDER BY de hint de índice MySQL seja capturado na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithIndexHintForOrderBy_ShouldCaptureScope(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT u.id FROM users u IGNORE INDEX FOR ORDER BY (idx_users_name) ORDER BY u.name";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Ignore, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.OrderBy, hint.Scope);
+        Assert.Equal(["idx_users_name"], hint.IndexNames);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL index hint scope FOR GROUP BY is captured in AST.
+    /// PT: Garante que o escopo FOR GROUP BY de hint de índice MySQL seja capturado na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithIndexHintForGroupBy_ShouldCaptureScope(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT u.id FROM users u FORCE INDEX FOR GROUP BY (idx_users_id) WHERE u.id > 0";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Force, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.GroupBy, hint.Scope);
+        Assert.Equal(["idx_users_id"], hint.IndexNames);
+    }
+
+    /// <summary>
+    /// EN: Ensures advanced MySQL index hints with PRIMARY and FOR JOIN are parsed.
+    /// PT: Garante que hints avançados de índice MySQL com PRIMARY e FOR JOIN sejam interpretados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithAdvancedIndexHints_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT u.id FROM users u FORCE INDEX FOR JOIN (PRIMARY, idx_users_id) WHERE u.id > 0";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Force, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.Join, hint.Scope);
+        Assert.Equal([SqlConst.PRIMARY, "idx_users_id"], hint.IndexNames);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty MySQL index hint list is rejected.
+    /// PT: Garante que lista vazia em hint de índice MySQL seja rejeitada.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithEmptyIndexHintList_ShouldThrowInvalidOperation(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT id FROM users USE INDEX ()";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("lista de índices vazia", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL index hint list containing empty item is rejected.
+    /// PT: Garante que lista de hints MySQL contendo item vazio seja rejeitada.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithEmptyIndexHintItem_ShouldThrowInvalidOperation(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT id FROM users USE INDEX (idx_users_id, )";
+
+        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains("item vazio", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL index hint names with dollar and escaped backtick quoted names are parsed.
+    /// PT: Garante que nomes de índice MySQL com cifrão e nomes quoted com escape de backtick sejam interpretados.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithExtendedValidIndexHintNames_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT id FROM users USE INDEX (idx$users, `idx``quoted`)";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+
+        Assert.NotNull(parsed.Table);
+        var hint = Assert.Single(parsed.Table!.MySqlIndexHints ?? []);
+        Assert.Equal(SqlMySqlIndexHintKind.Use, hint.Kind);
+        Assert.Equal(SqlMySqlIndexHintScope.Any, hint.Scope);
+        Assert.Equal(["idx$users", "idx`quoted"], hint.IndexNames);
+    }
+
+    /// <summary>
+    /// EN: Ensures OFFSET/FETCH syntax is rejected for MySQL parser.
+    /// PT: Garante que a sintaxe OFFSET/FETCH seja rejeitada pelo parser MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithOffsetFetch_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT id FROM users ORDER BY id OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY";
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.OFFSET_FETCH, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
+    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_PaginationSyntaxes_ShouldNormalizeRowLimitAst(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var limitOffset = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id LIMIT 2 OFFSET 1",
+            db, d));
+        var commaLimit = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT id FROM users ORDER BY id LIMIT 1, 2",
+            db, d));
+
+        var normalizedLimit = Assert.IsType<SqlLimitOffset>(limitOffset.RowLimit);
+        var normalizedCommaLimit = Assert.IsType<SqlLimitOffset>(commaLimit.RowLimit);
+
+        Assert.Equal(normalizedLimit, normalizedCommaLimit);
+        Assert.Equal(new LiteralExpr(2), normalizedCommaLimit.Count);
+        Assert.Equal(new LiteralExpr(1), normalizedCommaLimit.Offset);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies FETCH FIRST syntax returns actionable MySQL pagination guidance.
+    /// PT: Verifica que sintaxe FETCH FIRST retorna orientação acionável de paginação para MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_FetchFirst_ShouldProvidePaginationHint(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT id FROM users ORDER BY id FETCH FIRST 5 ROWS ONLY", db, d));
+
+        Assert.Contains(SqlConst.FETCH_FIRST_NEXT, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(SqlConst.LIMIT, ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
+    /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithPivot_ShouldBeRejectedWithDialectMessage(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT t10 FROM (SELECT tenantid, id FROM users) src PIVOT (COUNT(id) FOR tenantid IN (10 AS t10)) p";
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Contains(SqlConst.PIVOT, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("mysql", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
+    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void RuntimeDialectRules_ShouldRemainStable(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.Decimal));
+        Assert.True(d.AreUnionColumnTypesCompatible(DbType.String, DbType.AnsiString));
+        Assert.False(d.AreUnionColumnTypesCompatible(DbType.Int32, DbType.String));
+
+        Assert.True(d.IsIntegerCastTypeName("INT"));
+        Assert.False(d.IsIntegerCastTypeName("NUMBER"));
+
+        Assert.False(d.RegexInvalidPatternEvaluatesToFalse);
+        Assert.True(d.RegexIsCaseInsensitive);
+        Assert.True(d.SupportsTriggers);
+    }
+
+    /// <summary>
+    /// EN: Verifies unsupported top-level statements return guidance-focused errors.
+    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUnsupportedTopLevelStatement_ShouldUseActionableMessage(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlQueryParser.Parse("UPSERT INTO users VALUES (1)", db, d));
+
+        Assert.Contains("token inicial", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SELECT/INSERT/UPDATE/DELETE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures unsupported SQL uses the standard not-supported message.
+    /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseUnsupportedSql_ShouldUseStandardNotSupportedMessage(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", db, d));
+
+        Assert.Contains("SQL não suportado para dialeto", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("MySQL", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SQL Server OPTION(...) query hints are rejected for MySQL.
+    /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para MySQL.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithSqlServerOptionHints_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var sql = "SELECT id FROM users OPTION (MAXDOP 1)";
+
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
+        Assert.Contains("OPTION(query hints)", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("USE/IGNORE/FORCE INDEX", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures unsupported quoted aliases are rejected with actionable parser diagnostics for this dialect.
+    /// PT: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
+    /// </summary>
+    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithBracketQuotedAlias_ShouldProvideActionableMessage(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT name [User Name] FROM users", db, d));
+
+        Assert.Contains("alias/identificadores", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("'['", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL accepts backtick-quoted aliases and preserves the normalized alias text in AST.
+    /// PT: Garante que o MySQL aceite aliases com crase e preserve o texto normalizado do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithBacktickQuotedAlias_ShouldParseAndNormalizeAlias(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name `User Name` FROM users",
+            db, d));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User Name", item.Alias);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL unescapes doubled backticks inside backtick-quoted aliases when normalizing AST alias text.
+    /// PT: Garante que o MySQL faça unescape de crases duplicadas dentro de aliases com crase ao normalizar o texto do alias na AST.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_WithEscapedBacktickQuotedAlias_ShouldNormalizeEscapedBacktick(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(
+            "SELECT name `User``Name` FROM users",
+            db, d));
+
+        var item = Assert.Single(parsed.SelectItems);
+        Assert.Equal("User`Name", item.Alias);
+    }
+
+
+
+    /// <summary>
+    /// EN: Verifies MERGE in MySQL returns actionable replacement guidance.
+    /// PT: Verifica que MERGE no MySQL retorna orientação acionável de substituição.
+    /// </summary>
+    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseMerge_UnsupportedDialect_ShouldProvideActionableMessage(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("MERGE INTO users u USING users s ON u.id = s.id WHEN MATCHED THEN UPDATE SET name = 'x'", db, d));
+
+        Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Validates window function capability by MySQL version and function name.
+    /// PT: Valida a capacidade de funções de janela por versão do MySQL e nome da função.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void WindowFunctionCapability_ShouldRespectVersionAndKnownFunctions(int version)
+    {
+        var dialect = Get(version, v => new MySqlDialect(v));
+
+        var expected = version >= MySqlDialect.WindowFunctionsMinVersion;
+        Assert.Equal(expected, dialect.SupportsWindowFunction("ROW_NUMBER"));
+        Assert.Equal(expected, dialect.SupportsWindowFunction("RANK"));
+        Assert.False(dialect.SupportsWindowFunction("PERCENTILE_CONT"));
+    }
+
+    /// <summary>
+    /// EN: Ensures parser validates window function names against MySQL dialect capabilities by version.
+    /// PT: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto MySQL por versão.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionName_ShouldRespectDialectCapability(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        var supported = "ROW_NUMBER() OVER (ORDER BY id)";
+        var unsupported = "PERCENTILE_CONT(0.5) OVER (ORDER BY id)";
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(supported, db, d));
+            return;
+        }
+
+        var expr = SqlExpressionParser.ParseScalar(supported, db, d);
+        Assert.IsType<WindowFunctionExpr>(expr);
+        Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar(unsupported, db, d));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
+    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionWithoutOrderBy_ShouldRespectDialectRules(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
+            return;
+        }
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER() OVER ()", db, d));
+
+        Assert.Contains("requires ORDER BY", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures parser validates window function argument arity for supported functions.
+    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionArguments_ShouldValidateArity(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
+            return;
+        }
+
+        var exRowNumber = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("ROW_NUMBER(1) OVER (ORDER BY id)", db, d));
+        Assert.Contains("does not accept arguments", exRowNumber.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exNtile = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTILE() OVER (ORDER BY id)", db, d));
+        Assert.Contains("exactly 1 argument", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exLag = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LAG(id, 1, 0, 99) OVER (ORDER BY id)", db, d));
+        Assert.Contains("between 1 and 3 arguments", exLag.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures parser validates literal semantic ranges for window function arguments.
+    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFunctionLiteralArguments_ShouldValidateSemanticRange(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
+            return;
+        }
+
+
+        var exNtile = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTILE(0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("positive integer literal", exNtile.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exLag = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("LAG(id, -1, 0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("offset must be non-negative", exLag.Message, StringComparison.OrdinalIgnoreCase);
+
+        var exNthValue = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NTH_VALUE(id, 0) OVER (ORDER BY id)", db, d));
+        Assert.Contains("greater than zero", exNthValue.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
+    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void WindowFunctionOrderByRequirementHook_ShouldRespectVersion(int version)
+    {
+        var dialect = Get(version, v => new MySqlDialect(v));
+
+        var expected = version >= MySqlDialect.WindowFunctionsMinVersion;
+        Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("ROW_NUMBER"));
+        Assert.Equal(expected, dialect.RequiresOrderByInWindowFunction("LAG"));
+
+        Assert.False(dialect.RequiresOrderByInWindowFunction(SqlConst.COUNT));
+    }
+
+
+    /// <summary>
+    /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
+    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void WindowFunctionArgumentArityHook_ShouldRespectVersion(int version)
+    {
+        var dialect = Get(version, v => new MySqlDialect(v));
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.False(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out _, out _));
+            return;
+        }
+
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity("ROW_NUMBER", out var rnMin, out var rnMax));
+        Assert.Equal(0, rnMin);
+        Assert.Equal(0, rnMax);
+
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity("LAG", out var lagMin, out var lagMax));
+        Assert.Equal(1, lagMin);
+        Assert.Equal(3, lagMax);
+
+        Assert.True(dialect.TryGetWindowFunctionArgumentArity(SqlConst.COUNT, out var countMin, out var countMax));
+        Assert.Equal(1, countMin);
+        Assert.Equal(1, countMax);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures supported window frame clauses parse on aggregate window functions.
+    /// PT: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFrameClause_ShouldRespectDialectCapabilities(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d));
+            return;
+        }
+
+        var rowsExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
+        Assert.IsType<WindowFunctionExpr>(rowsExpr);
+
+        var rangeExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)", db, d);
+        Assert.IsType<WindowFunctionExpr>(rangeExpr);
+
+        var followingExpr = SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)", db, d);
+        Assert.IsType<WindowFunctionExpr>(followingExpr);
+    }
+
+
+
+    /// <summary>
+    /// EN: Ensures invalid window frame bound ordering is rejected by parser semantic validation.
+    /// PT: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_WindowFrameClauseInvalidBounds_ShouldBeRejected(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        if (version < MySqlDialect.WindowFunctionsMinVersion)
+        {
+            Assert.Throws<NotSupportedException>(() => SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
+            return;
+        }
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("COUNT(*) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND 1 PRECEDING)", db, d));
+
+        Assert.Contains("start bound cannot be greater", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SELECT parsing with string aggregate WITHIN GROUP is blocked by MySQL dialect gate.
+    /// PT: Garante que parsing de SELECT com agregação textual WITHIN GROUP seja bloqueado pelo gate de dialeto MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC) AS joined FROM orders", db, d));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures SELECT parsing accepts MySQL native GROUP_CONCAT ordering syntax.
+    /// PT: Garante que o parsing de SELECT aceite a sintaxe nativa de ordenacao do GROUP_CONCAT no MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseSelect_StringAggregateOrderByInsideCall_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var parsed = Assert.IsType<SqlSelectQuery>(
+            SqlQueryParser.Parse("SELECT GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR '|') AS joined FROM orders", db, d));
+
+        Assert.Single(parsed.SelectItems);
+        Assert.Contains(SqlConst.GROUP_CONCAT, parsed.SelectItems[0].Raw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures call-only temporal identifier without parentheses is rejected with actionable guidance.
+    /// PT: Garante que identificador temporal apenas-invocável sem parênteses seja rejeitado com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_CallOnlyTemporalIdentifierWithoutParentheses_ShouldThrowClearError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("NOW", db, d));
+
+        Assert.Contains("NOW", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures token-only temporal identifier called with parentheses is rejected with actionable guidance.
+    /// PT: Garante que identificador temporal no formato token chamado com parênteses seja rejeitado com orientação acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_TokenOnlyTemporalIdentifierCalledWithParentheses_ShouldThrowClearError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("CURRENT_DATE()", db, d));
+
+        Assert.Contains("CURRENT_DATE", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts native ORDER BY and SEPARATOR inside GROUP_CONCAT.
+    /// PT: Garante que o parser MySQL aceite ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatOrderByInsideCall_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount ORDER BY amount DESC, id ASC SEPARATOR '|')", db, d);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal(SqlConst.GROUP_CONCAT, call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal(2, call.Args.Count);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Equal(2, call.WithinGroupOrderBy!.Count);
+        Assert.True(call.WithinGroupOrderBy[0].Desc);
+        Assert.False(call.WithinGroupOrderBy[1].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser preserves DISTINCT when native ORDER BY is used inside GROUP_CONCAT.
+    /// PT: Garante que o parser MySQL preserve DISTINCT quando ORDER BY nativo e usado dentro de GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatDistinctOrderByInsideCall_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT amount ORDER BY amount DESC SEPARATOR '|')", db, d);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.True(call.Distinct);
+        Assert.Equal(2, call.Args.Count);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Single(call.WithinGroupOrderBy!);
+        Assert.True(call.WithinGroupOrderBy[0].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts DISTINCT with multiple native ORDER BY items before SEPARATOR in GROUP_CONCAT.
+    /// PT: Garante que o parser MySQL aceite DISTINCT com multiplos itens nativos em ORDER BY antes de SEPARATOR no GROUP_CONCAT.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatDistinctMultipleOrderByInsideCall_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var expr = SqlExpressionParser.ParseScalar("GROUP_CONCAT(DISTINCT val ORDER BY ord1 ASC, ord2 ASC SEPARATOR '|')", db, d);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.True(call.Distinct);
+        Assert.Equal(2, call.Args.Count);
+        Assert.NotNull(call.WithinGroupOrderBy);
+        Assert.Equal(2, call.WithinGroupOrderBy!.Count);
+        Assert.False(call.WithinGroupOrderBy[0].Desc);
+        Assert.False(call.WithinGroupOrderBy[1].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed native SEPARATOR usage in GROUP_CONCAT fails with actionable message.
+    /// PT: Garante que uso nativo malformado de SEPARATOR em GROUP_CONCAT falhe com mensagem acionavel.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_GroupConcatSeparatorWithoutExpression_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount ORDER BY amount DESC SEPARATOR)", db, d));
+
+        Assert.Contains("separator keyword requires an expression", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for MySQL aggregates.
+    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações MySQL.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroup_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC)", db, d));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures malformed WITHIN GROUP syntax in MySQL still fails as not-supported (dialect gate precedence).
+    /// PT: Garante que sintaxe malformada de WITHIN GROUP no MySQL continue falhando como não suportada (precedência do gate de dialeto).
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupMalformed_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (amount DESC)", db, d));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures malformed trailing comma in WITHIN GROUP remains blocked by dialect gate.
+    /// PT: Garante que vírgula final malformada no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupTrailingComma_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC,)", db, d));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures empty ORDER BY list in WITHIN GROUP remains blocked by dialect gate.
+    /// PT: Garante que lista ORDER BY vazia em WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByEmptyList_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY)", db, d));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures leading commas in WITHIN GROUP ORDER BY remain blocked by dialect gate.
+    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP continuem bloqueadas pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByLeadingComma_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY, amount DESC)", db, d));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    /// <summary>
+    /// EN: Ensures missing commas in malformed WITHIN GROUP ORDER BY remain blocked by dialect gate.
+    /// PT: Garante que ausência de vírgula em ORDER BY malformado no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_StringAggregateWithinGroupOrderByMissingCommaBetweenExpressions_ShouldThrowNotSupported(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<NotSupportedException>(() =>
+            SqlExpressionParser.ParseScalar("GROUP_CONCAT(amount, '|') WITHIN GROUP (ORDER BY amount DESC id ASC)", db, d));
+
+        Assert.Contains("WITHIN GROUP", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts MATCH(...) AGAINST(...) and maps to internal MATCH_AGAINST call form.
+    /// PT: Garante que o parser MySQL aceite MATCH(...) AGAINST(...) e mapeie para forma interna MATCH_AGAINST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainst_ShouldParseAsInternalCall(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var expr = SqlExpressionParser.ParseScalar("MATCH(title, body) AGAINST ('hello world')", db, d);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("MATCH_AGAINST", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.True(call.Args.Count >= 2);
+        Assert.IsType<RowExpr>(call.Args[0]);
+        var queryLiteral = Assert.IsType<LiteralExpr>(call.Args[1]);
+        Assert.Equal("hello world", queryLiteral.Value);
+    }
+
+    /// <summary>
+    /// EN: Ensures MySQL parser accepts AGAINST mode tail (for example IN BOOLEAN MODE).
+    /// PT: Garante que o parser MySQL aceite sufixo de modo no AGAINST (por exemplo IN BOOLEAN MODE).
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainstWithBooleanMode_ShouldParseAndCaptureMode(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var expr = SqlExpressionParser.ParseScalar("MATCH(title) AGAINST ('+mysql -oracle' IN BOOLEAN MODE)", db, d);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("MATCH_AGAINST", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.True(call.Args.Count >= 3);
+
+        var mode = Assert.IsType<RawSqlExpr>(call.Args[2]);
+        Assert.Contains("BOOLEAN MODE", mode.Sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures parser accepts NATURAL LANGUAGE + QUERY EXPANSION mode in AGAINST clause.
+    /// PT: Garante que o parser aceite modo NATURAL LANGUAGE + QUERY EXPANSION na cláusula AGAINST.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainstWithNaturalLanguageAndQueryExpansion_ShouldParse(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var expr = SqlExpressionParser.ParseScalar(
+            "MATCH(title) AGAINST ('database indexing' IN NATURAL LANGUAGE MODE WITH QUERY EXPANSION)",
+            db, d);
+        var call = Assert.IsType<CallExpr>(expr);
+
+        Assert.Equal("MATCH_AGAINST", call.Name, StringComparer.OrdinalIgnoreCase);
+        Assert.True(call.Args.Count >= 3);
+        var mode = Assert.IsType<RawSqlExpr>(call.Args[2]);
+        Assert.Contains("NATURAL LANGUAGE MODE WITH QUERY EXPANSION", mode.Sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// EN: Ensures parser rejects unsupported AGAINST mode combinations with actionable message.
+    /// PT: Garante que o parser rejeite combinações de modo AGAINST não suportadas com mensagem acionável.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataMySqlVersion]
+    public void ParseScalar_MatchAgainstWithInvalidMode_ShouldThrowActionableError(int version)
+    {
+        var d = Get(version, v => new MySqlDialect(v));
+        var db = Get(version, v => new MySqlDbMock(v));
+
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            SqlExpressionParser.ParseScalar("MATCH(title) AGAINST ('john' IN BOOLEAN)", db, d));
+
+        Assert.Contains("Unsupported AGAINST mode", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+}

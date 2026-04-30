@@ -1,0 +1,7 @@
+interface:
+  display_name: "Create Tests"
+  short_description: "Create or expand tests safely"
+  default_prompt: "Use $create-tests to add or expand tests while preserving coverage and SQL behavior."
+
+policy:
+  allow_implicit_invocation: true

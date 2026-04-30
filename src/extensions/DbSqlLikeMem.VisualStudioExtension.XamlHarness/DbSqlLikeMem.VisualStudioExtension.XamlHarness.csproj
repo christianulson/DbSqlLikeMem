@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+	<PlatformTarget>x64</PlatformTarget>
+	<TargetFramework>net472</TargetFramework>
+    <TargetFrameworkIdentifier>.NETFramework</TargetFrameworkIdentifier>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>DbSqlLikeMem.VisualStudioExtension.XamlHarness</AssemblyName>
+    <RootNamespace>DbSqlLikeMem.VisualStudioExtension.XamlHarness</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension\DbSqlLikeMem.VisualStudioExtension.csproj" />
+    <ProjectReference Include="..\DbSqlLikeMem.VisualStudioExtension.Core\DbSqlLikeMem.VisualStudioExtension.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FirebirdSql.Data.FirebirdClient" Version="10.3.4" />
+    <PackageReference Include="IBM.Data.DB2.Core" Version="1.3.0.100" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="MySqlConnector" Version="2.5.0" />
+    <PackageReference Include="Npgsql" Version="8.0.3" />
+    <PackageReference Include="Oracle.ManagedDataAccess" Version="23.5.1" />
+  </ItemGroup>
+</Project>

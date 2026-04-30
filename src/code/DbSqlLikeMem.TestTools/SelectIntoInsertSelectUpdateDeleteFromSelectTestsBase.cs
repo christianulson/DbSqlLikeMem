@@ -1,0 +1,327 @@
+namespace DbSqlLikeMem.TestTools;
+
+/// <summary>
+/// EN: Shared tests for CREATE TABLE AS SELECT, INSERT SELECT, UPDATE with derived select and DELETE from select.
+/// PT: Testes compartilhados para CREATE TABLE AS SELECT, INSERT SELECT, UPDATE com subselect derivado e DELETE via select.
+/// </summary>
+public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbMock>(
+        ITestOutputHelper helper
+    ) : XUnitTestBase(helper)
+    where TDbMock : DbMock
+{
+    /// <summary>
+    /// EN: Gets the provider dialect used to evaluate SQL capability in these tests.
+    /// PT: Obtem o dialeto do provedor usado para avaliar capacidades SQL nestes testes.
+    /// </summary>
+    protected abstract ProviderSqlDialect Dialect { get; }
+
+    /// <summary>
+    /// EN: Creates a provider-specific database mock used by shared select/insert/update/delete tests.
+    /// PT: Cria um simulado de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
+    /// </summary>
+    protected abstract TDbMock CreateDb();
+
+    /// <summary>
+    /// EN: Executes a provider-specific non-query SQL command against the supplied mock database.
+    /// PT: Executa um comando SQL sem retorno específico do provedor no banco simulado informado.
+    /// </summary>
+    protected abstract int ExecuteNonQuery(
+        TDbMock db,
+        string sql);
+
+    /// <summary>
+    /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in this provider.
+    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT neste provedor.
+    /// </summary>
+    protected virtual int CreateTableAsSelectExpectedAffectedRows => 0;
+
+    /// <summary>
+    /// EN: Verifies CREATE TABLE AS SELECT creates a new table populated with the selected rows.
+    /// PT: Verifica se CREATE TABLE AS SELECT cria uma nova tabela populada com as linhas selecionadas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void CreateTableAsSelect_ShouldCreateNewTableWithRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 20 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "C" }, { 2, 10 } });
+
+        const string sql = "CREATE TABLE active_users AS SELECT id, name FROM users WHERE tenantid = 10";
+
+        var affected = ExecuteNonQuery(db, sql);
+
+        affected.Should().Be(CreateTableAsSelectExpectedAffectedRows);
+        db.TryGetTable("active_users", out var active).Should().BeTrue();
+        active.Should().NotBeNull();
+        active!.Count.Should().Be(2);
+        active.Columns.ContainsKey("id").Should().BeTrue();
+        active.Columns.ContainsKey("name").Should().BeTrue();
+        ((int)active[0][0]!).Should().Be(1);
+        active[0][1].Should().Be("A");
+    }
+
+    /// <summary>
+    /// EN: Verifies CREATE TABLE AS SELECT DISTINCT creates a new table populated with unique rows.
+    /// PT: Verifica se CREATE TABLE AS SELECT DISTINCT cria uma nova tabela populada com linhas unicas.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void CreateTableAsSelectDistinct_ShouldCreateNewTableWithUniqueRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "A" }, { 2, 20 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "B" }, { 2, 10 } });
+
+        const string sql = "CREATE TABLE active_users AS SELECT DISTINCT name FROM users ORDER BY name";
+
+        var affected = ExecuteNonQuery(db, sql);
+
+        affected.Should().Be(CreateTableAsSelectExpectedAffectedRows);
+        db.TryGetTable("active_users", out var active).Should().BeTrue();
+        active.Should().NotBeNull();
+        active!.Count.Should().Be(2);
+        active.Columns.ContainsKey("name").Should().BeTrue();
+        ((string)active[0][0]!).Should().Be("A");
+        ((string)active[1][0]!).Should().Be("B");
+    }
+
+    /// <summary>
+    /// EN: Verifies INSERT INTO ... SELECT inserts the rows returned by the query.
+    /// PT: Verifica se INSERT INTO ... SELECT insere as linhas retornadas pela consulta.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void InsertIntoSelect_ShouldInsertRowsFromQuery()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 20 } });
+
+        var audit = db.AddTable("audit_users");
+        audit.AddColumn("userid", DbType.Int32, false);
+        audit.AddColumn("username", DbType.String, false);
+
+        const string sql = "INSERT INTO audit_users (userid, username) SELECT id, name FROM users WHERE tenantid = 10";
+
+        var inserted = ExecuteNonQuery(db, sql);
+
+        inserted.Should().Be(1);
+        audit.Should().ContainSingle();
+        ((int)audit[0][0]!).Should().Be(1);
+        audit[0][1].Should().Be("A");
+    }
+
+    /// <summary>
+    /// EN: Verifies INSERT INTO ... SELECT DISTINCT inserts the unique rows returned by the query.
+    /// PT: Verifica se INSERT INTO ... SELECT DISTINCT insere as linhas unicas retornadas pela consulta.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void InsertIntoSelectDistinct_ShouldInsertUniqueRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "A" }, { 2, 20 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "B" }, { 2, 10 } });
+
+        var audit = db.AddTable("audit_users");
+        audit.AddColumn("username", DbType.String, false);
+
+        const string sql = "INSERT INTO audit_users (username) SELECT DISTINCT name FROM users ORDER BY name";
+
+        var inserted = ExecuteNonQuery(db, sql);
+
+        inserted.Should().Be(2);
+        audit.Count.Should().Be(2);
+        ((string)audit[0][0]!).Should().Be("A");
+        ((string)audit[1][0]!).Should().Be("B");
+    }
+
+    /// <summary>
+    /// EN: Verifies INSERT INTO ... SELECT with GROUP BY inserts the aggregated rows returned by the query.
+    /// PT: Verifica se INSERT INTO ... SELECT com GROUP BY insere as linhas agregadas retornadas pela consulta.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void InsertIntoSelectGroupBy_ShouldInsertAggregatedRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("name", DbType.String, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, "A" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, "B" }, { 2, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, "C" }, { 2, 20 } });
+
+        var summary = db.AddTable("tenant_summary");
+        summary.AddColumn("tenantid", DbType.Int32, false);
+        summary.AddColumn("rowcount", DbType.Int32, false);
+
+        const string sql = "INSERT INTO tenant_summary (tenantid, rowcount) SELECT tenantid, COUNT(*) FROM users GROUP BY tenantid ORDER BY tenantid";
+
+        var inserted = ExecuteNonQuery(db, sql);
+
+        inserted.Should().Be(2);
+        summary.Count.Should().Be(2);
+        Convert.ToInt32(summary[0][0]).Should().Be(10);
+        Convert.ToInt32(summary[0][1]).Should().Be(2);
+        Convert.ToInt32(summary[1][0]).Should().Be(20);
+        Convert.ToInt32(summary[1][1]).Should().Be(1);
+    }
+
+    /// <summary>
+    /// EN: Verifies UPDATE against a derived select updates the matching rows.
+    /// PT: Verifica se o UPDATE sobre um select derivado atualiza as linhas correspondentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void UpdateJoinDerivedSelect_ShouldUpdateRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.AddColumn("total", DbType.Decimal, true, decimalPlaces: 2);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 }, { 2, null } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 10 }, { 2, null } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, 20 }, { 2, null } });
+
+        var orders = db.AddTable("orders");
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
+        orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10m } });
+        orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 5m } });
+        orders.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 7m } });
+
+        var sql = Dialect.UpdateJoinDerivedSelectSql;
+
+        if (!Dialect.SupportsUpdateDeleteJoinRuntime)
+        {
+            var action = () => ExecuteNonQuery(db, sql);
+            var ex = action.Should().Throw<NotSupportedException>().Which;
+            ex.Message.Should().Contain(SqlConst.UPDATE);
+            ex.Message.Should().Contain(SqlConst.JOIN);
+            return;
+        }
+
+        var updated = ExecuteNonQuery(db, sql);
+
+        updated.Should().Be(2);
+        users[0][2].Should().Be(15m);
+        users[1][2].Should().Be(7m);
+        users[2][2].Should().BeNull();
+    }
+
+    /// <summary>
+    /// EN: Verifies UPDATE against a derived select rejects rows that violate a check constraint.
+    /// PT: Verifica se o UPDATE sobre um select derivado rejeita linhas que violam uma restricao check.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void UpdateJoinDerivedSelect_ShouldRejectCheckViolation()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.AddColumn("total", DbType.Decimal, true, decimalPlaces: 2);
+        AddCheckConstraint(users, "CK_users_total_positive", "total > 0");
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 }, { 2, null } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 20 }, { 2, null } });
+
+        var orders = db.AddTable("orders");
+        orders.AddColumn("userid", DbType.Int32, false);
+        orders.AddColumn("amount", DbType.Decimal, false, decimalPlaces: 2);
+        orders.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, -10m } });
+
+        var sql = Dialect.UpdateJoinDerivedSelectSql;
+
+        if (!Dialect.SupportsUpdateDeleteJoinRuntime)
+        {
+            var action = () => ExecuteNonQuery(db, sql);
+            var ex = action.Should().Throw<NotSupportedException>().Which;
+            ex.Message.Should().Contain(SqlConst.UPDATE);
+            ex.Message.Should().Contain(SqlConst.JOIN);
+            return;
+        }
+
+        var actionToReject = () => ExecuteNonQuery(db, sql);
+        actionToReject.Should().Throw<InvalidOperationException>();
+        users[0][2].Should().BeNull();
+        users[1][2].Should().BeNull();
+    }
+
+    /// <summary>
+    /// EN: Verifies DELETE against a derived select removes the matching rows.
+    /// PT: Verifica se o DELETE sobre um select derivado remove as linhas correspondentes.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
+    public void DeleteJoinDerivedSelect_ShouldDeleteRows()
+    {
+        var db = CreateDb();
+        var users = db.AddTable("users");
+        users.AddColumn("id", DbType.Int32, false);
+        users.AddColumn("tenantid", DbType.Int32, false);
+        users.Add(new Dictionary<int, object?> { { 0, 1 }, { 1, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 2 }, { 1, 10 } });
+        users.Add(new Dictionary<int, object?> { { 0, 3 }, { 1, 20 } });
+
+        if (!Dialect.SupportsUpdateDeleteJoinRuntime)
+        {
+            var action = () => ExecuteNonQuery(db, Dialect.DeleteJoinDerivedSelectSql);
+            var ex = action.Should().Throw<InvalidOperationException>().Which;
+            ex.Message.Should().Contain(SqlConst.DELETE);
+            ex.Message.Should().Contain(SqlConst.FROM);
+            return;
+        }
+
+        var deleted = ExecuteNonQuery(db, Dialect.DeleteJoinDerivedSelectSql);
+
+        deleted.Should().Be(2);
+        users.Should().ContainSingle();
+        ((int)users[0][0]!).Should().Be(3);
+    }
+
+    private static void AddCheckConstraint(
+        ITableMock table,
+        string name,
+        string expression)
+    {
+        var field = typeof(global::DbSqlLikeMem.TableMock).GetField(
+            "_checkConstraints",
+            global::System.Reflection.BindingFlags.Instance
+            | global::System.Reflection.BindingFlags.NonPublic);
+
+        if (field?.GetValue(table) is not IList<global::DbSqlLikeMem.SchemaSnapshotCheckConstraint> constraints)
+        {
+            throw new InvalidOperationException("Unable to access the table check-constraint collection.");
+        }
+
+        constraints.Add(new global::DbSqlLikeMem.SchemaSnapshotCheckConstraint
+        {
+            Name = name,
+            Expression = expression
+        });
+    }
+}

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DbSqlLikeMem.EfCore.TestTools\DbSqlLikeMem.EfCore.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.Npgsql.TestTools\DbSqlLikeMem.Npgsql.TestTools.csproj" AdditionalProperties="TargetFramework=$(TargetFramework)" />
+    <ProjectReference Include="..\DbSqlLikeMem.Npgsql.EfCore\DbSqlLikeMem.Npgsql.EfCore.csproj" AdditionalProperties="TargetFramework=$(TargetFrameworkFrom)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="DbSqlLikeMem.EfCore" />
+    <Using Include="DbSqlLikeMem.EfCore.TestTools" />
+    <Using Include="DbSqlLikeMem.Npgsql.TestTools" />
+    <Using Include="DbSqlLikeMem.Npgsql.EfCore" />
+  </ItemGroup>
+
+</Project>
