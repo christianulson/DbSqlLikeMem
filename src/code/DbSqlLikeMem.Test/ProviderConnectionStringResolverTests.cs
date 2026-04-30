@@ -30,11 +30,11 @@ public sealed class ProviderConnectionStringResolverTests
         if (provider == ProviderId.Oracle)
         {
             connectionString.Should().Contain("Connection Timeout=120");
-            connectionString.ToLowerInvariant().Should().Contain(expectedConnectionString.ToLowerInvariant());
+            connectionString.Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
             return;
         }
 
-        connectionString.Should().Be(expectedConnectionString);
+        connectionString.Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public sealed class ProviderConnectionStringResolverTests
 
         resolved.Should().BeTrue();
         sourceName.Should().Be("POSTGRES_CONNECTION_STRING");
-        connectionString.Should().Be("Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;");
+        connectionString.Should().Be(CanonicalizeConnectionString(ProviderId.Npgsql, "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"));
     }
 
     /// <summary>
@@ -120,4 +120,43 @@ public sealed class ProviderConnectionStringResolverTests
 
     private static Dictionary<string, string?> BuildEnvironment(params (string Name, string Value)[] entries)
         => entries.ToDictionary(entry => entry.Name, entry => (string?)entry.Value, StringComparer.OrdinalIgnoreCase);
+
+    private static string CanonicalizeConnectionString(ProviderId provider, string connectionString)
+    {
+        var builder = new DbConnectionStringBuilder
+        {
+            ConnectionString = connectionString
+        };
+
+        builder["Pooling"] = false;
+
+        if (provider == ProviderId.Oracle)
+            builder["Connection Timeout"] = 120;
+
+        return NormalizeConnectionString(builder.ConnectionString);
+    }
+
+    private static string NormalizeConnectionString(string connectionString)
+    {
+        var builder = new DbConnectionStringBuilder
+        {
+            ConnectionString = connectionString
+        };
+
+        return string.Join(
+            ";",
+            builder.Cast<DictionaryEntry>()
+                .Select(entry =>
+                {
+                    var key = entry.Key.ToString()!.ToLowerInvariant();
+                    var value = entry.Value switch
+                    {
+                        bool booleanValue => booleanValue.ToString().ToLowerInvariant(),
+                        _ => entry.Value?.ToString() ?? string.Empty
+                    };
+
+                    return $"{key}={value}";
+                })
+                .OrderBy(part => part, StringComparer.Ordinal));
+    }
 }
