@@ -69,7 +69,7 @@ internal sealed class SqlQueryParser
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(sql, nameof(sql));
         ArgumentNullExceptionCompatible.ThrowIfNull(dialect, nameof(dialect));
-        var prelude = GetPrelude(sql, dialect);
+        var prelude = GetPrelude(sql, db, dialect);
         _ctx = new SqlQueryParserContext(
             sql,
             prelude.Tokens,
@@ -151,7 +151,7 @@ internal sealed class SqlQueryParser
         try
         {
             // Fast feature gate before cache lookup to avoid serving incompatible ASTs for version-gated commands.
-            var (preludeTokens, autoSyntaxFeatures) = GetPrelude(sql, dialect);
+            var (preludeTokens, autoSyntaxFeatures) = GetPrelude(sql, db, dialect);
             var first = preludeTokens.Count > 0 ? preludeTokens[0] : default;
             if (IsWord(first, SqlConst.MERGE) && !dialect.SupportsMerge)
                 throw SqlUnsupported.NotSupportedMerge(dialect);
@@ -165,7 +165,12 @@ internal sealed class SqlQueryParser
 
             // ALWAYS use cache if available. Para evitar dependências de valores de parâmetros no AST (que quebraria o cache),
             // cláusulas como LIMIT/OFFSET agora armazenam SqlExpr (ParameterExpr) em vez de resolver para int durante o parse.
-            var cacheKey = SqlQueryAstCache.BuildKey(sql, dialect.Name, dialect.Version, dialect.ParserCacheKeySuffix);
+            var cacheKey = SqlQueryAstCache.BuildKey(
+                sql,
+                dialect.Name,
+                dialect.Version,
+                dialect.ParserCacheKeySuffix,
+                db.CacheIdentity);
             if (_astCache.TryGet(cacheKey, out var cached))
             {
                 EnsureDialectSupport(cached, dialect);
@@ -196,9 +201,9 @@ internal sealed class SqlQueryParser
         }
     }
 
-    private static SqlQueryParsePreludeCache.Prelude GetPrelude(string sql, ISqlDialect dialect)
+    private static SqlQueryParsePreludeCache.Prelude GetPrelude(string sql, DbMock db, ISqlDialect dialect)
     {
-        var cacheKey = SqlQueryParsePreludeCache.BuildKey(sql, dialect.Name, dialect.Version, dialect.ParserCacheKeySuffix);
+        var cacheKey = SqlQueryParsePreludeCache.BuildKey(sql, dialect.Name, dialect.Version, dialect.ParserCacheKeySuffix, db.CacheIdentity);
         if (_preludeCache.TryGet(cacheKey, out var cached))
             return cached;
 
@@ -1065,7 +1070,8 @@ internal sealed class SqlQueryParser
         ISqlDialect dialect)
     {
         var normalizedSql = NormalizeWrappedSubquerySql(sql, dialect);
-        var q = Parse(normalizedSql, db, dialect);
+        var prelude = GetPrelude(normalizedSql, db, dialect);
+        var q = ParseUncached(normalizedSql, prelude.Tokens, db, dialect, null, prelude.AutoSyntaxFeatures);
         if (q is SqlSelectQuery select)
             return new SubqueryExpr(sql, select with { RawSql = sql });
 

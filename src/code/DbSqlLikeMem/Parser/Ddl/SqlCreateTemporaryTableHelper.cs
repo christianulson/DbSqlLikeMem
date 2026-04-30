@@ -195,6 +195,12 @@ internal static class SqlCreateTemporaryTableHelper
             columnDefinitions.Add(columnDefinition.Value.Column);
             if (columnDefinition.Value.PrimaryKey)
                 primaryKeyColumns.Add(columnDefinition.Value.Column.name);
+
+            if (TryParseCreateTemporaryTableColumnCheckConstraint(defTokens, checkConstraintOrdinal, out var columnCheckConstraint))
+            {
+                checkConstraints.Add(columnCheckConstraint!);
+                checkConstraintOrdinal++;
+            }
         }
 
         return (columnDefinitions, primaryKeyColumns, checkConstraints);
@@ -331,6 +337,68 @@ internal static class SqlCreateTemporaryTableHelper
         }
 
         return false;
+    }
+
+    private static bool TryParseCreateTemporaryTableColumnCheckConstraint(
+        IReadOnlyList<SqlToken> defTokens,
+        int checkConstraintOrdinal,
+        out SchemaSnapshotCheckConstraint? checkConstraint)
+    {
+        checkConstraint = null;
+
+        if (defTokens.Count == 0)
+            return false;
+
+        var checkTokenIndex = -1;
+        var depth = 0;
+        for (var i = 0; i < defTokens.Count; i++)
+        {
+            var token = defTokens[i];
+            if (token.Text == "(")
+            {
+                depth++;
+                continue;
+            }
+
+            if (token.Text == ")")
+            {
+                if (depth > 0)
+                    depth--;
+                continue;
+            }
+
+            if (depth != 0)
+                continue;
+
+            if (token.Kind is not (SqlTokenKind.Identifier or SqlTokenKind.Keyword))
+                continue;
+
+            if (token.Text.Equals("CHECK", StringComparison.OrdinalIgnoreCase))
+            {
+                checkTokenIndex = i;
+                break;
+            }
+        }
+
+        if (checkTokenIndex < 0)
+            return false;
+
+        var constraintName = string.Empty;
+        if (checkTokenIndex >= 2
+            && defTokens[checkTokenIndex - 2].Text.Equals("CONSTRAINT", StringComparison.OrdinalIgnoreCase))
+        {
+            constraintName = defTokens[checkTokenIndex - 1].Text;
+        }
+
+        var expression = ParseCreateTemporaryTableCheckConstraintExpression(defTokens, checkTokenIndex);
+        checkConstraint = new SchemaSnapshotCheckConstraint
+        {
+            Name = string.IsNullOrWhiteSpace(constraintName)
+                ? $"CHECK_{checkConstraintOrdinal}"
+                : constraintName,
+            Expression = expression
+        };
+        return true;
     }
 
     private static string ParseCreateTemporaryTableCheckConstraintExpression(

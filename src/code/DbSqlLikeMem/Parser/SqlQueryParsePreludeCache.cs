@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 internal sealed class SqlQueryParsePreludeCache
 {
-    private const int PreludeCacheKeyVersion = 3;
+    private const int PreludeCacheKeyVersion = 4;
 
     private readonly int _capacity;
     private readonly object _gate = new();
@@ -36,7 +36,12 @@ internal sealed class SqlQueryParsePreludeCache
         return new SqlQueryParsePreludeCache(parsed);
     }
 
-    public static string BuildKey(string sql, string dialectName, int dialectVersion, string parserCacheKeySuffix)
+    public static string BuildKey(
+        string sql,
+        string dialectName,
+        int dialectVersion,
+        string parserCacheKeySuffix,
+        int dbIdentity)
         => string.Concat(
             "t",
             PreludeCacheKeyVersion.ToString(CultureInfo.InvariantCulture),
@@ -46,6 +51,9 @@ internal sealed class SqlQueryParsePreludeCache
             dialectVersion.ToString(CultureInfo.InvariantCulture),
             "::",
             parserCacheKeySuffix,
+            "::",
+            "db",
+            dbIdentity.ToString(CultureInfo.InvariantCulture),
             "::",
             SqlQueryAstCache.NormalizeSql(sql));
 

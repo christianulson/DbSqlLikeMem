@@ -66,8 +66,8 @@ CREATE TABLE {context.TbUsersFullName} (
     BigCount BIGINT,
     PrecisionValue DECIMAL(18,4),
     DoubleValue DOUBLE PRECISION,
-    GuidValue VARCHAR(36),
-    BinaryValue VARBINARY(16),
+    GuidValue CHAR(16) CHARACTER SET OCTETS,
+    BinaryValue BLOB SUB_TYPE BINARY,
     TimeValue TIME,
     DateTimeOffsetValue VARCHAR(40)
 )";
@@ -110,6 +110,11 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
                     return;
                 case DbType.Currency:
                     firebirdParameter.FbDbType = FirebirdSql.Data.FirebirdClient.FbDbType.Decimal;
+                    return;
+                case DbType.Guid:
+                    firebirdParameter.FbDbType = FirebirdSql.Data.FirebirdClient.FbDbType.Guid;
+                    firebirdParameter.Charset = FirebirdSql.Data.FirebirdClient.FbCharset.Octets;
+                    firebirdParameter.Size = 16;
                     return;
                 case DbType.DateTime2:
                     firebirdParameter.FbDbType = FirebirdSql.Data.FirebirdClient.FbDbType.TimeStamp;
@@ -275,8 +280,8 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
             "TimeSpanValue" => "VARCHAR(32)",
             "DateTimeOffsetValue" => "VARCHAR(40)",
             "DateTimeValue" => "TIMESTAMP",
-            "GuidValue" => "VARCHAR(36)",
-            "BinaryValue" => "VARBINARY(16)",
+            "GuidValue" => "CHAR(16) CHARACTER SET OCTETS",
+            "BinaryValue" => "BLOB SUB_TYPE BINARY",
             _ => null
         };
 

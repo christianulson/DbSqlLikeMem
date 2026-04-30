@@ -8,6 +8,8 @@ public abstract class DbMock
     : Dictionary<string, SchemaMock>
     , ISchemaDictionary
 {
+    private static int _nextCacheIdentity;
+
     /// <summary>
     /// EN: Simulated database version.
     /// PT: Versão do banco simulada.
@@ -115,8 +117,11 @@ public abstract class DbMock
         : base(StringComparer.OrdinalIgnoreCase)
     {
         Version = version;
+        CacheIdentity = System.Threading.Interlocked.Increment(ref _nextCacheIdentity);
         CreateSchema("DefaultSchema");
     }
+
+    internal int CacheIdentity { get; }
 
     #region Schema
 

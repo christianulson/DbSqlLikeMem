@@ -6,14 +6,12 @@ namespace DbSqlLikeMem.MySql;
 /// </summary>
 public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 {
-    private static MySqlConnectorFactoryMock? Instance;
-
     /// <summary>
-    /// EN: Returns the singleton factory instance for this provider mock.
-    /// PT: Retorna a instância única da fábrica deste simulado de provedor.
+    /// EN: Creates a factory instance for this provider mock.
+    /// PT: Cria uma instancia de fabrica para este simulado de provedor.
     /// </summary>
     public static MySqlConnectorFactoryMock GetInstance(MySqlDbMock? db = null)
-        => Instance ??= new MySqlConnectorFactoryMock(db);
+        => new(db);
 
     private readonly MySqlDbMock? Db;
 

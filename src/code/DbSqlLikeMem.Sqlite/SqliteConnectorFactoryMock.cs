@@ -17,15 +17,14 @@ namespace DbSqlLikeMem.Sqlite;
 /// </summary>
 public sealed class SqliteConnectorFactoryMock : DbProviderFactory
 {
-    private static SqliteConnectorFactoryMock? instance;
     private readonly SqliteDbMock? db;
 
     /// <summary>
-    /// EN: Returns the singleton factory instance for this provider mock.
-    /// PT: Retorna a instância única da fábrica deste simulado de provedor.
+    /// EN: Creates a factory instance for this provider mock.
+    /// PT: Cria uma instancia de fabrica para este simulado de provedor.
     /// </summary>
     public static SqliteConnectorFactoryMock GetInstance(SqliteDbMock? db = null)
-        => instance ??= new SqliteConnectorFactoryMock(db);
+        => new(db);
 
     internal SqliteConnectorFactoryMock(SqliteDbMock? db = null)
     {

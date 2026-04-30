@@ -17,15 +17,14 @@ namespace DbSqlLikeMem.SqlServer;
 /// </summary>
 public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
 {
-    private static SqlServerConnectorFactoryMock? instance;
     private readonly SqlServerDbMock? db;
 
     /// <summary>
-    /// EN: Returns the singleton factory instance for this provider mock.
-    /// PT: Retorna a instância única da fábrica deste simulado de provedor.
+    /// EN: Creates a factory instance for this provider mock.
+    /// PT: Cria uma instancia de fabrica para este simulado de provedor.
     /// </summary>
     public static SqlServerConnectorFactoryMock GetInstance(SqlServerDbMock? db = null)
-        => instance ??= new SqlServerConnectorFactoryMock(db);
+        => new(db);
 
     internal SqlServerConnectorFactoryMock(SqlServerDbMock? db = null)
     {

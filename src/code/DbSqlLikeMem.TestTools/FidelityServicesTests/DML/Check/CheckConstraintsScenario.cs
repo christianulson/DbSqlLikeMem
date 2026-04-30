@@ -19,10 +19,10 @@ public class CheckConstraintsScenario(
 CREATE TABLE {Context.TbUsersFullName} (
     Id INT NOT NULL PRIMARY KEY,
     RequiredNoDefault INT NOT NULL,
-    NullableWithDefault INT NULL DEFAULT 7 CHECK (NullableWithDefault > 0),
-    NullableNoDefault INT NULL,
+    NullableWithDefault INT DEFAULT 7 CHECK (NullableWithDefault > 0),
+    NullableNoDefault INT,
     CheckedRequired INT NOT NULL CHECK (CheckedRequired > 0),
-    CheckedNullable INT NULL CHECK (CheckedNullable > 0)
+    CheckedNullable INT CHECK (CheckedNullable > 0)
 )
 """);
 

@@ -46,6 +46,7 @@ public sealed class FirebirdProviderSqlDialectTests
     @currencyValue AS CurrencyValue,
     @textValue AS TextValue,
     @dateTimeOffsetValue AS DateTimeOffsetValue,
+    @guidValue AS GuidValue,
     @binaryValue AS BinaryValue
 """);
 
@@ -62,6 +63,28 @@ public sealed class FirebirdProviderSqlDialectTests
         Assert.Contains("CAST(@currencyValue AS DECIMAL(19,2)) AS CurrencyValue", parameterProjectionSql);
         Assert.Contains("CAST(@textValue AS VARCHAR(100)) AS TextValue", parameterProjectionSql);
         Assert.Contains("CAST(@dateTimeOffsetValue AS VARCHAR(40)) AS DateTimeOffsetValue", parameterProjectionSql);
-        Assert.Contains("CAST(@binaryValue AS VARBINARY(16)) AS BinaryValue", parameterProjectionSql);
+        Assert.Contains("CAST(@guidValue AS CHAR(16) CHARACTER SET OCTETS) AS GuidValue", parameterProjectionSql);
+        Assert.Contains("CAST(@binaryValue AS BLOB SUB_TYPE BINARY) AS BinaryValue", parameterProjectionSql);
+    }
+
+    /// <summary>
+    /// EN: Verifies that GUID parameters are bound with Firebird's native GUID metadata.
+    /// PT: Verifica se parametros GUID sao vinculados com os metadados nativos de GUID do Firebird.
+    /// </summary>
+    [Fact]
+    public void ProviderAddParameter_ShouldBindGuidAsNativeGuid()
+    {
+        var dialect = new FirebirdProviderSqlDialect();
+        using var command = new FirebirdSql.Data.FirebirdClient.FbCommand();
+        var guid = Guid.Parse("11111111-2222-3333-4444-555555555555");
+
+        dialect.AddParameter(command, "guidValue", DbType.Guid, guid);
+
+        var parameter = Assert.IsType<FirebirdSql.Data.FirebirdClient.FbParameter>(command.Parameters[0]);
+        Assert.Equal(DbType.Guid, parameter.DbType);
+        Assert.Equal(FirebirdSql.Data.FirebirdClient.FbDbType.Guid, parameter.FbDbType);
+        Assert.Equal(FirebirdSql.Data.FirebirdClient.FbCharset.Octets, parameter.Charset);
+        Assert.Equal(16, parameter.Size);
+        Assert.Equal(guid, Assert.IsType<Guid>(parameter.Value));
     }
 }

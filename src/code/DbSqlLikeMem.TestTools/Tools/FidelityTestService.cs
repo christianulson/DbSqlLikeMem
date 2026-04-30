@@ -88,6 +88,7 @@ public class FidelityTestService<TCnn1, TCnn2>
             if (repoContainer == null)
                 throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TServiceTest>(args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;
@@ -125,6 +126,7 @@ public class FidelityTestService<TCnn1, TCnn2>
             if (repoContainer == null)
                 throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;
@@ -164,6 +166,7 @@ public class FidelityTestService<TCnn1, TCnn2>
             if (repoContainer == null)
                 throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;
@@ -203,6 +206,7 @@ public class FidelityTestService<TCnn1, TCnn2>
             if (repoContainer == null)
                 throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
 
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
             await EnsureContainerConnectionAvailableAsync();
             objResultContainer = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, repoContainer, InitialData, context);
             elapsedContainer = sw.ElapsedMilliseconds;

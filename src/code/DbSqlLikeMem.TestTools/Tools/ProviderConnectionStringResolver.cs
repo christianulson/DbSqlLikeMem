@@ -51,9 +51,7 @@ public static class ProviderConnectionStringResolver
             var value = environmentVariableAccessor(variableName);
             if (!string.IsNullOrWhiteSpace(value))
             {
-                connectionString = provider == ProviderId.Oracle
-                    ? EnsureOracleConnectionTimeout(value!)
-                    : value!;
+                connectionString = ApplyTestConnectionDefaults(provider, value!);
                 sourceName = variableName;
                 return true;
             }
@@ -98,14 +96,18 @@ public static class ProviderConnectionStringResolver
             _ => Array.Empty<string>()
         };
 
-    private static string EnsureOracleConnectionTimeout(string connectionString)
+    private static string ApplyTestConnectionDefaults(ProviderId provider, string connectionString)
     {
         var builder = new DbConnectionStringBuilder
         {
             ConnectionString = connectionString
         };
 
-        builder["Connection Timeout"] = 120;
+        builder["Pooling"] = false;
+
+        if (provider == ProviderId.Oracle)
+            builder["Connection Timeout"] = 120;
+
         return builder.ConnectionString;
     }
 }

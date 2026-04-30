@@ -10,15 +10,14 @@ namespace DbSqlLikeMem.Db2;
 /// </summary>
 public sealed class Db2ConnectorFactoryMock : DbProviderFactory
 {
-    private static Db2ConnectorFactoryMock? instance;
     private readonly Db2DbMock? db;
 
     /// <summary>
-    /// EN: Returns the singleton factory instance for this provider mock.
-    /// PT: Retorna a instância única da fábrica deste simulado de provedor.
+    /// EN: Creates a Db2 provider factory mock instance.
+    /// PT: Cria uma instancia de fabrica simulada do provedor Db2.
     /// </summary>
     public static Db2ConnectorFactoryMock GetInstance(Db2DbMock? db = null)
-        => instance ??= new Db2ConnectorFactoryMock(db);
+        => new(db);
 
     internal Db2ConnectorFactoryMock(Db2DbMock? db = null)
     {

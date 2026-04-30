@@ -8,15 +8,14 @@ namespace DbSqlLikeMem.Oracle;
 /// </summary>
 public sealed class OracleConnectorFactoryMock : DbProviderFactory
 {
-    private static OracleConnectorFactoryMock? instance;
     private readonly OracleDbMock? db;
 
     /// <summary>
-    /// EN: Returns the singleton factory instance for this provider mock.
-    /// PT: Retorna a instância única da fábrica deste simulado de provedor.
+    /// EN: Creates an Oracle provider factory mock instance.
+    /// PT: Cria uma instancia de fabrica simulada do provedor Oracle.
     /// </summary>
     public static OracleConnectorFactoryMock GetInstance(OracleDbMock? db = null)
-        => instance ??= new OracleConnectorFactoryMock(db);
+        => new(db);
 
     internal OracleConnectorFactoryMock(OracleDbMock? db = null)
     {

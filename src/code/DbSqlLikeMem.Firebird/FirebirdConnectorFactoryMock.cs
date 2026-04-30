@@ -17,15 +17,14 @@ namespace DbSqlLikeMem.Firebird;
 /// </summary>
 public sealed class FirebirdConnectorFactoryMock : DbProviderFactory
 {
-    private static FirebirdConnectorFactoryMock? instance;
     private readonly FirebirdDbMock? db;
 
     /// <summary>
-    /// EN: Returns the singleton factory instance for this provider mock.
-    /// PT: Retorna a instancia unica da fabrica deste simulado de provedor.
+    /// EN: Creates a Firebird provider factory mock instance.
+    /// PT: Cria uma instancia de fabrica simulada do provedor Firebird.
     /// </summary>
     public static FirebirdConnectorFactoryMock GetInstance(FirebirdDbMock? db = null)
-        => instance ??= new FirebirdConnectorFactoryMock(db);
+        => new(db);
 
     internal FirebirdConnectorFactoryMock(FirebirdDbMock? db = null)
     {

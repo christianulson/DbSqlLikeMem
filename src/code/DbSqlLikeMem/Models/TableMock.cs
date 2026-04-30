@@ -1829,6 +1829,9 @@ public abstract class TableMock
         if (left is string leftText && right is string rightText)
             return string.Equals(leftText, rightText, StringComparison.OrdinalIgnoreCase);
 
+        if (left is byte[] leftBytes && right is byte[] rightBytes)
+            return leftBytes.AsSpan().SequenceEqual(rightBytes);
+
         return Equals(left, right);
     }
 

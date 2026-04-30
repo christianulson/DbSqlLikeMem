@@ -19,8 +19,8 @@ public class InsertNullabilityScenario(
 CREATE TABLE {Context.TbUsersFullName} (
     Id INT NOT NULL PRIMARY KEY,
     RequiredNoDefault INT NOT NULL,
-    NullableWithDefault INT NULL DEFAULT 7,
-    NullableNoDefault INT NULL
+    NullableWithDefault INT DEFAULT 7,
+    NullableNoDefault INT
 )
 """);
 

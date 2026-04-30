@@ -15,15 +15,14 @@ namespace DbSqlLikeMem.Npgsql;
 /// </summary>
 public sealed class NpgsqlConnectorFactoryMock : DbProviderFactory
 {
-    private static NpgsqlConnectorFactoryMock? instance;
     private readonly NpgsqlDbMock? db;
 
     /// <summary>
-    /// EN: Returns the singleton factory instance for this provider mock.
-    /// PT: Retorna a instância única da fábrica deste simulado de provedor.
+    /// EN: Creates an Npgsql provider factory mock instance.
+    /// PT: Cria uma instancia de fabrica simulada do provedor Npgsql.
     /// </summary>
     public static NpgsqlConnectorFactoryMock GetInstance(NpgsqlDbMock? db = null)
-        => instance ??= new NpgsqlConnectorFactoryMock(db);
+        => new(db);
 
     internal NpgsqlConnectorFactoryMock(NpgsqlDbMock? db = null)
     {

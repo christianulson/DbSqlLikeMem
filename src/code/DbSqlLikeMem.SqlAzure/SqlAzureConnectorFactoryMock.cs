@@ -8,15 +8,14 @@ namespace DbSqlLikeMem.SqlAzure;
 public sealed class SqlAzureConnectorFactoryMock
     : DbProviderFactory
 {
-    private static SqlAzureConnectorFactoryMock? instance;
     private readonly SqlAzureDbMock? db;
 
     /// <summary>
-    /// EN: Gets the singleton SQL Azure provider factory mock instance.
-    /// PT: Obtem a instancia singleton da fabrica simulada do provedor SQL Azure.
+    /// EN: Creates a SQL Azure provider factory mock instance.
+    /// PT: Cria uma instancia de fabrica simulada do provedor SQL Azure.
     /// </summary>
     public static SqlAzureConnectorFactoryMock GetInstance(SqlAzureDbMock? db = null)
-        => instance ??= new SqlAzureConnectorFactoryMock(db);
+        => new(db);
 
     internal SqlAzureConnectorFactoryMock(SqlAzureDbMock? db = null)
     {

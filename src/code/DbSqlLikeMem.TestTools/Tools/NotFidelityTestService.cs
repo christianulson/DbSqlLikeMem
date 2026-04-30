@@ -35,7 +35,7 @@ public class NotFidelityTestService<TCnn1>(
     /// EN: Gets the initial data to be used for the test scenarios. This property is an array of object arrays, allowing for flexible representation of various types of initial data that may be required by different test scenarios. It is initialized in the constructor and can be used to set up the necessary state for the tests.
     /// PT: Obtém os dados iniciais a serem usados nos cenários de teste. Esta propriedade é um array de arrays de objetos, permitindo uma representação flexível de vários tipos de dados iniciais que podem ser necessários para diferentes cenários de teste. Ela é inicializada no construtor e pode ser usada para configurar o estado necessário para os testes.
     /// </summary>
-    protected object?[][] InitialData { get; } = initialData;
+    protected object?[][] InitialData { get; } = CloneInitialData(initialData);
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
@@ -115,8 +115,9 @@ public class NotFidelityTestService<TCnn1>(
     where TScenario : BaseScenario, ITestScenario
     where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
+        var scenarioData = CloneInitialData(initialData);
         object? objResult = null;
-        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -153,13 +154,14 @@ public class NotFidelityTestService<TCnn1>(
         FidelityTestContext context
     )
         where TScenario : BaseScenario, ITestScenario
-        where TScenario2 : BaseScenario, ITestScenario
-        where TServiceTest : BaseServiceTest, IBaseServiceTest
+    where TScenario2 : BaseScenario, ITestScenario
+    where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
+        var scenarioData = CloneInitialData(initialData);
         object? objResult = null;
-        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
-        var testScenario2 = CreateScenarioInstance<TScenario2>(repo, context, initialData);
+        var testScenario2 = CreateScenarioInstance<TScenario2>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario2, nameof(testScenario2));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -200,8 +202,9 @@ public class NotFidelityTestService<TCnn1>(
     where TScenario : BaseScenario, ITestScenario
     where TServiceTest : BaseServiceTest
     {
+        var scenarioData = CloneInitialData(initialData);
         object? objResult = null;
-        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -239,13 +242,14 @@ public class NotFidelityTestService<TCnn1>(
         FidelityTestContext context
     )
         where TScenario : BaseScenario, ITestScenario
-        where TScenario2 : BaseScenario, ITestScenario
-        where TServiceTest : BaseServiceTest
+    where TScenario2 : BaseScenario, ITestScenario
+    where TServiceTest : BaseServiceTest
     {
+        var scenarioData = CloneInitialData(initialData);
         object? objResult = null;
-        var testScenario = CreateScenarioInstance<TScenario>(repo, context, initialData);
+        var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
-        var testScenario2 = CreateScenarioInstance<TScenario2>(repo, context, initialData);
+        var testScenario2 = CreateScenarioInstance<TScenario2>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario2, nameof(testScenario2));
         var serviceTest = Activator.CreateInstance(typeof(TServiceTest), repo, context) as TServiceTest;
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
@@ -450,5 +454,33 @@ public class NotFidelityTestService<TCnn1>(
             return arr;
         }
         return null;
+    }
+
+    private static object?[][] CloneInitialData(object?[][] initialData)
+    {
+        if (initialData.Length == 0)
+            return [];
+
+        var clone = new object?[initialData.Length][];
+        for (var i = 0; i < initialData.Length; i++)
+            clone[i] = CloneInitialDataRow(initialData[i]);
+
+        return clone;
+    }
+
+    private static object?[] CloneInitialDataRow(object?[]? row)
+    {
+        if (row is null || row.Length == 0)
+            return [];
+
+        var clone = new object?[row.Length];
+        for (var i = 0; i < row.Length; i++)
+        {
+            clone[i] = row[i] is object?[] nestedRow
+                ? CloneInitialDataRow(nestedRow)
+                : row[i];
+        }
+
+        return clone;
     }
 }
