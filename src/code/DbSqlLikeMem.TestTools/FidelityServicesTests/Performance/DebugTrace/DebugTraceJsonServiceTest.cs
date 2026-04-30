@@ -15,13 +15,20 @@ public class DebugTraceJsonServiceTest(
     /// PT: Serializa um payload JSON usado pelo benchmark de debug trace.
     /// </summary>
     public Task<object?> RunTestAsync(params object[] args)
+        => Task.FromResult<object?>(RunDebugTraceJsonAsync());
+
+    /// <summary>
+    /// EN: Serializes a JSON payload used by the debug-trace benchmark.
+    /// PT: Serializa um payload JSON usado pelo benchmark de debug trace.
+    /// </summary>
+    public string RunDebugTraceJsonAsync()
     {
         var json = RunDebugTraceJson(
             Repo.Dialect.DisplayName,
             "TestTools",
             new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         GC.KeepAlive(json);
-        return Task.FromResult<object?>(json);
+        return json;
     }
 
     /// <summary>

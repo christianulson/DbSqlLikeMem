@@ -15,6 +15,13 @@ public sealed class SequenceSetValServiceTest(
     /// PT: Retorna os valores observados da sequence antes e depois de setval sem chamar nextval novamente antes.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
+        => await RunSequenceSetValAsync();
+
+    /// <summary>
+    /// EN: Returns the observed sequence values before and after setval without calling nextval again first.
+    /// PT: Retorna os valores observados da sequence antes e depois de setval sem chamar nextval novamente antes.
+    /// </summary>
+    public async Task<long[]> RunSequenceSetValAsync()
     {
         var initial = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         var lastAfterInitial = await ExecuteScalarLongAsync("SELECT lastval()");

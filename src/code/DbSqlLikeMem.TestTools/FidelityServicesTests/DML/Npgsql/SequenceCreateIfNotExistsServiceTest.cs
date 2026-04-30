@@ -15,6 +15,13 @@ public sealed class SequenceCreateIfNotExistsServiceTest(
     /// PT: Retorna os dois primeiros valores produzidos apos uma criacao idempotente de sequence.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
+        => await RunSequenceCreateIfNotExistsAsync();
+
+    /// <summary>
+    /// EN: Returns the first two values produced after an idempotent sequence creation.
+    /// PT: Retorna os dois primeiros valores produzidos apos uma criacao idempotente de sequence.
+    /// </summary>
+    public async Task<long[]> RunSequenceCreateIfNotExistsAsync()
     {
         await ExecuteNonQueryAsync($"CREATE SEQUENCE IF NOT EXISTS {Context.Seq} START WITH 13 INCREMENT BY 2");
         await ExecuteNonQueryAsync($"CREATE SEQUENCE IF NOT EXISTS {Context.Seq} START WITH 99 INCREMENT BY 9");

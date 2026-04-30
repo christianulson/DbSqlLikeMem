@@ -6,7 +6,7 @@ public partial class QueryServiceTest
     /// EN: Executes typed-field inserts and validates common SQL functions over numeric, text, and temporal columns.
     /// PT: Executa inserts com campos tipados e valida funcoes SQL comuns sobre colunas numericas, textuais e temporais.
     /// </summary>
-    public async Task<object?> RunTypedFieldAndFunctionBlendAsync(params object[] pars)
+    public async Task<int> RunTypedFieldAndFunctionBlendAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -38,7 +38,7 @@ INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt,
     /// EN: Executes a single large projection query over typed columns and validates each calculated column per row.
     /// PT: Executa uma unica consulta grande sobre colunas tipadas e valida cada coluna calculada por linha.
     /// </summary>
-    internal async Task<object?> RunTypedFieldFunctionMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTypedFieldFunctionMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -95,7 +95,7 @@ ORDER BY Id
     /// EN: Executes a second large projection query that mixes casts, predicates, arithmetic, and rounding over typed columns.
     /// PT: Executa uma segunda consulta grande que mistura casts, predicados, aritmetica e arredondamento sobre colunas tipadas.
     /// </summary>
-    internal async Task<object?> RunTypedFieldCalculationMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTypedFieldCalculationMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -153,7 +153,7 @@ ORDER BY Id
     /// EN: Executes a large projection query over JSON profile columns and typed fields.
     /// PT: Executa uma consulta grande sobre colunas JSON de perfil e campos tipados.
     /// </summary>
-    internal async Task<object?> RunJsonTypedFieldMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunJsonTypedFieldMatrixAsync(params object[] pars)
     {
         var aliceProfileJson = """{"profile":{"name":"Alice","active":true}}""";
         var bobProfileJson = """{"profile":{"name":"Bob","active":false}}""";
@@ -238,7 +238,7 @@ ORDER BY Id
     /// EN: Executes a large projection query over temporal columns and numeric calculations.
     /// PT: Executa uma consulta grande sobre colunas temporais e calculos numericos.
     /// </summary>
-    internal async Task<object?> RunTemporalFieldMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTemporalFieldMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -302,7 +302,7 @@ ORDER BY CreatedAt, Id
     /// EN: Executes a large projection query that blends temporal comparisons and fallback logic over typed columns.
     /// PT: Executa uma consulta grande que mistura comparacoes temporais e logica de fallback sobre colunas tipadas.
     /// </summary>
-    internal async Task<object?> RunTemporalComparisonMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTemporalComparisonMatrixAsync(params object[] pars)
     {
         var createdAt = NormalizeTemporalMatrixDateTimeInput(new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
         var createdAtParameter = Repo.Dialect.Parameter("CreatedAt");
@@ -363,7 +363,7 @@ ORDER BY CreatedAt, Id
     /// EN: Executes a larger temporal arithmetic query over typed columns and validates relative date and fallback comparisons.
     /// PT: Executa uma consulta maior de aritmetica temporal sobre colunas tipadas e valida comparacoes relativas e de fallback.
     /// </summary>
-    internal async Task<object?> RunTemporalArithmeticMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTemporalArithmeticMatrixAsync(params object[] pars)
     {
         var createdAt = NormalizeTemporalMatrixDateTimeInput(new DateTime(2000, 1, 1, 12, 0, 0, DateTimeKind.Utc));
         var createdAtParameter = Repo.Dialect.Parameter("CreatedAt");
@@ -437,7 +437,7 @@ ORDER BY CreatedAt, Id
     /// EN: Executes a large projection query that blends casts, arithmetic, and boolean-style calculations over typed columns.
     /// PT: Executa uma consulta grande que mistura casts, aritmetica e calculos em estilo booleano sobre colunas tipadas.
     /// </summary>
-    internal async Task<object?> RunCastCalculationMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunCastCalculationMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -511,7 +511,7 @@ ORDER BY Id
     /// EN: Executes a large projection query that blends null handling, comparisons, and predicates over typed columns.
     /// PT: Executa uma consulta grande que mistura tratamento de null, comparacoes e predicados sobre colunas tipadas.
     /// </summary>
-    internal async Task<object?> RunNullComparisonMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunNullComparisonMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -568,7 +568,7 @@ ORDER BY Id
     /// EN: Executes a large projection query that blends text lengths, trimming, and comparisons over typed columns.
     /// PT: Executa uma consulta grande que mistura comprimentos de texto, trim e comparacoes sobre colunas tipadas.
     /// </summary>
-    internal async Task<object?> RunTextLengthMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTextLengthMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -627,7 +627,7 @@ ORDER BY Id
     /// EN: Executes a large projection query that blends case conversion, trimming, prefix extraction, and text predicates over typed columns.
     /// PT: Executa uma consulta grande que mistura conversao de caixa, trim, extracao de prefixo e predicados de texto sobre colunas tipadas.
     /// </summary>
-    internal async Task<object?> RunTextCaseMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTextCaseMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -688,7 +688,7 @@ ORDER BY Id
     /// EN: Executes a large predicate query that blends LIKE, NOT LIKE, BETWEEN, and null checks over typed columns.
     /// PT: Executa uma consulta grande de predicados que mistura LIKE, NOT LIKE, BETWEEN e verificacoes de null sobre colunas tipadas.
     /// </summary>
-    internal async Task<object?> RunTypedFieldPredicateMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTypedFieldPredicateMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)
@@ -741,7 +741,7 @@ ORDER BY Id
     /// EN: Executes a compound predicate query that blends OR, AND, LIKE, and null checks over typed columns.
     /// PT: Executa uma consulta de predicado composto que mistura OR, AND, LIKE e verificacoes de null sobre colunas tipadas.
     /// </summary>
-    public async Task<object?> RunTypedFieldCompoundPredicateMatrixAsync(params object[] pars)
+    public async Task<int> RunTypedFieldCompoundPredicateMatrixAsync(params object[] pars)
     {
         await Repo.ExecuteNonQueryAsync($"""
 INSERT INTO {Context.TbUsersFullName} (Id, Name, Email, Age, Balance, UpdatedAt, ProfileJson) VALUES (1, 'Alice', 'alice@example.com', 31, 10.50, NULL, NULL)

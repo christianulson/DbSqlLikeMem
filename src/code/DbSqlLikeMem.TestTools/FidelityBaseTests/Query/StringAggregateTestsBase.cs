@@ -26,7 +26,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregationVariantsTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, (string? plain, string? ordered, string? distinct, string? separator, string? largeGroup)>(
             [SeedUsersVariants],
             async (s, a) =>
             {
@@ -38,7 +38,11 @@ public abstract class StringAggregateTestsBase<T, T2>(
                 return (plain, ordered, distinct, separator, largeGroup);
             });
 
-        result.Should().NotBeNull();
+        result.plain.Should().NotBeNull();
+        result.ordered.Should().NotBeNull();
+        result.distinct.Should().NotBeNull();
+        result.separator.Should().NotBeNull();
+        result.largeGroup.Should().NotBeNull();
     }
 
     /// <summary>
@@ -48,7 +52,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregateTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, string?>(
             [SeedUsersVariants],
             (s, a) => s.RunStringAggregateAsync(a));
 
@@ -62,7 +66,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregateOrderedTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, string?>(
             [SeedUsersVariants],
             (s, a) => s.RunStringAggregateOrderedAsync(a));
 
@@ -76,7 +80,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregateDistinctTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, string?>(
             [SeedUsersVariants],
             (s, a) => s.RunStringAggregateDistinctAsync(a));
 
@@ -90,7 +94,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregateCustomSeparatorTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, string?>(
             [SeedUsersVariants],
             (s, a) => s.RunStringAggregateCustomSeparatorAsync(a));
 
@@ -104,7 +108,7 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregateLargeGroupTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, string?>(
             [SeedUsersVariants],
             (s, a) => s.RunStringAggregateLargeGroupAsync(a));
 
@@ -118,11 +122,11 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregateSummaryMatrixTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, QueryResultSnapshot>(
             [SeedUsersSummary],
             (s, a) => s.RunStringAggregateSummaryMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregateSummaryMatrixTest)), ExpectedStringAggregateSummarySnapshot());
+        AssertSnapshot(result, ExpectedStringAggregateSummarySnapshot());
     }
 
     /// <summary>
@@ -132,14 +136,11 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregateGroupCaseMatrixTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, QueryResultSnapshot>(
             [SeedUsersSummary],
-            async (s, a) =>
-            {
-                return await s.RunStringAggregateGroupCaseMatrixAsync(a);
-            });
+            async (s, a) => await s.RunStringAggregateGroupCaseMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregateGroupCaseMatrixTest)), Snapshot(NormalizeSnapshotColumnNames(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"]),
+        AssertSnapshot(result, Snapshot(NormalizeSnapshotColumnNames(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"]),
             Row("B", 2m, 1m, "Bob", "Bob"),
             Row("Other", 3m, 3m, "Alice", "Delta")));
     }
@@ -151,11 +152,11 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregationSummaryMatrixTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, QueryResultSnapshot>(
             [SeedUsersSummary],
             (s, a) => s.RunStringAggregateSummaryMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregationSummaryMatrixTest)), ExpectedStringAggregateSummarySnapshot());
+        AssertSnapshot(result, ExpectedStringAggregateSummarySnapshot());
     }
 
     /// <summary>
@@ -165,22 +166,14 @@ public abstract class StringAggregateTestsBase<T, T2>(
     [FidelityFact]
     public async Task StringAggregationGroupCaseMatrixTest()
     {
-        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await RunFidelityTestAsync<UsersScenario, QueryServiceTest, QueryResultSnapshot>(
             [SeedUsersSummary],
-            async (s, a) =>
-            {
-                return await s.RunStringAggregateGroupCaseMatrixAsync(a);
-            });
+            async (s, a) => await s.RunStringAggregateGroupCaseMatrixAsync(a));
 
-        AssertSnapshot(RequireSnapshot(result, nameof(StringAggregationGroupCaseMatrixTest)), Snapshot(NormalizeSnapshotColumnNames(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"]),
+        AssertSnapshot(result, Snapshot(NormalizeSnapshotColumnNames(["NameGroup", "TotalCount", "DistinctCount", "FirstName", "LastName"]),
             Row("B", 2m, 1m, "Bob", "Bob"),
             Row("Other", 3m, 3m, "Alice", "Delta")));
     }
-
-    private static QueryResultSnapshot RequireSnapshot(object? value, string label)
-        => value is QueryResultSnapshot snapshot
-            ? snapshot
-            : throw new InvalidOperationException($"{label} did not return a query snapshot.");
 
     private static QueryResultSnapshot Snapshot(string[] columnNames, params object?[][] rows)
     {
@@ -220,16 +213,15 @@ public abstract class StringAggregateTestsBase<T, T2>(
         => Snapshot(NormalizeSnapshotColumnNames(["Ordered", "TotalCount", "DistinctCount", "BobCount"]),
             Row("Alice,Bob,Bob,Charlie,Delta", 5, 4, 2));
 
-    private async Task<object?> RunFidelityTestAsync<TScenario, TServiceTest>(
+    private async Task<TResult> RunFidelityTestAsync<TScenario, TServiceTest, TResult>(
         object?[][] initialData,
-        Func<TServiceTest, object[], Task<object?>> runTest,
+        Func<TServiceTest, object[], Task<TResult>> runTest,
         params object[] args)
         where TScenario : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, initialData);
 
-        return await testService.RunTestAsync<TScenario, TServiceTest>(runTest, args);
+        return await testService.RunTestAsync<TScenario, TServiceTest, TResult>(runTest, args);
     }
 }
-

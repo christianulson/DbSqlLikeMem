@@ -24,7 +24,8 @@ public abstract class SequenceTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<SequenceScenario, DmlMutationSequenceServiceTest>() as long[];
+        var result = await testService.RunTestAsync<SequenceScenario, DmlMutationSequenceServiceTest, long[]>(
+            (service, args) => service.RunSequenceNextValuesAsync(args));
 
         _ = new long[] { 10L, 11L }.Should().Equal(result);
     }
@@ -87,7 +88,8 @@ public abstract class SequenceTestsBase<T, T2>(
         object?[][] initialData = [[(1, "Ana")]];
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, initialData);
 
-        var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest>() as long[];
+        var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest, long[]>(
+            (service, args) => service.RunSequenceExpressionFilterAsync(args));
 
         _ = new long[] { 10L, 11L }.Should().Equal(result);
     }

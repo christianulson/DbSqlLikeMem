@@ -15,9 +15,14 @@ public sealed class SequenceDescendingServiceTest(
     /// PT: Retorna os valores produzidos por uma sequence descendente antes da limpeza.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceDescendingAsync();
 
+    /// <summary>
+    /// EN: Returns the values produced by a descending sequence before cleanup.
+    /// PT: Retorna os valores produzidos por uma sequence descendente antes da limpeza.
+    /// </summary>
+    public async Task<long[]> RunSequenceDescendingAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 5 INCREMENT BY -2 MINVALUE 1 MAXVALUE 5 NO CYCLE");
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         var second = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");

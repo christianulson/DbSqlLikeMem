@@ -13,7 +13,7 @@ public class TemporaryTableServiceOpsTest(
     /// EN: Creates a temporary table from the source users table and returns the projected row identifiers.
     /// PT: Cria uma tabela temporaria a partir da tabela fonte de usuarios e retorna os identificadores projetados das linhas.
     /// </summary>
-    public async Task<object?> RunCreateTemporaryTableAsSelectThenSelectAsync(params object[] pars)
+    public async Task<List<int>> RunCreateTemporaryTableAsSelectThenSelectAsync(params object[] pars)
     {
         var isMockConnection = Repo.Cnn is DbConnectionMockBase;
         var tempTable = BuildTemporaryTableName(Context.UId, isMockConnection);
@@ -150,7 +150,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
     /// EN: Counts the rows available in the temporary-table scenario.
     /// PT: Conta as linhas disponiveis no cenario de tabela temporaria.
     /// </summary>
-    public async Task<object?> RunTempTableCreateAndUse(params object[] pars)
+    public async Task<int> RunTempTableCreateAndUse(params object[] pars)
     {
         var users = pars.Length > 0
             ? (string)pars[0]
@@ -199,7 +199,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
     /// </summary>
     /// <param name="pars">EN: The temporary users table name. PT: O nome da tabela temporaria de usuarios.</param>
     /// <returns>EN: Zero when the secondary connection cannot observe the inserted temporary-table row. PT: Zero quando a conexao secundaria nao consegue observar a linha inserida na tabela temporaria.</returns>
-    public async Task<object?> RunTemporaryTableCrossConnectionIsolation(params object[] pars)
+    public async Task<int> RunTemporaryTableCrossConnectionIsolation(params object[] pars)
     {
         var users = pars.Length > 0
             ? (string)pars[0]

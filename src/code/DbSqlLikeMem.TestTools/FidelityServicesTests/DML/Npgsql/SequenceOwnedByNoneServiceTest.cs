@@ -15,9 +15,14 @@ public sealed class SequenceOwnedByNoneServiceTest(
     /// PT: Retorna os valores da sequence antes e depois de a tabela proprietaria ser removida.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceOwnedByNoneAsync();
 
+    /// <summary>
+    /// EN: Returns the sequence values before and after the owning table is dropped.
+    /// PT: Retorna os valores da sequence antes e depois de a tabela proprietaria ser removida.
+    /// </summary>
+    public async Task<long[]> RunSequenceOwnedByNoneAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE TABLE {Context.TbUsersFullName} (Id BIGINT NOT NULL PRIMARY KEY)");
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 1 INCREMENT BY 1");
         await ExecuteNonQueryAsync($"ALTER SEQUENCE {Context.Seq} OWNED BY {Context.TbUsersFullName}.Id");

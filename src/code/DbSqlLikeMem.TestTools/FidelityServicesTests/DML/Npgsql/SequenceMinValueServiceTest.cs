@@ -15,9 +15,14 @@ public sealed class SequenceMinValueServiceTest(
     /// PT: Retorna os valores gerados e se a sequence parou no minimo configurado.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceMinValueAsync();
 
+    /// <summary>
+    /// EN: Returns the generated values and whether the sequence stopped at the configured minimum.
+    /// PT: Retorna os valores gerados e se a sequence parou no minimo configurado.
+    /// </summary>
+    public async Task<long[]> RunSequenceMinValueAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 5 INCREMENT BY -2 MINVALUE 1 MAXVALUE 5 NO CYCLE");
 
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");

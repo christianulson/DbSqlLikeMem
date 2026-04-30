@@ -18,6 +18,13 @@ public class ConnectionLifecycleResetVolatileDataServiceTest(
     /// </summary>
     /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunTestAsync(params object[] args)
+        => Task.FromResult<object?>(RunResetVolatileData());
+
+    /// <summary>
+    /// EN: Invokes the provider reset volatile data helper for the lifecycle benchmark.
+    /// PT: Invoca o helper de reset de dados volateis do provedor para o benchmark de ciclo de vida.
+    /// </summary>
+    public int RunResetVolatileData()
     {
         if (Repo.Cnn.State == ConnectionState.Open)
             Repo.Cnn.Close();
@@ -26,6 +33,6 @@ public class ConnectionLifecycleResetVolatileDataServiceTest(
         TryInvokeIfExists(Repo.Cnn, "ResetVolatileData");
         Repo.Cnn.State.Should().Be(ConnectionState.Open);
         GC.KeepAlive(Repo.Cnn.State);
-        return Task.FromResult<object?>(1);
+        return 1;
     }
 }

@@ -678,31 +678,31 @@ public abstract partial class BenchmarkSessionBase
 
         public QueryResultSnapshot RunTypedFieldStorageMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTypedFieldStorageMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTypedFieldStorageMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTypedFieldFunctionMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTypedFieldFunctionMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTypedFieldFunctionMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTypedFieldCalculationMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTypedFieldCalculationMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTypedFieldCalculationMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTemporalFieldMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTemporalFieldMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTemporalFieldMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTemporalComparisonMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTemporalComparisonMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTemporalComparisonMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTemporalArithmeticMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTemporalArithmeticMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTemporalArithmeticMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunJsonTypedFieldMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunJsonTypedFieldMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunJsonTypedFieldMatrixAsync()).GetAwaiter().GetResult()!;
 
         public int RunParameterRoundTripMatrix()
         {
@@ -710,7 +710,7 @@ public abstract partial class BenchmarkSessionBase
                 ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
                 : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
             var result = runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, args) => service.RunParameterRoundTripMatrixAsync(args),
+                async (service, args) => (object?)await service.RunParameterRoundTripMatrixAsync(args),
                 1,
                 "Param Alice",
                 DBNull.Value,
@@ -725,31 +725,31 @@ public abstract partial class BenchmarkSessionBase
 
         public int RunTypedFieldAndFunctionBlend()
             => Convert.ToInt32(runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTypedFieldAndFunctionBlendAsync()).GetAwaiter().GetResult(), CultureInfo.InvariantCulture);
+                async (service, _) => (object?)await service.RunTypedFieldAndFunctionBlendAsync()).GetAwaiter().GetResult(), CultureInfo.InvariantCulture);
 
         public int RunTypedFieldCompoundPredicateMatrix()
             => Convert.ToInt32(runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTypedFieldCompoundPredicateMatrixAsync()).GetAwaiter().GetResult(), CultureInfo.InvariantCulture);
+                async (service, _) => (object?)await service.RunTypedFieldCompoundPredicateMatrixAsync()).GetAwaiter().GetResult(), CultureInfo.InvariantCulture);
 
         public QueryResultSnapshot RunCastCalculationMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunCastCalculationMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunCastCalculationMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunNullComparisonMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunNullComparisonMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunNullComparisonMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTextLengthMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTextLengthMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTextLengthMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTextCaseMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTextCaseMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTextCaseMatrixAsync()).GetAwaiter().GetResult()!;
 
         public QueryResultSnapshot RunTypedFieldPredicateMatrix()
             => (QueryResultSnapshot)runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, _) => service.RunTypedFieldPredicateMatrixAsync()).GetAwaiter().GetResult()!;
+                async (service, _) => (object?)await service.RunTypedFieldPredicateMatrixAsync()).GetAwaiter().GetResult()!;
 
         public void Dispose()
             => runner.Dispose();
@@ -781,7 +781,7 @@ public abstract partial class BenchmarkSessionBase
                 ? new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Utc)
                 : new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
             var result = runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, args) => service.RunParameterTypeMatrixAsync(args),
+                async (service, args) => (object?)await service.RunParameterTypeMatrixAsync(args),
                 "Typed param",
                 "Ansi param",
                 "Fixed ANSI",
@@ -803,7 +803,7 @@ public abstract partial class BenchmarkSessionBase
         public int RunParameterDateCurrencyMatrix()
         {
             var result = runner.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                (service, args) => service.RunParameterDateCurrencyMatrixAsync(args),
+                async (service, args) => (object?)await service.RunParameterDateCurrencyMatrixAsync(args),
                 new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Unspecified),
                 123.45m).GetAwaiter().GetResult();
             return Convert.ToInt32(result, CultureInfo.InvariantCulture);

@@ -15,9 +15,14 @@ public sealed class SequenceAlterRestartServiceTest(
     /// PT: Recria os proximos valores da sequence apos um restart na sequence atual e tambem pode expor valores locais da sessao.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        var includeSessionValues = args.Length > 0 && args[0] is bool b && b;
+        => await RunSequenceAlterRestartAsync(args.Length > 0 && args[0] is bool b && b);
 
+    /// <summary>
+    /// EN: Recreates the next sequence values after a restart on the current sequence and can also expose session-local values.
+    /// PT: Recria os proximos valores da sequence apos um restart na sequence atual e tambem pode expor valores locais da sessao.
+    /// </summary>
+    public async Task<long[]> RunSequenceAlterRestartAsync(bool includeSessionValues)
+    {
         using (var alter = Repo.Cnn.CreateCommand())
         {
             alter.CommandText = $"ALTER SEQUENCE {Context.Seq} RESTART WITH 10";

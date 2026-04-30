@@ -34,7 +34,8 @@ public class SequenceTests(
             new SqlServerProviderSqlDialect(),
             [[(1, "Alice")]]);
 
-        var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest>() as long[];
+        var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest, long[]>(
+            (service, args) => service.RunSequenceExpressionFilterAsync(args));
 
         _ = new long[] { 10L, 11L }.Should().Equal(result);
     }
@@ -70,7 +71,8 @@ public class SequenceTests(
             s => new SqlConnection(s),
             new SqlServerProviderSqlDialect());
 
-        var result = await testService.RunTestAsync<NoopScenario, SequenceIncrementByServiceTest>() as long[];
+        var result = await testService.RunTestAsync<NoopScenario, SequenceIncrementByServiceTest, long[]>(
+            (service, args) => service.RunSequenceIncrementByAsync());
 
         _ = new long[] { 10L, 13L, 16L }.Should().Equal(result);
     }
@@ -106,7 +108,8 @@ public class SequenceTests(
             s => new SqlConnection(s),
             new SqlServerProviderSqlDialect());
 
-        var result = await testService.RunTestAsync<SequenceScenario, SequenceAlterRestartServiceTest>() as long[];
+        var result = await testService.RunTestAsync<SequenceScenario, SequenceAlterRestartServiceTest, long[]>(
+            (service, args) => service.RunSequenceAlterRestartAsync());
 
         _ = new long[] { 40L, 41L }.Should().Equal(result);
     }

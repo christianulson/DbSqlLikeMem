@@ -15,9 +15,14 @@ public sealed class SequenceCycleServiceTest(
     /// PT: Retorna os valores da sequence observados antes e depois da retomada do ciclo.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceCycleAsync();
 
+    /// <summary>
+    /// EN: Returns the sequence values observed before and after the cycle wraps.
+    /// PT: Retorna os valores da sequence observados antes e depois da retomada do ciclo.
+    /// </summary>
+    public async Task<long[]> RunSequenceCycleAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2 CYCLE");
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         var second = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");

@@ -36,11 +36,10 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             TemporalComparisonTolerance,
             [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, (DateTime dateScalar, DateTime currentTimestamp, DateTime dateAdd, int whereCount, string orderedName)>(
             (s, a) => RunScalarTemporalMatrixAsync(s));
 
-        var (dateScalar, currentTimestamp, dateAdd, whereCount, orderedName) =
-            ((DateTime dateScalar, DateTime currentTimestamp, DateTime dateAdd, int whereCount, string orderedName))result!;
+        var (dateScalar, currentTimestamp, dateAdd, whereCount, orderedName) = result;
 
         dateAdd.Should().BeCloseTo(dateScalar.AddDays(1), TemporalComparisonTolerance);
         dateAdd.Should().BeCloseTo(currentTimestamp.AddDays(1), TemporalComparisonTolerance);
@@ -57,7 +56,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, DateTime>(
             (s, a) => s.RunDateScalarAsync());
         result.Should().NotBe(default);
     }
@@ -71,7 +70,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, DateTime>(
             (s, a) => s.RunTemporalCurrentTimestampAsync());
         result.Should().NotBe(default);
     }
@@ -85,7 +84,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, TemporalComparisonTolerance);
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, DateTime>(
             (s, a) => s.RunTemporalDateAddAsync());
         result.Should().NotBe(default);
     }
@@ -101,12 +100,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerDateFunction("DATETRUNC"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest, (DateTime monthValue, DateTime weekValue, DateTime dayOfYearValue, DateTime isoWeekValue, DateTime millisecondValue, DateTime microsecondValue)>(
                 (s, a) => s.RunTemporalDateTruncAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, (DateTime monthValue, DateTime weekValue, DateTime dayOfYearValue, DateTime isoWeekValue, DateTime millisecondValue, DateTime microsecondValue)>(
             (s, a) => s.RunTemporalDateTruncAsync());
 
         var (
@@ -115,8 +114,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             dayOfYearValue,
             isoWeekValue,
             millisecondValue,
-            microsecondValue) =
-            ((DateTime monthValue, DateTime weekValue, DateTime dayOfYearValue, DateTime isoWeekValue, DateTime millisecondValue, DateTime microsecondValue))result!;
+            microsecondValue) = result;
 
         monthValue.Should().Be(new DateTime(2020, 2, 1));
         weekValue.Should().Be(new DateTime(2020, 2, 16));
@@ -137,12 +135,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("TODATETIMEOFFSET"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest, (int literalOffsetMinutes, string literalOffsetText, int utcOffsetMinutes, string utcOffsetText, DateTimeOffset offsetValue, DateTimeOffset switchedValue, int offsetMinutes, string offsetText, int negativeOffsetMinutes, string negativeOffsetText)>(
                 (s, a) => s.RunTemporalTimeZoneOffsetAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, (int literalOffsetMinutes, string literalOffsetText, int utcOffsetMinutes, string utcOffsetText, DateTimeOffset offsetValue, DateTimeOffset switchedValue, int offsetMinutes, string offsetText, int negativeOffsetMinutes, string negativeOffsetText)>(
             (s, a) => s.RunTemporalTimeZoneOffsetAsync());
 
         var (
@@ -155,8 +153,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             offsetMinutes,
             offsetText,
             negativeOffsetMinutes,
-            negativeOffsetText) =
-            ((int literalOffsetMinutes, string literalOffsetText, int utcOffsetMinutes, string utcOffsetText, DateTimeOffset offsetValue, DateTimeOffset switchedValue, int offsetMinutes, string offsetText, int negativeOffsetMinutes, string negativeOffsetText))result!;
+            negativeOffsetText) = result;
 
         literalOffsetMinutes.Should().Be(310);
         literalOffsetText.Should().Be("310");
@@ -181,12 +178,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("DATEFROMPARTS"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest, (DateTime dateValue, DateTime dateTimeValue, DateTime dateTime2Value, DateTimeOffset dateTimeOffsetValue, TimeSpan timeValue, DateTime smallDateTimeValue)>(
                 (s, a) => s.RunTemporalFromPartsAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, (DateTime dateValue, DateTime dateTimeValue, DateTime dateTime2Value, DateTimeOffset dateTimeOffsetValue, TimeSpan timeValue, DateTime smallDateTimeValue)>(
             (s, a) => s.RunTemporalFromPartsAsync());
 
         var (
@@ -195,8 +192,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             dateTime2Value,
             dateTimeOffsetValue,
             timeValue,
-            smallDateTimeValue) =
-            ((DateTime dateValue, DateTime dateTimeValue, DateTime dateTime2Value, DateTimeOffset dateTimeOffsetValue, TimeSpan timeValue, DateTime smallDateTimeValue))result!;
+            smallDateTimeValue) = result;
 
         dateValue.Should().Be(new DateTime(2020, 2, 29));
         dateTimeValue.Should().Be(new DateTime(2020, 2, 29, 10, 11, 12));
@@ -217,12 +213,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerDateFunction("EOMONTH"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest, DateTime>(
                 (s, a) => s.RunTemporalEndOfMonthAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, DateTime>(
             (s, a) => s.RunTemporalEndOfMonthAsync());
 
         result.Should().Be(new DateTime(2020, 2, 29));
@@ -239,12 +235,12 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerDateFunction("DATEDIFF_BIG"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest, (long dayDiff, long weekDiff, long millisecondDiff, long microsecondDiff, long nanosecondDiff)>(
                 (s, a) => s.RunTemporalDateDiffBigAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, (long dayDiff, long weekDiff, long millisecondDiff, long microsecondDiff, long nanosecondDiff)>(
             (s, a) => s.RunTemporalDateDiffBigAsync());
 
         var (
@@ -252,8 +248,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             weekDiff,
             millisecondDiff,
             microsecondDiff,
-            nanosecondDiff) =
-            ((long dayDiff, long weekDiff, long millisecondDiff, long microsecondDiff, long nanosecondDiff))result!;
+            nanosecondDiff) = result;
 
         dayDiff.Should().Be(2L);
         weekDiff.Should().Be(1L);
@@ -276,7 +271,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             TemporalComparisonTolerance,
             [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, int>(
             (s, a) => s.RunTemporalNowWhereAsync(a));
         result.Should().Be(3);
     }
@@ -295,19 +290,19 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             TemporalComparisonTolerance,
             [(1, "Charlie"), (2, "Bravo"), (3, "Aaron")]);
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, string?>(
             (s, a) => s.RunTemporalNowOrderByAsync(a));
         result.Should().Be("Aaron");
     }
 
-    private static async Task<object?> RunScalarTemporalMatrixAsync(
+    private static async Task<(DateTime dateScalar, DateTime currentTimestamp, DateTime dateAdd, int whereCount, string orderedName)> RunScalarTemporalMatrixAsync(
         QueryServiceTest serviceTest)
     {
         var dateScalar = NormalizeDateTimeValue(await serviceTest.RunDateScalarAsync());
         var currentTimestamp = NormalizeDateTimeValue(await serviceTest.RunTemporalCurrentTimestampAsync());
         var dateAdd = NormalizeDateTimeValue(await serviceTest.RunTemporalDateAddAsync());
-        var whereCount = Convert.ToInt32(await serviceTest.RunTemporalNowWhereAsync(), CultureInfo.InvariantCulture);
-        var orderedName = Convert.ToString(await serviceTest.RunTemporalNowOrderByAsync(), CultureInfo.InvariantCulture) ?? string.Empty;
+        var whereCount = await serviceTest.RunTemporalNowWhereAsync();
+        var orderedName = await serviceTest.RunTemporalNowOrderByAsync() ?? string.Empty;
         dateScalar.Should().NotBe(default);
         currentTimestamp.Should().NotBe(default);
         dateAdd.Should().NotBe(default);

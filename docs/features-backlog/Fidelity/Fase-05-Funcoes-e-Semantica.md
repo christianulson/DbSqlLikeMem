@@ -6,7 +6,7 @@ IN PROGRESS
 
 ## Percentual de entrega
 
-86%
+98%
 
 ## O que foi feito
 
@@ -49,6 +49,16 @@ IN PROGRESS
 - Adicionados contratos tipados de `RunTestAsync` em `NotFidelityTestService` e `FidelityTestService` para suportar retornos fortes nos wrappers de funcoes.
 - Expandido o `ProviderSqlDialect` de testes com contratos de `APPLY`, `STRING_SPLIT`, `FOR JSON`, `OPENJSON` e categorias de funcoes SQL Server, com implementacao no `SqlServerProviderSqlDialect`.
 - Ajustados os testes de `QueryServiceScalarTemporalTest` para ler `SYSDATETIMEOFFSET`, `COMPRESS` e `DECOMPRESS` sem casts diretos fragilizados por tipo de runtime.
+- Tipados os wrappers de `FieldTypeFunctionTestsBase` e os retornos correspondentes de `QueryServiceScalarTemporalTest` para JSON e funcoes escalares do SQL Server, removendo casts manuais nesses caminhos.
+- Tipados os retornos temporais de `QueryServiceScalarTemporalTest` e os testes de `ScalarTemporalTestsBase` para `DateTime`, `DateTimeOffset`, `TimeSpan` e tuplas, removendo casts manuais nos benchmarks temporais.
+- Tipados os wrappers de `STRING_AGG` e os testes de `StringAggregateTestsBase` para `string` e `QueryResultSnapshot`, removendo unwrapping manual nos asserts de agregacao.
+- Tipados os wrappers de parametros e tempo atual de `QueryServiceScalarTemporalTest` para `string`, `int` e `DateTime`, removendo casts manuais nos testes de `SelectTestsBase` e `ScalarTemporalTestsBase`.
+- Tipados os wrappers relacionais de `QueryServiceRelationalTest` que retornam `QueryResultSnapshot`, `int`, `long` e `string?`, e o teste relacional composto de `SelectTestsBase` passou a consumir um resultado estruturado tipado em vez de `object?`.
+- Tipados os fluxos de `NEXT VALUE FOR`, `currval`, `lastval` e `session-local sequence` para retornar `long[]` diretamente nos helpers compartilhados e nos testes de provider.
+- Tipados os fluxos de `ALTER SEQUENCE INCREMENT BY` e `ALTER SEQUENCE RESTART WITH` para retornar `long[]` diretamente nos helpers compartilhados e nos testes de provider.
+- Tipados os fluxos de `setval` e `schema-qualified sequence` para retornar `long[]` diretamente nos helpers compartilhados e nos testes de provider.
+- Tipados os fluxos de `OWNED BY`, `CYCLE`, `MAXVALUE`, `MINVALUE`, `DROP IF EXISTS`, `DROP ROLLBACK` e `CREATE SEQUENCE IF NOT EXISTS` para retornar `long[]` diretamente nos helpers compartilhados e nos testes de provider.
+- Tipados os principais call sites de `SelectTestsBase` que ainda usavam `RunTestAsync<...>` implícito para rowsets de janela, `APPLY`, `UNION` e projeções simples.
 - Adicionada sobrecarga de compatibilidade em `SqlSelectQuery` para manter os testes de plano de execucao alinhados com a assinatura usada pelos parsers e helpers.
 - Adicionado o contrato de fidelidade para `FOR JSON PATH` com `ROOT('users')` na projeção compartilhada de usuarios do SQL Server e do SQL Azure.
 - Adicionado o contrato de fidelidade para `OPENJSON` em array JSON compartilhado no SQL Server e no SQL Azure.
@@ -68,6 +78,8 @@ IN PROGRESS
 - Adicionado tratamento runtime para `LEAD` no SQL Server quando o offset avaliado em runtime fica abaixo de zero.
 - Adicionado tratamento runtime para `NTH_VALUE` no SQL Server quando o ordinal avaliado em runtime fica abaixo de um.
 - Corrigido o frame padrao de janela ordenada no SQL Server para tratar `LAST_VALUE` e `NTH_VALUE` como acumulados por linha.
+- Tipados os ultimos wrappers de fidelidade que ainda retornavam `object?` nos testes de `FieldTypeFunctionTestsBase` e `SelectTestsBase`, removendo o ultimo helper de infraestrutura sem tipo explicito nesses fluxos.
+- Tipado o contrato de `SelectByPKServiceTest` para `QueryResultSnapshot` e removido o boxing dos wrappers de `json_each`, `json_tree`, `OPENJSON` e JSON tree/array da suite compartilhada.
 - Corrigido o frame padrao de janela ordenada no SQL Server para tratar agregados em janela como acumulados por linha.
 - Reforcada a cobertura de agregados em janela ordenada no SQL Server com peers duplicados em `ORDER BY`, preservando o frame padrao acumulado por linha.
 - Reforcada a diferenca entre `ROWS` e `RANGE` em janela ordenada no SQL Server com valores repetidos em `ORDER BY`.

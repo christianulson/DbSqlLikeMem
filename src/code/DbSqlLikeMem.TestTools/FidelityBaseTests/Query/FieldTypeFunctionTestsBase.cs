@@ -26,7 +26,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, int>(
             (s, a) => s.RunTypedFieldAndFunctionBlendAsync(a));
     }
 
@@ -39,7 +39,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
             (s, a) => s.RunTypedFieldFunctionMatrixAsync(a));
     }
 
@@ -52,7 +52,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
             (s, a) => s.RunTypedFieldCalculationMatrixAsync(a));
     }
 
@@ -65,7 +65,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
             (s, a) => s.RunTypedFieldStorageMatrixAsync(a));
     }
 
@@ -80,12 +80,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonScalarRead)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
                 (s, a) => s.RunJsonTypedFieldMatrixAsync(a))).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
             (s, a) => s.RunJsonTypedFieldMatrixAsync(a));
     }
 
@@ -100,13 +100,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonScalarRead)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunJsonScalarReadAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunJsonScalarReadAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunJsonScalarReadAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunJsonScalarReadAsync());
 
         result.Should().Be("Alice");
     }
@@ -122,13 +122,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonScalarRead)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunJsonPathReadAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunJsonPathReadAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunJsonPathReadAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunJsonPathReadAsync());
 
         result.Should().Be("Alice");
     }
@@ -144,13 +144,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonScalarRead)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunJsonMissingPathReadAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunJsonMissingPathReadAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunJsonMissingPathReadAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunJsonMissingPathReadAsync());
 
         result.Should().BeNull();
     }
@@ -166,13 +166,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonScalarRead)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunJsonInsertCastAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunJsonInsertCastAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunJsonInsertCastAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunJsonInsertCastAsync());
 
         result.Should().BeNull();
     }
@@ -188,13 +188,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("JSON_MODIFY"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunJsonModifyReplaceAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunJsonModifyReplaceAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunJsonModifyReplaceAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunJsonModifyReplaceAsync());
 
         result.Should().Be("{\"profile\":{\"active\":true,\"name\":\"Bia\"}}");
     }
@@ -210,13 +210,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonQueryFunction)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunJsonQueryRootFragmentAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunJsonQueryRootFragmentAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunJsonQueryRootFragmentAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunJsonQueryRootFragmentAsync());
 
         result.Should().Be("{\"profile\":{\"active\":true,\"name\":\"Ana\"}}");
     }
@@ -232,13 +232,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("STRING_ESCAPE"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunStringEscapeAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunStringEscapeAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunStringEscapeAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunStringEscapeAsync());
 
         result.Should().Be("\\\"Ana\\nBob\\\"");
     }
@@ -254,13 +254,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("TRANSLATE"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunTranslateAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunTranslateAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTranslateAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunTranslateAsync());
 
         result.Should().Be("xyc");
     }
@@ -276,13 +276,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("FORMATMESSAGE"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunFormatMessageAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunFormatMessageAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunFormatMessageAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunFormatMessageAsync());
 
         result.Should().Be("Hello Bob #7");
     }
@@ -298,13 +298,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("ISJSON"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunIsJsonAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, int>(
+                (s, _) => s.RunIsJsonAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunIsJsonAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, int>(
+            (s, _) => s.RunIsJsonAsync());
 
         result.Should().Be(1);
     }
@@ -320,13 +320,13 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerScalarFunction("FORMAT"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, _) => (object?)await s.RunFormatAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+                (s, _) => s.RunFormatAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunFormatAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, string?>(
+            (s, _) => s.RunFormatAsync());
 
         result.Should().Be("0042");
     }
@@ -508,12 +508,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerMetadataFunction("SCOPE_IDENTITY"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, int>(
                 async (s, _) => await s.RunScopeIdentityAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, int>(
             async (s, _) => await s.RunScopeIdentityAsync());
 
         result.Should().Be(1);
@@ -812,12 +812,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsApproximateAggregateFunction("APPROX_COUNT_DISTINCT"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<UsersScenario, QueryServiceTest, int>(
                 async (s, _) => await s.RunApproxCountDistinctAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
+        var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest, int>(
             async (s, _) => await s.RunApproxCountDistinctAsync());
 
         result.Should().Be(2);
@@ -887,8 +887,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTemporalFieldMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunTemporalFieldMatrixAsync());
     }
 
     /// <summary>
@@ -900,8 +900,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTemporalComparisonMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunTemporalComparisonMatrixAsync());
     }
 
     /// <summary>
@@ -913,8 +913,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTemporalArithmeticMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunTemporalArithmeticMatrixAsync());
     }
 
     /// <summary>
@@ -926,8 +926,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunCastCalculationMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunCastCalculationMatrixAsync());
     }
 
     /// <summary>
@@ -939,8 +939,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunNullComparisonMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunNullComparisonMatrixAsync());
     }
 
     /// <summary>
@@ -952,8 +952,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTypedFieldPredicateMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunTypedFieldPredicateMatrixAsync());
     }
 
     /// <summary>
@@ -965,8 +965,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTypedFieldCompoundPredicateMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, int>(
+            async (s, _) => await s.RunTypedFieldCompoundPredicateMatrixAsync());
     }
 
     /// <summary>
@@ -978,8 +978,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTextLengthMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunTextLengthMatrixAsync());
     }
 
     /// <summary>
@@ -991,7 +991,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, _) => (object?)await s.RunTextCaseMatrixAsync());
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (s, _) => await s.RunTextCaseMatrixAsync());
     }
 }

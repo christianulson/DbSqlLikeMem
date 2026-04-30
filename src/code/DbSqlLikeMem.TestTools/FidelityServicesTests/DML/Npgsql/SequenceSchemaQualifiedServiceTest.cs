@@ -15,6 +15,13 @@ public sealed class SequenceSchemaQualifiedServiceTest(
     /// PT: Retorna os valores produzidos pelo acesso a sequence qualificada por schema durante um round-trip de insert.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
+        => await RunSequenceSchemaQualifiedAsync();
+
+    /// <summary>
+    /// EN: Returns the values produced by schema-qualified sequence access during an insert round-trip.
+    /// PT: Retorna os valores produzidos pelo acesso a sequence qualificada por schema durante um round-trip de insert.
+    /// </summary>
+    public async Task<long[]> RunSequenceSchemaQualifiedAsync()
     {
         var schema = $"sales_{Context.UId}";
         var sequence = $"seq_orders_{Context.UId}";

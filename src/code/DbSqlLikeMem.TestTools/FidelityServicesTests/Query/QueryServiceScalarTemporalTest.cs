@@ -2,13 +2,14 @@ using System.Text;
 
 namespace DbSqlLikeMem.TestTools.Query;
 
+#pragma warning disable AsyncFixer01
 public partial class QueryServiceTest
 {
     /// <summary>
     /// EN: Executes a scalar date query and keeps the provider result alive.
     /// PT: Executa uma consulta escalar de data e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunDateScalarAsync()
+    public async Task<DateTime> RunDateScalarAsync()
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.DateScalar());
         var normalized = NormalizeTemporalValue(value);
@@ -20,7 +21,7 @@ public partial class QueryServiceTest
     /// EN: Executes the JSON scalar benchmark when the provider supports it.
     /// PT: Executa o benchmark escalar de JSON quando o provedor suporta isso.
     /// </summary>
-    public async Task<object?> RunJsonScalarReadAsync()
+    public async Task<string?> RunJsonScalarReadAsync()
     {
         if (!Repo.Dialect.SupportsJsonScalarRead)
         {
@@ -29,14 +30,14 @@ public partial class QueryServiceTest
 
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"name\":\"Alice\"}"));
         GC.KeepAlive(value);
-        return value;
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// EN: Executes the nested JSON path benchmark when the provider supports it.
     /// PT: Executa o benchmark de caminho JSON aninhado quando o provedor suporta isso.
     /// </summary>
-    public async Task<object?> RunJsonPathReadAsync()
+    public async Task<string?> RunJsonPathReadAsync()
     {
         if (!Repo.Dialect.SupportsJsonScalarRead)
         {
@@ -45,14 +46,14 @@ public partial class QueryServiceTest
 
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonPathRead("{\"user\":{\"name\":\"Alice\"}}"));
         GC.KeepAlive(value);
-        return value;
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// EN: Executes the JSON path benchmark with a missing path and keeps the provider result alive.
     /// PT: Executa o benchmark de caminho JSON com caminho ausente e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunJsonMissingPathReadAsync()
+    public async Task<string?> RunJsonMissingPathReadAsync()
     {
         if (!Repo.Dialect.SupportsJsonScalarRead)
         {
@@ -61,14 +62,14 @@ public partial class QueryServiceTest
 
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonPathRead("{\"user\":{}}"));
         GC.KeepAlive(value);
-        return value is DBNull ? null : value;
+        return value is DBNull ? null : Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// EN: Executes the JSON insert and cast benchmark when the provider supports JSON reads.
     /// PT: Executa o benchmark de insert e cast de JSON quando o provedor suporta leituras JSON.
     /// </summary>
-    public async Task<object?> RunJsonInsertCastAsync()
+    public async Task<string?> RunJsonInsertCastAsync()
     {
         if (!Repo.Dialect.SupportsJsonScalarRead)
         {
@@ -77,14 +78,14 @@ public partial class QueryServiceTest
 
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonScalarRead("{\"value\":42,\"text\":\"Alice\"}"));
         GC.KeepAlive(value);
-        return value is DBNull ? null : value;
+        return value is DBNull ? null : Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// EN: Executes the JSON_MODIFY replacement benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark de substituicao JSON_MODIFY e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunJsonModifyReplaceAsync()
+    public async Task<string?> RunJsonModifyReplaceAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("JSON_MODIFY"))
         {
@@ -100,7 +101,7 @@ public partial class QueryServiceTest
     /// EN: Executes the SQL Server JSON_QUERY root-fragment benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark de fragmento raiz JSON_QUERY do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunJsonQueryRootFragmentAsync()
+    public async Task<string?> RunJsonQueryRootFragmentAsync()
     {
         if (!Repo.Dialect.SupportsJsonQueryFunction)
         {
@@ -116,7 +117,7 @@ public partial class QueryServiceTest
     /// EN: Executes the SQL Server STRING_ESCAPE benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark STRING_ESCAPE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunStringEscapeAsync()
+    public async Task<string?> RunStringEscapeAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("STRING_ESCAPE"))
         {
@@ -132,7 +133,7 @@ public partial class QueryServiceTest
     /// EN: Executes the SQL Server TRANSLATE benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark TRANSLATE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTranslateAsync()
+    public async Task<string?> RunTranslateAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("TRANSLATE"))
         {
@@ -148,7 +149,7 @@ public partial class QueryServiceTest
     /// EN: Executes the SQL Server FORMATMESSAGE benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark FORMATMESSAGE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunFormatMessageAsync()
+    public async Task<string?> RunFormatMessageAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("FORMATMESSAGE"))
         {
@@ -164,7 +165,7 @@ public partial class QueryServiceTest
     /// EN: Executes the SQL Server ISJSON benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark ISJSON do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunIsJsonAsync()
+    public async Task<int> RunIsJsonAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("ISJSON"))
         {
@@ -180,7 +181,7 @@ public partial class QueryServiceTest
     /// EN: Executes the SQL Server FORMAT benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark FORMAT do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunFormatAsync()
+    public async Task<string?> RunFormatAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("FORMAT"))
         {
@@ -995,10 +996,10 @@ ORDER BY [key]
     }
 
     /// <summary>
-/// EN: Executes a current timestamp scalar query and keeps the provider result alive.
+    /// EN: Executes a current timestamp scalar query and keeps the provider result alive.
     /// PT: Executa uma consulta escalar de timestamp atual e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTemporalCurrentTimestampAsync()
+    public async Task<DateTime> RunTemporalCurrentTimestampAsync()
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalCurrentTimestamp());
         var normalized = NormalizeTemporalValue(value);
@@ -1010,7 +1011,7 @@ ORDER BY [key]
     /// EN: Executes a temporal date-add query and keeps the provider result alive.
     /// PT: Executa uma consulta temporal de soma de data e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTemporalDateAddAsync()
+    public async Task<DateTime> RunTemporalDateAddAsync()
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalDateAdd());
         var normalized = NormalizeTemporalValue(value);
@@ -1022,7 +1023,7 @@ ORDER BY [key]
     /// EN: Executes the SQL Server DATETRUNC benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark DATETRUNC do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTemporalDateTruncAsync()
+    public async Task<(DateTime monthValue, DateTime weekValue, DateTime dayOfYearValue, DateTime isoWeekValue, DateTime millisecondValue, DateTime microsecondValue)> RunTemporalDateTruncAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerDateFunction("DATETRUNC"))
         {
@@ -1056,7 +1057,7 @@ ORDER BY [key]
     /// EN: Executes the SQL Server time zone offset benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark de offset de fuso horario do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTemporalTimeZoneOffsetAsync()
+    public async Task<(int literalOffsetMinutes, string literalOffsetText, int utcOffsetMinutes, string utcOffsetText, DateTimeOffset offsetValue, DateTimeOffset switchedValue, int offsetMinutes, string offsetText, int negativeOffsetMinutes, string negativeOffsetText)> RunTemporalTimeZoneOffsetAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("TODATETIMEOFFSET"))
         {
@@ -1104,7 +1105,7 @@ ORDER BY [key]
     /// EN: Executes the SQL Server FROMPARTS temporal constructors and keeps the provider result alive.
     /// PT: Executa os construtores temporais FROMPARTS do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTemporalFromPartsAsync()
+    public async Task<(DateTime dateValue, DateTime dateTimeValue, DateTime dateTime2Value, DateTimeOffset dateTimeOffsetValue, TimeSpan timeValue, DateTime smallDateTimeValue)> RunTemporalFromPartsAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerScalarFunction("DATEFROMPARTS"))
         {
@@ -1139,7 +1140,7 @@ ORDER BY [key]
     /// EN: Executes the SQL Server EOMONTH benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark EOMONTH do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTemporalEndOfMonthAsync()
+    public async Task<DateTime> RunTemporalEndOfMonthAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerDateFunction("EOMONTH"))
         {
@@ -1157,7 +1158,7 @@ ORDER BY [key]
     /// EN: Executes the SQL Server DATEDIFF_BIG benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark DATEDIFF_BIG do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<object?> RunTemporalDateDiffBigAsync()
+    public async Task<(long dayDiff, long weekDiff, long millisecondDiff, long microsecondDiff, long nanosecondDiff)> RunTemporalDateDiffBigAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerDateFunction("DATEDIFF_BIG"))
         {
@@ -1193,7 +1194,7 @@ ORDER BY [key]
     /// EN: Executes the provider string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao de strings do provedor sobre nomes de usuarios de exemplo.
     /// </summary>
-    public async Task<object?> RunStringAggregateAsync(params object[] pars)
+    public async Task<string?> RunStringAggregateAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsStringAggregate)
         {
@@ -1222,7 +1223,7 @@ ORDER BY [key]
     /// EN: Executes the ordered string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao ordenada de strings sobre nomes de usuarios de exemplo.
     /// </summary>
-    public async Task<object?> RunStringAggregateOrderedAsync(params object[] pars)
+    public async Task<string?> RunStringAggregateOrderedAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsStringAggregate)
         {
@@ -1238,7 +1239,7 @@ ORDER BY [key]
     /// EN: Executes the distinct string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao distinta de strings sobre nomes de usuarios de exemplo.
     /// </summary>
-    public async Task<object?> RunStringAggregateDistinctAsync(params object[] pars)
+    public async Task<string?> RunStringAggregateDistinctAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsStringAggregate)
         {
@@ -1254,7 +1255,7 @@ ORDER BY [key]
     /// EN: Executes the custom-separator string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao com separador customizado sobre nomes de usuarios de exemplo.
     /// </summary>
-    public async Task<object?> RunStringAggregateCustomSeparatorAsync(params object[] pars)
+    public async Task<string?> RunStringAggregateCustomSeparatorAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsStringAggregate)
         {
@@ -1270,7 +1271,7 @@ ORDER BY [key]
     /// EN: Executes the large-group string aggregation benchmark over sample user names.
     /// PT: Executa o benchmark de agregacao de strings em grupo grande sobre nomes de usuarios de exemplo.
     /// </summary>
-    public async Task<object?> RunStringAggregateLargeGroupAsync(params object[] pars)
+    public async Task<string?> RunStringAggregateLargeGroupAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsStringAggregate)
         {
@@ -1286,7 +1287,7 @@ ORDER BY [key]
     /// EN: Executes a string-aggregation summary query with total, distinct, and repeated-name counts over sample user names.
     /// PT: Executa uma consulta resumo de agregacao de strings com contagens total, distinta e de nomes repetidos sobre nomes de usuarios de exemplo.
     /// </summary>
-    public async Task<object?> RunStringAggregateSummaryMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunStringAggregateSummaryMatrixAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsStringAggregate)
         {
@@ -1319,7 +1320,7 @@ ORDER BY [key]
     /// EN: Executes a grouped string report with CASE and COALESCE over sample user names.
     /// PT: Executa um relatorio agrupado de strings com CASE e COALESCE sobre nomes de usuarios de exemplo.
     /// </summary>
-    public async Task<object?> RunStringAggregateGroupCaseMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunStringAggregateGroupCaseMatrixAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsStringAggregate)
         {
@@ -1362,7 +1363,7 @@ ORDER BY NameGroup
     /// EN: Executes a grouped name-initial report with distinct counts and HAVING filtering over the configured users table.
     /// PT: Executa um relatorio agrupado por inicial do nome com contagens distintas e filtro HAVING na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunGroupByNameInitialMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunGroupByNameInitialMatrixAsync(params object[] pars)
     {
         var initialExpr = $"UPPER({Repo.Dialect.StringPrefixExpression("Name", 1)})";
         var rows = new List<QueryResultRowSnapshot>(3);
@@ -1410,7 +1411,7 @@ ORDER BY {initialExpr}
     /// EN: Executes a grouped name report with HAVING filtering over the configured users table.
     /// PT: Executa um relatorio agrupado por nome com filtro HAVING na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunGroupByNameHavingMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunGroupByNameHavingMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(2);
         using var command = Repo.Cnn.CreateCommand();
@@ -1448,7 +1449,7 @@ ORDER BY Name
     /// EN: Executes a GROUP BY ordinal query over the configured users table and validates grouped counts.
     /// PT: Executa uma consulta GROUP BY ordinal na tabela de usuarios configurada e valida as contagens agrupadas.
     /// </summary>
-    public async Task<object?> RunGroupByOrdinalMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunGroupByOrdinalMatrixAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsGroupByOrdinal)
         {
@@ -1498,7 +1499,7 @@ ORDER BY 1
     /// EN: Executes an ORDER BY ordinal query over the configured users table and validates the output order.
     /// PT: Executa uma consulta ORDER BY ordinal na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
-    public async Task<object?> RunOrderByOrdinalMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunOrderByOrdinalMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
@@ -1539,7 +1540,7 @@ ORDER BY 2 DESC
     /// EN: Executes a DISTINCT query ordered by ordinal and validates the projected names.
     /// PT: Executa uma consulta DISTINCT ordenada por ordinal e valida os nomes projetados.
     /// </summary>
-    public async Task<object?> RunDistinctOrderByOrdinalMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunDistinctOrderByOrdinalMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(4);
         using var command = Repo.Cnn.CreateCommand();
@@ -1580,7 +1581,7 @@ ORDER BY 1
     /// EN: Executes a DISTINCT query with a text filter ordered by ordinal and validates the projected names.
     /// PT: Executa uma consulta DISTINCT com filtro de texto ordenada por ordinal e valida os nomes projetados.
     /// </summary>
-    public async Task<object?> RunDistinctLikeOrderByOrdinalMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunDistinctLikeOrderByOrdinalMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
@@ -1618,49 +1619,43 @@ ORDER BY 1
     /// EN: Executes an IN-list predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado IN com lista na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunInListPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunInListPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name IN ('Alice', 'Charlie')
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a BETWEEN predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado BETWEEN na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunBetweenPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunBetweenPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id BETWEEN 2 AND 4
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a LIKE predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunLikePredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunLikePredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name LIKE 'A%'
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY query over the configured users table and returns the matching rowset.
     /// PT: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunBetweenLikeOrderByMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunBetweenLikeOrderByMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(2);
         using var command = Repo.Cnn.CreateCommand();
@@ -1694,49 +1689,43 @@ ORDER BY Name
     /// EN: Executes a NOT LIKE predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado NOT LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunNotLikePredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunNotLikePredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name NOT LIKE 'A%'
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a not-equal predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado diferente de na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunNotEqualPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunNotEqualPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name <> 'Bob'
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes an equality predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado de igualdade na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunEqualPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunEqualPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Name = 'Bob'
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a parameterized name lookup over the configured users table and returns the matched name.
     /// PT: Executa uma consulta parametrizada por nome na tabela de usuarios configurada e retorna o nome correspondente.
     /// </summary>
-    public async Task<object?> RunParameterSelectByNameMatrixAsync(params object[] pars)
+    public async Task<string?> RunParameterSelectByNameMatrixAsync(params object[] pars)
     {
         var name = (string)pars[0];
 
@@ -1760,7 +1749,7 @@ WHERE Name = {Repo.Dialect.Parameter("name")}
     /// EN: Executes a parameterized id lookup over the configured users table and returns the matched name.
     /// PT: Executa uma consulta parametrizada por id na tabela de usuarios configurada e retorna o nome correspondente.
     /// </summary>
-    public async Task<object?> RunParameterSelectByIdMatrixAsync(params object[] pars)
+    public async Task<string?> RunParameterSelectByIdMatrixAsync(params object[] pars)
     {
         var id = Convert.ToInt32(pars[0], CultureInfo.InvariantCulture);
         var expectedName = (string)pars[1];
@@ -1786,7 +1775,7 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
     /// EN: Executes a parameter roundtrip over typed user columns and validates string, numeric, boolean, date, and null parameters.
     /// PT: Executa um roundtrip de parametros sobre colunas tipadas de usuarios e valida parametros de texto, numericos, booleanos, data e nulos.
     /// </summary>
-    public async Task<object?> RunParameterRoundTripMatrixAsync(params object[] pars)
+    public async Task<int> RunParameterRoundTripMatrixAsync(params object[] pars)
     {
         var id = (int)pars[0];
         var name = (string)pars[1];
@@ -1892,7 +1881,7 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
     /// EN: Executes a typed parameter projection and validates ANSI text, fixed-length text, numeric, temporal, GUID, and binary values returned by provider-specific parameter objects.
     /// PT: Executa uma projeção de parametros tipados e valida valores de texto ANSI, texto de comprimento fixo, numericos, temporais, GUID e binario retornados pelos objetos de parametro especificos do provedor.
     /// </summary>
-    public async Task<object?> RunParameterTypeMatrixAsync(params object[] pars)
+    public async Task<int> RunParameterTypeMatrixAsync(params object[] pars)
     {
         var text = (string)pars[0];
         var ansiText = (string)pars[1];
@@ -2009,7 +1998,7 @@ FROM SYSIBM.SYSDUMMY1
     /// EN: Executes a compact typed parameter projection for date and currency values returned by provider-specific parameter objects.
     /// PT: Executa uma projeção compacta de parametros tipados para valores de data e moeda retornados pelos objetos de parametro especificos do provedor.
     /// </summary>
-    public async Task<object?> RunParameterDateCurrencyMatrixAsync(params object[] pars)
+    public async Task<int> RunParameterDateCurrencyMatrixAsync(params object[] pars)
     {
         var dateValue = (DateTime)pars[0];
         var currencyValue = (decimal)pars[1];
@@ -2326,63 +2315,55 @@ FROM SYSIBM.SYSDUMMY1
     /// EN: Executes a greater-than predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado maior que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunGreaterThanPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunGreaterThanPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id > 3
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a less-than predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado menor que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunLessThanPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunLessThanPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id < 3
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a greater-than-or-equal predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado maior ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunGreaterThanOrEqualPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunGreaterThanOrEqualPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id >= 3
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes a less-than-or-equal predicate over the configured users table and returns the matching rowset.
     /// PT: Executa um predicado menor ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunLessThanOrEqualPredicateMatrixAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunLessThanOrEqualPredicateMatrixAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 SELECT Id, Name
 FROM {Context.TbUsersFullName}
 WHERE Id <= 3
 ORDER BY Id
 """);
-    }
 
     /// <summary>
     /// EN: Executes an ORDER BY Name query over the configured users table and validates the output order.
     /// PT: Executa uma consulta ORDER BY Name na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
-    public async Task<object?> RunOrderByNameMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunOrderByNameMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
@@ -2418,7 +2399,7 @@ ORDER BY Name
     /// EN: Executes an ORDER BY Name descending query over the configured users table and validates the output order.
     /// PT: Executa uma consulta ORDER BY Name descendente na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
-    public async Task<object?> RunOrderByNameDescendingMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunOrderByNameDescendingMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
@@ -2454,7 +2435,7 @@ ORDER BY Name DESC
     /// EN: Executes a paged name query using ROW_NUMBER and validates the selected page rows.
     /// PT: Executa uma consulta paginada por nome usando ROW_NUMBER e valida as linhas da pagina selecionada.
     /// </summary>
-    public async Task<object?> RunNamePaginationMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunNamePaginationMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
@@ -2494,7 +2475,7 @@ ORDER BY rn
     /// EN: Executes a native paged name query and validates the selected page rows for the configured users table.
     /// PT: Executa uma consulta nativa paginada por nome e valida as linhas da pagina selecionada na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunPagedNameProjectionMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunPagedNameProjectionMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(2);
         using var command = Repo.Cnn.CreateCommand();
@@ -2522,22 +2503,22 @@ ORDER BY rn
     /// EN: Reads a current-time predicate query result from the configured users table.
     /// PT: Lê o resultado de uma consulta com predicado de tempo atual na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunTemporalNowWhereAsync(params object[] pars)
+    public async Task<int> RunTemporalNowWhereAsync(params object[] pars)
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalNowWhere(Context));
         GC.KeepAlive(value);
-        return value;
+        return Convert.ToInt32(value, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// EN: Reads a current-time ordering query result from the configured users table.
     /// PT: Lê o resultado de uma consulta com ordenação por tempo atual na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunTemporalNowOrderByAsync(params object[] pars)
+    public async Task<string?> RunTemporalNowOrderByAsync(params object[] pars)
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.TemporalNowOrderBy(Context));
         GC.KeepAlive(value);
-        return value;
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
     private string[] NormalizeSnapshotColumnNames(string[] columnNames)
@@ -2635,3 +2616,4 @@ ORDER BY rn
         };
     }
 }
+#pragma warning restore AsyncFixer01

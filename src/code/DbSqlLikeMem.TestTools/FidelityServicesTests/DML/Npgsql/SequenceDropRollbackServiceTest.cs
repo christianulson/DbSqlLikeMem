@@ -15,6 +15,13 @@ public sealed class SequenceDropRollbackServiceTest(
     /// PT: Retorna os valores observados da sequence e se a sequence removida permaneceu indisponivel ate o rollback.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
+        => await RunSequenceDropRollbackAsync();
+
+    /// <summary>
+    /// EN: Returns the observed sequence values and whether the dropped sequence stayed unavailable until rollback.
+    /// PT: Retorna os valores observados da sequence e se a sequence removida permaneceu indisponivel ate o rollback.
+    /// </summary>
+    public async Task<long[]> RunSequenceDropRollbackAsync()
     {
         Console.WriteLine($"[SequenceDropRollback] Reading initial value from {Context.Seq}.");
         var initial = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");

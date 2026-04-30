@@ -15,9 +15,14 @@ public sealed class SequenceSessionLocalServiceTest(
     /// PT: Retorna os valores observados de sequence locais da sessao para currval ou lastval em duas conexoes.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        var useLastVal = args.Length > 0 && args[0] is bool flag && flag;
+        => await RunSequenceSessionLocalAsync(args.Length > 0 && args[0] is bool flag && flag);
 
+    /// <summary>
+    /// EN: Returns the observed session-local sequence values for currval or lastval across two connections.
+    /// PT: Retorna os valores observados de sequence locais da sessao para currval ou lastval em duas conexoes.
+    /// </summary>
+    public async Task<long[]> RunSequenceSessionLocalAsync(bool useLastVal)
+    {
         await EnsureOpenAsync(Repo);
         using var second = Repo.CloneWithSharedDatabase();
         await EnsureOpenAsync(second);
@@ -27,7 +32,7 @@ public sealed class SequenceSessionLocalServiceTest(
             : await RunCurrValAsync(second);
     }
 
-    private async Task<object?[]> RunCurrValAsync(RepoService second)
+    private async Task<long[]> RunCurrValAsync(RepoService second)
     {
         var firstMissing = await CaptureSessionMissingAsync(Repo, $"SELECT currval('{Context.Seq}')");
         var firstNext = await ExecuteScalarLongAsync(Repo, $"SELECT nextval('{Context.Seq}')");
@@ -37,10 +42,10 @@ public sealed class SequenceSessionLocalServiceTest(
         var secondCurr = await ExecuteScalarLongAsync(second, $"SELECT currval('{Context.Seq}')");
         var firstCurrAfterSecond = await ExecuteScalarLongAsync(Repo, $"SELECT currval('{Context.Seq}')");
 
-        return new object?[] { firstMissing, firstNext, firstCurr, secondMissing, secondNext, secondCurr, firstCurrAfterSecond };
+        return new[] { firstMissing, firstNext, firstCurr, secondMissing, secondNext, secondCurr, firstCurrAfterSecond };
     }
 
-    private async Task<object?[]> RunLastValAsync(RepoService second)
+    private async Task<long[]> RunLastValAsync(RepoService second)
     {
         var firstMissing = await CaptureSessionMissingAsync(Repo, "SELECT lastval()");
         var firstNext = await ExecuteScalarLongAsync(Repo, $"SELECT nextval('{Context.Seq}')");
@@ -50,7 +55,7 @@ public sealed class SequenceSessionLocalServiceTest(
         var secondLast = await ExecuteScalarLongAsync(second, "SELECT lastval()");
         var firstLastAfterSecond = await ExecuteScalarLongAsync(Repo, "SELECT lastval()");
 
-        return new object?[] { firstMissing, firstNext, firstLast, secondMissing, secondNext, secondLast, firstLastAfterSecond };
+        return new[] { firstMissing, firstNext, firstLast, secondMissing, secondNext, secondLast, firstLastAfterSecond };
     }
 
     private static async Task<long> ExecuteScalarLongAsync(RepoService repo, string sql)

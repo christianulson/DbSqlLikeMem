@@ -15,6 +15,13 @@ public sealed class SequenceExpressionFilterServiceTest(
     /// PT: Retorna os valores gerados de uma consulta filtrada com sequence executada duas vezes.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
+        => await RunSequenceExpressionFilterAsync(args);
+
+    /// <summary>
+    /// EN: Returns the generated values from a filtered sequence query executed twice.
+    /// PT: Retorna os valores gerados de uma consulta filtrada com sequence executada duas vezes.
+    /// </summary>
+    public async Task<long[]> RunSequenceExpressionFilterAsync(params object[] args)
     {
         _ = args;
 

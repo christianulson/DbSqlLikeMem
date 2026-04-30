@@ -15,9 +15,14 @@ public sealed class SequenceAlterRestartServiceTest(
     /// PT: Reinicia a sequence atual e retorna os proximos valores gerados depois do restart.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceAlterRestartAsync();
 
+    /// <summary>
+    /// EN: Resets the current sequence and returns the next generated values after the restart.
+    /// PT: Reinicia a sequence atual e retorna os proximos valores gerados depois do restart.
+    /// </summary>
+    public async Task<long[]> RunSequenceAlterRestartAsync()
+    {
         await ExecuteNonQueryAsync($"ALTER SEQUENCE {Context.Seq} RESTART WITH 40");
         var first = await ExecuteScalarLongAsync(Repo.Dialect.NextSequenceValue(Context));
         var second = await ExecuteScalarLongAsync(Repo.Dialect.NextSequenceValue(Context));

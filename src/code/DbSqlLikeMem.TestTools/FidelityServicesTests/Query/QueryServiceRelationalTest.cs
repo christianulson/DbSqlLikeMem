@@ -1,5 +1,6 @@
 namespace DbSqlLikeMem.TestTools.Query;
 
+#pragma warning disable AsyncFixer01
 public partial class QueryServiceTest
 {
     private string BuildFirstNoteSubquery(string orderByDirection) => Repo.Dialect.Provider switch
@@ -67,7 +68,7 @@ public partial class QueryServiceTest
     /// EN: Executes a large grouped join query over users and orders and validates the projected rows.
     /// PT: Executa uma consulta grande com junção agrupada entre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public async Task<object?> RunJoinTypedExpressionMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinTypedExpressionMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var rows = new List<QueryResultRowSnapshot>(2);
@@ -114,7 +115,7 @@ ORDER BY u.Id
     /// EN: Executes a left join aggregate query that keeps users without orders and validates null-handling behavior.
     /// PT: Executa uma consulta agregada com left join que preserva usuarios sem pedidos e valida o tratamento de null.
     /// </summary>
-    public async Task<object?> RunJoinNullAggregateMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinNullAggregateMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var rows = new List<QueryResultRowSnapshot>(3);
@@ -163,7 +164,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join query that combines casts, null handling, and aggregate formatting.
     /// PT: Executa uma consulta agrupada com left join que combina casts, tratamento de null e formatacao de agregados.
     /// </summary>
-    public async Task<object?> RunJoinCastNullMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinCastNullMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var rows = new List<QueryResultRowSnapshot>(3);
@@ -212,7 +213,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join query that casts numeric aggregates to text and combines them with comparisons.
     /// PT: Executa uma consulta agrupada com left join que converte agregados numericos para texto e os combina com comparacoes.
     /// </summary>
-    public async Task<object?> RunJoinCastTextComparisonMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinCastTextComparisonMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var rows = new List<QueryResultRowSnapshot>(3);
@@ -261,7 +262,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped join query with HAVING filters and validates casted aggregate outputs.
     /// PT: Executa uma consulta agrupada com filtros HAVING e valida saidas agregadas convertidas.
     /// </summary>
-    public async Task<object?> RunJoinHavingCastMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinHavingCastMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var rows = new List<QueryResultRowSnapshot>(1);
@@ -303,7 +304,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped join query that mixes string-length expressions with numeric conversions and aggregates.
     /// PT: Executa uma consulta agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados.
     /// </summary>
-    public async Task<object?> RunJoinLengthNumericMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinLengthNumericMatrixAsync(params object[] pars)
     {
         var nameLenExpr = Repo.Dialect.Provider is ProviderId.Db2 or ProviderId.Oracle
             ? "MAX(LENGTH(u.Name))"
@@ -358,7 +359,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped join query that blends string case, string length, and aggregate comparisons.
     /// PT: Executa uma consulta agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas.
     /// </summary>
-    public async Task<object?> RunJoinTextCaseLengthMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinTextCaseLengthMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
 
@@ -417,7 +418,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join report that combines distinct counts, CASE expressions, and repeated values.
     /// PT: Executa um relatorio agrupado com left join que combina contagens distintas, expressoes CASE e valores repetidos.
     /// </summary>
-    public async Task<object?> RunJoinDistinctCaseMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinDistinctCaseMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var rows = new List<QueryResultRowSnapshot>(3);
@@ -463,7 +464,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join report with HAVING and distinct note counts.
     /// PT: Executa um relatorio agrupado com left join, HAVING e contagens distintas de notas.
     /// </summary>
-    public async Task<object?> RunJoinDistinctHavingMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinDistinctHavingMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var rows = new List<QueryResultRowSnapshot>(2);
@@ -506,7 +507,7 @@ ORDER BY u.Id
     /// EN: Executes a grouped left join query that blends temporal comparisons with aggregate counts.
     /// PT: Executa uma consulta agrupada com left join que mistura comparacoes temporais com contagens agregadas.
     /// </summary>
-    public async Task<object?> RunJoinTemporalMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinTemporalMatrixAsync(params object[] pars)
     {
         var orderCountExpr = BuildOrderCountExpression();
         var expectedNextDayAfterOrder = 1;
@@ -558,7 +559,7 @@ ORDER BY u.Id
     /// EN: Executes a joined window-function query over users and orders and validates the projected rows.
     /// PT: Executa uma consulta com funcoes de janela em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public async Task<object?> RunJoinWindowMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinWindowMatrixAsync(params object[] pars)
     {
         var orderCountExpr = "COUNT(*)";
         var rows = new List<QueryResultRowSnapshot>(3);
@@ -603,7 +604,7 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a joined window-function query with temporal comparisons over users and orders and validates the projected rows.
     /// PT: Executa uma consulta com funcoes de janela e comparacoes temporais em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public async Task<object?> RunJoinWindowTemporalMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinWindowTemporalMatrixAsync(params object[] pars)
     {
         var orderCountExpr = "COUNT(*)";
         var expectedNextDayAfterOrder = 1;
@@ -655,7 +656,7 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a joined window-function query with temporal and aggregate comparisons over users and orders and validates the projected rows.
     /// PT: Executa uma consulta com funcoes de janela, comparacoes temporais e agregadas em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
-    public async Task<object?> RunJoinWindowAggregateTemporalMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunJoinWindowAggregateTemporalMatrixAsync(params object[] pars)
     {
         var orderCountExpr = "COUNT(*)";
         var expectedNextDayAfterOrder = 1;
@@ -1059,7 +1060,7 @@ ORDER BY u.Id, o.Id
     /// EN: Counts the rows returned by a select over the configured users table.
     /// PT: Conta as linhas retornadas por um select na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunRowCountAfterSelectAsync(params object[] pars)
+    public async Task<int> RunRowCountAfterSelectAsync(params object[] pars)
     {
         var count = await CountReaderRowsAsync($"SELECT * FROM {Context.TbUsersFullName}");
         if (count != 2)
@@ -1074,27 +1075,22 @@ ORDER BY u.Id, o.Id
     /// EN: Executes a select over all configured users and returns the ordered Name snapshot.
     /// PT: Executa um select sobre todos os usuarios configurados e retorna o snapshot ordenado de Name.
     /// </summary>
-    public async Task<object?> RunAllRowsSnapshotAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"SELECT Name FROM {Context.TbUsersFullName} ORDER BY Id");
-    }
+    public Task<QueryResultSnapshot> RunAllRowsSnapshotAsync(params object[] pars)
+        => CaptureSnapshotAsync($"SELECT Name FROM {Context.TbUsersFullName} ORDER BY Id");
 
     /// <summary>
     /// EN: Executes a simple CTE query against the configured users table.
     /// PT: Executa uma consulta CTE simples na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunCteSimpleAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.CteSimple(Context));
-    }
+    public Task<QueryResultSnapshot> RunCteSimpleAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.CteSimple(Context));
 
     /// <summary>
     /// EN: Executes a CTE query with a MATERIALIZED hint against the configured users table.
     /// PT: Executa uma consulta CTE com hint MATERIALIZED na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunCteMaterializedHintAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync($"""
+    public Task<QueryResultSnapshot> RunCteMaterializedHintAsync(params object[] pars)
+        => CaptureSnapshotAsync($"""
 WITH x AS MATERIALIZED (
     SELECT Id, Name
     FROM {Context.TbUsersFullName}
@@ -1103,76 +1099,61 @@ WITH x AS MATERIALIZED (
 SELECT Name
 FROM x
 """);
-    }
 
     /// <summary>
     /// EN: Executes a ROW_NUMBER window query against the configured users table and returns the full rowset snapshot.
     /// PT: Executa uma consulta de janela ROW_NUMBER na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
-    public async Task<object?> RunWindowRowNumberAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.WindowRowNumber(Context));
-    }
+    public Task<QueryResultSnapshot> RunWindowRowNumberAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.WindowRowNumber(Context));
 
     /// <summary>
     /// EN: Executes a LAG window query against the configured users table and returns the full rowset snapshot.
     /// PT: Executa uma consulta de janela LAG na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
-    public async Task<object?> RunWindowLagAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.WindowLag(Context));
-    }
+    public Task<QueryResultSnapshot> RunWindowLagAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.WindowLag(Context));
 
     /// <summary>
     /// EN: Executes a LEAD window query against the configured users table and returns the full rowset snapshot.
     /// PT: Executa uma consulta de janela LEAD na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
-    public async Task<object?> RunWindowLeadAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.WindowLead(Context));
-    }
+    public Task<QueryResultSnapshot> RunWindowLeadAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.WindowLead(Context));
 
     /// <summary>
     /// EN: Executes an EXISTS predicate query against the configured users and orders tables.
     /// PT: Executa uma consulta com predicado EXISTS nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectExistsPredicateAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.SelectExistsPredicate(Context));
-    }
+    public Task<QueryResultSnapshot> RunSelectExistsPredicateAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.SelectExistsPredicate(Context));
 
     /// <summary>
     /// EN: Executes a NOT EXISTS predicate query against the configured users and orders tables.
     /// PT: Executa uma consulta com predicado NOT EXISTS nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectNotExistsPredicateAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.SelectNotExistsPredicate(Context));
-    }
+    public Task<QueryResultSnapshot> RunSelectNotExistsPredicateAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.SelectNotExistsPredicate(Context));
 
     /// <summary>
     /// EN: Executes a LEFT JOIN anti-join query against the configured users and orders tables.
     /// PT: Executa uma consulta anti-join com LEFT JOIN nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectLeftJoinAntiJoinAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.SelectLeftJoinAntiJoin(Context));
-    }
+    public Task<QueryResultSnapshot> RunSelectLeftJoinAntiJoinAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.SelectLeftJoinAntiJoin(Context));
 
     /// <summary>
     /// EN: Executes a correlated count query against the configured users and orders tables.
     /// PT: Executa uma consulta de contagem correlacionada nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectCorrelatedCountAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.SelectCorrelatedCount(Context));
-    }
+    public Task<QueryResultSnapshot> RunSelectCorrelatedCountAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.SelectCorrelatedCount(Context));
 
     /// <summary>
     /// EN: Executes a per-row scalar subquery report with CASE expressions against the configured users and orders tables.
     /// PT: Executa um relatorio com subconsulta escalar por linha e expressoes CASE nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectScalarCaseMatrixAsync(params object[] pars)
+    public async Task<QueryResultSnapshot> RunSelectScalarCaseMatrixAsync(params object[] pars)
     {
         var rows = new List<QueryResultRowSnapshot>(3);
         using var command = Repo.Cnn.CreateCommand();
@@ -1213,122 +1194,102 @@ ORDER BY u.Id
     /// EN: Executes the scalar subquery case matrix against the configured users and orders tables.
     /// PT: Executa a matriz de subconsulta escalar com CASE nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public Task<object?> RunSelectScalarSubqueryCaseMatrixAsync(params object[] pars)
+    public Task<QueryResultSnapshot> RunSelectScalarSubqueryCaseMatrixAsync(params object[] pars)
         => RunSelectScalarCaseMatrixAsync(pars);
 
     /// <summary>
     /// EN: Executes a GROUP BY HAVING query against the configured users and orders tables and returns the matching rowset.
     /// PT: Executa uma consulta GROUP BY HAVING nas tabelas de usuarios e pedidos configuradas e retorna o conjunto de linhas correspondente.
     /// </summary>
-    public async Task<object?> RunGroupByHavingAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.GroupByHaving(Context));
-    }
+    public Task<QueryResultSnapshot> RunGroupByHavingAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.GroupByHaving(Context));
 
     /// <summary>
     /// EN: Executes a UNION ALL projection query against the configured users table.
     /// PT: Executa uma consulta de projeção UNION ALL na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunUnionAllProjectionAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.UnionAllProjection(Context));
-    }
+    public Task<QueryResultSnapshot> RunUnionAllProjectionAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.UnionAllProjection(Context));
 
     /// <summary>
     /// EN: Executes a UNION projection query against the configured users table.
     /// PT: Executa uma consulta de projeção UNION na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunUnionDistinctProjectionAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.UnionDistinctProjection(Context));
-    }
+    public Task<QueryResultSnapshot> RunUnionDistinctProjectionAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.UnionDistinctProjection(Context));
 
     /// <summary>
     /// EN: Executes a DISTINCT projection query against the configured users table.
     /// PT: Executa uma consulta de projeção DISTINCT na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunDistinctProjectionAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.DistinctProjection(Context));
-    }
+    public Task<QueryResultSnapshot> RunDistinctProjectionAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.DistinctProjection(Context));
 
     /// <summary>
     /// EN: Executes a DISTINCT ON projection query against the configured users and orders tables.
     /// PT: Executa uma consulta de projeção DISTINCT ON nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunDistinctOnProjectionAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.DistinctOnProjection(Context));
-    }
+    public Task<QueryResultSnapshot> RunDistinctOnProjectionAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.DistinctOnProjection(Context));
 
     /// <summary>
     /// EN: Executes a multi-join aggregate query against the configured users and orders tables.
     /// PT: Executa uma consulta agregada com multiplos joins nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunMultiJoinAggregateAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.MultiJoinAggregate(Context));
-    }
+    public Task<QueryResultSnapshot> RunMultiJoinAggregateAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.MultiJoinAggregate(Context));
 
     /// <summary>
     /// EN: Executes a scalar subquery projection against the configured users and orders tables.
     /// PT: Executa uma projeção com subconsulta escalar nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectScalarSubqueryAsync(params object[] pars)
+    public async Task<long> RunSelectScalarSubqueryAsync(params object[] pars)
     {
         var value = await Repo.ExecuteScalarAsync(Repo.Dialect.SelectScalarSubquery(Context));
         GC.KeepAlive(value);
-        return value;
+        return Convert.ToInt64(value, CultureInfo.InvariantCulture);
     }
 
     /// <summary>
     /// EN: Executes an IN subquery predicate against the configured users and orders tables.
     /// PT: Executa um predicado IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectInSubqueryAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.SelectInSubquery(Context));
-    }
+    public Task<QueryResultSnapshot> RunSelectInSubqueryAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.SelectInSubquery(Context));
 
     /// <summary>
     /// EN: Executes a NOT IN subquery predicate against the configured users and orders tables.
     /// PT: Executa um predicado NOT IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunSelectNotInSubqueryAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.SelectNotInSubquery(Context));
-    }
+    public Task<QueryResultSnapshot> RunSelectNotInSubqueryAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.SelectNotInSubquery(Context));
 
     /// <summary>
     /// EN: Executes a CROSS APPLY style projection against the configured users and orders tables.
     /// PT: Executa uma projeção no estilo CROSS APPLY nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunCrossApplyProjectionAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.CrossApplyProjection(Context));
-    }
+    public Task<QueryResultSnapshot> RunCrossApplyProjectionAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.CrossApplyProjection(Context));
 
     /// <summary>
     /// EN: Executes an OUTER APPLY style projection against the configured users and orders tables.
     /// PT: Executa uma projeção no estilo OUTER APPLY nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
-    public async Task<object?> RunOuterApplyProjectionAsync(params object[] pars)
-    {
-        return await CaptureSnapshotAsync(Repo.Dialect.OuterApplyProjection(Context));
-    }
+    public Task<QueryResultSnapshot> RunOuterApplyProjectionAsync(params object[] pars)
+        => CaptureSnapshotAsync(Repo.Dialect.OuterApplyProjection(Context));
 
     /// <summary>
     /// EN: Executes a STRING_SPLIT projection against the configured users table and returns the full rowset snapshot.
     /// PT: Executa uma projeção STRING_SPLIT na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
-    public async Task<object?> RunStringSplitProjectionAsync(params object[] pars)
+    public Task<QueryResultSnapshot> RunStringSplitProjectionAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsApplyClause || !Repo.Dialect.SupportsStringSplitFunction)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the STRING_SPLIT benchmark.");
         }
 
-        return await CaptureSnapshotAsync($"""
+        return CaptureSnapshotAsync($"""
 SELECT part.value
 FROM {Context.TbUsersFullName} u
 CROSS APPLY STRING_SPLIT(u.Email, ',') part
@@ -1340,7 +1301,7 @@ WHERE u.Id = 3
     /// EN: Executes a FOR JSON PATH projection against the configured users table and returns the serialized payload.
     /// PT: Executa uma projeção FOR JSON PATH na tabela de usuarios configurada e retorna o payload serializado.
     /// </summary>
-    public async Task<object?> RunForJsonPathProjectionAsync(params object[] pars)
+    public async Task<string?> RunForJsonPathProjectionAsync(params object[] pars)
     {
         if (!Repo.Dialect.SupportsForJsonClause)
         {
@@ -1365,7 +1326,7 @@ FOR JSON PATH, ROOT('users')
     /// EN: Executes a partition-pruning style select against the configured users table.
     /// PT: Executa um select no estilo partition pruning na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunPartitionPruningSelectAsync(params object[] pars)
+    public async Task<int> RunPartitionPruningSelectAsync(params object[] pars)
     {
         var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COUNT(*) FROM {Context.TbUsersFullName} WHERE Id BETWEEN 5 AND 10"), CultureInfo.InvariantCulture);
         GC.KeepAlive(value);
@@ -1376,7 +1337,7 @@ FOR JSON PATH, ROOT('users')
     /// EN: Executes a pivot-style count query against the configured users table.
     /// PT: Executa uma consulta de contagem no estilo pivot na tabela de usuarios configurada.
     /// </summary>
-    public async Task<object?> RunPivotCountAsync(params object[] pars)
+    public async Task<int> RunPivotCountAsync(params object[] pars)
     {
         var sql = $"SELECT COUNT(*) FROM {Context.TbUsersFullName} WHERE Name LIKE 'A%' OR Name LIKE 'B%'";
         var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(sql), CultureInfo.InvariantCulture);
@@ -1422,3 +1383,4 @@ FOR JSON PATH, ROOT('users')
         return snapshot;
     }
 }
+#pragma warning restore AsyncFixer01

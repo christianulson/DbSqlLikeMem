@@ -15,9 +15,14 @@ public sealed class SequenceDropIfExistsServiceTest(
     /// PT: Retorna o primeiro valor gerado da sequence e se a segunda remocao IF EXISTS foi concluida.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceDropIfExistsAsync();
 
+    /// <summary>
+    /// EN: Returns the first generated sequence value and whether the second IF EXISTS drop completed.
+    /// PT: Retorna o primeiro valor gerado da sequence e se a segunda remocao IF EXISTS foi concluida.
+    /// </summary>
+    public async Task<long[]> RunSequenceDropIfExistsAsync()
+    {
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         await ExecuteNonQueryAsync($"DROP SEQUENCE IF EXISTS {Context.Seq}");
         await ExecuteNonQueryAsync($"DROP SEQUENCE IF EXISTS {Context.Seq}");

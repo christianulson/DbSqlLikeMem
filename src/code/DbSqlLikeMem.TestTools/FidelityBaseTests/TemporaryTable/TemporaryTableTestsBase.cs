@@ -22,7 +22,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     [FidelityFact]
     public async Task CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows()
     {
-        var result = (List<int>?)await RunFidelityTestAsync<TemporaryTableScenario>(
+        var result = await RunFidelityTestAsync<TemporaryTableScenario, List<int>>(
             (s, a) => s.RunCreateTemporaryTableAsSelectThenSelectAsync(a));
 
         result.Should().Equal([1, 2]);
@@ -43,7 +43,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     [FidelityFact]
     public async Task CreateTemporaryUsersTable_Rollback_ShouldClearRows()
     {
-        var result = await RunFidelityTestAsync<TemporaryUsersScenario>(
+        var result = await RunFidelityTestAsync<TemporaryUsersScenario, object?>(
             async (s, a) =>
             {
                 await s.RunTempTableRollback();
@@ -68,7 +68,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     [FidelityFact]
     public async Task CreateTemporaryUsersTable_CreateAndUse_ShouldReturnOne()
     {
-        var result = (int?)await RunFidelityTestAsync<TemporaryUsersScenario>(
+        var result = await RunFidelityTestAsync<TemporaryUsersScenario, int>(
             (s, a) => s.RunTempTableCreateAndUse(a));
 
         result.Should().Be(1);
@@ -81,7 +81,7 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     [FidelityFact]
     public async Task CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero()
     {
-        var result = (int?)await RunFidelityTestAsync<TemporaryUsersScenario>(
+        var result = await RunFidelityTestAsync<TemporaryUsersScenario, int>(
             (s, a) => s.RunTemporaryTableCrossConnectionIsolation(a));
 
         result.Should().Be(0);
@@ -95,14 +95,14 @@ public abstract class TemporaryTableTestsBase<T, T2>(
     public Task TempTableCrossConnectionIsolationTest()
         => CreateTemporaryUsersTable_CrossConnectionIsolation_ShouldReturnZero();
 
-    private async Task<object?> RunFidelityTestAsync<TScenario>(
-        Func<TemporaryTableServiceOpsTest, object[], Task<object?>> runTest,
+    private async Task<TResult> RunFidelityTestAsync<TScenario, TResult>(
+        Func<TemporaryTableServiceOpsTest, object[], Task<TResult>> runTest,
         params object[] args)
         where TScenario : BaseScenario, ITestScenario
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        return await testService.RunTestAsync<TScenario, TemporaryTableServiceOpsTest>(runTest, args);
+        return await testService.RunTestAsync<TScenario, TemporaryTableServiceOpsTest, TResult>(runTest, args);
     }
 }
 

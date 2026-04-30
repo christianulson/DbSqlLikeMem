@@ -6,7 +6,7 @@ public partial class QueryServiceTest
     /// EN: Inserts text, boolean, integer, exact and approximate numeric, fixed-length text, bigint, GUID, binary, time, DateTimeOffset, and boundary values into the users table and reads them back for fidelity checks.
     /// PT: Insere valores de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, GUID, binario, time, DateTimeOffset e valores de borda na tabela de usuarios e os le de volta para verificacoes de fidelidade.
     /// </summary>
-    internal async Task<object?> RunTypedFieldStorageMatrixAsync(params object[] pars)
+    internal async Task<QueryResultSnapshot> RunTypedFieldStorageMatrixAsync(params object[] pars)
     {
         var firstCreatedAt = new DateTime(2026, 1, 15, 10, 30, 0, DateTimeKind.Utc);
         var firstUpdatedAt = new DateTime(2026, 1, 16, 11, 45, 0, DateTimeKind.Utc);

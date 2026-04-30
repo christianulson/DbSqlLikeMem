@@ -18,7 +18,7 @@ public class SchemaSnapshotServiceOpsTest(
     /// EN: Reads a schema snapshot from the provider when the feature exists.
     /// PT: Lê um snapshot de schema do provedor quando o recurso existe.
     /// </summary>
-    public object? RunSchemaSnapshotExport()
+    public SchemaSnapshot RunSchemaSnapshotExport()
     {
         var snapshot = GetSchemaSnapshot(Repo.Cnn);
         GC.KeepAlive(snapshot);

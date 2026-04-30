@@ -15,9 +15,14 @@ public sealed class SequenceSessionLocalServiceTest(
     /// PT: Retorna os valores observados de next e previous da sequence em duas sessoes DB2.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceSessionLocalAsync();
 
+    /// <summary>
+    /// EN: Returns the observed next and previous sequence values across two DB2 sessions.
+    /// PT: Retorna os valores observados de next e previous da sequence em duas sessoes DB2.
+    /// </summary>
+    public async Task<long[]> RunSequenceSessionLocalAsync()
+    {
         await EnsureOpenAsync(Repo);
         using var second = Repo.CloneWithSharedDatabase();
         await EnsureOpenAsync(second);
@@ -25,7 +30,7 @@ public sealed class SequenceSessionLocalServiceTest(
         return await RunSessionLocalAsync(second);
     }
 
-    private async Task<object?[]> RunSessionLocalAsync(RepoService second)
+    private async Task<long[]> RunSessionLocalAsync(RepoService second)
     {
         var firstNext = await ExecuteScalarLongAsync(Repo, Repo.Dialect.NextSequenceValue(Context));
         var firstPrevious = await ExecuteScalarLongAsync(Repo, Repo.Dialect.CurrentSequenceValue(Context));
@@ -33,7 +38,7 @@ public sealed class SequenceSessionLocalServiceTest(
         var secondPrevious = await ExecuteScalarLongAsync(second, Repo.Dialect.CurrentSequenceValue(Context));
         var firstPreviousAfterSecond = await ExecuteScalarLongAsync(Repo, Repo.Dialect.CurrentSequenceValue(Context));
 
-        return new object?[] { firstNext, firstPrevious, secondNext, secondPrevious, firstPreviousAfterSecond };
+        return new[] { firstNext, firstPrevious, secondNext, secondPrevious, firstPreviousAfterSecond };
     }
 
     private static async Task<long> ExecuteScalarLongAsync(RepoService repo, string sql)

@@ -15,9 +15,14 @@ public sealed class SequenceIncrementByServiceTest(
     /// PT: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceIncrementByAsync();
 
+    /// <summary>
+    /// EN: Returns the sequence values before and after changing the increment size.
+    /// PT: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
+    /// </summary>
+    public async Task<long[]> RunSequenceIncrementByAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 10 INCREMENT BY 1");
         try
         {

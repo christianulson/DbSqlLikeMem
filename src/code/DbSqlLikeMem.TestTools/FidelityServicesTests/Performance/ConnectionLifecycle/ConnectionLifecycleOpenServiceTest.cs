@@ -18,6 +18,13 @@ public class ConnectionLifecycleOpenServiceTest(
     /// </summary>
     /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunTestAsync(params object[] args)
+        => Task.FromResult<object?>(RunConnectionOpen());
+
+    /// <summary>
+    /// EN: Opens the shared connection for the lifecycle benchmark.
+    /// PT: Abre a conexao compartilhada para o benchmark de ciclo de vida.
+    /// </summary>
+    public int RunConnectionOpen()
     {
         if (Repo.Cnn.State == ConnectionState.Open)
             Repo.Cnn.Close();
@@ -25,6 +32,6 @@ public class ConnectionLifecycleOpenServiceTest(
         Repo.Cnn.Open();
         Repo.Cnn.State.Should().Be(ConnectionState.Open);
         GC.KeepAlive(Repo.Cnn.State);
-        return Task.FromResult<object?>(1);
+        return 1;
     }
 }

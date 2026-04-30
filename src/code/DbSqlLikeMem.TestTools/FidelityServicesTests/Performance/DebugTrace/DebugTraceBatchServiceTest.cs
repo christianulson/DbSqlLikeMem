@@ -16,6 +16,14 @@ public class DebugTraceBatchServiceTest(
     /// </summary>
     /// <param name="args">EN: Optional insert ids for the batch rows. PT: IDs opcionais de insert para as linhas do lote.</param>
     public async Task<object?> RunTestAsync(params object[] args)
+        => await RunDebugTraceBatchAsync(args);
+
+    /// <summary>
+    /// EN: Executes a batch and reads the provider debug SQL batch trace when available.
+    /// PT: Executa um lote e lê o rastreamento do lote SQL de debug do provedor quando disponivel.
+    /// </summary>
+    /// <param name="args">EN: Optional insert ids for the batch rows. PT: IDs opcionais de insert para as linhas do lote.</param>
+    public async Task<string> RunDebugTraceBatchAsync(params object[] args)
     {
         var id1 = args.Length > 0 ? (int)args[0] : 1;
         var id2 = args.Length > 1 ? (int)args[1] : 2;
@@ -23,7 +31,7 @@ public class DebugTraceBatchServiceTest(
         {
             await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id1, "Alice"));
             await Repo.ExecuteNonQueryAsync(Repo.Dialect.InsertUser(Context, id2, "Bob"));
-            var trace = TryReadDiagnosticValue(Repo.Cnn, "DebugSqlBatch") ?? (Repo.Dialect.InsertUser(Context, id1, "Alice") + ";" + Repo.Dialect.InsertUser(Context, id2, "Bob"));
+            var trace = Convert.ToString(TryReadDiagnosticValue(Repo.Cnn, "DebugSqlBatch")) ?? (Repo.Dialect.InsertUser(Context, id1, "Alice") + ";" + Repo.Dialect.InsertUser(Context, id2, "Bob"));
             GC.KeepAlive(trace);
             return trace;
         }
@@ -43,9 +51,9 @@ public class DebugTraceBatchServiceTest(
                 await Repo.ExecuteNonQueryAsync(Repo.Dialect.DeleteUserById(Context, id1));
             }
             catch
-            {
-                // Ignore cleanup failures during benchmark teardown.
-            }
+        {
+            // Ignore cleanup failures during benchmark teardown.
         }
     }
+}
 }

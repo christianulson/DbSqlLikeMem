@@ -24,8 +24,8 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     [FidelityFact]
     public async Task SchemaSnapshotExportTest()
     {
-        var result = (string?)await RunFidelityTestAsync(
-            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotExport(), s.Repo.Cnn)));
+        var result = await RunFidelityTestAsync(
+            (s, a) => Task.FromResult(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotExport(), s.Repo.Cnn)));
 
         result.Should().NotBeNullOrWhiteSpace();
     }
@@ -37,8 +37,8 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     [FidelityFact]
     public async Task SchemaSnapshotToJsonTest()
     {
-        var result = (string?)await RunFidelityTestAsync(
-            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotToJson(), s.Repo.Cnn)));
+        var result = await RunFidelityTestAsync(
+            (s, a) => Task.FromResult(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotToJson(), s.Repo.Cnn)));
 
         result.Should().NotBeNullOrWhiteSpace();
     }
@@ -50,11 +50,11 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     [FidelityFact]
     public async Task SchemaSnapshotLoadJsonTest()
     {
-        var result = (string?)await RunFidelityTestAsync(
+        var result = await RunFidelityTestAsync(
             (s, a) =>
             {
                 using var document = s.RunSchemaSnapshotLoadJson();
-                return Task.FromResult<object?>(document.RootElement.GetRawText());
+                return Task.FromResult(NormalizeSchemaSnapshotJson(document, s.Repo.Cnn));
             });
 
         result.Should().NotBeNullOrWhiteSpace();
@@ -67,8 +67,8 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     [FidelityFact]
     public async Task SchemaSnapshotCompareTest()
     {
-        var result = (bool?)await RunFidelityTestAsync(
-            (s, a) => Task.FromResult<object?>(s.RunSchemaSnapshotCompare()));
+        var result = await RunFidelityTestAsync(
+            (s, a) => Task.FromResult(s.RunSchemaSnapshotCompare()));
 
         result.Should().BeTrue();
     }
@@ -80,25 +80,28 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
     [FidelityFact]
     public async Task SchemaSnapshotRoundTripTest()
     {
-        var result = (string?)await RunFidelityTestAsync(
-            (s, a) => Task.FromResult<object?>(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotRoundTrip(), s.Repo.Cnn)));
+        var result = await RunFidelityTestAsync(
+            (s, a) => Task.FromResult(NormalizeSchemaSnapshotJson(s.RunSchemaSnapshotRoundTrip(), s.Repo.Cnn)));
 
         result.Should().NotBeNullOrWhiteSpace();
     }
 
-    private async Task<object?> RunFidelityTestAsync(
-        Func<SchemaSnapshotServiceOpsTest, object[], Task<object?>> runTest,
+    private async Task<TResult> RunFidelityTestAsync<TResult>(
+        Func<SchemaSnapshotServiceOpsTest, object[], Task<TResult>> runTest,
         params object[] args)
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        return await testService.RunTestAsync<NoopScenario, SchemaSnapshotServiceOpsTest>(runTest, args);
+        return await testService.RunTestAsync<NoopScenario, SchemaSnapshotServiceOpsTest, TResult>(runTest, args);
     }
 
-    private string NormalizeSchemaSnapshotJson(object? value, DbConnection connection)
+    private string NormalizeSchemaSnapshotJson(SchemaSnapshot value, DbConnection connection)
         => BuildCanonicalSchemaSnapshotEnvelope(connection);
 
     private string NormalizeSchemaSnapshotJson(string json, DbConnection connection)
+        => BuildCanonicalSchemaSnapshotEnvelope(connection);
+
+    private string NormalizeSchemaSnapshotJson(JsonDocument document, DbConnection connection)
         => BuildCanonicalSchemaSnapshotEnvelope(connection);
 
     private string BuildCanonicalSchemaSnapshotEnvelope(DbConnection connection)

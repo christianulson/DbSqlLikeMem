@@ -17,10 +17,17 @@ public class ConnectionLifecycleReopenAfterServiceTest(
     /// PT: Fecha e reabre a conexao compartilhada para o benchmark de ciclo de vida.
     /// </summary>
     public Task<object?> RunTestAsync(params object[] args)
+        => Task.FromResult<object?>(RunConnectionReopenAfterClose());
+
+    /// <summary>
+    /// EN: Closes and reopens the shared connection for the lifecycle benchmark.
+    /// PT: Fecha e reabre a conexao compartilhada para o benchmark de ciclo de vida.
+    /// </summary>
+    public int RunConnectionReopenAfterClose()
     {
         Repo.Cnn.Close();
         Repo.Cnn.Open();
         GC.KeepAlive(Repo.Cnn.State);
-        return Task.FromResult<object?>(1);
+        return 1;
     }
 }

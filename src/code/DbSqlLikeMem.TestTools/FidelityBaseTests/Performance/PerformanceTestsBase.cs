@@ -27,7 +27,8 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleReopenAfterServiceTest>();
+        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleReopenAfterServiceTest, int>(
+            (service, args) => Task.FromResult(service.RunConnectionReopenAfterClose()));
     }
 
     /// <summary>
@@ -39,7 +40,8 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleOpenServiceTest>();
+        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleOpenServiceTest, int>(
+            (service, args) => Task.FromResult(service.RunConnectionOpen()));
     }
 
     /// <summary>
@@ -51,7 +53,8 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleResetVolatileDataServiceTest>();
+        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleResetVolatileDataServiceTest, int>(
+            (service, args) => Task.FromResult(service.RunResetVolatileData()));
     }
 
     /// <summary>
@@ -63,7 +66,8 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleResetAllVolatileDataServiceTest>();
+        await testService.RunTestAsync<NoopScenario, ConnectionLifecycleResetAllVolatileDataServiceTest, int>(
+            (service, args) => Task.FromResult(service.RunResetAllVolatileData()));
     }
 
     /// <summary>
@@ -99,7 +103,8 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new NotFidelityTestService<T>(connectionMock, dialect);
 
-        await testService.RunTestAsync<NoopScenario, DebugTraceJsonServiceTest>();
+        await testService.RunTestAsync<NoopScenario, DebugTraceJsonServiceTest, string>(
+            (service, args) => Task.FromResult<string>(service.RunDebugTraceJsonAsync()));
     }
 
     /// <summary>
@@ -111,7 +116,8 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new NotFidelityTestService<T>(connectionMock, dialect);
 
-        await testService.RunTestAsync<SelectTableScenario, DebugTraceSelectServiceTest>();
+        await testService.RunTestAsync<SelectTableScenario, DebugTraceSelectServiceTest, string>(
+            (service, args) => service.RunDebugTraceSelectAsync(args));
     }
 
     /// <summary>
@@ -123,7 +129,8 @@ public abstract class PerformanceTestsBase<T, T2>(
     {
         using var testService = new NotFidelityTestService<T>(connectionMock, dialect);
 
-        await testService.RunTestAsync<UsersScenario, DebugTraceBatchServiceTest>();
+        await testService.RunTestAsync<UsersScenario, DebugTraceBatchServiceTest, string>(
+            (service, args) => service.RunDebugTraceBatchAsync(args));
     }
 
     /// <summary>

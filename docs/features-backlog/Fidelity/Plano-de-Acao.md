@@ -20,7 +20,7 @@ Manter a fidelidade entre mock e container com prioridade para comportamento obs
 
 ## Status Do Plano
 
-Percentual geral atual: 92%
+Percentual geral atual: 94%
 
 | Fase | Arquivo | Status | Entrega |
 | --- | --- | --- | --- |
@@ -28,7 +28,7 @@ Percentual geral atual: 92%
 | Fase 2 - Expandir os testes de tipo DbParameter | [Fase-02-Tipos-Nativos.md](./Fase-02-Tipos-Nativos.md) | DONE | 100% |
 | Fase 3 - Cobrir o shape completo do resultado | [Fase-03-Formato-do-Resultado.md](./Fase-03-Formato-do-Resultado.md) | DONE | 100% |
 | Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | DONE | 100% |
-| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 86% |
+| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 98% |
 | Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | DONE | 100% |
 | Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | DONE | 100% |
 | Fase 8 - Testes faltantes do banco real | [Fase-08-Testes-Faltantes.md](./Fase-08-Testes-Faltantes.md) | DONE | 100% |
@@ -167,7 +167,7 @@ Padrão:
 ### Acompanhamento Da Fase
 
 - Status: IN PROGRESS
-- Percentual de entrega: 83%
+- Percentual de entrega: 96%
 - O que foi feito:
   - adicionado o primeiro wrapper de `JsonTableFunctionTestsBase` na suite de fidelidade
   - adicionado o wrapper de fidelidade para `JSON insert/cast`, cobrindo o benchmark escalar de leitura JSON com coerção

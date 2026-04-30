@@ -27,14 +27,14 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonEachFunction)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, a) => (object?)await s.RunJsonEachFromArrayAsync()))
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+                async (s, a) => await s.RunJsonEachFromArrayAsync()))
                 .Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, a) => (object?)await s.RunJsonEachFromArrayAsync());
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+            async (s, a) => await s.RunJsonEachFromArrayAsync());
     }
 
     /// <summary>
@@ -48,14 +48,14 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonEachFunction)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, a) => (object?)await s.RunJsonEachFromObjectAsync()))
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+                async (s, a) => await s.RunJsonEachFromObjectAsync()))
                 .Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, a) => (object?)await s.RunJsonEachFromObjectAsync());
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+            async (s, a) => await s.RunJsonEachFromObjectAsync());
     }
 
     /// <summary>
@@ -69,14 +69,14 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsJsonTreeFunction)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, a) => (object?)await s.RunJsonTreeStructureAsync()))
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+                async (s, a) => await s.RunJsonTreeStructureAsync()))
                 .Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, a) => (object?)await s.RunJsonTreeStructureAsync());
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+            async (s, a) => await s.RunJsonTreeStructureAsync());
     }
 
     /// <summary>
@@ -90,13 +90,13 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsOpenJsonFunction)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-                async (s, a) => (object?)await s.RunOpenJsonArrayAsync()))
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+                async (s, a) => await s.RunOpenJsonArrayAsync()))
                 .Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
-            async (s, a) => (object?)await s.RunOpenJsonArrayAsync());
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, List<Dictionary<string, object?>>>(
+            async (s, a) => await s.RunOpenJsonArrayAsync());
     }
 }

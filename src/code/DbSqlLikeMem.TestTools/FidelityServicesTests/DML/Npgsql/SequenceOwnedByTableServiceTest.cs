@@ -15,9 +15,14 @@ public sealed class SequenceOwnedByTableServiceTest(
     /// PT: Retorna o valor inicial da sequence e se ela ficou indisponivel depois da remocao da tabela.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceOwnedByTableAsync();
 
+    /// <summary>
+    /// EN: Returns the initial sequence value and whether the sequence became unavailable after the table drop.
+    /// PT: Retorna o valor inicial da sequence e se ela ficou indisponivel depois da remocao da tabela.
+    /// </summary>
+    public async Task<long[]> RunSequenceOwnedByTableAsync()
+    {
         Console.WriteLine($"[SequenceOwnedByTable] Creating table {Context.TbUsersFullName} and sequence {Context.Seq}.");
         await ExecuteNonQueryAsync($"CREATE TABLE {Context.TbUsersFullName} (Id BIGINT NOT NULL PRIMARY KEY)");
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 1 INCREMENT BY 1");

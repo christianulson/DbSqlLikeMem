@@ -490,6 +490,14 @@ public class DmlMutationSelectJoinServiceTest(
     /// </summary>
     /// <param name="args">EN: Optional primary user id for the join query. PT: Id principal opcional do usuario para a consulta de join.</param>
     public async Task<object?> RunTestAsync(params object[] args)
+        => await RunSelectJoinCountAsync(args);
+
+    /// <summary>
+    /// EN: Executes the join query between users and orders and validates the count.
+    /// PT: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
+    /// </summary>
+    /// <param name="args">EN: Optional primary user id for the join query. PT: Id principal opcional do usuario para a consulta de join.</param>
+    public async Task<int> RunSelectJoinCountAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;
         var value = Convert.ToInt32(await Repo.ExecuteScalarAsync(Repo.Dialect.CountJoinForUser(Context, userId)), CultureInfo.InvariantCulture);
