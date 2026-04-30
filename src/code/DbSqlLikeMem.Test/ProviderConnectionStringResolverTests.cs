@@ -1,3 +1,5 @@
+using System.Collections;
+
 namespace DbSqlLikeMem.Test;
 
 /// <summary>
