@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace DbSqlLikeMem.Test;
 
 /// <summary>
@@ -29,14 +27,7 @@ public sealed class ProviderConnectionStringResolverTests
 
         resolved.Should().BeTrue();
         sourceName.Should().Be(expectedSourceName);
-        if (provider == ProviderId.Oracle)
-        {
-            connectionString.Should().Contain("Connection Timeout=120");
-            connectionString.Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
-            return;
-        }
-
-        connectionString.Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
+        NormalizeConnectionString(connectionString).Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
     }
 
     /// <summary>
@@ -60,7 +51,7 @@ public sealed class ProviderConnectionStringResolverTests
 
         resolved.Should().BeTrue();
         sourceName.Should().Be("POSTGRES_CONNECTION_STRING");
-        connectionString.Should().Be(CanonicalizeConnectionString(ProviderId.Npgsql, "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"));
+        NormalizeConnectionString(connectionString).Should().Be(CanonicalizeConnectionString(ProviderId.Npgsql, "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"));
     }
 
     /// <summary>
@@ -125,40 +116,43 @@ public sealed class ProviderConnectionStringResolverTests
 
     private static string CanonicalizeConnectionString(ProviderId provider, string connectionString)
     {
-        var builder = new DbConnectionStringBuilder
-        {
-            ConnectionString = connectionString
-        };
-
-        builder["Pooling"] = false;
-
+        var values = ParseConnectionString(connectionString);
+        values["pooling"] = "false";
         if (provider == ProviderId.Oracle)
-            builder["Connection Timeout"] = 120;
+            values["connection timeout"] = "120";
 
-        return NormalizeConnectionString(builder.ConnectionString);
+        return ToCanonicalString(values);
     }
 
     private static string NormalizeConnectionString(string connectionString)
+        => ToCanonicalString(ParseConnectionString(connectionString));
+
+    private static Dictionary<string, string> ParseConnectionString(string connectionString)
     {
-        var builder = new DbConnectionStringBuilder
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var segment in connectionString.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
         {
-            ConnectionString = connectionString
-        };
+            var separatorIndex = segment.IndexOf('=');
+            if (separatorIndex <= 0)
+                continue;
 
-        return string.Join(
-            ";",
-            builder.Cast<DictionaryEntry>()
-                .Select(entry =>
-                {
-                    var key = entry.Key.ToString()!.ToLowerInvariant();
-                    var value = entry.Value switch
-                    {
-                        bool booleanValue => booleanValue.ToString().ToLowerInvariant(),
-                        _ => entry.Value?.ToString() ?? string.Empty
-                    };
+            var key = segment.Substring(0, separatorIndex).Trim().ToLowerInvariant();
+            var value = NormalizeConnectionStringValue(segment.Substring(separatorIndex + 1).Trim());
+            values[key] = value;
+        }
 
-                    return $"{key}={value}";
-                })
-                .OrderBy(part => part, StringComparer.Ordinal));
+        return values;
     }
+
+    private static string NormalizeConnectionStringValue(string value)
+        => bool.TryParse(value, out var booleanValue)
+            ? booleanValue.ToString().ToLowerInvariant()
+            : value;
+
+    private static string ToCanonicalString(IReadOnlyDictionary<string, string> values)
+        => string.Join(
+            ";",
+            values.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+                .Select(pair => $"{pair.Key}={pair.Value}"));
 }

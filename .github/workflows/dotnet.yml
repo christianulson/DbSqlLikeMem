@@ -28,4 +28,4 @@ jobs:
         run: dotnet build src/DbSqlLikeMem.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test src/DbSqlLikeMem.slnx --framework net8.0 --configuration Release --no-build --verbosity normal
+        run: python3 scripts/run_solution_tests.py --solution src/DbSqlLikeMem.slnx --framework net8.0 --configuration Release --no-build
