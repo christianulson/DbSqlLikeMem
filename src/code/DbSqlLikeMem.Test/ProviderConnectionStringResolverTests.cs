@@ -124,6 +124,9 @@ public sealed class ProviderConnectionStringResolverTests
         return ToCanonicalString(values);
     }
 
+    private static string NormalizeConnectionString(string connectionString)
+        => ToCanonicalString(ParseConnectionString(connectionString));
+
     private static Dictionary<string, string> ParseConnectionString(string connectionString)
     {
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
