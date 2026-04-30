@@ -46,6 +46,9 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsMathTruncFunction => true;
 
     /// <inheritdoc />
+    public override bool SupportsMathTruncScaleFunction => true;
+
+    /// <inheritdoc />
     public override bool SupportsMathTranscendentalFunctions => true;
 
     /// <inheritdoc />

@@ -4,7 +4,7 @@
 
 ## SQLite
 
-- Percentual atual: 97%
+- Percentual atual: 98%
 - Pontos garantidos:
   - `SqliteDbMock` e `SqliteConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.

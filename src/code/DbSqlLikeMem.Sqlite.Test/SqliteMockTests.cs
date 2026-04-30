@@ -374,6 +374,73 @@ public sealed class SqliteMockTests
     }
 
     /// <summary>
+    /// EN: Verifies SQLite TRUNC truncates numeric values toward zero and rejects the scale form.
+    /// PT: Verifica se TRUNC do SQLite trunca valores numericos em direcao ao zero e rejeita a forma com escala.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_ShouldSupportTruncWithoutScale()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT TRUNC(1.9)"
+        };
+
+        Convert.ToDecimal(command.ExecuteScalar()).Should().Be(1m);
+
+        command.CommandText = "SELECT TRUNC(-1.9)";
+        Convert.ToDecimal(command.ExecuteScalar()).Should().Be(-1m);
+
+        command.CommandText = "SELECT TRUNC(1.987, 2)";
+        command.Invoking(c => c.ExecuteScalar()).Should().Throw<NotSupportedException>();
+    }
+
+    /// <summary>
+    /// EN: Verifies SQLite LOG2 returns the expected base-2 logarithm value.
+    /// PT: Verifica se LOG2 do SQLite retorna o valor esperado do logaritmo de base 2.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_ShouldSupportLog2()
+    {
+        using var command = new SqliteCommandMock(_connection)
+        {
+            CommandText = "SELECT LOG2(8)"
+        };
+
+        Convert.ToDouble(command.ExecuteScalar()).Should().BeApproximately(3d, 12);
+    }
+
+    /// <summary>
+    /// EN: Verifies SQLite hyperbolic math functions return the expected values from the bundled math extension.
+    /// PT: Verifica se as funcoes matematicas hiperbolicas do SQLite retornam os valores esperados da extensao matematica embutida.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SqliteMock")]
+    public void ExecuteScalar_ShouldSupportHyperbolicMathFunctions()
+    {
+        using var command = new SqliteCommandMock(_connection);
+
+        command.CommandText = "SELECT ACOSH(1)";
+        Convert.ToDouble(command.ExecuteScalar()).Should().BeApproximately(0d, 12);
+
+        command.CommandText = "SELECT ASINH(0)";
+        Convert.ToDouble(command.ExecuteScalar()).Should().BeApproximately(0d, 12);
+
+        command.CommandText = "SELECT ATANH(0)";
+        Convert.ToDouble(command.ExecuteScalar()).Should().BeApproximately(0d, 12);
+
+        command.CommandText = "SELECT COSH(0)";
+        Convert.ToDouble(command.ExecuteScalar()).Should().BeApproximately(1d, 12);
+
+        command.CommandText = "SELECT SINH(0)";
+        Convert.ToDouble(command.ExecuteScalar()).Should().BeApproximately(0d, 12);
+
+        command.CommandText = "SELECT TANH(0)";
+        Convert.ToDouble(command.ExecuteScalar()).Should().BeApproximately(0d, 12);
+    }
+
+    /// <summary>
     /// EN: Verifies automatic dialect mode executes the shared ALTER TABLE ... ADD COLUMN subset and backfills existing rows.
     /// PT: Verifica se o modo automatico de dialeto executa o subset compartilhado de ALTER TABLE ... ADD COLUMN e preenche linhas existentes.
     /// </summary>

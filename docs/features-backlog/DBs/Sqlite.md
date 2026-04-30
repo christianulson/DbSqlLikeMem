@@ -14,7 +14,7 @@
 - Cobertura de `GROUP_CONCAT` ampliada com separador customizado, `DISTINCT`, tratamento de `NULL` e ordenação interna via sintaxe nativa `ORDER BY` dentro da função; `WITHIN GROUP` permanece explicitamente bloqueado no dialeto.
 - P8 consolidado: `LIMIT/OFFSET` e ordenação com regras de compatibilidade por versão simulada.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, funções de data (`date`, `datetime`, `strftime`), `JSON_EXTRACT` (subset) e as table-valued JSON functions `json_each(...)`/`json_tree(...)` já refletidas no contrato de fidelidade.
-- A extensao matematica `SQLITE_ENABLE_MATH_FUNCTIONS` já está coberta no contrato de fidelidade compartilhado, incluindo `ABS`, `CEIL`/`CEILING`, `DEGREES`, `FLOOR`, `LN`, `LOG`, `LOG10`, `LOG2`, `MOD`, `PI`, `POW`/`POWER`, `RADIANS`, `ROUND`, `SIGN`, `SIN`, `SINH`, `SQRT`, `TAN`, `TANH` e `TRUNC`.
+- A extensao matematica `SQLITE_ENABLE_MATH_FUNCTIONS` já está coberta no contrato de fidelidade compartilhado, incluindo `ABS`, `ACOSH`, `ASINH`, `ATANH`, `CEIL`/`CEILING`, `COSH`, `DEGREES`, `FLOOR`, `LN`, `LOG`, `LOG10`, `LOG2`, `MOD`, `PI`, `POW`/`POWER`, `RADIANS`, `ROUND`, `SIGN`, `SIN`, `SINH`, `SQRT`, `TAN`, `TANH` e `TRUNC(X)`.
 - TODO: ampliar a malha de window functions do SQLite para cobrir explicitamente `EXCLUDE`, window chaining e os detalhes adicionais de frame que o banco real suporta.
 
 ## 3 Restrições relevantes

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Sqlite;
@@ -10,6 +12,20 @@ internal static partial class SqliteScalarFunctionRegistry
         _ = version;
 
         SqlSharedScalarFunctionRegistry.Register(dialect);
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar(
+                "LOG2",
+                "DOUBLE",
+                TryEvalSqliteLog2Function,
+                signatures: new DbFunctionSignature([], 1, 1)));
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar(
+                "TRUNC",
+                "DOUBLE",
+                TryEvalSqliteTruncFunction,
+                signatures: new DbFunctionSignature([], 1, 1)));
 
         RegisterGeneratedScalarFunctions(dialect);
         var castDefinition = DbFunctionDef.CreateScalar(
@@ -143,6 +159,66 @@ internal static partial class SqliteScalarFunctionRegistry
         Func<int, object?> evalArg,
         out object? result)
         => AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result);
+
+    private static bool TryEvalSqliteLog2Function(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+        _ = fn;
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            result = number <= 0d ? null : Math.Log(number, 2d);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalSqliteTruncFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        _ = context;
+
+        if (fn.Args.Count == 0)
+        {
+            result = null;
+            return true;
+        }
+
+        var value = evalArg(0);
+        if (AstQueryExecutorBase.IsNullish(value))
+        {
+            result = null;
+            return true;
+        }
+
+        if (!decimal.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), NumberStyles.Number, CultureInfo.InvariantCulture, out var number))
+        {
+            result = null;
+            return true;
+        }
+
+        result = Math.Truncate(number);
+        return true;
+    }
 
     static partial void RegisterGeneratedScalarFunctions(ISqlDialect dialect);
 }

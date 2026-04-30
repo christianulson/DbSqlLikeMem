@@ -32,6 +32,8 @@ IN PROGRESS
 - Adicionada cobertura compartilhada para `ISJSON` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para `FORMAT` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para o nucleo matematico comum com `ABS`, `CEILING`/`CEIL`, `DEGREES`, `FLOOR`, `LN`, `LOG10`, `LOG(base, value)`, `PI`, `POWER`, `RADIANS`, `ROUND`, `SIGN`, `SQRT` e `SQUARE` nos providers com suporte ao contrato correspondente.
+- Adicionada cobertura compartilhada para `LOG2` no SQLite.
+- Adicionada cobertura compartilhada para `ACOSH`, `ASINH`, `ATANH`, `COSH`, `SINH` e `TANH` no SQLite.
 - Adicionada cobertura compartilhada para `COT` nos providers com suporte ao contrato correspondente.
 - Adicionada cobertura compartilhada para `BIN`, `GREATEST`, `LEAST`, `LOG2`, `MOD`, `POW` e `TRUNCATE` nos providers MySQL e MariaDB.
 - Adicionada cobertura compartilhada para `GREATEST`, `LEAST` e `MOD` nos providers Npgsql e Firebird.

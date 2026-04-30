@@ -21,6 +21,9 @@ public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsMathFunctions => true;
 
     /// <inheritdoc />
+    public override bool SupportsMathLog2Function => true;
+
+    /// <inheritdoc />
     public override bool SupportsMathLogBaseFunction => true;
 
     /// <inheritdoc />
@@ -28,6 +31,9 @@ public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsMathTruncFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTruncScaleFunction => false;
 
     /// <inheritdoc />
     public override bool SupportsMathTranscendentalFunctions => true;

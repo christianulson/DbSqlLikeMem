@@ -387,6 +387,28 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies that LOG2 keeps the expected base-2 logarithm result for providers that expose the function.
+    /// PT: Verifica se LOG2 mantem o resultado esperado do logaritmo de base 2 para provedores que expoem a funcao.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathLog2FunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathLog2Function)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathLog2FunctionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathLog2FunctionAsync());
+
+        result.Should().BeApproximately(3d, 12);
+    }
+
+    /// <summary>
     /// EN: Verifies that PI keeps the expected math result for providers that expose the function.
     /// PT: Verifica se PI mantem o resultado matematico esperado para provedores que expoem a funcao.
     /// </summary>
@@ -453,8 +475,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies that numeric TRUNC keeps the expected Oracle result for providers that expose the function.
-    /// PT: Verifica se TRUNC numerico mantem o resultado esperado do Oracle para provedores que expoem a funcao.
+    /// EN: Verifies that numeric TRUNC keeps the expected provider result, including scale when supported.
+    /// PT: Verifica se TRUNC numerico mantem o resultado esperado do provedor, incluindo escala quando suportada.
     /// </summary>
     [FidelityFact]
     public async Task MathTruncFunctionTest()
@@ -463,16 +485,23 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsMathTruncFunction)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (decimal trunc, decimal truncScale)>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (decimal trunc, decimal? truncScale)>(
                 async (QueryServiceTest s, object[] _) => await s.RunMathTruncFunctionAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (decimal trunc, decimal truncScale)>(
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (decimal trunc, decimal? truncScale)>(
             async (QueryServiceTest s, object[] _) => await s.RunMathTruncFunctionAsync());
 
         result.trunc.Should().Be(1m);
-        result.truncScale.Should().Be(1.98m);
+        if (dialect.SupportsMathTruncScaleFunction)
+        {
+            result.truncScale.Should().Be(1.98m);
+        }
+        else
+        {
+            result.truncScale.Should().BeNull();
+        }
     }
 
     /// <summary>

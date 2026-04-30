@@ -252,6 +252,24 @@ public partial class QueryServiceTest
     }
 
     /// <summary>
+    /// EN: Executes the shared base-2 logarithm benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de logaritmo de base 2 e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<double> RunMathLog2FunctionAsync()
+    {
+        if (!Repo.Dialect.SupportsMathLog2Function)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math log2 benchmark.");
+        }
+
+        var log2 = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT LOG2(8)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(log2);
+
+        return log2;
+    }
+
+    /// <summary>
     /// EN: Executes the shared pi benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark compartilhado de pi e mantem o resultado do provedor vivo.
     /// </summary>
@@ -309,7 +327,7 @@ public partial class QueryServiceTest
     /// EN: Executes the shared numeric truncation benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark compartilhado de truncamento numerico e mantem o resultado do provedor vivo.
     /// </summary>
-    public async Task<(decimal trunc, decimal truncScale)> RunMathTruncFunctionAsync()
+    public async Task<(decimal trunc, decimal? truncScale)> RunMathTruncFunctionAsync()
     {
         if (!Repo.Dialect.SupportsMathTruncFunction)
         {
@@ -317,7 +335,12 @@ public partial class QueryServiceTest
         }
 
         var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(1.9)"), CultureInfo.InvariantCulture);
-        var truncScale = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(1.987, 2)"), CultureInfo.InvariantCulture);
+        decimal? truncScale = null;
+
+        if (Repo.Dialect.SupportsMathTruncScaleFunction)
+        {
+            truncScale = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(1.987, 2)"), CultureInfo.InvariantCulture);
+        }
 
         GC.KeepAlive(trunc);
         GC.KeepAlive(truncScale);

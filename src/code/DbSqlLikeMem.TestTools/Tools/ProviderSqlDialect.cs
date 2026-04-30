@@ -195,6 +195,12 @@ WHERE u.tenantid = 10";
     public virtual bool SupportsMathFunctions => false;
 
     /// <summary>
+    /// EN: Indicates whether the provider supports the shared base-2 logarithm benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de logaritmo de base 2.
+    /// </summary>
+    public virtual bool SupportsMathLog2Function => false;
+
+    /// <summary>
     /// EN: Indicates whether the provider supports the shared two-argument logarithm benchmark flow.
     /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de logaritmo com dois argumentos.
     /// </summary>
@@ -223,6 +229,12 @@ WHERE u.tenantid = 10";
     /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de truncamento numerico.
     /// </summary>
     public virtual bool SupportsMathTruncFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared numeric truncation benchmark with scale.
+    /// PT: Indica se o provedor suporta o benchmark compartilhado de truncamento numerico com escala.
+    /// </summary>
+    public virtual bool SupportsMathTruncScaleFunction => false;
 
     /// <summary>
     /// EN: Indicates whether the provider supports the shared cotangent benchmark flow.

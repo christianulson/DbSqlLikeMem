@@ -20,6 +20,7 @@ Cobrir as funcoes matematicas aceitas por cada provider real que ainda nao entra
 - `FLOOR`
 - `LN`
 - `LOG10`
+- `LOG2`
 - `LOG(base, value)` nos providers que expoem a forma com dois argumentos
 - `PI`
 - `COT` nos providers que expoem a funcao
@@ -27,7 +28,7 @@ Cobrir as funcoes matematicas aceitas por cada provider real que ainda nao entra
 - `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` nos providers que expoem a surface transcendente compartilhada
 - `RAND` no SQL Server, SQL Azure, MySQL, MariaDB, Db2 e Firebird
 - `REMAINDER` no Oracle
-- `TRUNC` nos providers que expoem a forma numerica compartilhada
+- `TRUNC(X)` nos providers que expoem a forma numerica compartilhada
 - `POWER`
 - `RADIANS`
 - `ROUND`
