@@ -25,6 +25,27 @@ public sealed class MariaDbProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsInsertReturning => true;
 
     /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRandFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMySqlUtilityMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
     protected override void ConfigureParameter(DbParameter parameter, DbType dbType)
     {
         if (dbType is DbType.DateTime or DbType.DateTime2)

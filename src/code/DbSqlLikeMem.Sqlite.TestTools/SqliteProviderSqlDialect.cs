@@ -18,6 +18,21 @@ public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsUpsert => true;
 
     /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTruncFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
     public override string CreateTemporaryUsersTable(FidelityTestContext context) => $@"
 CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} AS
 SELECT CAST(NULL AS INTEGER) AS Id

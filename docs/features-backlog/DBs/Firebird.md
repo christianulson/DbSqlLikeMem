@@ -50,6 +50,8 @@
 - `MD5`, `HEX` e `UNHEX` seguem cobertas como aliases de compatibilidade de hash e conversão hexadecimal, enquanto `BASE64_ENCODE`, `BASE64_DECODE`, `HEX_ENCODE`, `HEX_DECODE` e `CRYPT_HASH` já cobrem os nomes oficiais do Firebird 4+/5 nas surfaces de mock e Dapper.
 - `HASH` já está coberto como função Firebird de hash estável nas surfaces de mock e Dapper.
 - `RAND` já está coberto como função Firebird de número aleatório nas surfaces de mock e Dapper.
+- `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` já estão cobertas como funções transcendentais do Firebird nas surfaces de mock e Dapper.
+- `ABSVAL`, `BIN`, `COSH`, `SINH`, `TANH` e `TRUNC` já estão cobertas como funções e aliases matemáticos do Firebird nas surfaces de mock e Dapper.
 - `POSITION`, `LOCATE`, `REPLACE` e `REVERSE` já estão cobertas como funções Firebird de busca e transformação de texto nas surfaces de mock e Dapper.
 - `REPEAT` e `TRANSLATE` já estão cobertas como funções Firebird de repetição e translacao de texto nas surfaces de mock e Dapper.
 - `LOWER`, `UPPER`, `TRIM`, `LTRIM`, `RTRIM` e `SUBSTRING` já estão cobertas como funções Firebird de transformação de texto nas surfaces de mock e Dapper.

@@ -1,10 +1,10 @@
 # Percentual de Fidelidade por Provider
 
-> Valores iniciais de referência. Atualizar conforme as fases do plano avançarem e os testes de fidelidade forem medidos.
+> Valores estimados atuais. Atualizar conforme as fases do plano avancem e os testes de fidelidade forem medidos.
 
 ## SQLite
 
-- Percentual inicial: 95%
+- Percentual atual: 97%
 - Pontos garantidos:
   - `SqliteDbMock` e `SqliteConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -15,7 +15,7 @@
 
 ## SQL Server
 
-- Percentual inicial: 95%
+- Percentual atual: 99%
 - Pontos garantidos:
   - `SqlServerDbMock` e `SqlServerConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -26,7 +26,7 @@
 
 ## SQL Azure
 
-- Percentual inicial: 95%
+- Percentual atual: 99%
 - Pontos garantidos:
   - `SqlAzureDbMock` e `SqlAzureConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -37,7 +37,7 @@
 
 ## MySQL
 
-- Percentual inicial: 99%
+- Percentual atual: 100%
 - Pontos garantidos:
   - `MySqlDbMock` e `MySqlConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -48,7 +48,7 @@
 
 ## MariaDB
 
-- Percentual inicial: 100%
+- Percentual atual: 100%
 - Pontos garantidos:
   - `MariaDbDbMock` e `MariaDbConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -59,7 +59,7 @@
 
 ## Npgsql
 
-- Percentual inicial: 99%
+- Percentual atual: 100%
 - Pontos garantidos:
   - `NpgsqlDbMock` e `NpgsqlConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -77,7 +77,7 @@
 
 ## Oracle
 
-- Percentual inicial: 93%
+- Percentual atual: 99%
 - Pontos garantidos:
   - `OracleDbMock` e `OracleConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -88,7 +88,7 @@
 
 ## Db2
 
-- Percentual inicial: 90%
+- Percentual atual: 95%
 - Pontos garantidos:
   - `Db2DbMock` e `Db2ConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.
@@ -99,7 +99,7 @@
 
 ## Firebird
 
-- Percentual inicial: 93%
+- Percentual atual: 99%
 - Pontos garantidos:
   - `FirebirdDbMock` e `FirebirdConnectionMock` resolvidos corretamente.
   - `DbMockConnectionFactory` valida o `DbParameter` concreto do provider.

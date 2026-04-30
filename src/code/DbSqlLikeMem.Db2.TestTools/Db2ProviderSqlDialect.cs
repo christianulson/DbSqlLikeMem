@@ -25,6 +25,21 @@ public sealed class Db2ProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsGuidInputOutputParameters => false;
 
     /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRandFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsDb2AliasMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
 CREATE TABLE {context.TbUsersFullName} (

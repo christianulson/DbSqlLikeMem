@@ -189,6 +189,78 @@ WHERE u.tenantid = 10";
     public virtual bool SupportsSqlServerScalarFunction(string functionName) => false;
 
     /// <summary>
+    /// EN: Indicates whether the provider supports the shared math benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark matematico.
+    /// </summary>
+    public virtual bool SupportsMathFunctions => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared two-argument logarithm benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de logaritmo com dois argumentos.
+    /// </summary>
+    public virtual bool SupportsMathLogBaseFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared pi benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de pi.
+    /// </summary>
+    public virtual bool SupportsMathPiFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared random-number benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de numero aleatorio.
+    /// </summary>
+    public virtual bool SupportsMathRandFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared remainder benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de resto.
+    /// </summary>
+    public virtual bool SupportsMathRemainderFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared numeric truncation benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de truncamento numerico.
+    /// </summary>
+    public virtual bool SupportsMathTruncFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared cotangent benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de cotangente.
+    /// </summary>
+    public virtual bool SupportsMathCotFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared MySQL-family utility math benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de utilitarios matematicos da familia MySQL.
+    /// </summary>
+    public virtual bool SupportsMySqlUtilityMathFunctions => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared greatest/least/mod benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de greatest/least/mod.
+    /// </summary>
+    public virtual bool SupportsGreatestLeastModFunctions => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared DB2 alias math benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de aliases matematicos do DB2.
+    /// </summary>
+    public virtual bool SupportsDb2AliasMathFunctions => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared Firebird alias math benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de aliases matematicos do Firebird.
+    /// </summary>
+    public virtual bool SupportsFirebirdAliasMathFunctions => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the shared transcendental math benchmark flow.
+    /// PT: Indica se o provedor suporta o fluxo compartilhado de benchmark de matematica transcendental.
+    /// </summary>
+    public virtual bool SupportsMathTranscendentalFunctions => false;
+
+    /// <summary>
     /// EN: Indicates whether a SQL Server date function is supported by the provider.
     /// PT: Indica se uma funcao de data do SQL Server e suportada pelo provedor.
     /// </summary>
@@ -681,6 +753,181 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// </summary>
     public virtual string StringPrefixExpression(string expression, int length) =>
         $"SUBSTRING({expression}, 1, {length})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the absolute value of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o valor absoluto de uma expressao.
+    /// </summary>
+    public virtual string MathAbsoluteExpression(string expression) =>
+        $"ABS({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to round an expression toward positive infinity.
+    /// PT: Retorna a expressao SQL usada para arredondar uma expressao em direcao ao infinito positivo.
+    /// </summary>
+    public virtual string MathCeilingExpression(string expression) =>
+        $"CEILING({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to convert radians to degrees.
+    /// PT: Retorna a expressao SQL usada para converter radianos em graus.
+    /// </summary>
+    public virtual string MathDegreesExpression(string expression) =>
+        $"DEGREES({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to round an expression toward negative infinity.
+    /// PT: Retorna a expressao SQL usada para arredondar uma expressao em direcao ao infinito negativo.
+    /// </summary>
+    public virtual string MathFloorExpression(string expression) =>
+        $"FLOOR({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to raise a value to a power.
+    /// PT: Retorna a expressao SQL usada para elevar um valor a uma potencia.
+    /// </summary>
+    public virtual string MathPowerExpression(string leftExpression, string rightExpression) =>
+        $"POWER({leftExpression}, {rightExpression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to convert degrees to radians.
+    /// PT: Retorna a expressao SQL usada para converter graus em radianos.
+    /// </summary>
+    public virtual string MathRadiansExpression(string expression) =>
+        $"RADIANS({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to round an expression to a fixed number of decimals.
+    /// PT: Retorna a expressao SQL usada para arredondar uma expressao para uma quantidade fixa de casas decimais.
+    /// </summary>
+    public virtual string MathRoundExpression(string expression, int decimals) =>
+        $"ROUND({expression}, {decimals})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the natural logarithm of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o logaritmo natural de uma expressao.
+    /// </summary>
+    public virtual string MathNaturalLogExpression(string expression) =>
+        $"LN({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the base-10 logarithm of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o logaritmo de base 10 de uma expressao.
+    /// </summary>
+    public virtual string MathLog10Expression(string expression) =>
+        $"LOG10({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate a logarithm with an explicit base.
+    /// PT: Retorna a expressao SQL usada para calcular um logaritmo com base explicita.
+    /// </summary>
+    public virtual string MathLogBaseExpression(string baseExpression, string valueExpression) =>
+        $"LOG({baseExpression}, {valueExpression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to return the mathematical constant pi.
+    /// PT: Retorna a expressao SQL usada para retornar a constante matematica pi.
+    /// </summary>
+    public virtual string MathPiExpression() =>
+        "PI()";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to return a random number, optionally seeded.
+    /// PT: Retorna a expressao SQL usada para retornar um numero aleatorio, com semente opcional.
+    /// </summary>
+    public virtual string MathRandExpression(string? seedExpression = null) =>
+        seedExpression is null ? "RAND()" : $"RAND({seedExpression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the IEEE remainder of two expressions.
+    /// PT: Retorna a expressao SQL usada para calcular o resto IEEE de duas expressoes.
+    /// </summary>
+    public virtual string MathRemainderExpression(string leftExpression, string rightExpression) =>
+        $"REMAINDER({leftExpression}, {rightExpression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the cotangent of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular a cotangente de uma expressao.
+    /// </summary>
+    public virtual string MathCotExpression(string expression) =>
+        $"COT({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the arc cosine of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o arco cosseno de uma expressao.
+    /// </summary>
+    public virtual string MathAcosExpression(string expression) =>
+        $"ACOS({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the arc sine of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o arco seno de uma expressao.
+    /// </summary>
+    public virtual string MathAsinExpression(string expression) =>
+        $"ASIN({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the arc tangent of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o arco tangente de uma expressao.
+    /// </summary>
+    public virtual string MathAtanExpression(string expression) =>
+        $"ATAN({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the arc tangent of two expressions.
+    /// PT: Retorna a expressao SQL usada para calcular o arco tangente de duas expressoes.
+    /// </summary>
+    public virtual string MathAtan2Expression(string yExpression, string xExpression) =>
+        $"ATAN2({yExpression}, {xExpression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the cosine of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o cosseno de uma expressao.
+    /// </summary>
+    public virtual string MathCosExpression(string expression) =>
+        $"COS({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the exponential of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular a exponencial de uma expressao.
+    /// </summary>
+    public virtual string MathExpExpression(string expression) =>
+        $"EXP({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the sine of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o seno de uma expressao.
+    /// </summary>
+    public virtual string MathSinExpression(string expression) =>
+        $"SIN({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the tangent of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular a tangente de uma expressao.
+    /// </summary>
+    public virtual string MathTanExpression(string expression) =>
+        $"TAN({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the sign of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o sinal de uma expressao.
+    /// </summary>
+    public virtual string MathSignExpression(string expression) =>
+        $"SIGN({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the square root of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular a raiz quadrada de uma expressao.
+    /// </summary>
+    public virtual string MathSqrtExpression(string expression) =>
+        $"SQRT({expression})";
+
+    /// <summary>
+    /// EN: Returns the SQL expression used to calculate the square of an expression.
+    /// PT: Retorna a expressao SQL usada para calcular o quadrado de uma expressao.
+    /// </summary>
+    public virtual string MathSquareExpression(string expression) =>
+        $"POWER({expression}, 2)";
 
     /// <summary>
     /// EN: Returns the SQL expression used to measure the length of a string expression.

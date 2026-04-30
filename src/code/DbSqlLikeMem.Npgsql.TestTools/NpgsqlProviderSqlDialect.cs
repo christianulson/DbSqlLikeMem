@@ -33,6 +33,24 @@ public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsWithMaterializedHint => true;
 
     /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsGreatestLeastModFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
     public override string UpdateJoinDerivedSelectSql =>
         @"
 UPDATE u

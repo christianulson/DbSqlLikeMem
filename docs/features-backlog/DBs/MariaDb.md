@@ -15,6 +15,10 @@
 - Implementação estimada: **100%**.
 - Provider dedicado sobre a família compartilhada de runtime MySQL, com `MariaDbDbMock`/`MariaDbConnectionMock` e resolução própria no `DbMockConnectionFactory`.
 - Parser/executor compartilhado para DML comum, incluindo `INSERT`, `REPLACE`, `INSERT ... SET`, `INSERT ... SELECT`, `ON DUPLICATE KEY UPDATE`, `RETURNING` em `INSERT`/`DELETE`/`REPLACE` e expressões de `SEQUENCE`.
+- `RAND` já está coberta como função numérica aleatória do MariaDB nas surfaces de mock e Dapper.
+- `COT` já está coberta como função numérica auxiliar do MariaDB nas surfaces de mock e Dapper.
+- `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` já estão cobertas como funções transcendentais do MariaDB nas surfaces de mock e Dapper.
+- `BIN`, `GREATEST`, `LEAST`, `LOG2`, `MOD`, `POW` e `TRUNCATE` já estão cobertas como funções matematicas e utilitarias do MariaDB nas surfaces de mock e Dapper.
 - `INSERT ... SET` com `LOW_PRIORITY`, `PARTITION` e `ON DUPLICATE KEY UPDATE ... RETURNING` também está coberto, consolidando a forma curta de escrita com os modificadores específicos do MariaDB.
 - `INSERT ... SET ... ON DUPLICATE KEY UPDATE ... RETURNING` também está coberto, mantendo o contrato de escrita curta com resolução de conflito e projeção retornada.
 - `INSERT ... SELECT ... RETURNING` agora está coberto no caminho compartilhado, preservando a projeção retornada enquanto insere linhas vindas de outro `SELECT`.

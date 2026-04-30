@@ -16,6 +16,8 @@
 - Provider Azure sobre a base compartilhada do dialeto SQL Server, com mapping explícito de `compatibility level` para gates de parser e executor.
 - Suporte ao subconjunto comum de `STRING_AGG`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `OPENJSON`, `STRING_SPLIT` e `FOR JSON`.
 - Regras específicas de compatibilidade já refletidas no backlog: `STRING_AGG ... WITHIN GROUP` no parser, transação/lifecycle (`commit`, `rollback`, savepoint, `Close`/`Open`, reset volátil) e regressões do caminho compartilhado de batch.
+- `COT` já está coberta como função numérica auxiliar do SQL Server e do SQL Azure nas surfaces de mock e Dapper.
+- `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` já estão cobertas como funções transcendentais do runtime compartilhado SQL Server/SQL Azure nas surfaces de mock e Dapper.
 - Usa as mesmas bases de execução e de testes do SQL Server, mas mantém identidade própria para explicitar os níveis de compatibilidade Azure e evitar misturar contrato de deployment com o provider on-premises.
 - TODO: fechar a malha de diferenças residuais por `compatibility level` onde ainda houver drift comprovado entre Azure e SQL Server compartilhado.
 

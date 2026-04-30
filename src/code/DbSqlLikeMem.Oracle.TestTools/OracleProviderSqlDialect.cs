@@ -34,6 +34,21 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsGuidInputOutputParameters => false;
 
     /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRemainderFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTruncFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
     public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
 
     /// <inheritdoc />
@@ -305,6 +320,14 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
     /// <inheritdoc />
     public override string StringLengthExpression(string expression) =>
         $"LENGTH({expression})";
+
+    /// <inheritdoc />
+    public override string MathCeilingExpression(string expression) =>
+        $"CEIL({expression})";
+
+    /// <inheritdoc />
+    public override string MathLog10Expression(string expression) =>
+        $"LOG(10, {expression})";
 
     /// <inheritdoc />
     public override string StringCastExpression(string expression, int length = 10)

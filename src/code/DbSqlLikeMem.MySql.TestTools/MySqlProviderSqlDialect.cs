@@ -19,6 +19,27 @@ public sealed class MySqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRandFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMySqlUtilityMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
 CREATE TABLE {context.TbUsersFullName} (

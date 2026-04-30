@@ -216,6 +216,32 @@ public class SqlServerProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsReleaseSavepoints => false;
 
     /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRandFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
+    public override string MathNaturalLogExpression(string expression) =>
+        $"LOG({expression})";
+
+    /// <inheritdoc />
+    public override string MathAtan2Expression(string yExpression, string xExpression) =>
+        $"ATN2({yExpression}, {xExpression})";
+
+    /// <inheritdoc />
     public override bool SupportsUpdateDeleteJoinRuntime => true;
 
     /// <inheritdoc />
@@ -350,6 +376,10 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     /// <inheritdoc />
     public override string DecimalTextExpression(string expression, int scale = 2) =>
         $"CONVERT(VARCHAR(50), CAST({expression} AS DECIMAL(38, {scale})))";
+
+    /// <inheritdoc />
+    public override string MathSquareExpression(string expression) =>
+        $"SQUARE({expression})";
 
     /// <inheritdoc />
     public override string StringAggregate(FidelityTestContext context) =>

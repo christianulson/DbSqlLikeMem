@@ -20,7 +20,7 @@ Manter a fidelidade entre mock e container com prioridade para comportamento obs
 
 ## Status Do Plano
 
-Percentual geral atual: 94%
+Percentual geral atual: 98%
 
 | Fase | Arquivo | Status | Entrega |
 | --- | --- | --- | --- |
@@ -32,6 +32,7 @@ Percentual geral atual: 94%
 | Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | DONE | 100% |
 | Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | DONE | 100% |
 | Fase 8 - Testes faltantes do banco real | [Fase-08-Testes-Faltantes.md](./Fase-08-Testes-Faltantes.md) | DONE | 100% |
+| Fase 9 - Funções matemáticas restantes | [Fase-09-Funcoes-Matematicas.md](./Fase-09-Funcoes-Matematicas.md) | DONE | 100% |
 
 ## Regra Central
 

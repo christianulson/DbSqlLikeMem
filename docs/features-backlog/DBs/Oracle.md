@@ -17,6 +17,9 @@
   - `NVL`
   - `JSON_VALUE` (subset escalar)
   - `JSON_TABLE` com projeção relacional em `FROM`
+- `REMAINDER` já está coberta como função numérica de resto IEEE do Oracle nas surfaces de mock e Dapper.
+- `TRUNC` já está coberta como função numérica de truncamento do Oracle nas surfaces de mock e Dapper.
+- `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` já estão cobertas como funções transcendentais do Oracle nas surfaces de mock e Dapper.
 - Incremento desta sessão: `JSON_TABLE` passou a ter cobertura end-to-end no mock Oracle, com parser e runtime alinhados ao gate de versão do dialeto.
 - Incremento desta sessão: o executor de `PIVOT` passou a cobrir também `MIN`, `MAX` e `AVG` no caminho Oracle, além de alinhar buckets vazios/nulos à semântica agregadora compartilhada.
 - TODO: completar executor de `PIVOT` para agregadores avançados relevantes do Oracle além do conjunto comum `COUNT/SUM/MIN/MAX/AVG`, mantendo coerência com `SupportsPivotClause`.

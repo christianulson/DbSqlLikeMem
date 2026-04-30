@@ -332,41 +332,303 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies that ABS, CEILING, DEGREES, FLOOR, POWER, RADIANS, ROUND, SQRT, and SQUARE keep the expected math results for the current provider.
-    /// PT: Verifica se ABS, CEILING, DEGREES, FLOOR, POWER, RADIANS, ROUND, SQRT e SQUARE mantem os resultados matematicos esperados para o provedor atual.
+    /// EN: Verifies that ABS, CEIL/CEILING, DEGREES, FLOOR, LN/LOG10, POWER, RADIANS, ROUND, SIGN, SQRT, and SQUARE keep the expected math results for the current provider.
+    /// PT: Verifica se ABS, CEIL/CEILING, DEGREES, FLOOR, LN/LOG10, POWER, RADIANS, ROUND, SIGN, SQRT e SQUARE mantem os resultados matematicos esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task MathFunctionsTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
-        if (!dialect.SupportsSqlServerScalarFunction("ABS")
-            || !dialect.SupportsSqlServerScalarFunction("CEILING")
-            || !dialect.SupportsSqlServerScalarFunction("DEGREES")
-            || !dialect.SupportsSqlServerScalarFunction("FLOOR")
-            || !dialect.SupportsSqlServerScalarFunction("POWER")
-            || !dialect.SupportsSqlServerScalarFunction("RADIANS")
-            || !dialect.SupportsSqlServerScalarFunction("ROUND")
-            || !dialect.SupportsSqlServerScalarFunction("SQRT")
-            || !dialect.SupportsSqlServerScalarFunction("SQUARE"))
+        if (!dialect.SupportsMathFunctions)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int abs, int ceiling, double degrees, int floor, double power, double radians, decimal round, double sqrt, double square)>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int abs, int ceiling, double degrees, int floor, double naturalLog, double log10, double power, double radians, decimal round, int sign, double sqrt, double square)>(
                 async (QueryServiceTest s, object[] _) => await s.RunMathFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int abs, int ceiling, double degrees, int floor, double power, double radians, decimal round, double sqrt, double square)>(
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int abs, int ceiling, double degrees, int floor, double naturalLog, double log10, double power, double radians, decimal round, int sign, double sqrt, double square)>(
             async (QueryServiceTest s, object[] _) => await s.RunMathFunctionsAsync());
 
         result.abs.Should().Be(10);
         result.ceiling.Should().Be(2);
         result.degrees.Should().BeApproximately(180d, 12);
         result.floor.Should().Be(1);
+        result.naturalLog.Should().BeApproximately(1d, 12);
+        result.log10.Should().BeApproximately(3d, 12);
         result.power.Should().BeApproximately(8d, 12);
         result.radians.Should().BeApproximately(Math.PI, 12);
         result.round.Should().Be(1.24m);
+        result.sign.Should().Be(-1);
         result.sqrt.Should().BeApproximately(3d, 12);
         result.square.Should().BeApproximately(9d, 12);
+    }
+
+    /// <summary>
+    /// EN: Verifies that LOG with an explicit base keeps the expected math result for providers that expose the two-argument form.
+    /// PT: Verifica se LOG com base explicita mantem o resultado matematico esperado para provedores que expoem a forma com dois argumentos.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathLogBaseFunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathLogBaseFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathLogBaseFunctionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathLogBaseFunctionAsync());
+
+        result.Should().BeApproximately(2d, 12);
+    }
+
+    /// <summary>
+    /// EN: Verifies that PI keeps the expected math result for providers that expose the function.
+    /// PT: Verifica se PI mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathPiFunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathPiFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathPiFunctionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathPiFunctionAsync());
+
+        result.Should().BeApproximately(Math.PI, 12);
+    }
+
+    /// <summary>
+    /// EN: Verifies that RAND keeps the expected math result for providers that expose the function.
+    /// PT: Verifica se RAND mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathRandFunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathRandFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathRandFunctionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathRandFunctionAsync());
+
+        result.Should().BeInRange(0d, 1d);
+    }
+
+    /// <summary>
+    /// EN: Verifies that REMAINDER keeps the expected math result for providers that expose the function.
+    /// PT: Verifica se REMAINDER mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathRemainderFunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathRemainderFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathRemainderFunctionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathRemainderFunctionAsync());
+
+        result.Should().BeApproximately(Math.IEEERemainder(7d, 3d), 12);
+    }
+
+    /// <summary>
+    /// EN: Verifies that numeric TRUNC keeps the expected Oracle result for providers that expose the function.
+    /// PT: Verifica se TRUNC numerico mantem o resultado esperado do Oracle para provedores que expoem a funcao.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathTruncFunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathTruncFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (decimal trunc, decimal truncScale)>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathTruncFunctionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (decimal trunc, decimal truncScale)>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathTruncFunctionAsync());
+
+        result.trunc.Should().Be(1m);
+        result.truncScale.Should().Be(1.98m);
+    }
+
+    /// <summary>
+    /// EN: Verifies that COT keeps the expected math result for providers that expose the function.
+    /// PT: Verifica se COT mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathCotFunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathCotFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathCotFunctionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathCotFunctionAsync());
+
+        result.Should().BeApproximately(1d / Math.Tan(1d), 12);
+    }
+
+    /// <summary>
+    /// EN: Verifies that BIN, GREATEST, LEAST, LOG2, MOD, POW, and TRUNCATE keep the expected MySQL-family results for providers that expose the functions.
+    /// PT: Verifica se BIN, GREATEST, LEAST, LOG2, MOD, POW e TRUNCATE mantem os resultados esperados da familia MySQL para provedores que expoem as funcoes.
+    /// </summary>
+    [FidelityFact]
+    public async Task MySqlUtilityMathFunctionsTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMySqlUtilityMathFunctions)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (string bin, int greatest, int least, double log2, decimal mod, double pow, decimal truncate)>(
+                async (QueryServiceTest s, object[] _) => await s.RunMySqlUtilityMathFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (string bin, int greatest, int least, double log2, decimal mod, double pow, decimal truncate)>(
+            async (QueryServiceTest s, object[] _) => await s.RunMySqlUtilityMathFunctionsAsync());
+
+        result.bin.Should().Be("110");
+        result.greatest.Should().Be(5);
+        result.least.Should().Be(1);
+        result.log2.Should().BeApproximately(3d, 12);
+        result.mod.Should().Be(1m);
+        result.pow.Should().BeApproximately(8d, 12);
+        result.truncate.Should().Be(12.34m);
+    }
+
+    /// <summary>
+    /// EN: Verifies that GREATEST, LEAST, and MOD keep the expected shared results for providers that expose the functions.
+    /// PT: Verifica se GREATEST, LEAST e MOD mantem os resultados compartilhados esperados para provedores que expoem as funcoes.
+    /// </summary>
+    [FidelityFact]
+    public async Task GreatestLeastModFunctionsTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsGreatestLeastModFunctions)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int greatest, int least, decimal mod)>(
+                async (QueryServiceTest s, object[] _) => await s.RunGreatestLeastModFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int greatest, int least, decimal mod)>(
+            async (QueryServiceTest s, object[] _) => await s.RunGreatestLeastModFunctionsAsync());
+
+        result.greatest.Should().Be(5);
+        result.least.Should().Be(1);
+        result.mod.Should().Be(1m);
+    }
+
+    /// <summary>
+    /// EN: Verifies that ABSVAL, MOD, TRUNC, and TRUNCATE keep the expected DB2 alias results for providers that expose the functions.
+    /// PT: Verifica se ABSVAL, MOD, TRUNC e TRUNCATE mantem os resultados esperados dos aliases do DB2 para provedores que expoem as funcoes.
+    /// </summary>
+    [FidelityFact]
+    public async Task Db2AliasMathFunctionsTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsDb2AliasMathFunctions)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int absVal, decimal mod, decimal trunc, decimal truncate)>(
+                async (QueryServiceTest s, object[] _) => await s.RunDb2AliasMathFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int absVal, decimal mod, decimal trunc, decimal truncate)>(
+            async (QueryServiceTest s, object[] _) => await s.RunDb2AliasMathFunctionsAsync());
+
+        result.absVal.Should().Be(10);
+        result.mod.Should().Be(1m);
+        result.trunc.Should().Be(1m);
+        result.truncate.Should().Be(1.98m);
+    }
+
+    /// <summary>
+    /// EN: Verifies that ABSVAL, BIN, COSH, SINH, TANH, and TRUNC keep the expected Firebird alias results for providers that expose the functions.
+    /// PT: Verifica se ABSVAL, BIN, COSH, SINH, TANH e TRUNC mantem os resultados esperados dos aliases do Firebird para provedores que expoem as funcoes.
+    /// </summary>
+    [FidelityFact]
+    public async Task FirebirdAliasMathFunctionsTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsFirebirdAliasMathFunctions)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int absVal, string bin, double cosh, double sinh, double tanh, decimal trunc, decimal truncScale)>(
+                async (QueryServiceTest s, object[] _) => await s.RunFirebirdAliasMathFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int absVal, string bin, double cosh, double sinh, double tanh, decimal trunc, decimal truncScale)>(
+            async (QueryServiceTest s, object[] _) => await s.RunFirebirdAliasMathFunctionsAsync());
+
+        result.absVal.Should().Be(5);
+        result.bin.Should().Be("110");
+        result.cosh.Should().BeApproximately(1d, 12);
+        result.sinh.Should().BeApproximately(0d, 12);
+        result.tanh.Should().BeApproximately(0d, 12);
+        result.trunc.Should().Be(123m);
+        result.truncScale.Should().Be(123.45m);
+    }
+
+    /// <summary>
+    /// EN: Verifies that ACOS, ASIN, ATAN, ATAN2, COS, EXP, SIN, and TAN keep the expected transcendental results for the current provider.
+    /// PT: Verifica se ACOS, ASIN, ATAN, ATAN2, COS, EXP, SIN e TAN mantem os resultados transcendentais esperados para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task MathTranscendentalFunctionsTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsMathTranscendentalFunctions)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (double acos, double asin, double atan, double atan2, double cos, double exp, double sin, double tan)>(
+                async (QueryServiceTest s, object[] _) => await s.RunMathTranscendentalFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (double acos, double asin, double atan, double atan2, double cos, double exp, double sin, double tan)>(
+            async (QueryServiceTest s, object[] _) => await s.RunMathTranscendentalFunctionsAsync());
+
+        result.acos.Should().BeApproximately(0d, 12);
+        result.asin.Should().BeApproximately(0d, 12);
+        result.atan.Should().BeApproximately(0d, 12);
+        result.atan2.Should().BeApproximately(0d, 12);
+        result.cos.Should().BeApproximately(1d, 12);
+        result.exp.Should().BeApproximately(Math.E, 12);
+        result.sin.Should().BeApproximately(0d, 12);
+        result.tan.Should().BeApproximately(0d, 12);
     }
 
     /// <summary>
@@ -615,12 +877,12 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
         if (!dialect.SupportsSqlServerMetadataFunction("SESSION_CONTEXT"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (byte[] contextInfo, int sessionContextTenant, object? sessionContextMissing)>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (byte[] contextInfo, int sessionContextTenant, string? sessionContextMissing)>(
                 async (QueryServiceTest s, object[] _) => await s.RunSqlServerContextFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (byte[] contextInfo, int sessionContextTenant, object? sessionContextMissing)>(
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (byte[] contextInfo, int sessionContextTenant, string? sessionContextMissing)>(
             async (QueryServiceTest s, object[] _) => await s.RunSqlServerContextFunctionsAsync());
 
         result.contextInfo.Should().Equal(new byte[] { 0x0A, 0x0B });

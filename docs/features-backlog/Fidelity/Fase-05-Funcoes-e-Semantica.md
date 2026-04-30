@@ -31,7 +31,16 @@ IN PROGRESS
 - Adicionada cobertura compartilhada para `FORMATMESSAGE` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para `ISJSON` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para `FORMAT` no SQL Server e no SQL Azure.
-- Adicionada cobertura compartilhada para `ABS`, `CEILING`, `DEGREES`, `FLOOR`, `POWER`, `RADIANS`, `ROUND`, `SQRT` e `SQUARE` no SQL Server e no SQL Azure.
+- Adicionada cobertura compartilhada para o nucleo matematico comum com `ABS`, `CEILING`/`CEIL`, `DEGREES`, `FLOOR`, `LN`, `LOG10`, `LOG(base, value)`, `PI`, `POWER`, `RADIANS`, `ROUND`, `SIGN`, `SQRT` e `SQUARE` nos providers com suporte ao contrato correspondente.
+- Adicionada cobertura compartilhada para `COT` nos providers com suporte ao contrato correspondente.
+- Adicionada cobertura compartilhada para `BIN`, `GREATEST`, `LEAST`, `LOG2`, `MOD`, `POW` e `TRUNCATE` nos providers MySQL e MariaDB.
+- Adicionada cobertura compartilhada para `GREATEST`, `LEAST` e `MOD` nos providers Npgsql e Firebird.
+- Adicionada cobertura compartilhada para `ABSVAL`, `MOD`, `TRUNC` e `TRUNCATE` no DB2.
+- Adicionada cobertura compartilhada para `TRUNC` numerico no Oracle.
+- Adicionada cobertura compartilhada para `ABSVAL`, `BIN`, `COSH`, `SINH`, `TANH` e `TRUNC` no Firebird.
+- Adicionada cobertura compartilhada para a extensao matematica `SQLITE_ENABLE_MATH_FUNCTIONS` no SQLite.
+- Adicionada cobertura compartilhada para `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` nos providers com suporte ao contrato transcendente correspondente.
+- O inventario das funcoes matematicas aceitas pelos providers que ainda nao entram no contrato compartilhado foi registrado em [Fase-09-Funcoes-Matematicas.md](./Fase-09-Funcoes-Matematicas.md).
 - Adicionada cobertura compartilhada para `ASCII`, `CHARINDEX`, `BINARY_CHECKSUM`, `CHECKSUM`, `REPLICATE`, `REVERSE`, `SPACE` e `STUFF` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para `PARSENAME`, `QUOTENAME` e `STR` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para `APP_NAME`, `CONNECTIONPROPERTY`, `DATABASEPROPERTYEX`, `DATABASE_PRINCIPAL_ID`, `CURRENT_USER`, `COLUMNPROPERTY`, `COL_LENGTH`, `COL_NAME`, `DB_ID`, `DB_NAME`, `OBJECT_ID`, `OBJECTPROPERTY`, `OBJECTPROPERTYEX`, `OBJECT_NAME`, `OBJECT_SCHEMA_NAME`, `ORIGINAL_DB_NAME`, `SCHEMA_ID`, `SCHEMA_NAME`, `GETUTCDATE`, `SYSDATETIMEOFFSET` e `SYSUTCDATETIME` no SQL Server e no SQL Azure.
@@ -50,6 +59,7 @@ IN PROGRESS
 - Expandido o `ProviderSqlDialect` de testes com contratos de `APPLY`, `STRING_SPLIT`, `FOR JSON`, `OPENJSON` e categorias de funcoes SQL Server, com implementacao no `SqlServerProviderSqlDialect`.
 - Ajustados os testes de `QueryServiceScalarTemporalTest` para ler `SYSDATETIMEOFFSET`, `COMPRESS` e `DECOMPRESS` sem casts diretos fragilizados por tipo de runtime.
 - Tipados os wrappers de `FieldTypeFunctionTestsBase` e os retornos correspondentes de `QueryServiceScalarTemporalTest` para JSON e funcoes escalares do SQL Server, removendo casts manuais nesses caminhos.
+- Tipado o fluxo de `CONTEXT_INFO` e `SESSION_CONTEXT` para manter o valor ausente como `string?` no helper compartilhado do SQL Server.
 - Tipados os retornos temporais de `QueryServiceScalarTemporalTest` e os testes de `ScalarTemporalTestsBase` para `DateTime`, `DateTimeOffset`, `TimeSpan` e tuplas, removendo casts manuais nos benchmarks temporais.
 - Tipados os wrappers de `STRING_AGG` e os testes de `StringAggregateTestsBase` para `string` e `QueryResultSnapshot`, removendo unwrapping manual nos asserts de agregacao.
 - Tipados os wrappers de parametros e tempo atual de `QueryServiceScalarTemporalTest` para `string`, `int` e `DateTime`, removendo casts manuais nos testes de `SelectTestsBase` e `ScalarTemporalTestsBase`.
@@ -104,3 +114,4 @@ IN PROGRESS
 - Cobrir tipos nativos de retorno e de parâmetro.
 - Continuar reduzindo casts diretos nos wrappers de fidelidade que ainda dependem de forma de runtime.
 - Alinhar temporais, JSON e window functions com o banco real.
+- Fechar as funcoes matematicas restantes registradas em [Fase-09-Funcoes-Matematicas.md](./Fase-09-Funcoes-Matematicas.md).

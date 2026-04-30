@@ -194,45 +194,291 @@ public partial class QueryServiceTest
     }
 
     /// <summary>
-    /// EN: Executes the SQL Server math benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks matematicos do SQL Server e mantém o resultado do provedor vivo.
+    /// EN: Executes the shared math benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks matematicos compartilhados e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<(int abs, int ceiling, double degrees, int floor, double power, double radians, decimal round, double sqrt, double square)> RunMathFunctionsAsync()
+    public async Task<(int abs, int ceiling, double degrees, int floor, double naturalLog, double log10, double power, double radians, decimal round, int sign, double sqrt, double square)> RunMathFunctionsAsync()
     {
-        if (!Repo.Dialect.SupportsSqlServerScalarFunction("ABS")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("CEILING")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("DEGREES")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("FLOOR")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("POWER")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("RADIANS")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("ROUND")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("SQRT")
-            || !Repo.Dialect.SupportsSqlServerScalarFunction("SQUARE"))
+        if (!Repo.Dialect.SupportsMathFunctions)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math benchmark.");
         }
 
-        var abs = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ABS(-10)"), CultureInfo.InvariantCulture);
-        var ceiling = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CEILING(1.2)"), CultureInfo.InvariantCulture);
-        var degrees = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT DEGREES(PI())"), CultureInfo.InvariantCulture);
-        var floor = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT FLOOR(1.9)"), CultureInfo.InvariantCulture);
-        var power = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT POWER(2, 3)"), CultureInfo.InvariantCulture);
-        var radians = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT RADIANS(180)"), CultureInfo.InvariantCulture);
-        var round = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT ROUND(1.235, 2)"), CultureInfo.InvariantCulture);
-        var sqrt = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT SQRT(9)"), CultureInfo.InvariantCulture);
-        var square = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT SQUARE(3)"), CultureInfo.InvariantCulture);
+        var abs = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathAbsoluteExpression("-10")}"), CultureInfo.InvariantCulture);
+        var ceiling = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathCeilingExpression("1.2")}"), CultureInfo.InvariantCulture);
+        var degrees = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathDegreesExpression("ACOS(-1)")}"), CultureInfo.InvariantCulture);
+        var floor = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathFloorExpression("1.9")}"), CultureInfo.InvariantCulture);
+        var naturalLog = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathNaturalLogExpression("2.718281828459045")}"), CultureInfo.InvariantCulture);
+        var log10 = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathLog10Expression("1000")}"), CultureInfo.InvariantCulture);
+        var power = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathPowerExpression("2", "3")}"), CultureInfo.InvariantCulture);
+        var radians = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRadiansExpression("180")}"), CultureInfo.InvariantCulture);
+        var round = Convert.ToDecimal(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRoundExpression("1.235", 2)}"), CultureInfo.InvariantCulture);
+        var sign = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSignExpression("-10")}"), CultureInfo.InvariantCulture);
+        var sqrt = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSqrtExpression("9")}"), CultureInfo.InvariantCulture);
+        var square = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSquareExpression("3")}"), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(abs);
         GC.KeepAlive(ceiling);
         GC.KeepAlive(degrees);
         GC.KeepAlive(floor);
+        GC.KeepAlive(naturalLog);
+        GC.KeepAlive(log10);
         GC.KeepAlive(power);
         GC.KeepAlive(radians);
         GC.KeepAlive(round);
+        GC.KeepAlive(sign);
         GC.KeepAlive(sqrt);
         GC.KeepAlive(square);
 
-        return (abs, ceiling, degrees, floor, power, radians, round, sqrt, square);
+        return (abs, ceiling, degrees, floor, naturalLog, log10, power, radians, round, sign, sqrt, square);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared explicit-base logarithm benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de logaritmo com base explicita e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<double> RunMathLogBaseFunctionAsync()
+    {
+        if (!Repo.Dialect.SupportsMathLogBaseFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math log-base benchmark.");
+        }
+
+        var logBase = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathLogBaseExpression("10", "100")}"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(logBase);
+
+        return logBase;
+    }
+
+    /// <summary>
+    /// EN: Executes the shared pi benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de pi e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<double> RunMathPiFunctionAsync()
+    {
+        if (!Repo.Dialect.SupportsMathPiFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math pi benchmark.");
+        }
+
+        var pi = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathPiExpression()}"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(pi);
+
+        return pi;
+    }
+
+    /// <summary>
+    /// EN: Executes the shared random-number benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de numero aleatorio e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<double> RunMathRandFunctionAsync()
+    {
+        if (!Repo.Dialect.SupportsMathRandFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math rand benchmark.");
+        }
+
+        var rand = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRandExpression("1")}"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(rand);
+
+        return rand;
+    }
+
+    /// <summary>
+    /// EN: Executes the shared remainder benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de resto e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<double> RunMathRemainderFunctionAsync()
+    {
+        if (!Repo.Dialect.SupportsMathRemainderFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math remainder benchmark.");
+        }
+
+        var remainder = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRemainderExpression("7", "3")}"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(remainder);
+
+        return remainder;
+    }
+
+    /// <summary>
+    /// EN: Executes the shared numeric truncation benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de truncamento numerico e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(decimal trunc, decimal truncScale)> RunMathTruncFunctionAsync()
+    {
+        if (!Repo.Dialect.SupportsMathTruncFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math truncation benchmark.");
+        }
+
+        var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(1.9)"), CultureInfo.InvariantCulture);
+        var truncScale = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(1.987, 2)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(trunc);
+        GC.KeepAlive(truncScale);
+
+        return (trunc, truncScale);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared cotangent benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de cotangente e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<double> RunMathCotFunctionAsync()
+    {
+        if (!Repo.Dialect.SupportsMathCotFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math cotangent benchmark.");
+        }
+
+        var cot = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathCotExpression("1")}"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(cot);
+
+        return cot;
+    }
+
+    /// <summary>
+    /// EN: Executes the shared MySQL-family utility math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de utilitarios matematicos da familia MySQL e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(string bin, int greatest, int least, double log2, decimal mod, double pow, decimal truncate)> RunMySqlUtilityMathFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsMySqlUtilityMathFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the MySQL utility math benchmark.");
+        }
+
+        var bin = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT BIN(6)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var greatest = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT GREATEST(1, 5, 3)"), CultureInfo.InvariantCulture);
+        var least = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT LEAST(1, 5, 3)"), CultureInfo.InvariantCulture);
+        var log2 = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT LOG2(8)"), CultureInfo.InvariantCulture);
+        var mod = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT MOD(10, 3)"), CultureInfo.InvariantCulture);
+        var pow = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT POW(2, 3)"), CultureInfo.InvariantCulture);
+        var truncate = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNCATE(12.3456, 2)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(bin);
+        GC.KeepAlive(greatest);
+        GC.KeepAlive(least);
+        GC.KeepAlive(log2);
+        GC.KeepAlive(mod);
+        GC.KeepAlive(pow);
+        GC.KeepAlive(truncate);
+
+        return (bin, greatest, least, log2, mod, pow, truncate);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared greatest/least/mod benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de greatest/least/mod e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int greatest, int least, decimal mod)> RunGreatestLeastModFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsGreatestLeastModFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the greatest/least/mod benchmark.");
+        }
+
+        var greatest = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT GREATEST(1, 5, 3)"), CultureInfo.InvariantCulture);
+        var least = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT LEAST(1, 5, 3)"), CultureInfo.InvariantCulture);
+        var mod = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT MOD(10, 3)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(greatest);
+        GC.KeepAlive(least);
+        GC.KeepAlive(mod);
+
+        return (greatest, least, mod);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared DB2 alias math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de aliases matematicos do DB2 e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int absVal, decimal mod, decimal trunc, decimal truncate)> RunDb2AliasMathFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsDb2AliasMathFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the DB2 alias math benchmark.");
+        }
+
+        var absVal = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ABSVAL(-10)"), CultureInfo.InvariantCulture);
+        var mod = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT MOD(10, 3)"), CultureInfo.InvariantCulture);
+        var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(1.9)"), CultureInfo.InvariantCulture);
+        var truncate = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNCATE(1.987, 2)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(absVal);
+        GC.KeepAlive(mod);
+        GC.KeepAlive(trunc);
+        GC.KeepAlive(truncate);
+
+        return (absVal, mod, trunc, truncate);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared Firebird alias math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de aliases matematicos do Firebird e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int absVal, string bin, double cosh, double sinh, double tanh, decimal trunc, decimal truncScale)> RunFirebirdAliasMathFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsFirebirdAliasMathFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the Firebird alias math benchmark.");
+        }
+
+        var absVal = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ABSVAL(-5)"), CultureInfo.InvariantCulture);
+        var bin = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT BIN(6)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var cosh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT COSH(0)"), CultureInfo.InvariantCulture);
+        var sinh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT SINH(0)"), CultureInfo.InvariantCulture);
+        var tanh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT TANH(0)"), CultureInfo.InvariantCulture);
+        var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(123.456)"), CultureInfo.InvariantCulture);
+        var truncScale = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(123.456, 2)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(absVal);
+        GC.KeepAlive(bin);
+        GC.KeepAlive(cosh);
+        GC.KeepAlive(sinh);
+        GC.KeepAlive(tanh);
+        GC.KeepAlive(trunc);
+        GC.KeepAlive(truncScale);
+
+        return (absVal, bin, cosh, sinh, tanh, trunc, truncScale);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared transcendental math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de matematica transcendental e mantem o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(double acos, double asin, double atan, double atan2, double cos, double exp, double sin, double tan)> RunMathTranscendentalFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsMathTranscendentalFunctions)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the transcendental math benchmark.");
+        }
+
+        var acos = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathAcosExpression("1")}"), CultureInfo.InvariantCulture);
+        var asin = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathAsinExpression("0")}"), CultureInfo.InvariantCulture);
+        var atan = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathAtanExpression("0")}"), CultureInfo.InvariantCulture);
+        var atan2 = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathAtan2Expression("0", "1")}"), CultureInfo.InvariantCulture);
+        var cos = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathCosExpression("0")}"), CultureInfo.InvariantCulture);
+        var exp = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathExpExpression("1")}"), CultureInfo.InvariantCulture);
+        var sin = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSinExpression("0")}"), CultureInfo.InvariantCulture);
+        var tan = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathTanExpression("0")}"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(acos);
+        GC.KeepAlive(asin);
+        GC.KeepAlive(atan);
+        GC.KeepAlive(atan2);
+        GC.KeepAlive(cos);
+        GC.KeepAlive(exp);
+        GC.KeepAlive(sin);
+        GC.KeepAlive(tan);
+
+        return (acos, asin, atan, atan2, cos, exp, sin, tan);
     }
 
     /// <summary>
@@ -614,7 +860,7 @@ CREATE TABLE IdentityUsers (
     /// EN: Executes the SQL Server context-info and session-context benchmark and keeps the provider result alive.
     /// PT: Executa o benchmark de context-info e session-context do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
-    public async Task<(byte[] contextInfo, int sessionContextTenant, object? sessionContextMissing)> RunSqlServerContextFunctionsAsync()
+    public async Task<(byte[] contextInfo, int sessionContextTenant, string? sessionContextMissing)> RunSqlServerContextFunctionsAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerMetadataFunction("SESSION_CONTEXT"))
         {
@@ -640,7 +886,7 @@ CREATE TABLE IdentityUsers (
         GC.KeepAlive(sessionContextTenant);
         GC.KeepAlive(sessionContextMissing);
 
-        return (contextInfo, sessionContextTenant, sessionContextMissing is DBNull ? null : sessionContextMissing);
+        return (contextInfo, sessionContextTenant, sessionContextMissing is DBNull ? null : Convert.ToString(sessionContextMissing, CultureInfo.InvariantCulture));
     }
 
     /// <summary>
