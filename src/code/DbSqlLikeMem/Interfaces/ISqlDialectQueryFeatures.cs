@@ -34,6 +34,7 @@ internal interface ISqlDialectQueryFeatures
     bool SupportsJsonValueReturningClause { get; }
     bool SupportsMatchAgainstPredicate { get; }
     bool SupportsForJsonClause { get; }
+    bool SupportsDistinctOnClause { get; }
     bool SupportsPivotClause { get; }
     bool SupportsUnpivotClause { get; }
     bool PivotAvgReturnsDecimalForIntegralInputs { get; }

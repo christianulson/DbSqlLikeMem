@@ -9,11 +9,11 @@
 
 - Implementação estimada: **88%**.
 - `WITH`/CTE disponível.
+- Hints `MATERIALIZED` e `NOT MATERIALIZED` em CTE já seguem o gate de versão e o contrato de fidelidade compartilhado.
 - Operadores JSON `->` e `->>` disponíveis no parser do dialeto.
 - Cobertura de `GROUP_CONCAT` ampliada com separador customizado, `DISTINCT`, tratamento de `NULL` e ordenação interna via sintaxe nativa `ORDER BY` dentro da função; `WITHIN GROUP` permanece explicitamente bloqueado no dialeto.
 - P8 consolidado: `LIMIT/OFFSET` e ordenação com regras de compatibilidade por versão simulada.
-- Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, funções de data (`date`, `datetime`, `strftime`) e `JSON_EXTRACT` (subset).
-- TODO: implementar table-valued JSON functions `json_each(...)`/`json_tree(...)` no parser/executor do SQLite para cenários reais de shredding de JSON em `FROM`.
+- Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, funções de data (`date`, `datetime`, `strftime`), `JSON_EXTRACT` (subset) e as table-valued JSON functions `json_each(...)`/`json_tree(...)` já refletidas no contrato de fidelidade.
 - TODO: ampliar a malha de window functions do SQLite para cobrir explicitamente `EXCLUDE`, window chaining e os detalhes adicionais de frame que o banco real suporta.
 
 ## 3 Restrições relevantes

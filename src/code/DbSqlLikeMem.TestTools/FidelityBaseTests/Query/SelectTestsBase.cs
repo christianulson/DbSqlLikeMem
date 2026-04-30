@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using DbSqlLikeMem.TestTools.DML;
+using DbSqlLikeMem.TestTools.Json;
 using DbSqlLikeMem.TestTools.Query;
 #if NET462 || NETSTANDARD2_0
 using ITuple = DbSqlLikeMem.Compatibility.ITuple;
@@ -84,6 +85,28 @@ public abstract class SelectTestsBase<T, T2>(
         var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
             (s, a) => s.RunCteSimpleAsync(a));
         AssertSnapshot(RequireSnapshot(result, nameof(SelectCteSimpleTest)), Snapshot(["Name"], Row("Alice")));
+    }
+
+    /// <summary>
+    /// EN: Verifies that a MATERIALIZED CTE hint preserves the expected rowset for the current provider.
+    /// PT: Verifica se um hint MATERIALIZED em CTE preserva o conjunto de linhas esperado para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectCteMaterializedHintTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsWithMaterializedHint)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+                (s, a) => s.RunCteMaterializedHintAsync(a))).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+            (s, a) => s.RunCteMaterializedHintAsync(a));
+
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectCteMaterializedHintTest)), Snapshot(["Name"], Row("Alice")));
     }
 
     /// <summary>
@@ -304,6 +327,31 @@ ORDER BY Id
         var result = await testService.RunTestAsync<UsersScenario, QueryServiceTest>(
             (s, a) => s.RunDistinctProjectionAsync(a));
         AssertSnapshot(RequireSnapshot(result, nameof(SelectDistinctProjectionTest)), Snapshot(["Name"], Row("Alice"), Row("Bob")));
+    }
+
+    /// <summary>
+    /// EN: Verifies that a DISTINCT ON projection returns the first row per key selected by ORDER BY for the current provider.
+    /// PT: Verifica se uma projecao DISTINCT ON retorna a primeira linha por chave escolhida pelo ORDER BY para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectDistinctOnProjectionTest()
+    {
+        if (!dialect.SupportsDistinctOnProjection)
+        {
+            await FluentActions.Awaiting(() => RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+                [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
+                (s, a) => s.RunDistinctOnProjectionAsync(a))).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await RunFidelityTestAsync<UsersOrdersScenario, QueryServiceTest>(
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2],
+            (s, a) => s.RunDistinctOnProjectionAsync(a));
+
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectDistinctOnProjectionTest)), Snapshot(ApplyProjectionColumnNames(),
+            Row(1m, "Alice", "B"),
+            Row(2m, "Bob", "C"),
+            Row(3m, "Carla", null)));
     }
 
     /// <summary>
@@ -1568,6 +1616,68 @@ ORDER BY Id
     }
 
     /// <summary>
+    /// EN: Verifies STRING_SPLIT materializes the expected split rows for the shared users scenario.
+    /// PT: Verifica se STRING_SPLIT materializa as linhas divididas esperadas no cenario compartilhado de usuarios.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectStringSplitFunctionTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsApplyClause || !dialect.SupportsStringSplitFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+                [],
+                async (s, _) =>
+                {
+                    await s.Repo.ExecuteNonQueryAsync($"INSERT INTO {s.Context.TbUsersFullName} (Id, Name, Email) VALUES (3, 'Csv', 'red,blue')");
+                    return await s.RunStringSplitProjectionAsync();
+                })).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+            [],
+            async (s, _) =>
+            {
+                await s.Repo.ExecuteNonQueryAsync($"INSERT INTO {s.Context.TbUsersFullName} (Id, Name, Email) VALUES (3, 'Csv', 'red,blue')");
+                return await s.RunStringSplitProjectionAsync();
+            });
+
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectStringSplitFunctionTest)), Snapshot(["value"],
+            Row("red"),
+            Row("blue")));
+    }
+
+    /// <summary>
+    /// EN: Verifies FOR JSON PATH serializes the shared users projection for the current provider.
+    /// PT: Verifica se FOR JSON PATH serializa a projecao compartilhada de usuarios para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectForJsonPathTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsForJsonClause)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+                [SelectTestsBaseSeeds.seedUsers],
+                (s, _) => s.RunForJsonPathProjectionAsync())).Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
+            [SelectTestsBaseSeeds.seedUsers],
+            (s, _) => s.RunForJsonPathProjectionAsync());
+
+        JsonTextAssertions.ShouldMatchJsonText(
+            result as string,
+            """
+{"users":[{"User":{"Id":1,"Name":"Alice"}},{"User":{"Id":2,"Name":"Bob"}}]}
+""");
+    }
+
+    /// <summary>
     /// EN: Verifies APPLY projections together with temporal join comparisons for the shared users and orders scenario.
     /// PT: Verifica projeções APPLY junto com comparacoes temporais em join no cenário compartilhado de usuarios e pedidos.
     /// </summary>
@@ -1890,4 +2000,3 @@ ORDER BY Id
         await serviceTest.Repo.ExecuteNonQueryAsync(serviceTest.Repo.Dialect.InsertOrder(serviceTest.Context, 12, 2, "C", "o-12", 5.50m, 4, false, serviceTest.Repo.Dialect.TemporalCurrentTimestampExpression()));
     }
 }
-

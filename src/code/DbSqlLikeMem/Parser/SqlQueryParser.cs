@@ -693,7 +693,7 @@ internal sealed class SqlQueryParser
         _ctx.ExpectWord(SqlConst.SELECT);
         if (_ctx.IsWord(SqlConst.SELECT))
             throw new InvalidOperationException("invalid: duplicated SELECT keyword");
-        var distinct = TryParseDistinct();
+        var (distinct, distinctOn) = TryParseDistinct();
         var top = TryParseTop();
         TryParseSelectModifiers();
         var selectItems = SqlSelectItemParserHelper.ParseSelectItemsWithValidation(
@@ -735,6 +735,17 @@ internal sealed class SqlQueryParser
                     ? _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
                     : _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING))
             : [];
+        if (distinctOn.Count > 0 && orderBy.Count > 0)
+        {
+            for (var i = 0; i < distinctOn.Count; i++)
+            {
+                if (i >= orderBy.Count
+                    || !string.Equals(distinctOn[i].Trim(), orderBy[i].Raw.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("DISTINCT ON requires ORDER BY items to start with the same expressions.");
+                }
+            }
+        }
         var rowLimit = allowOrderByAndLimit
             ? SqlPaginationHelper.TryParseRowLimitTail(_ctx, orderBy.Count > 0)
             : null;
@@ -770,6 +781,7 @@ internal sealed class SqlQueryParser
         var query = new SqlSelectQuery(
             Ctes: ctes,
             Distinct: distinct,
+            DistinctOn: distinctOn,
             SelectItems: selectItems,
             Joins: joins,
             Where: where,
@@ -894,13 +906,22 @@ internal sealed class SqlQueryParser
 
     // --- Helpers de SELECT trazidos do arquivo original ---
 
-    private bool TryParseDistinct()
+    private (bool Distinct, IReadOnlyList<string> DistinctOn) TryParseDistinct()
     {
-        if (!_ctx.IsWord(SqlConst.DISTINCT)) return false;
+        if (!_ctx.IsWord(SqlConst.DISTINCT)) return (false, []);
         _ctx.Consume();
         if (_ctx.IsWord(SqlConst.DISTINCT))
             throw new InvalidOperationException("invalid: duplicated DISTINCT keyword");
-        return true;
+
+        if (!_ctx.IsWord(SqlConst.ON))
+            return (true, []);
+
+        if (!_dialect.SupportsDistinctOnClause)
+            throw SqlUnsupported.NotSupported(_dialect, "DISTINCT ON");
+
+        _ctx.Consume();
+        var distinctOn = _ctx.ParseCommaSeparatedRawItemsWithinParentheses("DISTINCT ON");
+        return (false, distinctOn);
     }
     private SqlRowLimit? TryParseTop()
     {

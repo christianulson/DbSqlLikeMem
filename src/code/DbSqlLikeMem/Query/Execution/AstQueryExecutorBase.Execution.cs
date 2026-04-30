@@ -220,7 +220,32 @@ internal abstract partial class AstQueryExecutorBase
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
             QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(selectQuery.SelectItems));
 
-        if (selectQuery.Distinct)
+        if (selectQuery.DistinctOn.Count > 0)
+        {
+            var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = projected.Count;
+
+            if (selectQuery.OrderBy.Count > 0)
+                _context.TryApplyOrder(
+                    projected,
+                    selectQuery.OrderBy,
+                    ParseExpr,
+                    (expr, row) => Eval(expr, row, group: null, ctes));
+
+            projected = _context.ApplyDistinctOn(projected, selectQuery.DistinctOn, ParseExpr, (expr, row) =>
+            {
+                using var positionalScope = _context.BeginPositionalParameterScope();
+                return Eval(expr, row, group: null, ctes);
+            });
+
+            debugTrace?.AddStep(
+                "Distinct On",
+                inputRows,
+                projected.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
+                QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(selectQuery.DistinctOn.Count));
+        }
+        else if (selectQuery.Distinct)
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var inputRows = projected.Count;

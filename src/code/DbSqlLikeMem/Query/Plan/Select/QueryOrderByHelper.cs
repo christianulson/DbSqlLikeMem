@@ -36,6 +36,46 @@ internal static class QueryOrderByHelper
         return true;
     }
 
+    internal static TableResultMock ApplyDistinctOn(
+        this QueryExecutionContext context,
+        TableResultMock result,
+        IReadOnlyList<string> distinctOn,
+        Func<string, SqlExpr> parseExpression,
+        Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalExpression)
+    {
+        if (distinctOn.Count == 0 || result.Count <= 1)
+            return result;
+
+        Dictionary<Dictionary<int, object?>, Dictionary<string, object?>>? joinFieldsByRow = null;
+        var keySelectors = context.BuildKeySelectors(
+            result,
+            [.. distinctOn.Select(raw => new SqlOrderByItem(raw, false, null))],
+            parseExpression,
+            evalExpression,
+            () => joinFieldsByRow ??= BuildJoinFieldsByRow(result));
+        if (keySelectors.Count == 0)
+            return result;
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var outputRows = new List<Dictionary<int, object?>>(result.Count);
+
+        foreach (var row in result)
+        {
+            var key = BuildDistinctOnRowKey(context, row, keySelectors);
+            if (seen.Add(key))
+                outputRows.Add(row);
+        }
+
+        result.Clear();
+        foreach (var row in outputRows)
+            result.Add(row);
+
+        if (joinFieldsByRow is not null)
+            ReorderJoinFields(result, outputRows, joinFieldsByRow);
+
+        return result;
+    }
+
     private static List<OrderByKeySelector> BuildKeySelectors(
         this QueryExecutionContext context,
         TableResultMock result,
@@ -147,6 +187,23 @@ internal static class QueryOrderByHelper
             item.Desc,
             item.NullsFirst);
         return true;
+    }
+
+    private static string BuildDistinctOnRowKey(
+        QueryExecutionContext context,
+        Dictionary<int, object?> row,
+        List<OrderByKeySelector> keySelectors)
+    {
+        var builder = new StringBuilder(Math.Max(16, keySelectors.Count * 12));
+        foreach (var selector in keySelectors)
+        {
+            if (builder.Length > 0)
+                builder.Append('\u001F');
+
+            builder.Append(context.NormalizeDistinctKey(selector.Get(row)));
+        }
+
+        return builder.ToString();
     }
 
     private static Dictionary<string, int> BuildAliasToIndex(IList<TableResultColMock> columns)

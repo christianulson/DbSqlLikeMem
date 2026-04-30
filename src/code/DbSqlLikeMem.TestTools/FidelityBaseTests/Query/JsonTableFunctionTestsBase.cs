@@ -4,8 +4,8 @@ using DbSqlLikeMem.TestTools.Query;
 namespace DbSqlLikeMem.TestTools.Tests.Query;
 
 /// <summary>
-/// EN: Provides shared fidelity tests for JSON table-valued functions (json_each, json_tree) across mock and container runs.
-/// PT: Fornece testes de fidelidade compartilhados para funções tabulares JSON (json_each, json_tree) entre execuções mock e container.
+/// EN: Provides shared fidelity tests for JSON table-valued functions (json_each, json_tree, OPENJSON) across mock and container runs.
+/// PT: Fornece testes de fidelidade compartilhados para funções tabulares JSON (json_each, json_tree, OPENJSON) entre execuções mock e container.
 /// </summary>
 public abstract class JsonTableFunctionTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -78,5 +78,25 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
         await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
             async (s, a) => (object?)await s.RunJsonTreeStructureAsync());
     }
-}
 
+    /// <summary>
+    /// EN: Verifies OPENJSON returns the expected rows from a JSON array for the current provider.
+    /// PT: Verifica se OPENJSON retorna as linhas esperadas de um array JSON para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task OpenJsonArrayTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        if (!dialect.SupportsOpenJsonFunction)
+        {
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+                async (s, a) => (object?)await s.RunOpenJsonArrayAsync()))
+                .Should().ThrowAsync<NotSupportedException>();
+            return;
+        }
+
+        await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest>(
+            async (s, a) => (object?)await s.RunOpenJsonArrayAsync());
+    }
+}

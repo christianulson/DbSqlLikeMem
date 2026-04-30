@@ -18,6 +18,7 @@ internal abstract record SqlQueryBase
 internal sealed record SqlSelectQuery(
     IReadOnlyList<SqlCte> Ctes,
     bool Distinct,
+    IReadOnlyList<string> DistinctOn,
     IReadOnlyList<SqlSelectItem> SelectItems,
     IReadOnlyList<SqlJoin> Joins,
     SqlExpr? Where,
@@ -27,6 +28,12 @@ internal sealed record SqlSelectQuery(
     SqlExpr? Having,
     SqlForJsonClause? ForJson = null
 ) : SqlQueryBase;
+
+internal static class SqlSelectQueryExtensions
+{
+    internal static bool HasDistinctClause(this SqlSelectQuery query)
+        => query.Distinct || query.DistinctOn.Count > 0;
+}
 
 internal sealed record SqlUnionQuery(
     IReadOnlyList<SqlSelectQuery> Parts,

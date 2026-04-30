@@ -163,6 +163,9 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
     public override bool SupportsJsonTableFunctions => true;
 
     /// <inheritdoc />
+    public override bool SupportsWithMaterializedHint => true;
+
+    /// <inheritdoc />
     public override string JsonEachFunction(string jsonColumn) =>
         $"SELECT key, value FROM json_each({jsonColumn})";
 

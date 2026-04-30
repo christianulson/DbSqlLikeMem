@@ -27,6 +27,12 @@ public abstract class ProviderSqlDialect
     public virtual bool SupportsUpsert => false;
 
     /// <summary>
+    /// EN: Indicates whether the provider supports MERGE statements in the benchmark flow.
+    /// PT: Indica se o provedor suporta instrucoes MERGE no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsMerge => false;
+
+    /// <summary>
     /// EN: Indicates whether the provider supports INSERT RETURNING in the benchmark flow.
     /// PT: Indica se o provedor suporta INSERT RETURNING no fluxo de benchmark.
     /// </summary>
@@ -145,6 +151,12 @@ WHERE u.tenantid = 10";
     /// PT: Indica se o provedor suporta projeções OUTER APPLY no fluxo de benchmark.
     /// </summary>
     public virtual bool SupportsOuterApplyProjection => true;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports DISTINCT ON projections in the benchmark flow.
+    /// PT: Indica se o provedor suporta projeções DISTINCT ON no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsDistinctOnProjection => false;
 
     /// <summary>
     /// EN: Returns the CREATE TABLE statement for the users table.
@@ -440,6 +452,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
     /// </summary>
     public virtual string Upsert(FidelityTestContext context, int id, string newName) =>
         throw new NotSupportedException($"{DisplayName} does not support the configured upsert benchmark.");
+
+    /// <summary>
+    /// EN: Returns the SQL statement used for the merge benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de merge.
+    /// </summary>
+    public virtual string Merge(FidelityTestContext context, int id, string newName) =>
+        throw new NotSupportedException($"{DisplayName} does not support the configured merge benchmark.");
 
     /// <summary>
     /// EN: Returns the SQL statement used to create a sequence.
@@ -751,6 +770,13 @@ ORDER BY Name
     /// </summary>
     public virtual string DistinctProjection(FidelityTestContext context) =>
         $"SELECT DISTINCT Name FROM {context.TbUsersFullName} ORDER BY Name";
+
+    /// <summary>
+    /// EN: Returns the SQL statement used for the DISTINCT ON projection benchmark.
+    /// PT: Retorna a instrucao SQL usada no benchmark de projecao DISTINCT ON.
+    /// </summary>
+    public virtual string DistinctOnProjection(FidelityTestContext context) =>
+        throw new NotSupportedException($"{DisplayName} does not support DISTINCT ON");
 
     /// <summary>
     /// EN: Returns the SQL statement used for the multi-join aggregate benchmark.

@@ -301,7 +301,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - TODO: revisar cobertura equivalente de sintaxes nativas de `sequence` nos demais providers que exponham formas próprias alem de `SQL Server`, `Npgsql`, `Oracle` e `DB2`.
 - TODO: avaliar variantes adicionais de `sequence` por dialeto somente quando houver demanda real e validacao contra o comportamento do banco/provedor real.
 - TODO: levar a trilha de `sequence` para exemplos/documentacao canonica end-to-end assim que a matriz cross-provider dessa feature estiver fechada.
-- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, `json_each/json_tree` e demais formas tabulares correlatas por provider).
+- TODO: manter este item abaixo de `100%` até fechar as famílias reais de DML/query ainda fora do fluxo principal do parser/runtime (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `json_each/json_tree` e demais formas tabulares correlatas por provider).
 - TODO: revisar materialização/execução de DML avançado por provider para que o item só volte a `100%` quando as diferenças remanescentes estiverem reduzidas a subset documentado e intencional.
 
 #### 1.2.3 Regras por dialeto e versão
@@ -334,7 +334,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 #### 1.2.4 Governança de evolução do parser
 
-- Implementação estimada: **85%**.
+- Implementação estimada: **86%**.
 - Backlog guiado por gaps observados em testes reais.
 - Track global de normalização Parser/AST consolidado em ~90%, com foco atual em refinos finais por dialeto.
 - Priorização por impacto em frameworks de acesso a dados.
@@ -998,8 +998,8 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - `SQL Server/SqlAzure`: `TOP`, `OFFSET/FETCH`, `OUTPUT`, `MERGE`, `@@ROWCOUNT`, table/query hints `WITH (...)`, `PIVOT/UNPIVOT`, `CROSS APPLY`/`OUTER APPLY`, `JSON_VALUE`/`OPENJSON`, `STRING_AGG`, `STRING_SPLIT` e `FOR JSON` ja estao mapeados com gate por versao simulada e `compatibility level`, ficando o backlog residual concentrado nas nuances avancadas dessas familias.
 - `Oracle`: `ROWNUM`, `FETCH FIRST/NEXT`, `MERGE`, `seq.NEXTVAL/CURRVAL`, `LISTAGG`, `JSON_VALUE`, `JSON_TABLE` e o subset atual de `PIVOT` ja estao explicitados por versao simulada.
 - `Oracle`: `CONNECT BY/START WITH`, `MATCH_RECOGNIZE` e `MODEL` seguem fora do subset explicito ou ainda parciais.
-- `PostgreSQL/Npgsql`: `LIMIT/OFFSET`, `FETCH FIRST`, `ON CONFLICT`, `RETURNING`, `ILIKE`, `STRING_AGG`, operadores JSON `->`/`->>`/`#>`/`#>>` e `WITH [NOT] MATERIALIZED` ja estao mapeados na trilha atual; `DISTINCT ON`, `LATERAL` e `MERGE` seguem como backlog residual explicito.
-- `SQLite`: `LIMIT/OFFSET`, `ON CONFLICT`, `RETURNING`, `GROUP_CONCAT` com `ORDER BY`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, `CHANGES()`, `NULLS FIRST/LAST` e a familia principal de window functions ja estao refletidos no subset atual; `MATERIALIZED/NOT MATERIALIZED` permanece parcial por cenario, e `json_each/json_tree` com detalhes avancados de frame continuam pendentes.
+- `PostgreSQL/Npgsql`: `LIMIT/OFFSET`, `FETCH FIRST`, `ON CONFLICT`, `RETURNING`, `ILIKE`, `STRING_AGG`, operadores JSON `->`/`->>`/`#>`/`#>>`, `WITH [NOT] MATERIALIZED`, `LATERAL` e `MERGE` ja estao mapeados na trilha atual.
+- `SQLite`: `LIMIT/OFFSET`, `ON CONFLICT`, `RETURNING`, `GROUP_CONCAT` com `ORDER BY`, `JSON_EXTRACT`/`->`/`->>`, `WITH RECURSIVE`, `CHANGES()`, `NULLS FIRST/LAST`, `MATERIALIZED/NOT MATERIALIZED` e a familia principal de window functions ja estao refletidos no subset atual; `json_each/json_tree` com detalhes avancados de frame continuam pendentes.
 - `DB2`: `FETCH FIRST`, `MERGE` (`>= 9`), `NEXT VALUE FOR`/`PREVIOUS VALUE FOR`, `LISTAGG`, `JSON_QUERY`, `JSON_TABLE` e `CREATE OR REPLACE FUNCTION/PROCEDURE/TRIGGER` ja estao refletidos no inventario atual; `LIMIT/OFFSET` segue nao suportado no dialeto.
 
 ### 3.1 MySQL (`DbSqlLikeMem.MySql`)
@@ -1049,7 +1049,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a mesma trilha foi padronizada em `Testcontainers`/modo `preprovisioned`, garantindo baseline reproduzível por provider sem depender de instalação manual local para os bancos reais viáveis no ambiente de testes.
 - Incremento desta sessão: os resultados consolidados dessa trilha já são publicados na wiki espelhada em `docs/Wiki/performance-matrix.md`, `docs/Wiki/performance-matrix-app-specific.md` e artefatos versionados em `docs/Wiki/BenchmarkResults`.
 - Incremento desta sessão: a trilha de performance agora consolida, no backlog, os hot paths do core já estabilizados em otimizações anteriores com chaves estruturadas para índices e PK, `AddBatch` incremental e paralelização best-effort em caminhos thread-safe, sem reabrir funcionalidades já fechadas no código.
-- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `DISTINCT ON`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
+- TODO: ampliar a matriz compartilhada para capacidades avançadas auditadas contra bancos reais (`FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, `json_each/json_tree`, `PIVOT/UNPIVOT`) com status explícito por provider.
 - TODO: incluir `SqlDialect.Auto` na malha `parser`/`smoke` com snapshots dedicados para sintaxes equivalentes de paginação e demais heurísticas que entrarem no modo automático.
 - TODO: expandir a matriz para os próximos providers/famílias planejados (`DuckDB` e, em fase posterior, `ClickHouse`/`Snowflake`) com status por etapa de implementação.
 - TODO: conectar a futura API de validação cross-dialect aos artefatos publicados da matriz para transformar compatibilidade em evidência objetiva de CI.
@@ -1079,7 +1079,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Diferenças que impactam relatórios, filtros avançados e paginação em módulos centrais.
 - Inclui execução do plano P11/P12 para confiabilidade transacional, concorrência e diagnóstico de erro com contexto.
 - Status detalhado de transações concorrentes: fase de hardening base concluída (100%), governança em progresso (~10%) e cenários críticos (fases 2–5) priorizados para fechamento.
-- TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `CROSS APPLY/OUTER APPLY`, `DISTINCT ON`, `LATERAL`, window frames avançados no SQLite).
+- TODO: manter nesta onda recursos avançados de consulta com impacto funcional frequente (`FOR JSON`, `STRING_SPLIT`, `CROSS APPLY/OUTER APPLY`, `LATERAL`, window frames avançados no SQLite).
 - TODO: priorizar nesta onda `DuckDB` e `Cross Dialect Validator`, respeitando a ordem de dependências definida no roadmap, já que `Query Plan Debugger` e `Schema Snapshot` passaram a constar como trilhas já materializadas no índice.
 
 #### 3.8.3 Onda 3 (média/baixa)
@@ -1156,7 +1156,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: a próxima fatia funcional do executor fechou o subset principal de `PIVOT` com `SUM/MIN/MAX/AVG`, adicionou `UNPIVOT` e abriu o subset inicial de `FOR JSON` no caminho compartilhado de `SQL Server/SqlAzure`, deixando agregadores avançados, nuances tabulares por versão e arestas finas de serialização JSON como backlog residual explícito.
 - TODO: executar o roadmap remanescente na ordem acordada: `DuckDB` -> `Cross Dialect Validator`, considerando `Query Plan Debugger` e `Schema Snapshot` como trilhas já materializadas no ciclo atual.
 - TODO: extrair/refatorar bases compartilhadas por família antes de `DuckDB`, para evitar duplicação e preservar o parser/executor agnósticos.
-- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `DISTINCT ON`/`LATERAL` (PostgreSQL), `json_each`/`json_tree` e frames avançados de window (SQLite).
+- TODO: fechar a trilha auditada contra bancos reais com implementação incremental de `FOR JSON`/`STRING_SPLIT`/`CROSS APPLY`/`OUTER APPLY` (SQL Server/SqlAzure), `json_each`/`json_tree` e frames avançados de window (SQLite).
 - TODO: revisar cada nova feature acima com a regra "dialeto manda", garantindo gate no tokenizer/parser, contract no executor e suíte positiva/negativa por versão simulada antes de marcar o item como concluído.
 
 #### 4.2.3 Critérios de aceitação
@@ -1551,7 +1551,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 
 ### 7.1 Execução avançada
 
-- `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `LATERAL` e `DISTINCT ON`.
+- `FOR JSON`, `CROSS APPLY/OUTER APPLY` e `LATERAL`.
 - `json_each/json_tree`, `PIVOT/UNPIVOT` e outras formas tabulares por provider.
 - Batches mistos com `RETURNING`, `OUTPUT`, rowcount e trigger.
 
@@ -1577,8 +1577,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - MySQL: ampliar o pruning fora do subset seguro de `YEAR` e `EXTRACT`.
 - SQL Server/SqlAzure: fechar nuances avançadas de `FOR JSON`, `CROSS APPLY/OUTER APPLY`, `PIVOT/UNPIVOT`, `STRING_SPLIT` e `STRING_AGG`.
 - Oracle: completar `CONNECT BY/START WITH`, `MATCH_RECOGNIZE` e `MODEL`.
-- PostgreSQL/Npgsql: fechar `DISTINCT ON`, `LATERAL` e `MERGE`.
-- SQLite: completar `MATERIALIZED/NOT MATERIALIZED`, `json_each/json_tree` e frames avançados.
+- SQLite: completar `json_each/json_tree` e frames avançados.
 
 ## 8) Mapa de aprofundamento sugerido
 

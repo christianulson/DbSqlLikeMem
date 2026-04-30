@@ -20,16 +20,16 @@ Manter a fidelidade entre mock e container com prioridade para comportamento obs
 
 ## Status Do Plano
 
-Percentual geral atual: 91%
+Percentual geral atual: 92%
 
 | Fase | Arquivo | Status | Entrega |
 | --- | --- | --- | --- |
 | Fase 1 - Inventário dos tipos nativos | [Fase-01-Parametros.md](./Fase-01-Parametros.md) | DONE | 100% |
 | Fase 2 - Expandir os testes de tipo DbParameter | [Fase-02-Tipos-Nativos.md](./Fase-02-Tipos-Nativos.md) | DONE | 100% |
 | Fase 3 - Cobrir o shape completo do resultado | [Fase-03-Formato-do-Resultado.md](./Fase-03-Formato-do-Resultado.md) | DONE | 100% |
-| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | IN PROGRESS | 98% |
-| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 52% |
-| Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | IN PROGRESS | 98% |
+| Fase 4 - Parser e sintaxe | [Fase-04-Parser-e-Sintaxe.md](./Fase-04-Parser-e-Sintaxe.md) | DONE | 100% |
+| Fase 5 - Funções e semântica | [Fase-05-Funcoes-e-Semantica.md](./Fase-05-Funcoes-e-Semantica.md) | IN PROGRESS | 86% |
+| Fase 6 - Transações e savepoints | [Fase-06-Transacoes-e-Savepoints.md](./Fase-06-Transacoes-e-Savepoints.md) | DONE | 100% |
 | Fase 7 - Exceções e mensagens | [Fase-07-Excecoes-e-Mensagens.md](./Fase-07-Excecoes-e-Mensagens.md) | DONE | 100% |
 | Fase 8 - Testes faltantes do banco real | [Fase-08-Testes-Faltantes.md](./Fase-08-Testes-Faltantes.md) | DONE | 100% |
 
@@ -167,7 +167,7 @@ Padrão:
 ### Acompanhamento Da Fase
 
 - Status: IN PROGRESS
-- Percentual de entrega: 52%
+- Percentual de entrega: 83%
 - O que foi feito:
   - adicionado o primeiro wrapper de `JsonTableFunctionTestsBase` na suite de fidelidade
   - adicionado o wrapper de fidelidade para `JSON insert/cast`, cobrindo o benchmark escalar de leitura JSON com coerção
@@ -178,6 +178,34 @@ Padrão:
   - adicionado o contrato de capability para `DATETRUNC` e `FROM PARTS` no SQL Server, com cobertura de parser para o limite de versao e o grupo de construtores nativos
   - adicionado suporte a `iso_week` em `DATEPART`, `DATENAME` e `DATETRUNC` no SQL Server, com rejeicao explicita em `DATEADD` e `DATEDIFF` quando a unidade nao faz parte do contrato real
   - expandido o suporte de `iso_week` para os aliases `isowk` e `isoww` em `DATEPART`, `DATENAME` e `DATETRUNC`, com a mesma rejeicao em `DATEADD` e `DATEDIFF`
+  - adicionado suporte compartilhado para os construtores temporais `DATEFROMPARTS`, `DATETIMEFROMPARTS`, `DATETIME2FROMPARTS`, `DATETIMEOFFSETFROMPARTS`, `TIMEFROMPARTS` e `SMALLDATETIMEFROMPARTS` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `EOMONTH` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `DATEDIFF_BIG` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `DATETRUNC` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `JSON_QUERY` sem path no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `JSON_MODIFY` com substituicao de propriedade aninhada no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `STRING_ESCAPE` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `TRANSLATE` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `COMPRESS` e `DECOMPRESS` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `FORMATMESSAGE` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `ISJSON` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `FORMAT` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `ABS`, `CEILING`, `DEGREES`, `FLOOR`, `POWER`, `RADIANS`, `ROUND`, `SQRT` e `SQUARE` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `ASCII`, `CHARINDEX`, `BINARY_CHECKSUM`, `CHECKSUM`, `REPLICATE`, `REVERSE`, `SPACE` e `STUFF` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `PARSENAME`, `QUOTENAME` e `STR` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `APP_NAME`, `CONNECTIONPROPERTY`, `DATABASEPROPERTYEX`, `DATABASE_PRINCIPAL_ID`, `CURRENT_USER`, `COLUMNPROPERTY`, `COL_LENGTH`, `COL_NAME`, `DB_ID`, `DB_NAME`, `OBJECT_ID`, `OBJECTPROPERTY`, `OBJECTPROPERTYEX`, `OBJECT_NAME`, `OBJECT_SCHEMA_NAME`, `ORIGINAL_DB_NAME`, `SCHEMA_ID`, `SCHEMA_NAME`, `GETUTCDATE`, `SYSDATETIMEOFFSET` e `SYSUTCDATETIME` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `SCOPE_IDENTITY` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `@@DATEFIRST`, `@@IDENTITY`, `@@MAX_PRECISION`, `SERVERPROPERTY`, `ORIGINAL_LOGIN`, `CURRENT_REQUEST_ID`, `SESSION_ID`, `TYPE_ID`, `TYPE_NAME`, `TYPEPROPERTY`, `SESSION_USER`, `SUSER_ID`, `SUSER_NAME`, `SUSER_SID`, `SUSER_SNAME`, `SYSTEM_USER`, `USER_ID`, `USER_NAME`, `XACT_STATE`, `CURRENT_TIMESTAMP`, `GETDATE` e `SYSDATETIME` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `CURRENT_TRANSACTION_ID` e `XACT_STATE` em transacao ativa no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `CONTEXT_INFO` e `SESSION_CONTEXT` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `GETANSINULL`, `DATALENGTH`, `GROUPING`, `GROUPING_ID`, `HOST_ID`, `HOST_NAME`, `IS_MEMBER`, `IS_ROLEMEMBER`, `IS_SRVROLEMEMBER`, `ISDATE` e `PATINDEX` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `LEN`, `LTRIM`, `RTRIM` e `UNICODE` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `PARSE`, `TRY_CONVERT` e `TRY_PARSE` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `SOUNDEX` e `DIFFERENCE` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `APPROX_COUNT_DISTINCT`, `PERCENTILE_CONT` e `PERCENTILE_DISC` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `COUNT_BIG`, `CHECKSUM_AGG`, `STRING_AGG`, `STDEV`, `STDEVP`, `VAR` e `VARP` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `STRING_SPLIT` com `CROSS APPLY` no SQL Server e no SQL Azure
+  - adicionado suporte compartilhado para `@@TEXTSIZE` e `NEWSEQUENTIALID` no SQL Server e no SQL Azure
   - adicionado o contrato de `JSON_QUERY` sem path no SQL Server, preservando o fragmento JSON bruto da raiz e a insercao dentro de `FOR JSON PATH`
   - validado `STRING_AGG` com `WITHIN GROUP (ORDER BY ...)` no SQL Server para manter a ordem explicita de concatenacao
   - adicionado tratamento de `strict` nos caminhos JSON do SQL Server, com erro quando o caminho nao existe ou nao resolve para o tipo esperado

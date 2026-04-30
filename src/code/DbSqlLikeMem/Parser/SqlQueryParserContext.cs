@@ -145,6 +145,63 @@ internal sealed class SqlQueryParserContext
         return identifiers;
     }
 
+    internal List<string> ParseCommaSeparatedRawItemsWithinParentheses(string context)
+    {
+        ExpectSymbol("(");
+
+        var items = new List<string>();
+        var buf = new List<SqlToken>();
+        var depth = 1;
+        var itemStartPos = -1;
+
+        while (!IsEnd(Peek()))
+        {
+            var t = Peek();
+            if (itemStartPos < 0)
+                itemStartPos = t.Position;
+
+            if (depth == 1 && IsSymbol(t, ")"))
+            {
+                if (buf.Count == 0)
+                {
+                    if (items.Count == 0)
+                        throw new InvalidOperationException($"{context} requires at least one expression.");
+
+                    throw new InvalidOperationException($"{context} cannot end with a comma.");
+                }
+
+                items.Add(TrimToString(RawSql.AsSpan(itemStartPos, t.Position - itemStartPos)));
+                Consume();
+                return items;
+            }
+
+            if (IsSymbol(t, "("))
+            {
+                depth++;
+            }
+            else if (IsSymbol(t, ")"))
+            {
+                depth--;
+            }
+
+            if (depth == 1 && IsSymbol(t, ","))
+            {
+                Consume();
+                if (buf.Count == 0)
+                    throw new InvalidOperationException($"{context} cannot start with a comma.");
+
+                items.Add(TrimToString(RawSql.AsSpan(itemStartPos, t.Position - itemStartPos)));
+                buf.Clear();
+                itemStartPos = -1;
+                continue;
+            }
+
+            buf.Add(Consume());
+        }
+
+        throw new InvalidOperationException($"{context} was not closed correctly.");
+    }
+
     internal SqlToken Peek(int offset = 0) => (Index + offset < Toks.Count) ? Toks[Index + offset] : SqlToken.EOF;
 
     internal SqlToken PeekTokenFrom(int index)

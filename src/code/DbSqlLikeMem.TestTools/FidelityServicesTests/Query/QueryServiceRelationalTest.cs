@@ -1089,6 +1089,23 @@ ORDER BY u.Id, o.Id
     }
 
     /// <summary>
+    /// EN: Executes a CTE query with a MATERIALIZED hint against the configured users table.
+    /// PT: Executa uma consulta CTE com hint MATERIALIZED na tabela de usuarios configurada.
+    /// </summary>
+    public async Task<object?> RunCteMaterializedHintAsync(params object[] pars)
+    {
+        return await CaptureSnapshotAsync("""
+WITH x AS MATERIALIZED (
+    SELECT Id, Name
+    FROM {Context.TbUsersFullName}
+    ORDER BY Id
+)
+SELECT Name
+FROM x
+""");
+    }
+
+    /// <summary>
     /// EN: Executes a ROW_NUMBER window query against the configured users table and returns the full rowset snapshot.
     /// PT: Executa uma consulta de janela ROW_NUMBER na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
@@ -1236,6 +1253,15 @@ ORDER BY u.Id
     }
 
     /// <summary>
+    /// EN: Executes a DISTINCT ON projection query against the configured users and orders tables.
+    /// PT: Executa uma consulta de projeção DISTINCT ON nas tabelas de usuarios e pedidos configuradas.
+    /// </summary>
+    public async Task<object?> RunDistinctOnProjectionAsync(params object[] pars)
+    {
+        return await CaptureSnapshotAsync(Repo.Dialect.DistinctOnProjection(Context));
+    }
+
+    /// <summary>
     /// EN: Executes a multi-join aggregate query against the configured users and orders tables.
     /// PT: Executa uma consulta agregada com multiplos joins nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
@@ -1289,6 +1315,50 @@ ORDER BY u.Id
     public async Task<object?> RunOuterApplyProjectionAsync(params object[] pars)
     {
         return await CaptureSnapshotAsync(Repo.Dialect.OuterApplyProjection(Context));
+    }
+
+    /// <summary>
+    /// EN: Executes a STRING_SPLIT projection against the configured users table and returns the full rowset snapshot.
+    /// PT: Executa uma projeção STRING_SPLIT na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
+    /// </summary>
+    public async Task<object?> RunStringSplitProjectionAsync(params object[] pars)
+    {
+        if (!Repo.Dialect.SupportsApplyClause || !Repo.Dialect.SupportsStringSplitFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the STRING_SPLIT benchmark.");
+        }
+
+        return await CaptureSnapshotAsync($"""
+SELECT part.value
+FROM {Context.TbUsersFullName} u
+CROSS APPLY STRING_SPLIT(u.Email, ',') part
+WHERE u.Id = 3
+""");
+    }
+
+    /// <summary>
+    /// EN: Executes a FOR JSON PATH projection against the configured users table and returns the serialized payload.
+    /// PT: Executa uma projeção FOR JSON PATH na tabela de usuarios configurada e retorna o payload serializado.
+    /// </summary>
+    public async Task<object?> RunForJsonPathProjectionAsync(params object[] pars)
+    {
+        if (!Repo.Dialect.SupportsForJsonClause)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the FOR JSON benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync($"""
+SELECT
+    u.Id AS [User.Id],
+    u.Name AS [User.Name]
+FROM {Context.TbUsersFullName} u
+WHERE u.Id IN (1, 2)
+ORDER BY u.Id
+FOR JSON PATH, ROOT('users')
+""");
+
+        GC.KeepAlive(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
     }
 
     /// <summary>

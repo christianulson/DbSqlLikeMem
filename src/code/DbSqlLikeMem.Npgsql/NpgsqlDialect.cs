@@ -145,6 +145,9 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
     /// </summary>
     public override bool SupportsOnConflictClause => true;
 
+    /// <inheritdoc />
+    public override bool SupportsDistinctOnClause => true;
+
     /// <summary>
     /// EN: Gets whether returning is supported.
     /// PT: Obtém se há suporte a returning.

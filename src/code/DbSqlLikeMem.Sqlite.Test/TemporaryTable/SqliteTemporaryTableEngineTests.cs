@@ -37,7 +37,7 @@ SELECT id FROM tmp_users ORDER BY id;";
         // TDD contract: engine must execute both statements in order.
         using var cmd = new SqliteCommandMock(cnn) { CommandText = sql };
 
-        // When implemented, ExecuteReader should return the last SELECT results.
+        // TDD contract: ExecuteReader should return the last SELECT results.
         using var r = cmd.ExecuteReader();
 
         var ids = new List<int>();

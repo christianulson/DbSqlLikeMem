@@ -18,10 +18,19 @@ public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsUpsert => true;
 
     /// <inheritdoc />
+    public override bool SupportsMerge => true;
+
+    /// <inheritdoc />
     public override bool SupportsSequence => true;
 
     /// <inheritdoc />
+    public override bool SupportsDistinctOnProjection => true;
+
+    /// <inheritdoc />
     public override bool SupportsUpdateDeleteJoinRuntime => true;
+
+    /// <inheritdoc />
+    public override bool SupportsWithMaterializedHint => true;
 
     /// <inheritdoc />
     public override string UpdateJoinDerivedSelectSql =>
@@ -197,8 +206,32 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
         $"SELECT STRING_AGG(Name, ',') FROM {context.TbUsersFullName}";
 
     /// <inheritdoc />
+    public override string DistinctOnProjection(FidelityTestContext context) =>
+        $"""
+SELECT DISTINCT ON (u.Id)
+    u.Id AS UserId,
+    u.Name AS UserName,
+    o.Note
+FROM {context.TbUsersFullName} u
+LEFT JOIN {context.TbOrdersFullName} o ON o.{context.TbUsers}Id = u.Id
+ORDER BY u.Id, o.Id DESC
+""";
+
+    /// <inheritdoc />
     public override string Upsert(FidelityTestContext context, int id, string newName) =>
         $"INSERT INTO {context.TbUsersFullName} (Id, Name) VALUES ({id}, '{newName}') ON CONFLICT (Id) DO UPDATE SET Name = EXCLUDED.Name";
+
+    /// <inheritdoc />
+    public override string Merge(FidelityTestContext context, int id, string newName) =>
+        $"""
+MERGE INTO {context.TbUsersFullName} AS target
+USING (SELECT {id} AS Id, '{newName}' AS Name) AS src
+ON target.Id = src.Id
+WHEN MATCHED THEN
+    UPDATE SET Name = src.Name
+WHEN NOT MATCHED THEN
+    INSERT (Id, Name) VALUES (src.Id, src.Name);
+""";
 
     /// <inheritdoc />
     public override string CreateSequence(FidelityTestContext context) =>

@@ -232,8 +232,77 @@ public sealed class NpgsqlDialectFeatureParserTests(
         Assert.True(dialect.SupportsUpdateFromJoinSubquerySyntax);
         Assert.False(dialect.SupportsDeleteTargetFromJoinSubquerySyntax);
         Assert.True(dialect.SupportsDeleteUsingSubquerySyntax);
+        Assert.True(dialect.SupportsDistinctOnClause);
         Assert.False(dialect.SupportsSqlCalcFoundRowsModifier);
         Assert.Equal(2, dialect.GetInsertUpsertAffectedRowCount(1, 1));
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL parses DISTINCT ON with a matching leftmost ORDER BY prefix.
+    /// PT: Garante que o PostgreSQL interprete DISTINCT ON com prefixo esquerdo de ORDER BY correspondente.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_DistinctOn_ShouldParse(int version)
+    {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
+        const string sql = """
+SELECT DISTINCT ON (u.Id)
+    u.Id AS UserId,
+    u.Name AS UserName,
+    o.Note
+FROM public.users u
+LEFT JOIN public.orders o ON o.usersId = u.Id
+ORDER BY u.Id, o.Id DESC
+""";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+
+        Assert.False(parsed.Distinct);
+        Assert.Equal(["u.Id"], parsed.DistinctOn);
+        Assert.Equal(2, parsed.OrderBy.Count);
+        Assert.Equal("u.Id", parsed.OrderBy[0].Raw);
+        Assert.False(parsed.OrderBy[0].Desc);
+        Assert.Equal("o.Id", parsed.OrderBy[1].Raw);
+        Assert.True(parsed.OrderBy[1].Desc);
+    }
+
+    /// <summary>
+    /// EN: Ensures PostgreSQL parses JOIN LATERAL and marks the joined source as lateral in the AST.
+    /// PT: Garante que o PostgreSQL interprete JOIN LATERAL e marque a fonte unida como lateral na AST.
+    /// </summary>
+    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    [Theory]
+    [Trait("Category", "Parser")]
+    [MemberDataNpgsqlVersion]
+    public void ParseSelect_JoinLateral_ShouldParse(int version)
+    {
+        var d = Get(version, v => new NpgsqlDialect(v));
+        var db = Get(version, v => new NpgsqlDbMock(v));
+        const string sql = """
+SELECT u.Id AS UserId, x.Note
+FROM public.users u
+JOIN LATERAL (
+    SELECT o.Note
+    FROM public.orders o
+    WHERE o.usersId = u.Id
+    ORDER BY o.Id DESC
+    LIMIT 1
+) x ON TRUE
+ORDER BY u.Id
+""";
+
+        var parsed = Assert.IsType<SqlSelectQuery>(SqlQueryParser.Parse(sql, db, d));
+
+        Assert.Single(parsed.Joins);
+        var join = parsed.Joins[0];
+        Assert.Equal(SqlJoinType.Inner, join.Type);
+        Assert.True(join.Table.IsLateral);
+        Assert.NotNull(join.Table.Derived);
+        Assert.Equal("x", join.Table.Alias, ignoreCase: true);
     }
 
     /// <summary>

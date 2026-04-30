@@ -35,6 +35,8 @@ Criar testes para funcionalidades que existem no banco real mas ainda não têm 
 
 ### MySQL
 
+- `CREATE TEMPORARY TABLE ... AS SELECT` para validar parser e execucao em multiplas instrucoes.
+
 ### MariaDB
 
 ### Npgsql
@@ -83,6 +85,7 @@ Criar testes para funcionalidades que existem no banco real mas ainda não têm 
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.Npgsql.Test/Fidelity/DML/SequenceTests.cs): `DropSequence_ShouldRollbackWithTransaction`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.Npgsql.Test/Fidelity/DML/SequenceTests.cs): `CreateSequenceIfNotExists_ShouldPreserveExistingSequence`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.SqlServer.Test/Fidelity/DML/SequenceTests.cs): `SequenceExpressions_ShouldReturnExpectedValues`
+- [SequenceTestsBase.cs](../../../src/code/DbSqlLikeMem.TestTools/FidelityBaseTests/DML/SequenceTestsBase.cs): `SequenceExpressionFilterTest`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.SqlServer.Test/Fidelity/DML/SequenceTests.cs): `CurrentValue_ShouldTrackGeneratedValues`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.SqlServer.Test/Fidelity/DML/SequenceTests.cs): `CreateSequenceIncrementBy_ShouldChangeNextGeneratedValue`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.SqlServer.Test/Fidelity/DML/SequenceTests.cs): `CreateCycleSequence_ShouldWrapBackToMinimumValue`
@@ -90,32 +93,13 @@ Criar testes para funcionalidades que existem no banco real mas ainda não têm 
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.SqlServer.Test/Fidelity/DML/SequenceTests.cs): `DropSequenceIfExists_ShouldBeIdempotent`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.Db2.Test/Fidelity/DML/SequenceTests.cs): `SequenceExpressions_ShouldReturnExpectedValues`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.Db2.Test/Fidelity/DML/SequenceTests.cs): `SequenceValues_ShouldBeSessionLocal`
+- [MySqlTemporaryTableParserTests.cs](../../../src/code/DbSqlLikeMem.MySql.Test/TemporaryTable/MySqlTemporaryTableParserTests.cs): `ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect`
+- [MySqlTemporaryTableEngineTests.cs](../../../src/code/DbSqlLikeMem.MySql.Test/TemporaryTable/MySqlTemporaryTableEngineTests.cs): `CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows`
 
 ## Gaps Documentados
 
-- Cobertura inicial de `ALTER SEQUENCE ... RESTART WITH` para PostgreSQL/Npgsql.
-- Cobertura de `ALTER SEQUENCE ... INCREMENT BY` para PostgreSQL/Npgsql.
-- Cobertura de `ALTER SEQUENCE ... OWNED BY NONE` para PostgreSQL/Npgsql.
-- Cobertura de `ALTER SEQUENCE ... OWNED BY` para PostgreSQL/Npgsql.
-- Cobertura de `CREATE SEQUENCE ... CYCLE` para PostgreSQL/Npgsql.
-- Cobertura de `CREATE SEQUENCE ... MAXVALUE` para PostgreSQL/Npgsql.
-- Cobertura de `CREATE SEQUENCE ... INCREMENT BY -2` para PostgreSQL/Npgsql.
-- Cobertura de `CREATE SEQUENCE ... MINVALUE` para PostgreSQL/Npgsql.
-- Cobertura de `DROP SEQUENCE IF EXISTS` para PostgreSQL/Npgsql.
-- Cobertura de `currval` e `lastval` após restart de sequence no PostgreSQL/Npgsql.
-- Cobertura de `setval(..., false)` e `lastval` estável no PostgreSQL/Npgsql.
-- Cobertura de `currval` e `lastval` locais à sessão no PostgreSQL/Npgsql.
-- Cobertura de sequence qualificada por schema no PostgreSQL/Npgsql.
-- Cobertura de `DROP SEQUENCE` transacional com rollback no PostgreSQL/Npgsql.
-- Cobertura de `CREATE SEQUENCE IF NOT EXISTS` idempotente no PostgreSQL/Npgsql.
-- Cobertura de `NEXT VALUE FOR ... FROM Users WHERE ...` para SQL Server.
-- Cobertura de `sys.sequences.current_value` para SQL Server.
-- Cobertura de `CREATE SEQUENCE ... INCREMENT BY` para SQL Server.
-- Cobertura de `CREATE SEQUENCE ... CYCLE` para SQL Server.
-- Cobertura de `ALTER SEQUENCE ... RESTART WITH` para SQL Server.
-- Cobertura de `DROP SEQUENCE IF EXISTS` idempotente no SQL Server.
-- Cobertura de `NEXT VALUE FOR` e `PREVIOUS VALUE FOR` locais à sessão no DB2.
-- Cobertura de `NEXT VALUE FOR ... FROM Users WHERE ...` para DB2.
+- Os gaps inventariados nesta rodada foram cobertos pelos testes criados acima.
+- Novos gaps devem ser registrados em rodadas futuras quando surgirem funcionalidades reais ainda sem cobertura.
 
 ## Próximos Passos
 

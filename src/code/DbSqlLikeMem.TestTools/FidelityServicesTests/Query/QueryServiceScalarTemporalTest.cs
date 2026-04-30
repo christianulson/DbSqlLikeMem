@@ -81,6 +81,702 @@ public partial class QueryServiceTest
     }
 
     /// <summary>
+    /// EN: Executes the JSON_MODIFY replacement benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de substituicao JSON_MODIFY e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunJsonModifyReplaceAsync()
+    {
+        if (!Repo.Dialect.SupportsJsonScalarRead)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON_MODIFY benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync("SELECT JSON_MODIFY('{\"profile\":{\"active\":true,\"name\":\"Ana\"}}', '$.profile.name', 'Bia')");
+        GC.KeepAlive(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server JSON_QUERY root-fragment benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de fragmento raiz JSON_QUERY do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunJsonQueryRootFragmentAsync()
+    {
+        if (!Repo.Dialect.SupportsJsonScalarRead)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON_QUERY benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync("SELECT JSON_QUERY('{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
+        GC.KeepAlive(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server STRING_ESCAPE benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark STRING_ESCAPE do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunStringEscapeAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("STRING_ESCAPE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the STRING_ESCAPE benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync("SELECT STRING_ESCAPE('\"Ana\nBob\"', 'json')");
+        GC.KeepAlive(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server TRANSLATE benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark TRANSLATE do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunTranslateAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("TRANSLATE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the TRANSLATE benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync("SELECT TRANSLATE('abc', 'ab', 'xy')");
+        GC.KeepAlive(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server FORMATMESSAGE benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark FORMATMESSAGE do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunFormatMessageAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("FORMATMESSAGE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the FORMATMESSAGE benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync("SELECT FORMATMESSAGE('Hello %s #%d', 'Bob', 7)");
+        GC.KeepAlive(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server ISJSON benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark ISJSON do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunIsJsonAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("ISJSON"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the ISJSON benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync("SELECT ISJSON('{\"a\":1}')");
+        GC.KeepAlive(value);
+        return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server FORMAT benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark FORMAT do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunFormatAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("FORMAT"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the FORMAT benchmark.");
+        }
+
+        var value = await Repo.ExecuteScalarAsync("SELECT FORMAT(42, 'D4')");
+        GC.KeepAlive(value);
+        return Convert.ToString(value, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server math benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks matematicos do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int abs, int ceiling, double degrees, int floor, double power, double radians, decimal round, double sqrt, double square)> RunMathFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("ABS")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("CEILING")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("DEGREES")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("FLOOR")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("POWER")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("RADIANS")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("ROUND")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("SQRT")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("SQUARE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math benchmark.");
+        }
+
+        var abs = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ABS(-10)"), CultureInfo.InvariantCulture);
+        var ceiling = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CEILING(1.2)"), CultureInfo.InvariantCulture);
+        var degrees = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT DEGREES(PI())"), CultureInfo.InvariantCulture);
+        var floor = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT FLOOR(1.9)"), CultureInfo.InvariantCulture);
+        var power = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT POWER(2, 3)"), CultureInfo.InvariantCulture);
+        var radians = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT RADIANS(180)"), CultureInfo.InvariantCulture);
+        var round = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT ROUND(1.235, 2)"), CultureInfo.InvariantCulture);
+        var sqrt = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT SQRT(9)"), CultureInfo.InvariantCulture);
+        var square = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT SQUARE(3)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(abs);
+        GC.KeepAlive(ceiling);
+        GC.KeepAlive(degrees);
+        GC.KeepAlive(floor);
+        GC.KeepAlive(power);
+        GC.KeepAlive(radians);
+        GC.KeepAlive(round);
+        GC.KeepAlive(sqrt);
+        GC.KeepAlive(square);
+
+        return (abs, ceiling, degrees, floor, power, radians, round, sqrt, square);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server string utility benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks de utilitarios de string do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int ascii, int charIndex, int binaryChecksumLower, int binaryChecksumUpper, int checksumLower, int checksumUpper, string replicate, string reverse, string space, string stuff)> RunStringUtilityFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("ASCII")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("CHARINDEX")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("BINARY_CHECKSUM")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("CHECKSUM")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("REPLICATE")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("REVERSE")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("SPACE")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("STUFF"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string utility benchmark.");
+        }
+
+        var ascii = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ASCII('A')"), CultureInfo.InvariantCulture);
+        var charIndex = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CHARINDEX('bar', 'foobar')"), CultureInfo.InvariantCulture);
+        var binaryChecksumLower = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT BINARY_CHECKSUM('ana')"), CultureInfo.InvariantCulture);
+        var binaryChecksumUpper = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT BINARY_CHECKSUM('Ana')"), CultureInfo.InvariantCulture);
+        var checksumLower = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CHECKSUM('ana')"), CultureInfo.InvariantCulture);
+        var checksumUpper = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CHECKSUM('Ana')"), CultureInfo.InvariantCulture);
+        var replicate = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT REPLICATE('Na', 2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var reverse = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT REVERSE('Ana')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var space = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SPACE(3)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var stuff = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT STUFF('Ana', 2, 1, 'xx')"), CultureInfo.InvariantCulture) ?? string.Empty;
+
+        GC.KeepAlive(ascii);
+        GC.KeepAlive(charIndex);
+        GC.KeepAlive(binaryChecksumLower);
+        GC.KeepAlive(binaryChecksumUpper);
+        GC.KeepAlive(checksumLower);
+        GC.KeepAlive(checksumUpper);
+        GC.KeepAlive(replicate);
+        GC.KeepAlive(reverse);
+        GC.KeepAlive(space);
+        GC.KeepAlive(stuff);
+
+        return (ascii, charIndex, binaryChecksumLower, binaryChecksumUpper, checksumLower, checksumUpper, replicate, reverse, space, stuff);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server PARSENAME, QUOTENAME, and STR benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks PARSENAME, QUOTENAME e STR do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(string parsename, string quotename, string str)> RunStringMetadataFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("PARSENAME")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("QUOTENAME")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("STR"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string metadata benchmark.");
+        }
+
+        var parsename = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT PARSENAME('server.database.dbo.Users', 2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var quotename = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT QUOTENAME('Ana')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var str = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT STR(123.45, 6, 1)"), CultureInfo.InvariantCulture) ?? string.Empty;
+
+        GC.KeepAlive(parsename);
+        GC.KeepAlive(quotename);
+        GC.KeepAlive(str);
+
+        return (parsename, quotename, str);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server metadata, identifier, and system time benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks de metadados, identificadores e tempo de sistema do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(string appName, string localNetAddress, string netTransport, string databaseStatus, string databaseUpdateability, int databasePrincipalId, string currentUser, int nameColumnId, int identityColumnIsIdentity, int emailColumnAllowsNull, int colLength, string colName, int dbId, string dbName, int objectId, int objectPropertyIsTable, int objectPropertyExIsProcedure, string objectName, string objectSchemaName, string originalDbName, int schemaId, string schemaName, DateTime getUtcDate, DateTimeOffset sysDateTimeOffset, DateTime sysUtcDateTime)> RunSqlServerMetadataFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerMetadataFunction("APP_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("CONNECTIONPROPERTY")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("DATABASE_PRINCIPAL_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("DATABASEPROPERTYEX")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("COLUMNPROPERTY")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("COL_LENGTH")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("COL_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("DB_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("DB_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("OBJECT_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("OBJECTPROPERTY")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("OBJECTPROPERTYEX")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("OBJECT_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("OBJECT_SCHEMA_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("ORIGINAL_DB_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SCHEMA_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SCHEMA_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataIdentifier("CURRENT_USER")
+            || !Repo.Dialect.SupportsSqlServerDateFunction("GETUTCDATE")
+            || !Repo.Dialect.SupportsSqlServerDateFunction("SYSDATETIMEOFFSET")
+            || !Repo.Dialect.SupportsSqlServerDateFunction("SYSUTCDATETIME"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server metadata benchmark.");
+        }
+
+        var appName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT APP_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var localNetAddress = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CONNECTIONPROPERTY('local_net_address')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var netTransport = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CONNECTIONPROPERTY('net_transport')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var databaseStatus = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DATABASEPROPERTYEX('DefaultSchema', 'Status')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var databaseUpdateability = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DATABASEPROPERTYEX('DefaultSchema', 'Updateability')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var databasePrincipalId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DATABASE_PRINCIPAL_ID('dbo')"), CultureInfo.InvariantCulture);
+        var currentUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CURRENT_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var nameColumnId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COLUMNPROPERTY(OBJECT_ID('Users'), 'Name', 'ColumnId')"), CultureInfo.InvariantCulture);
+        var identityColumnIsIdentity = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COLUMNPROPERTY(OBJECT_ID('IdentityUsers'), 'Id', 'IsIdentity')"), CultureInfo.InvariantCulture);
+        var emailColumnAllowsNull = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COLUMNPROPERTY(OBJECT_ID('Users'), 'Email', 'AllowsNull')"), CultureInfo.InvariantCulture);
+        var colLength = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COL_LENGTH('Users', 'Id')"), CultureInfo.InvariantCulture);
+        var colName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT COL_NAME(2, 2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var dbId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DB_ID()"), CultureInfo.InvariantCulture);
+        var dbName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DB_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var objectId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT OBJECT_ID('Users')"), CultureInfo.InvariantCulture);
+        var objectPropertyIsTable = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT OBJECTPROPERTY(OBJECT_ID('Users'), 'IsTable')"), CultureInfo.InvariantCulture);
+        var objectPropertyExIsProcedure = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT OBJECTPROPERTYEX(OBJECT_ID('sp_ping'), 'IsProcedure')"), CultureInfo.InvariantCulture);
+        var objectName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT OBJECT_NAME(2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var objectSchemaName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT OBJECT_SCHEMA_NAME(2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var originalDbName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT ORIGINAL_DB_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var schemaId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SCHEMA_ID()"), CultureInfo.InvariantCulture);
+        var schemaName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SCHEMA_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var getUtcDate = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT GETUTCDATE()"), CultureInfo.InvariantCulture);
+        var sysDateTimeOffset = (DateTimeOffset)await Repo.ExecuteScalarAsync("SELECT SYSDATETIMEOFFSET()");
+        var sysUtcDateTime = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT SYSUTCDATETIME()"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(appName);
+        GC.KeepAlive(localNetAddress);
+        GC.KeepAlive(netTransport);
+        GC.KeepAlive(databaseStatus);
+        GC.KeepAlive(databaseUpdateability);
+        GC.KeepAlive(databasePrincipalId);
+        GC.KeepAlive(currentUser);
+        GC.KeepAlive(nameColumnId);
+        GC.KeepAlive(identityColumnIsIdentity);
+        GC.KeepAlive(emailColumnAllowsNull);
+        GC.KeepAlive(colLength);
+        GC.KeepAlive(colName);
+        GC.KeepAlive(dbId);
+        GC.KeepAlive(dbName);
+        GC.KeepAlive(objectId);
+        GC.KeepAlive(objectPropertyIsTable);
+        GC.KeepAlive(objectPropertyExIsProcedure);
+        GC.KeepAlive(objectName);
+        GC.KeepAlive(objectSchemaName);
+        GC.KeepAlive(originalDbName);
+        GC.KeepAlive(schemaId);
+        GC.KeepAlive(schemaName);
+        GC.KeepAlive(getUtcDate);
+        GC.KeepAlive(sysDateTimeOffset);
+        GC.KeepAlive(sysUtcDateTime);
+
+        return (appName, localNetAddress, netTransport, databaseStatus, databaseUpdateability, databasePrincipalId, currentUser, nameColumnId, identityColumnIsIdentity, emailColumnAllowsNull, colLength, colName, dbId, dbName, objectId, objectPropertyIsTable, objectPropertyExIsProcedure, objectName, objectSchemaName, originalDbName, schemaId, schemaName, getUtcDate, sysDateTimeOffset, sysUtcDateTime);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server SCOPE_IDENTITY benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark SCOPE_IDENTITY do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<int> RunScopeIdentityAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerMetadataFunction("SCOPE_IDENTITY"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SCOPE_IDENTITY benchmark.");
+        }
+
+        await Repo.ExecuteNonQueryAsync("INSERT INTO IdentityUsers (Name) VALUES ('Auto')");
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SCOPE_IDENTITY()"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(value);
+        return value;
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server system-function benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de funcoes de sistema do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int dateFirst, int identity, int maxPrecision, string serverProperty, string originalLogin, int currentRequestId, int sessionId, int typeId, string typeName, int typeProperty, string sessionUser, int suserId, string suserName, byte[] suserSid, string suserSname, string systemUser, int userId, string userName, int xactState, DateTime currentTimestamp, DateTime getDate, DateTime sysDateTime)> RunSqlServerSystemFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerMetadataIdentifier("@@DATEFIRST")
+            || !Repo.Dialect.SupportsSqlServerMetadataIdentifier("@@IDENTITY")
+            || !Repo.Dialect.SupportsSqlServerMetadataIdentifier("@@MAX_PRECISION")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SERVERPROPERTY")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("ORIGINAL_LOGIN")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("CURRENT_REQUEST_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SESSION_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("TYPE_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("TYPE_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("TYPEPROPERTY")
+            || !Repo.Dialect.SupportsSqlServerMetadataIdentifier("SESSION_USER")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SUSER_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SUSER_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SUSER_SID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("SUSER_SNAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataIdentifier("SYSTEM_USER")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("USER_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("USER_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("XACT_STATE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server system benchmark.");
+        }
+
+        await Repo.ExecuteNonQueryAsync("INSERT INTO IdentityUsers (Name) VALUES ('Auto')");
+        var dateFirst = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@DATEFIRST"), CultureInfo.InvariantCulture);
+        var identity = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@IDENTITY"), CultureInfo.InvariantCulture);
+        var maxPrecision = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@MAX_PRECISION"), CultureInfo.InvariantCulture);
+        var serverProperty = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SERVERPROPERTY('ProductVersion')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var originalLogin = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT ORIGINAL_LOGIN()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var currentRequestId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CURRENT_REQUEST_ID()"), CultureInfo.InvariantCulture);
+        var sessionId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SESSION_ID()"), CultureInfo.InvariantCulture);
+        var typeId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TYPE_ID('int')"), CultureInfo.InvariantCulture);
+        var typeName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT TYPE_NAME(56)"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var typeProperty = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TYPEPROPERTY('int', 'OwnerId')"), CultureInfo.InvariantCulture);
+        var sessionUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SESSION_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var suserId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SUSER_ID()"), CultureInfo.InvariantCulture);
+        var suserName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SUSER_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var suserSid = (byte[])(await Repo.ExecuteScalarAsync("SELECT SUSER_SID()") ?? Array.Empty<byte>());
+        var suserSname = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SUSER_SNAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var systemUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SYSTEM_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var userId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT USER_ID()"), CultureInfo.InvariantCulture);
+        var userName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT USER_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var xactState = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT XACT_STATE()"), CultureInfo.InvariantCulture);
+        var currentTimestamp = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT CURRENT_TIMESTAMP"), CultureInfo.InvariantCulture);
+        var getDate = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT GETDATE()"), CultureInfo.InvariantCulture);
+        var sysDateTime = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT SYSDATETIME()"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(dateFirst);
+        GC.KeepAlive(identity);
+        GC.KeepAlive(maxPrecision);
+        GC.KeepAlive(serverProperty);
+        GC.KeepAlive(originalLogin);
+        GC.KeepAlive(currentRequestId);
+        GC.KeepAlive(sessionId);
+        GC.KeepAlive(typeId);
+        GC.KeepAlive(typeName);
+        GC.KeepAlive(typeProperty);
+        GC.KeepAlive(sessionUser);
+        GC.KeepAlive(suserId);
+        GC.KeepAlive(suserName);
+        GC.KeepAlive(suserSid);
+        GC.KeepAlive(suserSname);
+        GC.KeepAlive(systemUser);
+        GC.KeepAlive(userId);
+        GC.KeepAlive(userName);
+        GC.KeepAlive(xactState);
+        GC.KeepAlive(currentTimestamp);
+        GC.KeepAlive(getDate);
+        GC.KeepAlive(sysDateTime);
+
+        return (dateFirst, identity, maxPrecision, serverProperty, originalLogin, currentRequestId, sessionId, typeId, typeName, typeProperty, sessionUser, suserId, suserName, suserSid, suserSname, systemUser, userId, userName, xactState, currentTimestamp, getDate, sysDateTime);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server TEXTSIZE and NEWSEQUENTIALID benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark TEXTSIZE e NEWSEQUENTIALID do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int textSize, string newSequentialId)> RunSqlServerSpecialFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerMetadataIdentifier("@@TEXTSIZE")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("NEWSEQUENTIALID"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server special benchmark.");
+        }
+
+        var textSize = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@TEXTSIZE"), CultureInfo.InvariantCulture);
+        var newSequentialId = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT NEWSEQUENTIALID()"), CultureInfo.InvariantCulture) ?? string.Empty;
+
+        GC.KeepAlive(textSize);
+        GC.KeepAlive(newSequentialId);
+
+        return (textSize, newSequentialId);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server metadata and session-style benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks de metadados e de sessao do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int getAnsiNull, int dataLength, int grouping, int groupingId, int hostId, string hostName, int isMember, int isRoleMember, int isSrvRoleMember, int isDateValid, int isDateInvalid, int patIndex, int patIndexMissing)> RunSqlServerSessionFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerMetadataFunction("GETANSINULL")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("HOST_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("HOST_NAME")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("IS_MEMBER")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("IS_ROLEMEMBER")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("IS_SRVROLEMEMBER")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("DATALENGTH")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("GROUPING")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("GROUPING_ID")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("ISDATE")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("PATINDEX"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server session benchmark.");
+        }
+
+        var getAnsiNull = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT GETANSINULL()"), CultureInfo.InvariantCulture);
+        var dataLength = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DATALENGTH('AB')"), CultureInfo.InvariantCulture);
+        var grouping = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT GROUPING(1)"), CultureInfo.InvariantCulture);
+        var groupingId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT GROUPING_ID(1, 2)"), CultureInfo.InvariantCulture);
+        var hostId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT HOST_ID()"), CultureInfo.InvariantCulture);
+        var hostName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT HOST_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var isMember = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT IS_MEMBER('db_owner')"), CultureInfo.InvariantCulture);
+        var isRoleMember = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT IS_ROLEMEMBER('db_datareader')"), CultureInfo.InvariantCulture);
+        var isSrvRoleMember = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT IS_SRVROLEMEMBER('sysadmin')"), CultureInfo.InvariantCulture);
+        var isDateValid = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ISDATE('2020-01-01')"), CultureInfo.InvariantCulture);
+        var isDateInvalid = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ISDATE('invalid')"), CultureInfo.InvariantCulture);
+        var patIndex = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT PATINDEX('%Bob%', 'Ana Bob')"), CultureInfo.InvariantCulture);
+        var patIndexMissing = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT PATINDEX('%Z%', 'Ana Bob')"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(getAnsiNull);
+        GC.KeepAlive(dataLength);
+        GC.KeepAlive(grouping);
+        GC.KeepAlive(groupingId);
+        GC.KeepAlive(hostId);
+        GC.KeepAlive(hostName);
+        GC.KeepAlive(isMember);
+        GC.KeepAlive(isRoleMember);
+        GC.KeepAlive(isSrvRoleMember);
+        GC.KeepAlive(isDateValid);
+        GC.KeepAlive(isDateInvalid);
+        GC.KeepAlive(patIndex);
+        GC.KeepAlive(patIndexMissing);
+
+        return (getAnsiNull, dataLength, grouping, groupingId, hostId, hostName, isMember, isRoleMember, isSrvRoleMember, isDateValid, isDateInvalid, patIndex, patIndexMissing);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server context-info and session-context benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de context-info e session-context do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(byte[] contextInfo, int sessionContextTenant, object? sessionContextMissing)> RunSqlServerContextFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerMetadataFunction("SESSION_CONTEXT"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server context benchmark.");
+        }
+
+        if (Repo.Cnn is DbSqlLikeMem.DbConnectionMockBase mockConnection)
+        {
+            mockConnection.SetSessionContextValue("tenant_id", 42);
+            mockConnection.SetContextInfo([0x0A, 0x0B]);
+        }
+        else
+        {
+            await Repo.ExecuteNonQueryAsync("EXEC sys.sp_set_session_context @key = N'tenant_id', @value = 42");
+            await Repo.ExecuteNonQueryAsync("SET CONTEXT_INFO 0x0A0B");
+        }
+
+        var contextInfo = (byte[])(await Repo.ExecuteScalarAsync("SELECT CONTEXT_INFO()") ?? Array.Empty<byte>());
+        var sessionContextTenant = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SESSION_CONTEXT(N'tenant_id')"), CultureInfo.InvariantCulture);
+        var sessionContextMissing = await Repo.ExecuteScalarAsync("SELECT SESSION_CONTEXT(N'missing')");
+
+        GC.KeepAlive(contextInfo);
+        GC.KeepAlive(sessionContextTenant);
+        GC.KeepAlive(sessionContextMissing);
+
+        return (contextInfo, sessionContextTenant, sessionContextMissing is DBNull ? null : sessionContextMissing);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server transaction-state benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de estado de transacao do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int xactState, long currentTransactionId)> RunSqlServerTransactionStateFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerMetadataFunction("CURRENT_TRANSACTION_ID")
+            || !Repo.Dialect.SupportsSqlServerMetadataFunction("XACT_STATE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server transaction benchmark.");
+        }
+
+        using var transaction = Repo.BeginTransaction();
+
+        var xactState = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT XACT_STATE()", transaction), CultureInfo.InvariantCulture);
+        var currentTransactionId = Convert.ToInt64(await Repo.ExecuteScalarAsync("SELECT CURRENT_TRANSACTION_ID()", transaction), CultureInfo.InvariantCulture);
+
+        transaction.Rollback();
+
+        GC.KeepAlive(xactState);
+        GC.KeepAlive(currentTransactionId);
+
+        return (xactState, currentTransactionId);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server LEN, LTRIM, RTRIM, and UNICODE benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks LEN, LTRIM, RTRIM e UNICODE do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(long length, string ltrim, string rtrim, int unicode)> RunStringBasicFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("LEN")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("LTRIM")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("RTRIM")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("UNICODE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the string benchmark.");
+        }
+
+        var length = Convert.ToInt64(await Repo.ExecuteScalarAsync("SELECT LEN('Ana')"), CultureInfo.InvariantCulture);
+        var ltrim = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT LTRIM('  Ana')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var rtrim = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT RTRIM('Ana  ')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var unicode = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT UNICODE('A')"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(length);
+        GC.KeepAlive(ltrim);
+        GC.KeepAlive(rtrim);
+        GC.KeepAlive(unicode);
+
+        return (length, ltrim, rtrim, unicode);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server PARSE, TRY_CONVERT, and TRY_PARSE benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks PARSE, TRY_CONVERT e TRY_PARSE do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(int parse, object? tryConvertNull, int tryConvertValue, object? tryParseNull, int tryParseValue)> RunParseFamilyAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("PARSE")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("TRY_CONVERT")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("TRY_PARSE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the PARSE benchmark.");
+        }
+
+        var parse = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT PARSE('42' AS INT)"), CultureInfo.InvariantCulture);
+        var tryConvertNull = await Repo.ExecuteScalarAsync("SELECT TRY_CONVERT(INT, 'abc')");
+        var tryConvertValue = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TRY_CONVERT(INT, '42')"), CultureInfo.InvariantCulture);
+        var tryParseNull = await Repo.ExecuteScalarAsync("SELECT TRY_PARSE('abc' AS INT)");
+        var tryParseValue = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TRY_PARSE('42' AS INT)"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(parse);
+        GC.KeepAlive(tryConvertNull);
+        GC.KeepAlive(tryConvertValue);
+        GC.KeepAlive(tryParseNull);
+        GC.KeepAlive(tryParseValue);
+
+        return (parse, tryConvertNull, tryConvertValue, tryParseNull, tryParseValue);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server SOUNDEX and DIFFERENCE benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks SOUNDEX e DIFFERENCE do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(string soundex, int difference)> RunSoundexAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("SOUNDEX")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("DIFFERENCE"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SOUNDEX benchmark.");
+        }
+
+        var soundex = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SOUNDEX('Robert')"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var difference = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DIFFERENCE('Robert', 'Rupert')"), CultureInfo.InvariantCulture);
+        GC.KeepAlive(soundex);
+        GC.KeepAlive(difference);
+        return (soundex, difference);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server COMPRESS and DECOMPRESS benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks COMPRESS e DECOMPRESS do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(byte[] compressed, byte[] decompressed)> RunCompressionAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("COMPRESS")
+            || !Repo.Dialect.SupportsSqlServerScalarFunction("DECOMPRESS"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the compression benchmark.");
+        }
+
+        var compressed = (byte[])await Repo.ExecuteScalarAsync("SELECT COMPRESS('Ana')");
+        var decompressed = (byte[])await Repo.ExecuteScalarAsync("SELECT DECOMPRESS(COMPRESS('Ana'))");
+        GC.KeepAlive(compressed);
+        GC.KeepAlive(decompressed);
+        return (compressed, decompressed);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server APPROX_COUNT_DISTINCT benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark APPROX_COUNT_DISTINCT do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<int> RunApproxCountDistinctAsync()
+    {
+        if (!Repo.Dialect.SupportsApproximateAggregateFunction("APPROX_COUNT_DISTINCT"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the APPROX_COUNT_DISTINCT benchmark.");
+        }
+
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT APPROX_COUNT_DISTINCT(Name) FROM Users"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(value);
+        return value;
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server percentile benchmarks and keeps the provider result alive.
+    /// PT: Executa os benchmarks percentis do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(double continuous, double discrete)> RunPercentileAggregatesAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerAggregateFunction("PERCENTILE_CONT")
+            || !Repo.Dialect.SupportsSqlServerAggregateFunction("PERCENTILE_DISC"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the percentile aggregate benchmark.");
+        }
+
+        var continuous = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT PERCENTILE_CONT(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture);
+        var discrete = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT PERCENTILE_DISC(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(continuous);
+        GC.KeepAlive(discrete);
+        return (continuous, discrete);
+    }
+
+    /// <summary>
+    /// EN: Executes SQL Server aggregate benchmarks and keeps the provider result alive.
+    /// PT: Executa benchmarks de agregacao do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<(long countBig, int checksumAgg, string stringAggOrdered, double stdev, double stdevp, double variance, double varp)> RunSqlServerAggregateFunctionsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerAggregateFunction("CHECKSUM_AGG")
+            || !Repo.Dialect.SupportsSqlServerAggregateFunction("STRING_AGG"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server aggregate benchmark.");
+        }
+
+        var countBig = Convert.ToInt64(await Repo.ExecuteScalarAsync("SELECT COUNT_BIG(*) FROM Users"), CultureInfo.InvariantCulture);
+        var checksumAgg = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CHECKSUM_AGG(CHECKSUM(Name)) FROM Users"), CultureInfo.InvariantCulture);
+        var stringAggOrdered = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name DESC) FROM Users"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var stdev = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT STDEV(Id) FROM Users"), CultureInfo.InvariantCulture);
+        var stdevp = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT STDEVP(Id) FROM Users"), CultureInfo.InvariantCulture);
+        var variance = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT VAR(Id) FROM Users"), CultureInfo.InvariantCulture);
+        var varp = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT VARP(Id) FROM Users"), CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(countBig);
+        GC.KeepAlive(checksumAgg);
+        GC.KeepAlive(stringAggOrdered);
+        GC.KeepAlive(stdev);
+        GC.KeepAlive(stdevp);
+        GC.KeepAlive(variance);
+        GC.KeepAlive(varp);
+
+        return (countBig, checksumAgg, stringAggOrdered, stdev, stdevp, variance, varp);
+    }
+
+    /// <summary>
     /// EN: Executes json_each over JSON array and returns all rows for fidelity comparison.
     /// PT: Executa json_each sobre array JSON e retorna todas as linhas para comparação de fidelidade.
     /// </summary>
@@ -167,6 +863,39 @@ public partial class QueryServiceTest
         return results;
     }
 
+    /// <summary>
+    /// EN: Executes OPENJSON over a JSON array and returns the projected rows for fidelity comparison.
+    /// PT: Executa OPENJSON sobre um array JSON e retorna as linhas projetadas para comparacao de fidelidade.
+    /// </summary>
+    public async Task<List<Dictionary<string, object?>>> RunOpenJsonArrayAsync()
+    {
+        if (!Repo.Dialect.SupportsOpenJsonFunction)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support OPENJSON.");
+        }
+
+        using var cmd = Repo.Cnn.CreateCommand();
+        cmd.CommandText = """
+SELECT [key], value, type
+FROM OPENJSON('["red","blue"]')
+ORDER BY [key]
+""";
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        var results = new List<Dictionary<string, object?>>();
+        while (await reader.ReadAsync())
+        {
+            results.Add(new Dictionary<string, object?>
+            {
+                ["key"] = Repo.Dialect.NormalizeJsonTableValue(reader["key"]),
+                ["value"] = Repo.Dialect.NormalizeJsonTableValue(reader["value"]),
+                ["type"] = Repo.Dialect.NormalizeJsonTableValue(reader["type"])
+            });
+        }
+
+        return results;
+    }
+
     private static void NormalizeJsonTreeIdentifiers(List<Dictionary<string, object?>> rows)
     {
         var fullKeyToId = new Dictionary<string, long>(StringComparer.Ordinal);
@@ -233,6 +962,177 @@ public partial class QueryServiceTest
         var normalized = NormalizeTemporalValue(value);
         GC.KeepAlive(normalized);
         return normalized;
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server DATETRUNC benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark DATETRUNC do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunTemporalDateTruncAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerDateFunction("DATETRUNC"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the DATETRUNC temporal benchmark.");
+        }
+
+        var monthValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETRUNC(month, '2020-02-15T10:11:12')"));
+        var weekValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETRUNC(week, '2020-02-19T10:11:12')"));
+        var dayOfYearValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETRUNC(dayofyear, '2020-02-14T10:11:12')"));
+        var isoWeekValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETRUNC(iso_week, '2021-01-01T10:11:12')"));
+        var millisecondValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETRUNC(millisecond, '2020-02-10T10:11:12.1245678')"));
+        var microsecondValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETRUNC(microsecond, '2020-02-10T10:11:12.1245678')"));
+
+        GC.KeepAlive(monthValue);
+        GC.KeepAlive(weekValue);
+        GC.KeepAlive(dayOfYearValue);
+        GC.KeepAlive(isoWeekValue);
+        GC.KeepAlive(millisecondValue);
+        GC.KeepAlive(microsecondValue);
+
+        return (monthValue, weekValue, dayOfYearValue, isoWeekValue, millisecondValue, microsecondValue);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server time zone offset benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de offset de fuso horario do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunTemporalTimeZoneOffsetAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("TODATETIMEOFFSET"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the time zone offset benchmark.");
+        }
+
+        var literalOffsetMinutes = Convert.ToInt32(
+            await Repo.ExecuteScalarAsync("SELECT DATEPART(tz, '2007-05-10 00:00:01.1234567 +05:10')"),
+            CultureInfo.InvariantCulture);
+        var literalOffsetText = Convert.ToString(
+            await Repo.ExecuteScalarAsync("SELECT DATENAME(tz, '2007-05-10 00:00:01.1234567 +05:10')"),
+            CultureInfo.InvariantCulture) ?? string.Empty;
+        var utcOffsetMinutes = Convert.ToInt32(
+            await Repo.ExecuteScalarAsync("SELECT DATEPART(tz, '2007-05-10T00:00:01.1234567Z')"),
+            CultureInfo.InvariantCulture);
+        var utcOffsetText = Convert.ToString(
+            await Repo.ExecuteScalarAsync("SELECT DATENAME(tz, '2007-05-10T00:00:01.1234567Z')"),
+            CultureInfo.InvariantCulture) ?? string.Empty;
+        var offsetValue = NormalizeDateTimeOffsetValue(
+            await Repo.ExecuteScalarAsync("SELECT TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')"),
+            Repo.Dialect.Provider);
+        var switchedValue = NormalizeDateTimeOffsetValue(
+            await Repo.ExecuteScalarAsync("SELECT SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00')"),
+            Repo.Dialect.Provider);
+        var offsetMinutes = Convert.ToInt32(
+            await Repo.ExecuteScalarAsync("SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))"),
+            CultureInfo.InvariantCulture);
+        var offsetText = Convert.ToString(
+            await Repo.ExecuteScalarAsync("SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))"),
+            CultureInfo.InvariantCulture) ?? string.Empty;
+        var negativeOffsetMinutes = Convert.ToInt32(
+            await Repo.ExecuteScalarAsync("SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30'))"),
+            CultureInfo.InvariantCulture);
+        var negativeOffsetText = Convert.ToString(
+            await Repo.ExecuteScalarAsync("SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30'))"),
+            CultureInfo.InvariantCulture) ?? string.Empty;
+
+        GC.KeepAlive(offsetValue);
+        GC.KeepAlive(switchedValue);
+
+        return (literalOffsetMinutes, literalOffsetText, utcOffsetMinutes, utcOffsetText, offsetValue, switchedValue, offsetMinutes, offsetText, negativeOffsetMinutes, negativeOffsetText);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server FROMPARTS temporal constructors and keeps the provider result alive.
+    /// PT: Executa os construtores temporais FROMPARTS do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunTemporalFromPartsAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("DATEFROMPARTS"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the FROMPARTS temporal benchmark.");
+        }
+
+        var dateValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATEFROMPARTS(2020, 2, 29)"));
+        var dateTimeValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12)"));
+        var dateTime2Value = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567)"));
+        var dateTimeOffsetValue = NormalizeDateTimeOffsetValue(
+            await Repo.ExecuteScalarAsync("SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 60)"),
+            Repo.Dialect.Provider);
+        var timeValue = NormalizeTimeSpanValue(
+            await Repo.ExecuteScalarAsync("SELECT TIMEFROMPARTS(10, 11, 12, 1234567, 7)"));
+        var smallDateTimeValue = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT SMALLDATETIMEFROMPARTS(2020, 2, 29, 10, 11)"));
+
+        GC.KeepAlive(dateValue);
+        GC.KeepAlive(dateTimeValue);
+        GC.KeepAlive(dateTime2Value);
+        GC.KeepAlive(dateTimeOffsetValue);
+        GC.KeepAlive(timeValue);
+        GC.KeepAlive(smallDateTimeValue);
+
+        return (dateValue, dateTimeValue, dateTime2Value, dateTimeOffsetValue, timeValue, smallDateTimeValue);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server EOMONTH benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark EOMONTH do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunTemporalEndOfMonthAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerDateFunction("EOMONTH"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the EOMONTH temporal benchmark.");
+        }
+
+        var value = NormalizeTemporalValue(
+            await Repo.ExecuteScalarAsync("SELECT EOMONTH('2020-02-15')"));
+
+        GC.KeepAlive(value);
+        return value;
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server DATEDIFF_BIG benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark DATEDIFF_BIG do SQL Server e mantém o resultado do provedor vivo.
+    /// </summary>
+    public async Task<object?> RunTemporalDateDiffBigAsync()
+    {
+        if (!Repo.Dialect.SupportsSqlServerDateFunction("DATEDIFF_BIG"))
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the DATEDIFF_BIG temporal benchmark.");
+        }
+
+        var dayDiff = Convert.ToInt64(
+            await Repo.ExecuteScalarAsync("SELECT DATEDIFF_BIG(day, '2020-01-01', '2020-01-03')"),
+            CultureInfo.InvariantCulture);
+        var weekDiff = Convert.ToInt64(
+            await Repo.ExecuteScalarAsync("SELECT DATEDIFF_BIG(week, '2005-12-31T23:59:59.9999999', '2006-01-01T00:00:00.0000000')"),
+            CultureInfo.InvariantCulture);
+        var millisecondDiff = Convert.ToInt64(
+            await Repo.ExecuteScalarAsync("SELECT DATEDIFF_BIG(millisecond, '2020-02-10T10:11:12.123', '2020-02-10T10:11:12.124')"),
+            CultureInfo.InvariantCulture);
+        var microsecondDiff = Convert.ToInt64(
+            await Repo.ExecuteScalarAsync("SELECT DATEDIFF_BIG(microsecond, '2020-02-10T10:11:12.1234567', '2020-02-10T10:11:12.1234577')"),
+            CultureInfo.InvariantCulture);
+        var nanosecondDiff = Convert.ToInt64(
+            await Repo.ExecuteScalarAsync("SELECT DATEDIFF_BIG(ns, '2020-02-10T10:11:12.1245678', '2020-02-10T10:11:12.1245679')"),
+            CultureInfo.InvariantCulture);
+
+        GC.KeepAlive(dayDiff);
+        GC.KeepAlive(weekDiff);
+        GC.KeepAlive(millisecondDiff);
+        GC.KeepAlive(microsecondDiff);
+        GC.KeepAlive(nanosecondDiff);
+
+        return (dayDiff, weekDiff, millisecondDiff, microsecondDiff, nanosecondDiff);
     }
 
     /// <summary>

@@ -156,7 +156,7 @@ internal sealed class NoWhereHighReadWarningRule : QueryPlanWarningRuleBase, IQu
 
     public SqlPlanWarning? Evaluate(SqlSelectQuery query, SqlPlanRuntimeMetrics metrics)
     {
-        if (query.Where is not null || query.Distinct)
+        if (query.Where is not null || query.HasDistinctClause())
             return null;
 
         var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold
@@ -186,7 +186,7 @@ internal sealed class DistinctHighReadWarningRule : QueryPlanWarningRuleBase, IQ
 
     public SqlPlanWarning? Evaluate(SqlSelectQuery query, SqlPlanRuntimeMetrics metrics)
     {
-        if (!query.Distinct)
+        if (!query.HasDistinctClause())
             return null;
 
         var severity = metrics.EstimatedRowsRead >= CriticalReadThreshold

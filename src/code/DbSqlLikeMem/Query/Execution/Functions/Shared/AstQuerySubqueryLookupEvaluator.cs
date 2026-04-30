@@ -63,6 +63,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
     private static bool CanUseScalarCountFastPath(SqlSelectQuery query)
         => query.Ctes.Count == 0
            && query.Joins.Count == 0
+           && !query.HasDistinctClause()
            && query.GroupBy.Count == 0
            && query.Having is null
            && query.RowLimit is null
@@ -219,7 +220,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
 
         if (query.Ctes.Count > 0
             || query.Joins.Count > 0
-            || query.Distinct
+            || query.HasDistinctClause()
             || query.GroupBy.Count > 0
             || query.Having is not null
             || query.RowLimit is not null
@@ -308,7 +309,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
             || query.Table is null
             || query.Ctes.Count > 0
             || query.Joins.Count > 0
-            || query.Distinct
+            || query.HasDistinctClause()
             || query.GroupBy.Count > 0
             || query.Having is not null
             || query.RowLimit is not null

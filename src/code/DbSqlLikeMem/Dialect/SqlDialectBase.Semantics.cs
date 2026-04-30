@@ -23,6 +23,7 @@ internal abstract partial class SqlDialectBase
     public virtual bool SupportsWindowFrameRangeClause => SupportsWindowFrameClause;
     public virtual bool SupportsWindowFrameGroupsClause => SupportsWindowFrameClause;
     public virtual bool SupportsForJsonClause => false;
+    public virtual bool SupportsDistinctOnClause => false;
     public virtual bool SupportsPivotClause => false;
     public virtual bool SupportsUnpivotClause => false;
     public virtual bool PivotAvgReturnsDecimalForIntegralInputs => false;

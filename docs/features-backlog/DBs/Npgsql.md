@@ -7,14 +7,15 @@
 
 ## 2 Recursos relevantes
 
-- Implementação estimada: **88%**.
+- Implementação estimada: **90%**.
 - Parser/executor para DDL/DML comuns.
 - Diferenças de dialeto por versão simulada.
 - Cobertura de `STRING_AGG` ampliada para agregação textual com `DISTINCT`, `NULL` e ordenação por grupo via `WITHIN GROUP`, com gate por função/dialeto e mensagens acionáveis em sintaxe malformada.
 - P7/P10 consolidado: `RETURNING` sintático mínimo em caminhos suportados e fluxo de procedures no contrato Dapper.
 - Funções-chave do banco: `STRING_AGG`, operadores JSON (`->`, `->>`, `#>`, `#>>`) e expressões de data por intervalo.
-- TODO: implementar `DISTINCT ON (...)` no parser/executor do PostgreSQL, incluindo a regra do banco real que exige compatibilidade com os itens mais à esquerda de `ORDER BY`.
-- TODO: implementar `LATERAL` em `FROM`/`JOIN` no parser/executor do Npgsql para subqueries/funções correlacionadas à esquerda, hoje fora da malha principal do mock.
+- Cobertura de `DISTINCT ON (...)` no parser/executor do PostgreSQL, incluindo a regra do banco real que exige compatibilidade com os itens mais à esquerda de `ORDER BY`.
+- Cobertura de `LATERAL` em `FROM`/`JOIN` no parser/executor do Npgsql para subqueries/funções correlacionadas à esquerda, com o contrato já refletido no mock e na suite de fidelidade.
+- Cobertura de `MERGE` nas versões do PostgreSQL que suportam a instrução, com contrato de fidelidade alinhado ao parser e ao executor do mock.
 
 ## 3 Aplicações típicas
 

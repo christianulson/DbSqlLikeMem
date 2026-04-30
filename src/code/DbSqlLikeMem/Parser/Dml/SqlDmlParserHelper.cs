@@ -129,7 +129,7 @@ internal static class SqlDmlParserHelper
             Where = whereExpr,
             Returning = returning,
             UpdateFromSelect = hasJoin
-                ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
+                ? new SqlSelectQuery([], false, [], [], [], null, [], null, [], null)
                 : null
         };
     }
@@ -257,7 +257,7 @@ internal static class SqlDmlParserHelper
             Where = whereExpr,
             Returning = returning,
             DeleteFromSelect = hasJoin
-                ? new SqlSelectQuery([], false, [], [], null, [], null, [], null)
+                ? new SqlSelectQuery([], false, [], [], [], null, [], null, [], null)
                 : null
         };
     }

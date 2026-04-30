@@ -220,7 +220,9 @@ internal static class SqlExecutionPlanFormatter
 
         sb.AppendLine($"- {SqlExecutionPlanMessages.ProjectionLabel()}: {query.SelectItems.Count} item(s)");
 
-        if (query.Distinct)
+        if (query.DistinctOn.Count > 0)
+            sb.AppendLine($"- DISTINCT ON: {string.Join(", ", query.DistinctOn)}");
+        else if (query.Distinct)
             sb.AppendLine("- DISTINCT: true");
 
         if (query.OrderBy.Count > 0)
@@ -397,13 +399,13 @@ internal static class SqlExecutionPlanFormatter
             cost += 2 + EstimatePredicateComplexityCost(query.Where);
 
         cost += EstimateAggregationCost(query.GroupBy, query.Having);
-        cost += EstimateSortAndDedupCost(query.OrderBy, query.Distinct, query.RowLimit);
+        cost += EstimateSortAndDedupCost(query.OrderBy, query.HasDistinctClause(), query.RowLimit);
         cost += EstimateGroupByExpressionComplexityCost(query.GroupBy);
         cost += EstimateOrderByExpressionComplexityCost(query.OrderBy);
-        cost += EstimateDistinctGroupByOrderByCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.RowLimit);
-        cost += EstimateDistinctGroupByOrderByJoinCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Joins);
-        cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having);
-        cost += EstimateDistinctGroupByOrderByHavingJoinCouplingCost(query.Distinct, query.GroupBy, query.OrderBy, query.Having, query.Joins);
+        cost += EstimateDistinctGroupByOrderByCouplingCost(query.HasDistinctClause(), query.GroupBy, query.OrderBy, query.RowLimit);
+        cost += EstimateDistinctGroupByOrderByJoinCouplingCost(query.HasDistinctClause(), query.GroupBy, query.OrderBy, query.Joins);
+        cost += EstimateDistinctGroupByOrderByHavingCouplingCost(query.HasDistinctClause(), query.GroupBy, query.OrderBy, query.Having);
+        cost += EstimateDistinctGroupByOrderByHavingJoinCouplingCost(query.HasDistinctClause(), query.GroupBy, query.OrderBy, query.Having, query.Joins);
         cost += EstimateNestedOrderByCouplingCost(query.Table, query.OrderBy, query.RowLimit);
         cost += query.Joins.Sum(join => EstimateNestedOrderByCouplingCost(join.Table, query.OrderBy, query.RowLimit));
         cost += EstimateProjectionCost(query.SelectItems);

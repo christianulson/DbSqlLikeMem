@@ -78,6 +78,20 @@ public abstract class SequenceTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies that a filtered NEXT VALUE FOR query advances sequence values in execution order for the current provider.
+    /// PT: Verifica se uma consulta filtrada com NEXT VALUE FOR avanca os valores da sequence na ordem de execucao para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task SequenceExpressionFilterTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest>() as long[];
+
+        _ = new long[] { 10L, 11L }.Should().Equal(result);
+    }
+
+    /// <summary>
     /// EN: Verifies that sequence values can participate in CASE and WHERE logic inside a single query for the current provider.
     /// PT: Verifica se valores de sequence podem participar de logica CASE e WHERE dentro de uma unica consulta para o provedor atual.
     /// </summary>
