@@ -154,6 +154,9 @@ CREATE TABLE {context.TbOrdersFullName} (
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsJsonQueryFunction => true;
+
+    /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>
         $"SELECT JSON_UNQUOTE(JSON_EXTRACT('{jsonLiteral}', '$.name'))";
 

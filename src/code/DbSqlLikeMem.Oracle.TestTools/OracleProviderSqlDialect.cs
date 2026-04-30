@@ -22,6 +22,9 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsJsonQueryFunction => true;
+
+    /// <inheritdoc />
     public override bool SupportsReleaseSavepoints => false;
 
     /// <inheritdoc />

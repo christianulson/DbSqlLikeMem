@@ -375,7 +375,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     [Trait("Category", "ExecutionPlan")]
     public void ExecuteReader_ShouldEmitPlanDelta_WhenPreviousSnapshotIsProvided()
     {
-        var query = new SqlSelectQuery([], false, [new SqlSelectItem("Id", null)], [], null, [], null, [], null)
+        var query = new SqlSelectQuery([], false, [new SqlSelectItem("Id", null)], [], null, [], null, [], null, null)
         {
             Table = new SqlTableSource(null, "users", null, null, null, null, null)
         };

@@ -1,8 +1,8 @@
 namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
-/// EN: Reads a sequence value inside a filtered query over the users table for fidelity coverage.
-/// PT: Le um valor de sequence dentro de uma consulta filtrada na tabela de usuarios para cobertura de fidelidade.
+/// EN: Reads sequence values inside a filtered query over the users table for fidelity coverage.
+/// PT: Le valores de sequence dentro de uma consulta filtrada na tabela de usuarios para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceExpressionFilterServiceTest(
     RepoService repo,
@@ -11,15 +11,16 @@ public sealed class SequenceExpressionFilterServiceTest(
         IBaseServiceTest
 {
     /// <summary>
-    /// EN: Returns the generated values from a filtered NEXT VALUE FOR query executed twice.
-    /// PT: Retorna os valores gerados de uma consulta filtrada com NEXT VALUE FOR executada duas vezes.
+    /// EN: Returns the generated values from a filtered sequence query executed twice.
+    /// PT: Retorna os valores gerados de uma consulta filtrada com sequence executada duas vezes.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         _ = args;
 
-        var first = await ExecuteScalarLongAsync($"SELECT NEXT VALUE FOR {Context.Seq} FROM {Context.TbUsersFullName} WHERE Id = 1");
-        var second = await ExecuteScalarLongAsync($"SELECT NEXT VALUE FOR {Context.Seq} FROM {Context.TbUsersFullName} WHERE Id = 1");
+        var nextSequenceValueExpression = Repo.Dialect.NextSequenceValueExpression(Context);
+        var first = await ExecuteScalarLongAsync($"SELECT {nextSequenceValueExpression} FROM {Context.TbUsersFullName} WHERE Id = 1");
+        var second = await ExecuteScalarLongAsync($"SELECT {nextSequenceValueExpression} FROM {Context.TbUsersFullName} WHERE Id = 1");
         return new[] { first, second };
     }
 

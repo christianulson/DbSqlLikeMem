@@ -111,6 +111,12 @@ WHERE u.tenantid = 10";
     public virtual bool SupportsJsonScalarRead => false;
 
     /// <summary>
+    /// EN: Indicates whether the provider supports JSON_QUERY as a scalar helper in the benchmark flow.
+    /// PT: Indica se o provedor suporta JSON_QUERY como helper escalar no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsJsonQueryFunction => false;
+
+    /// <summary>
     /// EN: Indicates whether the provider supports the json_each table-valued function in the FROM clause.
     /// PT: Indica se o provedor suporta a funcao tabular json_each na clausula FROM.
     /// </summary>
@@ -127,6 +133,84 @@ WHERE u.tenantid = 10";
     /// PT: Indica se o provedor suporta funcoes JSON tabulares na clausula FROM.
     /// </summary>
     public virtual bool SupportsJsonTableFunctions => SupportsJsonEachFunction && SupportsJsonTreeFunction;
+
+    /// <summary>
+    /// EN: Indicates whether APPLY clauses are supported in the benchmark flow.
+    /// PT: Indica se clausulas APPLY sao suportadas no fluxo de benchmark.
+    /// </summary>
+    public virtual bool SupportsApplyClause => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the STRING_SPLIT table function.
+    /// PT: Indica se o provedor suporta a funcao de tabela STRING_SPLIT.
+    /// </summary>
+    public virtual bool SupportsStringSplitFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether STRING_SPLIT supports the ordinal argument.
+    /// PT: Indica se STRING_SPLIT suporta o argumento ordinal.
+    /// </summary>
+    public virtual bool SupportsStringSplitOrdinalArgument => false;
+
+    /// <summary>
+    /// EN: Indicates whether CTE materialized hints are supported.
+    /// PT: Indica se hints materialized de CTE sao suportados.
+    /// </summary>
+    public virtual bool SupportsWithMaterializedHint => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the SQL Server OPENJSON table function.
+    /// PT: Indica se o provedor suporta a funcao de tabela OPENJSON do SQL Server.
+    /// </summary>
+    public virtual bool SupportsOpenJsonFunction => false;
+
+    /// <summary>
+    /// EN: Indicates whether the provider supports the FOR JSON clause in SELECT queries.
+    /// PT: Indica se o provedor suporta a clausula FOR JSON em consultas SELECT.
+    /// </summary>
+    public virtual bool SupportsForJsonClause => false;
+
+    /// <summary>
+    /// EN: Indicates whether a SQL Server metadata function is supported by the provider.
+    /// PT: Indica se uma funcao de metadados do SQL Server e suportada pelo provedor.
+    /// </summary>
+    public virtual bool SupportsSqlServerMetadataFunction(string functionName) => false;
+
+    /// <summary>
+    /// EN: Indicates whether a SQL Server metadata identifier is supported by the provider.
+    /// PT: Indica se um identificador de metadados do SQL Server e suportado pelo provedor.
+    /// </summary>
+    public virtual bool SupportsSqlServerMetadataIdentifier(string identifier) => false;
+
+    /// <summary>
+    /// EN: Indicates whether a SQL Server scalar function is supported by the provider.
+    /// PT: Indica se uma funcao escalar do SQL Server e suportada pelo provedor.
+    /// </summary>
+    public virtual bool SupportsSqlServerScalarFunction(string functionName) => false;
+
+    /// <summary>
+    /// EN: Indicates whether a SQL Server date function is supported by the provider.
+    /// PT: Indica se uma funcao de data do SQL Server e suportada pelo provedor.
+    /// </summary>
+    public virtual bool SupportsSqlServerDateFunction(string functionName) => false;
+
+    /// <summary>
+    /// EN: Indicates whether a SQL Server aggregate function is supported by the provider.
+    /// PT: Indica se uma funcao agregada do SQL Server e suportada pelo provedor.
+    /// </summary>
+    public virtual bool SupportsSqlServerAggregateFunction(string functionName) => false;
+
+    /// <summary>
+    /// EN: Indicates whether an approximate aggregate function is supported by the provider.
+    /// PT: Indica se uma funcao agregada aproximada e suportada pelo provedor.
+    /// </summary>
+    public virtual bool SupportsApproximateAggregateFunction(string functionName) => false;
+
+    /// <summary>
+    /// EN: Indicates whether an approximate scalar function is supported by the provider.
+    /// PT: Indica se uma funcao escalar aproximada e suportada pelo provedor.
+    /// </summary>
+    public virtual bool SupportsApproximateScalarFunction(string functionName) => false;
 
     /// <summary>
     /// EN: Indicates whether the provider supports Guid input-output parameters in stored procedure signatures.

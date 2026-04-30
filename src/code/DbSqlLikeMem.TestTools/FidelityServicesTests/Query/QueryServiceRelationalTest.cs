@@ -1094,7 +1094,7 @@ ORDER BY u.Id, o.Id
     /// </summary>
     public async Task<object?> RunCteMaterializedHintAsync(params object[] pars)
     {
-        return await CaptureSnapshotAsync("""
+        return await CaptureSnapshotAsync($"""
 WITH x AS MATERIALIZED (
     SELECT Id, Name
     FROM {Context.TbUsersFullName}

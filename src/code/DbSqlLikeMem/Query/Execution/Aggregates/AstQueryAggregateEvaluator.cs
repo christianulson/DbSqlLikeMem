@@ -335,9 +335,17 @@ internal static class AstQueryAggregateEvaluator
         var percentile = 0.5d;
         if (fn.Args.Count > 1)
         {
-            var percentileValue = eval(fn.Args[1], group.Rows[0], null, ctes);
-            if (IsNullish(percentileValue) || !TryConvertNumericToDouble(percentileValue, out percentile))
-                return null;
+            if (fn.Args[1] is LiteralExpr percentileLiteral)
+            {
+                if (!TryConvertNumericToDouble(percentileLiteral.Value, out percentile))
+                    return null;
+            }
+            else
+            {
+                var percentileValue = eval(fn.Args[1], EvalRow.Empty(), null, ctes);
+                if (IsNullish(percentileValue) || !TryConvertNumericToDouble(percentileValue, out percentile))
+                    return null;
+            }
         }
 
         if (percentile < 0d)

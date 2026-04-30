@@ -200,8 +200,8 @@ public abstract class SelectTestsBase<T, T2>(
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, 
             [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
 
-        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest>(
-            async (s, _) =>
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest, object?>(
+            async (QueryServiceTest s, object[] _) =>
             {
                 using var command = s.Repo.Cnn.CreateCommand();
                 command.CommandText = $"""
@@ -1626,23 +1626,23 @@ ORDER BY Id
 
         if (!dialect.SupportsApplyClause || !dialect.SupportsStringSplitFunction)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
-                [],
+            await FluentActions.Awaiting(() => testService.RunTestAsync<SelectTableScenario, QueryServiceTest, object?>(
                 async (s, _) =>
                 {
                     await s.Repo.ExecuteNonQueryAsync($"INSERT INTO {s.Context.TbUsersFullName} (Id, Name, Email) VALUES (3, 'Csv', 'red,blue')");
-                    return await s.RunStringSplitProjectionAsync();
-                })).Should().ThrowAsync<NotSupportedException>();
+                    return (object?)await s.RunStringSplitProjectionAsync();
+                },
+                Array.Empty<object>())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
-            [],
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest, object?>(
             async (s, _) =>
             {
                 await s.Repo.ExecuteNonQueryAsync($"INSERT INTO {s.Context.TbUsersFullName} (Id, Name, Email) VALUES (3, 'Csv', 'red,blue')");
-                return await s.RunStringSplitProjectionAsync();
-            });
+                return (object?)await s.RunStringSplitProjectionAsync();
+            },
+            Array.Empty<object>());
 
         AssertSnapshot(RequireSnapshot(result, nameof(SelectStringSplitFunctionTest)), Snapshot(["value"],
             Row("red"),
@@ -1660,15 +1660,19 @@ ORDER BY Id
 
         if (!dialect.SupportsForJsonClause)
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
-                [SelectTestsBaseSeeds.seedUsers],
-                (s, _) => s.RunForJsonPathProjectionAsync())).Should().ThrowAsync<NotSupportedException>();
+            await FluentActions.Awaiting(() => testService.RunTestAsync<SelectTableScenario, QueryServiceTest, object?>(
+                (s, _) => s.RunForJsonPathProjectionAsync(),
+                Array.Empty<object>())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest>(
-            [SelectTestsBaseSeeds.seedUsers],
-            (s, _) => s.RunForJsonPathProjectionAsync());
+        var result = await testService.RunTestAsync<SelectTableScenario, QueryServiceTest, object?>(
+            async (s, _) =>
+            {
+                await s.Repo.ExecuteNonQueryAsync(dialect.InsertUser(s.Context, 2, "Bob"));
+                return await s.RunForJsonPathProjectionAsync();
+            },
+            Array.Empty<object>());
 
         JsonTextAssertions.ShouldMatchJsonText(
             result as string,

@@ -271,6 +271,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
                 nullable: col.Value.Nullable,
                 size: col.Value.Size,
                 decimalPlaces: col.Value.DecimalPlaces,
+                identity: col.Value.Identity,
                 defaultValue: col.Value.DefaultValue,
                 computedExpression: col.Value.ComputedExpression);
             if (col.Value.PrimaryKey)
@@ -376,7 +377,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             yield return last;
     }
 
-    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, int? Size, int? DecimalPlaces, object? DefaultValue, string? ComputedExpression)? ParseColumnDefinition(string columnSql)
+    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, bool Identity, int? Size, int? DecimalPlaces, object? DefaultValue, string? ComputedExpression)? ParseColumnDefinition(string columnSql)
     {
         var m = Regex.Match(
             columnSql,
@@ -394,9 +395,10 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
         var (size, decimalPlaces) = ParseTypeArgs(m.Groups["args"].Value, type);
         var nullable = !Regex.IsMatch(rest, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
         var primaryKey = Regex.IsMatch(rest, @"\bPRIMARY\s+KEY\b", RegexOptions.IgnoreCase);
+        var identity = Regex.IsMatch(rest, @"\bIDENTITY\s*(\(\s*\d+\s*,\s*\d+\s*\))?", RegexOptions.IgnoreCase);
         var defaultValue = ParseColumnDefaultValue(rest);
         var computedExpression = ParseComputedExpression(rest);
-        return (name, type, nullable, primaryKey, size, decimalPlaces, defaultValue, computedExpression);
+        return (name, type, nullable, primaryKey, identity, size, decimalPlaces, defaultValue, computedExpression);
     }
 
     private static SchemaSnapshotCheckConstraint? ParseTableCheckConstraint(string columnSql)

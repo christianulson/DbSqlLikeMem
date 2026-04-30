@@ -108,6 +108,42 @@ public class FidelityTestService<TCnn1, TCnn2>
     }
 
     /// <summary>
+    /// EN: Executes the specified test scenario and returns the typed result after comparing mock and container runs.
+    /// PT: Executa o cenario de teste especificado e retorna o resultado tipado apos comparar as execucoes mock e container.
+    /// </summary>
+    public override async Task<TResult> RunTestAsync<TScenario, TServiceTest, TResult>(
+        Func<TServiceTest, object[], Task<TResult>> fnRunTest,
+        params object[] args)
+    {
+        var context = new FidelityTestContext();
+        object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
+        if (TestEnv.RunContainerTests.Value)
+        {
+            if (repoContainer == null)
+                throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
+            await EnsureContainerConnectionAvailableAsync();
+            objResultContainer = await Execute<TScenario, TServiceTest, TResult>(fnRunTest, args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
+        }
+
+        var objResultMock = await Execute<TScenario, TServiceTest, TResult>(fnRunTest, args, RepoMock, InitialData, context);
+
+        if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
+            AssertEquivalentResults(objResultMock, objResultContainer);
+        }
+
+        return objResultMock;
+    }
+
+    /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
     /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
@@ -134,6 +170,42 @@ public class FidelityTestService<TCnn1, TCnn2>
         }
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData, context);
+
+        if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
+            AssertEquivalentResults(objResultMock, objResultContainer);
+        }
+
+        return objResultMock;
+    }
+
+    /// <summary>
+    /// EN: Executes the specified test scenarios and returns the typed result after comparing mock and container runs.
+    /// PT: Executa os cenarios de teste especificados e retorna o resultado tipado apos comparar as execucoes mock e container.
+    /// </summary>
+    public override async Task<TResult> RunTestAsync<TScenario, TScenario2, TServiceTest, TResult>(
+        Func<TServiceTest, object[], Task<TResult>> fnRunTest,
+        params object[] args)
+    {
+        var context = new FidelityTestContext();
+        object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
+        if (TestEnv.RunContainerTests.Value)
+        {
+            if (repoContainer == null)
+                throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
+            await EnsureContainerConnectionAvailableAsync();
+            objResultContainer = await Execute<TScenario, TScenario2, TServiceTest, TResult>(fnRunTest, args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
+        }
+
+        var objResultMock = await Execute<TScenario, TScenario2, TServiceTest, TResult>(fnRunTest, args, RepoMock, InitialData, context);
 
         if (TestEnv.RunContainerTests.Value)
         {

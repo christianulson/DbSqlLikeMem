@@ -78,13 +78,14 @@ public abstract class SequenceTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies that a filtered NEXT VALUE FOR query advances sequence values in execution order for the current provider.
-    /// PT: Verifica se uma consulta filtrada com NEXT VALUE FOR avanca os valores da sequence na ordem de execucao para o provedor atual.
+    /// EN: Verifies that a filtered sequence query advances sequence values in execution order for the current provider.
+    /// PT: Verifica se uma consulta filtrada com sequence avanca os valores da sequence na ordem de execucao para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SequenceExpressionFilterTest()
     {
-        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+        object?[][] initialData = [[(1, "Ana")]];
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect, initialData);
 
         var result = await testService.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest>() as long[];
 

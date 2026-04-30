@@ -46,6 +46,10 @@ IN PROGRESS
 - Adicionada cobertura compartilhada para `APPROX_COUNT_DISTINCT`, `PERCENTILE_CONT` e `PERCENTILE_DISC` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para `COUNT_BIG`, `CHECKSUM_AGG`, `STRING_AGG`, `STDEV`, `STDEVP`, `VAR` e `VARP` no SQL Server e no SQL Azure.
 - Adicionada cobertura compartilhada para `STRING_SPLIT` com `CROSS APPLY` no SQL Server e no SQL Azure.
+- Adicionados contratos tipados de `RunTestAsync` em `NotFidelityTestService` e `FidelityTestService` para suportar retornos fortes nos wrappers de funcoes.
+- Expandido o `ProviderSqlDialect` de testes com contratos de `APPLY`, `STRING_SPLIT`, `FOR JSON`, `OPENJSON` e categorias de funcoes SQL Server, com implementacao no `SqlServerProviderSqlDialect`.
+- Ajustados os testes de `QueryServiceScalarTemporalTest` para ler `SYSDATETIMEOFFSET`, `COMPRESS` e `DECOMPRESS` sem casts diretos fragilizados por tipo de runtime.
+- Adicionada sobrecarga de compatibilidade em `SqlSelectQuery` para manter os testes de plano de execucao alinhados com a assinatura usada pelos parsers e helpers.
 - Adicionado o contrato de fidelidade para `FOR JSON PATH` com `ROOT('users')` na projeção compartilhada de usuarios do SQL Server e do SQL Azure.
 - Adicionado o contrato de fidelidade para `OPENJSON` em array JSON compartilhado no SQL Server e no SQL Azure.
 - Adicionado o contrato de `DISTINCT ON` no PostgreSQL/Npgsql, com parser/executor e validacao do prefixo esquerdo de `ORDER BY`.
@@ -86,4 +90,5 @@ IN PROGRESS
 
 - Separar funções por categoria.
 - Cobrir tipos nativos de retorno e de parâmetro.
+- Continuar reduzindo casts diretos nos wrappers de fidelidade que ainda dependem de forma de runtime.
 - Alinhar temporais, JSON e window functions com o banco real.

@@ -86,7 +86,7 @@ public partial class QueryServiceTest
     /// </summary>
     public async Task<object?> RunJsonModifyReplaceAsync()
     {
-        if (!Repo.Dialect.SupportsJsonScalarRead)
+        if (!Repo.Dialect.SupportsSqlServerScalarFunction("JSON_MODIFY"))
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON_MODIFY benchmark.");
         }
@@ -102,7 +102,7 @@ public partial class QueryServiceTest
     /// </summary>
     public async Task<object?> RunJsonQueryRootFragmentAsync()
     {
-        if (!Repo.Dialect.SupportsJsonScalarRead)
+        if (!Repo.Dialect.SupportsJsonQueryFunction)
         {
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON_QUERY benchmark.");
         }
@@ -332,59 +332,68 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server metadata benchmark.");
         }
 
-        var appName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT APP_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var localNetAddress = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CONNECTIONPROPERTY('local_net_address')"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var netTransport = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CONNECTIONPROPERTY('net_transport')"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var databaseStatus = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DATABASEPROPERTYEX('DefaultSchema', 'Status')"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var databaseUpdateability = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DATABASEPROPERTYEX('DefaultSchema', 'Updateability')"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var databasePrincipalId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DATABASE_PRINCIPAL_ID('dbo')"), CultureInfo.InvariantCulture);
-        var currentUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CURRENT_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var nameColumnId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COLUMNPROPERTY(OBJECT_ID('Users'), 'Name', 'ColumnId')"), CultureInfo.InvariantCulture);
-        var identityColumnIsIdentity = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COLUMNPROPERTY(OBJECT_ID('IdentityUsers'), 'Id', 'IsIdentity')"), CultureInfo.InvariantCulture);
-        var emailColumnAllowsNull = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COLUMNPROPERTY(OBJECT_ID('Users'), 'Email', 'AllowsNull')"), CultureInfo.InvariantCulture);
-        var colLength = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COL_LENGTH('Users', 'Id')"), CultureInfo.InvariantCulture);
-        var colName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT COL_NAME(2, 2)"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var dbId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DB_ID()"), CultureInfo.InvariantCulture);
-        var dbName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DB_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var objectId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT OBJECT_ID('Users')"), CultureInfo.InvariantCulture);
-        var objectPropertyIsTable = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT OBJECTPROPERTY(OBJECT_ID('Users'), 'IsTable')"), CultureInfo.InvariantCulture);
-        var objectPropertyExIsProcedure = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT OBJECTPROPERTYEX(OBJECT_ID('sp_ping'), 'IsProcedure')"), CultureInfo.InvariantCulture);
-        var objectName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT OBJECT_NAME(2)"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var objectSchemaName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT OBJECT_SCHEMA_NAME(2)"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var originalDbName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT ORIGINAL_DB_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var schemaId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SCHEMA_ID()"), CultureInfo.InvariantCulture);
-        var schemaName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SCHEMA_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var getUtcDate = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT GETUTCDATE()"), CultureInfo.InvariantCulture);
-        var sysDateTimeOffset = (DateTimeOffset)await Repo.ExecuteScalarAsync("SELECT SYSDATETIMEOFFSET()");
-        var sysUtcDateTime = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT SYSUTCDATETIME()"), CultureInfo.InvariantCulture);
+        await EnsureIdentityUsersTableAsync();
+        try
+        {
+            var appName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT APP_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var localNetAddress = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CONNECTIONPROPERTY('local_net_address')"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var netTransport = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CONNECTIONPROPERTY('net_transport')"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var databaseStatus = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DATABASEPROPERTYEX('DefaultSchema', 'Status')"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var databaseUpdateability = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DATABASEPROPERTYEX('DefaultSchema', 'Updateability')"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var databasePrincipalId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DATABASE_PRINCIPAL_ID('dbo')"), CultureInfo.InvariantCulture);
+            var currentUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT CURRENT_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var nameColumnId = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COLUMNPROPERTY(OBJECT_ID('{Context.TbUsersFullName}'), 'Name', 'ColumnId')"), CultureInfo.InvariantCulture);
+            var identityColumnIsIdentity = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT COLUMNPROPERTY(OBJECT_ID('IdentityUsers'), 'Id', 'IsIdentity')"), CultureInfo.InvariantCulture);
+            var emailColumnAllowsNull = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COLUMNPROPERTY(OBJECT_ID('{Context.TbUsersFullName}'), 'Email', 'AllowsNull')"), CultureInfo.InvariantCulture);
+            var colLength = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT COL_LENGTH('{Context.TbUsersFullName}', 'Id')"), CultureInfo.InvariantCulture);
+            var colName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT COL_NAME(2, 2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var dbId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT DB_ID()"), CultureInfo.InvariantCulture);
+            var dbName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT DB_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var objectId = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT OBJECT_ID('{Context.TbUsersFullName}')"), CultureInfo.InvariantCulture);
+            var objectPropertyIsTable = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT OBJECTPROPERTY(OBJECT_ID('{Context.TbUsersFullName}'), 'IsTable')"), CultureInfo.InvariantCulture);
+            var objectPropertyExIsProcedure = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT OBJECTPROPERTYEX(OBJECT_ID('sp_ping'), 'IsProcedure')"), CultureInfo.InvariantCulture);
+            var objectName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT OBJECT_NAME(2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var objectSchemaName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT OBJECT_SCHEMA_NAME(2)"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var originalDbName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT ORIGINAL_DB_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var schemaId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SCHEMA_ID()"), CultureInfo.InvariantCulture);
+            var schemaName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SCHEMA_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var getUtcDate = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT GETUTCDATE()"), CultureInfo.InvariantCulture);
+            var sysDateTimeOffsetValue = await Repo.ExecuteScalarAsync("SELECT SYSDATETIMEOFFSET()");
+            var sysDateTimeOffset = sysDateTimeOffsetValue is DateTimeOffset value ? value : throw new InvalidOperationException("Expected SYSDATETIMEOFFSET() to return a DateTimeOffset.");
+            var sysUtcDateTime = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT SYSUTCDATETIME()"), CultureInfo.InvariantCulture);
 
-        GC.KeepAlive(appName);
-        GC.KeepAlive(localNetAddress);
-        GC.KeepAlive(netTransport);
-        GC.KeepAlive(databaseStatus);
-        GC.KeepAlive(databaseUpdateability);
-        GC.KeepAlive(databasePrincipalId);
-        GC.KeepAlive(currentUser);
-        GC.KeepAlive(nameColumnId);
-        GC.KeepAlive(identityColumnIsIdentity);
-        GC.KeepAlive(emailColumnAllowsNull);
-        GC.KeepAlive(colLength);
-        GC.KeepAlive(colName);
-        GC.KeepAlive(dbId);
-        GC.KeepAlive(dbName);
-        GC.KeepAlive(objectId);
-        GC.KeepAlive(objectPropertyIsTable);
-        GC.KeepAlive(objectPropertyExIsProcedure);
-        GC.KeepAlive(objectName);
-        GC.KeepAlive(objectSchemaName);
-        GC.KeepAlive(originalDbName);
-        GC.KeepAlive(schemaId);
-        GC.KeepAlive(schemaName);
-        GC.KeepAlive(getUtcDate);
-        GC.KeepAlive(sysDateTimeOffset);
-        GC.KeepAlive(sysUtcDateTime);
+            GC.KeepAlive(appName);
+            GC.KeepAlive(localNetAddress);
+            GC.KeepAlive(netTransport);
+            GC.KeepAlive(databaseStatus);
+            GC.KeepAlive(databaseUpdateability);
+            GC.KeepAlive(databasePrincipalId);
+            GC.KeepAlive(currentUser);
+            GC.KeepAlive(nameColumnId);
+            GC.KeepAlive(identityColumnIsIdentity);
+            GC.KeepAlive(emailColumnAllowsNull);
+            GC.KeepAlive(colLength);
+            GC.KeepAlive(colName);
+            GC.KeepAlive(dbId);
+            GC.KeepAlive(dbName);
+            GC.KeepAlive(objectId);
+            GC.KeepAlive(objectPropertyIsTable);
+            GC.KeepAlive(objectPropertyExIsProcedure);
+            GC.KeepAlive(objectName);
+            GC.KeepAlive(objectSchemaName);
+            GC.KeepAlive(originalDbName);
+            GC.KeepAlive(schemaId);
+            GC.KeepAlive(schemaName);
+            GC.KeepAlive(getUtcDate);
+            GC.KeepAlive(sysDateTimeOffset);
+            GC.KeepAlive(sysUtcDateTime);
 
-        return (appName, localNetAddress, netTransport, databaseStatus, databaseUpdateability, databasePrincipalId, currentUser, nameColumnId, identityColumnIsIdentity, emailColumnAllowsNull, colLength, colName, dbId, dbName, objectId, objectPropertyIsTable, objectPropertyExIsProcedure, objectName, objectSchemaName, originalDbName, schemaId, schemaName, getUtcDate, sysDateTimeOffset, sysUtcDateTime);
+            return (appName, localNetAddress, netTransport, databaseStatus, databaseUpdateability, databasePrincipalId, currentUser, nameColumnId, identityColumnIsIdentity, emailColumnAllowsNull, colLength, colName, dbId, dbName, objectId, objectPropertyIsTable, objectPropertyExIsProcedure, objectName, objectSchemaName, originalDbName, schemaId, schemaName, getUtcDate, sysDateTimeOffset, sysUtcDateTime);
+        }
+        finally
+        {
+            await DropIdentityUsersTableAsync();
+        }
     }
 
     /// <summary>
@@ -398,11 +407,19 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SCOPE_IDENTITY benchmark.");
         }
 
-        await Repo.ExecuteNonQueryAsync("INSERT INTO IdentityUsers (Name) VALUES ('Auto')");
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SCOPE_IDENTITY()"), CultureInfo.InvariantCulture);
+        await EnsureIdentityUsersTableAsync();
+        try
+        {
+            await Repo.ExecuteNonQueryAsync("INSERT INTO IdentityUsers (Name) VALUES ('Auto')");
+            var value = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SCOPE_IDENTITY()"), CultureInfo.InvariantCulture);
 
-        GC.KeepAlive(value);
-        return value;
+            GC.KeepAlive(value);
+            return value;
+        }
+        finally
+        {
+            await DropIdentityUsersTableAsync();
+        }
     }
 
     /// <summary>
@@ -434,55 +451,90 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server system benchmark.");
         }
 
-        await Repo.ExecuteNonQueryAsync("INSERT INTO IdentityUsers (Name) VALUES ('Auto')");
-        var dateFirst = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@DATEFIRST"), CultureInfo.InvariantCulture);
-        var identity = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@IDENTITY"), CultureInfo.InvariantCulture);
-        var maxPrecision = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@MAX_PRECISION"), CultureInfo.InvariantCulture);
-        var serverProperty = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SERVERPROPERTY('ProductVersion')"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var originalLogin = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT ORIGINAL_LOGIN()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var currentRequestId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CURRENT_REQUEST_ID()"), CultureInfo.InvariantCulture);
-        var sessionId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SESSION_ID()"), CultureInfo.InvariantCulture);
-        var typeId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TYPE_ID('int')"), CultureInfo.InvariantCulture);
-        var typeName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT TYPE_NAME(56)"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var typeProperty = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TYPEPROPERTY('int', 'OwnerId')"), CultureInfo.InvariantCulture);
-        var sessionUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SESSION_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var suserId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SUSER_ID()"), CultureInfo.InvariantCulture);
-        var suserName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SUSER_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var suserSid = (byte[])(await Repo.ExecuteScalarAsync("SELECT SUSER_SID()") ?? Array.Empty<byte>());
-        var suserSname = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SUSER_SNAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var systemUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SYSTEM_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var userId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT USER_ID()"), CultureInfo.InvariantCulture);
-        var userName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT USER_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var xactState = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT XACT_STATE()"), CultureInfo.InvariantCulture);
-        var currentTimestamp = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT CURRENT_TIMESTAMP"), CultureInfo.InvariantCulture);
-        var getDate = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT GETDATE()"), CultureInfo.InvariantCulture);
-        var sysDateTime = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT SYSDATETIME()"), CultureInfo.InvariantCulture);
+        await EnsureIdentityUsersTableAsync();
+        try
+        {
+            await Repo.ExecuteNonQueryAsync("INSERT INTO IdentityUsers (Name) VALUES ('Auto')");
+            var dateFirst = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@DATEFIRST"), CultureInfo.InvariantCulture);
+            var identity = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@IDENTITY"), CultureInfo.InvariantCulture);
+            var maxPrecision = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@MAX_PRECISION"), CultureInfo.InvariantCulture);
+            var serverProperty = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SERVERPROPERTY('ProductVersion')"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var originalLogin = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT ORIGINAL_LOGIN()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var currentRequestId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CURRENT_REQUEST_ID()"), CultureInfo.InvariantCulture);
+            var sessionId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SESSION_ID()"), CultureInfo.InvariantCulture);
+            var typeId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TYPE_ID('int')"), CultureInfo.InvariantCulture);
+            var typeName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT TYPE_NAME(56)"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var typeProperty = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT TYPEPROPERTY('int', 'OwnerId')"), CultureInfo.InvariantCulture);
+            var sessionUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SESSION_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var suserId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT SUSER_ID()"), CultureInfo.InvariantCulture);
+            var suserName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SUSER_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var suserSid = (byte[])(await Repo.ExecuteScalarAsync("SELECT SUSER_SID()") ?? Array.Empty<byte>());
+            var suserSname = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SUSER_SNAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var systemUser = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT SYSTEM_USER"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var userId = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT USER_ID()"), CultureInfo.InvariantCulture);
+            var userName = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT USER_NAME()"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var xactState = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT XACT_STATE()"), CultureInfo.InvariantCulture);
+            var currentTimestamp = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT CURRENT_TIMESTAMP"), CultureInfo.InvariantCulture);
+            var getDate = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT GETDATE()"), CultureInfo.InvariantCulture);
+            var sysDateTime = Convert.ToDateTime(await Repo.ExecuteScalarAsync("SELECT SYSDATETIME()"), CultureInfo.InvariantCulture);
 
-        GC.KeepAlive(dateFirst);
-        GC.KeepAlive(identity);
-        GC.KeepAlive(maxPrecision);
-        GC.KeepAlive(serverProperty);
-        GC.KeepAlive(originalLogin);
-        GC.KeepAlive(currentRequestId);
-        GC.KeepAlive(sessionId);
-        GC.KeepAlive(typeId);
-        GC.KeepAlive(typeName);
-        GC.KeepAlive(typeProperty);
-        GC.KeepAlive(sessionUser);
-        GC.KeepAlive(suserId);
-        GC.KeepAlive(suserName);
-        GC.KeepAlive(suserSid);
-        GC.KeepAlive(suserSname);
-        GC.KeepAlive(systemUser);
-        GC.KeepAlive(userId);
-        GC.KeepAlive(userName);
-        GC.KeepAlive(xactState);
-        GC.KeepAlive(currentTimestamp);
-        GC.KeepAlive(getDate);
-        GC.KeepAlive(sysDateTime);
+            GC.KeepAlive(dateFirst);
+            GC.KeepAlive(identity);
+            GC.KeepAlive(maxPrecision);
+            GC.KeepAlive(serverProperty);
+            GC.KeepAlive(originalLogin);
+            GC.KeepAlive(currentRequestId);
+            GC.KeepAlive(sessionId);
+            GC.KeepAlive(typeId);
+            GC.KeepAlive(typeName);
+            GC.KeepAlive(typeProperty);
+            GC.KeepAlive(sessionUser);
+            GC.KeepAlive(suserId);
+            GC.KeepAlive(suserName);
+            GC.KeepAlive(suserSid);
+            GC.KeepAlive(suserSname);
+            GC.KeepAlive(systemUser);
+            GC.KeepAlive(userId);
+            GC.KeepAlive(userName);
+            GC.KeepAlive(xactState);
+            GC.KeepAlive(currentTimestamp);
+            GC.KeepAlive(getDate);
+            GC.KeepAlive(sysDateTime);
 
-        return (dateFirst, identity, maxPrecision, serverProperty, originalLogin, currentRequestId, sessionId, typeId, typeName, typeProperty, sessionUser, suserId, suserName, suserSid, suserSname, systemUser, userId, userName, xactState, currentTimestamp, getDate, sysDateTime);
+            return (dateFirst, identity, maxPrecision, serverProperty, originalLogin, currentRequestId, sessionId, typeId, typeName, typeProperty, sessionUser, suserId, suserName, suserSid, suserSname, systemUser, userId, userName, xactState, currentTimestamp, getDate, sysDateTime);
+        }
+        finally
+        {
+            await DropIdentityUsersTableAsync();
+        }
     }
+
+    private Task EnsureIdentityUsersTableAsync()
+        => Repo.Cnn is DbSqlLikeMem.DbConnectionMockBase mockConnection
+            ? EnsureIdentityUsersTableOnMockAsync(mockConnection)
+            : Repo.ExecuteNonQueryAsync($@"
+CREATE TABLE IdentityUsers (
+    Id INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
+    Name NVARCHAR(100) NOT NULL
+)");
+
+    private static Task EnsureIdentityUsersTableOnMockAsync(DbSqlLikeMem.DbConnectionMockBase mockConnection)
+    {
+        if (!mockConnection.TryGetTable("IdentityUsers", out _, null))
+        {
+            mockConnection.AddTable(
+                "IdentityUsers",
+                [
+                    new("Id", DbType.Int32, false, identity: true),
+                    new("Name", DbType.String, false),
+                ]);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task DropIdentityUsersTableAsync()
+        => Repo.ExecuteNonQueryAsync("DROP TABLE IF EXISTS IdentityUsers");
 
     /// <summary>
     /// EN: Executes the SQL Server TEXTSIZE and NEWSEQUENTIALID benchmark and keeps the provider result alive.
@@ -701,8 +753,10 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the compression benchmark.");
         }
 
-        var compressed = (byte[])await Repo.ExecuteScalarAsync("SELECT COMPRESS('Ana')");
-        var decompressed = (byte[])await Repo.ExecuteScalarAsync("SELECT DECOMPRESS(COMPRESS('Ana'))");
+        var compressedValue = await Repo.ExecuteScalarAsync("SELECT COMPRESS('Ana')");
+        var compressed = compressedValue is byte[] compressedBytes ? compressedBytes : Array.Empty<byte>();
+        var decompressedValue = await Repo.ExecuteScalarAsync("SELECT DECOMPRESS(COMPRESS('Ana'))");
+        var decompressed = decompressedValue is byte[] decompressedBytes ? decompressedBytes : Array.Empty<byte>();
         GC.KeepAlive(compressed);
         GC.KeepAlive(decompressed);
         return (compressed, decompressed);
@@ -719,7 +773,7 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the APPROX_COUNT_DISTINCT benchmark.");
         }
 
-        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT APPROX_COUNT_DISTINCT(Name) FROM Users"), CultureInfo.InvariantCulture);
+        var value = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT APPROX_COUNT_DISTINCT(Name) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(value);
         return value;
@@ -737,8 +791,8 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the percentile aggregate benchmark.");
         }
 
-        var continuous = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT PERCENTILE_CONT(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture);
-        var discrete = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT PERCENTILE_DISC(Id, 0.5) FROM Users"), CultureInfo.InvariantCulture);
+        var continuous = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT PERCENTILE_CONT(Id, 0.5) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var discrete = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT PERCENTILE_DISC(Id, 0.5) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(continuous);
         GC.KeepAlive(discrete);
@@ -757,13 +811,13 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the SQL Server aggregate benchmark.");
         }
 
-        var countBig = Convert.ToInt64(await Repo.ExecuteScalarAsync("SELECT COUNT_BIG(*) FROM Users"), CultureInfo.InvariantCulture);
-        var checksumAgg = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT CHECKSUM_AGG(CHECKSUM(Name)) FROM Users"), CultureInfo.InvariantCulture);
-        var stringAggOrdered = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name DESC) FROM Users"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var stdev = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT STDEV(Id) FROM Users"), CultureInfo.InvariantCulture);
-        var stdevp = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT STDEVP(Id) FROM Users"), CultureInfo.InvariantCulture);
-        var variance = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT VAR(Id) FROM Users"), CultureInfo.InvariantCulture);
-        var varp = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT VARP(Id) FROM Users"), CultureInfo.InvariantCulture);
+        var countBig = Convert.ToInt64(await Repo.ExecuteScalarAsync($"SELECT COUNT_BIG(*) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var checksumAgg = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT CHECKSUM_AGG(CHECKSUM(Name)) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var stringAggOrdered = Convert.ToString(await Repo.ExecuteScalarAsync($"SELECT STRING_AGG(Name, ',') WITHIN GROUP (ORDER BY Name DESC) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var stdev = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT STDEV(Id) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var stdevp = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT STDEVP(Id) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var variance = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT VAR(Id) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
+        var varp = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT VARP(Id) FROM {Context.TbUsersFullName}"), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(countBig);
         GC.KeepAlive(checksumAgg);
@@ -1161,15 +1215,7 @@ ORDER BY [key]
             _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
         };
 
-        return new DateTime(
-            normalized.Year,
-            normalized.Month,
-            normalized.Day,
-            normalized.Hour,
-            normalized.Minute,
-            normalized.Second,
-            normalized.Millisecond,
-            normalized.Kind);
+        return new DateTime(normalized.Ticks, normalized.Kind);
     }
 
     /// <summary>

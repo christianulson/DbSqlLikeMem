@@ -250,6 +250,9 @@ WHEN NOT MATCHED THEN
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsJsonQueryFunction => true;
+
+    /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>
         $"VALUES JSON_VALUE('{jsonLiteral}', 'strict $.name')";
 

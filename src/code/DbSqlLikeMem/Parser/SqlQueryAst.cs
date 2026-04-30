@@ -27,7 +27,37 @@ internal sealed record SqlSelectQuery(
     IReadOnlyList<string> GroupBy,
     SqlExpr? Having,
     SqlForJsonClause? ForJson = null
-) : SqlQueryBase;
+) : SqlQueryBase
+{
+    internal SqlSelectQuery(
+        IReadOnlyList<SqlCte> Ctes,
+        bool Distinct,
+        IReadOnlyList<SqlSelectItem> SelectItems,
+        IReadOnlyList<SqlJoin> Joins,
+        SqlExpr? Where,
+        IReadOnlyList<SqlOrderByItem> OrderBy,
+        SqlRowLimit? RowLimit,
+        IReadOnlyList<string> GroupBy,
+        SqlExpr? Having,
+        SqlForJsonClause? ForJson = null)
+        : this(Ctes, Distinct, [], SelectItems, Joins, Where, OrderBy, RowLimit, GroupBy, Having, ForJson)
+    {
+    }
+
+    internal SqlSelectQuery(
+        IReadOnlyList<SqlCte> Ctes,
+        bool Distinct,
+        IReadOnlyList<string> DistinctOn,
+        IReadOnlyList<SqlSelectItem> SelectItems,
+        IReadOnlyList<SqlJoin> Joins,
+        SqlExpr? Where,
+        IReadOnlyList<SqlOrderByItem> OrderBy,
+        SqlRowLimit? RowLimit,
+        IReadOnlyList<string> GroupBy)
+        : this(Ctes, Distinct, DistinctOn, SelectItems, Joins, Where, OrderBy, RowLimit, GroupBy, null, null)
+    {
+    }
+}
 
 internal static class SqlSelectQueryExtensions
 {
