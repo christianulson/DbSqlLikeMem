@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using FirebirdSql.Data.FirebirdClient;
-using DbSqlLikeMem.TestTools;
 
 namespace DbSqlLikeMem.Firebird.TestTools;
 

@@ -196,7 +196,7 @@ public sealed class StructuredClassContentFactoryTests
 
         var content = StructuredClassContentFactory.Build(dbObject, "Sample.Namespace", "Oracle");
 
-        Assert.Contains("defaultValue: db.TryGetSequence(\"ISEQ$$_435165\", out var seq, schemaName: \"SCHEMA1\") ? seq : null", content);
+        Assert.Contains("defaultValue: db.TryGetSequence(\"ISEQ$$_435165\", out var seq, schemaName: \"SCHEMA1\") ? seq : throw new ArgumentException", content);
     }
 
     /// <summary>

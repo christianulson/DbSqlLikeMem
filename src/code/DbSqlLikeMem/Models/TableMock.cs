@@ -1042,12 +1042,62 @@ public abstract class TableMock
 
     private static int IndexOfAndSeparator(ReadOnlySpan<char> span, int start)
     {
+        var parenDepth = 0;
+        var inSingleQuote = false;
+        var inDoubleQuote = false;
+
         for (var i = start + 1; i + 2 < span.Length; i++)
         {
+            var ch = span[i];
+
+            if (inSingleQuote)
+            {
+                if (ch == '\'')
+                {
+                    if (i + 1 < span.Length && span[i + 1] == '\'')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inSingleQuote = false;
+                }
+
+                continue;
+            }
+
+            if (inDoubleQuote)
+            {
+                if (ch == '"')
+                    inDoubleQuote = false;
+
+                continue;
+            }
+
+            switch (ch)
+            {
+                case '\'':
+                    inSingleQuote = true;
+                    continue;
+                case '"':
+                    inDoubleQuote = true;
+                    continue;
+                case '(':
+                    parenDepth++;
+                    continue;
+                case ')':
+                    if (parenDepth > 0)
+                        parenDepth--;
+                    continue;
+            }
+
+            if (parenDepth > 0)
+                continue;
+
             if (!IsAndToken(span, i))
                 continue;
 
-            if (!char.IsWhiteSpace(span[i - 1]))
+            if (i == 0 || !char.IsWhiteSpace(span[i - 1]))
                 continue;
 
             var afterToken = i + 3;

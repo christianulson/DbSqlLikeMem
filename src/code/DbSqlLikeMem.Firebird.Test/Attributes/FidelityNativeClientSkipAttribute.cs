@@ -1,6 +1,3 @@
-using System;
-using DbSqlLikeMem.Firebird.TestTools;
-
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>

@@ -1,4 +1,3 @@
-using System;
 using DbSqlLikeMem.Db2.TestTools;
 
 namespace DbSqlLikeMem.TestTools;

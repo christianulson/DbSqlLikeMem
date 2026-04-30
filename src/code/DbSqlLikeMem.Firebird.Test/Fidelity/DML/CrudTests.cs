@@ -1,5 +1,4 @@
 using DbSqlLikeMem.TestTools.Tests.DML;
-using System.Diagnostics;
 
 namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
 

@@ -234,7 +234,7 @@ UPDATE WALLETHOTLIST
             "SELECT notification_id NotificationId, body Body FROM notification_messages WHERE notification_id = @notificationId",
             new { notificationId = notificationId.ToByteArray() });
 
-        typedRow.NotificationId.Should().Be(notificationId);
+        typedRow.NotificationId.Should().Equal(notificationId.ToByteArray());
         typedRow.Body.Should().Be(bodyJson);
     }
 
@@ -297,5 +297,5 @@ UPDATE WALLETHOTLIST
 
     private sealed record NotificationBody(string Message, int Attempts);
 
-    private sealed record NotificationMessageRow(Guid NotificationId, string Body);
+    private sealed record NotificationMessageRow(byte[] NotificationId, string Body);
 }

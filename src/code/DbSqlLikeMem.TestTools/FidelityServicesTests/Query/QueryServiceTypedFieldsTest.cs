@@ -1,5 +1,3 @@
-using System.Data;
-
 namespace DbSqlLikeMem.TestTools.Query;
 
 public partial class QueryServiceTest

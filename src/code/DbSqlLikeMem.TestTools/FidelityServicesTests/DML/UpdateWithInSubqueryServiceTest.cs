@@ -1,6 +1,3 @@
-using System.Data;
-using DbSqlLikeMem.TestTools;
-
 namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
