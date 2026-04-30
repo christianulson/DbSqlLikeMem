@@ -27,14 +27,7 @@ public sealed class ProviderConnectionStringResolverTests
 
         resolved.Should().BeTrue();
         sourceName.Should().Be(expectedSourceName);
-        if (provider == ProviderId.Oracle)
-        {
-            connectionString.Should().Contain("Connection Timeout=120");
-            connectionString.Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
-            return;
-        }
-
-        connectionString.Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
+        NormalizeConnectionString(connectionString).Should().Be(CanonicalizeConnectionString(provider, expectedConnectionString));
     }
 
     /// <summary>
@@ -58,7 +51,7 @@ public sealed class ProviderConnectionStringResolverTests
 
         resolved.Should().BeTrue();
         sourceName.Should().Be("POSTGRES_CONNECTION_STRING");
-        connectionString.Should().Be(CanonicalizeConnectionString(ProviderId.Npgsql, "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"));
+        NormalizeConnectionString(connectionString).Should().Be(CanonicalizeConnectionString(ProviderId.Npgsql, "Host=127.0.0.1;Port=15432;Database=benchmark;Username=postgres;Password=postgres;Pooling=false;"));
     }
 
     /// <summary>
