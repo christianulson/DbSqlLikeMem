@@ -179,15 +179,17 @@ if [[ "$dry_run" == "true" ]]; then
   exit 0
 fi
 
+echo "Restoring solution for cross-dialect checks"
+if ! dotnet restore src/DbSqlLikeMem.slnx >/dev/null; then
+  echo "Solution restore failed for cross-dialect checks" >&2
+  exit 1
+fi
+
 checks_total=0
 checks_failed=0
 
 for project in "${projects[@]}"; do
-  echo "==> Restoring ${project}"
-  restore_status="PASS"
-  if ! dotnet restore "${project}" -p:TargetFramework=net8.0 >/dev/null; then
-    restore_status="FAIL"
-  fi
+  echo "==> Running ${project}"
 
   for filter_name in "${filters[@]}"; do
     echo "==> ${project} :: ${filter_name}"
@@ -198,16 +200,12 @@ for project in "${projects[@]}"; do
       test_filter="FullyQualifiedName~.${filter_name}"
     fi
 
-    if [[ "$restore_status" == "PASS" ]]; then
-      if ! dotnet test "${project}" \
-        --framework net8.0 \
-        --configuration Release \
-        --no-restore \
-        --verbosity minimal \
-        --filter "${test_filter}"; then
-        status="FAIL"
-      fi
-    else
+    if ! dotnet test "${project}" \
+      --framework net8.0 \
+      --configuration Release \
+      --no-restore \
+      --verbosity minimal \
+      --filter "${test_filter}"; then
       status="FAIL"
     fi
 
