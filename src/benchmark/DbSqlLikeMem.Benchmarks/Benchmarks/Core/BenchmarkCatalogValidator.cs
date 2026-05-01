@@ -134,7 +134,7 @@ internal static class BenchmarkCatalogValidator
         var code = il[index++];
         if (code != 0xFE)
         {
-            return OpCodesByValue.TryGetValue(code, out var opCode) ? opCode : default;
+            return OpCodesByValue.TryGetValue(code, out var opCode2) ? opCode2 : default;
         }
 
         if (index >= il.Length)
