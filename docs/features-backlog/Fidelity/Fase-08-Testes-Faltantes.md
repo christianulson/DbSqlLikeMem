@@ -93,13 +93,39 @@ Criar testes para funcionalidades que existem no banco real mas ainda não têm 
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.SqlServer.Test/Fidelity/DML/SequenceTests.cs): `DropSequenceIfExists_ShouldBeIdempotent`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.Db2.Test/Fidelity/DML/SequenceTests.cs): `SequenceExpressions_ShouldReturnExpectedValues`
 - [SequenceTests.cs](../../../src/code/DbSqlLikeMem.Db2.Test/Fidelity/DML/SequenceTests.cs): `SequenceValues_ShouldBeSessionLocal`
+- [CrudTestsBase.cs](../../../src/code/DbSqlLikeMem.TestTools/FidelityBaseTests/DML/CrudTestsBase.cs): `ReturningUpdateTest`
 - [MySqlTemporaryTableParserTests.cs](../../../src/code/DbSqlLikeMem.MySql.Test/TemporaryTable/MySqlTemporaryTableParserTests.cs): `ParseMulti_ShouldAccept_CreateTemporaryTable_AsSelect_FollowedBySelect`
 - [MySqlTemporaryTableEngineTests.cs](../../../src/code/DbSqlLikeMem.MySql.Test/TemporaryTable/MySqlTemporaryTableEngineTests.cs): `CreateTemporaryTable_AsSelect_ThenSelect_ShouldReturnProjectedRows`
 
 ## Gaps Documentados
 
 - Os gaps inventariados nesta rodada foram cobertos pelos testes criados acima.
+- O alias de benchmark `ReturningUpdate` agora tem uma correspondencia explicita em `ReturningUpdateTest`, mesmo compartilhando o mesmo fluxo de update por chave de `UpdateByPkTest`.
 - Novos gaps devem ser registrados em rodadas futuras quando surgirem funcionalidades reais ainda sem cobertura.
+
+## Validacao Da Cobertura De Benchmarks
+
+- O projeto `src\benchmark\DbSqlLikeMem.Benchmarks` ja cobre por alias ou correspondencia direta os fluxos centrais de DML, batch, query, JSON, temporal, typed field e sequencia basica.
+- Entradas como `CreateTableWithFKInsert`, `InsertInTableWithFK`, `InsertDefaultColumns`, `InsertNullableColumns`, `InsertNotNullWithoutDefault`, `CheckConstraintsValidInsert`, `CheckConstraintsInvalidInsert`, `CheckConstraintsInvalidUpdate`, `ParameterTypeMatrix`, `ParameterDateCurrencyMatrix`, `TypedFieldCastCalculationMatrix`, `TypedFieldNullComparisonMatrix`, `TypedFieldTextLengthMatrix`, `TypedFieldTextCaseMatrix`, `ReturningUpdate`, `BatchReturningInsert`, `BatchRowCountInBatch` e `MergeBasic` ja aparecem no catalogo de benchmark.
+- As variacoes extras de sequencia acima de `SequenceNextValue` agora tambem possuem entradas dedicadas no benchmark, incluindo `SequenceCurrentValue`, `SequenceInsertRoundTrip`, `SequenceInsertExpression`, `SequenceSelectProjection`, `SequenceExpressionFilter`, `SequenceCaseWhereMatrix`, `SequenceTemporalMatrix` e `SequenceJoinAggregate`.
+- As funcoes tabulares de JSON agora tambem possuem entradas proprias no benchmark, incluindo `JsonEachFromArray`, `JsonEachFromObject`, `JsonTreeStructure` e `OpenJsonArray`.
+- Os casos temporais especializados agora tambem possuem entradas proprias no benchmark, incluindo `TemporalDateTrunc`, `TemporalTimeZoneOffset`, `TemporalFromParts`, `TemporalEndOfMonth` e `TemporalDateDiffBig`.
+- Os calculos matematicos compartilhados agora tambem possuem entradas proprias no benchmark, incluindo `MathFunctions`, `MathLogBaseFunction`, `MathLog2Function`, `MathPiFunction`, `MathRandFunction`, `MathRemainderFunction`, `MathTruncFunction` e `MathCotFunction`.
+- Os aliases e extensoes matematicas do provedor agora tambem possuem entradas proprias no benchmark, incluindo `MySqlUtilityMathFunctions`, `GreatestLeastModFunctions`, `Db2AliasMathFunctions`, `FirebirdAliasMathFunctions` e `MathTranscendentalFunctions`.
+- Os casos escalares de JSON agora tambem possuem entradas proprias no benchmark, incluindo `JsonMissingPathRead`, `JsonMissingPathReturnsNull`, `JsonQueryRootFragment`, `JsonModifyReplace`, `JsonInsertCast` e `JsonInsertCastReturnsNull`.
+- As agregacoes de strings com resumo, agrupamento e variantes agora tambem possuem entradas proprias no benchmark, incluindo `StringAggregateSummaryMatrix`, `StringAggregateGroupCaseMatrix`, `StringAggregationSummaryMatrix`, `StringAggregationGroupCaseMatrix` e `StringAggregationVariants`.
+- A matriz temporal escalar agora tambem possui entrada propria no benchmark, incluindo `ScalarTemporalMatrix`.
+- As funcoes escalares de string do SQL Server agora tambem possuem entradas proprias no benchmark, incluindo `StringEscape`, `Translate`, `FormatMessage`, `IsJson`, `Format`, `StringUtilityFunctions` e `StringMetadataFunctions`.
+- Os testes especificos de SQL Server em `FieldTypeFunctionTestsBase` agora tambem possuem benchmark dedicado, como `SqlServerMetadataFunctions`, `ScopeIdentity`, `SqlServerSystemFunctions`, `SqlServerSpecialFunctions`, `SqlServerContextFunctions`, `SqlServerTransactionStateFunctions`, `SqlServerSessionFunctions`, `StringBasicFunctions`, `ParseFamily`, `Soundex`, `Compression`, `ApproxCountDistinct`, `PercentileAggregateFunctions` e `SqlServerAggregateFunctions`.
+- As projecoes relacionais agora tambem possuem entradas proprias no benchmark, incluindo `StringSplitProjection`, `ForJsonPathProjection`, `JoinTemporalMatrix`, `JoinWindowMatrix`, `JoinWindowTemporalMatrix` e `JoinWindowAggregateTemporalMatrix`.
+- Os compostos de APPLY agora tambem possuem entradas proprias no benchmark, incluindo `ApplyTemporalComposite` e `ApplyWindowTemporalComposite`.
+- O composto relacional agora tambem possui entrada propria no benchmark, incluindo `RelationalComposite`.
+- Os fluxos de update/delete e de insert round-trip com parametros agora tambem possuem entradas proprias no benchmark, incluindo `ParameterUpdateDeleteRoundTrip`, `ParameterInsertRoundTrip` e `ParameterInsertNullRoundTrip`.
+- Os fluxos de insert-then-update para merge e upsert agora tambem possuem entradas proprias no benchmark, incluindo `MergeInsertThenUpdate` e `UpsertInsertThenUpdate`.
+- Os testes `SelectJoinCount`, `SelectApplyProjection`, `SelectWindowFunctions`, `SelectScalarSubqueryCaseMatrix`, `SelectRangeAndPivot` e os predicados `SelectInListPredicate`, `SelectBetweenPredicate`, `SelectLikePredicate`, `SelectNotLikePredicate`, `SelectNotEqualPredicate`, `SelectEqualPredicate`, `SelectGreaterThanPredicate`, `SelectLessThanPredicate`, `SelectGreaterThanOrEqualPredicate`, `SelectLessThanOrEqualPredicate` e `SelectNotInSubqueryNull` agora tambem possuem entradas proprias no benchmark.
+- As consultas `SelectAllRowsCount`, `SelectAllRowsSnapshot`, `SelectCteMaterializedHint`, `SelectDistinctOnProjection`, `SelectOrderByName`, `SelectOrderByOrdinal`, `SelectOrderByNameDescending`, `SelectNamePaginationMatrix`, `SelectGroupByNameInitialMatrix`, `SelectGroupByNameHaving`, `SelectGroupByOrdinal`, `SelectDistinctOrderByOrdinal`, `SelectDistinctLikeOrderByOrdinal`, `SelectJoinTypedExpressionMatrix`, `SelectJoinNullAggregateMatrix`, `SelectJoinCastNullMatrix`, `SelectJoinCastTextComparisonMatrix`, `SelectJoinHavingCastMatrix`, `SelectJoinLengthNumericMatrix`, `SelectJoinTextCaseLengthMatrix`, `SelectJoinDistinctCaseMatrix` e `SelectJoinDistinctHavingMatrix` agora tambem possuem entradas proprias no benchmark.
+- A varredura atual de `SelectTestsBase` agora fecha com zero lacunas restantes no projeto `src\benchmark\DbSqlLikeMem.Benchmarks`.
+- A varredura ampla dos testes base agora fecha com zero lacunas restantes no projeto `src\benchmark\DbSqlLikeMem.Benchmarks`.
 
 ## Próximos Passos
 

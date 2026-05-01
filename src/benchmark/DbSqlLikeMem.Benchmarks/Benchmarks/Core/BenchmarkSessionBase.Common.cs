@@ -88,6 +88,11 @@ public abstract partial class BenchmarkSessionBase
             BenchmarkScenarioFactory.CreateSelectTableScenario,
             (repo, context) => new SelectByPKServiceTest(repo, context));
 
+    private PreparedScenarioScope<SelectTableScenario, QueryServiceTest> CreateSelectTableQueryScope()
+        => CreatePreparedScenarioScope(
+            BenchmarkScenarioFactory.CreateSelectTableScenario,
+            (repo, context) => new QueryServiceTest(repo, context));
+
     private PreparedScenarioScope<UsersOrdersScenario, DmlMutationSelectJoinServiceTest> CreateUsersOrdersMutationScope(
         (int id, string name)[]? seedUsers = null,
         (int id, int userId, string note)[]? seedOrders = null)
@@ -137,6 +142,11 @@ public abstract partial class BenchmarkSessionBase
             "select-bypk",
             () => CreateSelectByPkScope());
 
+    private PreparedScenarioScope<SelectTableScenario, QueryServiceTest> GetPreparedSelectTableQueryState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () => CreateSelectTableQueryScope());
+
     private PreparedScenarioScope<UsersOrdersScenario, DmlMutationSelectJoinServiceTest> GetPreparedSelectJoinState()
         => GetOrCreatePreparedState(
             "select-join",
@@ -162,10 +172,20 @@ public abstract partial class BenchmarkSessionBase
             key,
             () => new PreparedInsertUsersState(CreateBenchmarkRunner()));
 
+    private PreparedCheckConstraintsState GetPreparedCheckConstraintsState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () => new PreparedCheckConstraintsState(CreateBenchmarkRunner()));
+
     private PreparedCrudUsersState GetPreparedCrudUsersState(string key)
         => GetOrCreatePreparedState(
             key,
             () => new PreparedCrudUsersState(CreateBenchmarkRunner([[(1, "Alice"), (2, "Bob")]])));
+
+    private PreparedMergeUsersState GetPreparedMergeUsersState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () => new PreparedMergeUsersState(CreateBenchmarkRunner()));
 
     private PreparedTransactionUsersState GetPreparedTransactionUsersState(string key)
         => GetOrCreatePreparedState(
@@ -220,6 +240,11 @@ public abstract partial class BenchmarkSessionBase
             key,
             () => new PreparedParameterTransactionUsersState(CreateBenchmarkRunner()));
 
+    private PreparedParameterInsertUsersState GetPreparedParameterInsertUsersState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () => new PreparedParameterInsertUsersState(CreateBenchmarkRunner()));
+
     protected int RunPreparedStoredProcedureCall(string key, int tenantId, string note)
         => GetPreparedStoredProcedureState(key).RunStoredProcedureCall(tenantId, note);
 
@@ -231,21 +256,17 @@ public abstract partial class BenchmarkSessionBase
     private PreparedSequenceState GetPreparedSequenceState(string key)
         => GetOrCreatePreparedState(
             key,
-            () =>
-            {
-                var repo = new RepoService(CreateConnection, Dialect);
-                repo.Cnn.Open();
-                var context = new FidelityTestContext();
-                var scenario = BenchmarkScenarioFactory.CreateSequenceScenario(repo, context);
-                scenario.CreateScenarioAsync().GetAwaiter().GetResult();
-                var service = new DmlMutationSequenceServiceTest(repo, context);
-                return new PreparedSequenceState(
-                    new PreparedScenarioScope<SequenceScenario, DmlMutationSequenceServiceTest>(
-                        repo,
-                        context,
-                        scenario,
-                        service));
-            });
+            () => new PreparedSequenceState(CreateBenchmarkRunner()));
+
+    private PreparedSequenceUsersState GetPreparedSequenceUsersState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () => new PreparedSequenceUsersState(CreateBenchmarkRunner()));
+
+    private PreparedSequenceExpressionFilterState GetPreparedSequenceExpressionFilterState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () => new PreparedSequenceExpressionFilterState(CreateBenchmarkRunner([[(1, "Ana")]])));
 
     private PreparedReturningInsertState GetPreparedReturningInsertState(string key)
         => GetOrCreatePreparedState(
@@ -534,6 +555,30 @@ public abstract partial class BenchmarkSessionBase
             return ((string firstName, string lastName))result!;
         }
 
+        public object? RunInsertDefaultColumns()
+            => runner.RunTestAsync<InsertUsersScenario, InsertDefaultsUsersServiceTest>(1, "Alice").GetAwaiter().GetResult();
+
+        public object? RunInsertNullableColumns()
+            => runner.RunTestAsync<InsertUsersScenario, InsertNullableColumnsServiceTest>(1, 10).GetAwaiter().GetResult();
+
+        public object? RunInsertNotNullWithoutDefault()
+            => runner.RunTestAsync<InsertUsersScenario, InsertNotNullWithoutDefaultServiceTest>(2).GetAwaiter().GetResult();
+
+        public void Dispose()
+            => runner.Dispose();
+    }
+
+    private sealed class PreparedCheckConstraintsState(NotFidelityTestService<DbConnection> runner) : IDisposable
+    {
+        public object? RunCheckConstraintsValidInsert()
+            => runner.RunTestAsync<CheckConstraintsScenario, CheckConstraintsValidInsertServiceTest>(1, 10, 5).GetAwaiter().GetResult();
+
+        public object? RunCheckConstraintsInvalidInsert()
+            => runner.RunTestAsync<CheckConstraintsScenario, CheckConstraintsInvalidInsertServiceTest>(2, 10).GetAwaiter().GetResult();
+
+        public object? RunCheckConstraintsInvalidUpdate()
+            => runner.RunTestAsync<CheckConstraintsScenario, CheckConstraintsInvalidUpdateServiceTest>(3, 10, 5).GetAwaiter().GetResult();
+
         public void Dispose()
             => runner.Dispose();
     }
@@ -580,6 +625,18 @@ public abstract partial class BenchmarkSessionBase
             => runner.Dispose();
     }
 
+    private sealed class PreparedMergeUsersState(NotFidelityTestService<DbConnection> runner) : IDisposable
+    {
+        public object? RunMergeInsertThenUpdate()
+            => runner.RunTestAsync<UsersScenario, DmlMutationMergeInsertThenUpdateServiceTest>().GetAwaiter().GetResult();
+
+        public object? RunUpsertInsertThenUpdate()
+            => runner.RunTestAsync<UsersScenario, DmlMutationUpsertInsertThenUpdateServiceTest>().GetAwaiter().GetResult();
+
+        public void Dispose()
+            => runner.Dispose();
+    }
+
     private sealed class PreparedParameterTransactionUsersState(NotFidelityTestService<DbConnection> runner) : IDisposable
     {
         public int RunParameterTransactionCommit()
@@ -606,6 +663,55 @@ public abstract partial class BenchmarkSessionBase
             var count2 = (int)(result!.GetType().GetProperty("count2")?.GetValue(result)
                 ?? throw new InvalidOperationException("Parameter transaction rollback did not return a count2 value."));
             return count2;
+        }
+
+        public void Dispose()
+            => runner.Dispose();
+    }
+
+    private sealed class PreparedParameterInsertUsersState(NotFidelityTestService<DbConnection> runner) : IDisposable
+    {
+        public int RunParameterInsertRoundTrip()
+        {
+            var createdAt1 = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+            var createdAt2 = new DateTime(2024, 2, 3, 4, 5, 6, DateTimeKind.Unspecified);
+            var updatedAt1 = new DateTime(2024, 3, 4, 5, 6, 7, DateTimeKind.Unspecified);
+            var updatedAt2 = new DateTime(2024, 4, 5, 6, 7, 8, DateTimeKind.Unspecified);
+
+            var result = runner.RunTestAsync<InsertUsersScenario, DmlMutationParameterInsertRoundTripServiceTest>(
+                "Alice-v2",
+                "Bob-v2",
+                "alice@example.com",
+                "bob@example.com",
+                true,
+                false,
+                (short)31,
+                (short)22,
+                123.45m,
+                67.89m,
+                createdAt1,
+                createdAt2,
+                updatedAt1,
+                updatedAt2,
+                "{\"theme\":\"dark\"}",
+                "{\"theme\":\"light\"}").GetAwaiter().GetResult();
+            return Convert.ToInt32(result, CultureInfo.InvariantCulture);
+        }
+
+        public int RunParameterInsertNullRoundTrip()
+        {
+            var createdAt = new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified);
+
+            var result = runner.RunTestAsync<InsertUsersScenario, DmlMutationParameterInsertNullRoundTripServiceTest>(
+                "Alice-v2",
+                null!,
+                true,
+                (short)31,
+                123.45m,
+                createdAt,
+                null!,
+                null!).GetAwaiter().GetResult();
+            return Convert.ToInt32(result, CultureInfo.InvariantCulture);
         }
 
         public void Dispose()
@@ -861,18 +967,50 @@ public abstract partial class BenchmarkSessionBase
             => scope.Dispose();
     }
 
-    private sealed class PreparedSequenceState(
-        PreparedScenarioScope<SequenceScenario, DmlMutationSequenceServiceTest> scope) : IDisposable
+    private sealed class PreparedSequenceState(NotFidelityTestService<DbConnection> runner) : IDisposable
     {
         public object? RunSequenceNextValue()
-        {
-            var value = scope.Service.RunTestAsync().GetAwaiter().GetResult();
-            GC.KeepAlive(value);
-            return value;
-        }
+            => runner.RunTestAsync<SequenceScenario, DmlMutationSequenceServiceTest>().GetAwaiter().GetResult();
+
+        public object? RunSequenceCurrentValue()
+            => runner.RunTestAsync<SequenceScenario, DmlMutationSequenceCurrentValueServiceTest>().GetAwaiter().GetResult();
+
+        public object? RunSequenceSelectProjection()
+            => runner.RunTestAsync<SequenceScenario, DmlMutationSequenceSelectProjectionServiceTest>().GetAwaiter().GetResult();
+
+        public object? RunSequenceCaseWhereMatrix()
+            => runner.RunTestAsync<SequenceScenario, DmlMutationSequenceCaseWhereMatrixServiceTest>().GetAwaiter().GetResult();
+
+        public object? RunSequenceTemporalMatrix()
+            => runner.RunTestAsync<SequenceScenario, DmlMutationSequenceTemporalMatrixServiceTest>().GetAwaiter().GetResult();
+
+        public object? RunSequenceJoinAggregate()
+            => runner.RunTestAsync<SequenceScenario, UsersOrdersScenario, DmlMutationSequenceJoinAggregateServiceTest>().GetAwaiter().GetResult();
 
         public void Dispose()
-            => scope.Dispose();
+            => runner.Dispose();
+    }
+
+    private sealed class PreparedSequenceUsersState(NotFidelityTestService<DbConnection> runner) : IDisposable
+    {
+        public object? RunSequenceInsertRoundTrip()
+            => runner.RunTestAsync<SequenceScenario, UsersScenario, DmlMutationSequenceInsertRoundTripServiceTest>().GetAwaiter().GetResult();
+
+        public object? RunSequenceInsertExpression()
+            => runner.RunTestAsync<SequenceScenario, UsersScenario, DmlMutationSequenceInsertExpressionServiceTest>().GetAwaiter().GetResult();
+
+        public void Dispose()
+            => runner.Dispose();
+    }
+
+    private sealed class PreparedSequenceExpressionFilterState(NotFidelityTestService<DbConnection> runner) : IDisposable
+    {
+        public long[] RunSequenceExpressionFilter()
+            => runner.RunTestAsync<SequenceScenario, UsersScenario, SequenceExpressionFilterServiceTest, long[]>(
+                (service, args) => service.RunSequenceExpressionFilterAsync(args)).GetAwaiter().GetResult();
+
+        public void Dispose()
+            => runner.Dispose();
     }
 
     private sealed class PreparedBatchUsersState(

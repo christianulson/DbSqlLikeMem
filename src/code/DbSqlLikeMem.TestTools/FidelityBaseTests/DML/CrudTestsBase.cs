@@ -64,6 +64,22 @@ public abstract class CrudTestsBase<T, T2>(
     }
 
     /// <summary>
+    /// EN: Verifies that the returning-update benchmark alias keeps the same update-by-key result for the current provider.
+    /// PT: Verifica se o alias de benchmark ReturningUpdate mantem o mesmo resultado de update por chave para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task ReturningUpdateTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(
+            connectionMock,
+            connectionContainer,
+            dialect,
+            [(1, "Alice"), (2, "Bob")]);
+
+        (await testService.RunTestAsync<UsersScenario, DmlMutationUpdateByPkServiceTest>()).Should().BeEquivalentTo("Alice-v2");
+    }
+
+    /// <summary>
     /// EN: Verifies that deleting a single user row keeps the expected remaining row for the current provider.
     /// PT: Verifica se a exclusao de uma unica linha de usuario mantem a linha restante esperada para o provedor atual.
     /// </summary>

@@ -31,6 +31,12 @@ public enum BenchmarkFeatureId
     CreateTableWithFKInsert,
 
     /// <summary>
+    /// EN: Executes the insert-in-table-with-FK benchmark.
+    /// PT: Executa o benchmark de insert na tabela com chave estrangeira.
+    /// </summary>
+    InsertInTableWithFK,
+
+    /// <summary>
     /// EN: Drops the benchmark users table.
     /// PT: Remove a tabela de usuarios do benchmark.
     /// </summary>
@@ -47,6 +53,42 @@ public enum BenchmarkFeatureId
     /// PT: Insere linhas iniciando em um id customizado.
     /// </summary>
     InsertCustomStartId,
+
+    /// <summary>
+    /// EN: Inserts a row that uses default-backed columns.
+    /// PT: Insere uma linha que usa colunas apoiadas por default.
+    /// </summary>
+    InsertDefaultColumns,
+
+    /// <summary>
+    /// EN: Inserts a row that omits nullable columns.
+    /// PT: Insere uma linha que omite colunas anulaveis.
+    /// </summary>
+    InsertNullableColumns,
+
+    /// <summary>
+    /// EN: Attempts an insert that omits a required NOT NULL column.
+    /// PT: Tenta um insert que omite uma coluna NOT NULL obrigatoria.
+    /// </summary>
+    InsertNotNullWithoutDefault,
+
+    /// <summary>
+    /// EN: Inserts a row that satisfies the check constraints.
+    /// PT: Insere uma linha que satisfaz as restricoes check.
+    /// </summary>
+    CheckConstraintsValidInsert,
+
+    /// <summary>
+    /// EN: Attempts an insert that violates a check constraint.
+    /// PT: Tenta um insert que viola uma restricao check.
+    /// </summary>
+    CheckConstraintsInvalidInsert,
+
+    /// <summary>
+    /// EN: Attempts an update that violates a check constraint.
+    /// PT: Tenta um update que viola uma restricao check.
+    /// </summary>
+    CheckConstraintsInvalidUpdate,
 
     /// <summary>
     /// EN: Inserts ten rows sequentially.
@@ -79,6 +121,288 @@ public enum BenchmarkFeatureId
     SelectJoin,
 
     /// <summary>
+    /// EN: Executes the relational composite benchmark.
+    /// PT: Executa o benchmark composto relacional.
+    /// </summary>
+    RelationalComposite,
+
+    /// <summary>
+    /// EN: Executes the join-count benchmark.
+    /// PT: Executa o benchmark de contagem do join.
+    /// </summary>
+    SelectJoinCount,
+
+    /// <summary>
+    /// EN: Executes the APPLY projection benchmark.
+    /// PT: Executa o benchmark de projeção APPLY.
+    /// </summary>
+    SelectApplyProjection,
+
+    /// <summary>
+    /// EN: Executes the window-functions benchmark.
+    /// PT: Executa o benchmark de funcoes de janela.
+    /// </summary>
+    SelectWindowFunctions,
+
+    /// <summary>
+    /// EN: Executes the scalar-subquery CASE matrix benchmark.
+    /// PT: Executa o benchmark da matriz CASE com subconsulta escalar.
+    /// </summary>
+    SelectScalarSubqueryCaseMatrix,
+
+    /// <summary>
+    /// EN: Executes the range-and-pivot benchmark.
+    /// PT: Executa o benchmark de faixa e pivot.
+    /// </summary>
+    SelectRangeAndPivot,
+
+    /// <summary>
+    /// EN: Executes an IN-list predicate benchmark.
+    /// PT: Executa um benchmark de predicado IN com lista.
+    /// </summary>
+    InListPredicate,
+
+    /// <summary>
+    /// EN: Executes a BETWEEN predicate benchmark.
+    /// PT: Executa um benchmark de predicado BETWEEN.
+    /// </summary>
+    BetweenPredicate,
+
+    /// <summary>
+    /// EN: Executes a LIKE predicate benchmark.
+    /// PT: Executa um benchmark de predicado LIKE.
+    /// </summary>
+    LikePredicate,
+
+    /// <summary>
+    /// EN: Executes a NOT LIKE predicate benchmark.
+    /// PT: Executa um benchmark de predicado NOT LIKE.
+    /// </summary>
+    NotLikePredicate,
+
+    /// <summary>
+    /// EN: Executes a not-equal predicate benchmark.
+    /// PT: Executa um benchmark de predicado diferente de.
+    /// </summary>
+    NotEqualPredicate,
+
+    /// <summary>
+    /// EN: Executes an equality predicate benchmark.
+    /// PT: Executa um benchmark de predicado de igualdade.
+    /// </summary>
+    EqualPredicate,
+
+    /// <summary>
+    /// EN: Executes a greater-than predicate benchmark.
+    /// PT: Executa um benchmark de predicado maior que.
+    /// </summary>
+    GreaterThanPredicate,
+
+    /// <summary>
+    /// EN: Executes a less-than predicate benchmark.
+    /// PT: Executa um benchmark de predicado menor que.
+    /// </summary>
+    LessThanPredicate,
+
+    /// <summary>
+    /// EN: Executes a greater-than-or-equal predicate benchmark.
+    /// PT: Executa um benchmark de predicado maior ou igual.
+    /// </summary>
+    GreaterThanOrEqualPredicate,
+
+    /// <summary>
+    /// EN: Executes a less-than-or-equal predicate benchmark.
+    /// PT: Executa um benchmark de predicado menor ou igual.
+    /// </summary>
+    LessThanOrEqualPredicate,
+
+    /// <summary>
+    /// EN: Executes an IN subquery benchmark with a NULL branch.
+    /// PT: Executa um benchmark de subconsulta IN com ramo NULL.
+    /// </summary>
+    NotInSubqueryNull,
+
+    /// <summary>
+    /// EN: Counts all rows returned by a select over the seeded table.
+    /// PT: Conta todas as linhas retornadas por um select na tabela semeada.
+    /// </summary>
+    AllRowsCount,
+
+    /// <summary>
+    /// EN: Captures the full rowset snapshot returned by a select over the seeded table.
+    /// PT: Captura o snapshot completo do conjunto de linhas retornado por um select na tabela semeada.
+    /// </summary>
+    AllRowsSnapshot,
+
+    /// <summary>
+    /// EN: Executes a CTE with a MATERIALIZED hint.
+    /// PT: Executa uma CTE com hint MATERIALIZED.
+    /// </summary>
+    CteMaterializedHint,
+
+    /// <summary>
+    /// EN: Executes a DISTINCT ON projection.
+    /// PT: Executa uma projecao DISTINCT ON.
+    /// </summary>
+    DistinctOnProjection,
+
+    /// <summary>
+    /// EN: Executes an ORDER BY Name matrix.
+    /// PT: Executa uma matriz ORDER BY Name.
+    /// </summary>
+    OrderByNameMatrix,
+
+    /// <summary>
+    /// EN: Executes an ORDER BY ordinal matrix.
+    /// PT: Executa uma matriz ORDER BY ordinal.
+    /// </summary>
+    OrderByOrdinalMatrix,
+
+    /// <summary>
+    /// EN: Executes an ORDER BY Name descending matrix.
+    /// PT: Executa uma matriz ORDER BY Name descendente.
+    /// </summary>
+    OrderByNameDescendingMatrix,
+
+    /// <summary>
+    /// EN: Executes a paginated name matrix.
+    /// PT: Executa uma matriz paginada por nome.
+    /// </summary>
+    NamePaginationMatrix,
+
+    /// <summary>
+    /// EN: Executes a GROUP BY name-initial matrix.
+    /// PT: Executa uma matriz GROUP BY de inicial do nome.
+    /// </summary>
+    GroupByNameInitialMatrix,
+
+    /// <summary>
+    /// EN: Executes a GROUP BY name-having matrix.
+    /// PT: Executa uma matriz GROUP BY com HAVING por nome.
+    /// </summary>
+    GroupByNameHavingMatrix,
+
+    /// <summary>
+    /// EN: Executes a GROUP BY ordinal matrix.
+    /// PT: Executa uma matriz GROUP BY por ordinal.
+    /// </summary>
+    GroupByOrdinalMatrix,
+
+    /// <summary>
+    /// EN: Executes a DISTINCT order-by-ordinal matrix.
+    /// PT: Executa uma matriz DISTINCT com ORDER BY ordinal.
+    /// </summary>
+    DistinctOrderByOrdinalMatrix,
+
+    /// <summary>
+    /// EN: Executes a DISTINCT text-filter order-by-ordinal matrix.
+    /// PT: Executa uma matriz DISTINCT com filtro de texto e ORDER BY ordinal.
+    /// </summary>
+    DistinctLikeOrderByOrdinalMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined typed-expression matrix.
+    /// PT: Executa uma matriz com expressoes tipadas em join.
+    /// </summary>
+    JoinTypedExpressionMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined null-aggregate matrix.
+    /// PT: Executa uma matriz agregada com null em join.
+    /// </summary>
+    JoinNullAggregateMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined cast-null matrix.
+    /// PT: Executa uma matriz com cast e null em join.
+    /// </summary>
+    JoinCastNullMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined cast-text comparison matrix.
+    /// PT: Executa uma matriz com cast e comparacao textual em join.
+    /// </summary>
+    JoinCastTextComparisonMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined HAVING cast matrix.
+    /// PT: Executa uma matriz HAVING com cast em join.
+    /// </summary>
+    JoinHavingCastMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined length-and-numeric matrix.
+    /// PT: Executa uma matriz com comprimento e numericos em join.
+    /// </summary>
+    JoinLengthNumericMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined text-case-length matrix.
+    /// PT: Executa uma matriz com caixa, texto e comprimento em join.
+    /// </summary>
+    JoinTextCaseLengthMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined distinct-case matrix.
+    /// PT: Executa uma matriz DISTINCT com CASE em join.
+    /// </summary>
+    JoinDistinctCaseMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined distinct-HAVING matrix.
+    /// PT: Executa uma matriz DISTINCT com HAVING em join.
+    /// </summary>
+    JoinDistinctHavingMatrix,
+
+    /// <summary>
+    /// EN: Executes a STRING_SPLIT projection.
+    /// PT: Executa uma projecao STRING_SPLIT.
+    /// </summary>
+    StringSplitProjection,
+
+    /// <summary>
+    /// EN: Executes a FOR JSON PATH projection.
+    /// PT: Executa uma projecao FOR JSON PATH.
+    /// </summary>
+    ForJsonPathProjection,
+
+    /// <summary>
+    /// EN: Executes a joined window and temporal matrix.
+    /// PT: Executa uma matriz com join, janela e temporal.
+    /// </summary>
+    JoinWindowTemporalMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined temporal matrix.
+    /// PT: Executa uma matriz temporal em join.
+    /// </summary>
+    JoinTemporalMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined window matrix.
+    /// PT: Executa uma matriz de janela em join.
+    /// </summary>
+    JoinWindowMatrix,
+
+    /// <summary>
+    /// EN: Executes a joined window and aggregate temporal matrix.
+    /// PT: Executa uma matriz com janela, agregacao e temporal.
+    /// </summary>
+    JoinWindowAggregateTemporalMatrix,
+
+    /// <summary>
+    /// EN: Executes the APPLY and temporal composite benchmark.
+    /// PT: Executa o benchmark composto de APPLY e temporal.
+    /// </summary>
+    ApplyTemporalComposite,
+
+    /// <summary>
+    /// EN: Executes the APPLY and window-temporal composite benchmark.
+    /// PT: Executa o benchmark composto de APPLY e janela-temporal.
+    /// </summary>
+    ApplyWindowTemporalComposite,
+
+    /// <summary>
     /// EN: Updates one row by primary key.
     /// PT: Atualiza uma linha pela chave primaria.
     /// </summary>
@@ -89,6 +413,12 @@ public enum BenchmarkFeatureId
     /// PT: Executa um ciclo de update/delete.
     /// </summary>
     UpdateDeleteRoundTrip,
+
+    /// <summary>
+    /// EN: Executes the parameter update/delete round-trip benchmark.
+    /// PT: Executa o benchmark de roundtrip de update/delete com parametros.
+    /// </summary>
+    ParameterUpdateDeleteRoundTrip,
 
     /// <summary>
     /// EN: Deletes one row by primary key.
@@ -157,10 +487,70 @@ public enum BenchmarkFeatureId
     Upsert,
 
     /// <summary>
+    /// EN: Executes the merge insert-then-update benchmark.
+    /// PT: Executa o benchmark de merge de inserir e depois atualizar.
+    /// </summary>
+    MergeInsertThenUpdate,
+
+    /// <summary>
+    /// EN: Executes the upsert insert-then-update benchmark.
+    /// PT: Executa o benchmark de upsert de inserir e depois atualizar.
+    /// </summary>
+    UpsertInsertThenUpdate,
+
+    /// <summary>
     /// EN: Reads the next value from a sequence.
     /// PT: Le o proximo valor de uma sequencia.
     /// </summary>
     SequenceNextValue,
+
+    /// <summary>
+    /// EN: Reads the current value from a sequence.
+    /// PT: Le o valor atual de uma sequencia.
+    /// </summary>
+    SequenceCurrentValue,
+
+    /// <summary>
+    /// EN: Inserts rows using sequence-generated keys and reads them back.
+    /// PT: Insere linhas usando chaves geradas por sequence e as le de volta.
+    /// </summary>
+    SequenceInsertRoundTrip,
+
+    /// <summary>
+    /// EN: Inserts rows using a sequence expression in the values clause.
+    /// PT: Insere linhas usando uma expressao de sequence na clausula VALUES.
+    /// </summary>
+    SequenceInsertExpression,
+
+    /// <summary>
+    /// EN: Projects the next sequence value in a select query.
+    /// PT: Projeta o proximo valor da sequence em uma consulta select.
+    /// </summary>
+    SequenceSelectProjection,
+
+    /// <summary>
+    /// EN: Uses a sequence expression inside a filtered query.
+    /// PT: Usa uma expressao de sequence dentro de uma consulta filtrada.
+    /// </summary>
+    SequenceExpressionFilter,
+
+    /// <summary>
+    /// EN: Evaluates sequence values inside CASE and WHERE predicates.
+    /// PT: Avalia valores de sequence dentro de predicados CASE e WHERE.
+    /// </summary>
+    SequenceCaseWhereMatrix,
+
+    /// <summary>
+    /// EN: Combines sequence values with temporal expressions.
+    /// PT: Combina valores de sequence com expressoes temporais.
+    /// </summary>
+    SequenceTemporalMatrix,
+
+    /// <summary>
+    /// EN: Joins sequence-driven rows and aggregates the result.
+    /// PT: Faz join de linhas guiadas por sequence e agrega o resultado.
+    /// </summary>
+    SequenceJoinAggregate,
 
     /// <summary>
     /// EN: Executes a batch insert with ten statements.
@@ -211,6 +601,114 @@ public enum BenchmarkFeatureId
     DateScalar,
 
     /// <summary>
+    /// EN: Executes the shared math functions benchmark.
+    /// PT: Executa o benchmark compartilhado de funcoes matematicas.
+    /// </summary>
+    MathFunctions,
+
+    /// <summary>
+    /// EN: Executes the shared math log-base benchmark.
+    /// PT: Executa o benchmark compartilhado de logaritmo com base explicita.
+    /// </summary>
+    MathLogBaseFunction,
+
+    /// <summary>
+    /// EN: Executes the shared math log2 benchmark.
+    /// PT: Executa o benchmark compartilhado de logaritmo de base 2.
+    /// </summary>
+    MathLog2Function,
+
+    /// <summary>
+    /// EN: Executes the shared math pi benchmark.
+    /// PT: Executa o benchmark compartilhado de pi.
+    /// </summary>
+    MathPiFunction,
+
+    /// <summary>
+    /// EN: Executes the shared math random benchmark.
+    /// PT: Executa o benchmark compartilhado de numero aleatorio.
+    /// </summary>
+    MathRandFunction,
+
+    /// <summary>
+    /// EN: Executes the shared math remainder benchmark.
+    /// PT: Executa o benchmark compartilhado de resto.
+    /// </summary>
+    MathRemainderFunction,
+
+    /// <summary>
+    /// EN: Executes the shared math truncation benchmark.
+    /// PT: Executa o benchmark compartilhado de truncamento numerico.
+    /// </summary>
+    MathTruncFunction,
+
+    /// <summary>
+    /// EN: Executes the shared math cotangent benchmark.
+    /// PT: Executa o benchmark compartilhado de cotangente.
+    /// </summary>
+    MathCotFunction,
+
+    /// <summary>
+    /// EN: Executes the MySQL utility math benchmark.
+    /// PT: Executa o benchmark de utilitarios matematicos da familia MySQL.
+    /// </summary>
+    MySqlUtilityMathFunctions,
+
+    /// <summary>
+    /// EN: Executes the shared greatest/least/mod benchmark.
+    /// PT: Executa o benchmark compartilhado de greatest/least/mod.
+    /// </summary>
+    GreatestLeastModFunctions,
+
+    /// <summary>
+    /// EN: Executes the DB2 alias math benchmark.
+    /// PT: Executa o benchmark de aliases matematicos do DB2.
+    /// </summary>
+    Db2AliasMathFunctions,
+
+    /// <summary>
+    /// EN: Executes the Firebird alias math benchmark.
+    /// PT: Executa o benchmark de aliases matematicos do Firebird.
+    /// </summary>
+    FirebirdAliasMathFunctions,
+
+    /// <summary>
+    /// EN: Executes the shared transcendental math benchmark.
+    /// PT: Executa o benchmark compartilhado de matematica transcendental.
+    /// </summary>
+    MathTranscendentalFunctions,
+
+    /// <summary>
+    /// EN: Executes the SQL Server FORMAT benchmark.
+    /// PT: Executa o benchmark FORMAT do SQL Server.
+    /// </summary>
+    Format,
+
+    /// <summary>
+    /// EN: Executes the SQL Server FORMATMESSAGE benchmark.
+    /// PT: Executa o benchmark FORMATMESSAGE do SQL Server.
+    /// </summary>
+    FormatMessage,
+
+    /// <summary>
+    /// EN: Executes the SQL Server ISJSON benchmark.
+    /// PT: Executa o benchmark ISJSON do SQL Server.
+    /// </summary>
+    IsJson,
+
+    /// <summary>
+    /// EN: Executes the SQL Server STRING_ESCAPE benchmark.
+    /// PT: Executa o benchmark STRING_ESCAPE do SQL Server.
+    /// </summary>
+    StringEscape,
+
+    /// <summary>
+    /// EN: Executes the SQL Server TRANSLATE benchmark.
+    /// PT: Executa o benchmark TRANSLATE do SQL Server.
+    /// </summary>
+    Translate,
+
+    /// <summary>
     /// EN: Reads a JSON scalar value.
     /// PT: Le um valor escalar de JSON.
     /// </summary>
@@ -223,10 +721,58 @@ public enum BenchmarkFeatureId
     JsonPathRead,
 
     /// <summary>
+    /// EN: Reads a JSON path value that is missing in the document.
+    /// PT: Le um valor de caminho JSON ausente no documento.
+    /// </summary>
+    JsonMissingPathRead,
+
+    /// <summary>
+    /// EN: Reads a missing JSON path value and returns null.
+    /// PT: Le um valor de caminho JSON ausente e retorna nulo.
+    /// </summary>
+    JsonMissingPathReturnsNull,
+
+    /// <summary>
+    /// EN: Reads a raw root fragment with JSON_QUERY.
+    /// PT: Le um fragmento bruto de raiz com JSON_QUERY.
+    /// </summary>
+    JsonQueryRootFragment,
+
+    /// <summary>
+    /// EN: Replaces a nested JSON value with JSON_MODIFY.
+    /// PT: Substitui um valor JSON aninhado com JSON_MODIFY.
+    /// </summary>
+    JsonModifyReplace,
+
+    /// <summary>
     /// EN: Executes a JSON typed field matrix benchmark.
     /// PT: Executa um benchmark da matriz de campos tipados com JSON.
     /// </summary>
     JsonTypedFieldMatrix,
+
+    /// <summary>
+    /// EN: Executes a json_each benchmark over a JSON array.
+    /// PT: Executa um benchmark json_each sobre um array JSON.
+    /// </summary>
+    JsonEachFromArray,
+
+    /// <summary>
+    /// EN: Executes a json_each benchmark over a JSON object.
+    /// PT: Executa um benchmark json_each sobre um objeto JSON.
+    /// </summary>
+    JsonEachFromObject,
+
+    /// <summary>
+    /// EN: Executes a json_tree benchmark over JSON.
+    /// PT: Executa um benchmark json_tree sobre JSON.
+    /// </summary>
+    JsonTreeStructure,
+
+    /// <summary>
+    /// EN: Executes an OPENJSON benchmark over a JSON array.
+    /// PT: Executa um benchmark OPENJSON sobre um array JSON.
+    /// </summary>
+    OpenJsonArray,
 
     /// <summary>
     /// EN: Executes a current timestamp scalar query.
@@ -253,6 +799,12 @@ public enum BenchmarkFeatureId
     TemporalNowOrderBy,
 
     /// <summary>
+    /// EN: Executes the scalar temporal matrix benchmark.
+    /// PT: Executa a matriz temporal escalar.
+    /// </summary>
+    ScalarTemporalMatrix,
+
+    /// <summary>
     /// EN: Executes a temporal field matrix benchmark.
     /// PT: Executa um benchmark da matriz de campos temporais.
     /// </summary>
@@ -271,6 +823,132 @@ public enum BenchmarkFeatureId
     TemporalArithmeticMatrix,
 
     /// <summary>
+    /// EN: Executes a DATETRUNC benchmark.
+    /// PT: Executa um benchmark DATETRUNC.
+    /// </summary>
+    TemporalDateTrunc,
+
+    /// <summary>
+    /// EN: Executes a time-zone offset benchmark.
+    /// PT: Executa um benchmark de fuso horario.
+    /// </summary>
+    TemporalTimeZoneOffset,
+
+    /// <summary>
+    /// EN: Executes a FROMPARTS benchmark.
+    /// PT: Executa um benchmark FROMPARTS.
+    /// </summary>
+    TemporalFromParts,
+
+    /// <summary>
+    /// EN: Executes an EOMONTH benchmark.
+    /// PT: Executa um benchmark EOMONTH.
+    /// </summary>
+    TemporalEndOfMonth,
+
+    /// <summary>
+    /// EN: Executes a DATEDIFF_BIG benchmark.
+    /// PT: Executa um benchmark DATEDIFF_BIG.
+    /// </summary>
+    TemporalDateDiffBig,
+
+    /// <summary>
+    /// EN: Executes SQL Server metadata functions.
+    /// PT: Executa funcoes de metadata do SQL Server.
+    /// </summary>
+    SqlServerMetadataFunctions,
+
+    /// <summary>
+    /// EN: Executes SCOPE_IDENTITY.
+    /// PT: Executa SCOPE_IDENTITY.
+    /// </summary>
+    ScopeIdentity,
+
+    /// <summary>
+    /// EN: Executes SQL Server system functions.
+    /// PT: Executa funcoes de sistema do SQL Server.
+    /// </summary>
+    SqlServerSystemFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server special functions.
+    /// PT: Executa funcoes especiais do SQL Server.
+    /// </summary>
+    SqlServerSpecialFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server context functions.
+    /// PT: Executa funcoes de contexto do SQL Server.
+    /// </summary>
+    SqlServerContextFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server transaction state functions.
+    /// PT: Executa funcoes de estado de transacao do SQL Server.
+    /// </summary>
+    SqlServerTransactionStateFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server session functions.
+    /// PT: Executa funcoes de sessao do SQL Server.
+    /// </summary>
+    SqlServerSessionFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server string functions.
+    /// PT: Executa funcoes de string do SQL Server.
+    /// </summary>
+    StringBasicFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server string utility functions.
+    /// PT: Executa funcoes de utilitarios de string do SQL Server.
+    /// </summary>
+    StringUtilityFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server string metadata functions.
+    /// PT: Executa funcoes de metadados de string do SQL Server.
+    /// </summary>
+    StringMetadataFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server PARSE-family functions.
+    /// PT: Executa funcoes da familia PARSE do SQL Server.
+    /// </summary>
+    ParseFamily,
+
+    /// <summary>
+    /// EN: Executes SQL Server SOUNDEX functions.
+    /// PT: Executa funcoes SOUNDEX do SQL Server.
+    /// </summary>
+    Soundex,
+
+    /// <summary>
+    /// EN: Executes SQL Server compression functions.
+    /// PT: Executa funcoes de compressao do SQL Server.
+    /// </summary>
+    Compression,
+
+    /// <summary>
+    /// EN: Executes APPROX_COUNT_DISTINCT.
+    /// PT: Executa APPROX_COUNT_DISTINCT.
+    /// </summary>
+    ApproxCountDistinct,
+
+    /// <summary>
+    /// EN: Executes PERCENTILE_CONT and PERCENTILE_DISC.
+    /// PT: Executa PERCENTILE_CONT e PERCENTILE_DISC.
+    /// </summary>
+    PercentileAggregateFunctions,
+
+    /// <summary>
+    /// EN: Executes SQL Server aggregate functions.
+    /// PT: Executa funcoes de agregacao do SQL Server.
+    /// </summary>
+    SqlServerAggregateFunctions,
+
+    /// <summary>
     /// EN: Executes a distinct string aggregation query.
     /// PT: Executa uma consulta de agregacao distinta de strings.
     /// </summary>
@@ -287,6 +965,36 @@ public enum BenchmarkFeatureId
     /// PT: Executa uma consulta de agregacao de strings em grupo grande.
     /// </summary>
     StringAggregateLargeGroup,
+
+    /// <summary>
+    /// EN: Executes a string aggregation summary matrix.
+    /// PT: Executa uma matriz resumo de agregacao de strings.
+    /// </summary>
+    StringAggregateSummaryMatrix,
+
+    /// <summary>
+    /// EN: Executes a grouped string aggregation matrix.
+    /// PT: Executa uma matriz agrupada de agregacao de strings.
+    /// </summary>
+    StringAggregateGroupCaseMatrix,
+
+    /// <summary>
+    /// EN: Executes a string aggregation summary matrix alias.
+    /// PT: Executa um alias da matriz resumo de agregacao de strings.
+    /// </summary>
+    StringAggregationSummaryMatrix,
+
+    /// <summary>
+    /// EN: Executes a grouped string aggregation matrix alias.
+    /// PT: Executa um alias da matriz agrupada de agregacao de strings.
+    /// </summary>
+    StringAggregationGroupCaseMatrix,
+
+    /// <summary>
+    /// EN: Executes the string aggregation variants benchmark.
+    /// PT: Executa o benchmark das variantes de agregacao de strings.
+    /// </summary>
+    StringAggregationVariants,
 
     /// <summary>
     /// EN: Reads rowcount after select.
@@ -457,6 +1165,12 @@ public enum BenchmarkFeatureId
     RowCountAfterInsert,
 
     /// <summary>
+    /// EN: Reads rowcount in a batch insert flow.
+    /// PT: Le a contagem de linhas em um fluxo de insert em lote.
+    /// </summary>
+    BatchRowCountInBatch,
+
+    /// <summary>
     /// EN: Reads rowcount after update.
     /// PT: Le a contagem de linhas apos update.
     /// </summary>
@@ -529,6 +1243,12 @@ public enum BenchmarkFeatureId
     JsonInsertCast,
 
     /// <summary>
+    /// EN: Executes the JSON insert cast benchmark and returns null when the provider does.
+    /// PT: Executa o benchmark de insert e cast de JSON e retorna nulo quando o provedor retorna.
+    /// </summary>
+    JsonInsertCastReturnsNull,
+
+    /// <summary>
     /// EN: Benchmark entry for rowcount in batch.
     /// PT: Entrada de benchmark para rowcount in batch.
     /// </summary>
@@ -545,6 +1265,12 @@ public enum BenchmarkFeatureId
     /// PT: Entrada de benchmark para returning insert.
     /// </summary>
     ReturningInsert,
+
+    /// <summary>
+    /// EN: Benchmark entry for batch returning insert.
+    /// PT: Entrada de benchmark para batch returning insert.
+    /// </summary>
+    BatchReturningInsert,
 
     /// <summary>
     /// EN: Benchmark entry for returning update.
@@ -719,6 +1445,18 @@ public enum BenchmarkFeatureId
     /// PT: Executa um benchmark de insercao parametrizada de uma linha.
     /// </summary>
     ParameterInsertSingle,
+
+    /// <summary>
+    /// EN: Executes a parameter insert round-trip benchmark.
+    /// PT: Executa o benchmark de roundtrip de insert com parametros.
+    /// </summary>
+    ParameterInsertRoundTrip,
+
+    /// <summary>
+    /// EN: Executes a parameter insert round-trip benchmark with null values.
+    /// PT: Executa o benchmark de roundtrip de insert com parametros e valores nulos.
+    /// </summary>
+    ParameterInsertNullRoundTrip,
 
     /// <summary>
     /// EN: Executes a parameterized name lookup benchmark.

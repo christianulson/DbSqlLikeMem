@@ -114,6 +114,9 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.CreateTableWithFKInsert:
                 RunCreateTableWithFKInsert();
                 break;
+            case BenchmarkFeatureId.InsertInTableWithFK:
+                RunInsertInTableWithFK();
+                break;
             case BenchmarkFeatureId.DropTable:
                 RunDropTable();
                 break;
@@ -122,6 +125,24 @@ public abstract partial class BenchmarkSessionBase(
                 break;
             case BenchmarkFeatureId.InsertCustomStartId:
                 RunInsertCustomStartId();
+                break;
+            case BenchmarkFeatureId.InsertDefaultColumns:
+                RunInsertDefaultColumns();
+                break;
+            case BenchmarkFeatureId.InsertNullableColumns:
+                RunInsertNullableColumns();
+                break;
+            case BenchmarkFeatureId.InsertNotNullWithoutDefault:
+                RunInsertNotNullWithoutDefault();
+                break;
+            case BenchmarkFeatureId.CheckConstraintsValidInsert:
+                RunCheckConstraintsValidInsert();
+                break;
+            case BenchmarkFeatureId.CheckConstraintsInvalidInsert:
+                RunCheckConstraintsInvalidInsert();
+                break;
+            case BenchmarkFeatureId.CheckConstraintsInvalidUpdate:
+                RunCheckConstraintsInvalidUpdate();
                 break;
             case BenchmarkFeatureId.InsertBatch10:
                 RunInsertBatch10();
@@ -138,11 +159,155 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.SelectJoin:
                 RunSelectJoin();
                 break;
+            case BenchmarkFeatureId.SelectJoinCount:
+                RunSelectJoinCount();
+                break;
+            case BenchmarkFeatureId.RelationalComposite:
+                RunRelationalComposite();
+                break;
+            case BenchmarkFeatureId.SelectApplyProjection:
+                RunSelectApplyProjection();
+                break;
+            case BenchmarkFeatureId.SelectWindowFunctions:
+                RunSelectWindowFunctions();
+                break;
+            case BenchmarkFeatureId.SelectScalarSubqueryCaseMatrix:
+                RunSelectScalarSubqueryCaseMatrix();
+                break;
+            case BenchmarkFeatureId.SelectRangeAndPivot:
+                RunSelectRangeAndPivot();
+                break;
+            case BenchmarkFeatureId.InListPredicate:
+                RunInListPredicate();
+                break;
+            case BenchmarkFeatureId.BetweenPredicate:
+                RunBetweenPredicate();
+                break;
+            case BenchmarkFeatureId.LikePredicate:
+                RunLikePredicate();
+                break;
+            case BenchmarkFeatureId.NotLikePredicate:
+                RunNotLikePredicate();
+                break;
+            case BenchmarkFeatureId.NotEqualPredicate:
+                RunNotEqualPredicate();
+                break;
+            case BenchmarkFeatureId.EqualPredicate:
+                RunEqualPredicate();
+                break;
+            case BenchmarkFeatureId.GreaterThanPredicate:
+                RunGreaterThanPredicate();
+                break;
+            case BenchmarkFeatureId.LessThanPredicate:
+                RunLessThanPredicate();
+                break;
+            case BenchmarkFeatureId.GreaterThanOrEqualPredicate:
+                RunGreaterThanOrEqualPredicate();
+                break;
+            case BenchmarkFeatureId.LessThanOrEqualPredicate:
+                RunLessThanOrEqualPredicate();
+                break;
+            case BenchmarkFeatureId.NotInSubqueryNull:
+                RunNotInSubqueryNull();
+                break;
+            case BenchmarkFeatureId.AllRowsCount:
+                RunAllRowsCount();
+                break;
+            case BenchmarkFeatureId.AllRowsSnapshot:
+                RunAllRowsSnapshot();
+                break;
+            case BenchmarkFeatureId.CteMaterializedHint:
+                RunCteMaterializedHint();
+                break;
+            case BenchmarkFeatureId.DistinctOnProjection:
+                RunDistinctOnProjection();
+                break;
+            case BenchmarkFeatureId.OrderByNameMatrix:
+                RunOrderByNameMatrix();
+                break;
+            case BenchmarkFeatureId.OrderByOrdinalMatrix:
+                RunOrderByOrdinalMatrix();
+                break;
+            case BenchmarkFeatureId.OrderByNameDescendingMatrix:
+                RunOrderByNameDescendingMatrix();
+                break;
+            case BenchmarkFeatureId.NamePaginationMatrix:
+                RunNamePaginationMatrix();
+                break;
+            case BenchmarkFeatureId.GroupByNameInitialMatrix:
+                RunGroupByNameInitialMatrix();
+                break;
+            case BenchmarkFeatureId.GroupByNameHavingMatrix:
+                RunGroupByNameHavingMatrix();
+                break;
+            case BenchmarkFeatureId.GroupByOrdinalMatrix:
+                RunGroupByOrdinalMatrix();
+                break;
+            case BenchmarkFeatureId.DistinctOrderByOrdinalMatrix:
+                RunDistinctOrderByOrdinalMatrix();
+                break;
+            case BenchmarkFeatureId.DistinctLikeOrderByOrdinalMatrix:
+                RunDistinctLikeOrderByOrdinalMatrix();
+                break;
+            case BenchmarkFeatureId.JoinTypedExpressionMatrix:
+                RunJoinTypedExpressionMatrix();
+                break;
+            case BenchmarkFeatureId.JoinNullAggregateMatrix:
+                RunJoinNullAggregateMatrix();
+                break;
+            case BenchmarkFeatureId.JoinCastNullMatrix:
+                RunJoinCastNullMatrix();
+                break;
+            case BenchmarkFeatureId.JoinCastTextComparisonMatrix:
+                RunJoinCastTextComparisonMatrix();
+                break;
+            case BenchmarkFeatureId.JoinHavingCastMatrix:
+                RunJoinHavingCastMatrix();
+                break;
+            case BenchmarkFeatureId.JoinLengthNumericMatrix:
+                RunJoinLengthNumericMatrix();
+                break;
+            case BenchmarkFeatureId.JoinTextCaseLengthMatrix:
+                RunJoinTextCaseLengthMatrix();
+                break;
+            case BenchmarkFeatureId.JoinDistinctCaseMatrix:
+                RunJoinDistinctCaseMatrix();
+                break;
+            case BenchmarkFeatureId.JoinDistinctHavingMatrix:
+                RunJoinDistinctHavingMatrix();
+                break;
+            case BenchmarkFeatureId.StringSplitProjection:
+                RunStringSplitProjection();
+                break;
+            case BenchmarkFeatureId.ForJsonPathProjection:
+                RunForJsonPathProjection();
+                break;
+            case BenchmarkFeatureId.JoinWindowTemporalMatrix:
+                RunJoinWindowTemporalMatrix();
+                break;
+            case BenchmarkFeatureId.JoinTemporalMatrix:
+                RunJoinTemporalMatrix();
+                break;
+            case BenchmarkFeatureId.JoinWindowMatrix:
+                RunJoinWindowMatrix();
+                break;
+            case BenchmarkFeatureId.JoinWindowAggregateTemporalMatrix:
+                RunJoinWindowAggregateTemporalMatrix();
+                break;
+            case BenchmarkFeatureId.ApplyTemporalComposite:
+                RunApplyTemporalComposite();
+                break;
+            case BenchmarkFeatureId.ApplyWindowTemporalComposite:
+                RunApplyWindowTemporalComposite();
+                break;
             case BenchmarkFeatureId.UpdateByPk:
                 RunUpdateByPk();
                 break;
             case BenchmarkFeatureId.UpdateDeleteRoundTrip:
                 RunUpdateDeleteRoundTrip();
+                break;
+            case BenchmarkFeatureId.ParameterUpdateDeleteRoundTrip:
+                RunParameterUpdateDeleteRoundTrip();
                 break;
             case BenchmarkFeatureId.DeleteByPk:
                 RunDeleteByPk();
@@ -177,11 +342,23 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.Upsert:
                 RunUpsert();
                 break;
+            case BenchmarkFeatureId.MergeInsertThenUpdate:
+                RunMergeInsertThenUpdate();
+                break;
+            case BenchmarkFeatureId.UpsertInsertThenUpdate:
+                RunUpsertInsertThenUpdate();
+                break;
             case BenchmarkFeatureId.ParameterProjection:
                 RunParameterProjection();
                 break;
             case BenchmarkFeatureId.ParameterInsertSingle:
                 RunParameterInsertSingle();
+                break;
+            case BenchmarkFeatureId.ParameterInsertRoundTrip:
+                RunParameterInsertRoundTrip();
+                break;
+            case BenchmarkFeatureId.ParameterInsertNullRoundTrip:
+                RunParameterInsertNullRoundTrip();
                 break;
             case BenchmarkFeatureId.ParameterSelectByNameMatrix:
                 RunParameterSelectByNameMatrix();
@@ -234,6 +411,30 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.SequenceNextValue:
                 RunSequenceNextValue();
                 break;
+            case BenchmarkFeatureId.SequenceCurrentValue:
+                RunSequenceCurrentValue();
+                break;
+            case BenchmarkFeatureId.SequenceInsertRoundTrip:
+                RunSequenceInsertRoundTrip();
+                break;
+            case BenchmarkFeatureId.SequenceInsertExpression:
+                RunSequenceInsertExpression();
+                break;
+            case BenchmarkFeatureId.SequenceSelectProjection:
+                RunSequenceSelectProjection();
+                break;
+            case BenchmarkFeatureId.SequenceExpressionFilter:
+                RunSequenceExpressionFilter();
+                break;
+            case BenchmarkFeatureId.SequenceCaseWhereMatrix:
+                RunSequenceCaseWhereMatrix();
+                break;
+            case BenchmarkFeatureId.SequenceTemporalMatrix:
+                RunSequenceTemporalMatrix();
+                break;
+            case BenchmarkFeatureId.SequenceJoinAggregate:
+                RunSequenceJoinAggregate();
+                break;
             case BenchmarkFeatureId.BatchInsert10:
                 RunBatchInsert10();
                 break;
@@ -264,8 +465,62 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.StringAggregateLargeGroup:
                 RunStringAggregateLargeGroup();
                 break;
+            case BenchmarkFeatureId.StringAggregateSummaryMatrix:
+                RunStringAggregateSummaryMatrix();
+                break;
+            case BenchmarkFeatureId.StringAggregateGroupCaseMatrix:
+                RunStringAggregateGroupCaseMatrix();
+                break;
+            case BenchmarkFeatureId.StringAggregationSummaryMatrix:
+                RunStringAggregationSummaryMatrix();
+                break;
+            case BenchmarkFeatureId.StringAggregationGroupCaseMatrix:
+                RunStringAggregationGroupCaseMatrix();
+                break;
+            case BenchmarkFeatureId.StringAggregationVariants:
+                RunStringAggregationVariants();
+                break;
             case BenchmarkFeatureId.DateScalar:
                 RunDateScalar();
+                break;
+            case BenchmarkFeatureId.MathFunctions:
+                RunMathFunctions();
+                break;
+            case BenchmarkFeatureId.MathLogBaseFunction:
+                RunMathLogBaseFunction();
+                break;
+            case BenchmarkFeatureId.MathLog2Function:
+                RunMathLog2Function();
+                break;
+            case BenchmarkFeatureId.MathPiFunction:
+                RunMathPiFunction();
+                break;
+            case BenchmarkFeatureId.MathRandFunction:
+                RunMathRandFunction();
+                break;
+            case BenchmarkFeatureId.MathRemainderFunction:
+                RunMathRemainderFunction();
+                break;
+            case BenchmarkFeatureId.MathTruncFunction:
+                RunMathTruncFunction();
+                break;
+            case BenchmarkFeatureId.MathCotFunction:
+                RunMathCotFunction();
+                break;
+            case BenchmarkFeatureId.MySqlUtilityMathFunctions:
+                RunMySqlUtilityMathFunctions();
+                break;
+            case BenchmarkFeatureId.GreatestLeastModFunctions:
+                RunGreatestLeastModFunctions();
+                break;
+            case BenchmarkFeatureId.Db2AliasMathFunctions:
+                RunDb2AliasMathFunctions();
+                break;
+            case BenchmarkFeatureId.FirebirdAliasMathFunctions:
+                RunFirebirdAliasMathFunctions();
+                break;
+            case BenchmarkFeatureId.MathTranscendentalFunctions:
+                RunMathTranscendentalFunctions();
                 break;
             case BenchmarkFeatureId.JsonScalarRead:
                 RunJsonScalarRead();
@@ -273,8 +528,32 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.JsonPathRead:
                 RunJsonPathRead();
                 break;
+            case BenchmarkFeatureId.JsonMissingPathRead:
+                RunJsonMissingPathRead();
+                break;
+            case BenchmarkFeatureId.JsonMissingPathReturnsNull:
+                RunJsonMissingPathReturnsNull();
+                break;
+            case BenchmarkFeatureId.JsonQueryRootFragment:
+                RunJsonQueryRootFragment();
+                break;
+            case BenchmarkFeatureId.JsonModifyReplace:
+                RunJsonModifyReplace();
+                break;
             case BenchmarkFeatureId.JsonTypedFieldMatrix:
                 RunJsonTypedFieldMatrix();
+                break;
+            case BenchmarkFeatureId.JsonEachFromArray:
+                RunJsonEachFromArray();
+                break;
+            case BenchmarkFeatureId.JsonEachFromObject:
+                RunJsonEachFromObject();
+                break;
+            case BenchmarkFeatureId.JsonTreeStructure:
+                RunJsonTreeStructure();
+                break;
+            case BenchmarkFeatureId.OpenJsonArray:
+                RunOpenJsonArray();
                 break;
             case BenchmarkFeatureId.TemporalCurrentTimestamp:
                 RunTemporalCurrentTimestamp();
@@ -288,6 +567,9 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.TemporalNowOrderBy:
                 RunTemporalNowOrderBy();
                 break;
+            case BenchmarkFeatureId.ScalarTemporalMatrix:
+                RunScalarTemporalMatrix();
+                break;
             case BenchmarkFeatureId.TemporalFieldMatrix:
                 RunTemporalFieldMatrix();
                 break;
@@ -296,6 +578,84 @@ public abstract partial class BenchmarkSessionBase(
                 break;
             case BenchmarkFeatureId.TemporalArithmeticMatrix:
                 RunTemporalArithmeticMatrix();
+                break;
+            case BenchmarkFeatureId.TemporalDateTrunc:
+                RunTemporalDateTrunc();
+                break;
+            case BenchmarkFeatureId.TemporalTimeZoneOffset:
+                RunTemporalTimeZoneOffset();
+                break;
+            case BenchmarkFeatureId.TemporalFromParts:
+                RunTemporalFromParts();
+                break;
+            case BenchmarkFeatureId.TemporalEndOfMonth:
+                RunTemporalEndOfMonth();
+                break;
+            case BenchmarkFeatureId.TemporalDateDiffBig:
+                RunTemporalDateDiffBig();
+                break;
+            case BenchmarkFeatureId.SqlServerMetadataFunctions:
+                RunSqlServerMetadataFunctions();
+                break;
+            case BenchmarkFeatureId.ScopeIdentity:
+                RunScopeIdentity();
+                break;
+            case BenchmarkFeatureId.SqlServerSystemFunctions:
+                RunSqlServerSystemFunctions();
+                break;
+            case BenchmarkFeatureId.SqlServerSpecialFunctions:
+                RunSqlServerSpecialFunctions();
+                break;
+            case BenchmarkFeatureId.SqlServerContextFunctions:
+                RunSqlServerContextFunctions();
+                break;
+            case BenchmarkFeatureId.SqlServerTransactionStateFunctions:
+                RunSqlServerTransactionStateFunctions();
+                break;
+            case BenchmarkFeatureId.SqlServerSessionFunctions:
+                RunSqlServerSessionFunctions();
+                break;
+            case BenchmarkFeatureId.StringBasicFunctions:
+                RunStringBasicFunctions();
+                break;
+            case BenchmarkFeatureId.StringUtilityFunctions:
+                RunStringUtilityFunctions();
+                break;
+            case BenchmarkFeatureId.StringMetadataFunctions:
+                RunStringMetadataFunctions();
+                break;
+            case BenchmarkFeatureId.StringEscape:
+                RunStringEscape();
+                break;
+            case BenchmarkFeatureId.Translate:
+                RunTranslate();
+                break;
+            case BenchmarkFeatureId.FormatMessage:
+                RunFormatMessage();
+                break;
+            case BenchmarkFeatureId.IsJson:
+                RunIsJson();
+                break;
+            case BenchmarkFeatureId.Format:
+                RunFormat();
+                break;
+            case BenchmarkFeatureId.ParseFamily:
+                RunParseFamily();
+                break;
+            case BenchmarkFeatureId.Soundex:
+                RunSoundex();
+                break;
+            case BenchmarkFeatureId.Compression:
+                RunCompression();
+                break;
+            case BenchmarkFeatureId.ApproxCountDistinct:
+                RunApproxCountDistinct();
+                break;
+            case BenchmarkFeatureId.PercentileAggregateFunctions:
+                RunPercentileAggregateFunctions();
+                break;
+            case BenchmarkFeatureId.SqlServerAggregateFunctions:
+                RunSqlServerAggregateFunctions();
                 break;
             case BenchmarkFeatureId.RowCountAfterInsert:
                 RunRowCountAfterInsert();
@@ -366,14 +726,23 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.JsonInsertCast:
                 RunJsonInsertCast();
                 break;
+            case BenchmarkFeatureId.JsonInsertCastReturnsNull:
+                RunJsonInsertCastReturnsNull();
+                break;
             case BenchmarkFeatureId.RowCountInBatch:
                 RunRowCountInBatch();
+                break;
+            case BenchmarkFeatureId.BatchRowCountInBatch:
+                RunBatchRowCountInBatch();
                 break;
             case BenchmarkFeatureId.PivotCount:
                 RunPivotCount();
                 break;
             case BenchmarkFeatureId.ReturningInsert:
                 RunReturningInsert();
+                break;
+            case BenchmarkFeatureId.BatchReturningInsert:
+                RunBatchReturningInsert();
                 break;
             case BenchmarkFeatureId.ReturningUpdate:
                 RunReturningUpdate();
@@ -593,6 +962,13 @@ public abstract partial class BenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Executes the insert-in-table-with-FK benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de insert na tabela com chave estrangeira e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunInsertInTableWithFK()
+        => RunCreateTableWithFKInsert();
+
+    /// <summary>
     /// EN: Creates and drops the benchmark users table through the shared DDL drop workflow.
     /// PT-br: Cria e remove a tabela de usuarios do benchmark pelo fluxo compartilhado de remocao DDL.
     /// </summary>
@@ -622,6 +998,48 @@ public abstract partial class BenchmarkSessionBase(
     {
         var state = GetPreparedInsertUsersState("InsertCustomStartId");
         var result = state.RunInsertCustomStartId();
+        GC.KeepAlive(result);
+    }
+
+    protected virtual void RunInsertDefaultColumns()
+    {
+        var state = GetPreparedInsertUsersState("InsertDefaultColumns");
+        var result = state.RunInsertDefaultColumns();
+        GC.KeepAlive(result);
+    }
+
+    protected virtual void RunInsertNullableColumns()
+    {
+        var state = GetPreparedInsertUsersState("InsertNullableColumns");
+        var result = state.RunInsertNullableColumns();
+        GC.KeepAlive(result);
+    }
+
+    protected virtual void RunInsertNotNullWithoutDefault()
+    {
+        var state = GetPreparedInsertUsersState("InsertNotNullWithoutDefault");
+        var result = state.RunInsertNotNullWithoutDefault();
+        GC.KeepAlive(result);
+    }
+
+    protected virtual void RunCheckConstraintsValidInsert()
+    {
+        var state = GetPreparedCheckConstraintsState("CheckConstraintsValidInsert");
+        var result = state.RunCheckConstraintsValidInsert();
+        GC.KeepAlive(result);
+    }
+
+    protected virtual void RunCheckConstraintsInvalidInsert()
+    {
+        var state = GetPreparedCheckConstraintsState("CheckConstraintsInvalidInsert");
+        var result = state.RunCheckConstraintsInvalidInsert();
+        GC.KeepAlive(result);
+    }
+
+    protected virtual void RunCheckConstraintsInvalidUpdate()
+    {
+        var state = GetPreparedCheckConstraintsState("CheckConstraintsInvalidUpdate");
+        var result = state.RunCheckConstraintsInvalidUpdate();
         GC.KeepAlive(result);
     }
 
@@ -681,6 +1099,677 @@ public abstract partial class BenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Executes the join-count benchmark by reusing the shared join flow.
+    /// PT-br: Executa o benchmark de contagem do join reutilizando o fluxo compartilhado de join.
+    /// </summary>
+    protected virtual void RunSelectJoinCount()
+        => RunSelectJoin();
+
+    /// <summary>
+    /// EN: Executes the APPLY projection benchmark by chaining CROSS APPLY and OUTER APPLY projections.
+    /// PT-br: Executa o benchmark de projeção APPLY encadeando projecoes CROSS APPLY e OUTER APPLY.
+    /// </summary>
+    protected virtual void RunSelectApplyProjection()
+    {
+        RunCrossApplyProjection();
+        RunOuterApplyProjection();
+    }
+
+    /// <summary>
+    /// EN: Executes the window-functions benchmark by chaining row-number, lag, and lead projections.
+    /// PT-br: Executa o benchmark de funcoes de janela encadeando row-number, lag e lead.
+    /// </summary>
+    protected virtual void RunSelectWindowFunctions()
+    {
+        RunWindowRowNumber();
+        RunWindowLag();
+        RunWindowLead();
+    }
+
+    /// <summary>
+    /// EN: Executes the scalar-subquery CASE matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz CASE com subconsulta escalar e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunSelectScalarSubqueryCaseMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "SelectScalarSubqueryCaseMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(1, 1, "o-1"), (2, 1, "o-2"), (3, 1, "o-3"), (4, 2, "o-4")]);
+        var value = state.Service.RunSelectScalarSubqueryCaseMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the range-and-pivot benchmark by chaining partition pruning and pivot counting.
+    /// PT-br: Executa o benchmark de faixa e pivot encadeando partition pruning e contagem pivot.
+    /// </summary>
+    protected virtual void RunSelectRangeAndPivot()
+    {
+        var state = GetPreparedSelectTableQueryState("SelectRangeAndPivot");
+        try
+        {
+            state.Repo.ExecuteNonQueryAsync(state.Repo.Dialect.InsertUser(state.Context, 2, "Bob")).GetAwaiter().GetResult();
+            for (var id = 3; id <= 12; id++)
+            {
+                state.Repo.ExecuteNonQueryAsync(state.Repo.Dialect.InsertUser(state.Context, id, $"User-{id}")).GetAwaiter().GetResult();
+            }
+
+            var partitionCount = state.Service.RunPartitionPruningSelectAsync().GetAwaiter().GetResult();
+            var pivotCount = state.Service.RunPivotCountAsync().GetAwaiter().GetResult();
+            GC.KeepAlive(partitionCount);
+            GC.KeepAlive(pivotCount);
+        }
+        finally
+        {
+            for (var id = 2; id <= 12; id++)
+            {
+                state.Repo.ExecuteNonQueryAsync($"DELETE FROM {state.Context.TbUsersFullName} WHERE Id = {id}").GetAwaiter().GetResult();
+            }
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes the IN-list predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado IN com lista e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunInListPredicate()
+    {
+        var state = GetPreparedUsersQueryState("InListPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"));
+        var value = state.Service.RunInListPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the BETWEEN predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado BETWEEN e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunBetweenPredicate()
+    {
+        var state = GetPreparedUsersQueryState("BetweenPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunBetweenPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the LIKE predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado LIKE e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunLikePredicate()
+    {
+        var state = GetPreparedUsersQueryState("LikePredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunLikePredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the NOT LIKE predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado NOT LIKE e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunNotLikePredicate()
+    {
+        var state = GetPreparedUsersQueryState("NotLikePredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunNotLikePredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the not-equal predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado diferente de e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunNotEqualPredicate()
+    {
+        var state = GetPreparedUsersQueryState("NotEqualPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunNotEqualPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the equality predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado de igualdade e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunEqualPredicate()
+    {
+        var state = GetPreparedUsersQueryState("EqualPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunEqualPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the greater-than predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado maior que e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunGreaterThanPredicate()
+    {
+        var state = GetPreparedUsersQueryState("GreaterThanPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunGreaterThanPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the less-than predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado menor que e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunLessThanPredicate()
+    {
+        var state = GetPreparedUsersQueryState("LessThanPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunLessThanPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the greater-than-or-equal predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado maior ou igual e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunGreaterThanOrEqualPredicate()
+    {
+        var state = GetPreparedUsersQueryState("GreaterThanOrEqualPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunGreaterThanOrEqualPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the less-than-or-equal predicate benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de predicado menor ou igual e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunLessThanOrEqualPredicate()
+    {
+        var state = GetPreparedUsersQueryState("LessThanOrEqualPredicate", (1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunLessThanOrEqualPredicateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the NOT IN subquery with NULL benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de subconsulta NOT IN com NULL e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunNotInSubqueryNull()
+    {
+        var state = GetPreparedUsersQueryState("NotInSubqueryNull", (1, "Alice"), (2, "Bob"), (3, "Charlie"));
+        using var command = state.Repo.Cnn.CreateCommand();
+        command.CommandText = $"""
+SELECT Id, Name
+FROM {state.Context.TbUsersFullName}
+WHERE Id NOT IN (
+    SELECT 1
+    FROM {state.Context.TbUsersFullName} u
+    WHERE u.Id = 1
+    UNION ALL
+    SELECT NULL
+    FROM {state.Context.TbUsersFullName} u
+    WHERE u.Id = 1
+)
+ORDER BY Id
+""";
+
+        using var reader = command.ExecuteReaderAsync().GetAwaiter().GetResult();
+        var snapshot = QueryResultSnapshotReader.Capture(reader);
+        GC.KeepAlive(snapshot);
+    }
+
+    /// <summary>
+    /// EN: Executes the relational composite benchmark by chaining the main relational query flows.
+    /// PT-br: Executa o benchmark composto relacional encadeando os principais fluxos relacionais.
+    /// </summary>
+    protected virtual void RunRelationalComposite()
+    {
+        RunCteSimple();
+        RunSelectExistsPredicate();
+        RunSelectNotExistsPredicate();
+        RunSelectLeftJoinAntiJoin();
+        RunSelectCorrelatedCount();
+        RunSelectScalarCaseMatrix();
+        RunGroupByHaving();
+        RunUnionAllProjection();
+        RunUnionDistinctProjection();
+        RunDistinctProjection();
+        RunMultiJoinAggregate();
+        RunSelectScalarSubquery();
+        RunSelectInSubquery();
+        RunSelectNotInSubquery();
+        RunSelectBetweenLikeOrderByMatrix();
+        RunCrossApplyProjection();
+        RunOuterApplyProjection();
+        RunPivotCount();
+    }
+
+    /// <summary>
+    /// EN: Executes the all-rows count benchmark and keeps the row-count result alive.
+    /// PT-br: Executa o benchmark de contagem de todas as linhas e mantem o resultado da contagem ativo.
+    /// </summary>
+    protected virtual void RunAllRowsCount()
+    {
+        var state = GetPreparedSelectTableQueryState("AllRowsCount");
+        try
+        {
+            state.Repo.ExecuteNonQueryAsync(state.Repo.Dialect.InsertUser(state.Context, 2, "Bob")).GetAwaiter().GetResult();
+            var count = state.Service.RunRowCountAfterSelectAsync().GetAwaiter().GetResult();
+            GC.KeepAlive(count);
+        }
+        finally
+        {
+            state.Repo.ExecuteNonQueryAsync($"DELETE FROM {state.Context.TbUsersFullName} WHERE Id = 2").GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes the all-rows snapshot benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de snapshot de todas as linhas e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunAllRowsSnapshot()
+    {
+        var state = GetPreparedSelectTableQueryState("AllRowsSnapshot");
+        try
+        {
+            state.Repo.ExecuteNonQueryAsync(state.Repo.Dialect.InsertUser(state.Context, 2, "Bob")).GetAwaiter().GetResult();
+            var value = state.Service.RunAllRowsSnapshotAsync().GetAwaiter().GetResult();
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            state.Repo.ExecuteNonQueryAsync($"DELETE FROM {state.Context.TbUsersFullName} WHERE Id = 2").GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes the CTE MATERIALIZED benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de CTE MATERIALIZED e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunCteMaterializedHint()
+    {
+        if (!Dialect.SupportsWithMaterializedHint)
+        {
+            return;
+        }
+
+        var state = GetPreparedSelectTableQueryState("CteMaterializedHint");
+        var value = state.Service.RunCteMaterializedHintAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the DISTINCT ON projection benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark de projecao DISTINCT ON e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunDistinctOnProjection()
+    {
+        if (!Dialect.SupportsDistinctOnProjection)
+        {
+            return;
+        }
+
+        var state = GetPreparedUsersOrdersQueryState(
+            "DistinctOnProjection",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunDistinctOnProjectionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the ORDER BY Name matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz ORDER BY Name e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunOrderByNameMatrix()
+    {
+        var state = GetPreparedUsersQueryState("OrderByNameMatrix", (1, "Charlie"), (2, "Bob"), (3, "Alice"));
+        var value = state.Service.RunOrderByNameMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the ORDER BY ordinal matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz ORDER BY ordinal e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunOrderByOrdinalMatrix()
+    {
+        var state = GetPreparedUsersQueryState("OrderByOrdinalMatrix", (1, "Alpha"), (2, "Bravo"), (3, "Charlie"));
+        var value = state.Service.RunOrderByOrdinalMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the ORDER BY Name descending matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz ORDER BY Name descendente e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunOrderByNameDescendingMatrix()
+    {
+        var state = GetPreparedUsersQueryState("OrderByNameDescendingMatrix", (1, "Charlie"), (2, "Bob"), (3, "Alice"));
+        var value = state.Service.RunOrderByNameDescendingMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the name pagination matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz de paginacao por nome e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunNamePaginationMatrix()
+    {
+        var state = GetPreparedUsersQueryState("NamePaginationMatrix", (1, "Aaron"), (2, "Bravo"), (3, "Charlie"), (4, "Delta"), (5, "Echo"));
+        var value = state.Service.RunNamePaginationMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the GROUP BY name initial matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz GROUP BY por inicial do nome e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunGroupByNameInitialMatrix()
+    {
+        var state = GetPreparedUsersQueryState(
+            "GroupByNameInitialMatrix",
+            (1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris"));
+        var value = state.Service.RunGroupByNameInitialMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the GROUP BY name HAVING matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz GROUP BY com HAVING por nome e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunGroupByNameHavingMatrix()
+    {
+        var state = GetPreparedUsersQueryState(
+            "GroupByNameHavingMatrix",
+            (1, "Alice"), (2, "Alice"), (3, "Bob"), (4, "Bob"), (5, "Bob"), (6, "Charlie"));
+        var value = state.Service.RunGroupByNameHavingMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the GROUP BY ordinal matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz GROUP BY por ordinal e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunGroupByOrdinalMatrix()
+    {
+        if (!Dialect.SupportsGroupByOrdinal)
+        {
+            return;
+        }
+
+        var state = GetPreparedUsersQueryState(
+            "GroupByOrdinalMatrix",
+            (1, "Alice"), (2, "Adam"), (3, "Alice"), (4, "Bob"), (5, "Brian"), (6, "Bob"), (7, "Carla"), (8, "Chris"));
+        var value = state.Service.RunGroupByOrdinalMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the DISTINCT order-by-ordinal matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com ORDER BY ordinal e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunDistinctOrderByOrdinalMatrix()
+    {
+        var state = GetPreparedUsersQueryState("DistinctOrderByOrdinalMatrix", (1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta"));
+        var value = state.Service.RunDistinctOrderByOrdinalMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the DISTINCT text-filter order-by-ordinal matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com filtro de texto e ORDER BY ordinal e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunDistinctLikeOrderByOrdinalMatrix()
+    {
+        var state = GetPreparedUsersQueryState("DistinctLikeOrderByOrdinalMatrix", (1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta"));
+        var value = state.Service.RunDistinctLikeOrderByOrdinalMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined typed-expression matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz com expressoes tipadas em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinTypedExpressionMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinTypedExpressionMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinTypedExpressionMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined null-aggregate matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz agregada com null em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinNullAggregateMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinNullAggregateMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinNullAggregateMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined cast-null matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz com cast e null em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinCastNullMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinCastNullMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinCastNullMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined cast-text comparison matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz com cast e comparacao textual em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinCastTextComparisonMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinCastTextComparisonMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinCastTextComparisonMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined HAVING cast matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz HAVING com cast em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinHavingCastMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinHavingCastMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinHavingCastMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined length-and-numeric matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz com comprimento e numericos em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinLengthNumericMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinLengthNumericMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinLengthNumericMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined text-case-length matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz com caixa, texto e comprimento em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinTextCaseLengthMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinTextCaseLengthMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinTextCaseLengthMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined distinct-case matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com CASE em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinDistinctCaseMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinDistinctCaseMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinDistinctCaseMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined distinct-HAVING matrix benchmark and keeps the snapshot alive.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com HAVING em join e mantem o snapshot ativo.
+    /// </summary>
+    protected virtual void RunJoinDistinctHavingMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "JoinDistinctHavingMatrix",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinDistinctHavingMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the STRING_SPLIT projection benchmark and keeps the projected snapshot alive.
+    /// PT-br: Executa o benchmark de projecao STRING_SPLIT e mantem o snapshot projetado ativo.
+    /// </summary>
+    protected virtual void RunStringSplitProjection()
+    {
+        if (!Dialect.SupportsApplyClause || !Dialect.SupportsStringSplitFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedSelectTableQueryState("StringSplitProjection");
+        try
+        {
+            state.Repo.ExecuteNonQueryAsync($"INSERT INTO {state.Context.TbUsersFullName} (Id, Name, Email) VALUES (3, 'Csv', 'red,blue')").GetAwaiter().GetResult();
+            var value = state.Service.RunStringSplitProjectionAsync().GetAwaiter().GetResult();
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            state.Repo.ExecuteNonQueryAsync($"DELETE FROM {state.Context.TbUsersFullName} WHERE Id = 3").GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes the FOR JSON PATH projection benchmark and keeps the serialized payload alive.
+    /// PT-br: Executa o benchmark de projecao FOR JSON PATH e mantem o payload serializado ativo.
+    /// </summary>
+    protected virtual void RunForJsonPathProjection()
+    {
+        if (!Dialect.SupportsForJsonClause)
+        {
+            return;
+        }
+
+        var state = GetPreparedSelectTableQueryState("ForJsonPathProjection");
+        try
+        {
+            state.Repo.ExecuteNonQueryAsync($"INSERT INTO {state.Context.TbUsersFullName} (Id, Name) VALUES (2, 'Bob')").GetAwaiter().GetResult();
+            var value = state.Service.RunForJsonPathProjectionAsync().GetAwaiter().GetResult();
+            GC.KeepAlive(value);
+        }
+        finally
+        {
+            state.Repo.ExecuteNonQueryAsync($"DELETE FROM {state.Context.TbUsersFullName} WHERE Id = 2").GetAwaiter().GetResult();
+        }
+    }
+
+    /// <summary>
+    /// EN: Executes the joined window and temporal matrix benchmark and keeps the projected snapshot alive.
+    /// PT-br: Executa o benchmark da matriz com janela e temporal em join e mantem o snapshot projetado ativo.
+    /// </summary>
+    protected virtual void RunJoinWindowTemporalMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinWindowTemporalMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined temporal matrix benchmark and keeps the projected snapshot alive.
+    /// PT-br: Executa o benchmark da matriz temporal em join e mantem o snapshot projetado ativo.
+    /// </summary>
+    protected virtual void RunJoinTemporalMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinTemporalMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined window matrix benchmark and keeps the projected snapshot alive.
+    /// PT-br: Executa o benchmark da matriz de janela em join e mantem o snapshot projetado ativo.
+    /// </summary>
+    protected virtual void RunJoinWindowMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinWindowMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the joined window, aggregate, and temporal matrix benchmark and keeps the projected snapshot alive.
+    /// PT-br: Executa o benchmark da matriz com janela, agregacao e temporal em join e mantem o snapshot projetado ativo.
+    /// </summary>
+    protected virtual void RunJoinWindowAggregateTemporalMatrix()
+    {
+        var state = GetPreparedUsersOrdersQueryState(
+            "UsersOrdersThreeRows",
+            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var value = state.Service.RunJoinWindowAggregateTemporalMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the APPLY and temporal composite benchmark by chaining the shared APPLY and temporal queries.
+    /// PT-br: Executa o benchmark composto de APPLY e temporal encadeando as consultas compartilhadas de APPLY e temporal.
+    /// </summary>
+    protected virtual void RunApplyTemporalComposite()
+    {
+        RunCrossApplyProjection();
+        RunOuterApplyProjection();
+        RunJoinTemporalMatrix();
+    }
+
+    /// <summary>
+    /// EN: Executes the APPLY and window-temporal composite benchmark by chaining the shared APPLY and window queries.
+    /// PT-br: Executa o benchmark composto de APPLY e janela-temporal encadeando as consultas compartilhadas de APPLY e janela.
+    /// </summary>
+    protected virtual void RunApplyWindowTemporalComposite()
+    {
+        RunCrossApplyProjection();
+        RunOuterApplyProjection();
+        RunJoinWindowMatrix();
+        RunJoinWindowTemporalMatrix();
+    }
+
+    /// <summary>
     /// EN: Updates a user row by primary key and validates the stored value.
     /// PT-br: Atualiza uma linha de usuário pela chave primária e valida o valor armazenado.
     /// </summary>
@@ -714,6 +1803,13 @@ public abstract partial class BenchmarkSessionBase(
         var count = state.RunUpdateDeleteRoundTrip(1, 2);
         GC.KeepAlive(count);
     }
+
+    /// <summary>
+    /// EN: Executes the parameter update/delete round-trip benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de roundtrip de update/delete com parametros e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunParameterUpdateDeleteRoundTrip()
+        => RunUpdateDeleteRoundTrip();
 
     /// <summary>
     /// EN: Executes an insert inside a transaction, commits it, and validates the committed result.
@@ -788,6 +1884,38 @@ public abstract partial class BenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Executes the merge insert-then-update benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de merge de inserir e depois atualizar e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMergeInsertThenUpdate()
+    {
+        if (!Dialect.SupportsMerge)
+        {
+            return;
+        }
+
+        var state = GetPreparedMergeUsersState("MergeInsertThenUpdate");
+        var value = state.RunMergeInsertThenUpdate();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the upsert insert-then-update benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de upsert de inserir e depois atualizar e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunUpsertInsertThenUpdate()
+    {
+        if (!Dialect.SupportsUpsert)
+        {
+            return;
+        }
+
+        var state = GetPreparedMergeUsersState("UpsertInsertThenUpdate");
+        var value = state.RunUpsertInsertThenUpdate();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
     /// EN: Executes a parameter binding benchmark using a scalar projection query.
     /// PT-br: Executa um benchmark de binding de parametros usando uma consulta de projeção escalar.
     /// </summary>
@@ -806,6 +1934,28 @@ public abstract partial class BenchmarkSessionBase(
     {
         var state = GetPreparedInsertUsersState("ParameterInsertSingle");
         var count = state.RunParameterInsertSingle();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Executes the parameter insert round-trip benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de roundtrip de insert com parametros e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunParameterInsertRoundTrip()
+    {
+        var state = GetPreparedParameterInsertUsersState("ParameterInsertRoundTrip");
+        var count = state.RunParameterInsertRoundTrip();
+        GC.KeepAlive(count);
+    }
+
+    /// <summary>
+    /// EN: Executes the parameter insert round-trip benchmark with null values and keeps the provider result alive.
+    /// PT: Executa o benchmark de roundtrip de insert com parametros e valores nulos e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunParameterInsertNullRoundTrip()
+    {
+        var state = GetPreparedParameterInsertUsersState("ParameterInsertNullRoundTrip");
+        var count = state.RunParameterInsertNullRoundTrip();
         GC.KeepAlive(count);
     }
 
@@ -1030,6 +2180,62 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    protected virtual void RunSequenceCurrentValue()
+    {
+        var state = GetPreparedSequenceState("SequenceCurrentValue");
+        var value = state.RunSequenceCurrentValue();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSequenceInsertRoundTrip()
+    {
+        var state = GetPreparedSequenceUsersState("SequenceInsertRoundTrip");
+        var value = state.RunSequenceInsertRoundTrip();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSequenceInsertExpression()
+    {
+        var state = GetPreparedSequenceUsersState("SequenceInsertExpression");
+        var value = state.RunSequenceInsertExpression();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSequenceSelectProjection()
+    {
+        var state = GetPreparedSequenceState("SequenceSelectProjection");
+        var value = state.RunSequenceSelectProjection();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSequenceExpressionFilter()
+    {
+        var state = GetPreparedSequenceExpressionFilterState("SequenceExpressionFilter");
+        var value = state.RunSequenceExpressionFilter();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSequenceCaseWhereMatrix()
+    {
+        var state = GetPreparedSequenceState("SequenceCaseWhereMatrix");
+        var value = state.RunSequenceCaseWhereMatrix();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSequenceTemporalMatrix()
+    {
+        var state = GetPreparedSequenceState("SequenceTemporalMatrix");
+        var value = state.RunSequenceTemporalMatrix();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSequenceJoinAggregate()
+    {
+        var state = GetPreparedSequenceState("SequenceJoinAggregate");
+        var value = state.RunSequenceJoinAggregate();
+        GC.KeepAlive(value);
+    }
+
     protected virtual void RunBatchInsert10()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
@@ -1097,6 +2303,214 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedNoopQueryState("NoopQuery");
         var service = state.Service;
         var value = service.RunDateScalarAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared math functions benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de funcoes matematicas e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathFunctions()
+    {
+        if (!Dialect.SupportsMathFunctions)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared explicit-base math LOG benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de logaritmo com base explicita e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathLogBaseFunction()
+    {
+        if (!Dialect.SupportsMathLogBaseFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathLogBaseFunctionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared LOG2 benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de LOG2 e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathLog2Function()
+    {
+        if (!Dialect.SupportsMathLog2Function)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathLog2FunctionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared PI benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de PI e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathPiFunction()
+    {
+        if (!Dialect.SupportsMathPiFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathPiFunctionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared RAND benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de RAND e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathRandFunction()
+    {
+        if (!Dialect.SupportsMathRandFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathRandFunctionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared remainder benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de resto e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathRemainderFunction()
+    {
+        if (!Dialect.SupportsMathRemainderFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathRemainderFunctionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared math truncation benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de truncamento numerico e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathTruncFunction()
+    {
+        if (!Dialect.SupportsMathTruncFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathTruncFunctionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared cotangent benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark compartilhado de cotangente e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathCotFunction()
+    {
+        if (!Dialect.SupportsMathCotFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunMathCotFunctionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the MySQL utility math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de utilitarios matematicos da familia MySQL e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMySqlUtilityMathFunctions()
+    {
+        if (!Dialect.SupportsMySqlUtilityMathFunctions)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("MySqlUtilityMathFunctions");
+        var value = state.Service.RunMySqlUtilityMathFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared greatest/least/mod benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de greatest/least/mod e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunGreatestLeastModFunctions()
+    {
+        if (!Dialect.SupportsGreatestLeastModFunctions)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("GreatestLeastModFunctions");
+        var value = state.Service.RunGreatestLeastModFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the DB2 alias math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de aliases matematicos do DB2 e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunDb2AliasMathFunctions()
+    {
+        if (!Dialect.SupportsDb2AliasMathFunctions)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("Db2AliasMathFunctions");
+        var value = state.Service.RunDb2AliasMathFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the Firebird alias math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de aliases matematicos do Firebird e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunFirebirdAliasMathFunctions()
+    {
+        if (!Dialect.SupportsFirebirdAliasMathFunctions)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("FirebirdAliasMathFunctions");
+        var value = state.Service.RunFirebirdAliasMathFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the shared transcendental math benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark compartilhado de matematica transcendental e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunMathTranscendentalFunctions()
+    {
+        if (!Dialect.SupportsMathTranscendentalFunctions)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("MathTranscendentalFunctions");
+        var value = state.Service.RunMathTranscendentalFunctionsAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -1260,6 +2674,53 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    protected virtual void RunStringAggregateSummaryMatrix()
+    {
+        if (!Dialect.SupportsStringAggregate)
+        {
+            return;
+        }
+
+        var state = GetPreparedUsersQueryState(
+            "StringAggregateSummaryMatrix",
+            (1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta"));
+        var snapshot = state.Service.RunStringAggregateSummaryMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(snapshot);
+    }
+
+    protected virtual void RunStringAggregateGroupCaseMatrix()
+    {
+        if (!Dialect.SupportsStringAggregate)
+        {
+            return;
+        }
+
+        var state = GetPreparedUsersQueryState(
+            "StringAggregateGroupCaseMatrix",
+            (1, "Charlie"), (2, "Bob"), (3, "Alice"), (4, "Bob"), (5, "Delta"));
+        var snapshot = state.Service.RunStringAggregateGroupCaseMatrixAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(snapshot);
+    }
+
+    protected virtual void RunStringAggregationSummaryMatrix()
+        => RunStringAggregateSummaryMatrix();
+
+    protected virtual void RunStringAggregationGroupCaseMatrix()
+        => RunStringAggregateGroupCaseMatrix();
+
+    /// <summary>
+    /// EN: Executes the full string aggregation variants benchmark and keeps the provider results alive.
+    /// PT: Executa o benchmark completo das variantes de agregacao de strings e mantem os resultados do provedor vivos.
+    /// </summary>
+    protected virtual void RunStringAggregationVariants()
+    {
+        RunStringAggregate();
+        RunStringAggregateOrdered();
+        RunStringAggregateDistinct();
+        RunStringAggregateCustomSeparator();
+        RunStringAggregateLargeGroup();
+    }
+
     protected virtual void RunTemporalCurrentTimestamp()
     {
         var state = GetPreparedNoopQueryState("NoopQuery");
@@ -1288,6 +2749,19 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedUsersQueryState("TemporalNowOrderBy", (1, "Bob"), (2, "Alice"));
         var value = state.Service.RunTemporalNowOrderByAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the scalar temporal matrix benchmark and keeps the provider results alive.
+    /// PT: Executa a matriz temporal escalar e mantem os resultados do provedor vivos.
+    /// </summary>
+    protected virtual void RunScalarTemporalMatrix()
+    {
+        RunDateScalar();
+        RunTemporalCurrentTimestamp();
+        RunTemporalDateAdd();
+        RunTemporalNowWhere();
+        RunTemporalNowOrderBy();
     }
 
     /// <summary>
@@ -1323,6 +2797,170 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(snapshot);
     }
 
+    protected virtual void RunTemporalDateTrunc()
+    {
+        if (!Dialect.SupportsSqlServerDateFunction("DATETRUNC"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunTemporalDateTruncAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunTemporalTimeZoneOffset()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("TODATETIMEOFFSET"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunTemporalTimeZoneOffsetAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunTemporalFromParts()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("DATEFROMPARTS"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunTemporalFromPartsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunTemporalEndOfMonth()
+    {
+        if (!Dialect.SupportsSqlServerDateFunction("EOMONTH"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunTemporalEndOfMonthAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunTemporalDateDiffBig()
+    {
+        if (!Dialect.SupportsSqlServerDateFunction("DATEDIFF_BIG"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunTemporalDateDiffBigAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSqlServerMetadataFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSqlServerMetadataFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunScopeIdentity()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunScopeIdentityAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSqlServerSystemFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSqlServerSystemFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSqlServerSpecialFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSqlServerSpecialFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSqlServerContextFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSqlServerContextFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSqlServerTransactionStateFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSqlServerTransactionStateFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSqlServerSessionFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSqlServerSessionFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunStringBasicFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunStringBasicFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunParseFamily()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunParseFamilyAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSoundex()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSoundexAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunCompression()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunCompressionAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunApproxCountDistinct()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunApproxCountDistinctAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunPercentileAggregateFunctions()
+    {
+        if (!Dialect.SupportsSqlServerAggregateFunction("PERCENTILE_CONT")
+            || !Dialect.SupportsSqlServerAggregateFunction("PERCENTILE_DISC"))
+        {
+            return;
+        }
+
+        var state = GetPreparedUsersQueryState("PercentileAggregateFunctions", (1, "Ana"), (2, "Bob"));
+        var value = state.Service.RunPercentileAggregatesAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunSqlServerAggregateFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunSqlServerAggregateFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
     protected virtual void RunJsonPathRead()
     {
         if (!Dialect.SupportsJsonScalarRead)
@@ -1333,6 +2971,61 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedNoopQueryState("NoopQuery");
         var service = state.Service;
         var value = service.RunJsonPathReadAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the JSON missing-path benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark de caminho JSON ausente e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunJsonMissingPathRead()
+    {
+        if (!Dialect.SupportsJsonScalarRead)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunJsonMissingPathReadAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the missing JSON path benchmark and keeps the provider result alive when it is null.
+    /// PT: Executa o benchmark de caminho JSON ausente e mantem o resultado do provedor vivo quando ele eh nulo.
+    /// </summary>
+    protected virtual void RunJsonMissingPathReturnsNull()
+        => RunJsonMissingPathRead();
+
+    /// <summary>
+    /// EN: Executes the JSON_QUERY root-fragment benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark de fragmento raiz JSON_QUERY e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunJsonQueryRootFragment()
+    {
+        if (!Dialect.SupportsJsonQueryFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunJsonQueryRootFragmentAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the JSON_MODIFY replacement benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark de substituicao JSON_MODIFY e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunJsonModifyReplace()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("JSON_MODIFY"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunJsonModifyReplaceAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -1350,6 +3043,54 @@ public abstract partial class BenchmarkSessionBase(
         var state = GetPreparedTypedFieldStorageMatrixState("JsonTypedFieldMatrix");
         var snapshot = state.RunJsonTypedFieldMatrix();
         GC.KeepAlive(snapshot);
+    }
+
+    protected virtual void RunJsonEachFromArray()
+    {
+        if (!Dialect.SupportsJsonEachFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunJsonEachFromArrayAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunJsonEachFromObject()
+    {
+        if (!Dialect.SupportsJsonEachFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunJsonEachFromObjectAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunJsonTreeStructure()
+    {
+        if (!Dialect.SupportsJsonTreeFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunJsonTreeStructureAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    protected virtual void RunOpenJsonArray()
+    {
+        if (!Dialect.SupportsOpenJsonFunction)
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunOpenJsonArrayAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
     }
 
     protected virtual void RunRowCountAfterSelect()
@@ -1509,12 +3250,128 @@ public abstract partial class BenchmarkSessionBase(
         GC.KeepAlive(value);
     }
 
+    /// <summary>
+    /// EN: Executes the JSON insert cast benchmark and keeps the provider result alive when it is null.
+    /// PT: Executa o benchmark de insert e cast de JSON e mantem o resultado do provedor vivo quando ele eh nulo.
+    /// </summary>
+    protected virtual void RunJsonInsertCastReturnsNull()
+        => RunJsonInsertCast();
+
+    /// <summary>
+    /// EN: Executes the SQL Server string utility benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark de utilitarios de string do SQL Server e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunStringUtilityFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunStringUtilityFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server string metadata benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark de metadados de string do SQL Server e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunStringMetadataFunctions()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunStringMetadataFunctionsAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server STRING_ESCAPE benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark STRING_ESCAPE do SQL Server e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunStringEscape()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("STRING_ESCAPE"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunStringEscapeAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server TRANSLATE benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark TRANSLATE do SQL Server e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunTranslate()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("TRANSLATE"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunTranslateAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server FORMATMESSAGE benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark FORMATMESSAGE do SQL Server e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunFormatMessage()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("FORMATMESSAGE"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunFormatMessageAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server ISJSON benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark ISJSON do SQL Server e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunIsJson()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("ISJSON"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunIsJsonAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
+    /// EN: Executes the SQL Server FORMAT benchmark and keeps the provider result alive.
+    /// PT-br: Executa o benchmark FORMAT do SQL Server e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunFormat()
+    {
+        if (!Dialect.SupportsSqlServerScalarFunction("FORMAT"))
+        {
+            return;
+        }
+
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var value = state.Service.RunFormatAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
     protected virtual void RunRowCountInBatch()
     {
         var state = GetPreparedBatchUsersState("BatchUsers");
         var count = state.RunRowCountInBatch(1, 2);
         GC.KeepAlive(count);
     }
+
+    /// <summary>
+    /// EN: Executes the batch row-count benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de contagem de linhas em lote e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunBatchRowCountInBatch()
+        => RunRowCountInBatch();
 
     protected virtual void RunPivotCount()
     {
@@ -1536,6 +3393,13 @@ public abstract partial class BenchmarkSessionBase(
         var value = state.RunReturningInsert();
         GC.KeepAlive(value);
     }
+
+    /// <summary>
+    /// EN: Executes the batch returning insert benchmark and keeps the provider result alive.
+    /// PT: Executa o benchmark de batch returning insert e mantem o resultado do provedor vivo.
+    /// </summary>
+    protected virtual void RunBatchReturningInsert()
+        => RunReturningInsert();
 
     protected virtual void RunReturningUpdate()
     {
