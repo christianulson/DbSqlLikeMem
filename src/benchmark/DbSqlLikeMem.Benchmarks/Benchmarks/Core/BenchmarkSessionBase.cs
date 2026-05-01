@@ -108,6 +108,9 @@ public abstract partial class BenchmarkSessionBase(
             case BenchmarkFeatureId.CreateSchema:
                 RunCreateSchema();
                 break;
+            case BenchmarkFeatureId.CreateTable:
+                RunCreateTable();
+                break;
             case BenchmarkFeatureId.CreateTableWithFK:
                 RunCreateTableWithFK();
                 break;
@@ -941,6 +944,15 @@ public abstract partial class BenchmarkSessionBase(
     }
 
     /// <summary>
+    /// EN: Creates the benchmark users table through the shared CreateTable service and then removes it.
+    /// PT-br: Cria a tabela de usuários do benchmark pelo service compartilhado de CreateTable e depois a remove.
+    /// </summary>
+    protected virtual void RunCreateTable()
+    {
+        RunCreateSchema();
+    }
+
+    /// <summary>
     /// EN: Creates the benchmark users and orders tables with a foreign key and removes them after the run.
     /// PT-br: Cria as tabelas de usuarios e pedidos do benchmark com chave estrangeira e as remove apos a execucao.
     /// </summary>
@@ -1522,10 +1534,7 @@ ORDER BY Id
     /// </summary>
     protected virtual void RunJoinTypedExpressionMatrix()
     {
-        var state = GetPreparedUsersOrdersQueryState(
-            "JoinTypedExpressionMatrix",
-            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var state = GetPreparedUsersOrdersMetricsQueryState("JoinTypedExpressionMatrix");
         var value = state.Service.RunJoinTypedExpressionMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1536,10 +1545,7 @@ ORDER BY Id
     /// </summary>
     protected virtual void RunJoinNullAggregateMatrix()
     {
-        var state = GetPreparedUsersOrdersQueryState(
-            "JoinNullAggregateMatrix",
-            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var state = GetPreparedUsersOrdersMetricsQueryState("JoinNullAggregateMatrix");
         var value = state.Service.RunJoinNullAggregateMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1550,10 +1556,7 @@ ORDER BY Id
     /// </summary>
     protected virtual void RunJoinCastNullMatrix()
     {
-        var state = GetPreparedUsersOrdersQueryState(
-            "JoinCastNullMatrix",
-            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var state = GetPreparedUsersOrdersMetricsQueryState("JoinCastNullMatrix");
         var value = state.Service.RunJoinCastNullMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1564,10 +1567,7 @@ ORDER BY Id
     /// </summary>
     protected virtual void RunJoinCastTextComparisonMatrix()
     {
-        var state = GetPreparedUsersOrdersQueryState(
-            "JoinCastTextComparisonMatrix",
-            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var state = GetPreparedUsersOrdersMetricsQueryState("JoinCastTextComparisonMatrix");
         var value = state.Service.RunJoinCastTextComparisonMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1578,10 +1578,7 @@ ORDER BY Id
     /// </summary>
     protected virtual void RunJoinHavingCastMatrix()
     {
-        var state = GetPreparedUsersOrdersQueryState(
-            "JoinHavingCastMatrix",
-            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var state = GetPreparedUsersOrdersMetricsQueryState("JoinHavingCastMatrix");
         var value = state.Service.RunJoinHavingCastMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1592,10 +1589,7 @@ ORDER BY Id
     /// </summary>
     protected virtual void RunJoinLengthNumericMatrix()
     {
-        var state = GetPreparedUsersOrdersQueryState(
-            "JoinLengthNumericMatrix",
-            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var state = GetPreparedUsersOrdersMetricsQueryState("JoinLengthNumericMatrix");
         var value = state.Service.RunJoinLengthNumericMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1606,10 +1600,7 @@ ORDER BY Id
     /// </summary>
     protected virtual void RunJoinTextCaseLengthMatrix()
     {
-        var state = GetPreparedUsersOrdersQueryState(
-            "JoinTextCaseLengthMatrix",
-            [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+        var state = GetPreparedUsersOrdersMetricsQueryState("JoinTextCaseLengthMatrix");
         var value = state.Service.RunJoinTextCaseLengthMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1623,7 +1614,7 @@ ORDER BY Id
         var state = GetPreparedUsersOrdersQueryState(
             "JoinDistinctCaseMatrix",
             [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+            [(10, 1, "A"), (11, 1, "A"), (12, 1, "B"), (13, 2, "C")]);
         var value = state.Service.RunJoinDistinctCaseMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1637,7 +1628,7 @@ ORDER BY Id
         var state = GetPreparedUsersOrdersQueryState(
             "JoinDistinctHavingMatrix",
             [(1, "Alice"), (2, "Bob"), (3, "Carla")],
-            [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
+            [(10, 1, "A"), (11, 1, "A"), (12, 1, "B"), (13, 2, "C")]);
         var value = state.Service.RunJoinDistinctHavingMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -1697,7 +1688,7 @@ ORDER BY Id
     protected virtual void RunJoinWindowTemporalMatrix()
     {
         var state = GetPreparedUsersOrdersQueryState(
-            "UsersOrdersThreeRows",
+            "JoinWindowTemporalMatrix",
             [(1, "Alice"), (2, "Bob"), (3, "Carla")],
             [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
         var value = state.Service.RunJoinWindowTemporalMatrixAsync().GetAwaiter().GetResult();
@@ -1711,7 +1702,7 @@ ORDER BY Id
     protected virtual void RunJoinTemporalMatrix()
     {
         var state = GetPreparedUsersOrdersQueryState(
-            "UsersOrdersThreeRows",
+            "JoinTemporalMatrix",
             [(1, "Alice"), (2, "Bob"), (3, "Carla")],
             [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
         var value = state.Service.RunJoinTemporalMatrixAsync().GetAwaiter().GetResult();
@@ -1725,7 +1716,7 @@ ORDER BY Id
     protected virtual void RunJoinWindowMatrix()
     {
         var state = GetPreparedUsersOrdersQueryState(
-            "UsersOrdersThreeRows",
+            "JoinWindowMatrix",
             [(1, "Alice"), (2, "Bob"), (3, "Carla")],
             [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
         var value = state.Service.RunJoinWindowMatrixAsync().GetAwaiter().GetResult();
@@ -1739,7 +1730,7 @@ ORDER BY Id
     protected virtual void RunJoinWindowAggregateTemporalMatrix()
     {
         var state = GetPreparedUsersOrdersQueryState(
-            "UsersOrdersThreeRows",
+            "JoinWindowAggregateTemporalMatrix",
             [(1, "Alice"), (2, "Bob"), (3, "Carla")],
             [(10, 1, "A"), (11, 1, "B"), (12, 2, "C")]);
         var value = state.Service.RunJoinWindowAggregateTemporalMatrixAsync().GetAwaiter().GetResult();

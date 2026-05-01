@@ -15,6 +15,7 @@ public static class FeatureCatalog
     [
         new(BenchmarkFeatureId.ConnectionOpen, "Connection open", "Core", true, ["1.1.3", "2.1.1"]),
         new(BenchmarkFeatureId.CreateSchema, "Create schema", "Setup", true, ["1.2.1", "1.4.1"]),
+        new(BenchmarkFeatureId.CreateTable, "Create table", "Setup", true, ["1.2.1", "1.4.1"], "Create the benchmark users table."),
         new(BenchmarkFeatureId.CreateTableWithFK, "Create table with FK", "Setup", true, ["1.2.1", "1.4.1"], "Create the benchmark users and orders tables with a foreign-key relationship."),
         new(BenchmarkFeatureId.CreateTableWithFKInsert, "Create table with FK insert", "Setup", true, [], "Create the foreign-key tables and insert a referenced row."),
         new(BenchmarkFeatureId.InsertInTableWithFK, "Insert in table with FK", "Setup", true, [], "Alias benchmark for the foreign-key table insert flow."),

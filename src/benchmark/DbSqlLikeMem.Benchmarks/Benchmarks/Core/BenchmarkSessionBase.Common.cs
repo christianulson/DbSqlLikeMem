@@ -320,6 +320,18 @@ public abstract partial class BenchmarkSessionBase
                     (repo, context) => BenchmarkScenarioFactory.CreateUsersOrdersScenario(repo, context, seedUsers, seedOrders),
                     (repo, context) => new QueryServiceTest(repo, context))));
 
+    private PreparedUsersOrdersQueryState GetPreparedUsersOrdersMetricsQueryState(string key)
+        => GetOrCreatePreparedState(
+            key,
+            () => new PreparedUsersOrdersQueryState(
+                CreatePreparedScenarioScope(
+                    (repo, context) => BenchmarkScenarioFactory.CreateUsersOrdersScenarioWithMetrics(
+                        repo,
+                        context,
+                        [(1, "Alice"), (2, "Bob"), (3, "Carla")],
+                        [(10, 1, "A", 1.25m, 2, false), (11, 1, "B", 2.75m, 1, true), (12, 2, "C", 5.50m, 4, false)]),
+                    (repo, context) => new QueryServiceTest(repo, context))));
+
     private PreparedExecutionPlanState GetPreparedExecutionPlanState(
         string key,
         params (int id, string name)[] seedRows)
@@ -559,10 +571,10 @@ public abstract partial class BenchmarkSessionBase
             => runner.RunTestAsync<InsertUsersScenario, InsertDefaultsUsersServiceTest>(1, "Alice").GetAwaiter().GetResult();
 
         public object? RunInsertNullableColumns()
-            => runner.RunTestAsync<InsertUsersScenario, InsertNullableColumnsServiceTest>(1, 10).GetAwaiter().GetResult();
+            => runner.RunTestAsync<InsertNullabilityScenario, InsertNullableColumnsServiceTest>(1, 10).GetAwaiter().GetResult();
 
         public object? RunInsertNotNullWithoutDefault()
-            => runner.RunTestAsync<InsertUsersScenario, InsertNotNullWithoutDefaultServiceTest>(2).GetAwaiter().GetResult();
+            => runner.RunTestAsync<InsertNullabilityScenario, InsertNotNullWithoutDefaultServiceTest>(2).GetAwaiter().GetResult();
 
         public void Dispose()
             => runner.Dispose();

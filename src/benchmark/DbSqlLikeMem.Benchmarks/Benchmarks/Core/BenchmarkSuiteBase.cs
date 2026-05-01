@@ -108,6 +108,14 @@ public abstract class BenchmarkSuiteBase
     public void CreateSchema() => Run(BenchmarkFeatureId.CreateSchema);
 
     /// <summary>
+    /// EN: Executes a table-creation benchmark.
+    /// PT: Executa um benchmark de criacao de tabela.
+    /// </summary>
+    [Benchmark]
+    [BenchmarkCategory("core")]
+    public void CreateTable() => Run(BenchmarkFeatureId.CreateTable);
+
+    /// <summary>
     /// EN: Executes a benchmark that creates the users and orders tables with a foreign key.
     /// PT: Executa um benchmark que cria as tabelas de usuarios e pedidos com chave estrangeira.
     /// </summary>

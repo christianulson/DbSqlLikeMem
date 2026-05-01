@@ -19,6 +19,12 @@ public enum BenchmarkFeatureId
     CreateSchema,
 
     /// <summary>
+    /// EN: Creates the benchmark table.
+    /// PT: Cria a tabela de benchmark.
+    /// </summary>
+    CreateTable,
+
+    /// <summary>
     /// EN: Creates the benchmark users and orders tables with a foreign key.
     /// PT: Cria as tabelas de usuarios e pedidos do benchmark com chave estrangeira.
     /// </summary>

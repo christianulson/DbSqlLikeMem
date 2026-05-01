@@ -112,4 +112,20 @@ public static class BenchmarkScenarioFactory
         (int id, string name)[]? seedUsers = null,
         (int id, int userId, string note)[]? seedOrders = null)
         => new(repo, context, seedUsers, seedOrders);
+
+    /// <summary>
+    /// EN: Creates a users-and-orders scenario with seeded order metrics for join benchmarks.
+    /// PT: Cria um cenario de usuarios e pedidos com metricas de pedidos para benchmarks de join.
+    /// </summary>
+    /// <param name="repo"></param>
+    /// <param name="context"></param>
+    /// <param name="seedUsers">EN: The rows used to seed the users table. PT: As linhas usadas para popular a tabela de usuarios.</param>
+    /// <param name="seedOrders">EN: The rows used to seed the orders table, including amount and quantity values. PT: As linhas usadas para popular a tabela de pedidos, incluindo valores de amount e quantity.</param>
+    /// <returns>EN: A users-and-orders scenario instance. PT: Uma instancia de cenario de usuarios e pedidos.</returns>
+    public static UsersOrdersScenario CreateUsersOrdersScenarioWithMetrics(
+        RepoService repo,
+        FidelityTestContext context,
+        (int id, string name)[]? seedUsers = null,
+        (int id, int userId, string note, decimal amount, int quantity, bool isPaid)[]? seedOrders = null)
+        => new(repo, context, seedUsers, seedOrders);
 }
