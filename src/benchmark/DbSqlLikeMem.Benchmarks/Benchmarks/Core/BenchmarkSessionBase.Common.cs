@@ -15,8 +15,21 @@ public abstract partial class BenchmarkSessionBase
     private readonly object _preparedStateSync = new();
     private readonly ConcurrentDictionary<string, IDisposable> _preparedStates = new();
 
+    /// <summary>
+    /// EN: Generates the next stable hex token used to name prepared benchmark states.
+    /// PT-br: Gera o proximo token hexadecimal estavel usado para nomear estados preparados de benchmark.
+    /// </summary>
     protected static string NextToken() => Interlocked.Increment(ref _objectCounter).ToString("x8", CultureInfo.InvariantCulture).ToUpperInvariant();
 
+    /// <summary>
+    /// EN: Creates a prepared scenario scope with a live repository, context, scenario, and service.
+    /// PT-br: Cria um escopo de cenario preparado com repositório, contexto, cenario e service ativos.
+    /// </summary>
+    /// <typeparam name="TScenario">EN: The scenario type to prepare. PT-br: O tipo de cenario a preparar.</typeparam>
+    /// <typeparam name="TService">EN: The service type bound to the prepared scenario. PT-br: O tipo de service vinculado ao cenario preparado.</typeparam>
+    /// <param name="scenarioFactory">EN: Factory that creates the scenario instance. PT-br: Fábrica que cria a instancia do cenario.</param>
+    /// <param name="serviceFactory">EN: Factory that creates the service instance. PT-br: Fábrica que cria a instancia do service.</param>
+    /// <returns>EN: A prepared scenario scope ready for benchmark execution. PT-br: Um escopo de cenario preparado pronto para execucao do benchmark.</returns>
     private PreparedScenarioScope<TScenario, TService> CreatePreparedScenarioScope<TScenario, TService>(
         Func<RepoService, FidelityTestContext, TScenario> scenarioFactory,
         Func<RepoService, FidelityTestContext, TService> serviceFactory)
@@ -33,6 +46,12 @@ public abstract partial class BenchmarkSessionBase
         return new PreparedScenarioScope<TScenario, TService>(repo, context, scenario, service);
     }
 
+    /// <summary>
+    /// EN: Creates a benchmark runner backed by the current connection factory and dialect.
+    /// PT-br: Cria um runner de benchmark apoiado pela fabrica de conexoes e pelo dialeto atuais.
+    /// </summary>
+    /// <param name="initialData">EN: Optional seed data used to initialize the runner. PT-br: Dados iniciais opcionais usados para inicializar o runner.</param>
+    /// <returns>EN: A benchmark runner configured for the current session. PT-br: Um runner de benchmark configurado para a sessao atual.</returns>
     private NotFidelityTestService<DbConnection> CreateBenchmarkRunner(params object?[][] initialData)
         => new(CreateConnection, Dialect, initialData);
 
@@ -85,11 +104,19 @@ public abstract partial class BenchmarkSessionBase
             BenchmarkScenarioFactory.CreateInsertUsersScenario,
             (repo, context) => new BatchInsertReturningServiceTest(repo, context));
 
+    /// <summary>
+    /// EN: Creates the prepared scope used by temporary-table benchmarks.
+    /// PT-br: Cria o escopo preparado usado pelos benchmarks de tabela temporaria.
+    /// </summary>
     internal PreparedScenarioScope<TemporaryTableScenario, TemporaryTableServiceOpsTest> CreateTemporaryTableScope()
         => CreatePreparedScenarioScope(
             BenchmarkScenarioFactory.CreateTemporaryTableScenario,
             (repo, context) => new TemporaryTableServiceOpsTest(repo, context));
 
+    /// <summary>
+    /// EN: Creates the prepared scope used by temporary-user benchmarks.
+    /// PT-br: Cria o escopo preparado usado pelos benchmarks de usuarios temporarios.
+    /// </summary>
     internal PreparedScenarioScope<TemporaryUsersScenario, TemporaryTableServiceOpsTest> CreateTemporaryUsersScope()
         => CreatePreparedScenarioScope(
             BenchmarkScenarioFactory.CreateTemporaryUsersScenario,
@@ -209,6 +236,14 @@ public abstract partial class BenchmarkSessionBase
             key,
             () => new PreparedParameterInsertUsersState(CreateBenchmarkRunner()));
 
+    /// <summary>
+    /// EN: Executes a prepared stored-procedure call benchmark with the supplied parameters.
+    /// PT-br: Executa um benchmark preparado de chamada de procedimento armazenado com os parametros informados.
+    /// </summary>
+    /// <param name="key">EN: The cache key for the prepared stored-procedure state. PT-br: A chave de cache do estado preparado do procedimento armazenado.</param>
+    /// <param name="tenantId">EN: The tenant identifier passed to the stored procedure. PT-br: O identificador de tenant passado ao procedimento armazenado.</param>
+    /// <param name="note">EN: The note payload passed to the stored procedure. PT-br: A anotacao passada ao procedimento armazenado.</param>
+    /// <returns>EN: The stored-procedure result count. PT-br: A contagem de resultado do procedimento armazenado.</returns>
     protected int RunPreparedStoredProcedureCall(string key, int tenantId, string note)
         => GetPreparedStoredProcedureState(key).RunStoredProcedureCall(tenantId, note);
 
