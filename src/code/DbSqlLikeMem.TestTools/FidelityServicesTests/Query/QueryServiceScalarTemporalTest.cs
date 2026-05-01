@@ -108,7 +108,7 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the JSON_QUERY benchmark.");
         }
 
-        var value = await Repo.ExecuteScalarAsync("SELECT JSON_QUERY('{\"profile\":{\"active\":true,\"name\":\"Ana\"}}')");
+        var value = await Repo.ExecuteScalarAsync(Repo.Dialect.JsonQueryRootFragment("{\"profile\":{\"active\":true,\"name\":\"Ana\"}}"));
         GC.KeepAlive(value);
         return Convert.ToString(value, CultureInfo.InvariantCulture);
     }
@@ -211,7 +211,7 @@ public partial class QueryServiceTest
         var naturalLog = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathNaturalLogExpression("2.718281828459045")}"), CultureInfo.InvariantCulture);
         var log10 = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathLog10Expression("1000")}"), CultureInfo.InvariantCulture);
         var power = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathPowerExpression("2", "3")}"), CultureInfo.InvariantCulture);
-        var radians = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRadiansExpression("180")}"), CultureInfo.InvariantCulture);
+        var radians = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRadiansExpression("180.0")}"), CultureInfo.InvariantCulture);
         var round = Convert.ToDecimal(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRoundExpression("1.235", 2)}"), CultureInfo.InvariantCulture);
         var sign = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSignExpression("-10")}"), CultureInfo.InvariantCulture);
         var sqrt = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSqrtExpression("9")}"), CultureInfo.InvariantCulture);
@@ -453,13 +453,13 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the Firebird alias math benchmark.");
         }
 
-        var absVal = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ABSVAL(-5)"), CultureInfo.InvariantCulture);
-        var bin = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT BIN(6)"), CultureInfo.InvariantCulture) ?? string.Empty;
-        var cosh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT COSH(0)"), CultureInfo.InvariantCulture);
-        var sinh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT SINH(0)"), CultureInfo.InvariantCulture);
-        var tanh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT TANH(0)"), CultureInfo.InvariantCulture);
-        var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(123.456)"), CultureInfo.InvariantCulture);
-        var truncScale = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(123.456, 2)"), CultureInfo.InvariantCulture);
+        var absVal = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ABSVAL(-5) FROM RDB$DATABASE"), CultureInfo.InvariantCulture);
+        var bin = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT BIN(6) FROM RDB$DATABASE"), CultureInfo.InvariantCulture) ?? string.Empty;
+        var cosh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT COSH(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture);
+        var sinh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT SINH(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture);
+        var tanh = Convert.ToDouble(await Repo.ExecuteScalarAsync("SELECT TANH(0) FROM RDB$DATABASE"), CultureInfo.InvariantCulture);
+        var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(123.456) FROM RDB$DATABASE"), CultureInfo.InvariantCulture);
+        var truncScale = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(123.456, 2) FROM RDB$DATABASE"), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(absVal);
         GC.KeepAlive(bin);

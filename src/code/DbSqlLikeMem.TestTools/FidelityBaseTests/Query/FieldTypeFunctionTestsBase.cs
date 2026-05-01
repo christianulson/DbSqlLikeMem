@@ -427,7 +427,11 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, double>(
             async (QueryServiceTest s, object[] _) => await s.RunMathPiFunctionAsync());
 
-        result.Should().BeApproximately(Math.PI, 12);
+        var expectedPi = dialect.Provider is ProviderId.MySql or ProviderId.MariaDb
+            ? 3.141593d
+            : Math.PI;
+
+        result.Should().BeApproximately(expectedPi, 12);
     }
 
     /// <summary>
@@ -1088,7 +1092,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
             async (QueryServiceTest s, object[] _) => await s.RunCompressionAsync());
 
         result.compressed.Should().NotBeEmpty();
-        result.decompressed.Should().Equal(Encoding.Unicode.GetBytes("Ana"));
+        result.decompressed.Should().Equal(Encoding.UTF8.GetBytes("Ana"));
     }
 
     /// <summary>

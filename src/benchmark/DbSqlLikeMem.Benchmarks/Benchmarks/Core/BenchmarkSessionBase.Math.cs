@@ -222,4 +222,13 @@ public abstract partial class BenchmarkSessionBase
         var value = state.Service.RunMathTranscendentalFunctionsAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
+
+    /// <summary>
+    /// EN: Registers the Firebird EXECUTE BLOCK benchmark as a catalog-visible feature.
+    /// PT-br: Registra o benchmark Firebird EXECUTE BLOCK como um recurso visivel no catalogo.
+    /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.ExecuteBlockSqlState23000)]
+    protected virtual void RunExecuteBlockSqlState23000()
+    {
+    }
 }

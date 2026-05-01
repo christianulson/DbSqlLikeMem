@@ -379,7 +379,7 @@ public sealed class SqlAzureFunctionTests
 
         var compressed = Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT COMPRESS('Ana') FROM Users WHERE Id = 1"));
         Assert.NotEmpty(compressed);
-        Assert.Equal(Encoding.Unicode.GetBytes("Ana"), Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT DECOMPRESS(COMPRESS('Ana')) FROM Users WHERE Id = 1")));
+        Assert.Equal(Encoding.UTF8.GetBytes("Ana"), Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT DECOMPRESS(COMPRESS('Ana')) FROM Users WHERE Id = 1")));
     }
 
     /// <summary>

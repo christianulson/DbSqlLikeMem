@@ -1090,7 +1090,13 @@ ORDER BY u.Id, o.Id
     /// PT-br: Executa uma consulta CTE com hint MATERIALIZED na tabela de usuarios configurada.
     /// </summary>
     public Task<QueryResultSnapshot> RunCteMaterializedHintAsync(params object[] pars)
-        => CaptureSnapshotAsync($"""
+    {
+        if (!Repo.Dialect.SupportsWithMaterializedHint)
+        {
+            throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the MATERIALIZED CTE benchmark.");
+        }
+
+        return CaptureSnapshotAsync($"""
 WITH x AS MATERIALIZED (
     SELECT Id, Name
     FROM {Context.TbUsersFullName}
@@ -1099,6 +1105,7 @@ WITH x AS MATERIALIZED (
 SELECT Name
 FROM x
 """);
+    }
 
     /// <summary>
     /// EN: Executes a ROW_NUMBER window query against the configured users table and returns the full rowset snapshot.

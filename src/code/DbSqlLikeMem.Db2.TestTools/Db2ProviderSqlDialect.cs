@@ -40,6 +40,41 @@ public sealed class Db2ProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsMathTranscendentalFunctions => true;
 
     /// <inheritdoc />
+    public override bool SupportsWithMaterializedHint => false;
+
+    /// <inheritdoc />
+    public override string MathAcosExpression(string expression) =>
+        $"ACOS({expression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
+    public override string MathAsinExpression(string expression) =>
+        $"ASIN({expression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
+    public override string MathAtanExpression(string expression) =>
+        $"ATAN({expression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
+    public override string MathAtan2Expression(string yExpression, string xExpression) =>
+        $"ATAN2({yExpression}, {xExpression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
+    public override string MathCosExpression(string expression) =>
+        $"COS({expression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
+    public override string MathExpExpression(string expression) =>
+        $"EXP({expression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
+    public override string MathSinExpression(string expression) =>
+        $"SIN({expression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
+    public override string MathTanExpression(string expression) =>
+        $"TAN({expression}) FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>
         $@"
 CREATE TABLE {context.TbUsersFullName} (
@@ -270,6 +305,10 @@ WHEN NOT MATCHED THEN
     /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>
         $"VALUES JSON_VALUE('{jsonLiteral}', 'strict $.name')";
+
+    /// <inheritdoc />
+    public override string JsonQueryRootFragment(string jsonLiteral) =>
+        $"VALUES JSON_QUERY('{jsonLiteral}', '$')";
 
     /// <inheritdoc />
     public override string StringAggregateDistinct(FidelityTestContext context  ) =>

@@ -31,6 +31,10 @@ public sealed class MySqlProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsMathPiFunction => true;
 
     /// <inheritdoc />
+    public override string MathPiExpression() =>
+        "ROUND(PI(), 6)";
+
+    /// <inheritdoc />
     public override bool SupportsMathRandFunction => true;
 
     /// <inheritdoc />
@@ -178,7 +182,7 @@ CREATE TABLE {context.TbOrdersFullName} (
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
-    public override bool SupportsJsonQueryFunction => true;
+    public override bool SupportsJsonQueryFunction => false;
 
     /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>

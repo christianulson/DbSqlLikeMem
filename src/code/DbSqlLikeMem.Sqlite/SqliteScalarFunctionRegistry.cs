@@ -1,5 +1,3 @@
-using System.Globalization;
-
 using DbSqlLikeMem.Models;
 
 namespace DbSqlLikeMem.Sqlite;

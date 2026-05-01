@@ -696,6 +696,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
         throw new NotSupportedException($"{DisplayName} does not support the JSON path benchmark.");
 
     /// <summary>
+    /// EN: Returns the SQL statement used for the JSON_QUERY root-fragment benchmark.
+    /// PT-br: Retorna a instrucao SQL usada no benchmark de fragmento raiz JSON_QUERY.
+    /// </summary>
+    public virtual string JsonQueryRootFragment(string jsonLiteral) =>
+        $"SELECT JSON_QUERY('{jsonLiteral}')";
+
+    /// <summary>
     /// EN: Returns the SQL statement for json_each table-valued function.
     /// PT-br: Retorna a instrucao SQL para a função tabular json_each.
     /// </summary>

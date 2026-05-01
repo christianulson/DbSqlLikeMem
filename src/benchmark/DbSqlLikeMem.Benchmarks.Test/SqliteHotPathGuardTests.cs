@@ -1,7 +1,5 @@
-using DbSqlLikeMem.Benchmarks.Core;
 using DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 using DbSqlLikeMem.Benchmarks.Sessions.External;
-using Xunit;
 
 namespace DbSqlLikeMem.Benchmarks.Test;
 

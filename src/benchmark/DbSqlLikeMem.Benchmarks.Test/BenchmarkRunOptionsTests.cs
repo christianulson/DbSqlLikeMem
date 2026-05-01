@@ -1,6 +1,3 @@
-using DbSqlLikeMem.Benchmarks;
-using Xunit;
-
 namespace DbSqlLikeMem.Benchmarks.Test;
 
 /// <summary>

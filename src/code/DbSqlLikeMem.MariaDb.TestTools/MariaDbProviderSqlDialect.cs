@@ -37,6 +37,10 @@ public sealed class MariaDbProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsMathPiFunction => true;
 
     /// <inheritdoc />
+    public override string MathPiExpression() =>
+        "ROUND(PI(), 6)";
+
+    /// <inheritdoc />
     public override bool SupportsMathRandFunction => true;
 
     /// <inheritdoc />

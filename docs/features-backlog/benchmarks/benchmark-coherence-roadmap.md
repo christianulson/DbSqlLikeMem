@@ -733,12 +733,12 @@ Sem uma regra formal de evolucao, uma feature pode mudar de categoria sem deixar
 
 ##### Checklist de implementacao
 
-- [ ] Criar arquivo de historico de mudancas de features.
-- [ ] Definir os status oficiais de feature.
-- [ ] Atualizar `FeatureDefinition` ou o catalogo JSON para carregar o status, se fizer sentido.
-- [ ] Atualizar o validador para impedir feature ativa sem status.
-- [ ] Atualizar o README para explicar o ciclo de vida da feature.
-- [ ] Registrar no historico a separacao atual entre comparavel e mock-only como primeira entrada.
+- [x] Criar arquivo de historico de mudancas de features.
+- [x] Definir os status oficiais de feature.
+- [x] Atualizar `FeatureDefinition` ou o catalogo JSON para carregar o status, se fizer sentido.
+- [x] Atualizar o validador para impedir feature ativa sem status.
+- [x] Atualizar o README para explicar o ciclo de vida da feature.
+- [x] Registrar no historico a separacao atual entre comparavel e mock-only como primeira entrada.
 
 ##### Criterio de conclusao
 
@@ -772,6 +772,7 @@ Hoje o nome da classe, o nome do metodo e o `BenchmarkFeatureId` ajudam na ident
   - no `FeatureDefinition`;
   - no JSON de catalogo;
   - em um atributo customizado no metodo de benchmark, caso a superficie publica precise ficar autoexplicativa.
+- A declaracao canonica atualmente fica em `FeatureDefinition.StableId`, com fallback para o nome do enum quando o catalogo nao define um alias explicito.
 - A saida JSON usada pelos scripts deve carregar:
   - `BenchmarkStableId`;
   - `BenchmarkFeatureId`;
@@ -785,12 +786,12 @@ Hoje o nome da classe, o nome do metodo e o `BenchmarkFeatureId` ajudam na ident
 
 ##### Checklist de implementacao
 
-- [ ] Escolher onde o identificador estavel sera declarado.
-- [ ] Adicionar identificador estavel a todas as features atuais.
-- [ ] Atualizar exportadores para usar o identificador estavel como chave primaria logica.
-- [ ] Garantir que a wiki continue exibindo nomes legiveis, mas use o ID estavel para agrupamento.
-- [ ] Criar validacao contra IDs duplicados.
-- [ ] Criar validacao contra alteracao acidental de ID estavel.
+- [x] Escolher onde o identificador estavel sera declarado.
+- [x] Adicionar identificador estavel a todas as features atuais.
+- [x] Atualizar exportadores para usar o identificador estavel como chave primaria logica.
+- [x] Garantir que a wiki continue exibindo nomes legiveis, mas use o ID estavel para agrupamento.
+- [x] Criar validacao contra IDs duplicados.
+- [x] Criar validacao contra alteracao acidental de ID estavel.
 
 ##### Criterio de conclusao
 
@@ -835,12 +836,12 @@ Benchmarks comparativos perdem valor se forem executados em ambientes diferentes
 
 ##### Checklist de implementacao
 
-- [ ] Criar documento de ambiente de benchmark.
-- [ ] Definir os perfis oficiais de execucao.
-- [ ] Atualizar scripts de run para receber `-Profile smoke|core|full|diagnostic`.
-- [ ] Registrar perfil usado no resultado exportado.
-- [ ] Registrar versoes dos providers/testcontainers quando possivel.
-- [ ] Documentar quais resultados podem ser comparados entre si.
+- [x] Criar documento de ambiente de benchmark.
+- [x] Definir os perfis oficiais de execucao.
+- [x] Atualizar scripts de run para receber `-Profile smoke|core|full|diagnostic`.
+- [x] Registrar perfil usado no resultado exportado.
+- [x] Registrar versoes dos providers/testcontainers quando possivel.
+- [x] Documentar quais resultados podem ser comparados entre si.
 
 ##### Criterio de conclusao
 
@@ -882,12 +883,12 @@ A matriz nao deve apenas mostrar numeros. Ela precisa indicar quando um resultad
 
 ##### Checklist de implementacao
 
-- [ ] Definir quais campos estatisticos entram no JSON intermediario.
-- [ ] Definir status oficiais de execucao.
-- [ ] Atualizar scripts de exportacao para manter status sem converter tudo para texto livre.
-- [ ] Atualizar wiki para mostrar legenda de status.
-- [ ] Adicionar validacao para diferenciar falha inesperada de feature nao suportada.
-- [ ] Documentar que benchmark mede performance, nao fidelidade funcional completa.
+- [x] Definir quais campos estatisticos entram no JSON intermediario.
+- [x] Definir status oficiais de execucao.
+- [x] Atualizar scripts de exportacao para manter status sem converter tudo para texto livre.
+- [x] Atualizar wiki para mostrar legenda de status.
+- [x] Adicionar validacao para diferenciar falha inesperada de feature nao suportada.
+- [x] Documentar que benchmark mede performance, nao fidelidade funcional completa.
 
 ##### Criterio de conclusao
 
@@ -921,12 +922,12 @@ Sem baseline, a matriz mostra apenas o estado atual. Para evoluir o projeto, tam
 
 ##### Checklist de implementacao
 
-- [ ] Definir onde os baselines serao armazenados.
-- [ ] Criar formato JSON de baseline.
-- [ ] Criar script de comparacao baseline vs atual.
-- [ ] Definir thresholds iniciais de regressao.
-- [ ] Publicar resumo de regressao junto com a wiki.
-- [ ] Documentar quando atualizar o baseline.
+- [x] Definir onde os baselines serao armazenados.
+- [x] Criar formato JSON de baseline.
+- [x] Criar script de comparacao baseline vs atual.
+- [x] Definir thresholds iniciais de regressao.
+- [x] Publicar resumo de regressao junto com a wiki.
+- [x] Documentar quando atualizar o baseline.
 
 ##### Criterio de conclusao
 
@@ -966,12 +967,12 @@ Rodar os benchmarks manualmente exige uma rotina clara para evitar esquecer etap
 
 ##### Checklist de implementacao
 
-- [ ] Criar script unico para validar catalogo e mapas.
-- [ ] Criar profile `smoke`.
-- [ ] Criar rotina manual de validacao rapida.
-- [ ] Criar rotina manual full.
-- [ ] Publicar artefatos gerados apenas quando a execucao for completa e valida.
-- [ ] Documentar como reproduzir localmente o mesmo fluxo manual.
+- [x] Criar script unico para validar catalogo e mapas.
+- [x] Criar profile `smoke`.
+- [x] Criar rotina manual de validacao rapida.
+- [x] Criar rotina manual full.
+- [x] Publicar artefatos gerados apenas quando a execucao for completa e valida.
+- [x] Documentar como reproduzir localmente o mesmo fluxo manual.
 
 ##### Criterio de conclusao
 
@@ -1013,12 +1014,12 @@ Quando um benchmark falha, e preciso saber rapidamente se o problema esta no pro
 
 ##### Checklist de implementacao
 
-- [ ] Definir campos obrigatorios de log.
-- [ ] Gerar `RunId` unico por execucao.
-- [ ] Incluir `RunId` nos resultados exportados.
-- [ ] Registrar motivo de skip de forma estruturada.
-- [ ] Separar erro de infraestrutura de erro do benchmark.
-- [ ] Documentar onde olhar quando uma execucao falhar.
+- [x] Definir campos obrigatorios de log.
+- [x] Gerar `RunId` unico por execucao.
+- [x] Incluir `RunId` nos resultados exportados.
+- [x] Registrar motivo de skip de forma estruturada.
+- [x] Separar erro de infraestrutura de erro do benchmark.
+- [x] Documentar onde olhar quando uma execucao falhar.
 
 ##### Criterio de conclusao
 
@@ -1064,12 +1065,12 @@ A wiki nao deve ser apenas um dump de dados. Ela precisa ajudar o leitor a enten
 
 ##### Checklist de implementacao
 
-- [ ] Criar landing page da wiki.
-- [ ] Criar legenda global de status.
-- [ ] Separar visualmente comparativo real e mock-only.
-- [ ] Mostrar data, ambiente e perfil da execucao.
-- [ ] Adicionar link para baseline/regressao quando existir.
-- [ ] Garantir que ausencia de suporte nao seja confundida com erro.
+- [x] Criar landing page da wiki.
+- [x] Criar legenda global de status.
+- [x] Separar visualmente comparativo real e mock-only.
+- [x] Mostrar data, ambiente e perfil da execucao.
+- [x] Adicionar link para baseline/regressao quando existir.
+- [x] Garantir que ausencia de suporte nao seja confundida com erro.
 
 ##### Criterio de conclusao
 
@@ -1104,12 +1105,12 @@ O projeto de benchmark tambem precisa ser testado. Caso contrario, os scripts e 
 
 ##### Checklist de implementacao
 
-- [ ] Criar projeto ou pasta de testes para o sistema de benchmark.
-- [ ] Criar fixtures de JSON minimo.
-- [ ] Testar geracao da wiki com snapshot.
-- [ ] Testar politica de execucao por provider.
-- [ ] Testar validacao de catalogo.
-- [ ] Testar diferenciacao entre skip esperado e falha.
+- [x] Criar projeto ou pasta de testes para o sistema de benchmark.
+- [x] Criar fixtures de JSON minimo.
+- [x] Testar geracao da wiki com snapshot.
+- [x] Testar politica de execucao por provider.
+- [x] Testar validacao de catalogo.
+- [x] Testar diferenciacao entre skip esperado e falha.
 
 ##### Criterio de conclusao
 
@@ -1143,11 +1144,11 @@ Com o crescimento do projeto, algumas features, scripts, wrappers ou bases antig
 
 ##### Checklist de implementacao
 
-- [ ] Definir estados `Deprecated` e `Removed`.
-- [ ] Documentar regra de depreciacao.
-- [ ] Atualizar validador para aceitar depreciado de forma controlada.
-- [ ] Garantir que feature depreciada nao entre como feature nova em comparativos futuros.
-- [ ] Registrar primeira revisao de legado/fallback.
+- [x] Definir estados `Deprecated` e `Removed`.
+- [x] Documentar regra de depreciacao.
+- [x] Atualizar validador para aceitar depreciado de forma controlada.
+- [x] Garantir que feature depreciada nao entre como feature nova em comparativos futuros.
+- [x] Registrar primeira revisao de legado/fallback.
 
 ##### Criterio de conclusao
 
@@ -1400,6 +1401,8 @@ Objetivo: continuar a padronizacao de XML docs nos contratos compartilhados do r
 - Todos os `Run*` de `BenchmarkSessionBase` passaram a carregar `BenchmarkFeatureAttribute`.
 - O registry continua podendo validar a cobertura por atributo sem depender de um switch manual.
 - A cobertura ficou explicita para os 258 handlers de benchmark localizados em `BenchmarkSessionBase*.cs`.
+- O metodo dispatcher `RunFeature` permanece sem atributo por ser o ponto de roteamento, nao um handler de benchmark.
+- As cinco implementacoes override de `Run*` fora da base principal tambem passaram a carregar `BenchmarkFeatureAttribute`, cobrindo `RunStoredProcedureCall` e os tres overloads de `TemporaryTable`.
 
 ## Pontos de verificacao
 
@@ -1497,3 +1500,32 @@ Objetivo: continuar a padronizacao de XML docs nos contratos compartilhados do r
 - 2026-05-01: iteracao 92 registrada; os atributos xUnit `MemberDataVersionAttribute` e `MemberDataByVersionAttribute` foram normalizados para `PT-br`, e a proxima parada fica em revisar os demais atributos e helpers publicos compartilhados com escopo real de uso pelos geradores e contratos de suporte.
 - 2026-05-01: iteracao 93 registrada; a varredura em `src` nao encontrou mais `PT:` residual, a Fase 9 foi concluida no roadmap e qualquer novo trabalho devera nascer como uma nova etapa independente.
 - 2026-05-01: iteracao 94 registrada; todos os 258 handlers `Run*` de `BenchmarkSessionBase` passaram a carregar `BenchmarkFeatureAttribute` explicitamente, fechando a cobertura completa pedida para o dispatcher por atributo.
+- 2026-05-01: iteracao 95 registrada; o roadmap passou a explicitar que `RunFeature` permanece sem atributo por ser o dispatcher central, enquanto a cobertura segue completa nos 258 handlers reais de benchmark.
+- 2026-05-01: iteracao 96 registrada; as duas implementacoes override de `RunStoredProcedureCall` em `DbSqlLikeMemBenchmarkSessionBase` e `ExternalBenchmarkSessionBase` tambem foram anotadas, fechando o restante dos `Run*` relevantes fora da familia principal.
+- 2026-05-01: iteracao 97 registrada; os tres overrides de `TemporaryTable` em `DbSqlLikeMemBenchmarkSessionBase` tambem foram anotados, fechando os cinco `protected Run*` fora da base principal e deixando a cobertura total em 263 handlers protegidos no benchmark.
+- 2026-05-01: iteracao 98 registrada; o arquivo de historico de mudancas de features foi criado em `benchmark-feature-history.md`, a separacao inicial entre `Comparable` e `MockOnly` entrou como primeira entrada e o checklist de governanca da Fase 5 foi consolidado como concluido.
+- 2026-05-01: iteracao 99 registrada; a origem canonica do identificador estavel ficou fixada em `FeatureDefinition.StableId` com fallback para o nome do enum, e o checklist de identidade estavel foi consolidado como concluido no roadmap.
+- 2026-05-01: iteracao 100 registrada; o documento de ambiente de benchmark foi criado em `benchmark-environment.md`, os perfis oficiais e as regras de comparacao ficaram documentados e o checklist de reprodutibilidade passou a refletir apenas os metadados ainda nao persistidos.
+- 2026-05-01: iteracao 101 registrada; o guia de status foi criado em `benchmark-execution-status.md`, o schema de resultado ficou documentado em termos de campos e leitura publica, e o checklist de qualidade estatistica foi consolidado como concluido.
+- 2026-05-01: iteracao 102 registrada; o guia de baseline e regressao foi criado em `benchmark-baseline.md`, a estrategia de armazenamento por perfil e a chave de comparacao ficaram documentadas, e o checklist de baseline passou a destacar apenas a automacao de comparacao e o resumo publicado ainda em aberto.
+- 2026-05-01: iteracao 103 registrada; o validador unico de catalogo e mapas foi criado em `validate-catalog-and-maps.ps1`, o runbook manual foi documentado em `benchmark-manual-runbook.md` e o checklist de execucao manual passou a refletir o fluxo smoke/core/full ja apoiado pelos scripts existentes.
+- 2026-05-01: iteracao 104 registrada; o comparador de baseline foi criado em `compare-benchmark-baseline.ps1`, o resumo de regressao passou a ser publicado em `docs/Wiki/BenchmarkResults/benchmark-regression-summary.md` e o checklist de baseline/regressao ficou concluido no roadmap.
+- 2026-05-01: iteracao 105 registrada; o `RunId` passou a ser gerado por execucao, os logs foram segmentados por correlacao e o guia de observabilidade foi criado em `benchmark-observability.md`, fechando o checklist de diagnostico do fluxo.
+- 2026-05-01: iteracao 106 registrada; a landing page da wiki foi criada em `docs/Wiki/BenchmarkResults/Home.md` e `Home.pt-BR.md`, a legenda global e os atalhos de regressao ficaram publicados, e o checklist de UX da wiki foi consolidado como concluido.
+- 2026-05-01: iteracao 107 registrada; as versoes declaradas no catalogo foram documentadas em `benchmark-environment.md`, a politica de comparacao foi explicitada em `benchmark-baseline.md`, e os checklists de reproducibilidade, testes e depreciacao foram consolidados como concluido no roadmap.
+- 2026-05-01: iteracao 108 registrada; a politica de execucao por provider foi coberta por teste no projeto de benchmark, consolidando mais um item da Fase 5.9 sem ainda fechar o snapshot da wiki.
+- 2026-05-01: iteracao 109 registrada; o snapshot da landing page da wiki foi coberto com fixtures para `Home.md` e `Home.pt-BR.md`, fechando a ultima pendencia material da Fase 5.9.
+- 2026-05-01: iteracao 110 registrada; o resumo de regressao publicado tambem passou a ter snapshot de teste, fechando a cobertura de publicacao dos artefatos de wiki sem depender de validacao manual.
+- 2026-05-01: iteracao 111 registrada; o manifesto de ambiente publicado tambem passou a ter snapshot de teste, fechando a ultima borda de contrato serializado ainda nao travada na superficie publica do benchmark.
+- 2026-05-01: iteracao 112 registrada; os guias publicados de ambiente e baseline tambem passaram a ter snapshot de teste, travando a borda documental que sustenta a comparacao historica e a reproducibilidade.
+- 2026-05-01: iteracao 113 registrada; os guias publicos de status, historico de features e runbook manual tambem passaram a ter snapshot de teste, fechando mais uma borda documental da governanca do benchmark.
+- 2026-05-01: iteracao 114 registrada; o guia de observabilidade e o README publico do benchmark tambem passaram a ter snapshot de teste, fechando a ultima borda de apoio documental que ainda estava aberta na superficie publica.
+- 2026-05-01: iteracao 115 registrada; os testes de snapshot foram consolidados em um helper compartilhado no projeto de benchmark, reduzindo duplicacao sem mudar o contrato publicado.
+- 2026-05-01: iteracao 116 registrada; os mapas publicados de features agora tambem passam por teste de parse estruturado, fechando a cobertura publica dos JSONs de catalogo sem depender de execucao real.
+- 2026-05-01: iteracao 117 registrada; os testes de mapa passaram a comparar os IDs publicados com o catalogo em codigo, fechando a protecao contra drift entre JSON publicado e catalogo do runtime.
+- 2026-05-01: iteracao 118 registrada; os mapas publicados tambem passaram a validar os IDs de features contra o catalogo em codigo, fechando a ultima protecao pratica contra drift de enum e categoria no JSON publicado.
+- 2026-05-01: iteracao 119 registrada; a cobertura de mapa foi refinada para garantir que features comparaveis nao fiquem orfas no JSON publicado, sem amarrar indevidamente o ciclo de vida ao teste de contrato.
+- 2026-05-01: iteracao 120 registrada; a cobertura de mapa passou a validar metadados publicados de provider contra o catalogo em codigo, fechando drift adicional de identidade e engine nos JSONs publicados.
+- 2026-05-01: iteracao 121 registrada; o schema de resultado ganhou teste proprio de contrato top-level e de `environment`, fechando a protecao direta do JSON estruturado publicado.
+- 2026-05-01: iteracao 122 registrada; a cobertura de mapa passou a travar as organizacoes publicadas por tipo de mapa, fechando drift de agrupamento estrutural sem mexer no contrato de features.
+- 2026-05-01: iteracao 123 registrada; a cobertura de mapa foi refinada para tratar `SqlAzure` como o unico provider nao comparavel no mapa comparativo atual, removendo o assert invalido e preservando a politica de proxy explicita no contrato publicado.

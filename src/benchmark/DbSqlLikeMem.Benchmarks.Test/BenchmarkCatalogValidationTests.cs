@@ -1,11 +1,9 @@
-using DbSqlLikeMem.Benchmarks.Core;
 using DbSqlLikeMem.Benchmarks.Sessions.External;
 using DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 using DbSqlLikeMem.Npgsql.TestTools;
 using DbSqlLikeMem.TestTools;
 using Microsoft.Data.Sqlite;
 using System.Data.Common;
-using Xunit;
 
 namespace DbSqlLikeMem.Benchmarks.Test;
 
@@ -130,6 +128,7 @@ public sealed class BenchmarkCatalogValidationTests(
     [Trait("Category", "Core")]
     public void Execute_ShouldWriteBenchmarkIssueLogForDisplayNamesWithSlashes()
     {
+        BenchmarkRunContext.Initialize(BenchmarkRunProfile.Core);
         var dialect = new NpgsqlProviderSqlDialect();
         var session = new ThrowingBenchmarkSession(dialect);
         var logDirectory = DbSqlLikeMem.Benchmarks.Core.BenchmarkLogPath.GetDirectory();
@@ -139,9 +138,9 @@ public sealed class BenchmarkCatalogValidationTests(
         {
             Assert.True(
                 logDirectory.EndsWith(
-                    Path.Combine("src", "benchmark", "DbSqlLikeMem.Benchmarks", "Logs"),
+                    Path.Combine("src", "benchmark", "DbSqlLikeMem.Benchmarks", "Logs", BenchmarkRunContext.RunId),
                     StringComparison.OrdinalIgnoreCase),
-                $"Expected benchmark log directory '{logDirectory}' to end with the benchmark project Logs folder.");
+                $"Expected benchmark log directory '{logDirectory}' to end with the benchmark project Logs folder for run '{BenchmarkRunContext.RunId}'.");
 
             if (File.Exists(logFile))
                 File.Delete(logFile);
@@ -166,6 +165,7 @@ public sealed class BenchmarkCatalogValidationTests(
     [Trait("Category", "Core")]
     public void SafeExecute_ShouldWriteBenchmarkIssueLogForMissingTableCleanup()
     {
+        BenchmarkRunContext.Initialize(BenchmarkRunProfile.Core);
         var dialect = new NpgsqlProviderSqlDialect();
         var session = new CleanupLoggingBenchmarkSession(dialect);
         var logDirectory = DbSqlLikeMem.Benchmarks.Core.BenchmarkLogPath.GetDirectory();
@@ -175,9 +175,9 @@ public sealed class BenchmarkCatalogValidationTests(
         {
             Assert.True(
                 logDirectory.EndsWith(
-                    Path.Combine("src", "benchmark", "DbSqlLikeMem.Benchmarks", "Logs"),
+                    Path.Combine("src", "benchmark", "DbSqlLikeMem.Benchmarks", "Logs", BenchmarkRunContext.RunId),
                     StringComparison.OrdinalIgnoreCase),
-                $"Expected benchmark log directory '{logDirectory}' to end with the benchmark project Logs folder.");
+                $"Expected benchmark log directory '{logDirectory}' to end with the benchmark project Logs folder for run '{BenchmarkRunContext.RunId}'.");
 
             if (File.Exists(logFile))
                 File.Delete(logFile);

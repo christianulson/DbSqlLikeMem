@@ -180,7 +180,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.NotEmpty(compressed);
         Assert.Equal("AnaMaria", ExecuteScalar("SELECT CONCAT('Ana', 'Maria') FROM Users WHERE Id = 1"));
         Assert.Equal("Ana-Maria", ExecuteScalar("SELECT CONCAT_WS('-', 'Ana', NULL, 'Maria') FROM Users WHERE Id = 1"));
-        Assert.Equal(Encoding.Unicode.GetBytes("Ana"), Assert.IsType<byte[]>(ExecuteScalar("SELECT DECOMPRESS(COMPRESS('Ana')) FROM Users WHERE Id = 1")));
+        Assert.Equal(Encoding.UTF8.GetBytes("Ana"), Assert.IsType<byte[]>(ExecuteScalar("SELECT DECOMPRESS(COMPRESS('Ana')) FROM Users WHERE Id = 1")));
         Assert.Equal("fallback", ExecuteScalar("SELECT ISNULL(NULL, 'fallback') FROM Users WHERE Id = 1"));
         Assert.Equal("yes", ExecuteScalar("SELECT IIF(Id = 1, 'yes', 'no') FROM Users WHERE Id = 1"));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT ISJSON('{\"a\":1}') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));

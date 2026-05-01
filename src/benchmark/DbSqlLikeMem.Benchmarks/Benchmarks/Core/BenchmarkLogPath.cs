@@ -16,7 +16,7 @@ public static class BenchmarkLogPath
     public static string GetDirectory()
     {
         var projectDirectory = FindProjectDirectory();
-        return Path.Combine(projectDirectory, "Logs");
+        return Path.Combine(projectDirectory, "Logs", BenchmarkRunContext.RunId);
     }
 
     /// <summary>

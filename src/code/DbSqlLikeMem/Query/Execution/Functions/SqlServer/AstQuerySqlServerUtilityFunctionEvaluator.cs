@@ -700,7 +700,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         var input = value switch
         {
             byte[] bytes => bytes,
-            _ => Encoding.Unicode.GetBytes(value!.ToString() ?? string.Empty)
+            _ => Encoding.UTF8.GetBytes(value!.ToString() ?? string.Empty)
         };
 
         using var output = new MemoryStream();

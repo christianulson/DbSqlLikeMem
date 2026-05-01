@@ -6,6 +6,7 @@ internal abstract partial class DbSqlLikeMemBenchmarkSessionBase
     /// EN: Creates a temporary users table from the shared source scenario and validates the projected rows within the same session.
     /// PT-br: Cria uma tabela temporaria de usuarios a partir do cenario compartilhado e valida as linhas projetadas na mesma sessao.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TempTableCreateAndUse)]
     protected override void RunTempTableCreateAndUse()
     {
         using var scope = CreateTemporaryTableScope();
@@ -25,6 +26,7 @@ internal abstract partial class DbSqlLikeMemBenchmarkSessionBase
     /// EN: Verifies a transaction rollback restores the connection-scoped temporary table contents to the pre-transaction state.
     /// PT-br: Verifica se um rollback de transacao restaura o conteudo da tabela temporaria de escopo da conexao ao estado anterior.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TempTableRollback)]
     protected override void RunTempTableRollback()
     {
         if (!Dialect.SupportsSavepoints)
@@ -48,6 +50,7 @@ internal abstract partial class DbSqlLikeMemBenchmarkSessionBase
     /// EN: Verifies connection-scoped temporary tables are not visible from a different logical connection.
     /// PT-br: Verifica se tabelas temporarias de escopo da conexao nao ficam visiveis em outra conexao logica.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TempTableCrossConnectionIsolation)]
     protected override void RunTempTableCrossConnectionIsolation()
     {
         using var scope = CreateTemporaryUsersScope();

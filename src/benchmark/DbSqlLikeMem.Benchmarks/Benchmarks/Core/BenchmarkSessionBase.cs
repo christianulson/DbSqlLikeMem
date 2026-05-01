@@ -3,9 +3,6 @@ using Microsoft.Data.SqlClient;
 using MySqlConnector;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
-using DbSqlLikeMem.TestTools.Performance;
-using DbSqlLikeMem.TestTools.Schema;
-using DbSqlLikeMem.TestTools.Query;
 using System.Collections.Concurrent;
 
 namespace DbSqlLikeMem.Benchmarks.Core;

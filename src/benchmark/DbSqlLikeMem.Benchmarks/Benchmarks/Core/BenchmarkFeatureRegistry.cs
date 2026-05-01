@@ -67,7 +67,7 @@ internal static class BenchmarkFeatureRegistry
 
         var missing = FeatureCatalog.All
             .Select(static feature => feature.Id)
-            .Where(static featureId => !handlers.ContainsKey(featureId))
+            .Where(featureId => !handlers.ContainsKey(featureId))
             .ToArray();
 
         if (missing.Length > 0)

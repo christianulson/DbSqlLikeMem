@@ -24,6 +24,7 @@ internal static class Program
     public static void Main(string[] args)
     {
         var options = BenchmarkRunOptions.Parse(args);
+        BenchmarkRunContext.Initialize(options.Profile);
 
         if (options.ValidateCatalog)
         {
@@ -282,6 +283,7 @@ internal class BenchmarkConfig : ManualConfig
         Directory.CreateDirectory(manifestDirectory);
 
         var manifest = new BenchmarkRunEnvironmentManifest(
+            RunId: BenchmarkRunContext.RunId,
             JobId: jobId,
             Environment: new BenchmarkRunEnvironmentDetails(
                 Profile: options.Profile.ToString().ToLowerInvariant(),
@@ -309,8 +311,10 @@ internal class BenchmarkConfig : ManualConfig
 /// EN: Captures the execution environment written alongside benchmark artifacts.
 /// PT-br: Registra o ambiente de execucao gravado junto com os artefatos do benchmark.
 /// </summary>
+/// <param name="RunId">EN: The run correlation identifier. PT-br: O identificador de correlacao da execucao.</param>
 /// <param name="JobId">EN: The BenchmarkDotNet job identifier. PT-br: O identificador do job do BenchmarkDotNet.</param>
 public sealed record BenchmarkRunEnvironmentManifest(
+    string RunId,
     string JobId,
     BenchmarkRunEnvironmentDetails Environment);
 

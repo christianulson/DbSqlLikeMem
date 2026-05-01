@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace DbSqlLikeMem.TestTools;
 
@@ -57,17 +58,17 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         this.temporalComparisonTolerance = temporalComparisonTolerance;
 
-        if (TestEnv.RunContainerTests.Value
-            && ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
+        if (!TestEnv.RunContainerTests.Value
+            || !ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
+            return;
+        
+        if (dialect.Provider == ProviderId.Sqlite && string.IsNullOrWhiteSpace(connectionString))
         {
-            if (dialect.Provider == ProviderId.Sqlite && string.IsNullOrWhiteSpace(connectionString))
-            {
-                // Keep SQLite clones pointed at the same shared in-memory database for this test run.
-                connectionString = $"Data Source=file:dbsqllikemem_{Guid.NewGuid():N}?mode=memory&cache=shared";
-            }
-
-            repoContainer = new RepoService(() => connectionContainer(connectionString), dialect);
+            // Keep SQLite clones pointed at the same shared in-memory database for this test run.
+            connectionString = $"Data Source=file:dbsqllikemem_{Guid.NewGuid():N}?mode=memory&cache=shared";
         }
+
+        repoContainer = new RepoService(() => connectionContainer(connectionString), dialect);
     }
 
     /// <summary>
@@ -96,6 +97,8 @@ public class FidelityTestService<TCnn1, TCnn2>
         }
 
         var objResultMock = await Execute<TScenario, TServiceTest>(args, RepoMock, InitialData, context);
+
+        Trace();
 
         if (TestEnv.RunContainerTests.Value)
         {
@@ -132,6 +135,8 @@ public class FidelityTestService<TCnn1, TCnn2>
         }
 
         var objResultMock = await Execute<TScenario, TServiceTest, TResult>(fnRunTest, args, RepoMock, InitialData, context);
+
+        Trace();
 
         if (TestEnv.RunContainerTests.Value)
         {
@@ -171,6 +176,8 @@ public class FidelityTestService<TCnn1, TCnn2>
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData, context);
 
+        Trace();
+
         if (TestEnv.RunContainerTests.Value)
         {
             var elapsedMock = sw.ElapsedMilliseconds;
@@ -206,6 +213,8 @@ public class FidelityTestService<TCnn1, TCnn2>
         }
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest, TResult>(fnRunTest, args, RepoMock, InitialData, context);
+
+        Trace();
 
         if (TestEnv.RunContainerTests.Value)
         {
@@ -247,6 +256,8 @@ public class FidelityTestService<TCnn1, TCnn2>
 
         var objResultMock = await Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
+        Trace();
+
         if (TestEnv.RunContainerTests.Value)
         {
             var elapsedMock = sw.ElapsedMilliseconds;
@@ -287,6 +298,8 @@ public class FidelityTestService<TCnn1, TCnn2>
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
+        Trace();
+
         if (TestEnv.RunContainerTests.Value)
         {
             var elapsedMock = sw.ElapsedMilliseconds;
@@ -303,6 +316,13 @@ public class FidelityTestService<TCnn1, TCnn2>
             .WhenTypeIs<DateTime>()
             .Using<DateTimeOffset>(context => context.Subject.Should().BeCloseTo(context.Expectation, temporalComparisonTolerance))
             .WhenTypeIs<DateTimeOffset>());
+
+    private void Trace()
+    {
+        var cnn = (DbConnectionMockBase)RepoMock.Cnn;
+        Console.WriteLine($"LastExecutionPlan: {cnn.LastExecutionPlan}");
+        Console.WriteLine($"LastDebugTrace: {JsonSerializer.Serialize(cnn.LastDebugTrace)}");
+    }
 
     private async Task EnsureContainerConnectionAvailableAsync()
     {

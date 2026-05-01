@@ -49,6 +49,7 @@ public abstract partial class ExternalBenchmarkSessionBase
     /// EN: Skips the stored procedure benchmark for external runtimes that do not expose the mock procedure registry.
     /// PT-br: Ignora o benchmark de procedimento armazenado para runtimes externos que nao expõem o registro mock de procedimentos.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.StoredProcedureCall)]
     protected override void RunStoredProcedureCall()
     {
     }

@@ -179,9 +179,10 @@ function Get-EnvironmentHeaderLine {
     $framework = if ($runEnvironment.PSObject.Properties.Name -contains 'framework') { [string]$runEnvironment.framework } else { '' }
     $runtime = if ($runEnvironment.PSObject.Properties.Name -contains 'runtime') { [string]$runEnvironment.runtime } else { '' }
     $timestampUtc = if ($runEnvironment.PSObject.Properties.Name -contains 'timestampUtc') { [string]$runEnvironment.timestampUtc } else { '' }
+    $runId = if ($Environment.PSObject.Properties.Name -contains 'runId') { [string]$Environment.runId } else { '' }
     $jobId = if ($Environment.PSObject.Properties.Name -contains 'jobId') { [string]$Environment.jobId } else { '' }
 
-    return "> Ambiente: profile=$profile; jobId=$jobId; os=$os; framework=$framework; runtime=$runtime; timestampUtc=$timestampUtc"
+    return "> Ambiente: profile=$profile; runId=$runId; jobId=$jobId; os=$os; framework=$framework; runtime=$runtime; timestampUtc=$timestampUtc"
 }
 
 $catalog = Get-Content $CatalogFile -Raw | ConvertFrom-Json

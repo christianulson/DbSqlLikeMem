@@ -1,0 +1,25 @@
+{
+  "runId": "core-20260501-120000000",
+  "benchmarkStableId": "core.connection.open",
+  "benchmarkFeatureId": "ConnectionOpen",
+  "providerId": "SqlServer",
+  "engine": "DbSqlLikeMem",
+  "suiteName": "SqlServer_DbSqlLikeMem_Benchmarks",
+  "methodName": "ConnectionOpen",
+  "category": "Core",
+  "environment": {
+    "profile": "core",
+    "os": "Windows",
+    "framework": "net8.0",
+    "runtime": ".NET 8"
+  },
+  "status": "Succeeded",
+  "meanMicroseconds": 12.34,
+  "errorMicroseconds": 0.12,
+  "ratio": 1.0,
+  "iterationCount": 3,
+  "tags": [
+    "core",
+    "smoke"
+  ]
+}
