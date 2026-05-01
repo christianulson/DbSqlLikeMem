@@ -2,10 +2,10 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Inserts a row that omits nullable columns and verifies the defaulted and null values.
-/// PT: Insere uma linha que omite colunas anulaveis e verifica os valores padrao e nulos.
+/// PT-br: Insere uma linha que omite colunas anulaveis e verifica os valores padrao e nulos.
 /// </summary>
-/// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-/// <param name="context">EN: Scenario context with the current table names. PT: Contexto do cenario com os nomes atuais das tabelas.</param>
+/// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+/// <param name="context">EN: Scenario context with the current table names. PT-br: Contexto do cenario com os nomes atuais das tabelas.</param>
 public class InsertNullableColumnsServiceTest(
         RepoService repo,
         FidelityTestContext context
@@ -14,10 +14,10 @@ public class InsertNullableColumnsServiceTest(
 {
     /// <summary>
     /// EN: Inserts a row while omitting nullable columns, then verifies the nullable column with a default and the nullable column without a default.
-    /// PT: Insere uma linha omitindo colunas anulaveis e depois verifica a coluna anulavel com default e a coluna anulavel sem default.
+    /// PT-br: Insere uma linha omitindo colunas anulaveis e depois verifica a coluna anulavel com default e a coluna anulavel sem default.
     /// </summary>
-    /// <param name="args">EN: Optional row id and required column value. PT: Id da linha e valor da coluna obrigatoria opcionais.</param>
-    /// <returns>EN: The persisted column values. PT: Os valores persistidos das colunas.</returns>
+    /// <param name="args">EN: Optional row id and required column value. PT-br: Id da linha e valor da coluna obrigatoria opcionais.</param>
+    /// <returns>EN: The persisted column values. PT-br: Os valores persistidos das colunas.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var id = args.Length > 0 ? (int)args[0] : 1;

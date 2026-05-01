@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers serialization contract behavior for <see cref="ReadOnlyHashSet{T}"/>.
-/// PT: Cobre o comportamento do contrato de serialização para <see cref="ReadOnlyHashSet{T}"/>.
+/// PT-br: Cobre o comportamento do contrato de serialização para <see cref="ReadOnlyHashSet{T}"/>.
 /// </summary>
 public sealed class ReadOnlyHashSetTests(
         ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class ReadOnlyHashSetTests(
 {
     /// <summary>
     /// EN: Verifies GetObjectData fills serialization metadata for the wrapped set.
-    /// PT: Verifica que GetObjectData preenche metadados de serialização para o conjunto encapsulado.
+    /// PT-br: Verifica que GetObjectData preenche metadados de serialização para o conjunto encapsulado.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -32,7 +32,7 @@ public sealed class ReadOnlyHashSetTests(
 
     /// <summary>
     /// EN: Verifies GetObjectData throws ArgumentNullException when SerializationInfo is null.
-    /// PT: Verifica que GetObjectData lança ArgumentNullException quando SerializationInfo é nulo.
+    /// PT-br: Verifica que GetObjectData lança ArgumentNullException quando SerializationInfo é nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]

@@ -288,7 +288,7 @@ internal static class SqlExtensions
 
     /// <summary>
     /// EN: Attempts to coerce heterogeneous values into decimal using invariant rules for SQL-like implicit comparison.
-    /// PT: Tenta converter valores heterogêneos para decimal usando regras invariáveis para comparação implícita estilo SQL.
+    /// PT-br: Tenta converter valores heterogêneos para decimal usando regras invariáveis para comparação implícita estilo SQL.
     /// </summary>
     private static bool TryConvertToDecimal(object value, out decimal numericValue)
     {
@@ -365,7 +365,7 @@ internal static class SqlExtensions
 
     /// <summary>
     /// EN: Compares two binary payloads lexicographically to provide deterministic ordering semantics.
-    /// PT: Compara dois payloads binários de forma lexicográfica para fornecer semântica determinística de ordenação.
+    /// PT-br: Compara dois payloads binários de forma lexicográfica para fornecer semântica determinística de ordenação.
     /// </summary>
     private static int CompareBinary(byte[] left, byte[] right)
     {

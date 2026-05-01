@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Adds focused coverage for MySqlCommandMock surface behavior, batching helpers, and cloning.
-/// PT: Adiciona cobertura focada para comportamento de superficie, helpers de batching e clonagem de MySqlCommandMock.
+/// PT-br: Adiciona cobertura focada para comportamento de superficie, helpers de batching e clonagem de MySqlCommandMock.
 /// </summary>
 public sealed class MySqlCommandMockCoverageTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MySqlCommandMockCoverageTests(
 {
     /// <summary>
     /// EN: Verifies Cancel rolls back the active transaction and CreateParameter returns a provider-specific parameter.
-    /// PT: Verifica se Cancel faz rollback da transacao ativa e se CreateParameter retorna um parametro especifico do provedor.
+    /// PT-br: Verifica se Cancel faz rollback da transacao ativa e se CreateParameter retorna um parametro especifico do provedor.
     /// </summary>
     [Fact]
     public void Cancel_ShouldRollbackTransaction_AndCreateParameterShouldBeTyped()
@@ -39,7 +39,7 @@ public sealed class MySqlCommandMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies batching helpers keep track of grouped commands and derive batchable command text.
-    /// PT: Verifica se os helpers de batching acompanham comandos agrupados e derivam o texto batchable do comando.
+    /// PT-br: Verifica se os helpers de batching acompanham comandos agrupados e derivam o texto batchable do comando.
     /// </summary>
     [Fact]
     public void BatchingHelpers_ShouldTrackBatchAndCommandText()
@@ -82,7 +82,7 @@ public sealed class MySqlCommandMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies cloning copies command surface state and parameter metadata into an independent command instance.
-    /// PT: Verifica se a clonagem copia o estado da superficie do comando e os metadados de parametros para uma instancia independente.
+    /// PT-br: Verifica se a clonagem copia o estado da superficie do comando e os metadados de parametros para uma instancia independente.
     /// </summary>
     [Fact]
     public void Clone_ShouldCopyCommandStateAndParameters()
@@ -134,7 +134,7 @@ public sealed class MySqlCommandMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies Prepare and Dispose can be called safely on the mock command surface.
-    /// PT: Verifica se Prepare e Dispose podem ser chamados com seguranca na superficie simulada do comando.
+    /// PT-br: Verifica se Prepare e Dispose podem ser chamados com seguranca na superficie simulada do comando.
     /// </summary>
     [Fact]
     public void PrepareAndDispose_ShouldBeSafeNoOps()
@@ -148,7 +148,7 @@ public sealed class MySqlCommandMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies replacing the connection clears the associated transaction and empty scalar reads return DBNull.
-    /// PT: Verifica se substituir a conexao limpa a transacao associada e se leituras escalares vazias retornam DBNull.
+    /// PT-br: Verifica se substituir a conexao limpa a transacao associada e se leituras escalares vazias retornam DBNull.
     /// </summary>
     [Fact]
     public void ConnectionSwapAndEmptyScalar_ShouldResetTransactionAndReturnDbNull()

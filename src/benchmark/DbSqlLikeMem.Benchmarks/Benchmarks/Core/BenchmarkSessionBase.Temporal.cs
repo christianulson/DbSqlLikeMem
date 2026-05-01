@@ -3,9 +3,23 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 public abstract partial class BenchmarkSessionBase
 {
     /// <summary>
+    /// EN: Executes the provider-specific scalar date/time query.
+    /// PT-br: Executa a consulta escalar de data/hora específica do provedor.
+    /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.DateScalar)]
+    protected virtual void RunDateScalar()
+    {
+        var state = GetPreparedNoopQueryState("NoopQuery");
+        var service = state.Service;
+        var value = service.RunDateScalarAsync().GetAwaiter().GetResult();
+        GC.KeepAlive(value);
+    }
+
+    /// <summary>
     /// EN: Executes the current timestamp temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal de timestamp atual e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalCurrentTimestamp)]
     protected virtual void RunTemporalCurrentTimestamp()
     {
         var state = GetPreparedNoopQueryState("NoopQuery");
@@ -18,6 +32,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the date add temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal de adicao de data e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalDateAdd)]
     protected virtual void RunTemporalDateAdd()
     {
         var state = GetPreparedNoopQueryState("NoopQuery");
@@ -30,6 +45,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the current time filter temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal de filtro por horario atual e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalNowWhere)]
     protected virtual void RunTemporalNowWhere()
     {
         var state = GetPreparedUsersQueryState("TemporalNowWhere", (1, "Alice"));
@@ -41,6 +57,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the current time ordering temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal de ordenacao por horario atual e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalNowOrderBy)]
     protected virtual void RunTemporalNowOrderBy()
     {
         var state = GetPreparedUsersQueryState("TemporalNowOrderBy", (1, "Bob"), (2, "Alice"));
@@ -50,8 +67,9 @@ public abstract partial class BenchmarkSessionBase
 
     /// <summary>
     /// EN: Executes the scalar temporal matrix benchmark and keeps the provider results alive.
-    /// PT: Executa a matriz temporal escalar e mantem os resultados do provedor vivos.
+    /// PT-br: Executa a matriz temporal escalar e mantem os resultados do provedor vivos.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.ScalarTemporalMatrix)]
     protected virtual void RunScalarTemporalMatrix()
     {
         RunDateScalar();
@@ -65,6 +83,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the temporal field matrix benchmark and keeps the validated snapshot alive.
     /// PT-br: Executa o benchmark da matriz de campos temporais e mantem o snapshot validado ativo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalFieldMatrix)]
     protected virtual void RunTemporalFieldMatrix()
     {
         var state = GetPreparedTypedFieldStorageMatrixState("TemporalFieldMatrix");
@@ -76,6 +95,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the temporal comparison matrix benchmark and keeps the validated snapshot alive.
     /// PT-br: Executa o benchmark da matriz de comparacao temporal e mantem o snapshot validado ativo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalComparisonMatrix)]
     protected virtual void RunTemporalComparisonMatrix()
     {
         var state = GetPreparedTypedFieldStorageMatrixState("TemporalComparisonMatrix");
@@ -87,6 +107,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the temporal arithmetic matrix benchmark and keeps the validated snapshot alive.
     /// PT-br: Executa o benchmark da matriz de aritmetica temporal e mantem o snapshot validado ativo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalArithmeticMatrix)]
     protected virtual void RunTemporalArithmeticMatrix()
     {
         var state = GetPreparedTypedFieldStorageMatrixState("TemporalArithmeticMatrix");
@@ -98,6 +119,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the DATETRUNC temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal DATETRUNC e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalDateTrunc)]
     protected virtual void RunTemporalDateTrunc()
     {
         if (!Dialect.SupportsSqlServerDateFunction("DATETRUNC"))
@@ -114,6 +136,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the time-zone offset temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal de fuso horario e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalTimeZoneOffset)]
     protected virtual void RunTemporalTimeZoneOffset()
     {
         if (!Dialect.SupportsSqlServerScalarFunction("TODATETIMEOFFSET"))
@@ -130,6 +153,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the FROMPARTS temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal FROMPARTS e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalFromParts)]
     protected virtual void RunTemporalFromParts()
     {
         if (!Dialect.SupportsSqlServerScalarFunction("DATEFROMPARTS"))
@@ -146,6 +170,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the end-of-month temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal de fim de mes e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalEndOfMonth)]
     protected virtual void RunTemporalEndOfMonth()
     {
         if (!Dialect.SupportsSqlServerDateFunction("EOMONTH"))
@@ -162,6 +187,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the DATEDIFF_BIG temporal benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark temporal DATEDIFF_BIG e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TemporalDateDiffBig)]
     protected virtual void RunTemporalDateDiffBig()
     {
         if (!Dialect.SupportsSqlServerDateFunction("DATEDIFF_BIG"))

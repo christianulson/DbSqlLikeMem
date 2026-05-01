@@ -6,13 +6,13 @@ namespace DbSqlLikeMem.Benchmarks.Test;
 
 /// <summary>
 /// EN: Verifies that the benchmark mock sessions can initialize and run representative benchmark features for each provider.
-/// PT: Verifica se as sessoes mock de benchmark conseguem inicializar e executar recursos representativos de benchmark para cada provedor.
+/// PT-br: Verifica se as sessoes mock de benchmark conseguem inicializar e executar recursos representativos de benchmark para cada provedor.
 /// </summary>
 public sealed class BenchmarkSessionSmokeTests
 {
     /// <summary>
     /// EN: Verifies the SQL Server mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de SQL Server executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de SQL Server executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(SqlServerMockCases))]
@@ -24,7 +24,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the SQLite mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de SQLite executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de SQLite executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(SqliteMockCases))]
@@ -36,7 +36,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the SQL Azure mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de SQL Azure executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de SQL Azure executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(SqlAzureMockCases))]
@@ -48,7 +48,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the Oracle mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de Oracle executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de Oracle executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(OracleMockCases))]
@@ -60,7 +60,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the Npgsql mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de Npgsql executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de Npgsql executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(NpgsqlMockCases))]
@@ -72,7 +72,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the MySql mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de MySql executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de MySql executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(MySqlMockCases))]
@@ -84,7 +84,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the MariaDb mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de MariaDb executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de MariaDb executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(MariaDbMockCases))]
@@ -96,7 +96,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the Db2 mock benchmark session runs the shared smoke features.
-    /// PT: Verifica se a sessao mock de benchmark de Db2 executa os recursos de smoke compartilhados.
+    /// PT-br: Verifica se a sessao mock de benchmark de Db2 executa os recursos de smoke compartilhados.
     /// </summary>
     [Theory]
     [MemberData(nameof(Db2MockCases))]
@@ -108,7 +108,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the Firebird mock benchmark session runs the shared smoke features and its Firebird-specific block flow.
-    /// PT: Verifica se a sessao mock de benchmark de Firebird executa os recursos de smoke compartilhados e o fluxo especifico de bloco Firebird.
+    /// PT-br: Verifica se a sessao mock de benchmark de Firebird executa os recursos de smoke compartilhados e o fluxo especifico de bloco Firebird.
     /// </summary>
     [Theory]
     [MemberData(nameof(FirebirdMockCases))]
@@ -120,7 +120,7 @@ public sealed class BenchmarkSessionSmokeTests
 
     /// <summary>
     /// EN: Verifies the Firebird mock benchmark session handles its SQLSTATE-specific EXECUTE BLOCK flow.
-    /// PT: Verifica se a sessao mock de benchmark de Firebird trata seu fluxo EXECUTE BLOCK especifico de SQLSTATE.
+    /// PT-br: Verifica se a sessao mock de benchmark de Firebird trata seu fluxo EXECUTE BLOCK especifico de SQLSTATE.
     /// </summary>
     [Fact]
     public void FirebirdDbSqlLikeMemSession_ExecuteBlockSqlState23000_ShouldNotThrow()

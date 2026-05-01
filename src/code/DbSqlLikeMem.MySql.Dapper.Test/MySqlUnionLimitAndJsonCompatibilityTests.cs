@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// EN: Covers MySQL UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
-/// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do MySQL que o mock em memoria ja suporta.
+/// PT-br: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do MySQL que o mock em memoria ja suporta.
 /// </summary>
 /// <remarks>
 /// EN: Creates the in-memory MySQL connection used by the UNION, LIMIT, and JSON compatibility tests.
-/// PT: Cria a conexao MySQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
+/// PT-br: Cria a conexao MySQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
 /// </remarks>
 public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<MySqlDbMock, MySqlConnectionMock>(helper)
 {
@@ -22,7 +22,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
-    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
+    /// PT-br: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -31,7 +31,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Verifies LIMIT supports the comma offset syntax.
-    /// PT: Verifica se LIMIT suporta a sintaxe de offset com virgula.
+    /// PT-br: Verifica se LIMIT suporta a sintaxe de offset com virgula.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -44,7 +44,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Verifies LIMIT supports the OFFSET keyword syntax.
-    /// PT: Verifica se LIMIT suporta a sintaxe com a palavra-chave OFFSET.
+    /// PT-br: Verifica se LIMIT suporta a sintaxe com a palavra-chave OFFSET.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -57,7 +57,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Verifies JSON_EXTRACT respects the configured MySQL version.
-    /// PT: Verifica se JSON_EXTRACT respeita a versao MySQL configurada.
+    /// PT-br: Verifica se JSON_EXTRACT respeita a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -84,7 +84,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Verifies ORDER BY NULLS FIRST throws when the dialect does not support that modifier.
-    /// PT: Verifica se ORDER BY NULLS FIRST gera erro quando o dialeto nao suporta esse modificador.
+    /// PT-br: Verifica se ORDER BY NULLS FIRST gera erro quando o dialeto nao suporta esse modificador.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -97,7 +97,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Verifies JSON_VALUE respects the configured MySQL version.
-    /// PT: Verifica se JSON_VALUE respeita a versao MySQL configurada.
+    /// PT-br: Verifica se JSON_VALUE respeita a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -120,7 +120,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
-    /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
+    /// PT-br: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -129,7 +129,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
-    /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
+    /// PT-br: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]
@@ -140,7 +140,7 @@ public sealed class MySqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper h
 
     /// <summary>
     /// EN: Ensures UNION schema keeps aliases from the first SELECT projection.
-    /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
+    /// PT-br: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlUnionLimitAndJsonCompatibility")]

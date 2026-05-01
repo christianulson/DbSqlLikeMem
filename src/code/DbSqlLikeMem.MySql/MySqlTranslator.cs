@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MySql;
 #pragma warning disable CA1305 // Specify IFormatProvider
 /// <summary>
 /// EN: Visits expression trees and translates supported LINQ patterns into basic MySQL SQL.
-/// PT: Visita árvores de expressão e traduz padrões LINQ suportados para SQL básico de MySQL.
+/// PT-br: Visita árvores de expressão e traduz padrões LINQ suportados para SQL básico de MySQL.
 /// </summary>
 public class MySqlTranslator : ExpressionVisitor
 {
@@ -22,10 +22,10 @@ public class MySqlTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Translates an input expression tree into SQL text and positional parameters.
-    /// PT: Traduz uma árvore de expressão de entrada em SQL e parâmetros posicionais.
+    /// PT-br: Traduz uma árvore de expressão de entrada em SQL e parâmetros posicionais.
     /// </summary>
-    /// <param name="expression">EN: Expression tree to translate. PT: Árvore de expressão a ser traduzida.</param>
-    /// <returns>EN: Generated SQL and parameters. PT: SQL gerado e parâmetros.</returns>
+    /// <param name="expression">EN: Expression tree to translate. PT-br: Árvore de expressão a ser traduzida.</param>
+    /// <returns>EN: Generated SQL and parameters. PT-br: SQL gerado e parâmetros.</returns>
     public TranslationResult Translate(Expression expression)
     {
         var cacheKey = BuildTranslationCacheKey(expression);
@@ -94,10 +94,10 @@ public class MySqlTranslator : ExpressionVisitor
 #pragma warning disable CS8605 // Unboxing a possibly null value.
     /// <summary>
     /// EN: Translates method calls into MySQL expressions.
-    /// PT: Traduz chamadas de método em expressões MySQL.
+    /// PT-br: Traduz chamadas de método em expressões MySQL.
     /// </summary>
-    /// <param name="node">EN: Method call expression. PT: Expressão de chamada de método.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
+    /// <param name="node">EN: Method call expression. PT-br: Expressão de chamada de método.</param>
+    /// <returns>EN: Translated expression. PT-br: Expressão traduzida.</returns>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
@@ -166,10 +166,10 @@ public class MySqlTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Translates constants into MySQL literals.
-    /// PT: Traduz constantes em literais MySQL.
+    /// PT-br: Traduz constantes em literais MySQL.
     /// </summary>
-    /// <param name="node">EN: Constant expression. PT: Expressão constante.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
+    /// <param name="node">EN: Constant expression. PT-br: Expressão constante.</param>
+    /// <returns>EN: Translated expression. PT-br: Expressão traduzida.</returns>
     protected override Expression VisitConstant(ConstantExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
@@ -209,10 +209,10 @@ public class MySqlTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Translates binary expressions into MySQL syntax.
-    /// PT: Traduz expressões binárias para a sintaxe MySQL.
+    /// PT-br: Traduz expressões binárias para a sintaxe MySQL.
     /// </summary>
-    /// <param name="node">EN: Binary expression. PT: Expressão binária.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
+    /// <param name="node">EN: Binary expression. PT-br: Expressão binária.</param>
+    /// <returns>EN: Translated expression. PT-br: Expressão traduzida.</returns>
     protected override Expression VisitBinary(BinaryExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));
@@ -234,10 +234,10 @@ public class MySqlTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Translates member access into MySQL expressions.
-    /// PT: Traduz acesso a membros em expressões MySQL.
+    /// PT-br: Traduz acesso a membros em expressões MySQL.
     /// </summary>
-    /// <param name="node">EN: Member expression. PT: Expressão de membro.</param>
-    /// <returns>EN: Translated expression. PT: Expressão traduzida.</returns>
+    /// <param name="node">EN: Member expression. PT-br: Expressão de membro.</param>
+    /// <returns>EN: Translated expression. PT-br: Expressão traduzida.</returns>
     protected override Expression VisitMember(MemberExpression node)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(node, nameof(node));

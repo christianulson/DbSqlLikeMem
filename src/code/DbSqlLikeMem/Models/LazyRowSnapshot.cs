@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Stores a row snapshot in a compact read-only form without allocating a dictionary.
-/// PT: Armazena um snapshot de linha em formato compacto somente leitura sem alocar um dicionário.
+/// PT-br: Armazena um snapshot de linha em formato compacto somente leitura sem alocar um dicionário.
 /// </summary>
 internal sealed class LazyRowSnapshot : IReadOnlyDictionary<int, object?>
 {
@@ -17,10 +17,10 @@ internal sealed class LazyRowSnapshot : IReadOnlyDictionary<int, object?>
 
     /// <summary>
     /// EN: Creates a read-only snapshot for the provided row.
-    /// PT: Cria um snapshot somente leitura para a linha informada.
+    /// PT-br: Cria um snapshot somente leitura para a linha informada.
     /// </summary>
-    /// <param name="row">EN: Source row. PT: Linha de origem.</param>
-    /// <returns>EN: Compact read-only snapshot. PT: Snapshot compacto somente leitura.</returns>
+    /// <param name="row">EN: Source row. PT-br: Linha de origem.</param>
+    /// <returns>EN: Compact read-only snapshot. PT-br: Snapshot compacto somente leitura.</returns>
     public static IReadOnlyDictionary<int, object?> From(IReadOnlyDictionary<int, object?>? row)
     {
         if (row is null || row.Count == 0)

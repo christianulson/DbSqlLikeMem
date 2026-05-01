@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs PostgreSQL fidelity tests for the shared sequence workflows.
-/// PT: Executa testes de fidelidade PostgreSQL para os fluxos compartilhados de sequence.
+/// PT-br: Executa testes de fidelidade PostgreSQL para os fluxos compartilhados de sequence.
 /// </summary>
 public class SequenceTests(
     ITestOutputHelper helper
@@ -19,7 +19,7 @@ public class SequenceTests(
 {
     /// <summary>
     /// EN: Verifies ALTER SEQUENCE RESTART WITH resets the next generated value for PostgreSQL sequence coverage.
-    /// PT: Verifica se ALTER SEQUENCE RESTART WITH reinicia o proximo valor gerado na cobertura de sequence do PostgreSQL.
+    /// PT-br: Verifica se ALTER SEQUENCE RESTART WITH reinicia o proximo valor gerado na cobertura de sequence do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -38,7 +38,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies ALTER SEQUENCE INCREMENT BY changes the next generated values for PostgreSQL coverage.
-    /// PT: Verifica se ALTER SEQUENCE INCREMENT BY altera os proximos valores gerados na cobertura do PostgreSQL.
+    /// PT-br: Verifica se ALTER SEQUENCE INCREMENT BY altera os proximos valores gerados na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -57,7 +57,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies ALTER SEQUENCE OWNED BY NONE keeps the sequence available after the table is dropped.
-    /// PT: Verifica se ALTER SEQUENCE OWNED BY NONE mantem a sequence disponivel depois que a tabela e removida.
+    /// PT-br: Verifica se ALTER SEQUENCE OWNED BY NONE mantem a sequence disponivel depois que a tabela e removida.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -76,7 +76,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies ALTER SEQUENCE OWNED BY drops the sequence when the owning table is dropped.
-    /// PT: Verifica se ALTER SEQUENCE OWNED BY remove a sequence quando a tabela proprietaria e removida.
+    /// PT-br: Verifica se ALTER SEQUENCE OWNED BY remove a sequence quando a tabela proprietaria e removida.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -95,7 +95,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies a CYCLE sequence wraps back to the minimum value after reaching the maximum value.
-    /// PT: Verifica se uma sequence com CYCLE volta ao valor minimo apos atingir o valor maximo.
+    /// PT-br: Verifica se uma sequence com CYCLE volta ao valor minimo apos atingir o valor maximo.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -114,7 +114,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies a bounded sequence stops after reaching its maximum value in PostgreSQL coverage.
-    /// PT: Verifica se uma sequence limitada para depois de atingir o valor maximo na cobertura do PostgreSQL.
+    /// PT-br: Verifica se uma sequence limitada para depois de atingir o valor maximo na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -133,7 +133,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies a descending sequence follows its negative increment in PostgreSQL coverage.
-    /// PT: Verifica se uma sequence descendente segue o incremento negativo na cobertura do PostgreSQL.
+    /// PT-br: Verifica se uma sequence descendente segue o incremento negativo na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -152,7 +152,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies a lower-bounded sequence stops after reaching its minimum value in PostgreSQL coverage.
-    /// PT: Verifica se uma sequence com limite inferior para depois de atingir o valor minimo na cobertura do PostgreSQL.
+    /// PT-br: Verifica se uma sequence com limite inferior para depois de atingir o valor minimo na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -171,7 +171,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies DROP SEQUENCE IF EXISTS stays idempotent after the sequence is already removed.
-    /// PT: Verifica se DROP SEQUENCE IF EXISTS continua idempotente depois que a sequence ja foi removida.
+    /// PT-br: Verifica se DROP SEQUENCE IF EXISTS continua idempotente depois que a sequence ja foi removida.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -190,7 +190,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies currval and lastval follow the current session after a sequence restart in PostgreSQL coverage.
-    /// PT: Verifica se currval e lastval seguem a sessao atual apos um restart de sequence na cobertura do PostgreSQL.
+    /// PT-br: Verifica se currval e lastval seguem a sessao atual apos um restart de sequence na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -210,7 +210,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies setval with is_called false keeps lastval unchanged until the next sequence value is consumed.
-    /// PT: Verifica se setval com is_called false mantem lastval inalterado ate que o proximo valor da sequence seja consumido.
+    /// PT-br: Verifica se setval com is_called false mantem lastval inalterado ate que o proximo valor da sequence seja consumido.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -229,7 +229,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies currval stays local to each PostgreSQL session after the first nextval call.
-    /// PT: Verifica se currval permanece local a cada sessao PostgreSQL apos a primeira chamada de nextval.
+    /// PT-br: Verifica se currval permanece local a cada sessao PostgreSQL apos a primeira chamada de nextval.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -248,7 +248,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies lastval stays local to each PostgreSQL session after the first nextval call.
-    /// PT: Verifica se lastval permanece local a cada sessao PostgreSQL apos a primeira chamada de nextval.
+    /// PT-br: Verifica se lastval permanece local a cada sessao PostgreSQL apos a primeira chamada de nextval.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -268,7 +268,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies schema-qualified sequence access works for PostgreSQL fidelity coverage.
-    /// PT: Verifica se o acesso a sequence qualificada por schema funciona na cobertura de fidelidade do PostgreSQL.
+    /// PT-br: Verifica se o acesso a sequence qualificada por schema funciona na cobertura de fidelidade do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -287,7 +287,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies dropping a sequence inside a transaction is rolled back in PostgreSQL fidelity coverage.
-    /// PT: Verifica se remover uma sequence dentro de uma transacao e revertido na cobertura de fidelidade do PostgreSQL.
+    /// PT-br: Verifica se remover uma sequence dentro de uma transacao e revertido na cobertura de fidelidade do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -306,7 +306,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies CREATE SEQUENCE IF NOT EXISTS keeps the original PostgreSQL sequence definition.
-    /// PT: Verifica se CREATE SEQUENCE IF NOT EXISTS preserva a definicao original da sequence PostgreSQL.
+    /// PT-br: Verifica se CREATE SEQUENCE IF NOT EXISTS preserva a definicao original da sequence PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]

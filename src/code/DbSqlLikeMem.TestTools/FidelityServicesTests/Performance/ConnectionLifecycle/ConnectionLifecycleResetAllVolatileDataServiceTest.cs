@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes connection-lifecycle benchmark workflows and validates the observed provider behavior.
-/// PT: Executa fluxos de benchmark de ciclo de vida da conexao e valida o comportamento observado do provedor.
+/// PT-br: Executa fluxos de benchmark de ciclo de vida da conexao e valida o comportamento observado do provedor.
 /// </summary>
 public class ConnectionLifecycleResetAllVolatileDataServiceTest(
         RepoService repo,
@@ -12,15 +12,15 @@ public class ConnectionLifecycleResetAllVolatileDataServiceTest(
 {
     /// <summary>
     /// EN: Invokes the provider full-reset helper when it is available.
-    /// PT: Invoca o helper de reset completo do provedor quando ele esta disponivel.
+    /// PT-br: Invoca o helper de reset completo do provedor quando ele esta disponivel.
     /// </summary>
-    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT-br: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public Task<object?> RunTestAsync(params object[] args)
         => Task.FromResult<object?>(RunResetAllVolatileData());
 
     /// <summary>
     /// EN: Invokes the provider full-reset helper when it is available.
-    /// PT: Invoca o helper de reset completo do provedor quando ele esta disponivel.
+    /// PT-br: Invoca o helper de reset completo do provedor quando ele esta disponivel.
     /// </summary>
     public int RunResetAllVolatileData()
     {

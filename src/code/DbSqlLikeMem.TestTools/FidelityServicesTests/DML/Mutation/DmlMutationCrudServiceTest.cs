@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Inserts typed user rows with provider parameters inside a transaction and validates that the rollback clears them.
-/// PT: Insere linhas tipadas de usuario com parametros do provedor
+/// PT-br: Insere linhas tipadas de usuario com parametros do provedor
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -18,7 +18,7 @@ public class DmlMutationParameterTransactionRollbackServiceTest(
 {
     /// <summary>
     /// EN: Inserts typed user rows with provider parameters inside a transaction and validates that the rollback clears them.
-    /// PT: Insere linhas tipadas de usuario com parametros do provedor dentro de uma transacao e valida que o rollback as remove.
+    /// PT-br: Insere linhas tipadas de usuario com parametros do provedor dentro de uma transacao e valida que o rollback as remove.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
@@ -62,7 +62,7 @@ public class DmlMutationParameterTransactionRollbackServiceTest(
 
 /// <summary>
 /// EN: Inserts typed user rows with provider parameters and validates the persisted values and row count.
-/// PT: Insere linhas tipadas de usuario com parametros do provedor e valida os valores persistidos e a contagem de linhas.
+/// PT-br: Insere linhas tipadas de usuario com parametros do provedor e valida os valores persistidos e a contagem de linhas.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -74,7 +74,7 @@ public class DmlMutationParameterTransactionCommitServiceTest(
 {
     /// <summary>
     /// EN: Inserts typed user rows with provider parameters inside a transaction and validates the committed result.
-    /// PT: Insere linhas tipadas de usuario com parametros do provedor dentro de uma transacao e valida o resultado confirmado.
+    /// PT-br: Insere linhas tipadas de usuario com parametros do provedor dentro de uma transacao e valida o resultado confirmado.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
@@ -113,7 +113,7 @@ public class DmlMutationParameterTransactionCommitServiceTest(
 
 /// <summary>
 /// EN: Updates typed user columns with provider parameters, including Oracle empty-string normalization for email, deletes another row, and validates the persisted result.
-/// PT: Atualiza colunas tipadas de usuario com parametros do provedor, incluindo a normalizacao de string vazia para email no Oracle, exclui outra linha e valida o resultado persistido.
+/// PT-br: Atualiza colunas tipadas de usuario com parametros do provedor, incluindo a normalizacao de string vazia para email no Oracle, exclui outra linha e valida o resultado persistido.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -125,7 +125,7 @@ public class DmlMutationParameterInsertNullRoundTripServiceTest(
 {
     /// <summary>
     /// EN: Inserts a typed user row with nullable provider parameters and validates the persisted values.
-    /// PT: Insere uma linha tipada de usuario com parametros anulaveis do provedor e valida os valores persistidos.
+    /// PT-br: Insere uma linha tipada de usuario com parametros anulaveis do provedor e valida os valores persistidos.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
@@ -224,7 +224,7 @@ INSERT INTO {Context.TbUsersFullName} (
 
 /// <summary>
 /// EN: Inserts typed user rows with provider parameters and validates the persisted values and row count.
-/// PT: Insere linhas tipadas de usuario com parametros do provedor e valida os valores persistidos e a contagem de linhas.
+/// PT-br: Insere linhas tipadas de usuario com parametros do provedor e valida os valores persistidos e a contagem de linhas.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -236,7 +236,7 @@ public class DmlMutationParameterInsertRoundTripServiceTest(
 {
     /// <summary>
     /// EN: Inserts typed user rows with provider parameters and validates the persisted values and row count.
-    /// PT: Insere linhas tipadas de usuario com parametros do provedor e valida os valores persistidos e a contagem de linhas.
+    /// PT-br: Insere linhas tipadas de usuario com parametros do provedor e valida os valores persistidos e a contagem de linhas.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
@@ -291,7 +291,7 @@ public class DmlMutationParameterInsertRoundTripServiceTest(
 
 /// <summary>
 /// EN: Updates typed user columns with provider parameters, including Oracle empty-string normalization for email, deletes another row, and validates the persisted result.
-/// PT: Atualiza colunas tipadas de usuario com parametros do provedor, incluindo a normalizacao de string vazia para email no Oracle, exclui outra linha e valida o resultado persistido.
+/// PT-br: Atualiza colunas tipadas de usuario com parametros do provedor, incluindo a normalizacao de string vazia para email no Oracle, exclui outra linha e valida o resultado persistido.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -303,7 +303,7 @@ public class DmlMutationParameterUpdateDeleteRoundTripServiceTest(
 {
     /// <summary>
     /// EN: Updates typed user columns with provider parameters, including Oracle empty-string normalization for email, deletes another row, and validates the persisted result.
-    /// PT: Atualiza colunas tipadas de usuario com parametros do provedor, incluindo a normalizacao de string vazia para email no Oracle, exclui outra linha e valida o resultado persistido.
+    /// PT-br: Atualiza colunas tipadas de usuario com parametros do provedor, incluindo a normalizacao de string vazia para email no Oracle, exclui outra linha e valida o resultado persistido.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {
@@ -404,7 +404,7 @@ WHERE Id = {Repo.Dialect.Parameter("deleteId")}
 
 /// <summary>
 /// EN: Reads a user name by primary key and validates the updated value.
-/// PT: Lê um nome de usuario pela chave primaria e valida o valor atualizado.
+/// PT-br: Lê um nome de usuario pela chave primaria e valida o valor atualizado.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -416,9 +416,9 @@ public class DmlMutationUpdateByPkServiceTest(
 {
     /// <summary>
     /// EN: Reads a user name by primary key and validates the updated value.
-    /// PT: Lê um nome de usuario pela chave primaria e valida o valor atualizado.
+    /// PT-br: Lê um nome de usuario pela chave primaria e valida o valor atualizado.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the update flow. PT: Id principal opcional do usuario para o fluxo de update.</param>
+    /// <param name="args">EN: Optional primary user id for the update flow. PT-br: Id principal opcional do usuario para o fluxo de update.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;
@@ -437,7 +437,7 @@ public class DmlMutationUpdateByPkServiceTest(
 
 /// <summary>
 /// EN: Deletes one user row and validates the remaining row projection.
-/// PT: Exclui uma linha de usuario e valida a projeção da linha restante.
+/// PT-br: Exclui uma linha de usuario e valida a projeção da linha restante.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -449,9 +449,9 @@ public class DmlMutationDeleteByPkServiceTest(
 {
     /// <summary>
     /// EN: Deletes one user row and validates the remaining row projection.
-    /// PT: Exclui uma linha de usuario e valida a projeção da linha restante.
+    /// PT-br: Exclui uma linha de usuario e valida a projeção da linha restante.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the delete flow. PT: Id principal opcional do usuario para o fluxo de delete.</param>
+    /// <param name="args">EN: Optional primary user id for the delete flow. PT-br: Id principal opcional do usuario para o fluxo de delete.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;
@@ -474,7 +474,7 @@ FROM {Context.TbUsersFullName}
 
 /// <summary>
 /// EN: Executes the join query between users and orders and validates the count.
-/// PT: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
+/// PT-br: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -486,17 +486,17 @@ public class DmlMutationSelectJoinServiceTest(
 {
     /// <summary>
     /// EN: Executes the join query between users and orders and validates the count.
-    /// PT: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
+    /// PT-br: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the join query. PT: Id principal opcional do usuario para a consulta de join.</param>
+    /// <param name="args">EN: Optional primary user id for the join query. PT-br: Id principal opcional do usuario para a consulta de join.</param>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSelectJoinCountAsync(args);
 
     /// <summary>
     /// EN: Executes the join query between users and orders and validates the count.
-    /// PT: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
+    /// PT-br: Executa a consulta de junção entre usuarios e pedidos e valida a contagem.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the join query. PT: Id principal opcional do usuario para a consulta de join.</param>
+    /// <param name="args">EN: Optional primary user id for the join query. PT-br: Id principal opcional do usuario para a consulta de join.</param>
     public async Task<int> RunSelectJoinCountAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;
@@ -513,7 +513,7 @@ public class DmlMutationSelectJoinServiceTest(
 
 /// <summary>
 /// EN: Updates a row and validates the affected-row count reported by the provider.
-/// PT: Atualiza uma linha e valida a contagem de linhas afetadas informada pelo provedor.
+/// PT-br: Atualiza uma linha e valida a contagem de linhas afetadas informada pelo provedor.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -525,9 +525,9 @@ public class DmlMutationRowCountAfterUpdateServiceTest(
 {
     /// <summary>
     /// EN: Updates a row and validates the affected-row count reported by the provider.
-    /// PT: Atualiza uma linha e valida a contagem de linhas afetadas informada pelo provedor.
+    /// PT-br: Atualiza uma linha e valida a contagem de linhas afetadas informada pelo provedor.
     /// </summary>
-    /// <param name="args">EN: Optional user id for the update flow. PT: Id opcional do usuario para o fluxo de update.</param>
+    /// <param name="args">EN: Optional user id for the update flow. PT-br: Id opcional do usuario para o fluxo de update.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;
@@ -544,7 +544,7 @@ public class DmlMutationRowCountAfterUpdateServiceTest(
 
 /// <summary>
 /// EN: Updates one user row, deletes another row, and validates the final row count and remaining value.
-/// PT: Atualiza uma linha de usuario, exclui outra linha e valida a contagem final e o valor restante.
+/// PT-br: Atualiza uma linha de usuario, exclui outra linha e valida a contagem final e o valor restante.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -556,9 +556,9 @@ public class DmlMutationUpdateDeleteRoundTripServiceTest(
 {
     /// <summary>
     /// EN: Updates one user row, deletes another row, and validates the final row count and remaining value.
-    /// PT: Atualiza uma linha de usuario, exclui outra linha e valida a contagem final e o valor restante.
+    /// PT-br: Atualiza uma linha de usuario, exclui outra linha e valida a contagem final e o valor restante.
     /// </summary>
-    /// <param name="args">EN: Optional update and delete user ids. PT: Ids opcionais de usuario para update e delete.</param>
+    /// <param name="args">EN: Optional update and delete user ids. PT-br: Ids opcionais de usuario para update e delete.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var updateUserId = args.Length > 0 ? (int)args[0] : 1;
@@ -582,7 +582,7 @@ public class DmlMutationUpdateDeleteRoundTripServiceTest(
 
 /// <summary>
 /// EN: Updates one row and deletes another inside a transaction, then validates the committed result.
-/// PT: Atualiza uma linha e exclui outra dentro de uma transacao, depois valida o resultado confirmado.
+/// PT-br: Atualiza uma linha e exclui outra dentro de uma transacao, depois valida o resultado confirmado.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -594,9 +594,9 @@ public class DmlMutationTransactionalUpdateDeleteCommitServiceTest(
 {
     /// <summary>
     /// EN: Updates one row and deletes another inside a transaction, then validates the committed result.
-    /// PT: Atualiza uma linha e exclui outra dentro de uma transacao, depois valida o resultado confirmado.
+    /// PT-br: Atualiza uma linha e exclui outra dentro de uma transacao, depois valida o resultado confirmado.
     /// </summary>
-    /// <param name="args">EN: Optional update and delete user ids. PT: Ids opcionais de usuario para update e delete.</param>
+    /// <param name="args">EN: Optional update and delete user ids. PT-br: Ids opcionais de usuario para update e delete.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var updateUserId = args.Length > 0 ? (int)args[0] : 1;

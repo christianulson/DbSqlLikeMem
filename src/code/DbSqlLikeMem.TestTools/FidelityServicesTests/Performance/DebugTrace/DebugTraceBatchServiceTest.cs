@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes debug-trace benchmark workflows and validates the observed provider diagnostics.
-/// PT: Executa fluxos de benchmark de rastreamento de debug e valida os diagnosticos observados do provedor.
+/// PT-br: Executa fluxos de benchmark de rastreamento de debug e valida os diagnosticos observados do provedor.
 /// </summary>
 public class DebugTraceBatchServiceTest(
         RepoService repo,
@@ -12,17 +12,17 @@ public class DebugTraceBatchServiceTest(
 {
     /// <summary>
     /// EN: Executes a batch and reads the provider debug SQL batch trace when available.
-    /// PT: Executa um lote e lê o rastreamento do lote SQL de debug do provedor quando disponivel.
+    /// PT-br: Executa um lote e lê o rastreamento do lote SQL de debug do provedor quando disponivel.
     /// </summary>
-    /// <param name="args">EN: Optional insert ids for the batch rows. PT: IDs opcionais de insert para as linhas do lote.</param>
+    /// <param name="args">EN: Optional insert ids for the batch rows. PT-br: IDs opcionais de insert para as linhas do lote.</param>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunDebugTraceBatchAsync(args);
 
     /// <summary>
     /// EN: Executes a batch and reads the provider debug SQL batch trace when available.
-    /// PT: Executa um lote e lê o rastreamento do lote SQL de debug do provedor quando disponivel.
+    /// PT-br: Executa um lote e lê o rastreamento do lote SQL de debug do provedor quando disponivel.
     /// </summary>
-    /// <param name="args">EN: Optional insert ids for the batch rows. PT: IDs opcionais de insert para as linhas do lote.</param>
+    /// <param name="args">EN: Optional insert ids for the batch rows. PT-br: IDs opcionais de insert para as linhas do lote.</param>
     public async Task<string> RunDebugTraceBatchAsync(params object[] args)
     {
         var id1 = args.Length > 0 ? (int)args[0] : 1;

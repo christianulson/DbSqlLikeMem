@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Shared stored procedure signature validation tests executed by provider-specific derived classes.
-/// PT: Testes compartilhados de validação de assinatura de procedures executados por classes derivadas de cada provedor.
+/// PT-br: Testes compartilhados de validação de assinatura de procedures executados por classes derivadas de cada provedor.
 /// </summary>
 public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         ITestOutputHelper helper
@@ -11,19 +11,19 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 {
     /// <summary>
     /// EN: Creates a provider-specific mock connection used by stored procedure signature tests.
-    /// PT: Cria uma conexão simulada específica do provedor usada pelos testes de assinatura de procedure.
+    /// PT-br: Cria uma conexão simulada específica do provedor usada pelos testes de assinatura de procedure.
     /// </summary>
     protected abstract DbConnectionMockBase CreateConnection();
 
     /// <summary>
     /// EN: Gets the provider dialect used by stored procedure signature tests.
-    /// PT: Obtem o dialeto do provedor usado pelos testes de assinatura de procedure.
+    /// PT-br: Obtem o dialeto do provedor usado pelos testes de assinatura de procedure.
     /// </summary>
     protected abstract ProviderSqlDialect Dialect { get; }
 
     /// <summary>
     /// EN: Verifies stored procedure calls validate required input and output parameters.
-    /// PT: Verifica se chamadas de procedure validam parametros de entrada e saida obrigatorios.
+    /// PT-br: Verifica se chamadas de procedure validam parametros de entrada e saida obrigatorios.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -54,7 +54,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies a stored procedure call validates required input and output parameters.
-    /// PT: Verifica se uma chamada de procedure valida parametros obrigatorios de entrada e saida.
+    /// PT-br: Verifica se uma chamada de procedure valida parametros obrigatorios de entrada e saida.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -63,7 +63,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls populate mixed typed output parameters and return values.
-    /// PT: Verifica se chamadas de procedure preenchem parametros de saida de tipos mistos e valores de retorno.
+    /// PT-br: Verifica se chamadas de procedure preenchem parametros de saida de tipos mistos e valores de retorno.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -115,7 +115,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep input-output parameters readable and writable.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output legiveis e gravaveis.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output legiveis e gravaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -160,7 +160,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep temporal input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output temporais inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output temporais inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -195,7 +195,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep GUID input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output GUID inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output GUID inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -256,7 +256,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep boolean input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output booleanos inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output booleanos inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -290,7 +290,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep decimal input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output decimais inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output decimais inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -325,7 +325,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep string input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output de texto inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output de texto inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -359,7 +359,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep DateTimeOffset input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output DateTimeOffset inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output DateTimeOffset inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -421,7 +421,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep fixed-length text input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output de texto de comprimento fixo inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output de texto de comprimento fixo inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -455,7 +455,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls keep numeric, ANSI text, and binary input-output parameters unchanged.
-    /// PT: Verifica se chamadas de procedure mantem parametros input-output numericos, texto ANSI e binarios inalterados.
+    /// PT-br: Verifica se chamadas de procedure mantem parametros input-output numericos, texto ANSI e binarios inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -502,7 +502,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies stored procedure calls fail when a required parameter is missing.
-    /// PT: Verifica se chamadas de procedure falham quando um parametro obrigatorio esta ausente.
+    /// PT-br: Verifica se chamadas de procedure falham quando um parametro obrigatorio esta ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -524,7 +524,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
 
     /// <summary>
     /// EN: Verifies CALL statements are validated against the registered procedure definition.
-    /// PT: Verifica se instrucoes CALL sao validadas contra a definicao da procedure registrada.
+    /// PT-br: Verifica se instrucoes CALL sao validadas contra a definicao da procedure registrada.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureSignature")]
@@ -588,7 +588,7 @@ public abstract class StoredProcedureSignatureTestsBase<TSqlMockException>(
         catch (ArgumentException) when (isOracleParameter)
         {
             // EN: ODP.NET can reject some DbType values (e.g., Guid/DateTimeOffset) on OracleParameter.
-            // PT: ODP.NET pode rejeitar alguns valores de DbType (ex.: Guid/DateTimeOffset) no OracleParameter.
+            // PT-br: ODP.NET pode rejeitar alguns valores de DbType (ex.: Guid/DateTimeOffset) no OracleParameter.
             //
             // Keep the default DbType and rely on the value payload for signature tests.
         }

@@ -1,14 +1,14 @@
-﻿namespace DbSqlLikeMem.Sqlite.Dapper.Test;
+namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// EN: Covers SQLite UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
-/// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do SQLite que o mock em memoria ja suporta.
+/// PT-br: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do SQLite que o mock em memoria ja suporta.
 /// </summary>
 public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimitAndJsonCompatibilityTestsBase<SqliteDbMock, SqliteConnectionMock>
 {
     /// <summary>
     /// EN: Creates the in-memory SQLite connection used by the UNION, LIMIT, and JSON compatibility tests.
-    /// PT: Cria a conexao SQLite em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
+    /// PT-br: Cria a conexao SQLite em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
     /// </summary>
     public SqliteUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : base(helper) { }
 
@@ -17,7 +17,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
-    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
+    /// PT-br: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -26,7 +26,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Verifies LIMIT supports the comma offset syntax.
-    /// PT: Verifica se LIMIT suporta a sintaxe de offset com virgula.
+    /// PT-br: Verifica se LIMIT suporta a sintaxe de offset com virgula.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -38,7 +38,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Verifies LIMIT supports the OFFSET keyword syntax.
-    /// PT: Verifica se LIMIT suporta a sintaxe com a palavra-chave OFFSET.
+    /// PT-br: Verifica se LIMIT suporta a sintaxe com a palavra-chave OFFSET.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -50,7 +50,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Verifies JSON_EXTRACT returns the expected values.
-    /// PT: Verifica se JSON_EXTRACT retorna os valores esperados.
+    /// PT-br: Verifica se JSON_EXTRACT retorna os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -67,7 +67,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Verifies ORDER BY NULLS FIRST applies explicit null ordering.
-    /// PT: Verifica se ORDER BY NULLS FIRST aplica a ordenacao explicita de nulos.
+    /// PT-br: Verifica se ORDER BY NULLS FIRST aplica a ordenacao explicita de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -80,7 +80,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Verifies JSON_VALUE returns the expected values.
-    /// PT: Verifica se JSON_VALUE retorna os valores esperados.
+    /// PT-br: Verifica se JSON_VALUE retorna os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -92,7 +92,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
-    /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
+    /// PT-br: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -101,7 +101,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
-    /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
+    /// PT-br: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]
@@ -112,7 +112,7 @@ public sealed class SqliteUnionLimitAndJsonCompatibilityTests : DapperUnionLimit
 
     /// <summary>
     /// EN: Ensures UNION schema keeps aliases from the first SELECT projection.
-    /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
+    /// PT-br: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteUnionLimitAndJsonCompatibility")]

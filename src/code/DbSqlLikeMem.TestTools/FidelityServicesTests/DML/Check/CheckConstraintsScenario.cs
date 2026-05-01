@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Creates and drops the contract table used to verify check-constraint insert and update behavior.
-/// PT: Cria e remove a tabela de contrato usada para verificar o comportamento de insert e update com restricoes check.
+/// PT-br: Cria e remove a tabela de contrato usada para verificar o comportamento de insert e update com restricoes check.
 /// </summary>
 public class CheckConstraintsScenario(
     RepoService repo,
@@ -12,7 +12,7 @@ public class CheckConstraintsScenario(
 {
     /// <summary>
     /// EN: Creates the contract table used to validate check constraints together with defaults and nullable columns.
-    /// PT: Cria a tabela de contrato usada para validar restricoes check junto com defaults e colunas anulaveis.
+    /// PT-br: Cria a tabela de contrato usada para validar restricoes check junto com defaults e colunas anulaveis.
     /// </summary>
     public Task CreateScenarioAsync()
         => Repo.ExecuteNonQueryAsync($"""
@@ -28,7 +28,7 @@ CREATE TABLE {Context.TbUsersFullName} (
 
     /// <summary>
     /// EN: Drops the contract table created for the check-constraint fidelity checks.
-    /// PT: Remove a tabela de contrato criada para as verificacoes de fidelidade de restricoes check.
+    /// PT-br: Remove a tabela de contrato criada para as verificacoes de fidelidade de restricoes check.
     /// </summary>
     public async Task DropScenarioAsync()
     {

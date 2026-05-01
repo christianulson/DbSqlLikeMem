@@ -9,13 +9,13 @@ public abstract partial class BenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Gets the benchmark session instance created for the current suite.
-    /// PT: Obtem a instancia de sessao de benchmark criada para a suite atual.
+    /// PT-br: Obtem a instancia de sessao de benchmark criada para a suite atual.
     /// </summary>
     protected IBenchmarkSession Session { get; private set; } = null!;
 
     /// <summary>
     /// EN: Creates the benchmark session used by the suite.
-    /// PT: Cria a sessao de benchmark usada pela suite.
+    /// PT-br: Cria a sessao de benchmark usada pela suite.
     /// </summary>
     protected abstract IBenchmarkSession CreateSession();
 
@@ -24,7 +24,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Prepares the benchmark session before the runs start.
-    /// PT: Prepara a sessao de benchmark antes do inicio das execucoes.
+    /// PT-br: Prepara a sessao de benchmark antes do inicio das execucoes.
     /// </summary>
     [GlobalSetup]
     public void GlobalSetup()
@@ -46,7 +46,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Releases the benchmark session after the runs finish.
-    /// PT: Libera a sessao de benchmark depois que as execucoes terminam.
+    /// PT-br: Libera a sessao de benchmark depois que as execucoes terminam.
     /// </summary>
     [GlobalCleanup]
     public void GlobalCleanup()
@@ -56,7 +56,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Prepares the benchmark session before the runs start.
-    /// PT: Prepara a sessao de benchmark antes do inicio das execucoes.
+    /// PT-br: Prepara a sessao de benchmark antes do inicio das execucoes.
     /// </summary>
     [IterationSetup]
     public void IterationSetup()
@@ -65,7 +65,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Releases the benchmark session after the runs finish.
-    /// PT: Libera a sessao de benchmark depois que as execucoes terminam.
+    /// PT-br: Libera a sessao de benchmark depois que as execucoes terminam.
     /// </summary>
     [IterationCleanup]
     public void IterationCleanup()
@@ -75,7 +75,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes one benchmark feature through the current session.
-    /// PT: Executa um recurso de benchmark pela sessao atual.
+    /// PT-br: Executa um recurso de benchmark pela sessao atual.
     /// </summary>
     public void Run(BenchmarkFeatureId feature)
     {
@@ -93,7 +93,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a connection-open benchmark.
-    /// PT: Executa um benchmark de abertura de conexao.
+    /// PT-br: Executa um benchmark de abertura de conexao.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -101,7 +101,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a schema-creation benchmark.
-    /// PT: Executa um benchmark de criacao de esquema.
+    /// PT-br: Executa um benchmark de criacao de esquema.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -109,7 +109,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a table-creation benchmark.
-    /// PT: Executa um benchmark de criacao de tabela.
+    /// PT-br: Executa um benchmark de criacao de tabela.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -117,7 +117,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that creates the users and orders tables with a foreign key.
-    /// PT: Executa um benchmark que cria as tabelas de usuarios e pedidos com chave estrangeira.
+    /// PT-br: Executa um benchmark que cria as tabelas de usuarios e pedidos com chave estrangeira.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -125,7 +125,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that creates the foreign-key tables and inserts a referenced row.
-    /// PT: Executa um benchmark que cria as tabelas com chave estrangeira e insere uma linha referenciada.
+    /// PT-br: Executa um benchmark que cria as tabelas com chave estrangeira e insere uma linha referenciada.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -133,7 +133,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the insert-in-table-with-FK benchmark.
-    /// PT: Executa o benchmark de insert na tabela com chave estrangeira.
+    /// PT-br: Executa o benchmark de insert na tabela com chave estrangeira.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -141,7 +141,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that drops the users table created by the DDL workflow.
-    /// PT: Executa um benchmark que remove a tabela de usuarios criada pelo fluxo de DDL.
+    /// PT-br: Executa um benchmark que remove a tabela de usuarios criada pelo fluxo de DDL.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -149,7 +149,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a single-row insert benchmark.
-    /// PT: Executa um benchmark de insercao de uma linha.
+    /// PT-br: Executa um benchmark de insercao de uma linha.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -157,7 +157,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an insert benchmark that starts from a custom id.
-    /// PT: Executa um benchmark de insercao que inicia em um id customizado.
+    /// PT-br: Executa um benchmark de insercao que inicia em um id customizado.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -165,7 +165,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an insert benchmark that uses default-backed columns.
-    /// PT: Executa um benchmark de insert que usa colunas apoiadas por default.
+    /// PT-br: Executa um benchmark de insert que usa colunas apoiadas por default.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -173,7 +173,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an insert benchmark that omits nullable columns.
-    /// PT: Executa um benchmark de insert que omite colunas anulaveis.
+    /// PT-br: Executa um benchmark de insert que omite colunas anulaveis.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -181,7 +181,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an insert benchmark that omits a required NOT NULL column.
-    /// PT: Executa um benchmark de insert que omite uma coluna NOT NULL obrigatoria.
+    /// PT-br: Executa um benchmark de insert que omite uma coluna NOT NULL obrigatoria.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -189,7 +189,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that inserts a row satisfying the configured CHECK constraints.
-    /// PT: Executa um benchmark que insere uma linha que satisfaz as restricoes CHECK configuradas.
+    /// PT-br: Executa um benchmark que insere uma linha que satisfaz as restricoes CHECK configuradas.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -197,7 +197,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that attempts an insert violating a CHECK constraint.
-    /// PT: Executa um benchmark que tenta um insert violando uma restricao CHECK.
+    /// PT-br: Executa um benchmark que tenta um insert violando uma restricao CHECK.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -205,7 +205,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that attempts an update violating a CHECK constraint.
-    /// PT: Executa um benchmark que tenta um update violando uma restricao CHECK.
+    /// PT-br: Executa um benchmark que tenta um update violando uma restricao CHECK.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -213,7 +213,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a 100-row batch insert benchmark.
-    /// PT: Executa um benchmark de insercao em lote de 100 linhas.
+    /// PT-br: Executa um benchmark de insercao em lote de 100 linhas.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -221,7 +221,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a parallel 100-row batch insert benchmark.
-    /// PT: Executa um benchmark de insercao em lote paralelo de 100 linhas.
+    /// PT-br: Executa um benchmark de insercao em lote paralelo de 100 linhas.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -229,7 +229,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a primary-key lookup benchmark.
-    /// PT: Executa um benchmark de consulta por chave primaria.
+    /// PT-br: Executa um benchmark de consulta por chave primaria.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -237,7 +237,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a join-query benchmark.
-    /// PT: Executa um benchmark de consulta com join.
+    /// PT-br: Executa um benchmark de consulta com join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -245,7 +245,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the join-count benchmark.
-    /// PT: Executa o benchmark de contagem do join.
+    /// PT-br: Executa o benchmark de contagem do join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -253,7 +253,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the relational composite benchmark.
-    /// PT: Executa o benchmark composto relacional.
+    /// PT-br: Executa o benchmark composto relacional.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -265,7 +265,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the APPLY projection benchmark.
-    /// PT: Executa o benchmark de projeção APPLY.
+    /// PT-br: Executa o benchmark de projeção APPLY.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -273,7 +273,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the window-functions benchmark.
-    /// PT: Executa o benchmark de funcoes de janela.
+    /// PT-br: Executa o benchmark de funcoes de janela.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -281,7 +281,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the scalar-subquery CASE matrix benchmark.
-    /// PT: Executa o benchmark da matriz CASE com subconsulta escalar.
+    /// PT-br: Executa o benchmark da matriz CASE com subconsulta escalar.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -289,7 +289,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the range-and-pivot benchmark.
-    /// PT: Executa o benchmark de faixa e pivot.
+    /// PT-br: Executa o benchmark de faixa e pivot.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -297,7 +297,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the IN-list predicate benchmark.
-    /// PT: Executa o benchmark de predicado IN com lista.
+    /// PT-br: Executa o benchmark de predicado IN com lista.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -305,7 +305,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the BETWEEN predicate benchmark.
-    /// PT: Executa o benchmark de predicado BETWEEN.
+    /// PT-br: Executa o benchmark de predicado BETWEEN.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -313,7 +313,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the LIKE predicate benchmark.
-    /// PT: Executa o benchmark de predicado LIKE.
+    /// PT-br: Executa o benchmark de predicado LIKE.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -321,7 +321,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the NOT LIKE predicate benchmark.
-    /// PT: Executa o benchmark de predicado NOT LIKE.
+    /// PT-br: Executa o benchmark de predicado NOT LIKE.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -329,7 +329,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the not-equal predicate benchmark.
-    /// PT: Executa o benchmark de predicado diferente de.
+    /// PT-br: Executa o benchmark de predicado diferente de.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -337,7 +337,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the equality predicate benchmark.
-    /// PT: Executa o benchmark de predicado de igualdade.
+    /// PT-br: Executa o benchmark de predicado de igualdade.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -345,7 +345,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the greater-than predicate benchmark.
-    /// PT: Executa o benchmark de predicado maior que.
+    /// PT-br: Executa o benchmark de predicado maior que.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -353,7 +353,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the less-than predicate benchmark.
-    /// PT: Executa o benchmark de predicado menor que.
+    /// PT-br: Executa o benchmark de predicado menor que.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -361,7 +361,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the greater-than-or-equal predicate benchmark.
-    /// PT: Executa o benchmark de predicado maior ou igual.
+    /// PT-br: Executa o benchmark de predicado maior ou igual.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -369,7 +369,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the less-than-or-equal predicate benchmark.
-    /// PT: Executa o benchmark de predicado menor ou igual.
+    /// PT-br: Executa o benchmark de predicado menor ou igual.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -377,7 +377,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the NOT IN subquery with NULL benchmark.
-    /// PT: Executa o benchmark de subconsulta NOT IN com NULL.
+    /// PT-br: Executa o benchmark de subconsulta NOT IN com NULL.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -433,7 +433,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that counts all rows returned by the seeded select table.
-    /// PT: Executa um benchmark que conta todas as linhas retornadas pela tabela de select semeada.
+    /// PT-br: Executa um benchmark que conta todas as linhas retornadas pela tabela de select semeada.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -445,7 +445,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that captures the full select snapshot from the seeded table.
-    /// PT: Executa um benchmark que captura o snapshot completo do select na tabela semeada.
+    /// PT-br: Executa um benchmark que captura o snapshot completo do select na tabela semeada.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -457,7 +457,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the MATERIALIZED CTE benchmark.
-    /// PT: Executa o benchmark de CTE MATERIALIZED.
+    /// PT-br: Executa o benchmark de CTE MATERIALIZED.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -469,7 +469,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the DISTINCT ON projection benchmark.
-    /// PT: Executa o benchmark de projecao DISTINCT ON.
+    /// PT-br: Executa o benchmark de projecao DISTINCT ON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -481,7 +481,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the ORDER BY Name matrix benchmark.
-    /// PT: Executa o benchmark da matriz ORDER BY Name.
+    /// PT-br: Executa o benchmark da matriz ORDER BY Name.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -497,7 +497,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the ORDER BY ordinal matrix benchmark.
-    /// PT: Executa o benchmark da matriz ORDER BY ordinal.
+    /// PT-br: Executa o benchmark da matriz ORDER BY ordinal.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -513,7 +513,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the ORDER BY Name descending matrix benchmark.
-    /// PT: Executa o benchmark da matriz ORDER BY Name descendente.
+    /// PT-br: Executa o benchmark da matriz ORDER BY Name descendente.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -529,7 +529,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the name pagination matrix benchmark.
-    /// PT: Executa o benchmark da matriz de paginacao por nome.
+    /// PT-br: Executa o benchmark da matriz de paginacao por nome.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -541,7 +541,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the GROUP BY name initial matrix benchmark.
-    /// PT: Executa o benchmark da matriz GROUP BY por inicial do nome.
+    /// PT-br: Executa o benchmark da matriz GROUP BY por inicial do nome.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -553,7 +553,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the GROUP BY name HAVING matrix benchmark.
-    /// PT: Executa o benchmark da matriz GROUP BY com HAVING por nome.
+    /// PT-br: Executa o benchmark da matriz GROUP BY com HAVING por nome.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -569,7 +569,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the GROUP BY ordinal matrix benchmark.
-    /// PT: Executa o benchmark da matriz GROUP BY por ordinal.
+    /// PT-br: Executa o benchmark da matriz GROUP BY por ordinal.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -585,7 +585,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the DISTINCT order-by-ordinal matrix benchmark.
-    /// PT: Executa o benchmark da matriz DISTINCT com ORDER BY ordinal.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com ORDER BY ordinal.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -601,7 +601,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the DISTINCT text-filter order-by-ordinal matrix benchmark.
-    /// PT: Executa o benchmark da matriz DISTINCT com filtro de texto e ORDER BY ordinal.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com filtro de texto e ORDER BY ordinal.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -617,7 +617,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined typed-expression matrix benchmark.
-    /// PT: Executa o benchmark da matriz com expressoes tipadas em join.
+    /// PT-br: Executa o benchmark da matriz com expressoes tipadas em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -625,7 +625,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined null-aggregate matrix benchmark.
-    /// PT: Executa o benchmark da matriz agregada com null em join.
+    /// PT-br: Executa o benchmark da matriz agregada com null em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -633,7 +633,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined cast-null matrix benchmark.
-    /// PT: Executa o benchmark da matriz com cast e null em join.
+    /// PT-br: Executa o benchmark da matriz com cast e null em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -641,7 +641,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined cast-text comparison matrix benchmark.
-    /// PT: Executa o benchmark da matriz com cast e comparacao textual em join.
+    /// PT-br: Executa o benchmark da matriz com cast e comparacao textual em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -649,7 +649,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined HAVING cast matrix benchmark.
-    /// PT: Executa o benchmark da matriz HAVING com cast em join.
+    /// PT-br: Executa o benchmark da matriz HAVING com cast em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -657,7 +657,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined length-and-numeric matrix benchmark.
-    /// PT: Executa o benchmark da matriz com comprimento e numericos em join.
+    /// PT-br: Executa o benchmark da matriz com comprimento e numericos em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -665,7 +665,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined text-case-length matrix benchmark.
-    /// PT: Executa o benchmark da matriz com caixa, texto e comprimento em join.
+    /// PT-br: Executa o benchmark da matriz com caixa, texto e comprimento em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -673,7 +673,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined distinct-case matrix benchmark.
-    /// PT: Executa o benchmark da matriz DISTINCT com CASE em join.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com CASE em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -681,7 +681,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined distinct-HAVING matrix benchmark.
-    /// PT: Executa o benchmark da matriz DISTINCT com HAVING em join.
+    /// PT-br: Executa o benchmark da matriz DISTINCT com HAVING em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -741,7 +741,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the STRING_SPLIT projection benchmark.
-    /// PT: Executa o benchmark de projecao STRING_SPLIT.
+    /// PT-br: Executa o benchmark de projecao STRING_SPLIT.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -753,7 +753,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the FOR JSON PATH projection benchmark.
-    /// PT: Executa o benchmark de projecao FOR JSON PATH.
+    /// PT-br: Executa o benchmark de projecao FOR JSON PATH.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -765,7 +765,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined window and temporal matrix benchmark.
-    /// PT: Executa o benchmark da matriz com janela e temporal em join.
+    /// PT-br: Executa o benchmark da matriz com janela e temporal em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -773,7 +773,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined temporal matrix benchmark.
-    /// PT: Executa o benchmark da matriz temporal em join.
+    /// PT-br: Executa o benchmark da matriz temporal em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -781,7 +781,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined window matrix benchmark.
-    /// PT: Executa o benchmark da matriz de janela em join.
+    /// PT-br: Executa o benchmark da matriz de janela em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -789,7 +789,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the joined window, aggregate, and temporal matrix benchmark.
-    /// PT: Executa o benchmark da matriz com janela, agregacao e temporal em join.
+    /// PT-br: Executa o benchmark da matriz com janela, agregacao e temporal em join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -797,7 +797,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the APPLY and temporal composite benchmark.
-    /// PT: Executa o benchmark composto de APPLY e temporal.
+    /// PT-br: Executa o benchmark composto de APPLY e temporal.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -809,7 +809,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the APPLY and window-temporal composite benchmark.
-    /// PT: Executa o benchmark composto de APPLY e janela-temporal.
+    /// PT-br: Executa o benchmark composto de APPLY e janela-temporal.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -821,7 +821,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a primary-key update benchmark.
-    /// PT: Executa um benchmark de atualizacao por chave primaria.
+    /// PT-br: Executa um benchmark de atualizacao por chave primaria.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -829,7 +829,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an update/delete round-trip benchmark.
-    /// PT: Executa um benchmark de ciclo de update/delete.
+    /// PT-br: Executa um benchmark de ciclo de update/delete.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -837,7 +837,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the parameter update/delete round-trip benchmark.
-    /// PT: Executa o benchmark de roundtrip de update/delete com parametros.
+    /// PT-br: Executa o benchmark de roundtrip de update/delete com parametros.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -845,7 +845,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a primary-key delete benchmark.
-    /// PT: Executa um benchmark de exclusao por chave primaria.
+    /// PT-br: Executa um benchmark de exclusao por chave primaria.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -853,7 +853,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a transaction-commit benchmark.
-    /// PT: Executa um benchmark de confirmacao de transacao.
+    /// PT-br: Executa um benchmark de confirmacao de transacao.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("transactions")]
@@ -861,7 +861,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a transaction-rollback benchmark.
-    /// PT: Executa um benchmark de rollback de transacao.
+    /// PT-br: Executa um benchmark de rollback de transacao.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("transactions")]
@@ -869,7 +869,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an update/delete workflow inside a transaction benchmark.
-    /// PT: Executa um benchmark de update/delete dentro de uma transacao.
+    /// PT-br: Executa um benchmark de update/delete dentro de uma transacao.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("transactions")]
@@ -877,7 +877,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a typed parameter insert transaction commit benchmark.
-    /// PT: Executa um benchmark de confirmacao de transacao com inserts tipados.
+    /// PT-br: Executa um benchmark de confirmacao de transacao com inserts tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("transactions")]
@@ -885,7 +885,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a typed parameter insert transaction rollback benchmark.
-    /// PT: Executa um benchmark de rollback de transacao com inserts tipados.
+    /// PT-br: Executa um benchmark de rollback de transacao com inserts tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("transactions")]
@@ -893,7 +893,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a provider-specific upsert benchmark.
-    /// PT: Executa um benchmark de upsert especifico do provedor.
+    /// PT-br: Executa um benchmark de upsert especifico do provedor.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -901,7 +901,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the merge insert-then-update benchmark.
-    /// PT: Executa o benchmark de merge de inserir e depois atualizar.
+    /// PT-br: Executa o benchmark de merge de inserir e depois atualizar.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -909,7 +909,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the upsert insert-then-update benchmark.
-    /// PT: Executa o benchmark de upsert de inserir e depois atualizar.
+    /// PT-br: Executa o benchmark de upsert de inserir e depois atualizar.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -917,7 +917,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a parameter projection benchmark.
-    /// PT: Executa um benchmark de projeção parametrizada.
+    /// PT-br: Executa um benchmark de projeção parametrizada.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -925,7 +925,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a parameterized single-row insert benchmark.
-    /// PT: Executa um benchmark de insercao parametrizada de uma linha.
+    /// PT-br: Executa um benchmark de insercao parametrizada de uma linha.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -933,7 +933,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a parameter insert round-trip benchmark.
-    /// PT: Executa o benchmark de roundtrip de insert com parametros.
+    /// PT-br: Executa o benchmark de roundtrip de insert com parametros.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -941,7 +941,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a parameter insert round-trip benchmark with null values.
-    /// PT: Executa o benchmark de roundtrip de insert com parametros e valores nulos.
+    /// PT-br: Executa o benchmark de roundtrip de insert com parametros e valores nulos.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -949,7 +949,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a parameterized name lookup benchmark.
-    /// PT: Executa um benchmark de consulta parametrizada por nome.
+    /// PT-br: Executa um benchmark de consulta parametrizada por nome.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -957,7 +957,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a parameterized id lookup benchmark.
-    /// PT: Executa um benchmark de consulta parametrizada por id.
+    /// PT-br: Executa um benchmark de consulta parametrizada por id.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -965,7 +965,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a typed parameter round-trip benchmark.
-    /// PT: Executa um benchmark de roundtrip de parametros tipados.
+    /// PT-br: Executa um benchmark de roundtrip de parametros tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -973,7 +973,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a typed parameter projection benchmark.
-    /// PT: Executa um benchmark de projeção de parametros tipados.
+    /// PT-br: Executa um benchmark de projeção de parametros tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -981,7 +981,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a typed date and currency parameter benchmark.
-    /// PT: Executa um benchmark de data e moeda com parametros tipados.
+    /// PT-br: Executa um benchmark de data e moeda com parametros tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1009,7 +1009,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field storage matrix benchmark.
-    /// PT: Executa o benchmark da matriz de armazenamento tipado.
+    /// PT-br: Executa o benchmark da matriz de armazenamento tipado.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1017,7 +1017,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field function matrix benchmark.
-    /// PT: Executa o benchmark da matriz de funcoes tipadas.
+    /// PT-br: Executa o benchmark da matriz de funcoes tipadas.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1025,7 +1025,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field calculation matrix benchmark.
-    /// PT: Executa o benchmark da matriz de calculo tipado.
+    /// PT-br: Executa o benchmark da matriz de calculo tipado.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1033,7 +1033,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field and function blend benchmark.
-    /// PT: Executa o benchmark de mistura de campos tipados e funcoes.
+    /// PT-br: Executa o benchmark de mistura de campos tipados e funcoes.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1041,7 +1041,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field compound predicate matrix benchmark.
-    /// PT: Executa o benchmark da matriz de predicados compostos com campos tipados.
+    /// PT-br: Executa o benchmark da matriz de predicados compostos com campos tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1049,7 +1049,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field cast calculation matrix benchmark.
-    /// PT: Executa o benchmark da matriz de calculo com casts em campos tipados.
+    /// PT-br: Executa o benchmark da matriz de calculo com casts em campos tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1061,7 +1061,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field null comparison matrix benchmark.
-    /// PT: Executa o benchmark da matriz de comparacao com null em campos tipados.
+    /// PT-br: Executa o benchmark da matriz de comparacao com null em campos tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1073,7 +1073,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field text length matrix benchmark.
-    /// PT: Executa o benchmark da matriz de comprimento de texto em campos tipados.
+    /// PT-br: Executa o benchmark da matriz de comprimento de texto em campos tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1085,7 +1085,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field text case matrix benchmark.
-    /// PT: Executa o benchmark da matriz de caixa de texto em campos tipados.
+    /// PT-br: Executa o benchmark da matriz de caixa de texto em campos tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1097,7 +1097,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the typed field predicate matrix benchmark.
-    /// PT: Executa o benchmark da matriz de predicados em campos tipados.
+    /// PT-br: Executa o benchmark da matriz de predicados em campos tipados.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1105,7 +1105,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a stored procedure call benchmark.
-    /// PT: Executa um benchmark de chamada de procedimento armazenado.
+    /// PT-br: Executa um benchmark de chamada de procedimento armazenado.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -1113,7 +1113,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a string-aggregation benchmark.
-    /// PT: Executa um benchmark de agregacao de strings.
+    /// PT-br: Executa um benchmark de agregacao de strings.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1121,7 +1121,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a date-scalar benchmark.
-    /// PT: Executa um benchmark escalar de data.
+    /// PT-br: Executa um benchmark escalar de data.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1129,7 +1129,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the scalar temporal matrix benchmark.
-    /// PT: Executa a matriz temporal escalar.
+    /// PT-br: Executa a matriz temporal escalar.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1137,7 +1137,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the shared math functions benchmark.
-    /// PT: Executa o benchmark compartilhado de funcoes matematicas.
+    /// PT-br: Executa o benchmark compartilhado de funcoes matematicas.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1145,7 +1145,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the explicit-base math LOG benchmark.
-    /// PT: Executa o benchmark matematico LOG com base explicita.
+    /// PT-br: Executa o benchmark matematico LOG com base explicita.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1153,7 +1153,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the math LOG2 benchmark.
-    /// PT: Executa o benchmark matematico LOG2.
+    /// PT-br: Executa o benchmark matematico LOG2.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1161,7 +1161,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the math PI benchmark.
-    /// PT: Executa o benchmark matematico PI.
+    /// PT-br: Executa o benchmark matematico PI.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1169,7 +1169,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the math RAND benchmark.
-    /// PT: Executa o benchmark matematico RAND.
+    /// PT-br: Executa o benchmark matematico RAND.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1177,7 +1177,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the math remainder benchmark.
-    /// PT: Executa o benchmark matematico de resto.
+    /// PT-br: Executa o benchmark matematico de resto.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1185,7 +1185,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the math truncation benchmark.
-    /// PT: Executa o benchmark matematico de truncamento.
+    /// PT-br: Executa o benchmark matematico de truncamento.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1193,7 +1193,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the math cotangent benchmark.
-    /// PT: Executa o benchmark matematico de cotangente.
+    /// PT-br: Executa o benchmark matematico de cotangente.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1201,7 +1201,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the MySQL utility math benchmark.
-    /// PT: Executa o benchmark de utilitarios matematicos da familia MySQL.
+    /// PT-br: Executa o benchmark de utilitarios matematicos da familia MySQL.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1209,7 +1209,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the shared greatest/least/mod benchmark.
-    /// PT: Executa o benchmark compartilhado de greatest/least/mod.
+    /// PT-br: Executa o benchmark compartilhado de greatest/least/mod.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1217,7 +1217,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the DB2 alias math benchmark.
-    /// PT: Executa o benchmark de aliases matematicos do DB2.
+    /// PT-br: Executa o benchmark de aliases matematicos do DB2.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1225,7 +1225,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the Firebird alias math benchmark.
-    /// PT: Executa o benchmark de aliases matematicos do Firebird.
+    /// PT-br: Executa o benchmark de aliases matematicos do Firebird.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1233,7 +1233,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the shared transcendental math benchmark.
-    /// PT: Executa o benchmark compartilhado de matematica transcendental.
+    /// PT-br: Executa o benchmark compartilhado de matematica transcendental.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -1241,7 +1241,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a partition-pruning select benchmark.
-    /// PT: Executa um benchmark de select com partition pruning.
+    /// PT-br: Executa um benchmark de select com partition pruning.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advancedquery")]
@@ -1253,7 +1253,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an execution-plan benchmark.
-    /// PT: Executa um benchmark de execution plan.
+    /// PT-br: Executa um benchmark de execution plan.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1261,7 +1261,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an execution-plan benchmark for SELECT statements.
-    /// PT: Executa um benchmark de execution plan para instrucoes SELECT.
+    /// PT-br: Executa um benchmark de execution plan para instrucoes SELECT.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1269,7 +1269,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an execution-plan benchmark for join queries.
-    /// PT: Executa um benchmark de execution plan para consultas com join.
+    /// PT-br: Executa um benchmark de execution plan para consultas com join.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1277,7 +1277,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes an execution-plan benchmark for non-query DML statements.
-    /// PT: Executa um benchmark de execution plan para instrucoes DML non-query.
+    /// PT-br: Executa um benchmark de execution plan para instrucoes DML non-query.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1285,7 +1285,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a debug-trace benchmark for SELECT statements.
-    /// PT: Executa um benchmark de debug trace para instrucoes SELECT.
+    /// PT-br: Executa um benchmark de debug trace para instrucoes SELECT.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1293,7 +1293,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a debug-trace benchmark for batch statements.
-    /// PT: Executa um benchmark de debug trace para instrucoes em lote.
+    /// PT-br: Executa um benchmark de debug trace para instrucoes em lote.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1301,7 +1301,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a debug-trace benchmark for JSON output.
-    /// PT: Executa um benchmark de debug trace para saida JSON.
+    /// PT-br: Executa um benchmark de debug trace para saida JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1309,7 +1309,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a benchmark that reads the last execution-plan history.
-    /// PT: Executa um benchmark que le o historico do ultimo execution plan.
+    /// PT-br: Executa um benchmark que le o historico do ultimo execution plan.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("diagnostics")]
@@ -1317,7 +1317,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the temporary-table create and use benchmark.
-    /// PT: Executa o benchmark de criar e usar tabela temporaria.
+    /// PT-br: Executa o benchmark de criar e usar tabela temporaria.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1325,7 +1325,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the temporary-table rollback benchmark.
-    /// PT: Executa o benchmark de rollback com tabela temporaria.
+    /// PT-br: Executa o benchmark de rollback com tabela temporaria.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("transactions")]
@@ -1333,7 +1333,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the temporary-table cross-connection isolation benchmark.
-    /// PT: Executa o benchmark de isolamento de tabela temporaria entre conexoes.
+    /// PT-br: Executa o benchmark de isolamento de tabela temporaria entre conexoes.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1341,7 +1341,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the volatile-data reset benchmark.
-    /// PT: Executa o benchmark de reset de dados volateis.
+    /// PT-br: Executa o benchmark de reset de dados volateis.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1349,7 +1349,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the full volatile-data reset benchmark.
-    /// PT: Executa o benchmark de reset completo de dados volateis.
+    /// PT-br: Executa o benchmark de reset completo de dados volateis.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1357,7 +1357,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the connection reopen benchmark after a close.
-    /// PT: Executa o benchmark de reabrir a conexao depois de fechar.
+    /// PT-br: Executa o benchmark de reabrir a conexao depois de fechar.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1365,7 +1365,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a schema snapshot export benchmark.
-    /// PT: Executa um benchmark de exportacao de snapshot de schema.
+    /// PT-br: Executa um benchmark de exportacao de snapshot de schema.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
@@ -1373,7 +1373,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a schema snapshot to JSON benchmark.
-    /// PT: Executa um benchmark de snapshot de schema para JSON.
+    /// PT-br: Executa um benchmark de snapshot de schema para JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
@@ -1381,7 +1381,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a schema snapshot load-from-JSON benchmark.
-    /// PT: Executa um benchmark de carregamento de snapshot de schema a partir de JSON.
+    /// PT-br: Executa um benchmark de carregamento de snapshot de schema a partir de JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
@@ -1389,7 +1389,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a schema snapshot apply benchmark.
-    /// PT: Executa um benchmark de aplicacao de snapshot de schema.
+    /// PT-br: Executa um benchmark de aplicacao de snapshot de schema.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
@@ -1397,7 +1397,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a schema snapshot round-trip benchmark.
-    /// PT: Executa um benchmark de round-trip de snapshot de schema.
+    /// PT-br: Executa um benchmark de round-trip de snapshot de schema.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
@@ -1405,7 +1405,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a schema snapshot comparison benchmark.
-    /// PT: Executa um benchmark de comparacao de snapshot de schema.
+    /// PT-br: Executa um benchmark de comparacao de snapshot de schema.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("snapshot")]
@@ -1413,7 +1413,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the fluent schema builder benchmark.
-    /// PT: Executa o benchmark do builder fluente de schema.
+    /// PT-br: Executa o benchmark do builder fluente de schema.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1421,7 +1421,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the fluent seed benchmark for 100 rows.
-    /// PT: Executa o benchmark de seed fluente para 100 linhas.
+    /// PT-br: Executa o benchmark de seed fluente para 100 linhas.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1429,7 +1429,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the fluent seed benchmark for 1000 rows.
-    /// PT: Executa o benchmark de seed fluente para 1000 linhas.
+    /// PT-br: Executa o benchmark de seed fluente para 1000 linhas.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]
@@ -1437,7 +1437,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the fluent scenario composition benchmark.
-    /// PT: Executa o benchmark de composição de cenario fluente.
+    /// PT-br: Executa o benchmark de composição de cenario fluente.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("setup")]

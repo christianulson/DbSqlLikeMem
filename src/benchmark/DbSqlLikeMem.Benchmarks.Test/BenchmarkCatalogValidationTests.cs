@@ -11,7 +11,7 @@ namespace DbSqlLikeMem.Benchmarks.Test;
 
 /// <summary>
 /// EN: Covers the benchmark automation catalog and its command-line validation flow.
-/// PT: Cobre o catalogo de automacao de benchmarks e seu fluxo de validacao por linha de comando.
+/// PT-br: Cobre o catalogo de automacao de benchmarks e seu fluxo de validacao por linha de comando.
 /// </summary>
 public sealed class BenchmarkCatalogValidationTests(
         ITestOutputHelper helper
@@ -19,7 +19,7 @@ public sealed class BenchmarkCatalogValidationTests(
 {
     /// <summary>
     /// EN: Ensures the benchmark catalog stays aligned with the public benchmark suite surface.
-    /// PT: Garante que o catalogo de benchmarks permaneça alinhado com a superficie publica da suite.
+    /// PT-br: Garante que o catalogo de benchmarks permaneça alinhado com a superficie publica da suite.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -31,8 +31,42 @@ public sealed class BenchmarkCatalogValidationTests(
     }
 
     /// <summary>
+    /// EN: Ensures the catalog marks known alias benchmarks as deprecated instead of treating them as active features.
+    /// PT-br: Garante que o catalogo marque benchmarks alias conhecidos como depreciados em vez de trata-los como recursos ativos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void FeatureCatalog_ShouldMarkAliasBenchmarksAsDeprecated()
+    {
+        var deprecatedIds = FeatureCatalog.All
+            .Where(static feature => feature.Status == FeatureStatus.Deprecated)
+            .Select(static feature => feature.Id)
+            .ToHashSet();
+
+        Assert.Contains(BenchmarkFeatureId.InsertInTableWithFK, deprecatedIds);
+        Assert.Contains(BenchmarkFeatureId.BatchRowCountInBatch, deprecatedIds);
+        Assert.Contains(BenchmarkFeatureId.BatchReturningInsert, deprecatedIds);
+        Assert.Contains(BenchmarkFeatureId.JsonMissingPathReturnsNull, deprecatedIds);
+        Assert.Contains(BenchmarkFeatureId.StringAggregationSummaryMatrix, deprecatedIds);
+        Assert.Contains(BenchmarkFeatureId.ReturningUpdate, deprecatedIds);
+        Assert.Contains(BenchmarkFeatureId.Db2AliasMathFunctions, deprecatedIds);
+        Assert.Contains(BenchmarkFeatureId.FirebirdAliasMathFunctions, deprecatedIds);
+    }
+
+    /// <summary>
+    /// EN: Ensures the current benchmark catalog does not expose removed features yet.
+    /// PT-br: Garante que o catalogo atual de benchmarks ainda nao exponha recursos removidos.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void FeatureCatalog_ShouldNotExposeRemovedFeatures()
+    {
+        Assert.DoesNotContain(FeatureCatalog.All, static feature => feature.Status == FeatureStatus.Removed);
+    }
+
+    /// <summary>
     /// EN: Ensures the benchmark run options parse the catalog validation flag without affecting benchmark arguments.
-    /// PT: Garante que as opcoes de execucao de benchmark analisem a flag de validacao do catalogo sem afetar os argumentos do benchmark.
+    /// PT-br: Garante que as opcoes de execucao de benchmark analisem a flag de validacao do catalogo sem afetar os argumentos do benchmark.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -48,7 +82,7 @@ public sealed class BenchmarkCatalogValidationTests(
 
     /// <summary>
     /// EN: Ensures the SQLite mock session can execute the stored procedure benchmark without parameter-direction errors.
-    /// PT: Garante que a sessao mock de SQLite execute o benchmark de procedimento armazenado sem erros de direcao de parametro.
+    /// PT-br: Garante que a sessao mock de SQLite execute o benchmark de procedimento armazenado sem erros de direcao de parametro.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -62,7 +96,7 @@ public sealed class BenchmarkCatalogValidationTests(
 
     /// <summary>
     /// EN: Ensures the SQLite native session skips the stored procedure benchmark instead of hitting an unsupported path.
-    /// PT: Garante que a sessao nativa de SQLite ignore o benchmark de procedimento armazenado em vez de atingir um caminho nao suportado.
+    /// PT-br: Garante que a sessao nativa de SQLite ignore o benchmark de procedimento armazenado em vez de atingir um caminho nao suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -75,8 +109,22 @@ public sealed class BenchmarkCatalogValidationTests(
     }
 
     /// <summary>
+    /// EN: Ensures the SQLite mock session resolves the scalar CASE matrix alias through the benchmark registry.
+    /// PT-br: Garante que a sessao mock de SQLite resolva o alias da matriz scalar CASE por meio do registry de benchmark.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Core")]
+    public void SqliteSession_RunFeature_SelectScalarCaseMatrix_ShouldNotThrow()
+    {
+        using var session = new SqliteDbSqlLikeMemSession();
+
+        session.Initialize();
+        session.RunFeature(BenchmarkFeatureId.SelectScalarCaseMatrix);
+    }
+
+    /// <summary>
     /// EN: Ensures benchmark issue logging still writes a file when the provider display name contains a slash.
-    /// PT: Garante que o log de issues do benchmark ainda grave um arquivo quando o nome exibido do provedor contem barra.
+    /// PT-br: Garante que o log de issues do benchmark ainda grave um arquivo quando o nome exibido do provedor contem barra.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -112,7 +160,7 @@ public sealed class BenchmarkCatalogValidationTests(
 
     /// <summary>
     /// EN: Ensures cleanup failures write benchmark issue logs to the benchmark project Logs directory.
-    /// PT: Garante que falhas de cleanup gravem logs de benchmark na pasta Logs do projeto de benchmark.
+    /// PT-br: Garante que falhas de cleanup gravem logs de benchmark na pasta Logs do projeto de benchmark.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]

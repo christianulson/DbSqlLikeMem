@@ -9,7 +9,7 @@ public static class FeatureCatalog
 
     /// <summary>
     /// EN: Gets all benchmark feature definitions included in the current benchmark catalog.
-    /// PT-br: Obtém todas as definições de recursos de benchmark incluídas no catálogo atual.
+    /// PT-br: Obtem todas as definicoes de recursos de benchmark incluidas no catalogo atual.
     /// </summary>
     public static IReadOnlyList<FeatureDefinition> All { get; } =
     [
@@ -18,7 +18,7 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.CreateTable, "Create table", "Setup", true, ["1.2.1", "1.4.1"], "Create the benchmark users table."),
         new(BenchmarkFeatureId.CreateTableWithFK, "Create table with FK", "Setup", true, ["1.2.1", "1.4.1"], "Create the benchmark users and orders tables with a foreign-key relationship."),
         new(BenchmarkFeatureId.CreateTableWithFKInsert, "Create table with FK insert", "Setup", true, [], "Create the foreign-key tables and insert a referenced row."),
-        new(BenchmarkFeatureId.InsertInTableWithFK, "Insert in table with FK", "Setup", true, [], "Alias benchmark for the foreign-key table insert flow."),
+        new(BenchmarkFeatureId.InsertInTableWithFK, "Insert in table with FK", "Setup", true, [], "Alias benchmark for the foreign-key table insert flow.", Status: FeatureStatus.Deprecated),
         new(BenchmarkFeatureId.DropTable, "Drop table", "Setup", true, ["1.2.1", "1.4.1"], "Drop the benchmark users table created by the DDL workflow."),
         new(BenchmarkFeatureId.InsertSingle, "Insert single row", "Core", true, ["1.2.2", "1.3.2"]),
         new(BenchmarkFeatureId.InsertCustomStartId, "Insert custom start id", "Core", true, [], "Insert rows starting from a custom id."),
@@ -134,7 +134,7 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.JsonScalarRead, "JSON scalar read", "Json", true, [], "JSON_VALUE / JSON_EXTRACT / operator-based scalar access."),
         new(BenchmarkFeatureId.JsonPathRead, "JSON path read", "Json", true, [], "Path-oriented JSON extraction with nested traversal."),
         new(BenchmarkFeatureId.JsonMissingPathRead, "JSON missing path read", "Json", true, [], "Path-oriented JSON extraction when the target path is absent."),
-        new(BenchmarkFeatureId.JsonMissingPathReturnsNull, "JSON missing path returns null", "Json", true, [], "Alias benchmark for a missing JSON path that returns null."),
+        new(BenchmarkFeatureId.JsonMissingPathReturnsNull, "JSON missing path returns null", "Json", true, [], "Alias benchmark for a missing JSON path that returns null.", Status: FeatureStatus.Deprecated),
         new(BenchmarkFeatureId.JsonQueryRootFragment, "JSON_QUERY root fragment", "Json", true, [], "Read a raw root fragment with JSON_QUERY."),
         new(BenchmarkFeatureId.JsonModifyReplace, "JSON_MODIFY replace", "Json", true, [], "Replace a nested JSON value with JSON_MODIFY."),
         new(BenchmarkFeatureId.JsonTypedFieldMatrix, "JSON typed field matrix", "Json", true, [], "Large projection query over JSON profile columns and typed fields."),
@@ -143,7 +143,7 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.JsonTreeStructure, "JSON tree structure", "Json", true, [], "Read rows from json_tree over JSON."),
         new(BenchmarkFeatureId.OpenJsonArray, "OPENJSON array", "Json", true, [], "Read rows from OPENJSON over a JSON array."),
         new(BenchmarkFeatureId.JsonInsertCast, "JSON insert cast", "Json", true, [], "JSON insert/extract flow including type coercion and cast overhead."),
-        new(BenchmarkFeatureId.JsonInsertCastReturnsNull, "JSON insert cast returns null", "Json", true, [], "Alias benchmark for the JSON insert/cast flow when the provider returns null."),
+        new(BenchmarkFeatureId.JsonInsertCastReturnsNull, "JSON insert cast returns null", "Json", true, [], "Alias benchmark for the JSON insert/cast flow when the provider returns null.", Status: FeatureStatus.Deprecated),
         new(BenchmarkFeatureId.StringAggregate, "String aggregate", "Dialect", true, ["1.2.5", "3.1.2", "3.2.2", "3.3.2", "3.4.2", "3.5.2", "3.6.2"]),
         new(BenchmarkFeatureId.StringAggregateOrdered, "String aggregate ordered", "Dialect", true, [], "Ordered STRING_AGG / GROUP_CONCAT / LISTAGG benchmark."),
         new(BenchmarkFeatureId.StringAggregateDistinct, "String aggregate distinct", "Dialect", true, [], "DISTINCT aggregate concatenation benchmark."),
@@ -151,8 +151,8 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.StringAggregateLargeGroup, "String aggregate large group", "Dialect", true, [], "Large-group concatenation benchmark to stress aggregation engine."),
         new(BenchmarkFeatureId.StringAggregateSummaryMatrix, "String aggregate summary matrix", "Dialect", true, [], "Summary matrix combining ordered concatenation and row-count checks."),
         new(BenchmarkFeatureId.StringAggregateGroupCaseMatrix, "String aggregate group case matrix", "Dialect", true, [], "Grouped string aggregation matrix with CASE and COALESCE."),
-        new(BenchmarkFeatureId.StringAggregationSummaryMatrix, "String aggregation summary matrix", "Dialect", true, [], "Alias benchmark for the string aggregation summary matrix."),
-        new(BenchmarkFeatureId.StringAggregationGroupCaseMatrix, "String aggregation group case matrix", "Dialect", true, [], "Alias benchmark for the grouped string aggregation matrix."),
+        new(BenchmarkFeatureId.StringAggregationSummaryMatrix, "String aggregation summary matrix", "Dialect", true, [], "Alias benchmark for the string aggregation summary matrix.", Status: FeatureStatus.Deprecated),
+        new(BenchmarkFeatureId.StringAggregationGroupCaseMatrix, "String aggregation group case matrix", "Dialect", true, [], "Alias benchmark for the grouped string aggregation matrix.", Status: FeatureStatus.Deprecated),
         new(BenchmarkFeatureId.StringAggregationVariants, "String aggregation variants", "Dialect", true, [], "Composite benchmark for the plain, ordered, distinct, custom-separator, and large-group string aggregation flows."),
         new(BenchmarkFeatureId.DateScalar, "Date scalar", "Temporal", true, ["1.2.6"]),
         new(BenchmarkFeatureId.MathFunctions, "Math functions", "Dialect", true, [], "Benchmark for ABS, CEIL/CEILING, DEGREES, FLOOR, LN/LOG10, POWER, RADIANS, ROUND, SIGN, SQRT, and SQUARE."),
@@ -165,8 +165,8 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.MathCotFunction, "Math COT", "Dialect", true, [], "Benchmark for COT and related inverse-trigonometric math."),
         new(BenchmarkFeatureId.MySqlUtilityMathFunctions, "MySQL utility math", "Dialect", true, [], "Benchmark for BIN, GREATEST, LEAST, LOG2, MOD, POW, and TRUNCATE."),
         new(BenchmarkFeatureId.GreatestLeastModFunctions, "Greatest/least/mod", "Dialect", true, [], "Benchmark for GREATEST, LEAST, and MOD."),
-        new(BenchmarkFeatureId.Db2AliasMathFunctions, "DB2 alias math", "Dialect", true, [], "Benchmark for ABSVAL, MOD, TRUNC, and TRUNCATE."),
-        new(BenchmarkFeatureId.FirebirdAliasMathFunctions, "Firebird alias math", "Dialect", true, [], "Benchmark for ABSVAL, BIN, COSH, SINH, TANH, and TRUNC."),
+        new(BenchmarkFeatureId.Db2AliasMathFunctions, "DB2 alias math", "Dialect", true, [], "Benchmark for ABSVAL, MOD, TRUNC, and TRUNCATE.", Status: FeatureStatus.Deprecated),
+        new(BenchmarkFeatureId.FirebirdAliasMathFunctions, "Firebird alias math", "Dialect", true, [], "Benchmark for ABSVAL, BIN, COSH, SINH, TANH, and TRUNC.", Status: FeatureStatus.Deprecated),
         new(BenchmarkFeatureId.MathTranscendentalFunctions, "Math transcendental functions", "Dialect", true, [], "Benchmark for ACOS, ASIN, ATAN, ATAN2, COS, EXP, SIN, and TAN."),
         new(BenchmarkFeatureId.TemporalCurrentTimestamp, "Temporal current timestamp", "Temporal", true, [], "CURRENT_TIMESTAMP / NOW / GETDATE / SYSTIMESTAMP benchmark."),
         new(BenchmarkFeatureId.TemporalDateAdd, "Temporal DATEADD", "Temporal", true, [], "DATEADD / DATE_ADD / TIMESTAMPADD cross-dialect benchmark."),
@@ -210,7 +210,7 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.TypedFieldTextCaseMatrix, "Typed field text case matrix", "Core", true, [], "Typed inserts followed by case conversion, trimming, and text predicates."),
         new(BenchmarkFeatureId.TypedFieldPredicateMatrix, "Typed field predicate matrix", "Core", true, [], "Typed inserts followed by LIKE, BETWEEN, and null predicates."),
         new(BenchmarkFeatureId.RowCountAfterInsert, "Row count after insert", "Core", true, [], "ROWCOUNT/ROW_COUNT/CHANGES style post-insert tracking."),
-        new(BenchmarkFeatureId.BatchRowCountInBatch, "Batch row count in batch", "Batch", true, [], "Alias benchmark for the batched row-count flow."),
+        new(BenchmarkFeatureId.BatchRowCountInBatch, "Batch row count in batch", "Batch", true, [], "Alias benchmark for the batched row-count flow.", Status: FeatureStatus.Deprecated),
         new(BenchmarkFeatureId.RowCountAfterUpdate, "Row count after update", "Core", true, [], "ROWCOUNT/ROW_COUNT/CHANGES style post-update tracking."),
         new(BenchmarkFeatureId.RowCountAfterSelect, "Row count after select", "Core", true, [], "FOUND_ROWS()/rowcount-style post-select tracking."),
         new(BenchmarkFeatureId.RowCountInBatch, "Row count in batch", "Batch", true, [], "Rowcount tracking across batch statements."),
@@ -225,9 +225,9 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.WindowNthValue, "Window NTH_VALUE", "AdvancedQuery", true, [], "Backlog benchmark for NTH_VALUE window function."),
         new(BenchmarkFeatureId.PivotCount, "Pivot count", "AdvancedQuery", true, [], "Backlog benchmark for PIVOT/UNPIVOT style transformation."),
         new(BenchmarkFeatureId.ReturningInsert, "Returning insert", "AdvancedQuery", false, [], "MariaDB-specific INSERT RETURNING benchmark; other providers fall back to a plain insert path."),
-        new(BenchmarkFeatureId.BatchReturningInsert, "Batch returning insert", "AdvancedQuery", false, [], "Alias benchmark for the batch insert returning flow."),
-        new(BenchmarkFeatureId.ReturningUpdate, "Returning update", "AdvancedQuery", false, [], "Provider-specific alias for a plain update/readback path when RETURNING or OUTPUT is unavailable."),
-        new(BenchmarkFeatureId.MergeBasic, "Merge basic", "AdvancedQuery", false, [], "Provider-specific alias for the upsert path."),
+        new(BenchmarkFeatureId.BatchReturningInsert, "Batch returning insert", "AdvancedQuery", false, [], "Alias benchmark for the batch insert returning flow.", Status: FeatureStatus.Deprecated),
+        new(BenchmarkFeatureId.ReturningUpdate, "Returning update", "AdvancedQuery", false, [], "Provider-specific alias for a plain update/readback path when RETURNING or OUTPUT is unavailable.", Status: FeatureStatus.Deprecated),
+        new(BenchmarkFeatureId.MergeBasic, "Merge basic", "AdvancedQuery", false, [], "Provider-specific alias for the upsert path.", Status: FeatureStatus.Deprecated),
         new(BenchmarkFeatureId.MergeInsertThenUpdate, "Merge insert then update", "AdvancedQuery", false, [], "Insert a row with merge and then update the same row with a second merge."),
         new(BenchmarkFeatureId.UpsertInsertThenUpdate, "Upsert insert then update", "AdvancedQuery", false, [], "Insert a row with upsert and then update the same row with a second upsert."),
         new(BenchmarkFeatureId.PartitionPruningSelect, "Partition pruning select", "AdvancedQuery", true, [], "Backlog benchmark for partition-pruned read paths."),

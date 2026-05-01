@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Drops a sequence inside a transaction and restores it through rollback for PostgreSQL fidelity.
-/// PT: Remove uma sequence dentro de uma transacao e a restaura por rollback para fidelidade do PostgreSQL.
+/// PT-br: Remove uma sequence dentro de uma transacao e a restaura por rollback para fidelidade do PostgreSQL.
 /// </summary>
 public sealed class SequenceDropRollbackServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceDropRollbackServiceTest(
 {
     /// <summary>
     /// EN: Returns the observed sequence values and whether the dropped sequence stayed unavailable until rollback.
-    /// PT: Retorna os valores observados da sequence e se a sequence removida permaneceu indisponivel ate o rollback.
+    /// PT-br: Retorna os valores observados da sequence e se a sequence removida permaneceu indisponivel ate o rollback.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceDropRollbackAsync();
 
     /// <summary>
     /// EN: Returns the observed sequence values and whether the dropped sequence stayed unavailable until rollback.
-    /// PT: Retorna os valores observados da sequence e se a sequence removida permaneceu indisponivel ate o rollback.
+    /// PT-br: Retorna os valores observados da sequence e se a sequence removida permaneceu indisponivel ate o rollback.
     /// </summary>
     public async Task<long[]> RunSequenceDropRollbackAsync()
     {

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers CREATE TEMPORARY TABLE execution scenarios in the MySql mock.
-/// PT: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock MySql.
+/// PT-br: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock MySql.
 /// </summary>
 public sealed class MySqlTemporaryTableEngineTests
 {
@@ -10,7 +10,7 @@ public sealed class MySqlTemporaryTableEngineTests
 
     /// <summary>
     /// EN: Verifies that CREATE TEMPORARY TABLE AS SELECT returns the projected rows.
-    /// PT: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
+    /// PT-br: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

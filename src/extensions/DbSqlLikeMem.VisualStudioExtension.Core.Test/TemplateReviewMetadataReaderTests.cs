@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies the versioned template review metadata reader used by VSIX governance summaries.
-/// PT: Verifica o leitor de metadados versionados de revisao de templates usado pelos resumos de governanca da VSIX.
+/// PT-br: Verifica o leitor de metadados versionados de revisao de templates usado pelos resumos de governanca da VSIX.
 /// </summary>
 public sealed class TemplateReviewMetadataReaderTests
 {
     /// <summary>
     /// EN: Ensures the reader loads the current repository review metadata and exposes its key governance fields.
-    /// PT: Garante que o leitor carregue os metadados de revisao do repositorio atual e exponha seus principais campos de governanca.
+    /// PT-br: Garante que o leitor carregue os metadados de revisao do repositorio atual e exponha seus principais campos de governanca.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateReviewMetadata")]

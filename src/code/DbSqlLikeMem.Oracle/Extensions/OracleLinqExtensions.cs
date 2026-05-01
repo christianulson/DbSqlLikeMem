@@ -1,20 +1,20 @@
 namespace DbSqlLikeMem.Oracle;
 /// <summary>
 /// EN: Adds Oracle-specific LINQ queryable helpers for mock connections.
-/// PT: Adiciona helpers LINQ especificos de Oracle para conexoes mock.
+/// PT-br: Adiciona helpers LINQ especificos de Oracle para conexoes mock.
 /// </summary>
 public static class OracleLinqExtensions
 {
     /// <summary>
     /// EN: Creates a queryable source for <typeparamref name="T"/> using the default table name.
-    /// PT: Cria uma fonte consultável para <typeparamref name="T"/> usando o nome de tabela padrão.
+    /// PT-br: Cria uma fonte consultável para <typeparamref name="T"/> usando o nome de tabela padrão.
     /// </summary>
     public static IQueryable<T> AsQueryable<T>(this OracleConnectionMock cnn)
         => cnn.AsQueryable<T>(typeof(T).Name);
 
     /// <summary>
     /// EN: Creates a queryable source for <typeparamref name="T"/> using the informed table name.
-    /// PT: Cria uma fonte consultável para <typeparamref name="T"/> usando o nome de tabela informado.
+    /// PT-br: Cria uma fonte consultável para <typeparamref name="T"/> usando o nome de tabela informado.
     /// </summary>
     public static IQueryable<T> AsQueryable<T>(
         this OracleConnectionMock cnn,

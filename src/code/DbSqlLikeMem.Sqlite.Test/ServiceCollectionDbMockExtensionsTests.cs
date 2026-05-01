@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Validates generic DbMock service collection registration helpers.
-/// PT: Valida os helpers genéricos de registro de DbMock na coleção de serviços.
+/// PT-br: Valida os helpers genéricos de registro de DbMock na coleção de serviços.
 /// </summary>
 public sealed class ServiceCollectionDbMockExtensionsTests(
         ITestOutputHelper helper
@@ -21,7 +21,7 @@ public sealed class ServiceCollectionDbMockExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddDbMockTransient registers a transient factory that creates new configured DbMock instances on each resolution.
-    /// PT: Verifica se AddDbMockTransient registra uma factory transient que cria novas instancias configuradas de DbMock em cada resolucao.
+    /// PT-br: Verifica se AddDbMockTransient registra uma factory transient que cria novas instancias configuradas de DbMock em cada resolucao.
     /// </summary>
     [Fact]
     public void AddDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()

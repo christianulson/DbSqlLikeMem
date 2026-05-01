@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Represents a MySQL batch mock that executes commands against the in-memory database.
-/// PT: Representa um simulado de lote MySQL que executa comandos no banco em memória.
+/// PT-br: Representa um simulado de lote MySQL que executa comandos no banco em memória.
 /// </summary>
 public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
@@ -12,7 +12,7 @@ public sealed class MySqlBatchMock :
 {
     /// <summary>
     /// EN: Represents a MySQL batch mock that executes commands against the in-memory database.
-    /// PT: Representa um simulado de lote MySQL que executa comandos no banco em memória.
+    /// PT-br: Representa um simulado de lote MySQL que executa comandos no banco em memória.
     /// </summary>
     public MySqlBatchMock()
         : this(null, null)
@@ -21,7 +21,7 @@ public sealed class MySqlBatchMock :
 
     /// <summary>
     /// EN: Initializes a batch bound to a connection and an optional transaction.
-    /// PT: Inicializa um lote vinculado a uma conexão e a uma transação opcional.
+    /// PT-br: Inicializa um lote vinculado a uma conexão e a uma transação opcional.
     /// </summary>
     public MySqlBatchMock(
         MySqlConnectionMock? connection,
@@ -35,33 +35,33 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Gets or sets the connection used by this batch execution.
-    /// PT: Obtém ou define a conexão usada por esta execução em lote.
+    /// PT-br: Obtém ou define a conexão usada por esta execução em lote.
     /// </summary>
     public new MySqlConnectionMock? Connection { get; set; }
     /// <summary>
     /// EN: Gets or sets the base connection reference for this batch.
-    /// PT: Obtém ou define a referência de conexão base para este lote.
+    /// PT-br: Obtém ou define a referência de conexão base para este lote.
     /// </summary>
     protected override DbConnection? DbConnection { get => Connection; set => Connection = (MySqlConnectionMock?)value; }
     /// <summary>
     /// EN: Gets or sets the transaction associated with this batch.
-    /// PT: Obtém ou define a transação associada a este lote.
+    /// PT-br: Obtém ou define a transação associada a este lote.
     /// </summary>
     public new MySqlTransactionMock? Transaction { get; set; }
     /// <summary>
     /// EN: Gets or sets the base transaction reference for this batch.
-    /// PT: Obtém ou define a referência de transação base para este lote.
+    /// PT-br: Obtém ou define a referência de transação base para este lote.
     /// </summary>
     protected override DbTransaction? DbTransaction { get => Transaction; set => Transaction = (MySqlTransactionMock?)value; }
 #else
     /// <summary>
     /// EN: Gets or sets the connection used by this batch execution.
-    /// PT: Obtém ou define a conexão usada por esta execução em lote.
+    /// PT-br: Obtém ou define a conexão usada por esta execução em lote.
     /// </summary>
     public MySqlConnectionMock? Connection { get; set; }
     /// <summary>
     /// EN: Gets or sets the transaction associated with this batch.
-    /// PT: Obtém ou define a transação associada a este lote.
+    /// PT-br: Obtém ou define a transação associada a este lote.
     /// </summary>
     public MySqlTransactionMock? Transaction { get; set; }
 #endif
@@ -69,18 +69,18 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Gets the typed collection of commands executed by this batch.
-    /// PT: Obtém a coleção tipada de comandos executados por este lote.
+    /// PT-br: Obtém a coleção tipada de comandos executados por este lote.
     /// </summary>
     public new MySqlBatchCommandCollectionMock BatchCommands { get; }
     /// <summary>
     /// EN: Gets the base batch command collection view.
-    /// PT: Obtém a visão base da coleção de comandos de lote.
+    /// PT-br: Obtém a visão base da coleção de comandos de lote.
     /// </summary>
     protected override DbBatchCommandCollection DbBatchCommands => BatchCommands;
 #else
     /// <summary>
     /// EN: Gets the typed collection of commands executed by this batch.
-    /// PT: Obtém a coleção tipada de comandos executados por este lote.
+    /// PT-br: Obtém a coleção tipada de comandos executados por este lote.
     /// </summary>
     public MySqlBatchCommandCollectionMock BatchCommands { get; }
 #endif
@@ -88,13 +88,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Executes the batch and returns a typed MySqlDataReaderMock.
-    /// PT: Executa o lote e retorna um MySqlDataReaderMock tipado.
+    /// PT-br: Executa o lote e retorna um MySqlDataReaderMock tipado.
     /// </summary>
     public new MySqlDataReaderMock ExecuteReader(CommandBehavior commandBehavior = CommandBehavior.Default) =>
 #else
     /// <summary>
     /// EN: Executes the batch and returns a typed MySqlDataReaderMock.
-    /// PT: Executa o lote e retorna um MySqlDataReaderMock tipado.
+    /// PT-br: Executa o lote e retorna um MySqlDataReaderMock tipado.
     /// </summary>
     public MySqlDataReaderMock ExecuteReader(CommandBehavior commandBehavior = CommandBehavior.Default) =>
 #endif
@@ -103,13 +103,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Asynchronously executes the batch and returns a typed MySqlDataReaderMock.
-    /// PT: Executa o lote de forma assíncrona e retorna um MySqlDataReaderMock tipado.
+    /// PT-br: Executa o lote de forma assíncrona e retorna um MySqlDataReaderMock tipado.
     /// </summary>
     public new async Task<MySqlDataReaderMock> ExecuteReaderAsync(CancellationToken cancellationToken = default) =>
 #else
     /// <summary>
     /// EN: Asynchronously executes the batch and returns a typed MySqlDataReaderMock.
-    /// PT: Executa o lote de forma assíncrona e retorna um MySqlDataReaderMock tipado.
+    /// PT-br: Executa o lote de forma assíncrona e retorna um MySqlDataReaderMock tipado.
     /// </summary>
     public async Task<MySqlDataReaderMock> ExecuteReaderAsync(CancellationToken cancellationToken = default) =>
 #endif
@@ -118,7 +118,7 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Asynchronously executes the batch with the requested command behavior and returns a typed MySqlDataReaderMock.
-    /// PT: Executa o lote de forma assíncrona com o comportamento de comando solicitado e retorna um MySqlDataReaderMock tipado.
+    /// PT-br: Executa o lote de forma assíncrona com o comportamento de comando solicitado e retorna um MySqlDataReaderMock tipado.
     /// </summary>
     public new async Task<MySqlDataReaderMock> ExecuteReaderAsync(
         CommandBehavior commandBehavior,
@@ -126,7 +126,7 @@ public sealed class MySqlBatchMock :
 #else
     /// <summary>
     /// EN: Asynchronously executes the batch with the requested command behavior and returns a typed MySqlDataReaderMock.
-    /// PT: Executa o lote de forma assíncrona com o comportamento de comando solicitado e retorna um MySqlDataReaderMock tipado.
+    /// PT-br: Executa o lote de forma assíncrona com o comportamento de comando solicitado e retorna um MySqlDataReaderMock tipado.
     /// </summary>
     public async Task<MySqlDataReaderMock> ExecuteReaderAsync(
         CommandBehavior commandBehavior,
@@ -137,7 +137,7 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Executes all commands and returns a reader over their result sets.
-    /// PT: Executa todos os comandos e retorna um leitor sobre seus conjuntos de resultados.
+    /// PT-br: Executa todos os comandos e retorna um leitor sobre seus conjuntos de resultados.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
 #else
@@ -154,7 +154,7 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Asynchronously executes all commands and returns a data reader.
-    /// PT: Executa todos os comandos de forma assíncrona e retorna um leitor de dados.
+    /// PT-br: Executa todos os comandos de forma assíncrona e retorna um leitor de dados.
     /// </summary>
     protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
 #else
@@ -199,13 +199,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Executes all commands and returns the total affected rows.
-    /// PT: Executa todos os comandos e retorna o total de linhas afetadas.
+    /// PT-br: Executa todos os comandos e retorna o total de linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery() =>
 #else
     /// <summary>
     /// EN: Executes all commands and returns the total affected rows.
-    /// PT: Executa todos os comandos e retorna o total de linhas afetadas.
+    /// PT-br: Executa todos os comandos e retorna o total de linhas afetadas.
     /// </summary>
     public int ExecuteNonQuery() =>
 #endif
@@ -214,13 +214,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Executes the first command and returns its scalar result.
-    /// PT: Executa o primeiro comando e retorna seu resultado escalar.
+    /// PT-br: Executa o primeiro comando e retorna seu resultado escalar.
     /// </summary>
     public override object? ExecuteScalar() =>
 #else
     /// <summary>
     /// EN: Executes the first command and returns its scalar result.
-    /// PT: Executa o primeiro comando e retorna seu resultado escalar.
+    /// PT-br: Executa o primeiro comando e retorna seu resultado escalar.
     /// </summary>
     public object? ExecuteScalar() =>
 #endif
@@ -229,13 +229,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Asynchronously executes all commands and returns the affected row count.
-    /// PT: Executa todos os comandos de forma assíncrona e retorna a contagem de linhas afetadas.
+    /// PT-br: Executa todos os comandos de forma assíncrona e retorna a contagem de linhas afetadas.
     /// </summary>
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default) =>
 #else
     /// <summary>
     /// EN: Asynchronously executes all commands and returns the affected row count.
-    /// PT: Executa todos os comandos de forma assíncrona e retorna a contagem de linhas afetadas.
+    /// PT-br: Executa todos os comandos de forma assíncrona e retorna a contagem de linhas afetadas.
     /// </summary>
     public Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken = default) =>
 #endif
@@ -244,13 +244,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Asynchronously executes the first command and returns its scalar result.
-    /// PT: Executa o primeiro comando de forma assíncrona e retorna seu resultado escalar.
+    /// PT-br: Executa o primeiro comando de forma assíncrona e retorna seu resultado escalar.
     /// </summary>
     public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default) =>
 #else
     /// <summary>
     /// EN: Asynchronously executes the first command and returns its scalar result.
-    /// PT: Executa o primeiro comando de forma assíncrona e retorna seu resultado escalar.
+    /// PT-br: Executa o primeiro comando de forma assíncrona e retorna seu resultado escalar.
     /// </summary>
     public Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken = default) =>
 #endif
@@ -258,7 +258,7 @@ public sealed class MySqlBatchMock :
 
     /// <summary>
     /// EN: Gets or sets the timeout applied to each command in the batch.
-    /// PT: Obtém ou define o tempo limite aplicado a cada comando no lote.
+    /// PT-br: Obtém ou define o tempo limite aplicado a cada comando no lote.
     /// </summary>
     public
 #if NET6_0_OR_GREATER
@@ -276,13 +276,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Performs no action because this mock does not use prepared statements.
-    /// PT: Não realiza ação porque este simulado não usa instruções preparadas.
+    /// PT-br: Não realiza ação porque este simulado não usa instruções preparadas.
     /// </summary>
     public override void Prepare()
 #else
     /// <summary>
     /// EN: Performs no action because this mock does not use prepared statements.
-    /// PT: Não realiza ação porque este simulado não usa instruções preparadas.
+    /// PT-br: Não realiza ação porque este simulado não usa instruções preparadas.
     /// </summary>
     public void Prepare()
 #endif
@@ -300,13 +300,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Completes immediately because this mock does not require server-side preparation.
-    /// PT: Conclui imediatamente porque este simulado não exige preparação no servidor.
+    /// PT-br: Conclui imediatamente porque este simulado não exige preparação no servidor.
     /// </summary>
     public override Task PrepareAsync(CancellationToken cancellationToken = default) =>
 #else
     /// <summary>
     /// EN: Completes immediately because this mock does not require server-side preparation.
-    /// PT: Conclui imediatamente porque este simulado não exige preparação no servidor.
+    /// PT-br: Conclui imediatamente porque este simulado não exige preparação no servidor.
     /// </summary>
     public Task PrepareAsync(CancellationToken cancellationToken = default) =>
 #endif
@@ -315,13 +315,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Cancels execution by rolling back the current transaction when available.
-    /// PT: Cancela a execução revertendo a transação atual quando disponível.
+    /// PT-br: Cancela a execução revertendo a transação atual quando disponível.
     /// </summary>
     public override void Cancel()
 #else
     /// <summary>
     /// EN: Cancels execution by rolling back the current transaction when available.
-    /// PT: Cancela a execução revertendo a transação atual quando disponível.
+    /// PT-br: Cancela a execução revertendo a transação atual quando disponível.
     /// </summary>
     public void Cancel()
 #endif
@@ -330,7 +330,7 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
 	/// <summary>
 	/// EN: Creates a new MySqlBatchCommandMock instance.
-	/// PT: Cria uma nova instância de MySqlBatchCommandMock.
+	/// PT-br: Cria uma nova instância de MySqlBatchCommandMock.
 	/// </summary>
 	protected override DbBatchCommand CreateDbBatchCommand() => new MySqlBatchCommandMock();
 #endif
@@ -338,13 +338,13 @@ public sealed class MySqlBatchMock :
 #if NET6_0_OR_GREATER
 	/// <summary>
 	/// EN: Releases resources associated with this batch.
-	/// PT: Libera os recursos associados a este lote.
+	/// PT-br: Libera os recursos associados a este lote.
 	/// </summary>
 	public override void Dispose()
 #else
     /// <summary>
     /// EN: Releases resources associated with this batch.
-    /// PT: Libera os recursos associados a este lote.
+    /// PT-br: Libera os recursos associados a este lote.
     /// </summary>
     public void Dispose()
 #endif

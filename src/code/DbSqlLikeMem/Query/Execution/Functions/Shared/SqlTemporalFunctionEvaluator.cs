@@ -30,21 +30,21 @@ internal static class SqlTemporalFunctionEvaluator
 
     /// <summary>
     /// EN: Checks whether the provided function name is a known temporal token/call across supported dialects.
-    /// PT: Verifica se o nome informado é um token/chamada temporal conhecido entre os dialetos suportados.
+    /// PT-br: Verifica se o nome informado é um token/chamada temporal conhecido entre os dialetos suportados.
     /// </summary>
-    /// <param name="functionName">EN: Function/token name to inspect. PT: Nome da função/token a inspecionar.</param>
-    /// <returns>EN: True when the name is recognized as temporal in at least one supported dialect. PT: True quando o nome é reconhecido como temporal em ao menos um dialeto suportado.</returns>
+    /// <param name="functionName">EN: Function/token name to inspect. PT-br: Nome da função/token a inspecionar.</param>
+    /// <returns>EN: True when the name is recognized as temporal in at least one supported dialect. PT-br: True quando o nome é reconhecido como temporal em ao menos um dialeto suportado.</returns>
     public static bool IsKnownTemporalTokenName(string functionName)
         => !string.IsNullOrWhiteSpace(functionName)
             && KnownTemporalFunctionNames.Contains(functionName);
 
     /// <summary>
     /// EN: Checks whether the provided temporal name is known by the current execution context dialect or by compatibility fallback.
-    /// PT: Verifica se o nome temporal informado é conhecido pelo dialeto atual ou pelo fallback de compatibilidade.
+    /// PT-br: Verifica se o nome temporal informado é conhecido pelo dialeto atual ou pelo fallback de compatibilidade.
     /// </summary>
-    /// <param name="context">EN: Execution context used to inspect registry-backed temporal support. PT: Contexto de execução usado para inspecionar suporte temporal baseado em registry.</param>
-    /// <param name="functionName">EN: Function/token name to inspect. PT: Nome da função/token a inspecionar.</param>
-    /// <returns>EN: True when the name is recognized as temporal in the context dialect or compatibility list. PT: True quando o nome é reconhecido como temporal no dialeto do contexto ou na lista de compatibilidade.</returns>
+    /// <param name="context">EN: Execution context used to inspect registry-backed temporal support. PT-br: Contexto de execução usado para inspecionar suporte temporal baseado em registry.</param>
+    /// <param name="functionName">EN: Function/token name to inspect. PT-br: Nome da função/token a inspecionar.</param>
+    /// <returns>EN: True when the name is recognized as temporal in the context dialect or compatibility list. PT-br: True quando o nome é reconhecido como temporal no dialeto do contexto ou na lista de compatibilidade.</returns>
     public static bool IsKnownTemporalFunctionName(this QueryExecutionContext context, string functionName)
         => context.Dialect is not null
             && !string.IsNullOrWhiteSpace(functionName)

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs Npgsql fidelity tests for the shared batch workflows.
-/// PT: Executa testes de fidelidade Npgsql para os fluxos compartilhados de batch.
+/// PT-br: Executa testes de fidelidade Npgsql para os fluxos compartilhados de batch.
 /// </summary>
 public class BatchTests(
     ITestOutputHelper helper

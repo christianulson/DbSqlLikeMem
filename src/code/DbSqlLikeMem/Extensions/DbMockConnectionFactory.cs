@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Creates provider database mocks and their matching <see cref="IDbConnection"/> instances with optional table mapping setup.
-/// PT: Cria mocks de banco por provedor e suas conexões <see cref="IDbConnection"/> correspondentes, com configuração opcional de mapeamento de tabelas.
+/// PT-br: Cria mocks de banco por provedor e suas conexões <see cref="IDbConnection"/> correspondentes, com configuração opcional de mapeamento de tabelas.
 /// </summary>
 public static class DbMockConnectionFactory
 {
@@ -41,7 +41,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a Oracle mock and resolves its matching connection.
-    /// PT: Cria um mock Oracle e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock Oracle e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(
         string? defaultSchema,
@@ -50,7 +50,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a Oracle mock and resolves its matching connection.
-    /// PT: Cria um mock Oracle e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock Oracle e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateOracleWithTables(
         params Action<DbMock>[] tableMappers)
@@ -58,7 +58,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates an Oracle mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock Oracle e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock Oracle e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateOracleWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -66,7 +66,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates an Oracle mock and wraps its connection using interception options.
-    /// PT: Cria um mock Oracle e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock Oracle e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateOracleWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -75,14 +75,14 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a SqlServer mock and resolves its matching connection.
-    /// PT: Cria um mock SqlServer e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock SqlServer e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateSqlServerWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlServer", tableMappers);
 
     /// <summary>
     /// EN: Creates a SQL Server mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock SQL Server e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock SQL Server e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateSqlServerWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -90,7 +90,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a SQL Server mock and wraps its connection using interception options.
-    /// PT: Cria um mock SQL Server e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock SQL Server e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateSqlServerWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -99,14 +99,14 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a SqlAzure mock and resolves its matching connection.
-    /// PT: Cria um mock SqlAzure e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock SqlAzure e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateSqlAzureWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("SqlAzure", tableMappers);
 
     /// <summary>
     /// EN: Creates a SQL Azure mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock SQL Azure e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock SQL Azure e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateSqlAzureWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -114,7 +114,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a SQL Azure mock and wraps its connection using interception options.
-    /// PT: Cria um mock SQL Azure e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock SQL Azure e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateSqlAzureWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -123,25 +123,25 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a MySql mock and resolves its matching connection.
-    /// PT: Cria um mock MySql e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock MySql e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateMySqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("MySql", tableMappers);
 
     /// <summary>
     /// EN: Creates a MariaDB mock and resolves its matching connection.
-    /// PT: Cria um mock MariaDB e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock MariaDB e resolve sua conexao correspondente.
     /// </summary>
     /// <summary>
     /// EN: Creates a MariaDb mock and resolves its matching connection.
-    /// PT: Cria um mock MariaDb e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock MariaDb e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateMariaDbWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("MariaDb", tableMappers);
 
     /// <summary>
     /// EN: Creates a MySQL mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock MySQL e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock MySQL e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateMySqlWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -149,7 +149,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a MariaDB mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock MariaDB e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock MariaDB e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateMariaDbWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -157,7 +157,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a MySQL mock and wraps its connection using interception options.
-    /// PT: Cria um mock MySQL e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock MySQL e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateMySqlWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -166,7 +166,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a MariaDB mock and wraps its connection using interception options.
-    /// PT: Cria um mock MariaDB e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock MariaDB e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateMariaDbWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -175,14 +175,14 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a Sqlite mock and resolves its matching connection.
-    /// PT: Cria um mock Sqlite e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock Sqlite e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateSqliteWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Sqlite", tableMappers);
 
     /// <summary>
     /// EN: Creates a SQLite mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock SQLite e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock SQLite e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateSqliteWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -190,7 +190,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a SQLite mock and wraps its connection using interception options.
-    /// PT: Cria um mock SQLite e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock SQLite e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateSqliteWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -199,25 +199,25 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a Db2 mock and resolves its matching connection.
-    /// PT: Cria um mock Db2 e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock Db2 e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateDb2WithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Db2", tableMappers);
 
     /// <summary>
     /// EN: Creates a Firebird mock and resolves its matching connection.
-    /// PT: Cria um mock Firebird e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock Firebird e resolve sua conexao correspondente.
     /// </summary>
     /// <summary>
     /// EN: Creates a Firebird mock and resolves its matching connection.
-    /// PT: Cria um mock Firebird e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock Firebird e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateFirebirdWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Firebird", tableMappers);
 
     /// <summary>
     /// EN: Creates a Firebird mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock Firebird e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock Firebird e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateFirebirdWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -225,7 +225,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a Firebird mock and wraps its connection using interception options.
-    /// PT: Cria um mock Firebird e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock Firebird e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateFirebirdWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -234,7 +234,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a DB2 mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock DB2 e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock DB2 e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateDb2WithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -242,7 +242,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a DB2 mock and wraps its connection using interception options.
-    /// PT: Cria um mock DB2 e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock DB2 e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateDb2WithTablesIntercepted(
         DbInterceptionOptions options,
@@ -251,14 +251,14 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a Npgsql mock and resolves its matching connection.
-    /// PT: Cria um mock Npgsql e resolve sua conexao correspondente.
+    /// PT-br: Cria um mock Npgsql e resolve sua conexao correspondente.
     /// </summary>
     public static (DbMock Db, IDbConnection Connection) CreateNpgsqlWithTables(params Action<DbMock>[] tableMappers)
         => CreateWithTables("Npgsql", tableMappers);
 
     /// <summary>
     /// EN: Creates an Npgsql mock and wraps its connection with the interception pipeline.
-    /// PT: Cria um mock Npgsql e encapsula sua conexao com o pipeline de interceptacao.
+    /// PT-br: Cria um mock Npgsql e encapsula sua conexao com o pipeline de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateNpgsqlWithTablesIntercepted(
         params DbConnectionInterceptor[] interceptors)
@@ -266,7 +266,7 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates an Npgsql mock and wraps its connection using interception options.
-    /// PT: Cria um mock Npgsql e encapsula sua conexao usando opcoes de interceptacao.
+    /// PT-br: Cria um mock Npgsql e encapsula sua conexao usando opcoes de interceptacao.
     /// </summary>
     public static (DbMock Db, DbConnection Connection) CreateNpgsqlWithTablesIntercepted(
         DbInterceptionOptions options,
@@ -275,10 +275,10 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a provider-specific <see cref="DbMock"/> and resolves an <see cref="IDbConnection"/> for it.
-    /// PT: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
+    /// PT-br: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
     /// </summary>
-    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 ou Npgsql.</param>
-    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
+    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 or Npgsql. PT-br: Indicação do provedor como Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 ou Npgsql.</param>
+    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT-br: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
     public static (DbMock Db, IDbConnection Connection) CreateWithTables(
         string providerHint,
         params Action<DbMock>[] tableMappers)
@@ -286,11 +286,11 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a provider-specific <see cref="DbMock"/> and resolves an <see cref="IDbConnection"/> for it.
-    /// PT: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
+    /// PT-br: Cria um <see cref="DbMock"/> específico do provedor e resolve um <see cref="IDbConnection"/> para ele.
     /// </summary>
-    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 or Npgsql. PT: Indicação do provedor como Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 ou Npgsql.</param>
+    /// <param name="providerHint">EN: Provider name hint like Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 or Npgsql. PT-br: Indicação do provedor como Oracle, SqlServer, SqlAzure, MySql, MariaDb, Sqlite, Db2 ou Npgsql.</param>
     /// <param name="defaultSchema"></param>
-    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
+    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT-br: Ações opcionais para configurar tabelas/esquemas no mock criado.</param>
     public static (DbMock Db, IDbConnection Connection) CreateWithTables(
         string providerHint,
         string? defaultSchema,
@@ -328,12 +328,12 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a provider-specific mock and returns its connection already wrapped by the interception pipeline.
-    /// PT: Cria um mock especifico do provedor e retorna sua conexao ja encapsulada pelo pipeline de interceptacao.
+    /// PT-br: Cria um mock especifico do provedor e retorna sua conexao ja encapsulada pelo pipeline de interceptacao.
     /// </summary>
-    /// <param name="providerHint">EN: Provider name hint. PT: Indicacao do provedor.</param>
-    /// <param name="interceptors">EN: Interceptors applied in registration order. PT: Interceptors aplicados na ordem de registro.</param>
-    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Acoes opcionais para configurar tabelas/esquemas no mock criado.</param>
-    /// <returns>EN: Provider mock and wrapped connection. PT: Mock do provedor e conexao encapsulada.</returns>
+    /// <param name="providerHint">EN: Provider name hint. PT-br: Indicacao do provedor.</param>
+    /// <param name="interceptors">EN: Interceptors applied in registration order. PT-br: Interceptors aplicados na ordem de registro.</param>
+    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT-br: Acoes opcionais para configurar tabelas/esquemas no mock criado.</param>
+    /// <returns>EN: Provider mock and wrapped connection. PT-br: Mock do provedor e conexao encapsulada.</returns>
     public static (DbMock Db, DbConnection Connection) CreateWithTablesIntercepted(
         string providerHint,
         DbConnectionInterceptor[] interceptors,
@@ -349,12 +349,12 @@ public static class DbMockConnectionFactory
 
     /// <summary>
     /// EN: Creates a provider-specific mock and returns its connection wrapped with interceptors built from the supplied options.
-    /// PT: Cria um mock especifico do provedor e retorna sua conexao encapsulada com interceptors construidos a partir das opcoes informadas.
+    /// PT-br: Cria um mock especifico do provedor e retorna sua conexao encapsulada com interceptors construidos a partir das opcoes informadas.
     /// </summary>
-    /// <param name="providerHint">EN: Provider name hint. PT: Indicacao do provedor.</param>
-    /// <param name="options">EN: Interception options. PT: Opcoes de interceptacao.</param>
-    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT: Acoes opcionais para configurar tabelas/esquemas no mock criado.</param>
-    /// <returns>EN: Provider mock and wrapped connection. PT: Mock do provedor e conexao encapsulada.</returns>
+    /// <param name="providerHint">EN: Provider name hint. PT-br: Indicacao do provedor.</param>
+    /// <param name="options">EN: Interception options. PT-br: Opcoes de interceptacao.</param>
+    /// <param name="tableMappers">EN: Optional actions to configure tables/schemas on the created mock. PT-br: Acoes opcionais para configurar tabelas/esquemas no mock criado.</param>
+    /// <returns>EN: Provider mock and wrapped connection. PT-br: Mock do provedor e conexao encapsulada.</returns>
     public static (DbMock Db, DbConnection Connection) CreateWithTablesIntercepted(
         string providerHint,
         DbInterceptionOptions options,

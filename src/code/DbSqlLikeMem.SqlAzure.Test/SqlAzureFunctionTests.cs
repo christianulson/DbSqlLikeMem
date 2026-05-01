@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers SQL Azure function execution across supported compatibility levels.
-/// PT: Cobre a execucao de funcoes do SQL Azure nos niveis de compatibilidade suportados.
+/// PT-br: Cobre a execucao de funcoes do SQL Azure nos niveis de compatibilidade suportados.
 /// </summary>
 public sealed class SqlAzureFunctionTests
     : XUnitTestBase
@@ -25,7 +25,7 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Creates SQL Azure function fixtures with sample tables and sequences.
-    /// PT: Cria fixtures de funcoes do SQL Azure com tabelas e sequences de exemplo.
+    /// PT-br: Cria fixtures de funcoes do SQL Azure com tabelas e sequences de exemplo.
     /// </summary>
     public SqlAzureFunctionTests(ITestOutputHelper helper)
         : base(helper)
@@ -35,9 +35,9 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure executes the first pragmatic scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o SQL Azure execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
+    /// PT-br: Garante que o SQL Azure execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
     [Trait("Category", "SqlAzureMock")]
@@ -57,7 +57,7 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure system functions return expected values.
-    /// PT: Garante que funcoes de sistema do SQL Azure retornem valores esperados.
+    /// PT-br: Garante que funcoes de sistema do SQL Azure retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlAzureMock")]
@@ -110,7 +110,7 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure transaction-state helpers reflect active transactions.
-    /// PT: Garante que helpers de estado de transacao do SQL Azure reflitam transacoes ativas.
+    /// PT-br: Garante que helpers de estado de transacao do SQL Azure reflitam transacoes ativas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlAzureMock")]
@@ -124,7 +124,7 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure scalar helpers return expected values.
-    /// PT: Garante que helpers escalares do SQL Azure retornem valores esperados.
+    /// PT-br: Garante que helpers escalares do SQL Azure retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlAzureMock")]
@@ -163,9 +163,9 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure date helper availability follows compatibility-level rules.
-    /// PT: Garante que a disponibilidade de helpers de data no SQL Azure siga as regras de compatibilidade.
+    /// PT-br: Garante que a disponibilidade de helpers de data no SQL Azure siga as regras de compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade do SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade do SQL Azure em teste.</param>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
     [Trait("Category", "SqlAzureMock")]
@@ -229,9 +229,9 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure metadata helpers follow compatibility-level rules.
-    /// PT: Garante que helpers de metadados do SQL Azure sigam as regras de compatibilidade.
+    /// PT-br: Garante que helpers de metadados do SQL Azure sigam as regras de compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade do SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade do SQL Azure em teste.</param>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
     [Trait("Category", "SqlAzureMock")]
@@ -269,9 +269,9 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure JSON helpers follow compatibility-level rules.
-    /// PT: Garante que helpers JSON do SQL Azure sigam as regras de compatibilidade.
+    /// PT-br: Garante que helpers JSON do SQL Azure sigam as regras de compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade do SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade do SQL Azure em teste.</param>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
     [Trait("Category", "SqlAzureMock")]
@@ -293,9 +293,9 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure aggregate helpers follow compatibility-level rules.
-    /// PT: Garante que helpers de agregacao do SQL Azure sigam as regras de compatibilidade.
+    /// PT-br: Garante que helpers de agregacao do SQL Azure sigam as regras de compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade do SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade do SQL Azure em teste.</param>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
     [Trait("Category", "SqlAzureMock")]
@@ -319,9 +319,9 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure versioned scalar helpers follow compatibility rules.
-    /// PT: Garante que helpers escalares versionados do SQL Azure sigam as regras de compatibilidade.
+    /// PT-br: Garante que helpers escalares versionados do SQL Azure sigam as regras de compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade do SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade do SQL Azure em teste.</param>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
     [Trait("Category", "SqlAzureMock")]
@@ -384,7 +384,7 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure math and error helpers return expected scalar values.
-    /// PT: Garante que helpers matematicos e de erro do SQL Azure retornem valores escalares esperados.
+    /// PT-br: Garante que helpers matematicos e de erro do SQL Azure retornem valores escalares esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlAzureMock")]
@@ -421,7 +421,7 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure SCOPE_IDENTITY returns the last identity value generated on the current connection scope.
-    /// PT: Garante que SCOPE_IDENTITY do SQL Azure retorne o ultimo valor identity gerado no escopo atual da conexao.
+    /// PT-br: Garante que SCOPE_IDENTITY do SQL Azure retorne o ultimo valor identity gerado no escopo atual da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlAzureMock")]
@@ -434,7 +434,7 @@ public sealed class SqlAzureFunctionTests
 
     /// <summary>
     /// EN: Ensures SQL Azure ROWCOUNT_BIG() exposes the last row-count value as bigint.
-    /// PT: Garante que ROWCOUNT_BIG() do SQL Azure exponha o ultimo valor de contagem de linhas como bigint.
+    /// PT-br: Garante que ROWCOUNT_BIG() do SQL Azure exponha o ultimo valor de contagem de linhas como bigint.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlAzureMock")]

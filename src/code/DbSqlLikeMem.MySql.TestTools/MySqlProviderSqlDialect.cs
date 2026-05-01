@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.TestTools;
 
 /// <summary>
 /// EN: Provides MySQL-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de MySQL usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de MySQL usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class MySqlProviderSqlDialect : ProviderSqlDialect
 {

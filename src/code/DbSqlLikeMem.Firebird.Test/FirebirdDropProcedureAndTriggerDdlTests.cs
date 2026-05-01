@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Covers Firebird DROP PROCEDURE and DROP TRIGGER execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de DROP PROCEDURE e DROP TRIGGER no motor simulado Firebird.
+/// PT-br: Cobre cenarios de execucao de DROP PROCEDURE e DROP TRIGGER no motor simulado Firebird.
 /// </summary>
 public sealed class FirebirdDropProcedureAndTriggerDdlTests : XUnitTestBase
 {
@@ -12,7 +12,7 @@ public sealed class FirebirdDropProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the Firebird database objects used by the drop tests.
-    /// PT: Cria os objetos de banco Firebird usados pelos testes de drop.
+    /// PT-br: Cria os objetos de banco Firebird usados pelos testes de drop.
     /// </summary>
     public FirebirdDropProcedureAndTriggerDdlTests(ITestOutputHelper helper) : base(helper)
     {
@@ -27,7 +27,7 @@ public sealed class FirebirdDropProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies DROP PROCEDURE removes the stored definition.
-    /// PT: Verifica se DROP PROCEDURE remove a definicao armazenada.
+    /// PT-br: Verifica se DROP PROCEDURE remove a definicao armazenada.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -53,7 +53,7 @@ public sealed class FirebirdDropProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies DROP TRIGGER removes the stored trigger and keeps table DML working.
-    /// PT: Verifica se DROP TRIGGER remove o trigger armazenado e mantém o DML da tabela funcionando.
+    /// PT-br: Verifica se DROP TRIGGER remove o trigger armazenado e mantém o DML da tabela funcionando.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -87,7 +87,7 @@ public sealed class FirebirdDropProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies DROP PROCEDURE is restored by transaction rollback.
-    /// PT: Verifica se DROP PROCEDURE e restaurado pelo rollback da transacao.
+    /// PT-br: Verifica se DROP PROCEDURE e restaurado pelo rollback da transacao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -117,7 +117,7 @@ public sealed class FirebirdDropProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies DROP TRIGGER is restored by transaction rollback.
-    /// PT: Verifica se DROP TRIGGER e restaurado pelo rollback da transacao.
+    /// PT-br: Verifica se DROP TRIGGER e restaurado pelo rollback da transacao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -146,9 +146,9 @@ public sealed class FirebirdDropProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Disposes the Firebird connection used by the drop tests.
-    /// PT: Descarta a conexao Firebird usada pelos testes de drop.
+    /// PT-br: Descarta a conexao Firebird usada pelos testes de drop.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         connection.Dispose();

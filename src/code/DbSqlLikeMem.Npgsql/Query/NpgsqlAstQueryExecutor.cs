@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
 /// EN: Registers the Npgsql AST executor with the shared factory.
-/// PT: Registra o executor AST de Npgsql na factory compartilhada.
+/// PT-br: Registra o executor AST de Npgsql na factory compartilhada.
 /// </summary>
 public static class NpgsqlAstQueryExecutorRegister
 {
     /// <summary>
     /// EN: Registers the Npgsql AST executor for the PostgreSQL dialect.
-    /// PT: Registra o executor AST de Npgsql para o dialeto PostgreSQL.
+    /// PT-br: Registra o executor AST de Npgsql para o dialeto PostgreSQL.
     /// </summary>
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(
@@ -24,7 +24,7 @@ internal sealed class NpgsqlAstQueryExecutor(QueryExecutionContext context)
 {
     /// <summary>
     /// EN: Maps PostgreSQL JSON path access into the executor-specific JSON access function.
-    /// PT: Mapeia o acesso a caminho JSON do PostgreSQL para a funcao de acesso JSON especifica do executor.
+    /// PT-br: Mapeia o acesso a caminho JSON do PostgreSQL para a funcao de acesso JSON especifica do executor.
     /// </summary>
     protected override SqlExpr MapJsonAccess(JsonAccessExpr ja)
     {

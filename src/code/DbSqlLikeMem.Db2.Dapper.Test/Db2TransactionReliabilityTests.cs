@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// EN: Validates transactional reliability additions for P11 scenarios.
-/// PT: Valida as adições de confiabilidade transacional para cenários do P11.
+/// PT-br: Valida as adições de confiabilidade transacional para cenários do P11.
 /// </summary>
 public sealed class Db2TransactionReliabilityTests(
         ITestOutputHelper helper
@@ -18,7 +18,7 @@ public sealed class Db2TransactionReliabilityTests(
 
     /// <summary>
     /// EN: Verifies that rolling back to a savepoint restores the intermediate transactional state.
-    /// PT: Verifica se o rollback para um savepoint restaura o estado transacional intermediário.
+    /// PT-br: Verifica se o rollback para um savepoint restaura o estado transacional intermediário.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2TransactionReliability")]
@@ -27,7 +27,7 @@ public sealed class Db2TransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures nested savepoints roll back to the selected outer snapshot.
-    /// PT: Garante que savepoints aninhados façam rollback para o snapshot externo selecionado.
+    /// PT-br: Garante que savepoints aninhados façam rollback para o snapshot externo selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2TransactionReliability")]
@@ -36,7 +36,7 @@ public sealed class Db2TransactionReliabilityTests(
 
     /// <summary>
     /// EN: Verifies that the transaction isolation level is exposed in a deterministic way.
-    /// PT: Verifica se o nível de isolamento da transação é exposto de forma determinística.
+    /// PT-br: Verifica se o nível de isolamento da transação é exposto de forma determinística.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2TransactionReliability")]
@@ -45,7 +45,7 @@ public sealed class Db2TransactionReliabilityTests(
 
     /// <summary>
     /// EN: Verifies that savepoint release compatibility follows provider-specific behavior.
-    /// PT: Verifica se a compatibilidade de liberação de savepoint segue o comportamento específico do provedor.
+    /// PT-br: Verifica se a compatibilidade de liberação de savepoint segue o comportamento específico do provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2TransactionReliability")]
@@ -54,7 +54,7 @@ public sealed class Db2TransactionReliabilityTests(
 
     /// <summary>
     /// EN: Verifies that concurrent inserts remain consistent when thread-safe mode is enabled.
-    /// PT: Verifica se inserções concorrentes permanecem consistentes quando o modo thread-safe está habilitado.
+    /// PT-br: Verifica se inserções concorrentes permanecem consistentes quando o modo thread-safe está habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2TransactionReliability")]
@@ -63,7 +63,7 @@ public sealed class Db2TransactionReliabilityTests(
 
     /// <summary>
     /// EN: Verifies that concurrent commit and rollback operations keep the expected state across Db2 versions.
-    /// PT: Verifica se operações concorrentes de commit e rollback mantêm o estado esperado entre versões do Db2.
+    /// PT-br: Verifica se operações concorrentes de commit e rollback mantêm o estado esperado entre versões do Db2.
     /// </summary>
     [Theory]
     [Trait("Category", "Db2TransactionReliability")]
@@ -73,7 +73,7 @@ public sealed class Db2TransactionReliabilityTests(
 
     /// <summary>
     /// EN: Verifies that concurrent commits persist combined writes across Db2 versions.
-    /// PT: Verifica se commits concorrentes persistem gravações combinadas entre versões do Db2.
+    /// PT-br: Verifica se commits concorrentes persistem gravações combinadas entre versões do Db2.
     /// </summary>
     [Theory]
     [Trait("Category", "Db2TransactionReliability")]

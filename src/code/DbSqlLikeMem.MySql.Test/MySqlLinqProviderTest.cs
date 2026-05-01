@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 namespace DbSqlLikeMem.MySql.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for MySQL connections.
-/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes MySQL.
+/// PT-br: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes MySQL.
 /// </summary>
 public sealed class MySqlLinqProviderTest(
         ITestOutputHelper helper
@@ -14,12 +14,12 @@ public sealed class MySqlLinqProviderTest(
     {
         /// <summary>
         /// EN: Gets or sets Id.
-        /// PT: Obtém ou define Id.
+        /// PT-br: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
         /// EN: Gets or sets Name.
-        /// PT: Obtém ou define Name.
+        /// PT-br: Obtém ou define Name.
         /// </summary>
         public string Name { get; set; } = "";
     }
@@ -38,7 +38,7 @@ public sealed class MySqlLinqProviderTest(
 
     /// <summary>
     /// EN: Verifies LINQ queries filter rows and project the expected MySQL results.
-    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no MySQL.
+    /// PT-br: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlLinqProviderTest")]
@@ -56,7 +56,7 @@ public sealed class MySqlLinqProviderTest(
 
     /// <summary>
     /// EN: Verifies the non-generic CreateQuery path keeps provider metadata and can be enumerated.
-    /// PT: Verifica se o caminho não genérico de CreateQuery mantém os metadados do provedor e pode ser enumerado.
+    /// PT-br: Verifica se o caminho não genérico de CreateQuery mantém os metadados do provedor e pode ser enumerado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlLinqProviderTest")]
@@ -75,7 +75,7 @@ public sealed class MySqlLinqProviderTest(
 
     /// <summary>
     /// EN: Verifies Execute delegates translated scalar expressions to the in-memory query executor.
-    /// PT: Verifica se Execute delega expressões escalares traduzidas ao executor de consulta em memória.
+    /// PT-br: Verifica se Execute delega expressões escalares traduzidas ao executor de consulta em memória.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlLinqProviderTest")]
@@ -90,7 +90,7 @@ public sealed class MySqlLinqProviderTest(
 
     /// <summary>
     /// EN: Verifies CreateQuery rejects expressions that do not expose a table source.
-    /// PT: Verifica se CreateQuery rejeita expressões que não expõem uma origem de tabela.
+    /// PT-br: Verifica se CreateQuery rejeita expressões que não expõem uma origem de tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlLinqProviderTest")]

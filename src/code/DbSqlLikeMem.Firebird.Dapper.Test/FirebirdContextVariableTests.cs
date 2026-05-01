@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird context variables through the Dapper-facing mock surface.
-/// PT: Cobre variaveis de contexto do Firebird pela surface simulada voltada para Dapper.
+/// PT-br: Cobre variaveis de contexto do Firebird pela surface simulada voltada para Dapper.
 /// </summary>
 public sealed class FirebirdContextVariableTests
 {
     /// <summary>
     /// EN: Verifies Firebird context variables resolve through the Dapper-facing provider surface.
-    /// PT: Verifica se as variaveis de contexto do Firebird sao resolvidas pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se as variaveis de contexto do Firebird sao resolvidas pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -56,7 +56,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates EXTRACT against the supported date and timestamp fields through Dapper.
-    /// PT: Verifica se o Firebird avalia EXTRACT sobre os campos suportados de data e timestamp via Dapper.
+    /// PT-br: Verifica se o Firebird avalia EXTRACT sobre os campos suportados de data e timestamp via Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -84,7 +84,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates DATEADD through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia DATEADD pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia DATEADD pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -107,7 +107,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird resolves RDB$GET_CONTEXT for the SYSTEM namespace through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird resolve RDB$GET_CONTEXT para o namespace SYSTEM pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird resolve RDB$GET_CONTEXT para o namespace SYSTEM pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -151,7 +151,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird supports setting and reading user-session and user-transaction context variables through Dapper.
-    /// PT: Verifica se o Firebird suporta gravar e ler variaveis de contexto user-session e user-transaction via Dapper.
+    /// PT-br: Verifica se o Firebird suporta gravar e ler variaveis de contexto user-session e user-transaction via Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -177,7 +177,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates supported conditional functions through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia as funcoes condicionais suportadas pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia as funcoes condicionais suportadas pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -200,7 +200,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates MAXVALUE and MINVALUE through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia MAXVALUE e MINVALUE pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia MAXVALUE e MINVALUE pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -220,7 +220,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates ASCII_CHAR and ASCII_VAL through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia ASCII_CHAR e ASCII_VAL pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia ASCII_CHAR e ASCII_VAL pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -244,7 +244,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird converts between ASCII UUID text and binary UUID values through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird converte entre texto ASCII de UUID e valores binarios de UUID pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird converte entre texto ASCII de UUID e valores binarios de UUID pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -266,7 +266,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates MD5, CRYPT_HASH, HEX, UNHEX, HEX_ENCODE, HEX_DECODE, BASE64_ENCODE, and BASE64_DECODE through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia MD5, CRYPT_HASH, HEX, UNHEX, HEX_ENCODE, HEX_DECODE, BASE64_ENCODE e BASE64_DECODE pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia MD5, CRYPT_HASH, HEX, UNHEX, HEX_ENCODE, HEX_DECODE, BASE64_ENCODE e BASE64_DECODE pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -299,7 +299,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird generates a 16-byte UUID value through GEN_UUID via the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird gera um valor UUID de 16 bytes via GEN_UUID pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird gera um valor UUID de 16 bytes via GEN_UUID pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -320,7 +320,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates HASH through the Dapper-facing provider surface, including the CRC32 variant.
-    /// PT: Verifica se o Firebird avalia HASH pela surface do provedor voltada para Dapper, incluindo a variante CRC32.
+    /// PT-br: Verifica se o Firebird avalia HASH pela surface do provedor voltada para Dapper, incluindo a variante CRC32.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -345,7 +345,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates RAND through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia RAND pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia RAND pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -365,7 +365,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates POSITION, REPLACE, and REVERSE through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia POSITION, REPLACE e REVERSE pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia POSITION, REPLACE e REVERSE pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -388,7 +388,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates bitwise binary helper functions through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia as funcoes auxiliares binarias bitwise pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia as funcoes auxiliares binarias bitwise pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -412,7 +412,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates BIT_LENGTH and OCTET_LENGTH through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia BIT_LENGTH e OCTET_LENGTH pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia BIT_LENGTH e OCTET_LENGTH pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -434,7 +434,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates OVERLAY through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia OVERLAY pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia OVERLAY pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -454,7 +454,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates common string transform functions through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia funcoes comuns de transformacao de string pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia funcoes comuns de transformacao de string pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -478,7 +478,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates REPEAT and TRANSLATE through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia REPEAT e TRANSLATE pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia REPEAT e TRANSLATE pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -498,7 +498,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates SPACE, LEFT, RIGHT, LPAD, and RPAD through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia SPACE, LEFT, RIGHT, LPAD e RPAD pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia SPACE, LEFT, RIGHT, LPAD e RPAD pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -521,7 +521,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates common numeric helper functions through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia funcoes auxiliares numericas comuns pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia funcoes auxiliares numericas comuns pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -555,7 +555,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates TRUNC through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia TRUNC pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia TRUNC pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -575,7 +575,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates ROUND through the Dapper-facing provider surface using the Firebird rounding rule.
-    /// PT: Verifica se o Firebird avalia ROUND pela surface do provedor voltada para Dapper usando a regra de arredondamento do Firebird.
+    /// PT-br: Verifica se o Firebird avalia ROUND pela surface do provedor voltada para Dapper usando a regra de arredondamento do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -596,7 +596,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird evaluates common transcendental numeric helpers through the Dapper-facing provider surface.
-    /// PT: Verifica se o Firebird avalia funcoes numericas transcendentais comuns pela surface do provedor voltada para Dapper.
+    /// PT-br: Verifica se o Firebird avalia funcoes numericas transcendentais comuns pela surface do provedor voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -632,7 +632,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Verifies Firebird trigger context variables follow the active trigger event through Dapper.
-    /// PT: Verifica se as variáveis de contexto de trigger do Firebird seguem o evento ativo via Dapper.
+    /// PT-br: Verifica se as variáveis de contexto de trigger do Firebird seguem o evento ativo via Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -666,7 +666,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Converts binary data to a lowercase hexadecimal string.
-    /// PT: Converte dados binarios para uma string hexadecimal em minusculas.
+    /// PT-br: Converte dados binarios para uma string hexadecimal em minusculas.
     /// </summary>
     private static string ToLowerHex(byte[] bytes)
     {
@@ -683,7 +683,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Converts a hexadecimal string to binary data.
-    /// PT: Converte uma string hexadecimal para dados binarios.
+    /// PT-br: Converte uma string hexadecimal para dados binarios.
     /// </summary>
     private static byte[] FromHexString(string hex)
     {
@@ -698,7 +698,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Computes the CRC32 hash used by the Firebird HASH CRC32 variant in tests.
-    /// PT: Computa o hash CRC32 usado pela variante CRC32 do HASH do Firebird nos testes.
+    /// PT-br: Computa o hash CRC32 usado pela variante CRC32 do HASH do Firebird nos testes.
     /// </summary>
     private static uint ComputeCrc32(byte[] bytes)
     {
@@ -714,7 +714,7 @@ public sealed class FirebirdContextVariableTests
 
     /// <summary>
     /// EN: Stores the lookup table used to compute CRC32 values for Firebird HASH tests.
-    /// PT: Armazena a tabela de consulta usada para computar valores CRC32 nos testes de HASH do Firebird.
+    /// PT-br: Armazena a tabela de consulta usada para computar valores CRC32 nos testes de HASH do Firebird.
     /// </summary>
     private static readonly Lazy<uint[]> Crc32Table = new(static () =>
     {

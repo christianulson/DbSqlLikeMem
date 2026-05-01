@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Covers shared transaction reliability assertions for Dapper provider tests.
-/// PT: Cobre assercoes compartilhadas de confiabilidade transacional para testes de provedores Dapper.
+/// PT-br: Cobre assercoes compartilhadas de confiabilidade transacional para testes de provedores Dapper.
 /// </summary>
 public abstract class DapperTransactionConcurrencyTestsBase(
         ITestOutputHelper helper
@@ -12,22 +12,22 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 {
     /// <summary>
     /// EN: Creates a factory that opens connections against the same provider database instance.
-    /// PT: Cria uma fábrica que abre conexões contra a mesma instância de banco do provedor.
+    /// PT-br: Cria uma fábrica que abre conexões contra a mesma instância de banco do provedor.
     /// </summary>
-    /// <param name="threadSafe">EN: Enables thread safety on provider database. PT: Habilita thread safety no banco do provedor.</param>
-    /// <param name="version">EN: Provider version. PT: Versão do provedor.</param>
-    /// <returns>EN: Open connection factory. PT: Fábrica de conexão aberta.</returns>
+    /// <param name="threadSafe">EN: Enables thread safety on provider database. PT-br: Habilita thread safety no banco do provedor.</param>
+    /// <param name="version">EN: Provider version. PT-br: Versão do provedor.</param>
+    /// <returns>EN: Open connection factory. PT-br: Fábrica de conexão aberta.</returns>
     protected abstract Func<DbConnectionMockBase> CreateOpenConnectionFactory(bool threadSafe, int? version = null);
 
     /// <summary>
     /// EN: Indicates whether provider is expected to support RELEASE SAVEPOINT.
-    /// PT: Indica se o provedor deve suportar RELEASE SAVEPOINT.
+    /// PT-br: Indica se o provedor deve suportar RELEASE SAVEPOINT.
     /// </summary>
     protected virtual bool SupportsReleaseSavepoint => true;
 
     /// <summary>
     /// EN: Verifies savepoint rollback restores intermediate state.
-    /// PT: Verifica se rollback de savepoint restaura estado intermediário.
+    /// PT-br: Verifica se rollback de savepoint restaura estado intermediário.
     /// </summary>
     protected void AssertSavepointRollbackRestoresIntermediateState()
     {
@@ -49,7 +49,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
     /// <summary>
     /// EN: Verifies nested savepoints roll back to the selected outer snapshot.
-    /// PT: Verifica se savepoints aninhados fazem rollback para o snapshot externo selecionado.
+    /// PT-br: Verifica se savepoints aninhados fazem rollback para o snapshot externo selecionado.
     /// </summary>
     protected void AssertNestedSavepointsRollbackToOuterSnapshot()
     {
@@ -73,7 +73,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
     /// <summary>
     /// EN: Verifies deterministic isolation level exposure.
-    /// PT: Verifica exposição determinística do nível de isolamento.
+    /// PT-br: Verifica exposição determinística do nível de isolamento.
     /// </summary>
     protected void AssertIsolationLevelExposedDeterministically()
     {
@@ -87,7 +87,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
     /// <summary>
     /// EN: Verifies savepoint release follows provider compatibility rules.
-    /// PT: Verifica se release de savepoint segue regras de compatibilidade do provedor.
+    /// PT-br: Verifica se release de savepoint segue regras de compatibilidade do provedor.
     /// </summary>
     protected void AssertReleaseSavepointCompatibilityIsProviderSpecific()
     {
@@ -108,7 +108,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
     /// <summary>
     /// EN: Verifies concurrent inserts stay consistent when thread safety is enabled.
-    /// PT: Verifica se inserts concorrentes permanecem consistentes com thread safety habilitado.
+    /// PT-br: Verifica se inserts concorrentes permanecem consistentes com thread safety habilitado.
     /// </summary>
     protected void AssertConcurrentInsertsRemainConsistentWhenThreadSafeEnabled()
     {
@@ -129,9 +129,9 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
     /// <summary>
     /// EN: Verifies that concurrent commit and rollback keep only committed changes.
-    /// PT: Verifica se commit e rollback concorrentes mantêm apenas alterações confirmadas.
+    /// PT-br: Verifica se commit e rollback concorrentes mantêm apenas alterações confirmadas.
     /// </summary>
-    /// <param name="version">EN: Provider version under test. PT: Versão do provedor em teste.</param>
+    /// <param name="version">EN: Provider version under test. PT-br: Versão do provedor em teste.</param>
     protected void AssertConcurrentCommitAndRollbackKeepsExpectedState(int version)
     {
         var openConnection = CreateOpenConnectionFactory(threadSafe: true, version: version);
@@ -176,9 +176,9 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
     /// <summary>
     /// EN: Verifies that concurrent commits persist combined deterministic writes.
-    /// PT: Verifica se commits concorrentes persistem gravações combinadas de forma determinística.
+    /// PT-br: Verifica se commits concorrentes persistem gravações combinadas de forma determinística.
     /// </summary>
-    /// <param name="version">EN: Provider version under test. PT: Versão do provedor em teste.</param>
+    /// <param name="version">EN: Provider version under test. PT-br: Versão do provedor em teste.</param>
     protected void AssertConcurrentCommitsPersistCombinedWrites(int version)
     {
         var openConnection = CreateOpenConnectionFactory(threadSafe: true, version: version);
@@ -215,7 +215,7 @@ public abstract class DapperTransactionConcurrencyTestsBase(
 
 /// <summary>
 /// EN: Shared provider-specific implementation for Dapper transaction reliability tests.
-/// PT: Implementação compartilhada específica por provedor para testes Dapper de confiabilidade transacional.
+/// PT-br: Implementação compartilhada específica por provedor para testes Dapper de confiabilidade transacional.
 /// </summary>
 public abstract class ProviderDapperTransactionReliabilityTestsBase<TDb, TConnection>(
         ITestOutputHelper helper
@@ -225,13 +225,13 @@ public abstract class ProviderDapperTransactionReliabilityTestsBase<TDb, TConnec
 {
     /// <summary>
     /// EN: Creates the provider database mock with the desired version and thread-safety mode.
-    /// PT: Cria o banco mock do provedor com a versão e o modo thread-safe desejados.
+    /// PT-br: Cria o banco mock do provedor com a versão e o modo thread-safe desejados.
     /// </summary>
     protected abstract TDb CreateDb(int? version, bool threadSafe);
 
     /// <summary>
     /// EN: Creates the provider connection bound to the supplied database mock.
-    /// PT: Cria a conexão do provedor associada ao banco mock informado.
+    /// PT-br: Cria a conexão do provedor associada ao banco mock informado.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 

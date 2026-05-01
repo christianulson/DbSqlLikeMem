@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Changes a SQL Server sequence increment and reads the generated values for fidelity coverage.
-/// PT: Altera o incremento de uma sequence SQL Server e le os valores gerados para cobertura de fidelidade.
+/// PT-br: Altera o incremento de uma sequence SQL Server e le os valores gerados para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceIncrementByServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceIncrementByServiceTest(
 {
     /// <summary>
     /// EN: Returns the sequence values before and after changing the increment size.
-    /// PT: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
+    /// PT-br: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceIncrementByAsync();
 
     /// <summary>
     /// EN: Returns the sequence values before and after changing the increment size.
-    /// PT: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
+    /// PT-br: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
     /// </summary>
     public async Task<long[]> RunSequenceIncrementByAsync()
     {

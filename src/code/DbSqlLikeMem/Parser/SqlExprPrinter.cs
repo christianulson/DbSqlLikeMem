@@ -4,7 +4,7 @@ internal static class SqlExprPrinter
 {
     /// <summary>
     /// EN: Implements Print.
-    /// PT: Implementa Print.
+    /// PT-br: Implementa Print.
     /// </summary>
     public static string Print(SqlExpr e)
     {

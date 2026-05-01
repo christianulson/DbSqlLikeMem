@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for the Firebird provider SQL dialect helper.
-/// PT: Contém testes para o helper de dialeto SQL do provedor Firebird.
+/// PT-br: Contém testes para o helper de dialeto SQL do provedor Firebird.
 /// </summary>
 public sealed class FirebirdProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the Firebird helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper Firebird.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper Firebird.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchFirebird()
@@ -27,7 +27,7 @@ public sealed class FirebirdProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits Firebird-compatible table and sequence SQL.
-    /// PT: Verifica se o helper emite SQL compatível com Firebird para tabela e sequence.
+    /// PT-br: Verifica se o helper emite SQL compatível com Firebird para tabela e sequence.
     /// </summary>
     [Fact]
     public void ProviderSql_ShouldUseFirebirdSyntax()
@@ -69,7 +69,7 @@ public sealed class FirebirdProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that GUID parameters are bound with Firebird's native GUID metadata.
-    /// PT: Verifica se parametros GUID sao vinculados com os metadados nativos de GUID do Firebird.
+    /// PT-br: Verifica se parametros GUID sao vinculados com os metadados nativos de GUID do Firebird.
     /// </summary>
     [Fact]
     public void ProviderAddParameter_ShouldBindGuidAsNativeGuid()

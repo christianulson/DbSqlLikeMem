@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.TestTools.Tests.Schema;
 
 /// <summary>
 /// EN: Provides shared schema-snapshot fidelity tests across mock and container runs.
-/// PT: Fornece testes de fidelidade de snapshot de schema compartilhados entre execucoes com mock e container.
+/// PT-br: Fornece testes de fidelidade de snapshot de schema compartilhados entre execucoes com mock e container.
 /// </summary>
 public abstract class SchemaSnapshotTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -19,7 +19,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that the provider snapshot export produces the same serialized shape for mock and container runs.
-    /// PT: Verifica se a exportacao do snapshot do provedor produz a mesma estrutura serializada nas execucoes com mock e container.
+    /// PT-br: Verifica se a exportacao do snapshot do provedor produz a mesma estrutura serializada nas execucoes com mock e container.
     /// </summary>
     [FidelityFact]
     public async Task SchemaSnapshotExportTest()
@@ -32,7 +32,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that the provider snapshot JSON serialization remains stable for mock and container runs.
-    /// PT: Verifica se a serializacao JSON do snapshot do provedor permanece estavel nas execucoes com mock e container.
+    /// PT-br: Verifica se a serializacao JSON do snapshot do provedor permanece estavel nas execucoes com mock e container.
     /// </summary>
     [FidelityFact]
     public async Task SchemaSnapshotToJsonTest()
@@ -45,7 +45,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that the representative snapshot JSON payload parses the same way for mock and container runs.
-    /// PT: Verifica se o payload JSON representativo do snapshot eh interpretado da mesma forma nas execucoes com mock e container.
+    /// PT-br: Verifica se o payload JSON representativo do snapshot eh interpretado da mesma forma nas execucoes com mock e container.
     /// </summary>
     [FidelityFact]
     public async Task SchemaSnapshotLoadJsonTest()
@@ -62,7 +62,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that the snapshot compare workflow stays consistent for mock and container runs.
-    /// PT: Verifica se o fluxo de comparacao de snapshot permanece consistente nas execucoes com mock e container.
+    /// PT-br: Verifica se o fluxo de comparacao de snapshot permanece consistente nas execucoes com mock e container.
     /// </summary>
     [FidelityFact]
     public async Task SchemaSnapshotCompareTest()
@@ -75,7 +75,7 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that exporting, serializing, loading, and applying a schema snapshot stays stable for mock and container runs.
-    /// PT: Verifica se exportar, serializar, carregar e aplicar um snapshot de schema permanece estavel nas execucoes com mock e container.
+    /// PT-br: Verifica se exportar, serializar, carregar e aplicar um snapshot de schema permanece estavel nas execucoes com mock e container.
     /// </summary>
     [FidelityFact]
     public async Task SchemaSnapshotRoundTripTest()
@@ -113,9 +113,9 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Gets the canonical dialect name used in schema snapshot assertions for the current provider.
-    /// PT: Obtem o nome canonico do dialect usado nas assercoes de snapshot de schema para o provedor atual.
+    /// PT-br: Obtem o nome canonico do dialect usado nas assercoes de snapshot de schema para o provedor atual.
     /// </summary>
-    /// <returns>EN: The canonical schema dialect name. PT: O nome canonico do dialect de schema.</returns>
+    /// <returns>EN: The canonical schema dialect name. PT-br: O nome canonico do dialect de schema.</returns>
     protected virtual string GetSchemaDialectName()
         => dialect.Provider switch
         {
@@ -132,10 +132,10 @@ public abstract class SchemaSnapshotTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Infers the schema snapshot version from the provider and the connection server version.
-    /// PT: Infere a versao do snapshot de schema a partir do provedor e da versao do servidor da conexao.
+    /// PT-br: Infere a versao do snapshot de schema a partir do provedor e da versao do servidor da conexao.
     /// </summary>
-    /// <param name="connection">EN: The open database connection. PT: A conexao de banco aberta.</param>
-    /// <returns>EN: The inferred schema snapshot version. PT: A versao inferida do snapshot de schema.</returns>
+    /// <param name="connection">EN: The open database connection. PT-br: A conexao de banco aberta.</param>
+    /// <returns>EN: The inferred schema snapshot version. PT-br: A versao inferida do snapshot de schema.</returns>
     protected virtual int InferSnapshotVersion(DbConnection connection)
     {
         EnsureConnectionOpen(connection);

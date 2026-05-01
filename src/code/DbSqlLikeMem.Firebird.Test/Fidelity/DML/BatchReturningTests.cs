@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared batch RETURNING workflow.
-/// PT: Executa testes de fidelidade Firebird para o fluxo compartilhado de batch RETURNING.
+/// PT-br: Executa testes de fidelidade Firebird para o fluxo compartilhado de batch RETURNING.
 /// </summary>
 [FidelityNativeClientSkip]
 public sealed class BatchReturningTests(

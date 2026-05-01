@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Validates Oracle service collection registration helpers.
-/// PT: Valida os helpers de registro de Oracle na coleção de serviços.
+/// PT-br: Valida os helpers de registro de Oracle na coleção de serviços.
 /// </summary>
 public sealed class OracleServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -20,7 +20,7 @@ public sealed class OracleServiceCollectionExtensionsTests(
     }
     /// <summary>
     /// EN: Verifies AddOracleDbMockTransient registers a transient factory that creates new configured OracleDbMock instances on each resolution.
-    /// PT: Verifica se AddOracleDbMockTransient registra uma factory transient que cria novas instancias configuradas de OracleDbMock em cada resolucao.
+    /// PT-br: Verifica se AddOracleDbMockTransient registra uma factory transient que cria novas instancias configuradas de OracleDbMock em cada resolucao.
     /// </summary>
     [Fact]
     public void AddOracleDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()

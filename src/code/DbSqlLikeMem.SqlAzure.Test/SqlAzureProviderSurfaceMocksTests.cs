@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Contains tests for SQL Azure provider surface mocks.
-/// PT: Contém testes para os mocks de superfície do provedor SQL Azure.
+/// PT-br: Contém testes para os mocks de superfície do provedor SQL Azure.
 /// </summary>
 public sealed class SqlAzureProviderSurfaceMocksTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 {
     /// <summary>
     /// EN: Ensures SQL Azure command uses SQL Azure parameter collection mock type.
-    /// PT: Garante que o comando SQL Azure use o tipo SQL Azure de coleção de parâmetros simulada.
+    /// PT-br: Garante que o comando SQL Azure use o tipo SQL Azure de coleção de parâmetros simulada.
     /// </summary>
     [Fact]
     public void Command_ShouldExposeSqlAzureParameterCollection()
@@ -23,7 +23,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures typed SelectCommand stays synchronized with base SelectCommand.
-    /// PT: Garante que o SelectCommand tipado permaneça sincronizado com o SelectCommand da classe base.
+    /// PT-br: Garante que o SelectCommand tipado permaneça sincronizado com o SelectCommand da classe base.
     /// </summary>
     [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
@@ -37,7 +37,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures all typed command properties remain synchronized with base DbDataAdapter command slots.
-    /// PT: Garante que todas as propriedades de comando tipadas permaneçam sincronizadas com os slots de comando base de DbDataAdapter.
+    /// PT-br: Garante que todas as propriedades de comando tipadas permaneçam sincronizadas com os slots de comando base de DbDataAdapter.
     /// </summary>
     [Fact]
     public void DataAdapter_ShouldKeepAllTypedCommandsSynchronized()
@@ -64,7 +64,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures data source creates SQL Azure connections bound to the same in-memory database.
-    /// PT: Garante que a fonte de dados crie conexões SQL Azure ligadas ao mesmo banco em memória.
+    /// PT-br: Garante que a fonte de dados crie conexões SQL Azure ligadas ao mesmo banco em memória.
     /// </summary>
     [Fact]
     public void DataSource_ShouldCreateSqlAzureConnection()
@@ -80,7 +80,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure command supports multi-statement INSERT script in ExecuteNonQuery.
-    /// PT: Garante que o comando SQL Azure suporte script de INSERT multi-statement no ExecuteNonQuery.
+    /// PT-br: Garante que o comando SQL Azure suporte script de INSERT multi-statement no ExecuteNonQuery.
     /// </summary>
     [Fact]
     public void Command_ExecuteNonQuery_WithMultiStatementInsertScript_ShouldInsertAllRowsAndReturnTotalAffected()
@@ -117,7 +117,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 #if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures batch execution runs all commands and returns accumulated affected rows.
-    /// PT: Garante que a execução em lote rode todos os comandos e retorne o total acumulado de linhas afetadas.
+    /// PT-br: Garante que a execução em lote rode todos os comandos e retorne o total acumulado de linhas afetadas.
     /// </summary>
     [Fact]
     public void Batch_ShouldExecuteAllCommands()
@@ -143,7 +143,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures scalar batch execution returns first command scalar result.
-    /// PT: Garante que a execução escalar do lote retorne o resultado escalar do primeiro comando.
+    /// PT-br: Garante que a execução escalar do lote retorne o resultado escalar do primeiro comando.
     /// </summary>
     [Fact]
     public void Batch_ExecuteScalar_ShouldUseFirstCommandResult()
@@ -174,7 +174,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures batch readers expose result sets from multiple commands.
-    /// PT: Garante que leitores em lote exponham conjuntos de resultados de múltiplos comandos.
+    /// PT-br: Garante que leitores em lote exponham conjuntos de resultados de múltiplos comandos.
     /// </summary>
     [Fact]
     public void Batch_ExecuteReader_ShouldReturnResultsFromMultipleCommands()
@@ -209,7 +209,7 @@ public sealed class SqlAzureProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures non-query commands can run before select commands in the same batch.
-    /// PT: Garante que comandos sem retorno possam rodar antes de select no mesmo lote.
+    /// PT-br: Garante que comandos sem retorno possam rodar antes de select no mesmo lote.
     /// </summary>
     [Fact]
     public void Batch_ExecuteReader_ShouldAllowNonQueryBeforeSelect()

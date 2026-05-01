@@ -4,7 +4,7 @@ internal static class CommandReaderParsedQueryDispatcher
 {
     /// <summary>
     /// EN: Dispatches a parsed query to the appropriate reader handler using explicit parameters.
-    /// PT: Despacha uma query parseada para o handler de leitura apropriado usando parâmetros explícitos.
+    /// PT-br: Despacha uma query parseada para o handler de leitura apropriado usando parâmetros explícitos.
     /// </summary>
     public static void DispatchParsedReaderQuery(
         this DbConnectionMockBase connection,
@@ -148,7 +148,7 @@ internal static class CommandReaderParsedQueryDispatcher
 
     /// <summary>
     /// EN: Dispatches a parsed query to the appropriate reader handler using a pre-built execution context.
-    /// PT: Despacha uma query parseada para o handler de leitura apropriado usando um contexto de execução pré-construído.
+    /// PT-br: Despacha uma query parseada para o handler de leitura apropriado usando um contexto de execução pré-construído.
     /// </summary>
     public static void DispatchParsedReaderQuery(
         this QueryExecutionContext context,

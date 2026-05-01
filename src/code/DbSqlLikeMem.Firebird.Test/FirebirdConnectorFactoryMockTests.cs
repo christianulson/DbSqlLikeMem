@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for the Firebird connector factory mock.
-/// PT: Contém testes para a fábrica de conectores simulada do Firebird.
+/// PT-br: Contém testes para a fábrica de conectores simulada do Firebird.
 /// </summary>
 public sealed class FirebirdConnectorFactoryMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdConnectorFactoryMockTests(
 {
     /// <summary>
     /// EN: Verifies the Firebird factory creates the provider-specific mock surfaces.
-    /// PT: Verifica se a fábrica Firebird cria as superfícies simuladas específicas do provedor.
+    /// PT-br: Verifica se a fábrica Firebird cria as superfícies simuladas específicas do provedor.
     /// </summary>
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
@@ -31,7 +31,7 @@ public sealed class FirebirdConnectorFactoryMockTests(
 #if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Verifies batch creation returns Firebird batch mocks.
-    /// PT: Verifica se a criação de lote retorna mocks de lote Firebird.
+    /// PT-br: Verifica se a criação de lote retorna mocks de lote Firebird.
     /// </summary>
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
@@ -47,7 +47,7 @@ public sealed class FirebirdConnectorFactoryMockTests(
 #if NET7_0_OR_GREATER
     /// <summary>
     /// EN: Verifies the Firebird factory creates a provider-specific data source mock.
-    /// PT: Verifica se a fábrica Firebird cria um mock de fonte de dados específico do provedor.
+    /// PT-br: Verifica se a fábrica Firebird cria um mock de fonte de dados específico do provedor.
     /// </summary>
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()

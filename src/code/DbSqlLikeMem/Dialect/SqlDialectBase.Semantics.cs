@@ -4,13 +4,13 @@ internal abstract partial class SqlDialectBase
 {
     /// <summary>
     /// EN: String comparison mode used by textual operators (=, &lt;&gt;, ORDER BY fallback, etc.).
-    /// PT: Modo de comparação textual usado por operadores textuais (=, &lt;&gt;, ORDER BY fallback, etc.).
+    /// PT-br: Modo de comparação textual usado por operadores textuais (=, &lt;&gt;, ORDER BY fallback, etc.).
     /// </summary>
     public virtual StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
     /// <summary>
     /// EN: Enables controlled implicit cast between numeric and numeric-string values in comparisons.
-    /// PT: Habilita cast implícito controlado entre números e strings numéricas em comparações.
+    /// PT-br: Habilita cast implícito controlado entre números e strings numéricas em comparações.
     /// </summary>
     public virtual bool SupportsImplicitNumericStringComparison => true;
 
@@ -77,25 +77,25 @@ internal abstract partial class SqlDialectBase
 
     /// <summary>
     /// EN: Indicates whether string concatenation with the plus operator returns null when any operand is null.
-    /// PT: Indica se a concatenacao de strings com o operador mais retorna null quando qualquer operando e null.
+    /// PT-br: Indica se a concatenacao de strings com o operador mais retorna null quando qualquer operando e null.
     /// </summary>
     public virtual bool PlusStringConcatReturnsNullOnNullInput => true;
 
     /// <summary>
     /// EN: Indicates whether CONCAT() returns null when any argument is null.
-    /// PT: Indica se CONCAT() retorna null quando qualquer argumento e null.
+    /// PT-br: Indica se CONCAT() retorna null quando qualquer argumento e null.
     /// </summary>
     public virtual bool ConcatFunctionReturnsNullOnNullInput => true;
 
     /// <summary>
     /// EN: Indicates whether the pipe operator (||) is treated as string concatenation.
-    /// PT: Indica se o operador pipe (||) e tratado como concatenacao de strings.
+    /// PT-br: Indica se o operador pipe (||) e tratado como concatenacao de strings.
     /// </summary>
     public virtual bool SupportsPipeConcatOperator => false;
 
     /// <summary>
     /// EN: Legacy combined concat null behavior kept for compatibility with older call sites.
-    /// PT: Comportamento legado combinado de concat null mantido por compatibilidade com call sites antigos.
+    /// PT-br: Comportamento legado combinado de concat null mantido por compatibilidade com call sites antigos.
     /// </summary>
     public virtual bool ConcatReturnsNullOnNullInput => PlusStringConcatReturnsNullOnNullInput && ConcatFunctionReturnsNullOnNullInput;
 
@@ -279,7 +279,7 @@ internal abstract partial class SqlDialectBase
 
     /// <summary>
     /// EN: Indicates whether a specific window function name is supported by the current dialect/version.
-    /// PT: Indica se um nome específico de função de janela é suportado pelo dialeto/versão atual.
+    /// PT-br: Indica se um nome específico de função de janela é suportado pelo dialeto/versão atual.
     /// </summary>
     public virtual bool SupportsWindowFunction(string functionName)
     {
@@ -291,7 +291,7 @@ internal abstract partial class SqlDialectBase
 
     /// <summary>
     /// EN: Indicates whether a specific window function requires ORDER BY inside OVER clause.
-    /// PT: Indica se uma função de janela específica exige ORDER BY dentro da cláusula OVER.
+    /// PT-br: Indica se uma função de janela específica exige ORDER BY dentro da cláusula OVER.
     /// </summary>
     public virtual bool RequiresOrderByInWindowFunction(string functionName)
     {
@@ -305,7 +305,7 @@ internal abstract partial class SqlDialectBase
 
     /// <summary>
     /// EN: Gets accepted argument arity range for a supported window function.
-    /// PT: Obtém o intervalo de aridade aceito para uma função de janela suportada.
+    /// PT-br: Obtém o intervalo de aridade aceito para uma função de janela suportada.
     /// </summary>
     public virtual bool TryGetWindowFunctionArgumentArity(string functionName, out int minArgs, out int maxArgs)
     {

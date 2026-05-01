@@ -66,7 +66,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes a large grouped join query over users and orders and validates the projected rows.
-    /// PT: Executa uma consulta grande com junção agrupada entre usuarios e pedidos e valida as linhas projetadas.
+    /// PT-br: Executa uma consulta grande com junção agrupada entre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinTypedExpressionMatrixAsync(params object[] pars)
     {
@@ -113,7 +113,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a left join aggregate query that keeps users without orders and validates null-handling behavior.
-    /// PT: Executa uma consulta agregada com left join que preserva usuarios sem pedidos e valida o tratamento de null.
+    /// PT-br: Executa uma consulta agregada com left join que preserva usuarios sem pedidos e valida o tratamento de null.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinNullAggregateMatrixAsync(params object[] pars)
     {
@@ -162,7 +162,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped left join query that combines casts, null handling, and aggregate formatting.
-    /// PT: Executa uma consulta agrupada com left join que combina casts, tratamento de null e formatacao de agregados.
+    /// PT-br: Executa uma consulta agrupada com left join que combina casts, tratamento de null e formatacao de agregados.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinCastNullMatrixAsync(params object[] pars)
     {
@@ -211,7 +211,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped left join query that casts numeric aggregates to text and combines them with comparisons.
-    /// PT: Executa uma consulta agrupada com left join que converte agregados numericos para texto e os combina com comparacoes.
+    /// PT-br: Executa uma consulta agrupada com left join que converte agregados numericos para texto e os combina com comparacoes.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinCastTextComparisonMatrixAsync(params object[] pars)
     {
@@ -260,7 +260,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped join query with HAVING filters and validates casted aggregate outputs.
-    /// PT: Executa uma consulta agrupada com filtros HAVING e valida saidas agregadas convertidas.
+    /// PT-br: Executa uma consulta agrupada com filtros HAVING e valida saidas agregadas convertidas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinHavingCastMatrixAsync(params object[] pars)
     {
@@ -302,7 +302,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped join query that mixes string-length expressions with numeric conversions and aggregates.
-    /// PT: Executa uma consulta agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados.
+    /// PT-br: Executa uma consulta agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinLengthNumericMatrixAsync(params object[] pars)
     {
@@ -357,7 +357,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped join query that blends string case, string length, and aggregate comparisons.
-    /// PT: Executa uma consulta agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas.
+    /// PT-br: Executa uma consulta agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinTextCaseLengthMatrixAsync(params object[] pars)
     {
@@ -416,7 +416,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped left join report that combines distinct counts, CASE expressions, and repeated values.
-    /// PT: Executa um relatorio agrupado com left join que combina contagens distintas, expressoes CASE e valores repetidos.
+    /// PT-br: Executa um relatorio agrupado com left join que combina contagens distintas, expressoes CASE e valores repetidos.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinDistinctCaseMatrixAsync(params object[] pars)
     {
@@ -462,7 +462,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped left join report with HAVING and distinct note counts.
-    /// PT: Executa um relatorio agrupado com left join, HAVING e contagens distintas de notas.
+    /// PT-br: Executa um relatorio agrupado com left join, HAVING e contagens distintas de notas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinDistinctHavingMatrixAsync(params object[] pars)
     {
@@ -505,7 +505,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a grouped left join query that blends temporal comparisons with aggregate counts.
-    /// PT: Executa uma consulta agrupada com left join que mistura comparacoes temporais com contagens agregadas.
+    /// PT-br: Executa uma consulta agrupada com left join que mistura comparacoes temporais com contagens agregadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinTemporalMatrixAsync(params object[] pars)
     {
@@ -557,7 +557,7 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes a joined window-function query over users and orders and validates the projected rows.
-    /// PT: Executa uma consulta com funcoes de janela em join sobre usuarios e pedidos e valida as linhas projetadas.
+    /// PT-br: Executa uma consulta com funcoes de janela em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinWindowMatrixAsync(params object[] pars)
     {
@@ -602,7 +602,7 @@ ORDER BY u.Id, o.Id
 
     /// <summary>
     /// EN: Executes a joined window-function query with temporal comparisons over users and orders and validates the projected rows.
-    /// PT: Executa uma consulta com funcoes de janela e comparacoes temporais em join sobre usuarios e pedidos e valida as linhas projetadas.
+    /// PT-br: Executa uma consulta com funcoes de janela e comparacoes temporais em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinWindowTemporalMatrixAsync(params object[] pars)
     {
@@ -654,7 +654,7 @@ ORDER BY u.Id, o.Id
 
     /// <summary>
     /// EN: Executes a joined window-function query with temporal and aggregate comparisons over users and orders and validates the projected rows.
-    /// PT: Executa uma consulta com funcoes de janela, comparacoes temporais e agregadas em join sobre usuarios e pedidos e valida as linhas projetadas.
+    /// PT-br: Executa uma consulta com funcoes de janela, comparacoes temporais e agregadas em join sobre usuarios e pedidos e valida as linhas projetadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunJoinWindowAggregateTemporalMatrixAsync(params object[] pars)
     {
@@ -1058,7 +1058,7 @@ ORDER BY u.Id, o.Id
 
     /// <summary>
     /// EN: Counts the rows returned by a select over the configured users table.
-    /// PT: Conta as linhas retornadas por um select na tabela de usuarios configurada.
+    /// PT-br: Conta as linhas retornadas por um select na tabela de usuarios configurada.
     /// </summary>
     public async Task<int> RunRowCountAfterSelectAsync(params object[] pars)
     {
@@ -1073,21 +1073,21 @@ ORDER BY u.Id, o.Id
 
     /// <summary>
     /// EN: Executes a select over all configured users and returns the ordered Name snapshot.
-    /// PT: Executa um select sobre todos os usuarios configurados e retorna o snapshot ordenado de Name.
+    /// PT-br: Executa um select sobre todos os usuarios configurados e retorna o snapshot ordenado de Name.
     /// </summary>
     public Task<QueryResultSnapshot> RunAllRowsSnapshotAsync(params object[] pars)
         => CaptureSnapshotAsync($"SELECT Name FROM {Context.TbUsersFullName} ORDER BY Id");
 
     /// <summary>
     /// EN: Executes a simple CTE query against the configured users table.
-    /// PT: Executa uma consulta CTE simples na tabela de usuarios configurada.
+    /// PT-br: Executa uma consulta CTE simples na tabela de usuarios configurada.
     /// </summary>
     public Task<QueryResultSnapshot> RunCteSimpleAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.CteSimple(Context));
 
     /// <summary>
     /// EN: Executes a CTE query with a MATERIALIZED hint against the configured users table.
-    /// PT: Executa uma consulta CTE com hint MATERIALIZED na tabela de usuarios configurada.
+    /// PT-br: Executa uma consulta CTE com hint MATERIALIZED na tabela de usuarios configurada.
     /// </summary>
     public Task<QueryResultSnapshot> RunCteMaterializedHintAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -1102,56 +1102,56 @@ FROM x
 
     /// <summary>
     /// EN: Executes a ROW_NUMBER window query against the configured users table and returns the full rowset snapshot.
-    /// PT: Executa uma consulta de janela ROW_NUMBER na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
+    /// PT-br: Executa uma consulta de janela ROW_NUMBER na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
     public Task<QueryResultSnapshot> RunWindowRowNumberAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.WindowRowNumber(Context));
 
     /// <summary>
     /// EN: Executes a LAG window query against the configured users table and returns the full rowset snapshot.
-    /// PT: Executa uma consulta de janela LAG na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
+    /// PT-br: Executa uma consulta de janela LAG na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
     public Task<QueryResultSnapshot> RunWindowLagAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.WindowLag(Context));
 
     /// <summary>
     /// EN: Executes a LEAD window query against the configured users table and returns the full rowset snapshot.
-    /// PT: Executa uma consulta de janela LEAD na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
+    /// PT-br: Executa uma consulta de janela LEAD na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
     public Task<QueryResultSnapshot> RunWindowLeadAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.WindowLead(Context));
 
     /// <summary>
     /// EN: Executes an EXISTS predicate query against the configured users and orders tables.
-    /// PT: Executa uma consulta com predicado EXISTS nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma consulta com predicado EXISTS nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunSelectExistsPredicateAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.SelectExistsPredicate(Context));
 
     /// <summary>
     /// EN: Executes a NOT EXISTS predicate query against the configured users and orders tables.
-    /// PT: Executa uma consulta com predicado NOT EXISTS nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma consulta com predicado NOT EXISTS nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunSelectNotExistsPredicateAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.SelectNotExistsPredicate(Context));
 
     /// <summary>
     /// EN: Executes a LEFT JOIN anti-join query against the configured users and orders tables.
-    /// PT: Executa uma consulta anti-join com LEFT JOIN nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma consulta anti-join com LEFT JOIN nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunSelectLeftJoinAntiJoinAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.SelectLeftJoinAntiJoin(Context));
 
     /// <summary>
     /// EN: Executes a correlated count query against the configured users and orders tables.
-    /// PT: Executa uma consulta de contagem correlacionada nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma consulta de contagem correlacionada nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunSelectCorrelatedCountAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.SelectCorrelatedCount(Context));
 
     /// <summary>
     /// EN: Executes a per-row scalar subquery report with CASE expressions against the configured users and orders tables.
-    /// PT: Executa um relatorio com subconsulta escalar por linha e expressoes CASE nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa um relatorio com subconsulta escalar por linha e expressoes CASE nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunSelectScalarCaseMatrixAsync(params object[] pars)
     {
@@ -1192,56 +1192,56 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes the scalar subquery case matrix against the configured users and orders tables.
-    /// PT: Executa a matriz de subconsulta escalar com CASE nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa a matriz de subconsulta escalar com CASE nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunSelectScalarSubqueryCaseMatrixAsync(params object[] pars)
         => RunSelectScalarCaseMatrixAsync(pars);
 
     /// <summary>
     /// EN: Executes a GROUP BY HAVING query against the configured users and orders tables and returns the matching rowset.
-    /// PT: Executa uma consulta GROUP BY HAVING nas tabelas de usuarios e pedidos configuradas e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa uma consulta GROUP BY HAVING nas tabelas de usuarios e pedidos configuradas e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunGroupByHavingAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.GroupByHaving(Context));
 
     /// <summary>
     /// EN: Executes a UNION ALL projection query against the configured users table.
-    /// PT: Executa uma consulta de projeção UNION ALL na tabela de usuarios configurada.
+    /// PT-br: Executa uma consulta de projeção UNION ALL na tabela de usuarios configurada.
     /// </summary>
     public Task<QueryResultSnapshot> RunUnionAllProjectionAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.UnionAllProjection(Context));
 
     /// <summary>
     /// EN: Executes a UNION projection query against the configured users table.
-    /// PT: Executa uma consulta de projeção UNION na tabela de usuarios configurada.
+    /// PT-br: Executa uma consulta de projeção UNION na tabela de usuarios configurada.
     /// </summary>
     public Task<QueryResultSnapshot> RunUnionDistinctProjectionAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.UnionDistinctProjection(Context));
 
     /// <summary>
     /// EN: Executes a DISTINCT projection query against the configured users table.
-    /// PT: Executa uma consulta de projeção DISTINCT na tabela de usuarios configurada.
+    /// PT-br: Executa uma consulta de projeção DISTINCT na tabela de usuarios configurada.
     /// </summary>
     public Task<QueryResultSnapshot> RunDistinctProjectionAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.DistinctProjection(Context));
 
     /// <summary>
     /// EN: Executes a DISTINCT ON projection query against the configured users and orders tables.
-    /// PT: Executa uma consulta de projeção DISTINCT ON nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma consulta de projeção DISTINCT ON nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunDistinctOnProjectionAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.DistinctOnProjection(Context));
 
     /// <summary>
     /// EN: Executes a multi-join aggregate query against the configured users and orders tables.
-    /// PT: Executa uma consulta agregada com multiplos joins nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma consulta agregada com multiplos joins nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunMultiJoinAggregateAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.MultiJoinAggregate(Context));
 
     /// <summary>
     /// EN: Executes a scalar subquery projection against the configured users and orders tables.
-    /// PT: Executa uma projeção com subconsulta escalar nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma projeção com subconsulta escalar nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public async Task<long> RunSelectScalarSubqueryAsync(params object[] pars)
     {
@@ -1252,35 +1252,35 @@ ORDER BY u.Id
 
     /// <summary>
     /// EN: Executes an IN subquery predicate against the configured users and orders tables.
-    /// PT: Executa um predicado IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa um predicado IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunSelectInSubqueryAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.SelectInSubquery(Context));
 
     /// <summary>
     /// EN: Executes a NOT IN subquery predicate against the configured users and orders tables.
-    /// PT: Executa um predicado NOT IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa um predicado NOT IN com subconsulta nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunSelectNotInSubqueryAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.SelectNotInSubquery(Context));
 
     /// <summary>
     /// EN: Executes a CROSS APPLY style projection against the configured users and orders tables.
-    /// PT: Executa uma projeção no estilo CROSS APPLY nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma projeção no estilo CROSS APPLY nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunCrossApplyProjectionAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.CrossApplyProjection(Context));
 
     /// <summary>
     /// EN: Executes an OUTER APPLY style projection against the configured users and orders tables.
-    /// PT: Executa uma projeção no estilo OUTER APPLY nas tabelas de usuarios e pedidos configuradas.
+    /// PT-br: Executa uma projeção no estilo OUTER APPLY nas tabelas de usuarios e pedidos configuradas.
     /// </summary>
     public Task<QueryResultSnapshot> RunOuterApplyProjectionAsync(params object[] pars)
         => CaptureSnapshotAsync(Repo.Dialect.OuterApplyProjection(Context));
 
     /// <summary>
     /// EN: Executes a STRING_SPLIT projection against the configured users table and returns the full rowset snapshot.
-    /// PT: Executa uma projeção STRING_SPLIT na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
+    /// PT-br: Executa uma projeção STRING_SPLIT na tabela de usuarios configurada e retorna o snapshot completo do conjunto de linhas.
     /// </summary>
     public Task<QueryResultSnapshot> RunStringSplitProjectionAsync(params object[] pars)
     {
@@ -1299,7 +1299,7 @@ WHERE u.Id = 3
 
     /// <summary>
     /// EN: Executes a FOR JSON PATH projection against the configured users table and returns the serialized payload.
-    /// PT: Executa uma projeção FOR JSON PATH na tabela de usuarios configurada e retorna o payload serializado.
+    /// PT-br: Executa uma projeção FOR JSON PATH na tabela de usuarios configurada e retorna o payload serializado.
     /// </summary>
     public async Task<string?> RunForJsonPathProjectionAsync(params object[] pars)
     {
@@ -1324,7 +1324,7 @@ FOR JSON PATH, ROOT('users')
 
     /// <summary>
     /// EN: Executes a partition-pruning style select against the configured users table.
-    /// PT: Executa um select no estilo partition pruning na tabela de usuarios configurada.
+    /// PT-br: Executa um select no estilo partition pruning na tabela de usuarios configurada.
     /// </summary>
     public async Task<int> RunPartitionPruningSelectAsync(params object[] pars)
     {
@@ -1335,7 +1335,7 @@ FOR JSON PATH, ROOT('users')
 
     /// <summary>
     /// EN: Executes a pivot-style count query against the configured users table.
-    /// PT: Executa uma consulta de contagem no estilo pivot na tabela de usuarios configurada.
+    /// PT-br: Executa uma consulta de contagem no estilo pivot na tabela de usuarios configurada.
     /// </summary>
     public async Task<int> RunPivotCountAsync(params object[] pars)
     {

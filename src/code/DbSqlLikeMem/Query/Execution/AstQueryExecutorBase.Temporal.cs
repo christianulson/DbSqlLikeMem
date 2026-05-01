@@ -365,7 +365,7 @@ internal abstract partial class AstQueryExecutorBase
 
     /// <summary>
     /// EN: Detects time-only literals and avoids treating them like date-time values.
-    /// PT: Detecta literais apenas de horario e evita trata-los como valores de data e hora.
+    /// PT-br: Detecta literais apenas de horario e evita trata-los como valores de data e hora.
     /// </summary>
     internal static bool LooksLikeTimeOnly(string value)
     {

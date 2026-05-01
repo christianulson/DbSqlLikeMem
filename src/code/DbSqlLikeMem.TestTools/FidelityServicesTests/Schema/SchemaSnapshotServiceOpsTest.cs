@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.TestTools.Schema;
 
 /// <summary>
 /// EN: Provides fidelity tests for provider schema snapshot export, serialization, parsing, and application operations.
-/// PT: Fornece testes de fidelidade para operações de exportação, serialização, análise e aplicação de snapshots de schema do provedor.
+/// PT-br: Fornece testes de fidelidade para operações de exportação, serialização, análise e aplicação de snapshots de schema do provedor.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -16,7 +16,7 @@ public class SchemaSnapshotServiceOpsTest(
 {
     /// <summary>
     /// EN: Reads a schema snapshot from the provider when the feature exists.
-    /// PT: Lê um snapshot de schema do provedor quando o recurso existe.
+    /// PT-br: Lê um snapshot de schema do provedor quando o recurso existe.
     /// </summary>
     public SchemaSnapshot RunSchemaSnapshotExport()
     {
@@ -27,7 +27,7 @@ public class SchemaSnapshotServiceOpsTest(
 
     /// <summary>
     /// EN: Serializes a provider schema snapshot to JSON.
-    /// PT: Serializa um snapshot de schema do provedor para JSON.
+    /// PT-br: Serializa um snapshot de schema do provedor para JSON.
     /// </summary>
     public string RunSchemaSnapshotToJson()
     {
@@ -38,7 +38,7 @@ public class SchemaSnapshotServiceOpsTest(
 
     /// <summary>
     /// EN: Parses a representative schema-snapshot JSON payload.
-    /// PT: Faz o parse de um payload JSON representativo de snapshot de schema.
+    /// PT-br: Faz o parse de um payload JSON representativo de snapshot de schema.
     /// </summary>
     public JsonDocument RunSchemaSnapshotLoadJson()
     {
@@ -49,7 +49,7 @@ public class SchemaSnapshotServiceOpsTest(
 
     /// <summary>
     /// EN: Parses a representative schema-snapshot JSON payload without requiring a database connection.
-    /// PT: Faz o parse de um payload JSON representativo de snapshot de schema sem exigir uma conexao de banco de dados.
+    /// PT-br: Faz o parse de um payload JSON representativo de snapshot de schema sem exigir uma conexao de banco de dados.
     /// </summary>
     public static JsonDocument RunSchemaSnapshotLoadJson(string providerDisplayName)
     {
@@ -59,7 +59,7 @@ public class SchemaSnapshotServiceOpsTest(
 
     /// <summary>
     /// EN: Applies a schema snapshot when the provider exposes an apply method.
-    /// PT: Aplica um snapshot de schema quando o provedor expõe um metodo de aplicacao.
+    /// PT-br: Aplica um snapshot de schema quando o provedor expõe um metodo de aplicacao.
     /// </summary>
     public object? RunSchemaSnapshotApply()
     {
@@ -71,7 +71,7 @@ public class SchemaSnapshotServiceOpsTest(
 
     /// <summary>
     /// EN: Serializes and parses a schema snapshot in a round-trip flow.
-    /// PT: Serializa e faz o parse de um snapshot de schema em um fluxo de ida e volta.
+    /// PT-br: Serializa e faz o parse de um snapshot de schema em um fluxo de ida e volta.
     /// </summary>
     public JsonDocument RunSchemaSnapshotRoundTrip()
     {
@@ -84,7 +84,7 @@ public class SchemaSnapshotServiceOpsTest(
 
     /// <summary>
     /// EN: Compares two provider schema snapshots serialized to JSON.
-    /// PT: Compara dois snapshots de schema do provedor serializados para JSON.
+    /// PT-br: Compara dois snapshots de schema do provedor serializados para JSON.
     /// </summary>
     public bool RunSchemaSnapshotCompare()
     {

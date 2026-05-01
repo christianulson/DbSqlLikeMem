@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Validates MySqlMockException constructors preserve message, code, and inner exception data.
-/// PT: Valida se os construtores de MySqlMockException preservam mensagem, codigo e excecao interna.
+/// PT-br: Valida se os construtores de MySqlMockException preservam mensagem, codigo e excecao interna.
 /// </summary>
 public sealed class MySqlMockExceptionTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MySqlMockExceptionTests(
 {
     /// <summary>
     /// EN: Verifies the error-code constructor keeps the provided message and SQL error code.
-    /// PT: Verifica se o construtor com codigo de erro preserva a mensagem informada e o codigo SQL.
+    /// PT-br: Verifica se o construtor com codigo de erro preserva a mensagem informada e o codigo SQL.
     /// </summary>
     [Fact]
     public void Constructor_WithMessageAndCode_ShouldPreserveValues()
@@ -23,7 +23,7 @@ public sealed class MySqlMockExceptionTests(
 
     /// <summary>
     /// EN: Verifies the message and inner-exception constructor preserves both values.
-    /// PT: Verifica se o construtor com mensagem e excecao interna preserva ambos os valores.
+    /// PT-br: Verifica se o construtor com mensagem e excecao interna preserva ambos os valores.
     /// </summary>
     [Fact]
     public void Constructor_WithMessageAndInnerException_ShouldPreserveValues()
@@ -38,7 +38,7 @@ public sealed class MySqlMockExceptionTests(
 
     /// <summary>
     /// EN: Verifies the parameterless and message-only constructors keep the default code contract.
-    /// PT: Verifica se os construtores sem parametros e apenas com mensagem mantem o contrato do codigo padrao.
+    /// PT-br: Verifica se os construtores sem parametros e apenas com mensagem mantem o contrato do codigo padrao.
     /// </summary>
     [Fact]
     public void Constructors_WithoutCode_ShouldKeepDefaultCode()

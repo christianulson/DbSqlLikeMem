@@ -5,17 +5,17 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test.MariaDb;
 
 /// <summary>
 /// EN: Verifies generator queries against a real MariaDB benchmark database.
-/// PT: Verifica as queries do generator contra um banco de benchmark MariaDB real.
+/// PT-br: Verifica as queries do generator contra um banco de benchmark MariaDB real.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used to record the integration test output.
-/// PT: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
+/// PT-br: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
 /// </param>
 public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies the metadata provider lists and reads benchmark objects created in a real MariaDB database.
-    /// PT: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco MariaDB real.
+    /// PT-br: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco MariaDB real.
     /// </summary>
     [Fact]
     [Trait("Category", "GeneratorQuery")]

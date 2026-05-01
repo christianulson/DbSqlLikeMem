@@ -1,7 +1,8 @@
 ﻿param(
     [string] $ArtifactsDir = "../../../docs/Wiki/BenchmarkResults/results",
     [string] $OutFile = "../../../docs/Wiki/performance-matrix-app-specific.md",
-    [string] $CatalogFile = ".\benchmark-feature-map.app-specific.json"
+    [string] $CatalogFile = ".\benchmark-feature-map.app-specific.json",
+    [string] $EnvironmentManifestFile = "../../../docs/Wiki/BenchmarkResults/benchmark-run.environment.json"
 )
 
 Set-StrictMode -Version Latest
@@ -74,6 +75,40 @@ function Get-DisplayTitle {
     return [string]$Provider.id
 }
 
+function Get-FeatureKey {
+    param([Parameter(Mandatory)] [pscustomobject] $Feature)
+
+    if ($Feature.PSObject.Properties.Name -contains 'stableId' -and -not [string]::IsNullOrWhiteSpace([string]$Feature.stableId)) {
+        return [string]$Feature.stableId
+    }
+
+    return [string]$Feature.id
+}
+
+function Get-FeatureStatus {
+    param([Parameter(Mandatory)] [pscustomobject] $Feature)
+
+    if ($Feature.PSObject.Properties.Name -contains 'status' -and -not [string]::IsNullOrWhiteSpace([string]$Feature.status)) {
+        return [string]$Feature.status
+    }
+
+    return 'Active'
+}
+
+function Get-EnvironmentHeaderLine {
+    param([Parameter(Mandatory)] [pscustomobject] $Environment)
+
+    $runEnvironment = if ($Environment.PSObject.Properties.Name -contains 'environment') { $Environment.environment } else { $Environment }
+    $profile = if ($runEnvironment.PSObject.Properties.Name -contains 'profile') { [string]$runEnvironment.profile } else { '' }
+    $os = if ($runEnvironment.PSObject.Properties.Name -contains 'os') { [string]$runEnvironment.os } elseif ($runEnvironment.PSObject.Properties.Name -contains 'operatingSystem') { [string]$runEnvironment.operatingSystem } else { '' }
+    $framework = if ($runEnvironment.PSObject.Properties.Name -contains 'framework') { [string]$runEnvironment.framework } else { '' }
+    $runtime = if ($runEnvironment.PSObject.Properties.Name -contains 'runtime') { [string]$runEnvironment.runtime } else { '' }
+    $timestampUtc = if ($runEnvironment.PSObject.Properties.Name -contains 'timestampUtc') { [string]$runEnvironment.timestampUtc } else { '' }
+    $jobId = if ($Environment.PSObject.Properties.Name -contains 'jobId') { [string]$Environment.jobId } else { '' }
+
+    return "> Ambiente: profile=$profile; jobId=$jobId; os=$os; framework=$framework; runtime=$runtime; timestampUtc=$timestampUtc"
+}
+
 function Parse-BenchmarkReport {
     param([Parameter(Mandatory)] [string] $PathValue)
 
@@ -120,6 +155,27 @@ function Parse-BenchmarkReport {
 }
 
 $catalog = Get-Content $CatalogFile -Raw | ConvertFrom-Json
+$schemaPath = if ($catalog.PSObject.Properties.Name -contains 'resultSchema') { [string]$catalog.resultSchema } else { $null }
+if ([string]::IsNullOrWhiteSpace($schemaPath)) {
+    throw "Catalog file does not declare resultSchema: $CatalogFile"
+}
+
+$catalogDir = Split-Path -Parent $CatalogFile
+$schemaFullPath = Join-Path $catalogDir $schemaPath
+if (-not (Test-Path $schemaFullPath)) {
+    throw "Result schema file not found: $schemaFullPath"
+}
+
+$resultSchema = Get-Content $schemaFullPath -Raw | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace([string]$resultSchema.title)) {
+    throw "Result schema title is missing: $schemaFullPath"
+}
+
+$environmentManifest = $null
+if (Test-Path $EnvironmentManifestFile) {
+    $environmentManifest = Get-Content $EnvironmentManifestFile -Raw | ConvertFrom-Json
+}
+
 $reportFiles = Get-ChildItem -Path $ArtifactsDir -Filter '*-report-github.md' | Sort-Object Name
 
 $reports = @{}
@@ -132,6 +188,9 @@ $null = $lines.Add('# Performance features - App Specific')
 $null = $lines.Add('')
 $null = $lines.Add('> Gerado automaticamente a partir dos relatórios `*-report-github.md` do BenchmarkDotNet e do catálogo `benchmark-feature-map.json`.')
 $null = $lines.Add('> Percentual: valor positivo = app mais rápida; valor negativo = banco mais rápido.')
+if ($null -ne $environmentManifest) {
+    $null = $lines.Add((Get-EnvironmentHeaderLine -Environment $environmentManifest))
+}
 $null = $lines.Add('')
 
 foreach ($provider in $catalog.providers) {
@@ -143,19 +202,21 @@ foreach ($provider in $catalog.providers) {
 
     $null = $lines.Add("## $title")
     $null = $lines.Add('')
-    $null = $lines.Add("| Feature | DbSqlLikeMem |")
-    $null = $lines.Add("|---|---:|")
+    $null = $lines.Add("| Feature | Status | DbSqlLikeMem |")
+    $null = $lines.Add("|---|:---:|---:|")
 
     foreach ($feature in $catalog.features) {
-        $mockSupported = @($provider.supportsMockFeatures) -contains $feature.id
+        $featureKey = Get-FeatureKey -Feature $feature
+        $mockSupported = @($provider.supportsMockFeatures) -contains $featureKey
+        $featureStatus = Get-FeatureStatus -Feature $feature
 
         $mockCell = 'N/A'
 
         $mockValue = $null
 
         if ($mockSupported) {
-            if ($mockResults.ContainsKey($feature.id)) {
-                $mockValue = $mockResults[$feature.id]
+            if ($mockResults.ContainsKey($featureKey)) {
+                $mockValue = $mockResults[$featureKey]
                 $mockCell = $mockValue.Raw
             }
             else {
@@ -163,7 +224,7 @@ foreach ($provider in $catalog.providers) {
             }
         }
 
-        $null = $lines.Add("| $($feature.id) | $mockCell |")
+        $null = $lines.Add("| $featureKey | $featureStatus | $mockCell |")
     }
 
     $null = $lines.Add('')

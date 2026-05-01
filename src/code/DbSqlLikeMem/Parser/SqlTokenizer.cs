@@ -8,7 +8,7 @@ internal sealed class SqlTokenizer
 
     /// <summary>
     /// EN: Implements SqlTokenizer.
-    /// PT: Implementa SqlTokenizer.
+    /// PT-br: Implementa SqlTokenizer.
     /// </summary>
     public SqlTokenizer(string sql, ISqlDialect dialect)
     {
@@ -18,7 +18,7 @@ internal sealed class SqlTokenizer
 
     /// <summary>
     /// EN: Implements Tokenize.
-    /// PT: Implementa Tokenize.
+    /// PT-br: Implementa Tokenize.
     /// </summary>
     public IReadOnlyList<SqlToken> Tokenize()
     {

@@ -54,7 +54,7 @@ internal abstract partial class AstQueryExecutorBase
 
     /// <summary>
     /// EN: Implements ExecuteSelect.
-    /// PT: Implementa ExecuteSelect.
+    /// PT-br: Implementa ExecuteSelect.
     /// </summary>
     public TableResultMock ExecuteSelect(SqlSelectQuery q)
     {

@@ -2,18 +2,18 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Normalizes dialect-specific parser output into the canonical AST consumed by the executor.
-/// PT: Normaliza a saida especifica de dialeto do parser para a AST canonica consumida pelo executor.
+/// PT-br: Normaliza a saida especifica de dialeto do parser para a AST canonica consumida pelo executor.
 /// </summary>
 internal static class DialectNormalizer
 {
     /// <summary>
     /// EN: Normalizes the first automatic dialect compatibility slice for SELECT queries.
-    /// PT: Normaliza a primeira fatia de compatibilidade do dialeto automatico para consultas SELECT.
+    /// PT-br: Normaliza a primeira fatia de compatibilidade do dialeto automatico para consultas SELECT.
     /// </summary>
-    /// <param name="query">EN: Parsed SELECT query. PT: Consulta SELECT parseada.</param>
-    /// <param name="syntaxFeatures">EN: Syntax markers detected for the SQL text. PT: Marcadores de sintaxe detectados para o texto SQL.</param>
-    /// <param name="resolveParameterInt">EN: Optional integer parameter resolver used by ROWNUM normalization. PT: Resolutor opcional de parametros inteiros usado pela normalizacao de ROWNUM.</param>
-    /// <returns>EN: Normalized SELECT query. PT: Consulta SELECT normalizada.</returns>
+    /// <param name="query">EN: Parsed SELECT query. PT-br: Consulta SELECT parseada.</param>
+    /// <param name="syntaxFeatures">EN: Syntax markers detected for the SQL text. PT-br: Marcadores de sintaxe detectados para o texto SQL.</param>
+    /// <param name="resolveParameterInt">EN: Optional integer parameter resolver used by ROWNUM normalization. PT-br: Resolutor opcional de parametros inteiros usado pela normalizacao de ROWNUM.</param>
+    /// <returns>EN: Normalized SELECT query. PT-br: Consulta SELECT normalizada.</returns>
     public static SqlSelectQuery NormalizeAutoSelect(
         SqlSelectQuery query,
         AutoSqlSyntaxFeatures syntaxFeatures,

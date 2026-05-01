@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Verifies Firebird command execution, transaction handling, and query helpers against the mock engine.
-/// PT: Verifica a execucao de comandos Firebird, o tratamento de transacoes e os helpers de consulta no motor mock.
+/// PT-br: Verifica a execucao de comandos Firebird, o tratamento de transacoes e os helpers de consulta no motor mock.
 /// </summary>
 public sealed class FirebirdMockTests
     : XUnitTestBase
@@ -11,7 +11,7 @@ public sealed class FirebirdMockTests
 
     /// <summary>
     /// EN: Creates the Firebird mock connection used by the test suite.
-    /// PT: Cria a conexao mock Firebird usada pela suite de testes.
+    /// PT-br: Cria a conexao mock Firebird usada pela suite de testes.
     /// </summary>
     public FirebirdMockTests(
         ITestOutputHelper helper
@@ -35,7 +35,7 @@ public sealed class FirebirdMockTests
 
     /// <summary>
     /// EN: Verifies INSERT statements persist rows into the Firebird mock table.
-    /// PT: Verifica se instrucoes INSERT persistem linhas na tabela mock do Firebird.
+    /// PT-br: Verifica se instrucoes INSERT persistem linhas na tabela mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -52,7 +52,7 @@ public sealed class FirebirdMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE statements modify the targeted Firebird row.
-    /// PT: Verifica se instrucoes UPDATE modificam a linha alvo no Firebird.
+    /// PT-br: Verifica se instrucoes UPDATE modificam a linha alvo no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -72,7 +72,7 @@ public sealed class FirebirdMockTests
 
     /// <summary>
     /// EN: Verifies DELETE statements remove the targeted Firebird row.
-    /// PT: Verifica se instrucoes DELETE removem a linha alvo no Firebird.
+    /// PT-br: Verifica se instrucoes DELETE removem a linha alvo no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -92,7 +92,7 @@ public sealed class FirebirdMockTests
 
     /// <summary>
     /// EN: Verifies committed transactions preserve inserted Firebird rows.
-    /// PT: Verifica se transacoes confirmadas preservam as linhas inseridas no Firebird.
+    /// PT-br: Verifica se transacoes confirmadas preservam as linhas inseridas no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -128,7 +128,7 @@ public sealed class FirebirdMockTests
 
     /// <summary>
     /// EN: Verifies rolled back transactions discard inserted Firebird rows.
-    /// PT: Verifica se transacoes revertidas descartam as linhas inseridas no Firebird.
+    /// PT-br: Verifica se transacoes revertidas descartam as linhas inseridas no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]

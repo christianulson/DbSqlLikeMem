@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Represents the context for a fidelity test, providing access to a collection of parameters that can be used to configure and execute the test scenario.
-/// PT: Representa o contexto para um teste de fidelidade, fornecendo acesso a uma coleção de parâmetros que podem ser usados para configurar e executar o cenário de teste.
+/// PT-br: Representa o contexto para um teste de fidelidade, fornecendo acesso a uma coleção de parâmetros que podem ser usados para configurar e executar o cenário de teste.
 /// </summary>
 public class FidelityTestContext
 {

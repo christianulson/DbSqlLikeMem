@@ -2,13 +2,13 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Parses textual values into typed database values based on <see cref="DbType"/>.
-/// PT: Converte valores textuais em valores tipados de banco com base em <see cref="DbType"/>.
+/// PT-br: Converte valores textuais em valores tipados de banco com base em <see cref="DbType"/>.
 /// </summary>
 public static class DbTypeParser
 {
     /// <summary>
     /// EN: Parses a textual value into the CLR value represented by the supplied database type.
-    /// PT: Converte um valor textual no valor CLR representado pelo tipo de banco informado.
+    /// PT-br: Converte um valor textual no valor CLR representado pelo tipo de banco informado.
     /// </summary>
     public static object? Parse(this DbType dbType, string? value)
     {
@@ -81,7 +81,7 @@ public static class DbTypeParser
 
     /// <summary>
     /// EN: Parses binary literals from SQL-style hexadecimal or base64 payloads.
-    /// PT: Faz o parsing de literais binários a partir de payloads hexadecimais estilo SQL ou base64.
+    /// PT-br: Faz o parsing de literais binários a partir de payloads hexadecimais estilo SQL ou base64.
     /// </summary>
     private static byte[] ParseBinary(string value)
     {
@@ -93,7 +93,7 @@ public static class DbTypeParser
 
     /// <summary>
     /// EN: Parses DbType.Object with light inference for JSON, booleans and numeric literals.
-    /// PT: Faz o parsing de DbType.Object com inferência leve para literais JSON, booleanos e numéricos.
+    /// PT-br: Faz o parsing de DbType.Object com inferência leve para literais JSON, booleanos e numéricos.
     /// </summary>
     private static object ParseObject(string value)
     {
@@ -135,7 +135,7 @@ public static class DbTypeParser
 
     /// <summary>
     /// EN: Attempts to parse textual SQL-like boolean aliases.
-    /// PT: Tenta fazer o parsing de aliases booleanos textuais estilo SQL.
+    /// PT-br: Tenta fazer o parsing de aliases booleanos textuais estilo SQL.
     /// </summary>
     private static bool TryParseBool(string value, out bool parsed)
     {
@@ -215,10 +215,10 @@ public static class DbTypeParser
 
     /// <summary>
     /// EN: Detects pure time literals (for example <c>HH:mm:ss</c>) to avoid DateTime fallback for DbType.Object inference.
-    /// PT: Detecta literais de horário puros (por exemplo <c>HH:mm:ss</c>) para evitar fallback em DateTime na inferência de DbType.Object.
+    /// PT-br: Detecta literais de horário puros (por exemplo <c>HH:mm:ss</c>) para evitar fallback em DateTime na inferência de DbType.Object.
     /// </summary>
-    /// <param name="value">EN: Raw literal value. PT: Valor literal bruto.</param>
-    /// <returns>EN: True when value resembles a time-only token without date markers. PT: True quando o valor se parece com token apenas de horário sem marcadores de data.</returns>
+    /// <param name="value">EN: Raw literal value. PT-br: Valor literal bruto.</param>
+    /// <returns>EN: True when value resembles a time-only token without date markers. PT-br: True quando o valor se parece com token apenas de horário sem marcadores de data.</returns>
     private static bool LooksLikeTimeOnly(string value)
     {
         var trimmed = value.Trim();

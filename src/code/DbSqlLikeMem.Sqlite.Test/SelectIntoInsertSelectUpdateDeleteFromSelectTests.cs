@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Exercises select-into, insert-select, update, and delete-from-select flows for SQLite.
-/// PT: Exercita fluxos de select-into, insert-select, update e delete-from-select para SQLite.
+/// PT-br: Exercita fluxos de select-into, insert-select, update e delete-from-select para SQLite.
 /// </summary>
 /// <param name="helper">
 /// EN: Output helper used by the test base.
-/// PT: Helper de saída usado pela base de testes.
+/// PT-br: Helper de saída usado pela base de testes.
 /// </param>
 public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
@@ -17,19 +17,19 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 
     /// <summary>
     /// EN: Creates a new SQLite mock database for each scenario.
-    /// PT: Cria um novo banco simulado de SQLite para cada cenário.
+    /// PT-br: Cria um novo banco simulado de SQLite para cada cenário.
     /// </summary>
     protected override SqliteDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in SQLite.
-    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no SQLite.
+    /// PT-br: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no SQLite.
     /// </summary>
     protected override int CreateTableAsSelectExpectedAffectedRows => 2;
 
     /// <summary>
     /// EN: Executes a non-query command using a SQLite mock connection.
-    /// PT: Executa um comando sem retorno usando uma conexão simulada de SQLite.
+    /// PT-br: Executa um comando sem retorno usando uma conexão simulada de SQLite.
     /// </summary>
     protected override int ExecuteNonQuery(
         SqliteDbMock db,

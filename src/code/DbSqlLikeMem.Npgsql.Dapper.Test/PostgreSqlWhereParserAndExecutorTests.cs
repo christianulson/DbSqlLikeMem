@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers PostgreSQL WHERE parser and executor scenarios over a direct mock connection.
-/// PT: Cobre cenarios do parser e executor de WHERE PostgreSQL sobre uma conexao mock direta.
+/// PT-br: Cobre cenarios do parser e executor de WHERE PostgreSQL sobre uma conexao mock direta.
 /// </summary>
 public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory PostgreSQL database used by the WHERE parser and executor coverage tests.
-    /// PT: Cria o banco PostgreSQL em memoria usado pelos testes de cobertura do parser e executor de WHERE.
+    /// PT-br: Cria o banco PostgreSQL em memoria usado pelos testes de cobertura do parser e executor de WHERE.
     /// </summary>
     public PostgreSqlWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {
@@ -35,7 +35,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies indexed equality increments the index lookup metric.
-    /// PT: Verifica se igualdade indexada incrementa a metrica de lookup por indice.
+    /// PT-br: Verifica se igualdade indexada incrementa a metrica de lookup por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -56,7 +56,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies parameterized equality uses the composite index metric.
-    /// PT: Verifica se igualdade parametrizada usa a metrica de indice composto.
+    /// PT-br: Verifica se igualdade parametrizada usa a metrica de indice composto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -84,7 +84,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies covering indexes expose the requested projected columns.
-    /// PT: Verifica se indices de cobertura expõem as colunas projetadas solicitadas.
+    /// PT-br: Verifica se indices de cobertura expõem as colunas projetadas solicitadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -109,7 +109,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies missing projected columns fall back to the base table row.
-    /// PT: Verifica se colunas projetadas ausentes usam fallback para a linha base da tabela.
+    /// PT-br: Verifica se colunas projetadas ausentes usam fallback para a linha base da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -131,7 +131,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies non-indexed predicates do not increase index lookup metrics.
-    /// PT: Verifica se predicados sem indice nao aumentam as metricas de lookup por indice.
+    /// PT-br: Verifica se predicados sem indice nao aumentam as metricas de lookup por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -150,7 +150,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IN filters rows correctly in PostgreSQL coverage.
-    /// PT: Verifica se IN filtra linhas corretamente na cobertura do PostgreSQL.
+    /// PT-br: Verifica se IN filtra linhas corretamente na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -164,7 +164,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IS NOT NULL filters rows correctly in PostgreSQL coverage.
-    /// PT: Verifica se IS NOT NULL filtra linhas corretamente na cobertura do PostgreSQL.
+    /// PT-br: Verifica se IS NOT NULL filtra linhas corretamente na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -176,7 +176,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies comparison operators work in PostgreSQL coverage.
-    /// PT: Verifica se os operadores de comparacao funcionam na cobertura do PostgreSQL.
+    /// PT-br: Verifica se os operadores de comparacao funcionam na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -191,7 +191,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies LIKE filters rows correctly in PostgreSQL coverage.
-    /// PT: Verifica se LIKE filtra linhas corretamente na cobertura do PostgreSQL.
+    /// PT-br: Verifica se LIKE filtra linhas corretamente na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -204,7 +204,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ILIKE filters rows correctly in PostgreSQL coverage.
-    /// PT: Verifica se ILIKE filtra linhas corretamente na cobertura do PostgreSQL.
+    /// PT-br: Verifica se ILIKE filtra linhas corretamente na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -217,7 +217,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies FIND_IN_SET filters rows correctly in PostgreSQL coverage.
-    /// PT: Verifica se FIND_IN_SET filtra linhas corretamente na cobertura do PostgreSQL.
+    /// PT-br: Verifica se FIND_IN_SET filtra linhas corretamente na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -232,7 +232,7 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies mixed-case AND expressions are parsed correctly.
-    /// PT: Verifica se expressoes AND com maiusculas e minusculas sao interpretadas corretamente.
+    /// PT-br: Verifica se expressoes AND com maiusculas e minusculas sao interpretadas corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlWhereParserAndExecutor")]
@@ -247,9 +247,9 @@ public sealed class PostgreSqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

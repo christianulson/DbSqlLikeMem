@@ -1,14 +1,14 @@
-﻿namespace DbSqlLikeMem.Firebird.Test.Strategy;
+namespace DbSqlLikeMem.Firebird.Test.Strategy;
 
 /// <summary>
 /// EN: Contains trigger behavior tests for the Firebird strategy.
-/// PT: Contém testes de comportamento de gatilhos para a estratégia Firebird.
+/// PT-br: Contém testes de comportamento de gatilhos para a estratégia Firebird.
 /// </summary>
 public sealed class FirebirdTriggerStrategyTests
 {
     /// <summary>
     /// EN: Ensures that an AFTER INSERT trigger is executed for a regular Firebird table.
-    /// PT: Garante que um gatilho AFTER INSERT seja executado para uma tabela Firebird regular.
+    /// PT-br: Garante que um gatilho AFTER INSERT seja executado para uma tabela Firebird regular.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

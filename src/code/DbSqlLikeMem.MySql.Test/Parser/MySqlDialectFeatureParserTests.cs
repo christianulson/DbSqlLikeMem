@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 
 /// <summary>
 /// EN: Covers MySQL-specific parser feature behavior.
-/// PT: Cobre o comportamento de recursos de parser específicos do MySQL.
+/// PT-br: Cobre o comportamento de recursos de parser específicos do MySQL.
 /// </summary>
 public sealed class MySqlDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -10,9 +10,9 @@ public sealed class MySqlDialectFeatureParserTests(
 {
     /// <summary>
     /// EN: Ensures MySQL preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o MySQL preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o MySQL preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -31,9 +31,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o MySQL preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o MySQL preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -54,9 +54,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
-    /// PT: Garante que o MySQL rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// PT-br: Garante que o MySQL rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -73,9 +73,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
-    /// PT: Garante que o MySQL rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// PT-br: Garante que o MySQL rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -92,9 +92,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
-    /// PT: Garante que o MySQL rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// PT-br: Garante que o MySQL rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -111,9 +111,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL parses the pragmatic provider-real scalar FUNCTION DDL subset.
-    /// PT: Garante que o MySQL interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
+    /// PT-br: Garante que o MySQL interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -143,9 +143,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL rejects CREATE OR REPLACE FUNCTION outside the supported provider-real subset.
-    /// PT: Garante que o MySQL rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
+    /// PT-br: Garante que o MySQL rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -161,9 +161,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL accepts JSON_TABLE in table-source position for supported versions and rejects it below the gate.
-    /// PT: Garante que o MySQL aceite JSON_TABLE em posicao de table source nas versoes suportadas e rejeite abaixo do gate.
+    /// PT-br: Garante que o MySQL aceite JSON_TABLE em posicao de table source nas versoes suportadas e rejeite abaixo do gate.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -207,9 +207,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL dialect exposes MATCH ... AGAINST through an explicit capability hook.
-    /// PT: Garante que o dialeto MySQL exponha MATCH ... AGAINST por um hook de capability explicito.
+    /// PT-br: Garante que o dialeto MySQL exponha MATCH ... AGAINST por um hook de capability explicito.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -220,7 +220,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL rejects ORDER BY NULLS FIRST and NULLS LAST modifiers in SELECT queries.
-    /// PT: Garante que o MySQL rejeite os modificadores ORDER BY NULLS FIRST e NULLS LAST em consultas SELECT.
+    /// PT-br: Garante que o MySQL rejeite os modificadores ORDER BY NULLS FIRST e NULLS LAST em consultas SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -246,7 +246,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
-    /// PT: Garante que o MySQL rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// PT-br: Garante que o MySQL rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -272,9 +272,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies ANSI_QUOTES mode enables double-quoted identifiers in the MySQL dialect.
-    /// PT: Verifica se o modo ANSI_QUOTES habilita identificadores entre aspas duplas no dialeto MySQL.
+    /// PT-br: Verifica se o modo ANSI_QUOTES habilita identificadores entre aspas duplas no dialeto MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -289,9 +289,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies ANSI_QUOTES parses double-quoted identifiers even when the same SQL was cached under default MySQL mode.
-    /// PT: Verifica se ANSI_QUOTES interpreta identificadores entre aspas duplas mesmo quando o mesmo SQL foi cacheado no modo MySQL padrao.
+    /// PT-br: Verifica se ANSI_QUOTES interpreta identificadores entre aspas duplas mesmo quando o mesmo SQL foi cacheado no modo MySQL padrao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -313,9 +313,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL keeps FOUND_ROWS/ROW_COUNT wired through the dialect capability used by the executor.
-    /// PT: Garante que o MySQL mantenha FOUND_ROWS/ROW_COUNT ligados pela capability de dialeto usada pelo executor.
+    /// PT-br: Garante que o MySQL mantenha FOUND_ROWS/ROW_COUNT ligados pela capability de dialeto usada pelo executor.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -330,9 +330,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL exposes join-based mutation syntax and UPSERT rowcount semantics through dialect-owned capabilities.
-    /// PT: Garante que o MySQL exponha sintaxes de mutacao com join e a semantica de rowcount de UPSERT por capabilities do proprio dialeto.
+    /// PT-br: Garante que o MySQL exponha sintaxes de mutacao com join e a semantica de rowcount de UPSERT por capabilities do proprio dialeto.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -350,9 +350,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL parser accepts the SQL_CALC_FOUND_ROWS select modifier through dialect capability.
-    /// PT: Garante que o parser MySQL aceite o modificador SQL_CALC_FOUND_ROWS via capability do dialeto.
+    /// PT-br: Garante que o parser MySQL aceite o modificador SQL_CALC_FOUND_ROWS via capability do dialeto.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -368,9 +368,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL parser accepts its row-count helper functions and still rejects foreign aliases.
-    /// PT: Garante que o parser MySQL aceite suas funções de row-count e continue rejeitando aliases de outros bancos.
+    /// PT-br: Garante que o parser MySQL aceite suas funções de row-count e continue rejeitando aliases de outros bancos.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -388,9 +388,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures CURDATE/CURTIME temporal functions are exposed by the dialect across all MySQL versions.
-    /// PT: Garante que as funcoes temporais CURDATE/CURTIME sejam expostas pelo dialeto em todas as versoes do MySQL.
+    /// PT-br: Garante que as funcoes temporais CURDATE/CURTIME sejam expostas pelo dialeto em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -410,9 +410,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL parser/tokenizer still rejects SQL Server double-at system identifiers.
-    /// PT: Garante que o parser/tokenizer MySQL continue rejeitando identificadores de sistema com double-at do SQL Server.
+    /// PT-br: Garante que o parser/tokenizer MySQL continue rejeitando identificadores de sistema com double-at do SQL Server.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -425,9 +425,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures CREATE SEQUENCE remains rejected for MySQL with an actionable dialect gate.
-    /// PT: Garante que CREATE SEQUENCE continue rejeitado no MySQL com gate de dialeto acionavel.
+    /// PT-br: Garante que CREATE SEQUENCE continue rejeitado no MySQL com gate de dialeto acionavel.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -443,9 +443,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT syntax is rejected for MySQL.
-    /// PT: Garante que a sintaxe ON CONFLICT do PostgreSQL seja rejeitada no MySQL.
+    /// PT-br: Garante que a sintaxe ON CONFLICT do PostgreSQL seja rejeitada no MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -462,9 +462,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL parses the INSERT PARTITION subset and captures the requested partition names.
-    /// PT: Garante que o MySQL interprete o subset de INSERT PARTITION e capture os nomes de particao solicitados.
+    /// PT-br: Garante que o MySQL interprete o subset de INSERT PARTITION e capture os nomes de particao solicitados.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -483,9 +483,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL parses the table-source PARTITION subset and captures the requested partition names.
-    /// PT: Garante que o MySQL interprete o subset de PARTITION na fonte da tabela e capture os nomes de particao solicitados.
+    /// PT-br: Garante que o MySQL interprete o subset de PARTITION na fonte da tabela e capture os nomes de particao solicitados.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -507,9 +507,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL parses the MAXVALUE partition subset in the table source clause.
-    /// PT: Garante que o MySQL interprete o subset de particionamento MAXVALUE na clausula da fonte da tabela.
+    /// PT-br: Garante que o MySQL interprete o subset de particionamento MAXVALUE na clausula da fonte da tabela.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -531,9 +531,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with IN.
-    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com IN.
+    /// PT-br: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com IN.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -557,9 +557,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with BETWEEN.
-    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com BETWEEN.
+    /// PT-br: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com BETWEEN.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -582,9 +582,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) in a partition-pruning WHERE clause with comparison bounds.
-    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com limites de comparacao.
+    /// PT-br: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) em uma clausula WHERE de pruning por particionamento com limites de comparacao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -607,9 +607,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when comparison bounds are written in reverse order.
-    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando os limites de comparacao sao escritos na ordem inversa.
+    /// PT-br: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando os limites de comparacao sao escritos na ordem inversa.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -634,9 +634,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when safe comparison branches are combined with OR.
-    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de comparacao sao combinados com OR.
+    /// PT-br: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de comparacao sao combinados com OR.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -656,9 +656,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL preserves EXTRACT(YEAR FROM ...) when safe BETWEEN branches are combined with OR.
-    /// PT: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de BETWEEN sao combinados com OR.
+    /// PT-br: Garante que o MySQL preserve EXTRACT(YEAR FROM ...) quando ramos seguros de BETWEEN sao combinados com OR.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -678,7 +678,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING ... RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -697,7 +697,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING ... RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -716,7 +716,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING ... RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -735,7 +735,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO NOTHING ... RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO NOTHING ... RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING ... RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -754,9 +754,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_EXTRACT follows the configured MySQL version support.
-    /// PT: Garante que JSON_EXTRACT siga o suporte configurado por versão do MySQL.
+    /// PT-br: Garante que JSON_EXTRACT siga o suporte configurado por versão do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -782,9 +782,9 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MySQL accepts DATE_ADD/TIMESTAMPADD and rejects SQL Server DATEADD syntax.
-    /// PT: Garante que o MySQL aceite DATE_ADD/TIMESTAMPADD e rejeite a sintaxe DATEADD do SQL Server.
+    /// PT-br: Garante que o MySQL aceite DATE_ADD/TIMESTAMPADD e rejeite a sintaxe DATEADD do SQL Server.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -807,7 +807,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -826,7 +826,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE without predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -845,7 +845,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE terminated by semicolon-only remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -864,7 +864,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE malformado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -883,7 +883,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -902,7 +902,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -921,7 +921,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -940,7 +940,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -959,7 +959,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with unexpected continuation token remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com token de continuação inesperado do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com token de continuação inesperado do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -978,7 +978,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with FROM clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -997,7 +997,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with USING clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1016,7 +1016,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with SET clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1035,7 +1035,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with UPDATE clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula UPDATE do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula UPDATE do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1054,7 +1054,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO NOTHING with additional WHERE clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula WHERE adicional do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula WHERE adicional do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1073,7 +1073,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1092,7 +1092,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1111,7 +1111,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1130,7 +1130,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1149,7 +1149,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1168,7 +1168,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1187,7 +1187,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1206,7 +1206,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1225,7 +1225,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1244,7 +1244,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with FROM clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1263,7 +1263,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with USING clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1282,7 +1282,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with SET clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1301,7 +1301,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with UPDATE clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula UPDATE do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula UPDATE do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1320,7 +1320,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with additional WHERE clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula WHERE adicional do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula WHERE adicional do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1339,7 +1339,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO NOTHING with unexpected continuation token remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com token de continuação inesperado do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com token de continuação inesperado do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1358,7 +1358,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1377,7 +1377,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1396,7 +1396,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1415,7 +1415,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1434,7 +1434,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with FROM clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1453,7 +1453,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with USING clause remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1472,7 +1472,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by FROM remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por FROM do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1491,7 +1491,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by USING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por USING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1510,7 +1510,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without DO branch remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem ramo DO do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT sem ramo DO do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1529,7 +1529,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without constraint name remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome da constraint do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT sem nome da constraint do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1548,7 +1548,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT without name at end-of-statement remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1567,7 +1567,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO with invalid continuation remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO com continuação inválida do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO com continuação inválida do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1586,7 +1586,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE without SET remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE sem SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE sem SET do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1605,7 +1605,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET without assignments remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET sem atribuições do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET sem atribuições do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1624,7 +1624,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with leading comma remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula inicial do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula inicial do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1643,7 +1643,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with trailing comma remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula final do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula final do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1662,7 +1662,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET assignments without comma separator remain rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuições sem separador por vírgula do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuições sem separador por vírgula do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1681,7 +1681,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with repeated SET keyword remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com palavra-chave SET repetida do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com palavra-chave SET repetida do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1700,7 +1700,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET assignment without equals remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuição sem sinal de igual do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuição sem sinal de igual do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1719,7 +1719,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE SET with malformed assignment expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com expressão de atribuição malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com expressão de atribuição malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1738,7 +1738,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE ... RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1757,7 +1757,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE ... RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1776,7 +1776,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE ... RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1795,7 +1795,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE ... RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE ... RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE ... RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1814,7 +1814,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE with semicolon-only predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1833,7 +1833,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE with semicolon-only predicate remains rejected for MySQL with actionable guidance even without RETURNING.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1852,7 +1852,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE without predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1871,7 +1871,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE malformado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1890,7 +1890,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão malformada em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão malformada em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1909,7 +1909,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1928,7 +1928,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT DO UPDATE with valid WHERE and empty RETURNING list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e lista vazia em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE válido e lista vazia em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1947,7 +1947,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1971,7 +1971,7 @@ RETURNING id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1995,7 +1995,7 @@ RETURNING id +";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2019,7 +2019,7 @@ RETURNING (id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2043,7 +2043,7 @@ RETURNING;";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE remains rejected for MySQL with actionable guidance even without RETURNING.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE do PostgreSQL continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT + DO UPDATE + WHERE do PostgreSQL continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2066,7 +2066,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2090,7 +2090,7 @@ RETURNING id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with malformed expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2114,7 +2114,7 @@ RETURNING id +";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with unbalanced parentheses remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2138,7 +2138,7 @@ RETURNING (id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with empty projection list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2162,7 +2162,7 @@ RETURNING;";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT target WHERE + DO UPDATE WHERE remains rejected for MySQL with actionable guidance even without RETURNING.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE do PostgreSQL continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE do PostgreSQL continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2185,7 +2185,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE without predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2204,7 +2204,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE terminated by semicolon-only remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2223,7 +2223,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT target WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE malformado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2242,7 +2242,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE with semicolon-only predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE contendo apenas ponto e vírgula continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2261,7 +2261,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE terminated by semicolon-only remains rejected for MySQL with actionable guidance even without RETURNING.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE terminado apenas por ponto e vírgula continue rejeitado no MySQL com orientação acionável mesmo sem RETURNING.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2280,7 +2280,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE without predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE sem predicado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2299,7 +2299,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE WHERE with malformed predicate remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE malformado continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE malformado continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2318,7 +2318,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão malformada em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão malformada em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2337,7 +2337,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2356,7 +2356,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and empty RETURNING list remains rejected for MySQL with actionable guidance.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e lista vazia em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e lista vazia em RETURNING do PostgreSQL continue rejeitado no MySQL com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2375,7 +2375,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures valid ON DUPLICATE KEY UPDATE assignments materialize parsed scalar expressions in AST.
-    /// PT: Garante que atribuições válidas de ON DUPLICATE KEY UPDATE materializem expressões escalares parseadas na AST.
+    /// PT-br: Garante que atribuições válidas de ON DUPLICATE KEY UPDATE materializem expressões escalares parseadas na AST.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2395,7 +2395,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL RETURNING clause is rejected for MySQL INSERT statements.
-    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em INSERT no MySQL.
+    /// PT-br: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em INSERT no MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2414,7 +2414,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures empty RETURNING list in MySQL INSERT remains blocked by dialect gate.
-    /// PT: Garante que lista vazia em RETURNING no INSERT do MySQL continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista vazia em RETURNING no INSERT do MySQL continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2433,7 +2433,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures RETURNING clause remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
-    /// PT: Garante que a cláusula RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// PT-br: Garante que a cláusula RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2452,7 +2452,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING expression remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
-    /// PT: Garante que expressão malformada em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// PT-br: Garante que expressão malformada em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2471,7 +2471,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures empty RETURNING list remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
-    /// PT: Garante que lista vazia em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// PT-br: Garante que lista vazia em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2490,7 +2490,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures unbalanced parentheses in RETURNING remain rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
-    /// PT: Garante que parênteses desbalanceados em RETURNING continuem rejeitados em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// PT-br: Garante que parênteses desbalanceados em RETURNING continuem rejeitados em INSERT MySQL com ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2509,7 +2509,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures leading comma in RETURNING remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
-    /// PT: Garante que vírgula inicial em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// PT-br: Garante que vírgula inicial em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2528,7 +2528,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures trailing comma in RETURNING remains rejected for MySQL INSERT with ON DUPLICATE KEY UPDATE.
-    /// PT: Garante que vírgula final em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
+    /// PT-br: Garante que vírgula final em RETURNING continue rejeitada em INSERT MySQL com ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2547,7 +2547,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL RETURNING clause is rejected for MySQL UPDATE statements.
-    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no MySQL.
+    /// PT-br: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2566,7 +2566,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures empty RETURNING list in MySQL UPDATE remains blocked by dialect gate.
-    /// PT: Garante que lista vazia em RETURNING no UPDATE do MySQL continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista vazia em RETURNING no UPDATE do MySQL continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2585,7 +2585,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PostgreSQL RETURNING clause is rejected for MySQL DELETE statements.
-    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em DELETE no MySQL.
+    /// PT-br: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em DELETE no MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2604,7 +2604,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures empty RETURNING list in MySQL DELETE remains blocked by dialect gate.
-    /// PT: Garante que lista vazia em RETURNING no DELETE do MySQL continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista vazia em RETURNING no DELETE do MySQL continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2623,7 +2623,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING expression in MySQL INSERT remains blocked by dialect gate.
-    /// PT: Garante que expressão malformada em RETURNING no INSERT do MySQL continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que expressão malformada em RETURNING no INSERT do MySQL continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2642,7 +2642,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with leading comma in MySQL INSERT remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula inicial no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula inicial no INSERT do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2661,7 +2661,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with trailing comma in MySQL INSERT remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula final no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula final no INSERT do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2680,7 +2680,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with unbalanced parentheses in MySQL INSERT remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com parênteses desbalanceados no INSERT do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2699,7 +2699,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures RETURNING alias without expression in MySQL INSERT remains blocked by dialect gate.
-    /// PT: Garante que RETURNING com alias sem expressão no INSERT do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING com alias sem expressão no INSERT do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2718,7 +2718,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING expression in MySQL UPDATE remains blocked by dialect gate.
-    /// PT: Garante que expressão malformada em RETURNING no UPDATE do MySQL continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que expressão malformada em RETURNING no UPDATE do MySQL continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2737,7 +2737,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with leading comma in MySQL UPDATE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula inicial no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula inicial no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2756,7 +2756,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with trailing comma in MySQL UPDATE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula final no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula final no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2775,7 +2775,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with unbalanced parentheses in MySQL UPDATE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com parênteses desbalanceados no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2794,7 +2794,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures RETURNING alias without expression in MySQL UPDATE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING com alias sem expressão no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING com alias sem expressão no UPDATE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2813,7 +2813,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures UPDATE SET assignment without equals is rejected with actionable message.
-    /// PT: Garante que atribuição em UPDATE SET sem sinal de igual seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que atribuição em UPDATE SET sem sinal de igual seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2832,7 +2832,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures UPDATE SET without assignments and followed by WHERE is rejected with actionable token context.
-    /// PT: Garante que UPDATE SET sem atribuições e seguido por WHERE seja rejeitado com contexto acionável de token.
+    /// PT-br: Garante que UPDATE SET sem atribuições e seguido por WHERE seja rejeitado com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2852,7 +2852,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures UPDATE SET with repeated SET keyword is rejected with actionable message.
-    /// PT: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2872,7 +2872,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures UPDATE SET leading comma is rejected with actionable token context.
-    /// PT: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// PT-br: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2892,7 +2892,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures UPDATE SET trailing comma is rejected with actionable token context.
-    /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// PT-br: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2912,7 +2912,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures UPDATE WHERE without predicate is rejected with actionable token context.
-    /// PT: Garante que UPDATE com WHERE sem predicado seja rejeitado com contexto acionável de token.
+    /// PT-br: Garante que UPDATE com WHERE sem predicado seja rejeitado com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2932,7 +2932,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures UPDATE WHERE terminated only by semicolon is rejected with actionable token context.
-    /// PT: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// PT-br: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2952,7 +2952,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING expression in MySQL DELETE remains blocked by dialect gate.
-    /// PT: Garante que expressão malformada em RETURNING no DELETE do MySQL continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que expressão malformada em RETURNING no DELETE do MySQL continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2971,7 +2971,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with leading comma in MySQL DELETE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula inicial no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula inicial no DELETE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2990,7 +2990,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with trailing comma in MySQL DELETE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula final no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula final no DELETE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3009,7 +3009,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with unbalanced parentheses in MySQL DELETE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com parênteses desbalanceados no DELETE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3028,7 +3028,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures RETURNING alias without expression in MySQL DELETE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING com alias sem expressão no DELETE do MySQL continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING com alias sem expressão no DELETE do MySQL continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3047,7 +3047,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures DELETE WHERE without predicate is rejected with actionable token context.
-    /// PT: Garante que DELETE com WHERE sem predicado seja rejeitado com contexto acionável de token.
+    /// PT-br: Garante que DELETE com WHERE sem predicado seja rejeitado com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3067,7 +3067,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures DELETE WHERE terminated only by semicolon is rejected with actionable token context.
-    /// PT: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// PT-br: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3087,7 +3087,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE assignments without comma separator are rejected with actionable message.
-    /// PT: Garante que atribuições em ON DUPLICATE KEY UPDATE sem separação por vírgula sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que atribuições em ON DUPLICATE KEY UPDATE sem separação por vírgula sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3106,7 +3106,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE assignment with malformed expression is rejected with actionable message.
-    /// PT: Garante que atribuição em ON DUPLICATE KEY UPDATE com expressão malformada seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que atribuição em ON DUPLICATE KEY UPDATE com expressão malformada seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3125,7 +3125,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE trailing comma is rejected with actionable message.
-    /// PT: Garante que vírgula final em ON DUPLICATE KEY UPDATE seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que vírgula final em ON DUPLICATE KEY UPDATE seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3145,7 +3145,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3165,7 +3165,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and followed by RETURNING is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e seguido por RETURNING seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e seguido por RETURNING seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3185,7 +3185,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with empty RETURNING list is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com lista vazia em RETURNING seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com lista vazia em RETURNING seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3205,7 +3205,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and terminated by semicolon is rejected with actionable token context.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3225,7 +3225,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with unbalanced RETURNING expression is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com expressão RETURNING desbalanceada seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com expressão RETURNING desbalanceada seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3245,7 +3245,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with WHERE clause is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula WHERE seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula WHERE seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3265,7 +3265,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with FROM clause is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula FROM seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula FROM seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3285,7 +3285,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with USING clause is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula USING seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula USING seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3305,7 +3305,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with repeated SET keyword is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com palavra-chave SET repetida seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com palavra-chave SET repetida seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3325,7 +3325,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE assignment without equals is rejected with actionable message.
-    /// PT: Garante que atribuição em ON DUPLICATE KEY UPDATE sem sinal de igual seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que atribuição em ON DUPLICATE KEY UPDATE sem sinal de igual seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3344,7 +3344,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE leading comma is rejected with actionable message.
-    /// PT: Garante que vírgula inicial em ON DUPLICATE KEY UPDATE seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que vírgula inicial em ON DUPLICATE KEY UPDATE seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3364,7 +3364,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with WHERE clause is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula WHERE seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com cláusula WHERE seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3384,7 +3384,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with table-source clause is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula de table-source seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com cláusula de table-source seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3404,7 +3404,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with USING clause is rejected with actionable message.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula USING seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com cláusula USING seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3424,7 +3424,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures INSERT VALUES reports row/position for malformed expression in later rows.
-    /// PT: Garante que INSERT VALUES reporte linha/posição para expressão malformada em linhas posteriores.
+    /// PT-br: Garante que INSERT VALUES reporte linha/posição para expressão malformada em linhas posteriores.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3443,9 +3443,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures WITH RECURSIVE support follows the configured MySQL version.
-    /// PT: Garante que o suporte a with recursive siga a versão configurada do MySQL.
+    /// PT-br: Garante que o suporte a with recursive siga a versão configurada do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3469,9 +3469,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Verifies unsupported WITH RECURSIVE versions return actionable MySQL guidance.
-    /// PT: Verifica que versões sem suporte a WITH RECURSIVE retornam orientação acionável para MySQL.
+    /// PT-br: Verifica que versões sem suporte a WITH RECURSIVE retornam orientação acionável para MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion(VersionLowerThan = MySqlDialect.WithCteMinVersion)]
@@ -3487,9 +3487,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL index/keyword hints are parsed.
-    /// PT: Garante que hints de índice/palavras-chave do MySQL sejam interpretados.
+    /// PT-br: Garante que hints de índice/palavras-chave do MySQL sejam interpretados.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3509,9 +3509,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL index hint scope FOR ORDER BY is captured in AST.
-    /// PT: Garante que o escopo FOR ORDER BY de hint de índice MySQL seja capturado na AST.
+    /// PT-br: Garante que o escopo FOR ORDER BY de hint de índice MySQL seja capturado na AST.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3532,9 +3532,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL index hint scope FOR GROUP BY is captured in AST.
-    /// PT: Garante que o escopo FOR GROUP BY de hint de índice MySQL seja capturado na AST.
+    /// PT-br: Garante que o escopo FOR GROUP BY de hint de índice MySQL seja capturado na AST.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3555,9 +3555,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures advanced MySQL index hints with PRIMARY and FOR JOIN are parsed.
-    /// PT: Garante que hints avançados de índice MySQL com PRIMARY e FOR JOIN sejam interpretados.
+    /// PT-br: Garante que hints avançados de índice MySQL com PRIMARY e FOR JOIN sejam interpretados.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3578,9 +3578,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures empty MySQL index hint list is rejected.
-    /// PT: Garante que lista vazia em hint de índice MySQL seja rejeitada.
+    /// PT-br: Garante que lista vazia em hint de índice MySQL seja rejeitada.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3597,9 +3597,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL index hint list containing empty item is rejected.
-    /// PT: Garante que lista de hints MySQL contendo item vazio seja rejeitada.
+    /// PT-br: Garante que lista de hints MySQL contendo item vazio seja rejeitada.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3616,9 +3616,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL index hint names with dollar and escaped backtick quoted names are parsed.
-    /// PT: Garante que nomes de índice MySQL com cifrão e nomes quoted com escape de backtick sejam interpretados.
+    /// PT-br: Garante que nomes de índice MySQL com cifrão e nomes quoted com escape de backtick sejam interpretados.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3639,9 +3639,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures OFFSET/FETCH syntax is rejected for MySQL parser.
-    /// PT: Garante que a sintaxe OFFSET/FETCH seja rejeitada pelo parser MySQL.
+    /// PT-br: Garante que a sintaxe OFFSET/FETCH seja rejeitada pelo parser MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3660,9 +3660,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
-    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// PT-br: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3690,9 +3690,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Verifies FETCH FIRST syntax returns actionable MySQL pagination guidance.
-    /// PT: Verifica que sintaxe FETCH FIRST retorna orientação acionável de paginação para MySQL.
+    /// PT-br: Verifica que sintaxe FETCH FIRST retorna orientação acionável de paginação para MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3709,9 +3709,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
-    /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// PT-br: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3729,9 +3729,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
-    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// PT-br: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3753,9 +3753,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Verifies unsupported top-level statements return guidance-focused errors.
-    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// PT-br: Verifica que comandos de topo não suportados retornam erros com orientação.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3772,9 +3772,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures unsupported SQL uses the standard not-supported message.
-    /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
+    /// PT-br: Garante que SQL não suportado use a mensagem padrão de não suportado.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3791,9 +3791,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures SQL Server OPTION(...) query hints are rejected for MySQL.
-    /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para MySQL.
+    /// PT-br: Garante que hints SQL Server OPTION(...) sejam rejeitados para MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3811,9 +3811,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures unsupported quoted aliases are rejected with actionable parser diagnostics for this dialect.
-    /// PT: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
+    /// PT-br: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3830,9 +3830,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL accepts backtick-quoted aliases and preserves the normalized alias text in AST.
-    /// PT: Garante que o MySQL aceite aliases com crase e preserve o texto normalizado do alias na AST.
+    /// PT-br: Garante que o MySQL aceite aliases com crase e preserve o texto normalizado do alias na AST.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3850,9 +3850,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL unescapes doubled backticks inside backtick-quoted aliases when normalizing AST alias text.
-    /// PT: Garante que o MySQL faça unescape de crases duplicadas dentro de aliases com crase ao normalizar o texto do alias na AST.
+    /// PT-br: Garante que o MySQL faça unescape de crases duplicadas dentro de aliases com crase ao normalizar o texto do alias na AST.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3872,9 +3872,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Verifies MERGE in MySQL returns actionable replacement guidance.
-    /// PT: Verifica que MERGE no MySQL retorna orientação acionável de substituição.
+    /// PT-br: Verifica que MERGE no MySQL retorna orientação acionável de substituição.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMySqlVersion]
@@ -3891,7 +3891,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Validates window function capability by MySQL version and function name.
-    /// PT: Valida a capacidade de funções de janela por versão do MySQL e nome da função.
+    /// PT-br: Valida a capacidade de funções de janela por versão do MySQL e nome da função.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3908,7 +3908,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures parser validates window function names against MySQL dialect capabilities by version.
-    /// PT: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto MySQL por versão.
+    /// PT-br: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto MySQL por versão.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3934,7 +3934,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
-    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// PT-br: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3958,7 +3958,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures parser validates window function argument arity for supported functions.
-    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// PT-br: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3990,7 +3990,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures parser validates literal semantic ranges for window function arguments.
-    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// PT-br: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4021,7 +4021,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
-    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// PT-br: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4040,7 +4040,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
-    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// PT-br: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4071,7 +4071,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures supported window frame clauses parse on aggregate window functions.
-    /// PT: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
+    /// PT-br: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4101,7 +4101,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures invalid window frame bound ordering is rejected by parser semantic validation.
-    /// PT: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
+    /// PT-br: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4125,7 +4125,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures SELECT parsing with string aggregate WITHIN GROUP is blocked by MySQL dialect gate.
-    /// PT: Garante que parsing de SELECT com agregação textual WITHIN GROUP seja bloqueado pelo gate de dialeto MySQL.
+    /// PT-br: Garante que parsing de SELECT com agregação textual WITHIN GROUP seja bloqueado pelo gate de dialeto MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4143,7 +4143,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures SELECT parsing accepts MySQL native GROUP_CONCAT ordering syntax.
-    /// PT: Garante que o parsing de SELECT aceite a sintaxe nativa de ordenacao do GROUP_CONCAT no MySQL.
+    /// PT-br: Garante que o parsing de SELECT aceite a sintaxe nativa de ordenacao do GROUP_CONCAT no MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4162,7 +4162,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures call-only temporal identifier without parentheses is rejected with actionable guidance.
-    /// PT: Garante que identificador temporal apenas-invocável sem parênteses seja rejeitado com orientação acionável.
+    /// PT-br: Garante que identificador temporal apenas-invocável sem parênteses seja rejeitado com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4180,7 +4180,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures token-only temporal identifier called with parentheses is rejected with actionable guidance.
-    /// PT: Garante que identificador temporal no formato token chamado com parênteses seja rejeitado com orientação acionável.
+    /// PT-br: Garante que identificador temporal no formato token chamado com parênteses seja rejeitado com orientação acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4198,7 +4198,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL parser accepts native ORDER BY and SEPARATOR inside GROUP_CONCAT.
-    /// PT: Garante que o parser MySQL aceite ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT.
+    /// PT-br: Garante que o parser MySQL aceite ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4221,7 +4221,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL parser preserves DISTINCT when native ORDER BY is used inside GROUP_CONCAT.
-    /// PT: Garante que o parser MySQL preserve DISTINCT quando ORDER BY nativo e usado dentro de GROUP_CONCAT.
+    /// PT-br: Garante que o parser MySQL preserve DISTINCT quando ORDER BY nativo e usado dentro de GROUP_CONCAT.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4243,7 +4243,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL parser accepts DISTINCT with multiple native ORDER BY items before SEPARATOR in GROUP_CONCAT.
-    /// PT: Garante que o parser MySQL aceite DISTINCT com multiplos itens nativos em ORDER BY antes de SEPARATOR no GROUP_CONCAT.
+    /// PT-br: Garante que o parser MySQL aceite DISTINCT com multiplos itens nativos em ORDER BY antes de SEPARATOR no GROUP_CONCAT.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4266,7 +4266,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed native SEPARATOR usage in GROUP_CONCAT fails with actionable message.
-    /// PT: Garante que uso nativo malformado de SEPARATOR em GROUP_CONCAT falhe com mensagem acionavel.
+    /// PT-br: Garante que uso nativo malformado de SEPARATOR em GROUP_CONCAT falhe com mensagem acionavel.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4284,7 +4284,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for MySQL aggregates.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações MySQL.
+    /// PT-br: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4302,7 +4302,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed WITHIN GROUP syntax in MySQL still fails as not-supported (dialect gate precedence).
-    /// PT: Garante que sintaxe malformada de WITHIN GROUP no MySQL continue falhando como não suportada (precedência do gate de dialeto).
+    /// PT-br: Garante que sintaxe malformada de WITHIN GROUP no MySQL continue falhando como não suportada (precedência do gate de dialeto).
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4321,7 +4321,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed trailing comma in WITHIN GROUP remains blocked by dialect gate.
-    /// PT: Garante que vírgula final malformada no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que vírgula final malformada no WITHIN GROUP continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4339,7 +4339,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures empty ORDER BY list in WITHIN GROUP remains blocked by dialect gate.
-    /// PT: Garante que lista ORDER BY vazia em WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista ORDER BY vazia em WITHIN GROUP continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4357,7 +4357,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures leading commas in WITHIN GROUP ORDER BY remain blocked by dialect gate.
-    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP continuem bloqueadas pelo gate de dialeto.
+    /// PT-br: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP continuem bloqueadas pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4376,7 +4376,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures missing commas in malformed WITHIN GROUP ORDER BY remain blocked by dialect gate.
-    /// PT: Garante que ausência de vírgula em ORDER BY malformado no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que ausência de vírgula em ORDER BY malformado no WITHIN GROUP continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4394,7 +4394,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL parser accepts MATCH(...) AGAINST(...) and maps to internal MATCH_AGAINST call form.
-    /// PT: Garante que o parser MySQL aceite MATCH(...) AGAINST(...) e mapeie para forma interna MATCH_AGAINST.
+    /// PT-br: Garante que o parser MySQL aceite MATCH(...) AGAINST(...) e mapeie para forma interna MATCH_AGAINST.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4416,7 +4416,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures MySQL parser accepts AGAINST mode tail (for example IN BOOLEAN MODE).
-    /// PT: Garante que o parser MySQL aceite sufixo de modo no AGAINST (por exemplo IN BOOLEAN MODE).
+    /// PT-br: Garante que o parser MySQL aceite sufixo de modo no AGAINST (por exemplo IN BOOLEAN MODE).
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4438,7 +4438,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures parser accepts NATURAL LANGUAGE + QUERY EXPANSION mode in AGAINST clause.
-    /// PT: Garante que o parser aceite modo NATURAL LANGUAGE + QUERY EXPANSION na cláusula AGAINST.
+    /// PT-br: Garante que o parser aceite modo NATURAL LANGUAGE + QUERY EXPANSION na cláusula AGAINST.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4461,7 +4461,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures parser rejects unsupported AGAINST mode combinations with actionable message.
-    /// PT: Garante que o parser rejeite combinações de modo AGAINST não suportadas com mensagem acionável.
+    /// PT-br: Garante que o parser rejeite combinações de modo AGAINST não suportadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

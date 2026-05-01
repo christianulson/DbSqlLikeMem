@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers all type branches of AstQueryAggregateKeyHelper for string aggregate conversion.
-/// PT: Cobre todos os ramos de tipo do AstQueryAggregateKeyHelper para conversão de agregados de string.
+/// PT-br: Cobre todos os ramos de tipo do AstQueryAggregateKeyHelper para conversão de agregados de string.
 /// </summary>
 public sealed class AstQueryAggregateKeyHelperTests(
         ITestOutputHelper helper
@@ -12,7 +12,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies null and DBNull inputs return false with an empty text.
-    /// PT: Verifica que entradas null e DBNull retornam false com texto vazio.
+    /// PT-br: Verifica que entradas null e DBNull retornam false com texto vazio.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -27,7 +27,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies string values are returned as-is.
-    /// PT: Verifica que valores string são retornados sem modificação.
+    /// PT-br: Verifica que valores string são retornados sem modificação.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -39,7 +39,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies decimal values are formatted with invariant culture.
-    /// PT: Verifica que valores decimal são formatados com cultura invariante.
+    /// PT-br: Verifica que valores decimal são formatados com cultura invariante.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -51,7 +51,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies double values are formatted with round-trip specifier.
-    /// PT: Verifica que valores double são formatados com especificador round-trip.
+    /// PT-br: Verifica que valores double são formatados com especificador round-trip.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -63,7 +63,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies float values are formatted with round-trip specifier.
-    /// PT: Verifica que valores float são formatados com especificador round-trip.
+    /// PT-br: Verifica que valores float são formatados com especificador round-trip.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -75,7 +75,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies DateTime values are converted to UTC ISO-8601 round-trip format.
-    /// PT: Verifica que valores DateTime são convertidos para formato ISO-8601 round-trip em UTC.
+    /// PT-br: Verifica que valores DateTime são convertidos para formato ISO-8601 round-trip em UTC.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -88,7 +88,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies bool true maps to "1" and false maps to "0".
-    /// PT: Verifica que bool true mapeia para "1" e false para "0".
+    /// PT-br: Verifica que bool true mapeia para "1" e false para "0".
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -102,7 +102,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies other types fall through to ToString().
-    /// PT: Verifica que outros tipos usam ToString() como fallback.
+    /// PT-br: Verifica que outros tipos usam ToString() como fallback.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -116,7 +116,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies null inputs return false for both text and distinctKey.
-    /// PT: Verifica que entradas null retornam false para text e distinctKey.
+    /// PT-br: Verifica que entradas null retornam false para text e distinctKey.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -129,7 +129,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies string produces text and key equal to the original value.
-    /// PT: Verifica que string produz text e key iguais ao valor original.
+    /// PT-br: Verifica que string produz text e key iguais ao valor original.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -142,7 +142,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies decimal produces the invariant-formatted text as both text and key.
-    /// PT: Verifica que decimal produz o texto formatado invariante como text e key.
+    /// PT-br: Verifica que decimal produz o texto formatado invariante como text e key.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -155,7 +155,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies double round-trip text is produced as both text and key.
-    /// PT: Verifica que o texto round-trip de double é produzido como text e key.
+    /// PT-br: Verifica que o texto round-trip de double é produzido como text e key.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -168,7 +168,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies float round-trip text is produced correctly.
-    /// PT: Verifica que o texto round-trip de float é produzido corretamente.
+    /// PT-br: Verifica que o texto round-trip de float é produzido corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -180,7 +180,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies DateTime is converted to UTC ISO-8601 for both text and key.
-    /// PT: Verifica que DateTime é convertido para UTC ISO-8601 como text e key.
+    /// PT-br: Verifica que DateTime é convertido para UTC ISO-8601 como text e key.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -194,7 +194,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies bool true and false map to "1" and "0" for both text and key.
-    /// PT: Verifica que bool true e false mapeiam para "1" e "0" como text e key.
+    /// PT-br: Verifica que bool true e false mapeiam para "1" e "0" como text e key.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -209,7 +209,7 @@ public sealed class AstQueryAggregateKeyHelperTests(
 
     /// <summary>
     /// EN: Verifies other types fall through to ToString() for both text and key.
-    /// PT: Verifica que outros tipos usam ToString() como fallback para text e key.
+    /// PT-br: Verifica que outros tipos usam ToString() como fallback para text e key.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]

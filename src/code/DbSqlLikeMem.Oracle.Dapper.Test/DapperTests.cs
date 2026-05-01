@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Covers Oracle Dapper CRUD scenarios against the mock provider.
-/// PT: Cobre cenarios CRUD de Dapper para Oracle contra o provedor mock.
+/// PT-br: Cobre cenarios CRUD de Dapper para Oracle contra o provedor mock.
 /// </summary>
 public sealed class DapperTests(
     ITestOutputHelper helper

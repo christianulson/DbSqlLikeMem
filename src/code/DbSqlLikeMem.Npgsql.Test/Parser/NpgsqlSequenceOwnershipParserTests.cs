@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Parser;
 
 /// <summary>
 /// EN: Covers PostgreSQL sequence ownership parser cases.
-/// PT: Cobre casos do parser de ownership de sequences no PostgreSQL.
+/// PT-br: Cobre casos do parser de ownership de sequences no PostgreSQL.
 /// </summary>
 public sealed class NpgsqlSequenceOwnershipParserTests(
     ITestOutputHelper helper
@@ -10,9 +10,9 @@ public sealed class NpgsqlSequenceOwnershipParserTests(
 {
     /// <summary>
     /// EN: Ensures PostgreSQL parses CREATE SEQUENCE OWNED BY with table ownership metadata.
-    /// PT: Garante que o PostgreSQL interprete CREATE SEQUENCE OWNED BY com metadados da tabela proprietaria.
+    /// PT-br: Garante que o PostgreSQL interprete CREATE SEQUENCE OWNED BY com metadados da tabela proprietaria.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
@@ -34,9 +34,9 @@ public sealed class NpgsqlSequenceOwnershipParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL parses CREATE SEQUENCE OWNED BY with an unqualified table name.
-    /// PT: Garante que o PostgreSQL interprete CREATE SEQUENCE OWNED BY com nome de tabela sem schema.
+    /// PT-br: Garante que o PostgreSQL interprete CREATE SEQUENCE OWNED BY com nome de tabela sem schema.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
@@ -58,9 +58,9 @@ public sealed class NpgsqlSequenceOwnershipParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL parses ALTER SEQUENCE OWNED BY NONE and clears ownership metadata.
-    /// PT: Garante que o PostgreSQL interprete ALTER SEQUENCE OWNED BY NONE e limpe os metadados de ownership.
+    /// PT-br: Garante que o PostgreSQL interprete ALTER SEQUENCE OWNED BY NONE e limpe os metadados de ownership.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
@@ -80,9 +80,9 @@ public sealed class NpgsqlSequenceOwnershipParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL parses ALTER SEQUENCE OWNED BY with an unqualified table name.
-    /// PT: Garante que o PostgreSQL interprete ALTER SEQUENCE OWNED BY com nome de tabela sem schema.
+    /// PT-br: Garante que o PostgreSQL interprete ALTER SEQUENCE OWNED BY com nome de tabela sem schema.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]
@@ -104,9 +104,9 @@ public sealed class NpgsqlSequenceOwnershipParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL parses CREATE SCHEMA IF NOT EXISTS.
-    /// PT: Garante que o PostgreSQL interprete CREATE SCHEMA IF NOT EXISTS.
+    /// PT-br: Garante que o PostgreSQL interprete CREATE SCHEMA IF NOT EXISTS.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]

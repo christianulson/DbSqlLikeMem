@@ -4,13 +4,13 @@ internal abstract record SqlQueryBase
 {
     /// <summary>
     /// EN: Gets or sets RawSql.
-    /// PT: Obtém ou define RawSql.
+    /// PT-br: Obtém ou define RawSql.
     /// </summary>
     public string RawSql { get; init; } = "";
 
     /// <summary>
     /// EN: Gets or sets Table.
-    /// PT: Obtém ou define Table.
+    /// PT-br: Obtém ou define Table.
     /// </summary>
     public SqlTableSource? Table { get; init; }
 }
@@ -83,17 +83,17 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
     /// EN: Gets the ON DUPLICATE KEY assignments preserved by the parser.
-    /// PT: Obtem as atribuicoes de ON DUPLICATE KEY preservadas pelo parser.
+    /// PT-br: Obtem as atribuicoes de ON DUPLICATE KEY preservadas pelo parser.
     /// </summary>
     public IReadOnlyList<(string Col, string ExprRaw)> OnDupAssigns { get; init; } = [];
     /// <summary>
     /// EN: Gets or sets OnDupAssignsParsed.
-    /// PT: Obtém ou define OnDupAssignsParsed.
+    /// PT-br: Obtém ou define OnDupAssignsParsed.
     /// </summary>
     public IReadOnlyList<SqlAssignment> OnDupAssignsParsed { get; init; } = [];
     /// <summary>
     /// EN: Gets or sets whether ON CONFLICT uses DO NOTHING semantics.
-    /// PT: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
+    /// PT-br: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
     /// </summary>
     internal bool IsOnConflictDoNothing { get; init; }
     internal string? OnConflictUpdateWhereRaw { get; init; }
@@ -401,7 +401,7 @@ internal enum SqlForJsonMode
 
 /// <summary>
 /// EN: Join types represented in the SQL AST.
-/// PT: Tipos de join representados na AST SQL.
+/// PT-br: Tipos de join representados na AST SQL.
 /// </summary>
 internal enum SqlJoinType
 {

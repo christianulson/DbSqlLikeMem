@@ -2,16 +2,16 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Formats interception events as normalized text for logs and diagnostics.
-/// PT: Formata eventos de interceptacao como texto normalizado para logs e diagnostico.
+/// PT-br: Formata eventos de interceptacao como texto normalizado para logs e diagnostico.
 /// </summary>
 public static class DbInterceptionEventFormatter
 {
     /// <summary>
     /// EN: Formats one interception event as a structured text line.
-    /// PT: Formata um evento de interceptacao como uma linha de texto estruturada.
+    /// PT-br: Formata um evento de interceptacao como uma linha de texto estruturada.
     /// </summary>
-    /// <param name="interceptionEvent">EN: Event to format. PT: Evento a formatar.</param>
-    /// <returns>EN: Structured text line. PT: Linha de texto estruturada.</returns>
+    /// <param name="interceptionEvent">EN: Event to format. PT-br: Evento a formatar.</param>
+    /// <returns>EN: Structured text line. PT-br: Linha de texto estruturada.</returns>
     public static string Format(DbInterceptionEvent interceptionEvent)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(interceptionEvent, nameof(interceptionEvent));

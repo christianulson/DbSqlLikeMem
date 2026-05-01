@@ -2,10 +2,10 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Executes the Pratt-based AST (<see cref="SqlSelectQuery"/>) against <see cref="TableMock"/> tables.
-/// PT: Executa o AST baseado em Pratt (<see cref="SqlSelectQuery"/>) contra tabelas <see cref="TableMock"/>.
+/// PT-br: Executa o AST baseado em Pratt (<see cref="SqlSelectQuery"/>) contra tabelas <see cref="TableMock"/>.
 ///
 /// EN: The executor currently covers SELECT and WITH queries only, matching the scope of <see cref="SqlQueryParser"/>.
-/// PT: O executor atualmente cobre apenas consultas SELECT e WITH, acompanhando o escopo de <see cref="SqlQueryParser"/>.
+/// PT-br: O executor atualmente cobre apenas consultas SELECT e WITH, acompanhando o escopo de <see cref="SqlQueryParser"/>.
 /// </summary>
 internal abstract partial class AstQueryExecutorBase(QueryExecutionContext context)
     : IAstQueryExecutor
@@ -250,7 +250,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     /// EN: Dialect mapping for JSON access operators (-> / ->> etc).
     /// Default implementation matches current MySQL best-effort behavior.
     /// SqlServer/Postgre/Oracle should override.
-    /// PT: Mapeamento de dialeto para operadores de acesso JSON (-> / ->> etc).
+    /// PT-br: Mapeamento de dialeto para operadores de acesso JSON (-> / ->> etc).
     /// A implementação padrão segue o comportamento best-effort do MySQL.
     /// SqlServer/Postgre/Oracle devem sobrescrever.
     /// </summary>
@@ -271,7 +271,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     /// <summary>
     /// EN: Dialect mapping for scalar subquery evaluation.
     /// Default is MySQL-like: first cell of first row.
-    /// PT: Mapeamento de dialeto para avaliação de subconsulta escalar.
+    /// PT-br: Mapeamento de dialeto para avaliação de subconsulta escalar.
     /// O padrão é semelhante ao MySQL: primeira célula da primeira linha.
     /// </summary>
     protected virtual object? EvalScalarSubquery(
@@ -414,17 +414,17 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         private readonly IReadOnlyList<string>? _requestedPartitionNames;
         /// <summary>
         /// EN: Gets or sets Alias.
-        /// PT: Obtém ou define Alias.
+        /// PT-br: Obtém ou define Alias.
         /// </summary>
         public string Alias { get; }
         /// <summary>
         /// EN: Gets or sets Name.
-        /// PT: Obtém ou define Name.
+        /// PT-br: Obtém ou define Name.
         /// </summary>
         public string Name { get; }
         /// <summary>
         /// EN: Gets or sets ColumnNames.
-        /// PT: Obtém ou define ColumnNames.
+        /// PT-br: Obtém ou define ColumnNames.
         /// </summary>
         public IReadOnlyList<string> ColumnNames { get; }
         public IReadOnlyList<SqlMySqlIndexHint> MySqlIndexHints { get; }
@@ -518,7 +518,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         }
         /// <summary>
         /// EN: Implements WithAlias.
-        /// PT: Implementa WithAlias.
+        /// PT-br: Implementa WithAlias.
         /// </summary>
         public Source WithAlias(string alias)
         {
@@ -690,7 +690,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Implements Rows.
-        /// PT: Implementa Rows.
+        /// PT-br: Implementa Rows.
         /// </summary>
         public IEnumerable<Dictionary<string, object?>> Rows()
         {
@@ -862,7 +862,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Implements FromPhysical.
-        /// PT: Implementa FromPhysical.
+        /// PT-br: Implementa FromPhysical.
         /// </summary>
         public static Source FromPhysical(
             string tableName,
@@ -874,7 +874,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Returns a physical source with a different partition filter.
-        /// PT: Retorna uma fonte fisica com filtro de particao diferente.
+        /// PT-br: Retorna uma fonte fisica com filtro de particao diferente.
         /// </summary>
         public Source WithRequestedPartitions(IReadOnlyList<string>? requestedPartitionNames)
         {
@@ -886,14 +886,14 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Implements FromResult.
-        /// PT: Implementa FromResult.
+        /// PT-br: Implementa FromResult.
         /// </summary>
         public static Source FromResult(string tableName, string alias, TableResultMock result)
             => new(tableName, alias, result);
 
         /// <summary>
         /// EN: Implements FromResult.
-        /// PT: Implementa FromResult.
+        /// PT-br: Implementa FromResult.
         /// </summary>
         public static Source FromResult(string tableName, TableResultMock result)
             => new(tableName, tableName, result);
@@ -970,7 +970,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Implements FromProjected.
-        /// PT: Implementa FromProjected.
+        /// PT-br: Implementa FromProjected.
         /// </summary>
         public static EvalRow FromProjected(
             TableResultMock res,
@@ -1013,7 +1013,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Implements CloneRow.
-        /// PT: Implementa CloneRow.
+        /// PT-br: Implementa CloneRow.
         /// </summary>
         public EvalRow CloneRow()
         {
@@ -1032,10 +1032,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Clones the row with extra dictionary capacity for upcoming field and source additions.
-        /// PT: Clona a linha com capacidade extra nos dicionarios para futuras adicoes de campos e fontes.
+        /// PT-br: Clona a linha com capacidade extra nos dicionarios para futuras adicoes de campos e fontes.
         /// </summary>
-        /// <param name="extraFieldCapacity">EN: Extra capacity hint for fields. PT: Capacidade extra sugerida para campos.</param>
-        /// <param name="extraSourceCapacity">EN: Extra capacity hint for sources. PT: Capacidade extra sugerida para fontes.</param>
+        /// <param name="extraFieldCapacity">EN: Extra capacity hint for fields. PT-br: Capacidade extra sugerida para campos.</param>
+        /// <param name="extraSourceCapacity">EN: Extra capacity hint for sources. PT-br: Capacidade extra sugerida para fontes.</param>
         public EvalRow CloneRow(int extraFieldCapacity, int extraSourceCapacity)
         {
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
@@ -1056,10 +1056,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Merges the current row with fields from a joined row and appends the joined source.
-        /// PT: Combina a linha atual com campos de uma linha associada e adiciona a source associada.
+        /// PT-br: Combina a linha atual com campos de uma linha associada e adiciona a source associada.
         /// </summary>
-        /// <param name="rightSource">EN: Joined source to append. PT: Source associada a adicionar.</param>
-        /// <param name="rightFields">EN: Fields produced by the joined row. PT: Campos produzidos pela linha associada.</param>
+        /// <param name="rightSource">EN: Joined source to append. PT-br: Source associada a adicionar.</param>
+        /// <param name="rightFields">EN: Fields produced by the joined row. PT-br: Campos produzidos pela linha associada.</param>
         internal EvalRow MergeJoinRow(Source rightSource, Dictionary<string, object?> rightFields)
         {
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
@@ -1101,9 +1101,9 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Creates a null-extended join row for an unmatched right source.
-        /// PT: Cria uma linha de join com extensao nula para uma source direita sem correspondencia.
+        /// PT-br: Cria uma linha de join com extensao nula para uma source direita sem correspondencia.
         /// </summary>
-        /// <param name="rightSource">EN: Right-side source to append. PT: Source do lado direito a adicionar.</param>
+        /// <param name="rightSource">EN: Right-side source to append. PT-br: Source do lado direito a adicionar.</param>
         internal EvalRow CreateNullExtendedJoinRow(Source rightSource)
         {
             var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
@@ -1145,9 +1145,9 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Attaches outer-row values without overwriting fields already produced by the inner row.
-        /// PT: Anexa valores da linha externa sem sobrescrever campos ja produzidos pela linha interna.
+        /// PT-br: Anexa valores da linha externa sem sobrescrever campos ja produzidos pela linha interna.
         /// </summary>
-        /// <param name="outer">EN: Outer row to overlay. PT: Linha externa a sobrepor.</param>
+        /// <param name="outer">EN: Outer row to overlay. PT-br: Linha externa a sobrepor.</param>
         internal EvalRow AttachOuterRow(EvalRow outer)
         {
             if (outer.Fields.Count == 0
@@ -1212,7 +1212,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Returns an empty evaluation row placeholder.
-        /// PT: Retorna um placeholder de linha de avaliação vazia.
+        /// PT-br: Retorna um placeholder de linha de avaliação vazia.
         /// </summary>
         public static EvalRow Empty()
             => new(
@@ -1225,7 +1225,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Implements AddSource.
-        /// PT: Implementa AddSource.
+        /// PT-br: Implementa AddSource.
         /// </summary>
         public void AddSource(Source src)
         {
@@ -1235,7 +1235,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Implements AddFields.
-        /// PT: Implementa AddFields.
+        /// PT-br: Implementa AddFields.
         /// </summary>
         public void AddFields(Dictionary<string, object?> fields)
         {
@@ -1345,10 +1345,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
         /// <summary>
         /// EN: Gets a field value by qualified or unqualified column name.
-        /// PT: Obtém o valor de um campo por nome de coluna qualificado ou não qualificado.
+        /// PT-br: Obtém o valor de um campo por nome de coluna qualificado ou não qualificado.
         /// </summary>
-        /// <param name="columnName">EN: Column name to read. PT: Nome da coluna a ler.</param>
-        /// <returns>EN: The field value when present; otherwise null. PT: O valor do campo quando presente; caso contrário, null.</returns>
+        /// <param name="columnName">EN: Column name to read. PT-br: Nome da coluna a ler.</param>
+        /// <returns>EN: The field value when present; otherwise null. PT-br: O valor do campo quando presente; caso contrário, null.</returns>
         public object? GetByName(string columnName)
             => TryGetValue(columnName, out var value) ? value : null;
 
@@ -1483,13 +1483,13 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
     /// <summary>
     /// EN: Implements EvalGroup.
-    /// PT: Implementa EvalGroup.
+    /// PT-br: Implementa EvalGroup.
     /// </summary>
     internal sealed class EvalGroup(List<EvalRow> rows)
     {
         /// <summary>
         /// EN: Gets or sets Rows.
-        /// PT: Obtém ou define Rows.
+        /// PT-br: Obtém ou define Rows.
         /// </summary>
         public List<EvalRow> Rows { get; } = rows;
     }
@@ -1500,7 +1500,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     {
         ///// <summary>
         ///// EN: Implements GroupKeyComparer.
-        ///// PT: Implementa GroupKeyComparer.
+        ///// PT-br: Implementa GroupKeyComparer.
         ///// </summary>
         //public static readonly IEqualityComparer<GroupKey> Comparer = new GroupKeyComparer(_context);
 
@@ -1510,7 +1510,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         {
             /// <summary>
             /// EN: Implements Equals.
-            /// PT: Implementa Equals.
+            /// PT-br: Implementa Equals.
             /// </summary>
             public bool Equals(GroupKey x, GroupKey y)
             {
@@ -1522,7 +1522,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
             /// <summary>
             /// EN: Implements GetHashCode.
-            /// PT: Implementa GetHashCode.
+            /// PT-br: Implementa GetHashCode.
             /// </summary>
             public int GetHashCode(GroupKey obj)
             {
@@ -1538,7 +1538,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     {
         /// <summary>
         /// EN: Implements Compare.
-        /// PT: Implementa Compare.
+        /// PT-br: Implementa Compare.
         /// </summary>
         public int Compare(object? x, object? y)
         {

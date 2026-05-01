@@ -4,7 +4,7 @@ internal static partial class CommandScalarExecutionPrelude
 {
     /// <summary>
     /// EN: Constant expression evaluation entry point for scalar, case, binary, and boolean helpers.
-    /// PT: Ponto de entrada de avaliacao de expressoes constantes para helpers escalares, case, binarios e booleanos.
+    /// PT-br: Ponto de entrada de avaliacao de expressoes constantes para helpers escalares, case, binarios e booleanos.
     /// </summary>
     internal static class Expressions
     {

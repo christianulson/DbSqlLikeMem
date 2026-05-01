@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Contains tests for the SQL Server provider SQL dialect helper.
-/// PT: Contém testes para o helper de dialeto SQL do provedor SQL Server.
+/// PT-br: Contém testes para o helper de dialeto SQL do provedor SQL Server.
 /// </summary>
 public sealed class SqlServerProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the SQL Server helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper SQL Server.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper SQL Server.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchSqlServer()
@@ -27,7 +27,7 @@ public sealed class SqlServerProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits SQL Server-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compatível com SQL Server para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compatível com SQL Server para savepoint.
     /// </summary>
     [Fact]
     public void ReleaseSavepoint_ShouldUseSqlServerSyntax()

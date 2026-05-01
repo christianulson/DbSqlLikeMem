@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
+namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
 /// EN: Covers update edge cases in the Db2 mock.
-/// PT: Cobre casos de borda de update no mock Db2.
+/// PT-br: Cobre casos de borda de update no mock Db2.
 /// </summary>
 public sealed class Db2UpdateStrategyCoverageTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class Db2UpdateStrategyCoverageTests(
 {
     /// <summary>
     /// EN: Verifies that setting a nullable column to NULL succeeds.
-    /// PT: Verifica se definir uma coluna anulavel como NULL funciona.
+    /// PT-br: Verifica se definir uma coluna anulavel como NULL funciona.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -36,7 +36,7 @@ public sealed class Db2UpdateStrategyCoverageTests(
 
     /// <summary>
     /// EN: Verifies that setting a non-nullable column to NULL fails.
-    /// PT: Verifica se definir uma coluna nao anulavel como NULL falha.
+    /// PT-br: Verifica se definir uma coluna nao anulavel como NULL falha.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

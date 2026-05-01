@@ -13,17 +13,18 @@ Objetivo: organizar o projeto de benchmark para manter tres regras ao mesmo temp
 - A base de `Sequence` foi extraida para `SequenceBenchmarkSuiteBase`, e os providers sem sequence nao herdam mais esse grupo.
 - O validador de catalogo agora resolve aliases reais dos wrappers e nao depende mais de nome igual ao `BenchmarkFeatureId`.
 - As suites de benchmark seguem um padrao consistente de nomeacao por provider e engine.
-- O fluxo de geracao de wiki ja existe em dois scripts separados:
+- O fluxo de geracao de wiki ja existe nos scripts separados e no orquestrador unico:
   - `Scripts/export-wiki.ps1` para a matriz comparativa;
   - `Scripts/export-wiki-app-specific.ps1` para a matriz do mock-only.
+  - `Scripts/export-wiki-all.ps1` para orquestrar as duas saidas em uma unica chamada.
 
 ### O que ainda merece melhoria
 
-- O arquivo `README.Benchmarks.md` ainda descreve a regra antiga de que metodo e `BenchmarkFeatureId` sao sempre iguais.
+- O arquivo `README.Benchmarks.md` ainda pode ganhar uma explicacao mais curta sobre o mapeamento por alias e wrappers.
 - Parte da organizacao continua muito concentrada em `BenchmarkSuiteBase` e em `Core/Prepared`, o que aumenta o risco de acoplamento quando um grupo novo precisa de suporte por provider.
-- Os scripts de exportacao existem, mas ainda dependem de convencoes espalhadas e de catalogos separados sem um orquestrador unico de geracao.
+- Os scripts de exportacao contam com um orquestrador unico para a publicacao normal, mas ainda mantem variantes especializadas para suporte legado e execucao manual.
 - A regra de suporte por provider real existe no dominio, mas a estrutura ainda pode explicitar melhor isso no codigo e na documentacao gerada.
-- A matriz final ainda pode ganhar um fluxo mais claro para produzir, em uma unica execucao, os dois artefatos publicados em `docs/Wiki`.
+- A matriz final ja pode ser produzida em uma unica execucao para os dois artefatos publicados em `docs/Wiki`, restando apenas manter o fluxo simples e consistente.
 
 ## Andamento da execucao
 
@@ -1204,6 +1205,202 @@ Ao final desta fase, devem existir:
 - Nao rodar benchmark real em provider que nao suporta a feature.
 - Nao remover benchmark publicado sem etapa de depreciacao.
 
+### Fase 6 - Execucao operacional da governanca
+
+Objetivo: transformar as decisoes da Fase 5 em artefatos reais e manter a operacao do benchmark previsivel apos o fechamento estrutural. Esta fase nao deve reabrir a arquitetura de suites; ela deve apenas materializar governanca, validacao, publicacao e manutencao.
+
+#### 6.1 Identidade e catalogo
+
+- Declarar `BenchmarkStableId` para todas as features ativas.
+- Registrar status oficial de feature no catalogo.
+- Garantir validacao contra IDs duplicados e categorias ausentes.
+- Manter a separacao explicita entre `Comparable`, `MockOnly`, `Deprecated` e `Removed`.
+
+#### 6.2 Resultado estruturado
+
+- Formalizar o schema JSON de resultado.
+- Registrar `Environment`, `BenchmarkStableId`, `BenchmarkFeatureId`, `ProviderId`, `Engine`, `SuiteName`, `MethodName` e `Category`.
+- Garantir que os exportadores consumam o schema estruturado sem heuristicas fragilizadas por texto livre.
+
+#### 6.3 Publicacao e wiki
+
+- Atualizar os geradores para produzir o comparativo por provider e a matriz mock-only.
+- Garantir landing page, legenda global e links de navegacao consistentes.
+- Preservar a regra de publicacao em arquivos previsiveis dentro de `docs/Wiki`.
+
+#### 6.4 Validacao e perfis
+
+- Consolidar os perfis `smoke`, `core`, `full` e `diagnostic`.
+- Registrar o ambiente de execucao no resultado publicado.
+- Separar skip esperado, feature nao suportada e falha inesperada.
+
+#### 6.5 Historico e depreciacao
+
+- Manter o historico de mudancas de feature.
+- Registrar toda mudanca de categoria e toda remocao formal.
+- Usar a politica de depreciacao para evitar que o catalogo volte a misturar feature ativa com legado.
+- Manter `Deprecated` como estado rastreavel no catalogo e nos exportadores.
+- Reservar `Removed` para remocao formal depois de registrar o historico correspondente.
+- Nao reintroduzir recurso removido como comparavel sem uma nova definicao de feature.
+
+#### 6.6 Ordem pratica da Fase 6
+
+Para manter a fase operacional sem dispersar o escopo, executar nesta ordem:
+
+1. Definir o schema JSON final de resultado.
+2. Ligar `BenchmarkStableId` ao catalogo e aos exportadores.
+3. Consolidar o bloco `Environment` e os perfis `smoke`, `core`, `full` e `diagnostic`.
+4. Atualizar os geradores da wiki para consumir o schema estruturado.
+5. Registrar a politica de status de feature no catalogo.
+6. Criar testes para catalogo, exportacao e politica de execucao.
+7. Formalizar o historico de mudancas e a politica de depreciacao.
+8. Fechar a fase somente depois de validar que o resultado publicado e rastreavel por ID estavel, ambiente e perfil.
+
+##### Checklist de implementacao da Fase 6
+
+- [x] Implementar o schema JSON final de resultado.
+- [x] Ligar `BenchmarkStableId` ao catalogo e aos exportadores.
+- [x] Consolidar a publicacao da wiki a partir do schema estruturado.
+- [x] Formalizar os perfis de execucao e o registro de ambiente.
+- [x] Criar os testes de catalogo, exportacao e politica de execucao.
+- [x] Registrar o ciclo de depreciacao e remocao.
+
+##### Fechamento da Fase 6
+
+- A governanca operacional agora esta materializada no catalogo, no schema, nos exportadores e nos testes.
+- O status de ciclo de vida ficou visivel no catalogo publicado e na wiki gerada.
+- A fase pode ser considerada concluida sem reabrir a arquitetura de suites.
+
+##### Ponto de parada da Fase 6
+
+- A primeira iteracao desta fase deve começar por `schema JSON` e `BenchmarkStableId`.
+- Se o catalogo ainda nao estiver pronto para esses campos, a proxima parada deve ser ajustar o catalogo antes de mexer nos exportadores.
+
+##### Criterio de conclusao da Fase 6
+
+- O resultado publicado e rastreavel por ID estavel, ambiente e perfil.
+- A wiki e gerada sem ambiguidade de categoria ou status.
+- O catalogo e os exportadores falham de forma previsivel quando a governanca e violada.
+
+### Fase 7 - Orquestracao unica da publicacao
+
+Objetivo: reduzir a friccao operacional da publicacao da wiki sem reabrir a arquitetura de suites. Esta fase deve apenas agrupar os comandos ja existentes em um fluxo unico e previsivel.
+
+#### 7.1 Fluxo unico de exportacao
+
+- Criar um orquestrador que gere as duas matrizes principais em uma unica chamada.
+- Preservar os scripts especializados para execucoes manuais, validacao pontual e suporte legado.
+- Evitar que a publicacao dependa de sequencia manual de comandos espalhados no README.
+
+#### 7.2 Consistencia de saida
+
+- Manter os mesmos caminhos previsiveis em `docs/Wiki`.
+- Preservar o fluxo opcional da variante `single-table` como legado explicito, sem inclui-la no fluxo padrao.
+- Garantir que o orquestrador nao altere o contrato do catalogo ou do schema.
+
+#### 7.3 Checklist inicial da Fase 7
+
+- [x] Criar o orquestrador unico de publicacao para as duas matrizes principais.
+- [x] Documentar o novo atalho de exportacao no README do benchmark.
+- [x] Avaliar se a variante `single-table` deve permanecer apenas como atalho legado opcional ou ser removida em uma fase futura.
+
+- Decisao: manter `single-table` apenas como atalho legado opcional por enquanto.
+- A remocao, se vier, deve acontecer em fase futura independente.
+
+#### 7.4 Ponto de parada da Fase 7
+
+- A primeira iteracao deve consolidar a publicacao unica sem mexer no catalogo nem no schema.
+- Se surgir necessidade de mudar a forma de saida, a proxima parada deve ser apenas no orquestrador, nao na estrutura dos benchmarks.
+
+##### Fechamento da Fase 7
+
+- O orquestrador unico de publicacao ficou consolidado como fluxo normal.
+- A variante `single-table` permaneceu apenas como atalho legado opcional.
+- O README e o roadmap ficaram alinhados com o fluxo real de exportacao.
+- A fase pode ser considerada concluida sem reabrir a arquitetura de suites.
+
+### Fase 8 - Higiene final de XML docs e contratos publicos
+
+Objetivo: fechar a ultima passada de documentacao publica dos tipos novos do benchmark, manter a consistencia EN/PT e reduzir o risco de `CS1591` em superficies que passaram a ser expostas pela governanca operacional.
+
+#### 8.1 Tipos e registros publicos do runner
+
+- Garantir `param` docs nos `record` publicos novos do runner.
+- Revisar se algum contrato publico recente ainda carece de `summary` ou `param`.
+- Manter o padrao EN primeiro e PT em seguida.
+
+#### 8.2 Catálogo e validacao publica
+
+- Verificar a documentacao publica dos tipos de catalogo e validacao que passaram a sustentar a governanca.
+- Preservar a distincao entre tipos internos de infraestrutura e contratos publicos exportados.
+
+#### 8.3 Checklist inicial da Fase 8
+
+- [x] Revisar `BenchmarkRunOptions` e demais registros publicos novos do runner.
+- [x] Identificar e corrigir eventuais lacunas de XML docs nas superfices publicas tocadas pela Fase 6 e Fase 7.
+- [x] Manter o roadmap alinhado com o criterio de documentacao publicavel antes de qualquer nova consolidacao.
+
+#### 8.4 Ponto de parada da Fase 8
+
+- A primeira iteracao deve começar pelos `record` publicos do runner e pelos contratos que foram introduzidos na Fase 6.
+- Se nao houver mais lacunas publicas, a proxima parada deve ser fechar a fase em consolidacao documental, sem reabrir a arquitetura de suites.
+
+##### Criterio de conclusao da Fase 8
+
+- Os tipos publicos novos do benchmark estao documentados em EN/PT.
+- As superfices publicas recentes nao geram `CS1591` por falta de resumo ou parametros.
+- A documentacao do runner, do catalogo e da exportacao permanece consistente com a estrutura real do benchmark.
+
+##### Fechamento da Fase 8
+
+- A higiene final de XML docs foi concluida nas superficies publicas novas do benchmark.
+- O runner, o catalogo, os contratos de suporte e os contratos de suite ficaram alinhados ao padrao EN/PT-br.
+- A fase pode ser considerada concluida sem reabrir a arquitetura de suites ou os contratos estruturais do benchmark.
+
+### Fase 9 - Higiene final dos contratos compartilhados do runtime
+
+Objetivo: continuar a padronizacao de XML docs nos contratos compartilhados do runtime e dos geradores sem reabrir a arquitetura de suites do benchmark. Esta fase trata dos atributos e helpers publicos que sustentam a geracao de SQL e a integracao com as camadas compartilhadas.
+
+#### 9.1 Atributos e contratos compartilhados
+
+- Normalizar a documentacao dos atributos compartilhados usados por geradores e mapeadores.
+- Manter o padrao EN primeiro e PT-br depois.
+- Preservar a leitura factual do contrato, sem texto genérico.
+
+#### 9.2 Helpers e contratos de suporte
+
+- Revisar os contratos publicos dos helpers centrais que ainda sustentam as camadas compartilhadas.
+- Fechar as lacunas de `summary` e `param` que ainda aparecam fora do benchmark puro.
+
+#### 9.3 Checklist inicial da Fase 9
+
+- [x] Documentar o contrato compartilhado `ScalarFunctionAttribute`.
+- [x] Revisar os demais atributos publicos compartilhados usados pelos geradores e pelos helpers centrais.
+- [x] Normalizar os contratos publicos de suporte que ainda mantenham `PT:` residual.
+
+#### 9.4 Ponto de parada da Fase 9
+
+- A primeira iteracao deve começar pelos atributos compartilhados com uso direto pelos geradores.
+- Se nao houver mais lacunas relevantes, a proxima parada deve ser fechar a fase em consolidacao documental sem reabrir a arquitetura de suites.
+
+##### Criterio de conclusao da Fase 9
+
+- Os contratos compartilhados novos e relevantes estao documentados em EN/PT-br.
+- Os atributos e helpers publicos centrais nao mantêm texto inconsistente de documentacao.
+- O runtime compartilhado permanece coerente com a superficie publica do benchmark e dos geradores.
+
+##### Fechamento da Fase 9
+
+- A higiene documental das superficies compartilhadas do runtime foi concluida.
+- Os atributos, helpers e contratos de suporte publicos do `src` ficaram alinhados ao padrao EN/PT-br.
+- A fase pode ser considerada concluida sem reabrir a arquitetura de suites ou a geracao de SQL.
+
+#### 9.5 Anotacao explicita dos handlers do benchmark
+
+- Todos os `Run*` de `BenchmarkSessionBase` passaram a carregar `BenchmarkFeatureAttribute`.
+- O registry continua podendo validar a cobertura por atributo sem depender de um switch manual.
+- A cobertura ficou explicita para os 258 handlers de benchmark localizados em `BenchmarkSessionBase*.cs`.
+
 ## Pontos de verificacao
 
 - Nao pode existir benchmark real de provider executando em provider sem suporte.
@@ -1229,6 +1426,7 @@ Ao final desta fase, devem existir:
 
 - 2026-05-01: planilha criada para organizar a revisao estrutural dos benchmarks apos a separacao de sequence, o ajuste do catalogo e a definicao das duas matrizes de saida.
 - 2026-05-01: adicionada Fase 5 para cobrir governanca, confiabilidade estatistica, reprodutibilidade, execucao manual, observabilidade, UX da wiki, testes do sistema de benchmark e depreciacao.
+- 2026-05-01: adicionada Fase 7 para consolidar a orquestracao unica da publicacao da wiki sem reabrir a arquitetura de suites.
 - 2026-05-01: iteracao 25 registrada; o restante do bloco relacional duplicado foi removido de `BenchmarkSessionBase.cs` e a proxima parada fica em `RunResetVolatileData`, inicio do bloco de lifecycle/schema.
 - 2026-05-01: iteracao 26 registrada; o lifecycle de conexao foi extraido para `BenchmarkSessionBase.Lifecycle.cs` e a proxima parada fica em `RunSchemaSnapshotExport`.
 - 2026-05-01: iteracao 27 registrada; o bloco `SchemaSnapshot` foi extraido para `BenchmarkSessionBase.SchemaSnapshot.cs` e a proxima parada fica em `RunFluentSchemaBuild`.
@@ -1247,3 +1445,55 @@ Ao final desta fase, devem existir:
 - 2026-05-01: iteracao 40 registrada; a manutencao da documentacao segue orientada por execucao manual e a proxima parada fica em manter a ausencia de referencias a pipeline, CI ou GitHub Actions nos proximos ajustes do roadmap.
 - 2026-05-01: iteracao 41 registrada; a revisao atual segue ancorada na execucao manual dos benchmarks e a proxima parada fica em preservar a mesma regra ao expandir ou revisar qualquer nova secao do roadmap.
 - 2026-05-01: iteracao 42 registrada; a extracao estrutural foi reforcada em parciais focados para `BenchmarkSessionBase`, `BenchmarkSuiteBase`, `ExternalBenchmarkSessionBase` e `DbSqlLikeMemBenchmarkSessionBase`, e a proxima parada fica em revisar os ultimos metodos remanescentes na base comum para decidir se ainda ha uma familia final que vale separar ou se o fechamento deve ser apenas consolidacao.
+- 2026-05-01: iteracao 43 registrada; `RunNestedSavepointFlow` foi movido para `BenchmarkSessionBase.DmlMutation.cs`, a familia de transacao/savepoint ficou mais coerente, e a proxima parada fica em triagem dos ultimos metodos remanescentes na base comum, com foco especial em `RowCount` e nos blocos de query/diagnostico que ainda nao justificam um partial separado.
+- 2026-05-01: iteracao 44 registrada; `RunRowCountAfterInsert`, `RunRowCountAfterUpdate` e `RunRowCountAfterSelect` foram movidos para `BenchmarkSessionBase.DmlInsert.cs`, `BenchmarkSessionBase.DmlMutation.cs` e `BenchmarkSessionBase.Relational.cs`, e a proxima parada fica em decidir se os metodos restantes de query e helpers SQL Server ainda justificam um ultimo recorte ou se a fase deve encerrar em consolidacao.
+- 2026-05-01: iteracao 45 registrada; os helpers SQL Server e o agregado percentual sairam para `BenchmarkSessionBase.SqlServer.cs` e o bloco batch puro foi separado em `BenchmarkSessionBase.Batch.cs`, e a proxima parada fica em triagem da cauda relacional restante (`CteSimple`, `PivotCount`, `Returning*`, `MergeBasic` e `PartitionPruningSelect`) para decidir se ainda existe um corte pequeno ou se o fechamento agora e apenas consolidacao.
+- 2026-05-01: iteracao 46 registrada; `Sequence`, `Batch`, `DateScalar` e `Parse` sairam da classe comum para `BenchmarkSessionBase.Sequence.cs`, `BenchmarkSessionBase.Batch.cs`, `BenchmarkSessionBase.Temporal.cs` e `BenchmarkSessionBase.Parse.cs`, e a proxima parada fica em consolidar a arvore final dos parciais, revisar a consistencia de contratos e encerrar a fase sem abrir novos blocos.
+- 2026-05-01: iteracao 47 registrada; a classe comum ficou reduzida ao esqueleto compartilhado e todos os grupos concretos restantes ja estao em parciais proprios, e a proxima parada fica em revisar consistencia de contratos, nomes, XML docs e superficie publica antes de considerar a fase concluida.
+- 2026-05-01: iteracao 48 registrada; a triagem de consistencia confirmou que `BenchmarkSessionBase.cs` ficou sem rotinas concretas de benchmark e que os novos parciais estao documentados, e a proxima parada fica em revisao fina de nomes, contratos e XML docs antes de encerrar a fase sem novas extracoes.
+- 2026-05-01: iteracao 49 registrada; a revisao fina de consistencia nao encontrou rotinas concretas restantes na classe comum nem contratos soltos nos parciais novos, e a proxima parada fica em fechamento da fase e consolidacao final do backlog sem abrir novos blocos estruturais.
+- 2026-05-01: iteracao 50 registrada; a limpeza de documentação corrigiu os resumos `PT` restantes para `PT-br` nos parciais novos, sem alterar a estrutura ja consolidada, e a proxima parada fica em fechamento formal da fase e eventual inicio de uma nova etapa apenas se houver novo escopo material.
+- 2026-05-01: iteracao 51 registrada; a ultima revisao confirmou que o ajuste de `PT-br` em `BenchmarkSessionBase.Temporal.cs` e `BenchmarkSessionBase.Batch.cs` fechou a limpeza de documentacao dos parciais novos, e a proxima parada fica em encerrar formalmente a fase sem novos ajustes estruturais.
+- 2026-05-01: iteracao 52 registrada; a ultima varredura corrigiu o `PT` remanescente em `BenchmarkSessionBase.Lifecycle.cs` e nao encontrou mais resumos fora do padrao `PT-br`, entao a proxima parada fica em marcar esta fase como encerrada e tratar qualquer novo trabalho como uma nova etapa independente.
+- 2026-05-01: iteracao 53 registrada; a fase de coerencia estrutural ficou encerrada com a classe comum reduzida ao esqueleto compartilhado, os grupos concretos isolados em parciais proprios e a documentacao alinhada ao padrao `PT-br`, e qualquer proximo trabalho devera nascer como uma nova etapa independente.
+- 2026-05-01: iteracao 54 registrada; a Fase 6 foi aberta para materializar a governanca operacional do benchmark sem reabrir a estrutura de suites, e a proxima parada fica em schema JSON, `BenchmarkStableId` e validacao de catalogo como primeira frente pratica dessa nova etapa.
+- 2026-05-01: iteracao 55 registrada; a Fase 6 ganhou uma ordem pratica de execucao e um ponto de parada inicial, com prioridade para `schema JSON`, `BenchmarkStableId` e catalogo, e a proxima parada fica em materializar o primeiro desses artefatos sem reabrir a estrutura de suites.
+- 2026-05-01: iteracao 56 registrada; o catalogo de benchmark agora aceita `StableId` como chave opcional e os exportadores da wiki passam a resolver essa chave quando presente, entao a proxima parada fica em materializar o schema JSON estrutural da Fase 6 e, em seguida, ligar esse schema ao catalogo publicado sem alterar a superficie dos benchmarks.
+- 2026-05-01: iteracao 57 registrada; o schema JSON estrutural foi materializado em `benchmark-result.schema.json` e documentado no README do projeto de benchmark, entao a proxima parada fica em ligar esse contrato ao catalogo publicado e depois preencher o catalogo com `StableId` explicito quando houver identificador estavel diferente do enum.
+- 2026-05-01: iteracao 58 registrada; o catálogo publicado agora referencia `benchmark-result.schema.json` no topo dos JSONs de feature map e o README aponta para esse contrato, entao a proxima parada fica em preencher `StableId` explicito apenas nas features em que o identificador estavel divergir do enum e validar se o exportador precisa de mais alguma regra antes de fechar a fase.
+- 2026-05-01: iteracao 59 registrada; os exportadores da wiki agora validam e carregam o `resultSchema` publicado no topo do catalogo e a analise local nao encontrou ainda uma divergencia real que justificasse preencher `StableId` em massa, entao a proxima parada fica em decidir quais alias merecem `StableId` canônico explicito ou, se o catálogo permanecer igual ao enum, seguir para `Environment` e perfis de execucao como proxima frente operacional.
+- 2026-05-01: iteracao 60 registrada; o runner de benchmark agora reconhece os perfis `smoke`, `core`, `full` e `diagnostic` e preserva o perfil no identificador do job, o README passou a documentar esse uso e a proxima parada fica em fechar os metadados de `Environment` do resultado estruturado sem reabrir a arquitetura de suites.
+- 2026-05-01: iteracao 61 registrada; o runner agora grava `docs/Wiki/BenchmarkResults/benchmark-run.environment.json` com perfil e metadados basicos do ambiente e o README passou a citar esse manifest, entao a proxima parada fica em conectar esse contexto de ambiente ao exportador estruturado e, so depois, decidir se ainda vale expandir `StableId` explicito para aliases canônicos.
+- 2026-05-01: iteracao 62 registrada; os exportadores da wiki agora reconhecem opcionalmente `benchmark-run.environment.json` e injetam o contexto de ambiente no cabecalho gerado, entao a proxima parada fica em decidir se ainda existe algum alias que mereca `StableId` canônico explicito ou se a Fase 6 pode avançar para a consolidacao final da politica de ambiente e perfis.
+- 2026-05-01: iteracao 63 registrada; o manifest de ambiente foi alinhado ao shape estruturado com `environment` aninhado, os exportadores aceitam tanto o formato novo quanto o legado e a proxima parada fica em consolidar a fase final sem abrir novos aliases ou novas estruturas de execucao.
+- 2026-05-01: iteracao 64 registrada; os `Run*` faltantes de `BenchmarkSessionBase` foram restaurados como wrappers de compatibilidade nos parciais de `Batch`, `Relational` e `JoinTemporal`, e a proxima parada fica em revisar se ainda resta algum nome quebrado ou apenas fechar a consolidacao final desta frente.
+- 2026-05-01: iteracao 65 registrada; a varredura de consistencia nao encontrou outro nome órfão no bloco relacional/batch/join temporal e a proxima parada fica em fechar a consolidacao final desta frente, com foco apenas em estabilidade e eventual limpeza de comentario/documentacao.
+- 2026-05-01: iteracao 66 registrada; o alias `RunSelectScalarCaseMatrix` foi restaurado para fechar o ultimo `CS0103` do bloco relacional, e a proxima parada fica em verificar se ainda sobra algum nome historico pendente ou apenas encerrar a consolidacao final desta frente.
+- 2026-05-01: iteracao 67 registrada; o dispatcher de `BenchmarkSessionBase` passou a ser registrado por reflexao com `BenchmarkFeatureAttribute`, a aliasagem pontual da matriz escalar CASE foi movida para o atributo, e a proxima parada fica em revisar se ainda sobra algum ajuste de consistencia ou apenas consolidar o fechamento desta frente.
+- 2026-05-01: iteracao 68 registrada; o dispatcher segue agora um registry por reflexao em vez de um switch gigante, com `BenchmarkFeatureAttribute` servindo de ponto de alias pontual, e a proxima parada fica em revisar se ainda existe algum ajuste de consistencia no mapeamento ou apenas fechar a consolidacao final.
+- 2026-05-01: iteracao 69 registrada; o registry foi ajustado para invocar os handlers por bloco explicito e reduzir risco de incompatibilidade no dispatch, e a proxima parada fica em revisar a consistencia final do mapeamento e encerrar a consolidacao desta frente.
+- 2026-05-01: iteracao 70 registrada; foi adicionada cobertura de smoke para o alias `SelectScalarCaseMatrix` atraves do registry por atributo, e a proxima parada fica em continuar a fase operacional do plano com a proxima frente ainda aberta no roadmap.
+- 2026-05-01: iteracao 71 registrada; foi adicionada cobertura da politica de execucao para o parser de perfis `smoke`, `core`, `full` e `diagnostic`, e a proxima parada fica em seguir com a governanca do roadmap em vez de parar na consolidacao do dispatcher.
+- 2026-05-01: iteracao 72 registrada; o catalogo passou a expor status de ciclo de vida e alguns aliases foram marcados como `Deprecated`, com cobertura de teste para a nova politica, e a proxima parada fica em formalizar a regia de remocao futura e fechar a fase operacional sem perder o historico.
+- 2026-05-01: iteracao 73 registrada; o validador agora rejeita qualquer feature marcada como `Removed` que ainda seja comparavel e o teste de catalogo garante que o inventario atual nao exponha recursos removidos, entao a proxima parada fica em fechar a regra de depreciacao/remocao e consolidar a fase sem perder o historico.
+- 2026-05-01: iteracao 74 registrada; o catalogo exportado e a documentacao principal agora sinalizam `Deprecated` de forma explicita e a regra de `Removed` ficou reservada para remocao formal, entao a proxima parada fica em consolidar o historico de mudancas e encerrar a Fase 6 sem reabrir a arquitetura de suites.
+- 2026-05-01: iteracao 75 registrada; a politica de historico e depreciacao ganhou regra operacional explicita no roadmap para manter `Deprecated` rastreavel e reservar `Removed` para remocao formal, e a proxima parada fica em consolidar apenas o fechamento da Fase 6 sem abrir novos blocos estruturais.
+- 2026-05-01: iteracao 76 registrada; mais aliases explicitos foram marcados como `Deprecated`, o teste de politica foi ampliado para cobrir os aliases de math tambem e os exportadores da wiki passaram a exibir o status do catalogo, entao a proxima parada fica em consolidar o fechamento da Fase 6 com a leitura publica do ciclo de vida ja exposta.
+- 2026-05-01: iteracao 77 registrada; as tabelas da wiki tiveram as linhas de categoria realinhadas com a nova coluna `Status`, entao a proxima parada fica em fechar a Fase 6 com a leitura publica consistente em ambos os formatos de exportacao.
+- 2026-05-01: iteracao 78 registrada; a matriz app-specific agora segue a mesma leitura publica de `Status` e a documentacao foi alinhada ao comportamento novo, entao a proxima parada fica apenas em encerrar formalmente a Fase 6 sem reabrir estruturas.
+- 2026-05-01: iteracao 79 registrada; o checklist da Fase 6 foi fechado e a fase passou a estar formalmente concluida no roadmap, entao qualquer novo trabalho deve nascer como uma fase ou item independente.
+- 2026-05-01: iteracao 80 registrada; a Fase 7 foi aberta com um orquestrador unico de publicacao para as duas matrizes principais e a proxima parada fica em decidir o destino da variante `single-table` sem tocar na estrutura dos benchmarks.
+- 2026-05-01: iteracao 81 registrada; a variante `single-table` foi mantida apenas como atalho legado opcional e a documentacao foi alinhada para nao coloca-la no fluxo padrao de publicacao.
+- 2026-05-01: iteracao 82 registrada; a documentacao da Fase 7 agora expõe os comandos especializados e o orquestrador unico sem esconder o uso manual dos scripts antigos, e a proxima parada fica em manter o fluxo de publicacao simples e previsivel sem abrir novos blocos.
+- 2026-05-01: iteracao 83 registrada; o roadmap foi alinhado ao orquestrador unico e ao suporte legado opcional da variante `single-table`, e a proxima parada fica em consolidar apenas o fluxo normal de publicacao sem abrir novos formatos.
+- 2026-05-01: iteracao 84 registrada; o README e o roadmap foram alinhados ao mapeamento real por alias e wrappers, e a proxima parada fica em manter a Fase 7 apenas como consolidacao do fluxo normal de publicacao.
+- 2026-05-01: iteracao 85 registrada; a Fase 7 foi fechada no roadmap com o orquestrador unico consolidado e a variante `single-table` mantida apenas como legado opcional, entao qualquer novo trabalho deve nascer como uma fase independente.
+- 2026-05-01: iteracao 86 registrada; o `BenchmarkRunOptions` recebeu documentacao completa de parametros e a proxima parada fica em revisar os demais registros publicos novos do runner para fechar a higiene final de XML docs da Fase 8.
+- 2026-05-01: iteracao 87 registrada; os docs novos do runner foram normalizados para `PT-br` em `Program.cs` e a proxima parada fica em identificar e corrigir eventuais lacunas de XML docs nas superficies publicas tocadas pela Fase 6 e Fase 7.
+- 2026-05-01: iteracao 88 registrada; `BenchmarkCatalogValidator` e `ProviderDefinition` foram normalizados para `PT-br` nos contratos publicos e a proxima parada fica em revisar o restante das superficies publicas recentes ate a fase poder ser fechada em consolidacao documental.
+- 2026-05-01: iteracao 89 registrada; os contratos menores de `BenchmarkEngine`, `BenchmarkLogPath`, `FeatureCatalog` e `IBenchmarkSession` foram normalizados para `PT-br`, e a proxima parada fica em reduzir o restante do `PT` que ainda concentra em `BenchmarkFeatureId` e em alguns contratos de suite antes de poder fechar a fase.
+- 2026-05-01: iteracao 90 registrada; o residual de `PT:` foi eliminado dos contratos publicos do benchmark e dos testes de suporte, a Fase 8 ficou concluida no roadmap e a proxima parada passa a ser uma nova etapa independente caso ainda haja escopo para continuar.
+- 2026-05-01: iteracao 91 registrada; o contrato compartilhado `ScalarFunctionAttribute` foi documentado e a Fase 9 foi aberta para continuar a higiene documental nos atributos e helpers publicos do runtime compartilhado.
+- 2026-05-01: iteracao 92 registrada; os atributos xUnit `MemberDataVersionAttribute` e `MemberDataByVersionAttribute` foram normalizados para `PT-br`, e a proxima parada fica em revisar os demais atributos e helpers publicos compartilhados com escopo real de uso pelos geradores e contratos de suporte.
+- 2026-05-01: iteracao 93 registrada; a varredura em `src` nao encontrou mais `PT:` residual, a Fase 9 foi concluida no roadmap e qualquer novo trabalho devera nascer como uma nova etapa independente.
+- 2026-05-01: iteracao 94 registrada; todos os 258 handlers `Run*` de `BenchmarkSessionBase` passaram a carregar `BenchmarkFeatureAttribute` explicitamente, fechando a cobertura completa pedida para o dispatcher por atributo.

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared string-aggregation workflows.
-/// PT: Executa testes de fidelidade SQLite para os fluxos compartilhados de agregacao de strings.
+/// PT-br: Executa testes de fidelidade SQLite para os fluxos compartilhados de agregacao de strings.
 /// </summary>
 public class StringAggregateTests(
     ITestOutputHelper helper

@@ -4,7 +4,7 @@ public abstract partial class BenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Executes the SQL Server metadata functions benchmark.
-    /// PT: Executa o benchmark de funcoes de metadata do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes de metadata do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -12,7 +12,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SCOPE_IDENTITY benchmark.
-    /// PT: Executa o benchmark SCOPE_IDENTITY.
+    /// PT-br: Executa o benchmark SCOPE_IDENTITY.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -20,7 +20,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server system functions benchmark.
-    /// PT: Executa o benchmark de funcoes de sistema do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes de sistema do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -28,7 +28,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server special functions benchmark.
-    /// PT: Executa o benchmark de funcoes especiais do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes especiais do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -36,7 +36,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server context functions benchmark.
-    /// PT: Executa o benchmark de funcoes de contexto do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes de contexto do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -44,7 +44,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server transaction state functions benchmark.
-    /// PT: Executa o benchmark de funcoes de estado de transacao do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes de estado de transacao do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -52,7 +52,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server session functions benchmark.
-    /// PT: Executa o benchmark de funcoes de sessao do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes de sessao do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -60,7 +60,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server string functions benchmark.
-    /// PT: Executa o benchmark de funcoes de string do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes de string do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -68,7 +68,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server string utility benchmark.
-    /// PT: Executa o benchmark de utilitarios de string do SQL Server.
+    /// PT-br: Executa o benchmark de utilitarios de string do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -76,7 +76,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server string metadata benchmark.
-    /// PT: Executa o benchmark de metadados de string do SQL Server.
+    /// PT-br: Executa o benchmark de metadados de string do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -84,7 +84,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server STRING_ESCAPE benchmark.
-    /// PT: Executa o benchmark STRING_ESCAPE do SQL Server.
+    /// PT-br: Executa o benchmark STRING_ESCAPE do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -92,7 +92,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server TRANSLATE benchmark.
-    /// PT: Executa o benchmark TRANSLATE do SQL Server.
+    /// PT-br: Executa o benchmark TRANSLATE do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -100,7 +100,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server FORMATMESSAGE benchmark.
-    /// PT: Executa o benchmark FORMATMESSAGE do SQL Server.
+    /// PT-br: Executa o benchmark FORMATMESSAGE do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -108,7 +108,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server ISJSON benchmark.
-    /// PT: Executa o benchmark ISJSON do SQL Server.
+    /// PT-br: Executa o benchmark ISJSON do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -116,7 +116,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server FORMAT benchmark.
-    /// PT: Executa o benchmark FORMAT do SQL Server.
+    /// PT-br: Executa o benchmark FORMAT do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -124,7 +124,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server PARSE-family benchmark.
-    /// PT: Executa o benchmark da familia PARSE do SQL Server.
+    /// PT-br: Executa o benchmark da familia PARSE do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -132,7 +132,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server SOUNDEX benchmark.
-    /// PT: Executa o benchmark SOUNDEX do SQL Server.
+    /// PT-br: Executa o benchmark SOUNDEX do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -140,7 +140,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server compression benchmark.
-    /// PT: Executa o benchmark de compressao do SQL Server.
+    /// PT-br: Executa o benchmark de compressao do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -148,7 +148,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the APPROX_COUNT_DISTINCT benchmark.
-    /// PT: Executa o benchmark APPROX_COUNT_DISTINCT.
+    /// PT-br: Executa o benchmark APPROX_COUNT_DISTINCT.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -156,7 +156,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the percentile aggregate benchmark.
-    /// PT: Executa o benchmark de agregacao por percentil.
+    /// PT-br: Executa o benchmark de agregacao por percentil.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -164,7 +164,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the SQL Server aggregate functions benchmark.
-    /// PT: Executa o benchmark de funcoes de agregacao do SQL Server.
+    /// PT-br: Executa o benchmark de funcoes de agregacao do SQL Server.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]

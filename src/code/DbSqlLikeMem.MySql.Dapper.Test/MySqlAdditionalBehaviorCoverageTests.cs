@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// EN: Covers additional MySQL behavior scenarios for the Dapper provider.
-/// PT: Cobre cenarios adicionais de comportamento MySQL para o provedor Dapper.
+/// PT-br: Cobre cenarios adicionais de comportamento MySQL para o provedor Dapper.
 /// </summary>
 public sealed class MySqlAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper
@@ -16,7 +16,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies IS NULL and IS NOT NULL predicates return the expected rows.
-    /// PT: Verifica se os predicados IS NULL e IS NOT NULL retornam as linhas esperadas.
+    /// PT-br: Verifica se os predicados IS NULL e IS NOT NULL retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -24,7 +24,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies equality comparisons against NULL return no rows.
-    /// PT: Verifica se comparacoes de igualdade com NULL nao retornam linhas.
+    /// PT-br: Verifica se comparacoes de igualdade com NULL nao retornam linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -32,7 +32,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies left joins preserve left-side rows when there is no matching right-side row.
-    /// PT: Verifica se left joins preservam as linhas da esquerda quando nao ha linha correspondente na direita.
+    /// PT-br: Verifica se left joins preservam as linhas da esquerda quando nao ha linha correspondente na direita.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -40,7 +40,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies mixed descending and ascending ordering is deterministic.
-    /// PT: Verifica se a ordenacao mista decrescente e crescente e deterministica.
+    /// PT-br: Verifica se a ordenacao mista decrescente e crescente e deterministica.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -48,7 +48,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies COUNT(*) and COUNT(column) handle null values differently as expected.
-    /// PT: Verifica se COUNT(*) e COUNT(coluna) tratam valores nulos de forma diferente conforme esperado.
+    /// PT-br: Verifica se COUNT(*) e COUNT(coluna) tratam valores nulos de forma diferente conforme esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -56,7 +56,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies HAVING filters grouped results correctly.
-    /// PT: Verifica se HAVING filtra corretamente os resultados agrupados.
+    /// PT-br: Verifica se HAVING filtra corretamente os resultados agrupados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -64,7 +64,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies parameter lists work correctly in IN predicates.
-    /// PT: Verifica se listas de parametros funcionam corretamente em predicados IN.
+    /// PT-br: Verifica se listas de parametros funcionam corretamente em predicados IN.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -72,7 +72,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies inserts map values correctly when columns are specified out of order.
-    /// PT: Verifica se insercoes mapeiam valores corretamente quando as colunas sao informadas fora de ordem.
+    /// PT-br: Verifica se insercoes mapeiam valores corretamente quando as colunas sao informadas fora de ordem.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -80,7 +80,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies deletes using an IN parameter list remove the expected rows.
-    /// PT: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
+    /// PT-br: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]
@@ -88,7 +88,7 @@ public sealed class MySqlAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies update set expressions can reference the current column value correctly.
-    /// PT: Verifica se expressoes SET em updates podem referenciar corretamente o valor atual da coluna.
+    /// PT-br: Verifica se expressoes SET em updates podem referenciar corretamente o valor atual da coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdditionalBehaviorCoverage")]

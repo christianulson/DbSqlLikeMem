@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.Query;
 
 /// <summary>
 /// EN: Executes shared query benchmark workflows and validates the observed provider results.
-/// PT: Executa fluxos compartilhados de benchmark de consulta e valida os resultados observados do provedor.
+/// PT-br: Executa fluxos compartilhados de benchmark de consulta e valida os resultados observados do provedor.
 /// </summary>
 public partial class QueryServiceTest(
         RepoService repo,

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers all DbType branches of SqlParameterDbTypeParserHelper.ParseDbType.
-/// PT: Cobre todos os ramos de DbType do SqlParameterDbTypeParserHelper.ParseDbType.
+/// PT-br: Cobre todos os ramos de DbType do SqlParameterDbTypeParserHelper.ParseDbType.
 /// </summary>
 public sealed class SqlParameterDbTypeParserHelperTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 {
     /// <summary>
     /// EN: Verifies that integer-like SQL type tokens map to DbType.Int32.
-    /// PT: Verifica que tokens de tipo SQL inteiro mapeiam para DbType.Int32.
+    /// PT-br: Verifica que tokens de tipo SQL inteiro mapeiam para DbType.Int32.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -27,7 +27,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies that BIGINT maps to DbType.Int64.
-    /// PT: Verifica que BIGINT mapeia para DbType.Int64.
+    /// PT-br: Verifica que BIGINT mapeia para DbType.Int64.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -40,7 +40,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies DECIMAL and NUMERIC map to DbType.Decimal.
-    /// PT: Verifica que DECIMAL e NUMERIC mapeiam para DbType.Decimal.
+    /// PT-br: Verifica que DECIMAL e NUMERIC mapeiam para DbType.Decimal.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -55,7 +55,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies NUMBER maps to DbType.Decimal.
-    /// PT: Verifica que NUMBER mapeia para DbType.Decimal.
+    /// PT-br: Verifica que NUMBER mapeia para DbType.Decimal.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -66,7 +66,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies floating-point type tokens map to DbType.Double.
-    /// PT: Verifica que tokens de tipo ponto flutuante mapeiam para DbType.Double.
+    /// PT-br: Verifica que tokens de tipo ponto flutuante mapeiam para DbType.Double.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -81,7 +81,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies BOOLEAN and BOOL map to DbType.Boolean.
-    /// PT: Verifica que BOOLEAN e BOOL mapeiam para DbType.Boolean.
+    /// PT-br: Verifica que BOOLEAN e BOOL mapeiam para DbType.Boolean.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -95,7 +95,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies DATE maps to DbType.Date.
-    /// PT: Verifica que DATE mapeia para DbType.Date.
+    /// PT-br: Verifica que DATE mapeia para DbType.Date.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -106,7 +106,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies TIMESTAMP and DATETIME map to DbType.DateTime.
-    /// PT: Verifica que TIMESTAMP e DATETIME mapeiam para DbType.DateTime.
+    /// PT-br: Verifica que TIMESTAMP e DATETIME mapeiam para DbType.DateTime.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -120,7 +120,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies GUID and UUID map to DbType.Guid.
-    /// PT: Verifica que GUID e UUID mapeiam para DbType.Guid.
+    /// PT-br: Verifica que GUID e UUID mapeiam para DbType.Guid.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -134,7 +134,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies binary type tokens map to DbType.Binary.
-    /// PT: Verifica que tokens de tipo binário mapeiam para DbType.Binary.
+    /// PT-br: Verifica que tokens de tipo binário mapeiam para DbType.Binary.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -150,7 +150,7 @@ public sealed class SqlParameterDbTypeParserHelperTests(
 
     /// <summary>
     /// EN: Verifies that unknown or VARCHAR-style tokens fall back to DbType.String.
-    /// PT: Verifica que tokens desconhecidos ou do estilo VARCHAR voltam para DbType.String.
+    /// PT-br: Verifica que tokens desconhecidos ou do estilo VARCHAR voltam para DbType.String.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]

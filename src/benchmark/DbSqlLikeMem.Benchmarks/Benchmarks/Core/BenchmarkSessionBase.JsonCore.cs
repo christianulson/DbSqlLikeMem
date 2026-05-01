@@ -6,6 +6,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the JSON scalar read benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark de leitura escalar JSON e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonScalarRead)]
     protected virtual void RunJsonScalarRead()
     {
         if (!Dialect.SupportsJsonScalarRead)
@@ -23,6 +24,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the JSON path read benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark de leitura por caminho JSON e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonPathRead)]
     protected virtual void RunJsonPathRead()
     {
         if (!Dialect.SupportsJsonScalarRead)
@@ -40,6 +42,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the JSON missing-path benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark de caminho JSON ausente e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonMissingPathRead)]
     protected virtual void RunJsonMissingPathRead()
     {
         if (!Dialect.SupportsJsonScalarRead)
@@ -54,8 +57,9 @@ public abstract partial class BenchmarkSessionBase
 
     /// <summary>
     /// EN: Executes the missing JSON path benchmark and keeps the provider result alive when it is null.
-    /// PT: Executa o benchmark de caminho JSON ausente e mantem o resultado do provedor vivo quando ele eh nulo.
+    /// PT-br: Executa o benchmark de caminho JSON ausente e mantem o resultado do provedor vivo quando ele eh nulo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonMissingPathReturnsNull)]
     protected virtual void RunJsonMissingPathReturnsNull()
         => RunJsonMissingPathRead();
 
@@ -63,6 +67,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the JSON_QUERY root-fragment benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark de fragmento raiz JSON_QUERY e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonQueryRootFragment)]
     protected virtual void RunJsonQueryRootFragment()
     {
         if (!Dialect.SupportsJsonQueryFunction)
@@ -79,6 +84,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the JSON_MODIFY replacement benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark de substituicao JSON_MODIFY e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonModifyReplace)]
     protected virtual void RunJsonModifyReplace()
     {
         if (!Dialect.SupportsSqlServerScalarFunction("JSON_MODIFY"))
@@ -95,6 +101,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the JSON typed field matrix benchmark and keeps the validated snapshot alive.
     /// PT-br: Executa o benchmark da matriz de campos tipados com JSON e mantem o snapshot validado ativo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonTypedFieldMatrix)]
     protected virtual void RunJsonTypedFieldMatrix()
     {
         if (!Dialect.SupportsJsonScalarRead)
@@ -111,6 +118,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the json_each benchmark over a JSON array and keeps the provider result alive.
     /// PT-br: Executa o benchmark json_each sobre um array JSON e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonEachFromArray)]
     protected virtual void RunJsonEachFromArray()
     {
         if (!Dialect.SupportsJsonEachFunction)
@@ -127,6 +135,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the json_each benchmark over a JSON object and keeps the provider result alive.
     /// PT-br: Executa o benchmark json_each sobre um objeto JSON e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonEachFromObject)]
     protected virtual void RunJsonEachFromObject()
     {
         if (!Dialect.SupportsJsonEachFunction)
@@ -143,6 +152,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the json_tree benchmark over JSON and keeps the provider result alive.
     /// PT-br: Executa o benchmark json_tree sobre JSON e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonTreeStructure)]
     protected virtual void RunJsonTreeStructure()
     {
         if (!Dialect.SupportsJsonTreeFunction)
@@ -159,6 +169,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the OPENJSON array benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark OPENJSON de array e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.OpenJsonArray)]
     protected virtual void RunOpenJsonArray()
     {
         if (!Dialect.SupportsOpenJsonFunction)

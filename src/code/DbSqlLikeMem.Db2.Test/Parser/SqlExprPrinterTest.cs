@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Test.Parser;
 
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the Db2 parser.
-/// PT: Cobre o round-trip de impressao de expressoes SQL no parser Db2.
+/// PT-br: Cobre o round-trip de impressao de expressoes SQL no parser Db2.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlExprPrinterTest(
 {
     /// <summary>
     /// EN: Verifies parsed expressions can be printed and parsed again without changing the normalized output.
-    /// PT: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
+    /// PT-br: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -30,7 +30,7 @@ public sealed class SqlExprPrinterTest(
 
     /// <summary>
     /// EN: Provides sample expressions for the round-trip parser test.
-    /// PT: Fornece expressoes de exemplo para o teste de round-trip do parser.
+    /// PT-br: Fornece expressoes de exemplo para o teste de round-trip do parser.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {

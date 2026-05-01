@@ -4,7 +4,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 {
     /// <summary>
     /// EN: Implements ExecuteExecuteBlock.
-    /// PT: Implementa ExecuteExecuteBlock.
+    /// PT-br: Implementa ExecuteExecuteBlock.
     /// </summary>
     public static DmlExecutionResult ExecuteExecuteBlock(
         this DbConnectionMockBase connection,

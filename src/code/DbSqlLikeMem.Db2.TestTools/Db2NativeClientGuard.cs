@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.TestTools;
 
 /// <summary>
 /// EN: Validates that the Db2 native client can be loaded before any real provider connection is created.
-/// PT: Valida se o cliente nativo do Db2 pode ser carregado antes de qualquer conexao real do provedor ser criada.
+/// PT-br: Valida se o cliente nativo do Db2 pode ser carregado antes de qualquer conexao real do provedor ser criada.
 /// </summary>
 public static class Db2NativeClientGuard
 {
@@ -10,9 +10,9 @@ public static class Db2NativeClientGuard
 
     /// <summary>
     /// EN: Ensures the Db2 native client is available in the current process.
-    /// PT: Garante que o cliente nativo do Db2 esteja disponivel no processo atual.
+    /// PT-br: Garante que o cliente nativo do Db2 esteja disponivel no processo atual.
     /// </summary>
-    /// <exception cref="DbSqlLikeMem.TestTools.FidelityTestSkippedException">EN: Thrown when the Db2 native client cannot be loaded. PT: Lancada quando o cliente nativo do Db2 nao pode ser carregado.</exception>
+    /// <exception cref="DbSqlLikeMem.TestTools.FidelityTestSkippedException">EN: Thrown when the Db2 native client cannot be loaded. PT-br: Lancada quando o cliente nativo do Db2 nao pode ser carregado.</exception>
     public static void EnsureNativeClientAvailable()
     {
         var candidatePath = Path.Combine(AppContext.BaseDirectory, "clidriver", "bin", NativeLibraryName);

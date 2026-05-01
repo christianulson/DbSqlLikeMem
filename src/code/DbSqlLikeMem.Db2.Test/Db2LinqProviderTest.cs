@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Db2.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for Db2 connections.
-/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes Db2.
+/// PT-br: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes Db2.
 /// </summary>
 public sealed class Db2LinqProviderTest(
         ITestOutputHelper helper
@@ -12,13 +12,13 @@ public sealed class Db2LinqProviderTest(
     {
         /// <summary>
         /// EN: Gets or sets Id.
-        /// PT: Obtém ou define Id.
+        /// PT-br: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
         /// EN: Gets or sets Name.
-        /// PT: Obtém ou define Name.
+        /// PT-br: Obtém ou define Name.
         /// </summary>
         public string Name { get; set; } = "";
     }
@@ -26,7 +26,7 @@ public sealed class Db2LinqProviderTest(
 
     /// <summary>
     /// EN: Verifies LINQ queries filter rows and project the expected Db2 results.
-    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no Db2.
+    /// PT-br: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no Db2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2LinqProviderTest")]

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Creates and queries a schema-qualified sequence for PostgreSQL fidelity.
-/// PT: Cria e consulta uma sequence qualificada por schema para fidelidade do PostgreSQL.
+/// PT-br: Cria e consulta uma sequence qualificada por schema para fidelidade do PostgreSQL.
 /// </summary>
 public sealed class SequenceSchemaQualifiedServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceSchemaQualifiedServiceTest(
 {
     /// <summary>
     /// EN: Returns the values produced by schema-qualified sequence access during an insert round-trip.
-    /// PT: Retorna os valores produzidos pelo acesso a sequence qualificada por schema durante um round-trip de insert.
+    /// PT-br: Retorna os valores produzidos pelo acesso a sequence qualificada por schema durante um round-trip de insert.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceSchemaQualifiedAsync();
 
     /// <summary>
     /// EN: Returns the values produced by schema-qualified sequence access during an insert round-trip.
-    /// PT: Retorna os valores produzidos pelo acesso a sequence qualificada por schema durante um round-trip de insert.
+    /// PT-br: Retorna os valores produzidos pelo acesso a sequence qualificada por schema durante um round-trip de insert.
     /// </summary>
     public async Task<long[]> RunSequenceSchemaQualifiedAsync()
     {

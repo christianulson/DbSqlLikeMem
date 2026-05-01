@@ -6,13 +6,13 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Loads CSV rows into a mock database table.
-/// PT: Carrega linhas CSV para uma tabela de banco mock.
+/// PT-br: Carrega linhas CSV para uma tabela de banco mock.
 /// </summary>
 public static class CsvLoader
 {
     /// <summary>
     /// EN: Reads a CSV file and inserts each record into the target mock table.
-    /// PT: Le um arquivo CSV e insere cada registro na tabela mock de destino.
+    /// PT-br: Le um arquivo CSV e insere cada registro na tabela mock de destino.
     /// </summary>
     public static void LoadCsv(
         this DbMock db,

@@ -2,16 +2,16 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Executes transaction and savepoint workflows over the shared test infrastructure.
-/// PT: Executa fluxos de transacao e savepoint sobre a infraestrutura compartilhada de testes.
+/// PT-br: Executa fluxos de transacao e savepoint sobre a infraestrutura compartilhada de testes.
 /// </summary>
 public partial class DmlMutationServiceTest : BaseServiceTest
 {
     /// <summary>
     /// EN: Creates a transaction service wrapper for the current fidelity test run.
-    /// PT: Cria um wrapper de servico de transacao para a execucao atual do teste de fidelidade.
+    /// PT-br: Cria um wrapper de servico de transacao para a execucao atual do teste de fidelidade.
     /// </summary>
-    /// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-    /// <param name="context">EN: Scenario context with the current parameters. PT: Contexto do cenario com os parametros atuais.</param>
+    /// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+    /// <param name="context">EN: Scenario context with the current parameters. PT-br: Contexto do cenario com os parametros atuais.</param>
     public DmlMutationServiceTest(RepoService repo, FidelityTestContext context)
         : base(repo, context)
     {
@@ -19,7 +19,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Gets the active database connection for the current run.
-    /// PT: Obtem a conexao de banco de dados ativa da execucao atual.
+    /// PT-br: Obtem a conexao de banco de dados ativa da execucao atual.
     /// </summary>
     protected DbConnection Connection
     {
@@ -36,17 +36,17 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Gets the active SQL dialect for the current run.
-    /// PT: Obtem o dialeto SQL ativo da execucao atual.
+    /// PT-br: Obtem o dialeto SQL ativo da execucao atual.
     /// </summary>
     protected ProviderSqlDialect Dialect => Repo.Dialect;
 
     /// <summary>
     /// EN: Executes a non-query SQL command synchronously against the active connection.
-    /// PT: Executa um comando SQL sem resultado de forma sincronizada na conexao ativa.
+    /// PT-br: Executa um comando SQL sem resultado de forma sincronizada na conexao ativa.
     /// </summary>
-    /// <param name="sql">EN: SQL command text. PT: Texto do comando SQL.</param>
-    /// <param name="transaction">EN: Optional transaction to enlist. PT: Transacao opcional para associar.</param>
-    /// <returns>EN: Affected row count. PT: Quantidade de linhas afetadas.</returns>
+    /// <param name="sql">EN: SQL command text. PT-br: Texto do comando SQL.</param>
+    /// <param name="transaction">EN: Optional transaction to enlist. PT-br: Transacao opcional para associar.</param>
+    /// <returns>EN: Affected row count. PT-br: Quantidade de linhas afetadas.</returns>
     protected int ExecuteNonQuery(string sql, DbTransaction? transaction = null)
     {
         using var command = Connection.CreateCommand();
@@ -57,11 +57,11 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Executes a scalar SQL command synchronously against the active connection.
-    /// PT: Executa um comando SQL escalar de forma sincronizada na conexao ativa.
+    /// PT-br: Executa um comando SQL escalar de forma sincronizada na conexao ativa.
     /// </summary>
-    /// <param name="sql">EN: SQL command text. PT: Texto do comando SQL.</param>
-    /// <param name="transaction">EN: Optional transaction to enlist. PT: Transacao opcional para associar.</param>
-    /// <returns>EN: Scalar value returned by the command. PT: Valor escalar retornado pelo comando.</returns>
+    /// <param name="sql">EN: SQL command text. PT-br: Texto do comando SQL.</param>
+    /// <param name="transaction">EN: Optional transaction to enlist. PT-br: Transacao opcional para associar.</param>
+    /// <returns>EN: Scalar value returned by the command. PT-br: Valor escalar retornado pelo comando.</returns>
     protected object? ExecuteScalar(string sql, DbTransaction? transaction = null)
     {
         using var command = Connection.CreateCommand();
@@ -72,7 +72,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Inserts a row inside a transaction, commits it, and validates the persisted count.
-    /// PT: Insere uma linha dentro de uma transação, confirma a operação e valida a contagem persistida.
+    /// PT-br: Insere uma linha dentro de uma transação, confirma a operação e valida a contagem persistida.
     /// </summary>
     public int RunTransactionCommit(params object[] pars)
     {
@@ -91,7 +91,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Inserts a row inside a transaction, rolls it back, and validates that no rows remain.
-    /// PT: Insere uma linha dentro de uma transação, desfaz a operação e valida que nenhuma linha permaneceu.
+    /// PT-br: Insere uma linha dentro de uma transação, desfaz a operação e valida que nenhuma linha permaneceu.
     /// </summary>
     public int RunTransactionRollback(params object[] pars)
     {
@@ -110,7 +110,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Creates a savepoint inside a transaction when the provider supports it.
-    /// PT: Cria um savepoint dentro de uma transação quando o provedor suporta isso.
+    /// PT-br: Cria um savepoint dentro de uma transação quando o provedor suporta isso.
     /// </summary>
     public void RunSavepointCreate()
     {
@@ -127,7 +127,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Rolls back to a savepoint and validates the remaining row count.
-    /// PT: Faz rollback para um savepoint e valida a contagem de linhas restante.
+    /// PT-br: Faz rollback para um savepoint e valida a contagem de linhas restante.
     /// </summary>
     public int RunRollbackToSavepoint(params object[] pars)
     {
@@ -155,7 +155,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Releases a savepoint inside a transaction when the provider supports it.
-    /// PT: Libera um savepoint dentro de uma transação quando o provedor suporta isso.
+    /// PT-br: Libera um savepoint dentro de uma transação quando o provedor suporta isso.
     /// </summary>
     public void RunReleaseSavepoint()
     {
@@ -173,7 +173,7 @@ public partial class DmlMutationServiceTest : BaseServiceTest
 
     /// <summary>
     /// EN: Executes a nested savepoint flow and validates the resulting row count.
-    /// PT: Executa um fluxo aninhado de savepoints e valida a contagem final de linhas.
+    /// PT-br: Executa um fluxo aninhado de savepoints e valida a contagem final de linhas.
     /// </summary>
     public int RunNestedSavepointFlow(params object[] pars)
     {

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MariaDb.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs MariaDB fidelity tests for the shared CRUD workflows.
-/// PT: Executa testes de fidelidade MariaDB para os fluxos compartilhados de CRUD.
+/// PT-br: Executa testes de fidelidade MariaDB para os fluxos compartilhados de CRUD.
 /// </summary>
 public class CrudTests(
     ITestOutputHelper helper

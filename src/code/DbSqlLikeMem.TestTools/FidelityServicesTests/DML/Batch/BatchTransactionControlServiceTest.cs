@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Executes a batch inside a transaction and keeps the table name alive after commit.
-/// PT: Executa um lote dentro de uma transação e mantém o nome da tabela vivo após o commit.
+/// PT-br: Executa um lote dentro de uma transação e mantém o nome da tabela vivo após o commit.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,9 +14,9 @@ public class BatchTransactionControlServiceTest(
 {
     /// <summary>
     /// EN: Executes a batch inside a transaction and keeps the table name alive after commit.
-    /// PT: Executa um lote dentro de uma transação e mantém o nome da tabela vivo após o commit.
+    /// PT-br: Executa um lote dentro de uma transação e mantém o nome da tabela vivo após o commit.
     /// </summary>
-    /// <param name="args">EN: Optional user ids for the inserted rows. PT: Ids opcionais de usuario para as linhas inseridas.</param>
+    /// <param name="args">EN: Optional user ids for the inserted rows. PT-br: Ids opcionais de usuario para as linhas inseridas.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var firstUserId = args.Length > 0 ? (int)args[0] : 1;

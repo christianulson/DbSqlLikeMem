@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MariaDb.Test.Fidelity.Schema;
 
 /// <summary>
 /// EN: Runs MariaDB fidelity tests for the shared schema-snapshot workflows.
-/// PT: Executa testes de fidelidade MariaDB para os fluxos compartilhados de snapshot de schema.
+/// PT-br: Executa testes de fidelidade MariaDB para os fluxos compartilhados de snapshot de schema.
 /// </summary>
 public class SchemaSnapshotTests(
     ITestOutputHelper helper

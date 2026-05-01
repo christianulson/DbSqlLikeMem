@@ -4,7 +4,7 @@ using Oracle.ManagedDataAccess.Client;
 namespace DbSqlLikeMem.Oracle;
 /// <summary>
 /// EN: Represents Oracle Data Parameter Collection Mock.
-/// PT: Representa Oracle Data Parameter Collection simulado.
+/// PT-br: Representa Oracle Data Parameter Collection simulado.
 /// </summary>
 public class OracleDataParameterCollectionMock
     : DbParameterCollection, IList<OracleParameter>
@@ -49,13 +49,13 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets parameter.
-    /// PT: Obtém parâmetro.
+    /// PT-br: Obtém parâmetro.
     /// </summary>
     protected override DbParameter GetParameter(int index) => Items[index];
 
     /// <summary>
     /// EN: Gets parameter.
-    /// PT: Obtém parâmetro.
+    /// PT-br: Obtém parâmetro.
     /// </summary>
     protected override DbParameter GetParameter(string parameterName)
     {
@@ -67,7 +67,7 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Sets parameter.
-    /// PT: Define parâmetro.
+    /// PT-br: Define parâmetro.
     /// </summary>
     protected override void SetParameter(int index, DbParameter value)
     {
@@ -87,14 +87,14 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Sets parameter.
-    /// PT: Define parâmetro.
+    /// PT-br: Define parâmetro.
     /// </summary>
     protected override void SetParameter(string parameterName, DbParameter value)
         => SetParameter(IndexOf(parameterName), value);
 
     /// <summary>
     /// EN: Sets parameter.
-    /// PT: Define parâmetro.
+    /// PT-br: Define parâmetro.
     /// </summary>
     public new OracleParameter this[int index]
     {
@@ -104,7 +104,7 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets parameter.
-    /// PT: Obtém parâmetro.
+    /// PT-br: Obtém parâmetro.
     /// </summary>
     public new OracleParameter this[string name]
     {
@@ -114,19 +114,19 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets or sets count.
-    /// PT: Obtém ou define count.
+    /// PT-br: Obtém ou define count.
     /// </summary>
     public override int Count => Items.Count;
 
     /// <summary>
     /// EN: Gets or sets sync root.
-    /// PT: Obtém ou define sync root.
+    /// PT-br: Obtém ou define sync root.
     /// </summary>
     public override object SyncRoot => true;
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public OracleParameter Add(string parameterName, DbType dbType)
     {
@@ -141,7 +141,7 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public override int Add(object value)
     {
@@ -152,7 +152,7 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public OracleParameter Add(OracleParameter parameter)
     {
@@ -163,18 +163,18 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public OracleParameter Add(string parameterName, OracleDbType OracleDbType) => Add(new(parameterName, OracleDbType));
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public OracleParameter Add(string parameterName, OracleDbType OracleDbType, int size) => Add(new(parameterName, OracleDbType, size));
 
     /// <summary>
     /// EN: Represents Add Range.
-    /// PT: Representa Add Range.
+    /// PT-br: Representa Add Range.
     /// </summary>
     public override void AddRange(Array values)
     {
@@ -185,7 +185,7 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Represents Add With Value.
-    /// PT: Representa Add With Value.
+    /// PT-br: Representa Add With Value.
     /// </summary>
     public OracleParameter AddWithValue(string parameterName, object? value)
     {
@@ -200,28 +200,28 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the contains operation.
-    /// PT: Executa a operação de contains.
+    /// PT-br: Executa a operação de contains.
     /// </summary>
     public override bool Contains(object value)
         => value is OracleParameter parameter && Items.Contains(parameter);
 
     /// <summary>
     /// EN: Performs the contains operation.
-    /// PT: Executa a operação de contains.
+    /// PT-br: Executa a operação de contains.
     /// </summary>
     public override bool Contains(string value)
         => IndexOf(value) != -1;
 
     /// <summary>
     /// EN: Performs the copy to operation.
-    /// PT: Executa a operação de copy to.
+    /// PT-br: Executa a operação de copy to.
     /// </summary>
     public override void CopyTo(Array array, int index)
         => ((ICollection)Items).CopyTo(array, index);
 
     /// <summary>
     /// EN: Performs the clear operation.
-    /// PT: Executa a operação de clear.
+    /// PT-br: Executa a operação de clear.
     /// </summary>
     public override void Clear()
     {
@@ -231,7 +231,7 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets enumerator.
-    /// PT: Obtém enumerador.
+    /// PT-br: Obtém enumerador.
     /// </summary>
     public override IEnumerator GetEnumerator()
         => Items.GetEnumerator();
@@ -240,48 +240,48 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the index of operation.
-    /// PT: Executa a operação de index of.
+    /// PT-br: Executa a operação de index of.
     /// </summary>
     public override int IndexOf(object value)
         => value is OracleParameter parameter ? Items.IndexOf(parameter) : -1;
 
     /// <summary>
     /// EN: Performs the index of operation.
-    /// PT: Executa a operação de index of.
+    /// PT-br: Executa a operação de index of.
     /// </summary>
     public override int IndexOf(string parameterName) => NormalizedIndexOf(parameterName);
 
     /// <summary>
     /// EN: Performs the insert operation.
-    /// PT: Executa a operação de insert.
+    /// PT-br: Executa a operação de insert.
     /// </summary>
     public override void Insert(int index, object? value)
         => AddParameter((OracleParameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
 
     /// <summary>
     /// EN: Performs the insert operation.
-    /// PT: Executa a operação de insert.
+    /// PT-br: Executa a operação de insert.
     /// </summary>
     public void Insert(int index, OracleParameter item)
         => Items[index] = item;
 
     /// <summary>
     /// EN: Performs the remove operation.
-    /// PT: Executa a operação de remove.
+    /// PT-br: Executa a operação de remove.
     /// </summary>
     public override void Remove(object? value)
         => RemoveAt(IndexOf(value ?? throw new ArgumentNullException(nameof(value))));
 
     /// <summary>
     /// EN: Performs the remove at operation.
-    /// PT: Executa a operação de remove at.
+    /// PT-br: Executa a operação de remove at.
     /// </summary>
     public override void RemoveAt(string parameterName)
     => RemoveAt(IndexOf(parameterName));
 
     /// <summary>
     /// EN: Performs the remove at operation.
-    /// PT: Executa a operação de remove at.
+    /// PT-br: Executa a operação de remove at.
     /// </summary>
     public override void RemoveAt(int index)
     {
@@ -301,7 +301,7 @@ public class OracleDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the index of operation.
-    /// PT: Executa a operação de index of.
+    /// PT-br: Executa a operação de index of.
     /// </summary>
     public int IndexOf(OracleParameter item)
         => Items.IndexOf(item);
@@ -309,19 +309,19 @@ public class OracleDataParameterCollectionMock
         => AddParameter(item, Items.Count);
     /// <summary>
     /// EN: Performs the contains operation.
-    /// PT: Executa a operação de contains.
+    /// PT-br: Executa a operação de contains.
     /// </summary>
     public bool Contains(OracleParameter item)
         => Items.Contains(item);
     /// <summary>
     /// EN: Performs the copy to operation.
-    /// PT: Executa a operação de copy to.
+    /// PT-br: Executa a operação de copy to.
     /// </summary>
     public void CopyTo(OracleParameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
     /// <summary>
     /// EN: Performs the remove operation.
-    /// PT: Executa a operação de remove.
+    /// PT-br: Executa a operação de remove.
     /// </summary>
     public bool Remove(OracleParameter item)
     {

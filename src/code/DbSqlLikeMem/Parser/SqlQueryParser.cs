@@ -21,11 +21,11 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Creates a parser for the provided SQL text and dialect without command parameters.
-    /// PT: Cria um parser para o SQL informado e o dialeto informado sem parametros de comando.
+    /// PT-br: Cria um parser para o SQL informado e o dialeto informado sem parametros de comando.
     /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="sql">EN: SQL text to parse. PT-br: Texto SQL para parsear.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
     public SqlQueryParser(
         string sql,
         DbMock db,
@@ -36,12 +36,12 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Creates a parser for the provided SQL text, dialect, and command parameters.
-    /// PT: Cria um parser para o SQL informado, o dialeto informado e os parametros de comando.
+    /// PT-br: Cria um parser para o SQL informado, o dialeto informado e os parametros de comando.
     /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="sql">EN: SQL text to parse. PT-br: Texto SQL para parsear.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT-br: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
     public SqlQueryParser(
         string sql,
         DbMock db,
@@ -53,13 +53,13 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Creates a parser for the provided SQL text, dialect, parameters, and optional custom function resolver.
-    /// PT: Cria um parser para o SQL informado, o dialeto informado, os parametros e um resolvedor opcional de funcoes customizadas.
+    /// PT-br: Cria um parser para o SQL informado, o dialeto informado, os parametros e um resolvedor opcional de funcoes customizadas.
     /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="sql">EN: SQL text to parse. PT-br: Texto SQL para parsear.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
-    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT-br: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
+    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT-br: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
     public SqlQueryParser(
         string sql,
         DbMock db,
@@ -108,12 +108,12 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using default parser options and no parameter collection.
-    /// PT: Faz o parsing de um statement SQL para a raiz da AST usando opções padrão do parser e sem coleção de parâmetros.
+    /// PT-br: Faz o parsing de um statement SQL para a raiz da AST usando opções padrão do parser e sem coleção de parâmetros.
     /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
-    /// <param name="db">EN: Database. PT: Banco.</param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
+    /// <param name="sql">EN: SQL text to parse. PT-br: Texto SQL para parsear.</param>
+    /// <param name="db">EN: Database. PT-br: Banco.</param>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <returns>EN: Parsed query AST root. PT-br: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase Parse(
         string sql,
         DbMock db,
@@ -122,14 +122,14 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using dialect capabilities and optional command parameters.
-    /// PT: Faz o parsing de um statement SQL para a raiz da AST usando capacidades do dialeto e parâmetros de comando opcionais.
+    /// PT-br: Faz o parsing de um statement SQL para a raiz da AST usando capacidades do dialeto e parâmetros de comando opcionais.
     /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="sql">EN: SQL text to parse. PT-br: Texto SQL para parsear.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
-    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
-    /// <returns>EN: Parsed query AST root. PT: Raiz da AST da query parseada.</returns>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized numeric values. PT-br: Parâmetros de comando opcionais usados por caminhos do parser que resolvem valores numéricos parametrizados.</param>
+    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT-br: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
+    /// <returns>EN: Parsed query AST root. PT-br: Raiz da AST da query parseada.</returns>
     public static SqlQueryBase Parse(
         string sql,
         DbMock db,
@@ -331,12 +331,12 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement using default parser options.
-    /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level usando opções padrão do parser.
+    /// PT-br: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level usando opções padrão do parser.
     /// </summary>
-    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="sql">EN: SQL batch text. PT-br: Texto SQL em lote.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect used to split and parse each statement. PT: Dialeto usado para separar e parsear cada statement.</param>
-    /// <returns>EN: Sequence of parsed AST roots. PT: Sequência de raízes de AST parseadas.</returns>
+    /// <param name="dialect">EN: Dialect used to split and parse each statement. PT-br: Dialeto usado para separar e parsear cada statement.</param>
+    /// <returns>EN: Sequence of parsed AST roots. PT-br: Sequência de raízes de AST parseadas.</returns>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
         DbMock db,
@@ -345,13 +345,13 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses a SQL batch and yields AST roots for each top-level statement split by semicolon boundaries.
-    /// PT: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level separado por fronteiras de ponto e vírgula.
+    /// PT-br: Faz o parsing de um lote SQL e retorna raízes de AST para cada statement top-level separado por fronteiras de ponto e vírgula.
     /// </summary>
-    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
+    /// <param name="sql">EN: SQL batch text. PT-br: Texto SQL em lote.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect used to split and parse each statement. PT: Dialeto usado para separar e parsear cada statement.</param>
-    /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT: Parâmetros opcionais repassados para o parse de cada statement.</param>
-    /// <returns>EN: Sequence of parsed AST roots. PT: Sequência de raízes de AST parseadas.</returns>
+    /// <param name="dialect">EN: Dialect used to split and parse each statement. PT-br: Dialeto usado para separar e parsear cada statement.</param>
+    /// <param name="parameters">EN: Optional parameters forwarded to each statement parse. PT-br: Parâmetros opcionais repassados para o parse de cada statement.</param>
+    /// <returns>EN: Sequence of parsed AST roots. PT-br: Sequência de raízes de AST parseadas.</returns>
     public static IEnumerable<SqlQueryBase> ParseMulti(
         string sql,
         DbMock db,
@@ -371,11 +371,11 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Splits a SQL batch into top-level statements preserving dialect string/comment rules.
-    /// PT: Separa um lote SQL em statements de topo preservando regras de string/comentário do dialeto.
+    /// PT-br: Separa um lote SQL em statements de topo preservando regras de string/comentário do dialeto.
     /// </summary>
-    /// <param name="sql">EN: SQL batch text. PT: Texto SQL em lote.</param>
-    /// <param name="dialect">EN: Dialect used for statement boundaries. PT: Dialeto usado para limites de statement.</param>
-    /// <returns>EN: Top-level SQL statements. PT: Statements SQL de topo.</returns>
+    /// <param name="sql">EN: SQL batch text. PT-br: Texto SQL em lote.</param>
+    /// <param name="dialect">EN: Dialect used for statement boundaries. PT-br: Dialeto usado para limites de statement.</param>
+    /// <returns>EN: Top-level SQL statements. PT-br: Statements SQL de topo.</returns>
     public static IEnumerable<string> SplitStatements(
         string sql,
         ISqlDialect dialect)
@@ -384,7 +384,7 @@ internal sealed class SqlQueryParser
     // Mantido para compatibilidade com lógica de Union
     /// <summary>
     /// EN: Represents a normalized UNION parsing result including parts, ALL flags, final ORDER BY and row-limit tail.
-    /// PT: Representa um resultado normalizado de parsing de UNION incluindo partes, flags ALL, ORDER BY final e cauda de limite de linhas.
+    /// PT-br: Representa um resultado normalizado de parsing de UNION incluindo partes, flags ALL, ORDER BY final e cauda de limite de linhas.
     /// </summary>
     public sealed record UnionChain(
         IReadOnlyList<SqlSelectQuery> Parts,
@@ -395,12 +395,12 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses SQL into a normalized UNION chain contract used by callers that expect UNION metadata even for single SELECT.
-    /// PT: Faz o parsing de SQL para um contrato normalizado de cadeia UNION usado por chamadores que esperam metadados de UNION mesmo para SELECT único.
+    /// PT-br: Faz o parsing de SQL para um contrato normalizado de cadeia UNION usado por chamadores que esperam metadados de UNION mesmo para SELECT único.
     /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="sql">EN: SQL text to parse. PT-br: Texto SQL para parsear.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
-    /// <returns>EN: Normalized UNION chain representation. PT: Representação normalizada de cadeia UNION.</returns>
+    /// <param name="dialect">EN: Dialect used for parsing. PT-br: Dialeto usado no parsing.</param>
+    /// <returns>EN: Normalized UNION chain representation. PT-br: Representação normalizada de cadeia UNION.</returns>
     public static UnionChain ParseUnionChain(
         string sql,
         DbMock db,
@@ -418,11 +418,11 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Parses SQL into a normalized UNION chain using the automatic dialect compatibility mode.
-    /// PT: Faz o parsing de SQL para uma cadeia UNION normalizada usando o modo de compatibilidade automatica de dialeto.
+    /// PT-br: Faz o parsing de SQL para uma cadeia UNION normalizada usando o modo de compatibilidade automatica de dialeto.
     /// </summary>
-    /// <param name="sql">EN: SQL text to parse. PT: Texto SQL para parsear.</param>
+    /// <param name="sql">EN: SQL text to parse. PT-br: Texto SQL para parsear.</param>
     /// <param name="db"></param>
-    /// <returns>EN: Normalized UNION chain representation. PT: Representacao normalizada de cadeia UNION.</returns>
+    /// <returns>EN: Normalized UNION chain representation. PT-br: Representacao normalizada de cadeia UNION.</returns>
     public static UnionChain ParseUnionChainAuto(string sql, DbMock db)
         => ParseUnionChain(sql, db, AutoDialectFactory.Create());
 
@@ -672,18 +672,18 @@ internal sealed class SqlQueryParser
 
     /// <summary>
     /// EN: Implements ParseSelectOrUnionQuery.
-    /// PT: Implementa ParseSelectOrUnionQuery.
+    /// PT-br: Implementa ParseSelectOrUnionQuery.
     /// </summary>
     private SqlQueryBase ParseSelectOrUnionQuery()
         => _ctx.ParseSelectOrUnion(ParseSelectQuery);
 
     /// <summary>
     /// EN: Parses a SELECT query with optional control over CTE parsing and ORDER BY/pagination tail parsing.
-    /// PT: Faz o parsing de uma query SELECT com controle opcional de parsing de CTE e cauda ORDER BY/paginação.
+    /// PT-br: Faz o parsing de uma query SELECT com controle opcional de parsing de CTE e cauda ORDER BY/paginação.
     /// </summary>
-    /// <param name="allowCtes">EN: When true, WITH/CTE clauses are parsed before SELECT. PT: Quando verdadeiro, cláusulas WITH/CTE são parseadas antes do SELECT.</param>
-    /// <param name="allowOrderByAndLimit">EN: When true, ORDER BY and row-limit tails are parsed. PT: Quando verdadeiro, caudas ORDER BY e limite de linhas são parseadas.</param>
-    /// <returns>EN: Parsed SELECT AST node. PT: Nó AST de SELECT parseado.</returns>
+    /// <param name="allowCtes">EN: When true, WITH/CTE clauses are parsed before SELECT. PT-br: Quando verdadeiro, cláusulas WITH/CTE são parseadas antes do SELECT.</param>
+    /// <param name="allowOrderByAndLimit">EN: When true, ORDER BY and row-limit tails are parsed. PT-br: Quando verdadeiro, caudas ORDER BY e limite de linhas são parseadas.</param>
+    /// <returns>EN: Parsed SELECT AST node. PT-br: Nó AST de SELECT parseado.</returns>
     public SqlSelectQuery ParseSelectQuery(bool allowCtes = true, bool allowOrderByAndLimit = true)
     {
         var ctes = allowCtes
@@ -1075,14 +1075,14 @@ internal sealed class SqlQueryParser
     // Stub para método que verifica subquery escalar (removido para brevidade, adicione se precisar da validação estrita)
     /// <summary>
     /// EN: Parses a SQL fragment as subquery expression and throws when fragment is not a SELECT query.
-    /// PT: Faz o parsing de um fragmento SQL como expressão de subquery e lança exceção quando o fragmento não é uma query SELECT.
+    /// PT-br: Faz o parsing de um fragmento SQL como expressão de subquery e lança exceção quando o fragmento não é uma query SELECT.
     /// </summary>
-    /// <param name="sql">EN: SQL fragment to parse as subquery. PT: Fragmento SQL para parsear como subquery.</param>
-    /// <param name="t">EN: Current token used for contextual error composition. PT: Token atual usado para composição contextual de erro.</param>
-    /// <param name="ctx">EN: Context label appended to validation error messages. PT: Rótulo de contexto anexado Ã s mensagens de erro de validação.</param>
+    /// <param name="sql">EN: SQL fragment to parse as subquery. PT-br: Fragmento SQL para parsear como subquery.</param>
+    /// <param name="t">EN: Current token used for contextual error composition. PT-br: Token atual usado para composição contextual de erro.</param>
+    /// <param name="ctx">EN: Context label appended to validation error messages. PT-br: Rótulo de contexto anexado Ã s mensagens de erro de validação.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect used for parsing. PT: Dialeto usado no parsing.</param>
-    /// <returns>EN: Parsed subquery expression node. PT: Nó de expressão de subquery parseado.</returns>
+    /// <param name="dialect">EN: Dialect used for parsing. PT-br: Dialeto usado no parsing.</param>
+    /// <returns>EN: Parsed subquery expression node. PT-br: Nó de expressão de subquery parseado.</returns>
     public static SubqueryExpr ParseSubqueryExprOrThrow(
         string sql,
         SqlToken t,

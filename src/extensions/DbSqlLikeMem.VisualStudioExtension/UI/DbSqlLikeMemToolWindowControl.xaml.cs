@@ -20,7 +20,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 /// <summary>
 /// EN: Hosts the Visual Studio tool window UI and wires explorer actions to the view model.
-/// PT: Hospeda a interface da janela de ferramentas do Visual Studio e conecta as acoes do explorador ao view model.
+/// PT-br: Hospeda a interface da janela de ferramentas do Visual Studio e conecta as acoes do explorador ao view model.
 /// </summary>
 public partial class DbSqlLikeMemToolWindowControl : UserControl
 {
@@ -38,7 +38,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     /// <summary>
     /// EN: Initializes the tool window user control and its view model.
-    /// PT: Inicializa o controle da janela de ferramentas e seu view model.
+    /// PT-br: Inicializa o controle da janela de ferramentas e seu view model.
     /// </summary>
     public DbSqlLikeMemToolWindowControl()
     {
@@ -50,7 +50,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     /// <summary>
     /// EN: Replaces the current explorer state with the connections created by the harness profile.
-    /// PT: Substitui o estado atual do explorador pelas conexoes criadas pelo profile do harness.
+    /// PT-br: Substitui o estado atual do explorador pelas conexoes criadas pelo profile do harness.
     /// </summary>
     public Task LoadHarnessConnectionsAsync(IReadOnlyCollection<ConnectionDefinition> connections)
         => viewModel.LoadHarnessConnectionsAsync(connections);

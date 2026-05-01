@@ -7,13 +7,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Generates C# factory content for tables, views, procedures, functions, and sequences.
-/// PT: Gera conteudo de factory C# para tabelas, views, procedures, functions e sequences.
+/// PT-br: Gera conteudo de factory C# para tabelas, views, procedures, functions e sequences.
 /// </summary>
 public static class StructuredClassContentFactory
 {
     /// <summary>
     /// EN: Builds the source content for the informed database object.
-    /// PT: Monta o conteudo fonte para o objeto de banco informado.
+    /// PT-br: Monta o conteudo fonte para o objeto de banco informado.
     /// </summary>
     public static string Build(
         DatabaseObjectReference dbObject,

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 
 /// <summary>
 /// EN: Covers statement splitting edge cases that are hotspots in parser execution.
-/// PT: Cobre cenários de divisão de statements que são hotspots na execução do parser.
+/// PT-br: Cobre cenários de divisão de statements que são hotspots na execução do parser.
 /// </summary>
 public sealed class SqlQueryParserSplitStatementsTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlQueryParserSplitStatementsTests(
 {
     /// <summary>
     /// EN: Ensures semicolons inside string literals, parentheses and backtick identifiers do not split statements.
-    /// PT: Garante que ponto e vírgula dentro de strings, parênteses e identificadores com crase não dividam statements.
+    /// PT-br: Garante que ponto e vírgula dentro de strings, parênteses e identificadores com crase não dividam statements.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -29,7 +29,7 @@ public sealed class SqlQueryParserSplitStatementsTests(
 
     /// <summary>
     /// EN: Ensures parser keeps INSERT ... SELECT ... ON DUPLICATE KEY UPDATE as a single statement boundary.
-    /// PT: Garante que o parser mantenha INSERT ... SELECT ... ON DUPLICATE KEY UPDATE como um único statement.
+    /// PT-br: Garante que o parser mantenha INSERT ... SELECT ... ON DUPLICATE KEY UPDATE como um único statement.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

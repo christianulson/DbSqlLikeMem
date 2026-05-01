@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Covers subquery projection and join behavior in the SqlServer mock.
-/// PT: Cobre projecao de subqueries e comportamento de joins no mock SqlServer.
+/// PT-br: Cobre projecao de subqueries e comportamento de joins no mock SqlServer.
 /// </summary>
 public sealed class SqlServerSubqueryFromAndJoinsTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlServerSubqueryFromAndJoinsTests(
 {
     /// <summary>
     /// EN: Verifies a FROM subquery returns only the filtered rows.
-    /// PT: Verifica se uma subquery no FROM retorna apenas as linhas filtradas.
+    /// PT-br: Verifica se uma subquery no FROM retorna apenas as linhas filtradas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerSubqueryFromAndJoins")]
@@ -43,7 +43,7 @@ public sealed class SqlServerSubqueryFromAndJoinsTests(
 
     /// <summary>
     /// EN: Verifies a JOIN against a subquery returns the expected rows.
-    /// PT: Verifica se um JOIN com subquery retorna as linhas esperadas.
+    /// PT-br: Verifica se um JOIN com subquery retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerSubqueryFromAndJoins")]
@@ -88,7 +88,7 @@ ORDER BY u.Id, o.Amount";
 
     /// <summary>
     /// EN: Verifies nested subqueries are evaluated correctly.
-    /// PT: Verifica se subqueries aninhadas sao avaliadas corretamente.
+    /// PT-br: Verifica se subqueries aninhadas sao avaliadas corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerSubqueryFromAndJoins")]

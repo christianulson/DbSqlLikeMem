@@ -1,13 +1,13 @@
 namespace DbSqlLikeMem;
 /// <summary>
 /// EN: Converts between <see cref="DbType"/> values and CLR types.
-/// PT: Converte entre valores de <see cref="DbType"/> e tipos CLR.
+/// PT-br: Converte entre valores de <see cref="DbType"/> e tipos CLR.
 /// </summary>
 public static class DbTypeExtension
 {
     /// <summary>
     /// EN: Maps a database type to its corresponding CLR type.
-    /// PT: Mapeia um tipo de banco para seu tipo CLR correspondente.
+    /// PT-br: Mapeia um tipo de banco para seu tipo CLR correspondente.
     /// </summary>
     public static Type ConvertDbTypeToType(
         this DbType dbType)
@@ -43,7 +43,7 @@ public static class DbTypeExtension
 
     /// <summary>
     /// EN: Maps a CLR type to its corresponding database type.
-    /// PT: Mapeia um tipo CLR para seu tipo de banco correspondente.
+    /// PT-br: Mapeia um tipo CLR para seu tipo de banco correspondente.
     /// </summary>
     public static DbType ConvertTypeToDbType(
         this Type type)

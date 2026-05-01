@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.Tests.DML;
 
 /// <summary>
 /// EN: Provides shared DML fidelity tests for check-constraint workflows across mock and container runs.
-/// PT: Fornece testes de fidelidade DML compartilhados para fluxos de restricao check entre mock e container.
+/// PT-br: Fornece testes de fidelidade DML compartilhados para fluxos de restricao check entre mock e container.
 /// </summary>
 public abstract class CheckTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -17,7 +17,7 @@ public abstract class CheckTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that inserting rows with valid check values persists the expected defaults and nullable values for the current provider.
-    /// PT: Verifica se inserir linhas com valores validos de check persiste os defaults esperados e os valores anulaveis para o provedor atual.
+    /// PT-br: Verifica se inserir linhas com valores validos de check persiste os defaults esperados e os valores anulaveis para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task CheckConstraintsValidInsertTest()
@@ -39,7 +39,7 @@ public abstract class CheckTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that inserting a row that violates a check constraint is rejected for the current provider.
-    /// PT: Verifica se inserir uma linha que viola uma restricao check e rejeitado para o provedor atual.
+    /// PT-br: Verifica se inserir uma linha que viola uma restricao check e rejeitado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task CheckConstraintsInvalidInsertTest()
@@ -53,7 +53,7 @@ public abstract class CheckTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that updating a row into an invalid check state is rejected and leaves the persisted row unchanged for the current provider.
-    /// PT: Verifica se atualizar uma linha para um estado invalido de check e rejeitado e deixa a linha persistida inalterada para o provedor atual.
+    /// PT-br: Verifica se atualizar uma linha para um estado invalido de check e rejeitado e deixa a linha persistida inalterada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task CheckConstraintsInvalidUpdateTest()

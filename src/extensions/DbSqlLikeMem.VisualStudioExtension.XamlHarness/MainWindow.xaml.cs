@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.XamlHarness;
 
 /// <summary>
 /// EN: Hosts the XAML harness window used to preview the extension outside Visual Studio.
-/// PT: Hospeda a janela do harness XAML usada para visualizar a extensao fora do Visual Studio.
+/// PT-br: Hospeda a janela do harness XAML usada para visualizar a extensao fora do Visual Studio.
 /// </summary>
 public partial class MainWindow : Window, INotifyPropertyChanged
 {
@@ -16,7 +16,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// EN: Gets whether the harness window is still loading the initial environment.
-    /// PT: Indica se a janela do harness ainda está carregando o ambiente inicial.
+    /// PT-br: Indica se a janela do harness ainda está carregando o ambiente inicial.
     /// </summary>
     public bool IsInitializing
     {
@@ -40,7 +40,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     /// <summary>
     /// EN: Initializes the harness window and hooks the environment load flow.
-    /// PT: Inicializa a janela do harness e conecta o fluxo de carregamento do ambiente.
+    /// PT-br: Inicializa a janela do harness e conecta o fluxo de carregamento do ambiente.
     /// </summary>
     public MainWindow()
     {

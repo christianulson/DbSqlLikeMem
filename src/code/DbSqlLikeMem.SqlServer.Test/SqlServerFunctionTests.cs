@@ -5,11 +5,11 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Validates SQL Server function execution for provider-specific scalar and sequence features.
-/// PT: Valida a execucao de funcoes SQL Server para recursos escalares e de sequence especificos do provedor.
+/// PT-br: Valida a execucao de funcoes SQL Server para recursos escalares e de sequence especificos do provedor.
 /// </summary>
 /// <remarks>
 /// EN: Creates SQL Server function fixtures with sample tables and sequences.
-/// PT: Cria fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
+/// PT-br: Cria fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
 /// </remarks>
 public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         : XUnitTestBase(helper)
@@ -18,9 +18,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server executes the first pragmatic scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o SQL Server execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
+    /// PT-br: Garante que o SQL Server execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
@@ -40,7 +40,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server system functions return expected values.
-    /// PT: Garante que funcoes de sistema do SQL Server retornem valores esperados.
+    /// PT-br: Garante que funcoes de sistema do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -99,9 +99,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures @@TEXTSIZE returns the default mock value across SQL Server versions.
-    /// PT: Garante que @@TEXTSIZE retorne o valor padrao do mock em todas as versoes do SQL Server.
+    /// PT-br: Garante que @@TEXTSIZE retorne o valor padrao do mock em todas as versoes do SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
@@ -116,9 +116,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures NEWSEQUENTIALID returns a GUID across SQL Server versions.
-    /// PT: Garante que NEWSEQUENTIALID retorne um GUID em todas as versoes do SQL Server.
+    /// PT-br: Garante que NEWSEQUENTIALID retorne um GUID em todas as versoes do SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
@@ -133,7 +133,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server transaction-state helpers reflect active transactions.
-    /// PT: Garante que helpers de estado de transacao do SQL Server reflitam transacoes ativas.
+    /// PT-br: Garante que helpers de estado de transacao do SQL Server reflitam transacoes ativas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -153,7 +153,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server scalar helpers return expected values.
-    /// PT: Garante que helpers escalares do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers escalares do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -224,7 +224,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server date constructor and offset helpers return expected values.
-    /// PT: Garante que helpers de construcao de data e offset do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers de construcao de data e offset do SQL Server retornem valores esperados.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -396,9 +396,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PERCENTILE_CONT and PERCENTILE_DISC aggregate helpers return deterministic values.
-    /// PT: Garante que os agregados PERCENTILE_CONT e PERCENTILE_DISC retornem valores determinísticos.
+    /// PT-br: Garante que os agregados PERCENTILE_CONT e PERCENTILE_DISC retornem valores determinísticos.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
@@ -422,7 +422,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server metadata helpers return expected provider-compatible values.
-    /// PT: Garante que helpers de metadados do SQL Server retornem valores compativeis com o provedor.
+    /// PT-br: Garante que helpers de metadados do SQL Server retornem valores compativeis com o provedor.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -460,7 +460,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server SCOPE_IDENTITY returns the last identity value generated on the current connection scope.
-    /// PT: Garante que SCOPE_IDENTITY do SQL Server retorne o ultimo valor identity gerado no escopo atual da conexao.
+    /// PT-br: Garante que SCOPE_IDENTITY do SQL Server retorne o ultimo valor identity gerado no escopo atual da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -473,7 +473,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server JSON scalar helpers return expected values.
-    /// PT: Garante que helpers escalares de JSON do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers escalares de JSON do SQL Server retornem valores esperados.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -515,7 +515,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server JSON_QUERY without a path preserves a root JSON fragment.
-    /// PT: Garante que JSON_QUERY do SQL Server sem path preserve um fragmento JSON de raiz.
+    /// PT-br: Garante que JSON_QUERY do SQL Server sem path preserve um fragmento JSON de raiz.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -542,7 +542,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server aggregate and window functions return expected ordered values.
-    /// PT: Garante que funcoes de agregacao e janela do SQL Server retornem valores ordenados esperados.
+    /// PT-br: Garante que funcoes de agregacao e janela do SQL Server retornem valores ordenados esperados.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -673,7 +673,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server math and error helpers return expected scalar values.
-    /// PT: Garante que helpers matematicos e de erro do SQL Server retornem valores escalares esperados.
+    /// PT-br: Garante que helpers matematicos e de erro do SQL Server retornem valores escalares esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -710,7 +710,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server sequence expressions advance values in execution order.
-    /// PT: Garante que expressoes de sequence do SQL Server avancem valores na ordem de execucao.
+    /// PT-br: Garante que expressoes de sequence do SQL Server avancem valores na ordem de execucao.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -731,7 +731,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server STRING_SPLIT materializes rows for APPLY-based table function usage.
-    /// PT: Garante que STRING_SPLIT do SQL Server materialize linhas para uso de table function com APPLY.
+    /// PT-br: Garante que STRING_SPLIT do SQL Server materialize linhas para uso de table function com APPLY.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -775,7 +775,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server @@ROWCOUNT exposes the affected-row count from the previous statement.
-    /// PT: Garante que @@ROWCOUNT do SQL Server exponha a contagem de linhas afetadas pela instrução anterior.
+    /// PT-br: Garante que @@ROWCOUNT do SQL Server exponha a contagem de linhas afetadas pela instrução anterior.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -793,7 +793,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server ROWCOUNT_BIG() exposes the last row-count value as bigint.
-    /// PT: Garante que ROWCOUNT_BIG() do SQL Server exponha o ultimo valor de contagem de linhas como bigint.
+    /// PT-br: Garante que ROWCOUNT_BIG() do SQL Server exponha o ultimo valor de contagem de linhas como bigint.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]

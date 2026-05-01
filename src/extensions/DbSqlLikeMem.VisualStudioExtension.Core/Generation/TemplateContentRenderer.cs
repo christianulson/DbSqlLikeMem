@@ -4,19 +4,19 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Renders documented generation-template tokens into concrete file content.
-/// PT: Renderiza os tokens documentados de template de geração em conteúdo concreto de arquivo.
+/// PT-br: Renderiza os tokens documentados de template de geração em conteúdo concreto de arquivo.
 /// </summary>
 public static class TemplateContentRenderer
 {
     /// <summary>
     /// EN: Replaces the supported tokens in a template using the informed object, connection, and namespace context.
-    /// PT: Substitui os tokens suportados em um template usando o contexto informado de objeto, conexão e namespace.
+    /// PT-br: Substitui os tokens suportados em um template usando o contexto informado de objeto, conexão e namespace.
     /// </summary>
-    /// <param name="template">EN: Raw template text. PT: Texto bruto do template.</param>
-    /// <param name="className">EN: Generated class name. PT: Nome da classe gerada.</param>
-    /// <param name="dbObject">EN: Database object used as generation source. PT: Objeto de banco usado como fonte da geração.</param>
-    /// <param name="connection">EN: Connection metadata associated with the generation. PT: Metadados da conexão associados à geração.</param>
-    /// <param name="namespace">EN: Optional namespace value for `{{Namespace}}`. PT: Valor opcional de namespace para `{{Namespace}}`.</param>
+    /// <param name="template">EN: Raw template text. PT-br: Texto bruto do template.</param>
+    /// <param name="className">EN: Generated class name. PT-br: Nome da classe gerada.</param>
+    /// <param name="dbObject">EN: Database object used as generation source. PT-br: Objeto de banco usado como fonte da geração.</param>
+    /// <param name="connection">EN: Connection metadata associated with the generation. PT-br: Metadados da conexão associados à geração.</param>
+    /// <param name="namespace">EN: Optional namespace value for `{{Namespace}}`. PT-br: Valor opcional de namespace para `{{Namespace}}`.</param>
     public static string Render(
         string template,
         string className,

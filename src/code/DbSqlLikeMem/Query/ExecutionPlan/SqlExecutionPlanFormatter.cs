@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Carries execution-plan metrics used to format cost and row estimates.
-/// PT: Carrega metricas de execution plan usadas para formatar custo e estimativas de linhas.
+/// PT-br: Carrega metricas de execution plan usadas para formatar custo e estimativas de linhas.
 /// </summary>
 internal sealed record SqlPlanRuntimeMetrics(
     int InputTables,
@@ -16,7 +16,7 @@ internal sealed record SqlPlanRuntimeMetrics(
 
 /// <summary>
 /// EN: Carries mock runtime flags that affect execution-plan formatting.
-/// PT: Carrega flags de runtime do mock que afetam a formatação do execution plan.
+/// PT-br: Carrega flags de runtime do mock que afetam a formatação do execution plan.
 /// </summary>
 internal sealed record SqlPlanMockRuntimeContext(
     int SimulatedLatencyMs,
@@ -28,7 +28,7 @@ internal sealed record SqlPlanMockRuntimeContext(
 
 /// <summary>
 /// EN: Describes one index suggestion shown in the execution-plan output.
-/// PT: Descreve uma sugestão de indice exibida na saida do execution plan.
+/// PT-br: Descreve uma sugestão de indice exibida na saida do execution plan.
 /// </summary>
 internal sealed record SqlIndexRecommendation(
     string Table,
@@ -46,7 +46,7 @@ internal sealed record SqlIndexRecommendation(
 
 /// <summary>
 /// EN: Classifies execution-plan warnings by impact level.
-/// PT: Classifica avisos do execution plan por nivel de impacto.
+/// PT-br: Classifica avisos do execution plan por nivel de impacto.
 /// </summary>
 internal enum SqlPlanWarningSeverity
 {
@@ -57,7 +57,7 @@ internal enum SqlPlanWarningSeverity
 
 /// <summary>
 /// EN: Identifies the runtime context used to tune severity hints.
-/// PT: Identifica o contexto de runtime usado para ajustar dicas de severidade.
+/// PT-br: Identifica o contexto de runtime usado para ajustar dicas de severidade.
 /// </summary>
 internal enum SqlPlanSeverityHintContext
 {
@@ -68,7 +68,7 @@ internal enum SqlPlanSeverityHintContext
 
 /// <summary>
 /// EN: Holds one formatted warning emitted by the execution-plan formatter.
-/// PT: Mantem um aviso formatado emitido pelo formatter do execution plan.
+/// PT-br: Mantem um aviso formatado emitido pelo formatter do execution plan.
 /// </summary>
 internal sealed record SqlPlanWarning(
     string Code,
@@ -82,7 +82,7 @@ internal sealed record SqlPlanWarning(
 
 /// <summary>
 /// EN: Formats execution-plan summaries, warnings, and optimization hints.
-/// PT: Formata resumos, avisos e dicas de otimizacao do execution plan.
+/// PT-br: Formata resumos, avisos e dicas de otimizacao do execution plan.
 /// </summary>
 internal static class SqlExecutionPlanFormatter
 {
@@ -341,7 +341,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates join-graph cost combining base join count, join types, predicate complexity and multi-join fan-out risk.
-    /// PT: Estima custo do grafo de joins combinando quantidade base de joins, tipos de join, complexidade de predicado e risco de fan-out em múltiplos joins.
+    /// PT-br: Estima custo do grafo de joins combinando quantidade base de joins, tipos de join, complexidade de predicado e risco de fan-out em múltiplos joins.
     /// </summary>
     internal static int EstimateJoinGraphCost(IReadOnlyList<SqlJoin> joins)
     {
@@ -361,14 +361,14 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates ON-predicate complexity for joins with a small baseline evaluation overhead.
-    /// PT: Estima a complexidade do predicado ON em joins com pequena sobrecarga base de avaliação.
+    /// PT-br: Estima a complexidade do predicado ON em joins com pequena sobrecarga base de avaliação.
     /// </summary>
     private static int EstimateJoinPredicateCost(SqlExpr on)
         => 1 + EstimatePredicateComplexityCost(on);
 
     /// <summary>
     /// EN: Estimates CTE-related overhead, combining declaration count and nested CTE query complexity.
-    /// PT: Estima overhead relacionado a CTE, combinando quantidade de declarações e complexidade das consultas CTE aninhadas.
+    /// PT-br: Estima overhead relacionado a CTE, combinando quantidade de declarações e complexidade das consultas CTE aninhadas.
     /// </summary>
     internal static int EstimateCteCost(IReadOnlyList<SqlCte> ctes)
     {
@@ -379,7 +379,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates lightweight nested CTE query complexity to avoid over-amplifying recursive cost loops.
-    /// PT: Estima complexidade leve de consulta CTE aninhada para evitar sobre-amplificação em loops recursivos de custo.
+    /// PT-br: Estima complexidade leve de consulta CTE aninhada para evitar sobre-amplificação em loops recursivos de custo.
     /// </summary>
     private static int EstimateCteQueryCost(SqlQueryBase query)
         => query switch
@@ -415,7 +415,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra cost by JOIN type to represent broader row-preservation/expansion risk.
-    /// PT: Estima custo extra por tipo de JOIN para representar risco maior de preservação/expansão de linhas.
+    /// PT-br: Estima custo extra por tipo de JOIN para representar risco maior de preservação/expansão de linhas.
     /// </summary>
     private static int EstimateJoinTypeCost(SqlJoinType joinType)
         => joinType switch
@@ -431,7 +431,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates predicate complexity cost from SQL expression tree shape.
-    /// PT: Estima custo de complexidade de predicado a partir do formato da árvore de expressão SQL.
+    /// PT-br: Estima custo de complexidade de predicado a partir do formato da árvore de expressão SQL.
     /// </summary>
     internal static int EstimatePredicateComplexityCost(SqlExpr expr)
         => expr switch
@@ -458,7 +458,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates a small surcharge for deep AND/OR predicate nesting to reflect branching/evaluation complexity growth.
-    /// PT: Estima uma pequena sobretaxa para aninhamento profundo de predicados AND/OR para refletir crescimento da complexidade de ramificação/avaliação.
+    /// PT-br: Estima uma pequena sobretaxa para aninhamento profundo de predicados AND/OR para refletir crescimento da complexidade de ramificação/avaliação.
     /// </summary>
     private static int EstimateLogicalPredicateDepthPenalty(BinaryExpr expr)
     {
@@ -468,7 +468,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates penalty when logical operator type switches between parent and child nodes (AND/OR transitions), increasing reasoning and branch complexity.
-    /// PT: Estima penalidade quando o tipo de operador lógico muda entre nós pai e filho (transições AND/OR), aumentando complexidade de raciocínio e ramificação.
+    /// PT-br: Estima penalidade quando o tipo de operador lógico muda entre nós pai e filho (transições AND/OR), aumentando complexidade de raciocínio e ramificação.
     /// </summary>
     private static int EstimateLogicalOperatorMixPenalty(BinaryExpr expr)
     {
@@ -485,7 +485,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Computes the maximum logical (AND/OR) nesting depth inside a predicate subtree.
-    /// PT: Calcula a profundidade máxima de aninhamento lógico (AND/OR) dentro de uma subárvore de predicado.
+    /// PT-br: Calcula a profundidade máxima de aninhamento lógico (AND/OR) dentro de uma subárvore de predicado.
     /// </summary>
     private static int EstimateLogicalPredicateDepth(SqlExpr expr)
     {
@@ -497,7 +497,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates CASE-expression predicate complexity based on base expression, branches and optional ELSE expression.
-    /// PT: Estima a complexidade de predicado com expressão CASE com base na expressão base, ramos e expressão ELSE opcional.
+    /// PT-br: Estima a complexidade de predicado com expressão CASE com base na expressão base, ramos e expressão ELSE opcional.
     /// </summary>
     private static int EstimateCasePredicateComplexityCost(CaseExpr c)
     {
@@ -515,7 +515,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra cost for GROUP BY/HAVING aggregation stages, including an extra coupling penalty when both appear.
-    /// PT: Estima custo extra para estágios de agregação GROUP BY/HAVING, incluindo penalidade de acoplamento quando ambos aparecem.
+    /// PT-br: Estima custo extra para estágios de agregação GROUP BY/HAVING, incluindo penalidade de acoplamento quando ambos aparecem.
     /// </summary>
     internal static int EstimateAggregationCost(IReadOnlyList<string> groupBy, SqlExpr? having)
     {
@@ -537,7 +537,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates combined sort/distinct cost, including no-limit sort spill risk and ORDER BY + DISTINCT coupling.
-    /// PT: Estima custo combinado de sort/distinct, incluindo risco de spill sem limite e acoplamento de ORDER BY + DISTINCT.
+    /// PT-br: Estima custo combinado de sort/distinct, incluindo risco de spill sem limite e acoplamento de ORDER BY + DISTINCT.
     /// </summary>
     internal static int EstimateSortAndDedupCost(
         IReadOnlyList<SqlOrderByItem> orderBy,
@@ -565,7 +565,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates lightweight predicate complexity for raw SQL expressions using token counts (logical operators, subquery hints and JSON markers).
-    /// PT: Estima complexidade leve de predicado para expressões SQL raw usando contagem de tokens (operadores lógicos, hints de subconsulta e marcadores JSON).
+    /// PT-br: Estima complexidade leve de predicado para expressões SQL raw usando contagem de tokens (operadores lógicos, hints de subconsulta e marcadores JSON).
     /// </summary>
     private static int EstimateRawPredicateTokenCost(string raw)
     {
@@ -588,7 +588,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra coupling when HAVING is applied on top of an already coupled DISTINCT + GROUP BY + ORDER BY shape.
-    /// PT: Estima acoplamento extra quando HAVING é aplicado sobre um formato já acoplado de DISTINCT + GROUP BY + ORDER BY.
+    /// PT-br: Estima acoplamento extra quando HAVING é aplicado sobre um formato já acoplado de DISTINCT + GROUP BY + ORDER BY.
     /// </summary>
     internal static int EstimateDistinctGroupByOrderByHavingCouplingCost(
         bool distinct,
@@ -605,7 +605,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra HAVING coupling for DISTINCT + GROUP BY + ORDER BY when joins include expansion-risk edges.
-    /// PT: Estima acoplamento extra de HAVING para DISTINCT + GROUP BY + ORDER BY quando joins incluem arestas com risco de expansão.
+    /// PT-br: Estima acoplamento extra de HAVING para DISTINCT + GROUP BY + ORDER BY quando joins incluem arestas com risco de expansão.
     /// </summary>
     internal static int EstimateDistinctGroupByOrderByHavingJoinCouplingCost(
         bool distinct,
@@ -627,7 +627,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra cost for complex GROUP BY expressions (for example CASE/subquery tokens) beyond key-count cardinality.
-    /// PT: Estima custo extra para expressões complexas em GROUP BY (por exemplo tokens CASE/subquery) além da cardinalidade de chaves.
+    /// PT-br: Estima custo extra para expressões complexas em GROUP BY (por exemplo tokens CASE/subquery) além da cardinalidade de chaves.
     /// </summary>
     internal static int EstimateGroupByExpressionComplexityCost(IReadOnlyList<string> groupBy)
     {
@@ -646,7 +646,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra cost for complex ORDER BY expressions (for example CASE/subquery/window tokens) beyond key-count cardinality.
-    /// PT: Estima custo extra para expressões complexas em ORDER BY (por exemplo tokens CASE/subquery/window) além da cardinalidade de chaves.
+    /// PT-br: Estima custo extra para expressões complexas em ORDER BY (por exemplo tokens CASE/subquery/window) além da cardinalidade de chaves.
     /// </summary>
     internal static int EstimateOrderByExpressionComplexityCost(IReadOnlyList<SqlOrderByItem> orderBy)
     {
@@ -666,7 +666,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates coupling cost for DISTINCT + GROUP BY + ORDER BY mixes because dedup, aggregation and sorting stages contend for the same row stream.
-    /// PT: Estima custo de acoplamento para combinações DISTINCT + GROUP BY + ORDER BY porque estágios de deduplicação, agregação e ordenação disputam o mesmo fluxo de linhas.
+    /// PT-br: Estima custo de acoplamento para combinações DISTINCT + GROUP BY + ORDER BY porque estágios de deduplicação, agregação e ordenação disputam o mesmo fluxo de linhas.
     /// </summary>
     internal static int EstimateDistinctGroupByOrderByCouplingCost(
         bool distinct,
@@ -695,7 +695,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra coupling pressure for DISTINCT + GROUP BY + ORDER BY when grouping/ordering expressions are structurally complex (CASE/subquery/JSON markers).
-    /// PT: Estima pressão extra de acoplamento para DISTINCT + GROUP BY + ORDER BY quando expressões de agrupamento/ordenação são estruturalmente complexas (marcadores CASE/subquery/JSON).
+    /// PT-br: Estima pressão extra de acoplamento para DISTINCT + GROUP BY + ORDER BY quando expressões de agrupamento/ordenação são estruturalmente complexas (marcadores CASE/subquery/JSON).
     /// </summary>
     private static int EstimateDistinctGroupByOrderByExpressionCouplingCost(
         IReadOnlyList<string> groupBy,
@@ -727,7 +727,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra DISTINCT + GROUP BY + ORDER BY coupling when joins are present, especially expansion-risk join types.
-    /// PT: Estima acoplamento extra de DISTINCT + GROUP BY + ORDER BY quando há joins, especialmente tipos de join com risco de expansão.
+    /// PT-br: Estima acoplamento extra de DISTINCT + GROUP BY + ORDER BY quando há joins, especialmente tipos de join com risco de expansão.
     /// </summary>
     internal static int EstimateDistinctGroupByOrderByJoinCouplingCost(
         bool distinct,
@@ -754,7 +754,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates subquery predicate overhead with a baseline nesting surcharge plus nested SELECT cost.
-    /// PT: Estima overhead de predicado com subconsulta com sobretaxa base de aninhamento e custo do SELECT aninhado.
+    /// PT-br: Estima overhead de predicado com subconsulta com sobretaxa base de aninhamento e custo do SELECT aninhado.
     /// </summary>
     private static int EstimateSubqueryPredicateCost(SubqueryExpr subquery)
         => 4 + subquery.Parsed switch
@@ -770,7 +770,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra cost contributed by source shape (base table, derived query, or union subquery).
-    /// PT: Estima custo extra contribuído pelo formato da fonte (tabela base, consulta derivada ou subconsulta union).
+    /// PT-br: Estima custo extra contribuído pelo formato da fonte (tabela base, consulta derivada ou subconsulta union).
     /// </summary>
     internal static int EstimateSourceCost(SqlTableSource? source)
     {
@@ -791,7 +791,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates projection-related cost using projection width and lightweight SQL-shape tokens from SELECT items.
-    /// PT: Estima custo da projeção usando largura da projeção e tokens leves de formato SQL nos itens do SELECT.
+    /// PT-br: Estima custo da projeção usando largura da projeção e tokens leves de formato SQL nos itens do SELECT.
     /// </summary>
     internal static int EstimateProjectionCost(IReadOnlyList<SqlSelectItem> selectItems)
     {
@@ -814,7 +814,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates projection cost for aggregate function usage with lightweight per-function weights (COUNT/SUM/AVG).
-    /// PT: Estima custo de projeção para uso de funções agregadas com pesos leves por função (COUNT/SUM/AVG).
+    /// PT-br: Estima custo de projeção para uso de funções agregadas com pesos leves por função (COUNT/SUM/AVG).
     /// </summary>
     private static int EstimateAggregateProjectionFunctionCost(string raw)
     {
@@ -837,7 +837,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Counts function-call occurrences using case-insensitive token matching and an identifier-boundary guard.
-    /// PT: Conta ocorrências de chamada de função usando correspondência de token case-insensitive e guarda de fronteira de identificador.
+    /// PT-br: Conta ocorrências de chamada de função usando correspondência de token case-insensitive e guarda de fronteira de identificador.
     /// </summary>
     private static int CountSqlFunctionCalls(string raw, string functionName)
     {
@@ -870,7 +870,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Counts aggregate calls that include DISTINCT inside function arguments, supporting optional whitespace.
-    /// PT: Conta chamadas agregadas que incluem DISTINCT nos argumentos da função, com suporte a espaços opcionais.
+    /// PT-br: Conta chamadas agregadas que incluem DISTINCT nos argumentos da função, com suporte a espaços opcionais.
     /// </summary>
     private static int CountDistinctAggregateCalls(string raw, string functionName)
     {
@@ -918,14 +918,14 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Determines whether a character can be part of a SQL identifier for token-boundary checks.
-    /// PT: Determina se um caractere pode compor um identificador SQL para verificações de fronteira de token.
+    /// PT-br: Determina se um caractere pode compor um identificador SQL para verificações de fronteira de token.
     /// </summary>
     private static bool IsSqlIdentifierChar(char c)
         => char.IsLetterOrDigit(c) || c is '_' or '$';
 
     /// <summary>
     /// EN: Counts SQL keyword token occurrences using identifier-boundary guards and optional trailing whitespace.
-    /// PT: Conta ocorrências de token de palavra-chave SQL usando guardas de fronteira de identificador e whitespace opcional à direita.
+    /// PT-br: Conta ocorrências de token de palavra-chave SQL usando guardas de fronteira de identificador e whitespace opcional à direita.
     /// </summary>
     private static int CountSqlKeywordOccurrences(string raw, string keyword)
     {
@@ -954,7 +954,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Counts common JSON SQL function calls used across providers.
-    /// PT: Conta chamadas comuns de funções SQL de JSON usadas entre providers.
+    /// PT-br: Conta chamadas comuns de funções SQL de JSON usadas entre providers.
     /// </summary>
     private static int CountJsonFunctionCalls(string raw)
     {
@@ -970,7 +970,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Counts JSON path operators commonly used across SQL dialects (->, ->>, #>, #>>) in raw expression text.
-    /// PT: Conta operadores de caminho JSON comuns entre dialetos SQL (->, ->>, #>, #>>) no texto bruto da expressão.
+    /// PT-br: Conta operadores de caminho JSON comuns entre dialetos SQL (->, ->>, #>, #>>) no texto bruto da expressão.
     /// </summary>
     private static int CountJsonOperatorTokens(string raw)
     {
@@ -988,7 +988,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Counts non-overlapping occurrences of an exact token in raw SQL text.
-    /// PT: Conta ocorrências não sobrepostas de um token exato no texto SQL bruto.
+    /// PT-br: Conta ocorrências não sobrepostas de um token exato no texto SQL bruto.
     /// </summary>
     private static int CountTokenOccurrences(string raw, string token)
     {
@@ -1010,7 +1010,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates additional predicate complexity for JSON-oriented scalar function calls.
-    /// PT: Estima complexidade adicional de predicado para chamadas de funções escalares orientadas a JSON.
+    /// PT-br: Estima complexidade adicional de predicado para chamadas de funções escalares orientadas a JSON.
     /// </summary>
     private static int EstimateJsonPredicateFunctionPenalty(string functionName)
     {
@@ -1026,7 +1026,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates DISTINCT + GROUP BY + ORDER BY coupling penalty induced by OFFSET even when LIMIT is present.
-    /// PT: Estima penalidade de acoplamento DISTINCT + GROUP BY + ORDER BY induzida por OFFSET mesmo quando há LIMIT.
+    /// PT-br: Estima penalidade de acoplamento DISTINCT + GROUP BY + ORDER BY induzida por OFFSET mesmo quando há LIMIT.
     /// </summary>
     private static int EstimateDistinctGroupByOrderByOffsetPenalty(int offset)
         => offset switch
@@ -1039,7 +1039,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates additional nested sort coupling when an outer ORDER BY is applied over an already ordered derived source.
-    /// PT: Estima acoplamento adicional de sort aninhado quando um ORDER BY externo é aplicado sobre uma fonte derivada já ordenada.
+    /// PT-br: Estima acoplamento adicional de sort aninhado quando um ORDER BY externo é aplicado sobre uma fonte derivada já ordenada.
     /// </summary>
     internal static int EstimateNestedOrderByCouplingCost(
         SqlTableSource? source,
@@ -1075,7 +1075,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Gets ORDER BY key count from a derived source shape (derived SELECT or derived UNION).
-    /// PT: Obtém a quantidade de chaves ORDER BY de um formato de fonte derivada (SELECT derivado ou UNION derivado).
+    /// PT-br: Obtém a quantidade de chaves ORDER BY de um formato de fonte derivada (SELECT derivado ou UNION derivado).
     /// </summary>
     private static int GetDerivedSourceOrderByCount(SqlTableSource source)
     {
@@ -1090,7 +1090,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Gets lightweight complexity score for ORDER BY expressions defined inside a derived source shape.
-    /// PT: Obtém score leve de complexidade para expressões ORDER BY definidas dentro de um formato de fonte derivada.
+    /// PT-br: Obtém score leve de complexidade para expressões ORDER BY definidas dentro de um formato de fonte derivada.
     /// </summary>
     private static int GetDerivedSourceOrderByExpressionComplexityCost(SqlTableSource source)
     {
@@ -1105,7 +1105,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Gets the inner row-limit count used by derived ORDER BY sources so tighter inner limits can reduce nested sort coupling.
-    /// PT: Obtém a contagem de limite de linhas interno usada por fontes derivadas com ORDER BY para que limites internos mais restritos reduzam o acoplamento de sort aninhado.
+    /// PT-br: Obtém a contagem de limite de linhas interno usada por fontes derivadas com ORDER BY para que limites internos mais restritos reduzam o acoplamento de sort aninhado.
     /// </summary>
     private static int GetDerivedSourceOrderByLimitCount(SqlTableSource source)
     {
@@ -1126,7 +1126,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Gets the inner row-limit offset used by derived ORDER BY sources so deep inner offsets can increase nested sort coupling.
-    /// PT: Obtém o offset interno de limite de linhas usado por fontes derivadas com ORDER BY para que offsets internos profundos possam aumentar o acoplamento de sort aninhado.
+    /// PT-br: Obtém o offset interno de limite de linhas usado por fontes derivadas com ORDER BY para que offsets internos profundos possam aumentar o acoplamento de sort aninhado.
     /// </summary>
     private static int GetDerivedSourceOrderByOffset(SqlTableSource source)
     {
@@ -1147,7 +1147,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates relief in nested ORDER BY coupling for tighter inner limits in ordered derived sources.
-    /// PT: Estima alívio no acoplamento de ORDER BY aninhado para limites internos mais restritos em fontes derivadas ordenadas.
+    /// PT-br: Estima alívio no acoplamento de ORDER BY aninhado para limites internos mais restritos em fontes derivadas ordenadas.
     /// </summary>
     private static int EstimateNestedOrderByInnerLimitRelief(int innerLimitCount)
         => innerLimitCount switch
@@ -1160,7 +1160,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates nested ORDER BY coupling penalty for large inner offsets in ordered derived sources.
-    /// PT: Estima penalidade de acoplamento de ORDER BY aninhado para offsets internos altos em fontes derivadas ordenadas.
+    /// PT-br: Estima penalidade de acoplamento de ORDER BY aninhado para offsets internos altos em fontes derivadas ordenadas.
     /// </summary>
     private static int EstimateNestedOrderByInnerOffsetPenalty(int innerOffset)
         => innerOffset switch
@@ -1173,7 +1173,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Counts transitions between logical operators (AND/OR) in raw SQL text while preserving keyword boundaries.
-    /// PT: Conta transições entre operadores lógicos (AND/OR) em texto SQL raw preservando fronteiras de palavra-chave.
+    /// PT-br: Conta transições entre operadores lógicos (AND/OR) em texto SQL raw preservando fronteiras de palavra-chave.
     /// </summary>
     private static int CountLogicalOperatorTransitions(string raw)
     {
@@ -1198,7 +1198,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates additional raw logical penalty from parenthesis nesting depth when logical operators are present.
-    /// PT: Estima penalidade lógica raw adicional pela profundidade de aninhamento de parênteses quando há operadores lógicos.
+    /// PT-br: Estima penalidade lógica raw adicional pela profundidade de aninhamento de parênteses quando há operadores lógicos.
     /// </summary>
     private static int EstimateRawLogicalNestingDepthPenalty(string raw)
     {
@@ -1229,7 +1229,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Finds the next logical operator token (AND/OR) and returns the token plus the next scan index.
-    /// PT: Encontra o próximo token de operador lógico (AND/OR) e retorna o token junto com o próximo índice de varredura.
+    /// PT-br: Encontra o próximo token de operador lógico (AND/OR) e retorna o token junto com o próximo índice de varredura.
     /// </summary>
     private static bool TryFindNextLogicalOperator(
         string raw,
@@ -1262,7 +1262,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Finds the next keyword token index using identifier-boundary guards starting from a specified position.
-    /// PT: Encontra o próximo índice de token de palavra-chave usando guardas de fronteira de identificador a partir de uma posição especificada.
+    /// PT-br: Encontra o próximo índice de token de palavra-chave usando guardas de fronteira de identificador a partir de uma posição especificada.
     /// </summary>
     private static int FindSqlKeywordIndex(string raw, string keyword, int startIndex)
     {
@@ -1288,7 +1288,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates projection-width overhead so broader SELECT lists carry additional per-item processing cost.
-    /// PT: Estima overhead de largura da projeção para que listas SELECT maiores carreguem custo adicional por item.
+    /// PT-br: Estima overhead de largura da projeção para que listas SELECT maiores carreguem custo adicional por item.
     /// </summary>
     private static int EstimateProjectionWidthCost(IReadOnlyList<SqlSelectItem> selectItems)
     {
@@ -1301,14 +1301,14 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates wildcard projection overhead because '*' usually expands to broader unknown column sets.
-    /// PT: Estima overhead de projeção curinga porque '*' normalmente expande para conjuntos de colunas mais amplos e desconhecidos.
+    /// PT-br: Estima overhead de projeção curinga porque '*' normalmente expande para conjuntos de colunas mais amplos e desconhecidos.
     /// </summary>
     private static int EstimateWildcardProjectionCost(IReadOnlyList<SqlSelectItem> selectItems)
         => selectItems.Count(static item => string.Equals(item.Raw?.Trim(), "*", StringComparison.Ordinal)) * 6;
 
     /// <summary>
     /// EN: Estimates cost relief from row-limit clauses, with stronger relief for tighter limits.
-    /// PT: Estima alívio de custo de cláusulas de limite de linhas, com alívio maior para limites mais restritos.
+    /// PT-br: Estima alívio de custo de cláusulas de limite de linhas, com alívio maior para limites mais restritos.
     /// </summary>
     internal static int EstimateRowLimitRelief(SqlRowLimit? rowLimit)
     {
@@ -1332,7 +1332,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Extracts logical row-limit count and offset from different SQL limit syntaxes.
-    /// PT: Extrai contagem e offset lógicos de limite de linhas de diferentes sintaxes SQL de limite.
+    /// PT-br: Extrai contagem e offset lógicos de limite de linhas de diferentes sintaxes SQL de limite.
     /// </summary>
     private static (int Count, int Offset) ExtractRowLimitCountAndOffset(SqlRowLimit rowLimit)
         => rowLimit switch
@@ -1353,7 +1353,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates penalty for high offsets because deep skips still require additional scan/sort work.
-    /// PT: Estima penalidade para offsets altos porque saltos profundos ainda exigem trabalho adicional de scan/sort.
+    /// PT-br: Estima penalidade para offsets altos porque saltos profundos ainda exigem trabalho adicional de scan/sort.
     /// </summary>
     private static int EstimateRowLimitOffsetPenalty(int offset)
         => offset switch
@@ -1366,7 +1366,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates extra UNION cost when set operators alternate between ALL and DISTINCT, increasing stage-switching overhead.
-    /// PT: Estima custo extra de UNION quando operadores de conjunto alternam entre ALL e DISTINCT, aumentando overhead de troca de estágio.
+    /// PT-br: Estima custo extra de UNION quando operadores de conjunto alternam entre ALL e DISTINCT, aumentando overhead de troca de estágio.
     /// </summary>
     internal static int EstimateUnionSetOperatorTransitionCost(IReadOnlyList<bool> allFlags)
     {
@@ -1385,7 +1385,7 @@ internal static class SqlExecutionPlanFormatter
 
     /// <summary>
     /// EN: Estimates additional ORDER BY merge fan-in overhead for UNION plans with many parts.
-    /// PT: Estima overhead adicional de fan-in de merge de ORDER BY para planos UNION com muitas partes.
+    /// PT-br: Estima overhead adicional de fan-in de merge de ORDER BY para planos UNION com muitas partes.
     /// </summary>
     internal static int EstimateUnionOrderByMergeFanInCost(
         int partCount,

@@ -5,32 +5,32 @@ namespace DbSqlLikeMem.TestTools.Query;
 
 /// <summary>
 /// EN: Captures the normalized column names and rows returned by a query.
-/// PT: Captura os nomes de colunas normalizados e as linhas retornadas por uma consulta.
+/// PT-br: Captura os nomes de colunas normalizados e as linhas retornadas por uma consulta.
 /// </summary>
 public sealed record QueryResultSnapshot
 {
     /// <summary>
     /// EN: Gets the normalized column names captured from the reader.
-    /// PT: Obtém os nomes de colunas normalizados capturados do reader.
+    /// PT-br: Obtém os nomes de colunas normalizados capturados do reader.
     /// </summary>
     public required IReadOnlyList<string> ColumnNames { get; init; }
 
     /// <summary>
     /// EN: Gets the captured rows in result-set order.
-    /// PT: Obtém as linhas capturadas na ordem do conjunto de resultados.
+    /// PT-br: Obtém as linhas capturadas na ordem do conjunto de resultados.
     /// </summary>
     public required IReadOnlyList<QueryResultRowSnapshot> Rows { get; init; }
 }
 
 /// <summary>
 /// EN: Captures the normalized values of a single result-set row.
-/// PT: Captura os valores normalizados de uma unica linha do conjunto de resultados.
+/// PT-br: Captura os valores normalizados de uma unica linha do conjunto de resultados.
 /// </summary>
 public sealed record QueryResultRowSnapshot
 {
     /// <summary>
     /// EN: Gets the normalized values captured for the row.
-    /// PT: Obtém os valores normalizados capturados para a linha.
+    /// PT-br: Obtém os valores normalizados capturados para a linha.
     /// </summary>
     public required IReadOnlyList<object?> Values { get; init; }
 }

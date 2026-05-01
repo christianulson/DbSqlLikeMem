@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Runs shared tests for SELECT/INSERT/UPDATE/DELETE-from-select flows using SQL Server mocks.
-/// PT: Executa os testes compartilhados de fluxos SELECT/INSERT/UPDATE/DELETE-via-select usando mocks de SQL Server.
+/// PT-br: Executa os testes compartilhados de fluxos SELECT/INSERT/UPDATE/DELETE-via-select usando mocks de SQL Server.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used by the shared base test class.
-/// PT: Helper de saída do xUnit usado pela classe base de testes compartilhada.
+/// PT-br: Helper de saída do xUnit usado pela classe base de testes compartilhada.
 /// </param>
 public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
@@ -17,19 +17,19 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 
     /// <summary>
     /// EN: Creates a new SQL Server mock database instance for each test.
-    /// PT: Cria uma nova instância de banco simulado de SQL Server para cada teste.
+    /// PT-br: Cria uma nova instância de banco simulado de SQL Server para cada teste.
     /// </summary>
     protected override SqlServerDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in SQL Server.
-    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no SQL Server.
+    /// PT-br: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no SQL Server.
     /// </summary>
     protected override int CreateTableAsSelectExpectedAffectedRows => 2;
 
     /// <summary>
     /// EN: Executes a non-query SQL statement against the provided SQL Server mock database.
-    /// PT: Executa um comando SQL sem retorno no banco simulado de SQL Server informado.
+    /// PT-br: Executa um comando SQL sem retorno no banco simulado de SQL Server informado.
     /// </summary>
     protected override int ExecuteNonQuery(
         SqlServerDbMock db,
@@ -42,7 +42,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 
     /// <summary>
     /// EN: Verifies SQL Server execution rejects PostgreSQL DELETE USING syntax with a clear unsupported message.
-    /// PT: Verifica que a execução no SQL Server rejeita a sintaxe DELETE USING do PostgreSQL com mensagem clara de não suportado.
+    /// PT-br: Verifica que a execução no SQL Server rejeita a sintaxe DELETE USING do PostgreSQL com mensagem clara de não suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]

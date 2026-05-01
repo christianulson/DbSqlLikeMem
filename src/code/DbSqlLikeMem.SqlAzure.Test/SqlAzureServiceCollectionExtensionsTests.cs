@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers SQL Azure service collection registration helpers.
-/// PT: Cobre os helpers de registro de SQL Azure na colecao de servicos.
+/// PT-br: Cobre os helpers de registro de SQL Azure na colecao de servicos.
 /// </summary>
 public sealed class SqlAzureServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -21,7 +21,7 @@ public sealed class SqlAzureServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Ensures singleton registration keeps one instance and applies configuration callback.
-    /// PT: Garante que o registro singleton mantenha uma instância e aplique o callback de configuração.
+    /// PT-br: Garante que o registro singleton mantenha uma instância e aplique o callback de configuração.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -54,7 +54,7 @@ public sealed class SqlAzureServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Ensures scoped registration creates one instance per scope.
-    /// PT: Garante que o registro scoped crie uma instância por escopo.
+    /// PT-br: Garante que o registro scoped crie uma instância por escopo.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -81,7 +81,7 @@ public sealed class SqlAzureServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Ensures transient registration creates a new configured instance on each resolution.
-    /// PT: Garante que o registro transient crie uma nova instância configurada a cada resolução.
+    /// PT-br: Garante que o registro transient crie uma nova instância configurada a cada resolução.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Parser;
 
 /// <summary>
 /// EN: Covers Oracle-specific parser feature behavior.
-/// PT: Cobre o comportamento de recursos de parser específicos do Oracle.
+/// PT-br: Cobre o comportamento de recursos de parser específicos do Oracle.
 /// </summary>
 public sealed class OracleDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -10,9 +10,9 @@ public sealed class OracleDialectFeatureParserTests(
 {
     /// <summary>
     /// EN: Ensures Oracle preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o Oracle preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o Oracle preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -31,9 +31,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o Oracle preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o Oracle preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -54,9 +54,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
-    /// PT: Garante que o Oracle rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// PT-br: Garante que o Oracle rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -73,9 +73,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
-    /// PT: Garante que o Oracle rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// PT-br: Garante que o Oracle rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -92,9 +92,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
-    /// PT: Garante que o Oracle rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// PT-br: Garante que o Oracle rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -111,9 +111,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle parses the pragmatic provider-real scalar FUNCTION DDL subset.
-    /// PT: Garante que o Oracle interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
+    /// PT-br: Garante que o Oracle interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -143,9 +143,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle parses CREATE OR REPLACE FUNCTION in the supported provider-real subset.
-    /// PT: Garante que o Oracle interprete CREATE OR REPLACE FUNCTION no subset realista suportado pelo provider.
+    /// PT-br: Garante que o Oracle interprete CREATE OR REPLACE FUNCTION no subset realista suportado pelo provider.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Vers+�o do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Vers+�o do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -164,9 +164,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle exposes ROW_COUNT() through the dialect capability used by the executor.
-    /// PT: Garante que o Oracle exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
+    /// PT-br: Garante que o Oracle exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -181,9 +181,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle parser accepts ROW_COUNT() and rejects foreign row-count helper aliases.
-    /// PT: Garante que o parser Oracle aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
+    /// PT-br: Garante que o parser Oracle aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -200,9 +200,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected for Oracle.
-    /// PT: Garante que a sintaxe with recursive seja rejeitada no Oracle.
+    /// PT-br: Garante que a sintaxe with recursive seja rejeitada no Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -223,9 +223,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies WITH RECURSIVE rejection includes actionable guidance for Oracle syntax.
-    /// PT: Verifica que a rejeição de WITH RECURSIVE inclui orientação acionável para sintaxe Oracle.
+    /// PT-br: Verifica que a rejeição de WITH RECURSIVE inclui orientação acionável para sintaxe Oracle.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.WithCteMinVersion)]
@@ -241,9 +241,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
-    /// PT: Garante que o Oracle rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// PT-br: Garante que o Oracle rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.WithCteMinVersion)]
@@ -263,9 +263,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT syntax is rejected for Oracle.
-    /// PT: Garante que a sintaxe ON CONFLICT seja rejeitada no Oracle.
+    /// PT-br: Garante que a sintaxe ON CONFLICT seja rejeitada no Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -282,9 +282,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE parsing follows Oracle version support and preserves target table metadata.
-    /// PT: Garante que o parsing de MERGE siga o suporte por versão do Oracle e preserve metadados da tabela alvo.
+    /// PT-br: Garante que o parsing de MERGE siga o suporte por versão do Oracle e preserve metadados da tabela alvo.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -308,9 +308,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle accepts OUTER APPLY in versions that support APPLY semantics.
-    /// PT: Garante que o Oracle aceite OUTER APPLY nas versoes que suportam semantica APPLY.
+    /// PT-br: Garante que o Oracle aceite OUTER APPLY nas versoes que suportam semantica APPLY.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = 12)]
@@ -329,9 +329,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE accepts the WHEN NOT MATCHED clause form in merge-capable dialect versions.
-    /// PT: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
+    /// PT-br: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -348,9 +348,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without USING is rejected with actionable parser guidance in Oracle dialect.
-    /// PT: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto Oracle.
+    /// PT-br: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -366,9 +366,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without ON is rejected with actionable parser guidance in Oracle dialect.
-    /// PT: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto Oracle.
+    /// PT-br: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -384,9 +384,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE requires ON at top-level and does not accept ON tokens nested inside USING subqueries in Oracle dialect.
-    /// PT: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING no dialeto Oracle.
+    /// PT-br: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING no dialeto Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -403,9 +403,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without WHEN is rejected with actionable parser guidance in Oracle dialect.
-    /// PT: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto Oracle.
+    /// PT-br: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -421,9 +421,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
-    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// PT-br: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -457,9 +457,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle accepts JSON_VALUE with RETURNING clause and preserves the payload in the scalar AST.
-    /// PT: Garante que o Oracle aceite JSON_VALUE com cláusula RETURNING e preserve o payload na AST escalar.
+    /// PT-br: Garante que o Oracle aceite JSON_VALUE com cláusula RETURNING e preserve o payload na AST escalar.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -485,9 +485,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle approximate aggregate helpers follow the explicit dialect capability by version.
-    /// PT: Garante que os helpers Oracle de agregacao aproximada sigam a capability explicita do dialeto por versao.
+    /// PT-br: Garante que os helpers Oracle de agregacao aproximada sigam a capability explicita do dialeto por versao.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -946,9 +946,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE does not accept a source alias named WHEN as a replacement for top-level WHEN clauses.
-    /// PT: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
+    /// PT-br: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -965,9 +965,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE requires WHEN at top-level and does not accept WHEN tokens nested inside USING subqueries.
-    /// PT: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
+    /// PT-br: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -985,9 +985,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE rejects invalid top-level WHEN forms that are not WHEN MATCHED/WHEN NOT MATCHED.
-    /// PT: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
+    /// PT-br: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion(VersionGraterOrEqual = OracleDialect.MergeMinVersion)]
@@ -1004,9 +1004,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle rejects unsupported alias quoting style with an actionable message.
-    /// PT: Garante que o Oracle rejeite estilo de quoting de alias não suportado com mensagem acionável.
+    /// PT-br: Garante que o Oracle rejeite estilo de quoting de alias não suportado com mensagem acionável.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1023,9 +1023,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle accepts double-quoted aliases and preserves the normalized alias text in AST.
-    /// PT: Garante que o Oracle aceite aliases com aspas duplas e preserve o texto normalizado do alias na AST.
+    /// PT-br: Garante que o Oracle aceite aliases com aspas duplas e preserve o texto normalizado do alias na AST.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1043,9 +1043,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle unescapes doubled double-quotes inside quoted aliases when normalizing AST alias text.
-    /// PT: Garante que o Oracle faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
+    /// PT-br: Garante que o Oracle faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1063,9 +1063,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server table hints are rejected for Oracle.
-    /// PT: Garante que hints de tabela do SQL Server sejam rejeitados no Oracle.
+    /// PT-br: Garante que hints de tabela do SQL Server sejam rejeitados no Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1080,9 +1080,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server OPTION(...) query hints are rejected for Oracle.
-    /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para Oracle.
+    /// PT-br: Garante que hints SQL Server OPTION(...) sejam rejeitados para Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1099,9 +1099,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server OPTION(...) is also rejected after UNION tails for Oracle.
-    /// PT: Garante que OPTION(...) de SQL Server também seja rejeitado após tail de UNION no Oracle.
+    /// PT-br: Garante que OPTION(...) de SQL Server também seja rejeitado após tail de UNION no Oracle.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1119,9 +1119,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PIVOT clause parsing is available for this dialect.
-    /// PT: Garante que o parsing da cláusula pivot esteja disponível para este dialeto.
+    /// PT-br: Garante que o parsing da cláusula pivot esteja disponível para este dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1140,9 +1140,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies DELETE without FROM returns an actionable error message.
-    /// PT: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
+    /// PT-br: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1158,9 +1158,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies DELETE target alias before FROM returns an actionable error message.
-    /// PT: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
+    /// PT-br: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1178,9 +1178,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies unsupported top-level statements return guidance-focused errors.
-    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// PT-br: Verifica que comandos de topo não suportados retornam erros com orientação.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1197,9 +1197,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
-    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// PT-br: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1221,9 +1221,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures unsupported SQL uses the standard not-supported message.
-    /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
+    /// PT-br: Garante que SQL não suportado use a mensagem padrão de não suportado.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1240,9 +1240,9 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is supported.
-    /// PT: Garante que o Oracle rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver suportado.
+    /// PT-br: Garante que o Oracle rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver suportado.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versão do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versão do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -1260,7 +1260,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Validates window function capability by Oracle version and function name.
-    /// PT: Valida a capacidade de funções de janela por versão do Oracle e nome da função.
+    /// PT-br: Valida a capacidade de funções de janela por versão do Oracle e nome da função.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1277,7 +1277,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates window function names against Oracle dialect capabilities by version.
-    /// PT: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto Oracle por versão.
+    /// PT-br: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto Oracle por versão.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1303,7 +1303,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
-    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// PT-br: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1328,7 +1328,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates window function argument arity for supported functions.
-    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// PT-br: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1360,7 +1360,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates literal semantic ranges for window function arguments.
-    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// PT-br: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1391,7 +1391,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
-    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// PT-br: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1410,7 +1410,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
-    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// PT-br: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1441,7 +1441,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures supported window frame clauses parse on aggregate window functions.
-    /// PT: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
+    /// PT-br: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1471,7 +1471,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures invalid window frame bound ordering is rejected by parser semantic validation.
-    /// PT: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
+    /// PT-br: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1495,7 +1495,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Oracle parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
-    /// PT: Garante que o parser Oracle bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// PT-br: Garante que o parser Oracle bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1513,7 +1513,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
-    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// PT-br: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1538,7 +1538,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures trailing commas in WITHIN GROUP ORDER BY are rejected with actionable message.
-    /// PT: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1563,7 +1563,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures empty ORDER BY lists in WITHIN GROUP are rejected with actionable message.
-    /// PT: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1588,7 +1588,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures leading commas in WITHIN GROUP ORDER BY are rejected with actionable message.
-    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1614,7 +1614,7 @@ public sealed class OracleDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures missing commas between WITHIN GROUP ORDER BY expressions are rejected with actionable message.
-    /// PT: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

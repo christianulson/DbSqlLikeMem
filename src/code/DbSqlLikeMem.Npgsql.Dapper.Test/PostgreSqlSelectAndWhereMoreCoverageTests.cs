@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers extra PostgreSQL SELECT and WHERE scenarios over a direct mock connection.
-/// PT: Cobre cenarios extras de SELECT e WHERE PostgreSQL sobre uma conexao mock direta.
+/// PT-br: Cobre cenarios extras de SELECT e WHERE PostgreSQL sobre uma conexao mock direta.
 /// </summary>
 public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory PostgreSQL database used by the extra SELECT and WHERE coverage tests.
-    /// PT: Cria o banco PostgreSQL em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
+    /// PT-br: Cria o banco PostgreSQL em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
     /// </summary>
     public PostgreSqlSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {
@@ -40,7 +40,7 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies BETWEEN filters rows in PostgreSQL SELECT and WHERE coverage.
-    /// PT: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do PostgreSQL.
+    /// PT-br: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -52,7 +52,7 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies NOT IN filters rows in PostgreSQL SELECT and WHERE coverage.
-    /// PT: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do PostgreSQL.
+    /// PT-br: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -65,7 +65,7 @@ public sealed class PostgreSqlSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies EXISTS subqueries filter rows in PostgreSQL coverage.
-    /// PT: Verifica se subconsultas EXISTS filtram linhas na cobertura do PostgreSQL.
+    /// PT-br: Verifica se subconsultas EXISTS filtram linhas na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -87,7 +87,7 @@ ORDER BY u.id").ToList();
 
     /// <summary>
     /// EN: Verifies CASE WHEN projections return the expected values.
-    /// PT: Verifica se projeções CASE WHEN retornam os valores esperados.
+    /// PT-br: Verifica se projeções CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -107,7 +107,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies COALESCE-based null fallback in PostgreSQL SELECT coverage.
-    /// PT: Verifica o fallback de nulos com COALESCE na cobertura de SELECT do PostgreSQL.
+    /// PT-br: Verifica o fallback de nulos com COALESCE na cobertura de SELECT do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlSelectAndWhereMoreCoverage")]
@@ -119,9 +119,9 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

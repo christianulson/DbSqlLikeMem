@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
 /// EN: Covers schema-level backup and restore when table work runs in parallel on a thread-safe DB2 database.
-/// PT: Cobre backup e restore em nivel de schema quando o trabalho das tabelas executa em paralelo em um banco DB2 thread-safe.
+/// PT-br: Cobre backup e restore em nivel de schema quando o trabalho das tabelas executa em paralelo em um banco DB2 thread-safe.
 /// </summary>
 public sealed class SchemaParallelizationTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SchemaParallelizationTests(
 {
     /// <summary>
     /// EN: Verifies backup, restore, and backup clearing keep table data consistent across multiple tables.
-    /// PT: Verifica se backup, restore e limpeza de backup mantem os dados das tabelas consistentes em multiplas tabelas.
+    /// PT-br: Verifica se backup, restore e limpeza de backup mantem os dados das tabelas consistentes em multiplas tabelas.
     /// </summary>
     [Fact]
     [Trait("Category", "Concurrency")]
@@ -60,7 +60,7 @@ public sealed class SchemaParallelizationTests(
 
     /// <summary>
     /// EN: Verifies backup and restore stay consistent across multiple schemas when thread safety is enabled.
-    /// PT: Verifica se backup e restore permanecem consistentes em multiplos schemas quando a thread safety esta habilitada.
+    /// PT-br: Verifica se backup e restore permanecem consistentes em multiplos schemas quando a thread safety esta habilitada.
     /// </summary>
     [Fact]
     [Trait("Category", "Concurrency")]
@@ -109,7 +109,7 @@ public sealed class SchemaParallelizationTests(
 
     /// <summary>
     /// EN: Verifies volatile reset clears rows and identities across multiple schemas in thread-safe mode.
-    /// PT: Verifica se o reset volatil limpa linhas e identidades em multiplos schemas no modo thread-safe.
+    /// PT-br: Verifica se o reset volatil limpa linhas e identidades em multiplos schemas no modo thread-safe.
     /// </summary>
     [Fact]
     [Trait("Category", "Concurrency")]

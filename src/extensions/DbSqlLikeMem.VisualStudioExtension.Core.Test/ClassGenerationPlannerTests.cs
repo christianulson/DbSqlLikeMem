@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies the generation planner identifies missing mappings correctly.
-/// PT: Verifica se o planejador de geracao identifica corretamente mapeamentos ausentes.
+/// PT-br: Verifica se o planejador de geracao identifica corretamente mapeamentos ausentes.
 /// </summary>
 public class ClassGenerationPlannerTests
 {
     /// <summary>
     /// EN: Verifies a request without configuration requires mapping setup.
-    /// PT: Verifica se uma requisicao sem configuracao exige preparo de mapeamento.
+    /// PT-br: Verifica se uma requisicao sem configuracao exige preparo de mapeamento.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerationPlanner")]
@@ -28,7 +28,7 @@ public class ClassGenerationPlannerTests
 
     /// <summary>
     /// EN: Verifies normalized configurations keep procedure and function requests ready for generation.
-    /// PT: Verifica se configuracoes normalizadas mantem requisicoes de procedure e function prontas para geracao.
+    /// PT-br: Verifica se configuracoes normalizadas mantem requisicoes de procedure e function prontas para geracao.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerationPlanner")]

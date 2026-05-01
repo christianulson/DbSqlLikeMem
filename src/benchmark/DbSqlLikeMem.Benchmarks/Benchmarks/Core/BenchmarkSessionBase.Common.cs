@@ -59,6 +59,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Measures the cost of opening a new database connection.
     /// PT-br: Mede o custo de abrir uma nova conexão de banco de dados.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.ConnectionOpen)]
     protected virtual void RunConnectionOpen()
     {
         using var connection = CreateConnection();

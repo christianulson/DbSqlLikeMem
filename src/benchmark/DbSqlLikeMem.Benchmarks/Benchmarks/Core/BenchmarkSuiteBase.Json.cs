@@ -4,7 +4,7 @@ public abstract partial class BenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Executes a JSON scalar read benchmark.
-    /// PT: Executa um benchmark de leitura escalar JSON.
+    /// PT-br: Executa um benchmark de leitura escalar JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -12,7 +12,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a JSON path read benchmark.
-    /// PT: Executa um benchmark de leitura por caminho JSON.
+    /// PT-br: Executa um benchmark de leitura por caminho JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -20,7 +20,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the JSON missing-path benchmark.
-    /// PT: Executa o benchmark de caminho JSON ausente.
+    /// PT-br: Executa o benchmark de caminho JSON ausente.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -28,7 +28,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the JSON missing-path benchmark and expects a null result.
-    /// PT: Executa o benchmark de caminho JSON ausente e espera um resultado nulo.
+    /// PT-br: Executa o benchmark de caminho JSON ausente e espera um resultado nulo.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -36,7 +36,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the JSON root-fragment benchmark.
-    /// PT: Executa o benchmark de fragmento raiz JSON.
+    /// PT-br: Executa o benchmark de fragmento raiz JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -44,7 +44,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the JSON_MODIFY replacement benchmark.
-    /// PT: Executa o benchmark de substituicao JSON_MODIFY.
+    /// PT-br: Executa o benchmark de substituicao JSON_MODIFY.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -52,7 +52,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the JSON typed field matrix benchmark.
-    /// PT: Executa o benchmark da matriz de campos tipados com JSON.
+    /// PT-br: Executa o benchmark da matriz de campos tipados com JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -60,7 +60,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the json_each benchmark over a JSON array.
-    /// PT: Executa o benchmark json_each sobre um array JSON.
+    /// PT-br: Executa o benchmark json_each sobre um array JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -68,7 +68,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the json_each benchmark over a JSON object.
-    /// PT: Executa o benchmark json_each sobre um objeto JSON.
+    /// PT-br: Executa o benchmark json_each sobre um objeto JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -76,7 +76,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the json_tree benchmark over JSON.
-    /// PT: Executa o benchmark json_tree sobre JSON.
+    /// PT-br: Executa o benchmark json_tree sobre JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]
@@ -84,7 +84,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the OPENJSON benchmark over a JSON array.
-    /// PT: Executa o benchmark OPENJSON sobre um array JSON.
+    /// PT-br: Executa o benchmark OPENJSON sobre um array JSON.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("json")]

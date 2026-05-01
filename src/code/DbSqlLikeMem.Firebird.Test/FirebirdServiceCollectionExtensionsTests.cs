@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Validates Firebird service collection registration helpers.
-/// PT: Valida os helpers de registro de Firebird na coleção de serviços.
+/// PT-br: Valida os helpers de registro de Firebird na coleção de serviços.
 /// </summary>
 public sealed class FirebirdServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -21,7 +21,7 @@ public sealed class FirebirdServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddFirebirdDbMockTransient registers a transient factory that creates new configured FirebirdDbMock instances on each resolution.
-    /// PT: Verifica se AddFirebirdDbMockTransient registra uma factory transient que cria novas instancias configuradas de FirebirdDbMock em cada resolucao.
+    /// PT-br: Verifica se AddFirebirdDbMockTransient registra uma factory transient que cria novas instancias configuradas de FirebirdDbMock em cada resolucao.
     /// </summary>
     [Fact]
     public void AddFirebirdDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
@@ -53,7 +53,7 @@ public sealed class FirebirdServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddFirebirdDbMockSingleton registers one configured instance reused across resolutions.
-    /// PT: Verifica se AddFirebirdDbMockSingleton registra uma instancia configurada reutilizada entre resolucoes.
+    /// PT-br: Verifica se AddFirebirdDbMockSingleton registra uma instancia configurada reutilizada entre resolucoes.
     /// </summary>
     [Fact]
     public void AddFirebirdDbMockSingleton_ShouldReuseConfiguredInstance()
@@ -85,7 +85,7 @@ public sealed class FirebirdServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddFirebirdDbMockScoped registers a scoped factory that creates configured instances.
-    /// PT: Verifica se AddFirebirdDbMockScoped registra uma factory com escopo que cria instancias configuradas.
+    /// PT-br: Verifica se AddFirebirdDbMockScoped registra uma factory com escopo que cria instancias configuradas.
     /// </summary>
     [Fact]
     public void AddFirebirdDbMockScoped_ShouldCreateConfiguredInstance()
@@ -117,7 +117,7 @@ public sealed class FirebirdServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies default registration overloads return the same service collection and still register FirebirdDbMock.
-    /// PT: Verifica se as sobrecargas padrão retornam a mesma coleção de serviços e ainda registram FirebirdDbMock.
+    /// PT-br: Verifica se as sobrecargas padrão retornam a mesma coleção de serviços e ainda registram FirebirdDbMock.
     /// </summary>
     [Fact]
     public void DefaultOverloads_ShouldReturnSameServiceCollectionAndRegisterService()

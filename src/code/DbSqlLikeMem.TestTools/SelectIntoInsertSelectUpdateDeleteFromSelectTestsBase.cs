@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Shared tests for CREATE TABLE AS SELECT, INSERT SELECT, UPDATE with derived select and DELETE from select.
-/// PT: Testes compartilhados para CREATE TABLE AS SELECT, INSERT SELECT, UPDATE com subselect derivado e DELETE via select.
+/// PT-br: Testes compartilhados para CREATE TABLE AS SELECT, INSERT SELECT, UPDATE com subselect derivado e DELETE via select.
 /// </summary>
 public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbMock>(
         ITestOutputHelper helper
@@ -11,19 +11,19 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 {
     /// <summary>
     /// EN: Gets the provider dialect used to evaluate SQL capability in these tests.
-    /// PT: Obtem o dialeto do provedor usado para avaliar capacidades SQL nestes testes.
+    /// PT-br: Obtem o dialeto do provedor usado para avaliar capacidades SQL nestes testes.
     /// </summary>
     protected abstract ProviderSqlDialect Dialect { get; }
 
     /// <summary>
     /// EN: Creates a provider-specific database mock used by shared select/insert/update/delete tests.
-    /// PT: Cria um simulado de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
+    /// PT-br: Cria um simulado de banco específico do provedor usado pelos testes compartilhados de select/insert/update/delete.
     /// </summary>
     protected abstract TDbMock CreateDb();
 
     /// <summary>
     /// EN: Executes a provider-specific non-query SQL command against the supplied mock database.
-    /// PT: Executa um comando SQL sem retorno específico do provedor no banco simulado informado.
+    /// PT-br: Executa um comando SQL sem retorno específico do provedor no banco simulado informado.
     /// </summary>
     protected abstract int ExecuteNonQuery(
         TDbMock db,
@@ -31,13 +31,13 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in this provider.
-    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT neste provedor.
+    /// PT-br: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT neste provedor.
     /// </summary>
     protected virtual int CreateTableAsSelectExpectedAffectedRows => 0;
 
     /// <summary>
     /// EN: Verifies CREATE TABLE AS SELECT creates a new table populated with the selected rows.
-    /// PT: Verifica se CREATE TABLE AS SELECT cria uma nova tabela populada com as linhas selecionadas.
+    /// PT-br: Verifica se CREATE TABLE AS SELECT cria uma nova tabela populada com as linhas selecionadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -68,7 +68,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Verifies CREATE TABLE AS SELECT DISTINCT creates a new table populated with unique rows.
-    /// PT: Verifica se CREATE TABLE AS SELECT DISTINCT cria uma nova tabela populada com linhas unicas.
+    /// PT-br: Verifica se CREATE TABLE AS SELECT DISTINCT cria uma nova tabela populada com linhas unicas.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -98,7 +98,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Verifies INSERT INTO ... SELECT inserts the rows returned by the query.
-    /// PT: Verifica se INSERT INTO ... SELECT insere as linhas retornadas pela consulta.
+    /// PT-br: Verifica se INSERT INTO ... SELECT insere as linhas retornadas pela consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -128,7 +128,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Verifies INSERT INTO ... SELECT DISTINCT inserts the unique rows returned by the query.
-    /// PT: Verifica se INSERT INTO ... SELECT DISTINCT insere as linhas unicas retornadas pela consulta.
+    /// PT-br: Verifica se INSERT INTO ... SELECT DISTINCT insere as linhas unicas retornadas pela consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -158,7 +158,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Verifies INSERT INTO ... SELECT with GROUP BY inserts the aggregated rows returned by the query.
-    /// PT: Verifica se INSERT INTO ... SELECT com GROUP BY insere as linhas agregadas retornadas pela consulta.
+    /// PT-br: Verifica se INSERT INTO ... SELECT com GROUP BY insere as linhas agregadas retornadas pela consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -191,7 +191,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Verifies UPDATE against a derived select updates the matching rows.
-    /// PT: Verifica se o UPDATE sobre um select derivado atualiza as linhas correspondentes.
+    /// PT-br: Verifica se o UPDATE sobre um select derivado atualiza as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -234,7 +234,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Verifies UPDATE against a derived select rejects rows that violate a check constraint.
-    /// PT: Verifica se o UPDATE sobre um select derivado rejeita linhas que violam uma restricao check.
+    /// PT-br: Verifica se o UPDATE sobre um select derivado rejeita linhas que violam uma restricao check.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -273,7 +273,7 @@ public abstract class SelectIntoInsertSelectUpdateDeleteFromSelectTestsBase<TDbM
 
     /// <summary>
     /// EN: Verifies DELETE against a derived select removes the matching rows.
-    /// PT: Verifica se o DELETE sobre um select derivado remove as linhas correspondentes.
+    /// PT-br: Verifica se o DELETE sobre um select derivado remove as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]

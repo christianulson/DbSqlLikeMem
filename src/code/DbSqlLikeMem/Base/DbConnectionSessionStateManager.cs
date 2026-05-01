@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Tracks session-scoped values, context information, and sequence state for a connection.
-/// PT: Controla valores de escopo de sessao, informacoes de contexto e estado de sequence para uma conexao.
+/// PT-br: Controla valores de escopo de sessao, informacoes de contexto e estado de sequence para uma conexao.
 /// </summary>
 internal sealed class DbConnectionSessionStateManager
 {
@@ -17,7 +17,7 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Clears all tracked session state.
-    /// PT: Limpa todo o estado de sessao controlado.
+    /// PT-br: Limpa todo o estado de sessao controlado.
     /// </summary>
     public void ClearAll()
     {
@@ -30,7 +30,7 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Clears only the transaction-scoped context values.
-    /// PT: Limpa apenas os valores de contexto de escopo transacional.
+    /// PT-br: Limpa apenas os valores de contexto de escopo transacional.
     /// </summary>
     public void ClearTransactionContextValues()
     {
@@ -40,11 +40,11 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Stores a session sequence value for the given schema and sequence name.
-    /// PT: Armazena um valor de sequence de sessao para o schema e sequence informados.
+    /// PT-br: Armazena um valor de sequence de sessao para o schema e sequence informados.
     /// </summary>
-    /// <param name="sequenceName">EN: Sequence name to store. PT: Nome da sequence a armazenar.</param>
-    /// <param name="value">EN: Sequence value to store. PT: Valor da sequence a armazenar.</param>
-    /// <param name="schemaName">EN: Schema name that scopes the sequence. PT: Nome do schema que delimita a sequence.</param>
+    /// <param name="sequenceName">EN: Sequence name to store. PT-br: Nome da sequence a armazenar.</param>
+    /// <param name="value">EN: Sequence value to store. PT-br: Valor da sequence a armazenar.</param>
+    /// <param name="schemaName">EN: Schema name that scopes the sequence. PT-br: Nome do schema que delimita a sequence.</param>
     public void SetSessionSequenceValue(
         string sequenceName,
         long value,
@@ -57,11 +57,11 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Tries to get a session sequence value by schema and sequence name.
-    /// PT: Tenta obter um valor de sequence de sessao por schema e nome da sequence.
+    /// PT-br: Tenta obter um valor de sequence de sessao por schema e nome da sequence.
     /// </summary>
-    /// <param name="sequenceName">EN: Sequence name to look up. PT: Nome da sequence a localizar.</param>
-    /// <param name="value">EN: Sequence value when found. PT: Valor da sequence quando encontrado.</param>
-    /// <param name="schemaName">EN: Schema name that scopes the sequence. PT: Nome do schema que delimita a sequence.</param>
+    /// <param name="sequenceName">EN: Sequence name to look up. PT-br: Nome da sequence a localizar.</param>
+    /// <param name="value">EN: Sequence value when found. PT-br: Valor da sequence quando encontrado.</param>
+    /// <param name="schemaName">EN: Schema name that scopes the sequence. PT-br: Nome do schema que delimita a sequence.</param>
     public bool TryGetSessionSequenceValue(
         string sequenceName,
         out long value,
@@ -70,9 +70,9 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Tries to get the most recently stored session sequence value.
-    /// PT: Tenta obter o valor de sequence de sessao mais recentemente armazenado.
+    /// PT-br: Tenta obter o valor de sequence de sessao mais recentemente armazenado.
     /// </summary>
-    /// <param name="value">EN: Sequence value when found. PT: Valor da sequence quando encontrado.</param>
+    /// <param name="value">EN: Sequence value when found. PT-br: Valor da sequence quando encontrado.</param>
     public bool TryGetLastSessionSequenceValue(out long value)
     {
         value = default;
@@ -82,10 +82,10 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Stores or removes a session context value.
-    /// PT: Armazena ou remove um valor de contexto de sessao.
+    /// PT-br: Armazena ou remove um valor de contexto de sessao.
     /// </summary>
-    /// <param name="key">EN: Context key to store. PT: Chave de contexto a armazenar.</param>
-    /// <param name="value">EN: Context value to store, or null to remove it. PT: Valor de contexto a armazenar, ou null para remover.</param>
+    /// <param name="key">EN: Context key to store. PT-br: Chave de contexto a armazenar.</param>
+    /// <param name="value">EN: Context value to store, or null to remove it. PT-br: Valor de contexto a armazenar, ou null para remover.</param>
     public void SetSessionContextValue(string key, object? value)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -102,19 +102,19 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Tries to get a session context value by key.
-    /// PT: Tenta obter um valor de contexto de sessao pela chave.
+    /// PT-br: Tenta obter um valor de contexto de sessao pela chave.
     /// </summary>
-    /// <param name="key">EN: Context key to look up. PT: Chave de contexto a localizar.</param>
-    /// <param name="value">EN: Context value when found. PT: Valor de contexto quando encontrado.</param>
+    /// <param name="key">EN: Context key to look up. PT-br: Chave de contexto a localizar.</param>
+    /// <param name="value">EN: Context value when found. PT-br: Valor de contexto quando encontrado.</param>
     public bool TryGetSessionContextValue(string key, out object? value)
         => _sessionContextValues.TryGetValue(key, out value);
 
     /// <summary>
     /// EN: Stores or removes a transaction context value.
-    /// PT: Armazena ou remove um valor de contexto de transacao.
+    /// PT-br: Armazena ou remove um valor de contexto de transacao.
     /// </summary>
-    /// <param name="key">EN: Context key to store. PT: Chave de contexto a armazenar.</param>
-    /// <param name="value">EN: Context value to store, or null to remove it. PT: Valor de contexto a armazenar, ou null para remover.</param>
+    /// <param name="key">EN: Context key to store. PT-br: Chave de contexto a armazenar.</param>
+    /// <param name="value">EN: Context value to store, or null to remove it. PT-br: Valor de contexto a armazenar, ou null para remover.</param>
     public void SetTransactionContextValue(string key, object? value)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -131,34 +131,34 @@ internal sealed class DbConnectionSessionStateManager
 
     /// <summary>
     /// EN: Tries to get a transaction context value by key.
-    /// PT: Tenta obter um valor de contexto de transacao pela chave.
+    /// PT-br: Tenta obter um valor de contexto de transacao pela chave.
     /// </summary>
-    /// <param name="key">EN: Context key to look up. PT: Chave de contexto a localizar.</param>
-    /// <param name="value">EN: Context value when found. PT: Valor de contexto quando encontrado.</param>
+    /// <param name="key">EN: Context key to look up. PT-br: Chave de contexto a localizar.</param>
+    /// <param name="value">EN: Context value when found. PT-br: Valor de contexto quando encontrado.</param>
     public bool TryGetTransactionContextValue(string key, out object? value)
         => _transactionContextValues.TryGetValue(key, out value);
 
     /// <summary>
     /// EN: Stores the connection context-info payload.
-    /// PT: Armazena o payload de context-info da conexao.
+    /// PT-br: Armazena o payload de context-info da conexao.
     /// </summary>
-    /// <param name="value">EN: Context-info payload to store. PT: Payload de context-info a armazenar.</param>
+    /// <param name="value">EN: Context-info payload to store. PT-br: Payload de context-info a armazenar.</param>
     public void SetContextInfo(byte[]? value)
         => _contextInfo = value;
 
     /// <summary>
     /// EN: Gets the stored connection context-info payload.
-    /// PT: Obtém o payload de context-info armazenado da conexao.
+    /// PT-br: Obtém o payload de context-info armazenado da conexao.
     /// </summary>
     public byte[]? GetContextInfo()
         => _contextInfo;
 
     /// <summary>
     /// EN: Clears a stored session sequence value for the given schema and sequence name.
-    /// PT: Limpa um valor de sequence de sessao armazenado para o schema e sequence informados.
+    /// PT-br: Limpa um valor de sequence de sessao armazenado para o schema e sequence informados.
     /// </summary>
-    /// <param name="sequenceName">EN: Sequence name to clear. PT: Nome da sequence a limpar.</param>
-    /// <param name="schemaName">EN: Schema name that scopes the sequence. PT: Nome do schema que delimita a sequence.</param>
+    /// <param name="sequenceName">EN: Sequence name to clear. PT-br: Nome da sequence a limpar.</param>
+    /// <param name="schemaName">EN: Schema name that scopes the sequence. PT-br: Nome do schema que delimita a sequence.</param>
     public void ClearSessionSequenceValue(
         string sequenceName,
         string schemaName)

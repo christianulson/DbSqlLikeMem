@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for SQL Server connections.
-/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes SQL Server.
+/// PT-br: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes SQL Server.
 /// </summary>
 public sealed class SqlServerLinqProviderTest(
         ITestOutputHelper helper
@@ -12,12 +12,12 @@ public sealed class SqlServerLinqProviderTest(
     {
         /// <summary>
         /// EN: Gets or sets Id.
-        /// PT: Obtém ou define Id.
+        /// PT-br: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
         /// EN: Gets or sets Name.
-        /// PT: Obtém ou define Name.
+        /// PT-br: Obtém ou define Name.
         /// </summary>
         public string Name { get; set; } = "";
     }
@@ -25,7 +25,7 @@ public sealed class SqlServerLinqProviderTest(
 
     /// <summary>
     /// EN: Verifies LINQ queries filter rows and project the expected SQL Server results.
-    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no SQL Server.
+    /// PT-br: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerLinqProviderTest")]

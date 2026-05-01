@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DDL;
 
 /// <summary>
 /// EN: Creates the orders table with a foreign key and inserts a valid referenced row.
-/// PT: Cria a tabela de pedidos com chave estrangeira e insere uma linha referenciada valida.
+/// PT-br: Cria a tabela de pedidos com chave estrangeira e insere uma linha referenciada valida.
 /// </summary>
 public class InsertInTableWithFKServiceTest(
        RepoService repo,
@@ -12,9 +12,9 @@ public class InsertInTableWithFKServiceTest(
 {
     /// <summary>
     /// EN: Creates the orders table and inserts a valid row that references the users table.
-    /// PT: Cria a tabela de pedidos e insere uma linha valida que referencia a tabela de usuarios.
+    /// PT-br: Cria a tabela de pedidos e insere uma linha valida que referencia a tabela de usuarios.
     /// </summary>
-    /// <param name="args">EN: Optional user id and order id for the referenced insert. PT: Id de usuario e id de pedido opcionais para o insert referenciado.</param>
+    /// <param name="args">EN: Optional user id and order id for the referenced insert. PT-br: Id de usuario e id de pedido opcionais para o insert referenciado.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;

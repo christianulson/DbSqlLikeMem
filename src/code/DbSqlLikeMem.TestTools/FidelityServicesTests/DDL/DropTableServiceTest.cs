@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DDL;
 
 /// <summary>
 /// EN: Executes the table-drop command for DDL scenarios.
-/// PT: Executa o comando de remocao de tabela para cenarios DDL.
+/// PT-br: Executa o comando de remocao de tabela para cenarios DDL.
 /// </summary>
 public class DropTableServiceTest(
        RepoService repo,
@@ -12,7 +12,7 @@ public class DropTableServiceTest(
 {
     /// <summary>
     /// EN: Drops the requested table for the current provider.
-    /// PT: Remove a tabela solicitada para o provedor atual.
+    /// PT-br: Remove a tabela solicitada para o provedor atual.
     /// </summary>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {

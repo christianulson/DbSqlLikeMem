@@ -67,17 +67,17 @@ internal sealed record CaseWhenThen(SqlExpr When, SqlExpr Then);
 internal sealed record StarExpr() : SqlExpr;
 /// <summary>
 /// EN: Unary operators represented in the SQL AST.
-/// PT: Operadores unários representados na AST SQL.
+/// PT-br: Operadores unários representados na AST SQL.
 /// </summary>
 internal enum SqlUnaryOp { Not }
 /// <summary>
 /// EN: Quantifiers represented for subquery comparisons.
-/// PT: Quantificadores representados para comparações com subquery.
+/// PT-br: Quantificadores representados para comparações com subquery.
 /// </summary>
 internal enum SqlQuantifier { Any, All }
 /// <summary>
 /// EN: Binary operators represented in the SQL AST.
-/// PT: Operadores binários representados na AST SQL.
+/// PT-br: Operadores binários representados na AST SQL.
 /// </summary>
 internal enum SqlBinaryOp
 {

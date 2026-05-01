@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Exposes execute block parameters through a read-only collection view.
-/// PT: Expõe os parametros do execute block por meio de uma view de colecao somente leitura.
+/// PT-br: Expõe os parametros do execute block por meio de uma view de colecao somente leitura.
 /// </summary>
 internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
 {
@@ -46,7 +46,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
 
     /// <summary>
     /// EN: Updates one local parameter value by normalized name.
-    /// PT: Atualiza o valor de um parametro local pelo nome normalizado.
+    /// PT-br: Atualiza o valor de um parametro local pelo nome normalizado.
     /// </summary>
     internal bool TrySetLocalParameterValue(string parameterName, object? value)
     {
@@ -60,7 +60,7 @@ internal sealed class SqlExecuteBlockParameterCollection : DbParameterCollection
 
     /// <summary>
     /// EN: Reads one local parameter value by normalized name.
-    /// PT: Lê o valor de um parametro local pelo nome normalizado.
+    /// PT-br: Lê o valor de um parametro local pelo nome normalizado.
     /// </summary>
     internal bool TryGetLocalParameterValue(string parameterName, out object? value)
     {

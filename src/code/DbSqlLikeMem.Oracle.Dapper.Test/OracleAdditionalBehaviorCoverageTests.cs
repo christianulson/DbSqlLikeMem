@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Covers additional Oracle behavior scenarios for the Dapper provider.
-/// PT: Cobre cenarios adicionais de comportamento Oracle para o provedor Dapper.
+/// PT-br: Cobre cenarios adicionais de comportamento Oracle para o provedor Dapper.
 /// </summary>
 public sealed class OracleAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper
@@ -15,7 +15,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies IS NULL and IS NOT NULL predicates return the expected rows.
-    /// PT: Verifica se os predicados IS NULL e IS NOT NULL retornam as linhas esperadas.
+    /// PT-br: Verifica se os predicados IS NULL e IS NOT NULL retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -23,7 +23,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies equality comparisons against NULL return no rows.
-    /// PT: Verifica se comparacoes de igualdade com NULL nao retornam linhas.
+    /// PT-br: Verifica se comparacoes de igualdade com NULL nao retornam linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -31,7 +31,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies left joins preserve left-side rows when there is no matching right-side row.
-    /// PT: Verifica se left joins preservam as linhas da esquerda quando nao ha linha correspondente na direita.
+    /// PT-br: Verifica se left joins preservam as linhas da esquerda quando nao ha linha correspondente na direita.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -39,7 +39,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies mixed descending and ascending ordering is deterministic.
-    /// PT: Verifica se a ordenacao mista decrescente e crescente e deterministica.
+    /// PT-br: Verifica se a ordenacao mista decrescente e crescente e deterministica.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -47,7 +47,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies COUNT(*) and COUNT(column) handle null values differently as expected.
-    /// PT: Verifica se COUNT(*) e COUNT(coluna) tratam valores nulos de forma diferente conforme esperado.
+    /// PT-br: Verifica se COUNT(*) e COUNT(coluna) tratam valores nulos de forma diferente conforme esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -55,7 +55,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies HAVING filters grouped results correctly.
-    /// PT: Verifica se HAVING filtra corretamente os resultados agrupados.
+    /// PT-br: Verifica se HAVING filtra corretamente os resultados agrupados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -63,7 +63,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies parameter lists work correctly in IN predicates.
-    /// PT: Verifica se listas de parametros funcionam corretamente em predicados IN.
+    /// PT-br: Verifica se listas de parametros funcionam corretamente em predicados IN.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -71,7 +71,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies inserts map values correctly when columns are specified out of order.
-    /// PT: Verifica se insercoes mapeiam valores corretamente quando as colunas sao informadas fora de ordem.
+    /// PT-br: Verifica se insercoes mapeiam valores corretamente quando as colunas sao informadas fora de ordem.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -79,7 +79,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies binary keys round-trip through Dapper when the payload starts as Guid bytes.
-    /// PT: Verifica se chaves binarias retornam pelo Dapper quando o payload comeca como bytes de Guid.
+    /// PT-br: Verifica se chaves binarias retornam pelo Dapper quando o payload comeca como bytes de Guid.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -87,7 +87,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies deletes using an IN parameter list remove the expected rows.
-    /// PT: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
+    /// PT-br: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -95,7 +95,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies update set expressions can reference the current column value correctly.
-    /// PT: Verifica se expressoes SET em updates podem referenciar corretamente o valor atual da coluna.
+    /// PT-br: Verifica se expressoes SET em updates podem referenciar corretamente o valor atual da coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -103,7 +103,7 @@ public sealed class OracleAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies UPDATE statements can match rows through an IN subquery that uses a table alias.
-    /// PT: Verifica se UPDATEs podem casar linhas por meio de uma subquery IN que usa alias de tabela.
+    /// PT-br: Verifica se UPDATEs podem casar linhas por meio de uma subquery IN que usa alias de tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -196,7 +196,7 @@ UPDATE WALLETHOTLIST
 
     /// <summary>
     /// EN: Verifies a JSON body stored as text round-trips through Dapper together with a binary notification identifier.
-    /// PT: Verifica se um corpo JSON armazenado como texto faz round-trip pelo Dapper junto com um identificador binario de notificacao.
+    /// PT-br: Verifica se um corpo JSON armazenado como texto faz round-trip pelo Dapper junto com um identificador binario de notificacao.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]
@@ -240,7 +240,7 @@ UPDATE WALLETHOTLIST
 
     /// <summary>
     /// EN: Verifies an updated JSON body and status round-trip through Dapper after replacing the stored row values.
-    /// PT: Verifica se um corpo JSON atualizado e o status fazem round-trip pelo Dapper depois de substituir os valores da linha armazenada.
+    /// PT-br: Verifica se um corpo JSON atualizado e o status fazem round-trip pelo Dapper depois de substituir os valores da linha armazenada.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleAdditionalBehaviorCoverage")]

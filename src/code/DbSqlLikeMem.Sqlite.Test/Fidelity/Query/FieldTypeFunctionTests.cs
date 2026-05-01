@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared typed-field and function workflows.
-/// PT: Executa testes de fidelidade SQLite para os fluxos compartilhados de campos tipados e funcoes.
+/// PT-br: Executa testes de fidelidade SQLite para os fluxos compartilhados de campos tipados e funcoes.
 /// </summary>
 public class FieldTypeFunctionTests(
     ITestOutputHelper helper

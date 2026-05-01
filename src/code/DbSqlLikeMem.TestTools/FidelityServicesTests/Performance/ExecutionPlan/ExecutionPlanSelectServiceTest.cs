@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes execution-plan benchmark workflows and validates the observed provider diagnostics.
-/// PT: Executa fluxos de benchmark de plano de execucao e valida os diagnosticos observados do provedor.
+/// PT-br: Executa fluxos de benchmark de plano de execucao e valida os diagnosticos observados do provedor.
 /// </summary>
 public class ExecutionPlanSelectServiceTest(
         RepoService repo,
@@ -12,9 +12,9 @@ public class ExecutionPlanSelectServiceTest(
 {
     /// <summary>
     /// EN: Executes the select execution-plan benchmark alias.
-    /// PT: Executa o alias do benchmark de plano de execucao para select.
+    /// PT-br: Executa o alias do benchmark de plano de execucao para select.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the query. PT: Id principal opcional do usuario para a consulta.</param>
+    /// <param name="args">EN: Optional primary user id for the query. PT-br: Id principal opcional do usuario para a consulta.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;

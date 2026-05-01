@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
 /// EN: Table mock specialized for Npgsql schema operations.
-/// PT: Tabela simulada especializada para operações de esquema no Npgsql.
+/// PT-br: Tabela simulada especializada para operações de esquema no Npgsql.
 /// </summary>
 internal class NpgsqlTableMock(
         string tableName,
@@ -13,7 +13,7 @@ internal class NpgsqlTableMock(
 {
     /// <summary>
     /// EN: Gets or sets the column name currently being resolved by value conversion helpers.
-    /// PT: Obtém ou define o nome da coluna que está sendo resolvida pelos auxiliares de conversão de valor.
+    /// PT-br: Obtém ou define o nome da coluna que está sendo resolvida pelos auxiliares de conversão de valor.
     /// </summary>
     public override string? CurrentColumn
     {
@@ -23,7 +23,7 @@ internal class NpgsqlTableMock(
 
     /// <summary>
     /// EN: Resolves a SQL token to a typed value according to Npgsql conversion rules.
-    /// PT: ResolveRowsFrameRange um token SQL para um valor tipado conforme as regras de conversão do Npgsql.
+    /// PT-br: ResolveRowsFrameRange um token SQL para um valor tipado conforme as regras de conversão do Npgsql.
     /// </summary>
     public override object? Resolve(
         string token,
@@ -38,35 +38,35 @@ internal class NpgsqlTableMock(
 
     /// <summary>
     /// EN: Creates the provider-specific exception used when a referenced column does not exist.
-    /// PT: Cria a exceção específica do provedor quando a coluna referenciada não existe.
+    /// PT-br: Cria a exceção específica do provedor quando a coluna referenciada não existe.
     /// </summary>
     public override Exception UnknownColumn(string columnName)
         => NpgsqlExceptionFactory.UnknownColumn(columnName);
 
     /// <summary>
     /// EN: Creates the provider-specific exception used for duplicate key violations.
-    /// PT: Cria a exceção específica do provedor para violações de chave duplicada.
+    /// PT-br: Cria a exceção específica do provedor para violações de chave duplicada.
     /// </summary>
     public override Exception DuplicateKey(string tbl, string key, object? val)
         => NpgsqlExceptionFactory.DuplicateKey(tbl, key, val);
 
     /// <summary>
     /// EN: Creates the provider-specific exception used when a non-nullable column receives null.
-    /// PT: Cria a exceção específica do provedor quando uma coluna obrigatória recebe valor nulo.
+    /// PT-br: Cria a exceção específica do provedor quando uma coluna obrigatória recebe valor nulo.
     /// </summary>
     public override Exception ColumnCannotBeNull(string col)
         => NpgsqlExceptionFactory.ColumnCannotBeNull(col);
 
     /// <summary>
     /// EN: Creates the provider-specific exception used for foreign key violations.
-    /// PT: Cria a exceção específica do provedor para violações de chave estrangeira.
+    /// PT-br: Cria a exceção específica do provedor para violações de chave estrangeira.
     /// </summary>
     public override Exception ForeignKeyFails(string col, string refTbl)
         => NpgsqlExceptionFactory.ForeignKeyFails(col, refTbl);
 
     /// <summary>
     /// EN: Creates the provider-specific exception used when a referenced row prevents deletion.
-    /// PT: Cria a exceção específica do provedor quando uma linha referenciada impede a exclusão.
+    /// PT-br: Cria a exceção específica do provedor quando uma linha referenciada impede a exclusão.
     /// </summary>
     public override Exception ReferencedRow(string tbl)
         => NpgsqlExceptionFactory.ReferencedRow(tbl);

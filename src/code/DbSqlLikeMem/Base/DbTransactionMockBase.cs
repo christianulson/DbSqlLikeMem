@@ -2,9 +2,9 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Provides the common transaction lifecycle shared by provider-specific mock transactions.
-/// PT: Fornece o ciclo de vida comum de transacao compartilhado pelas transacoes simuladas especificas de provedor.
+/// PT-br: Fornece o ciclo de vida comum de transacao compartilhado pelas transacoes simuladas especificas de provedor.
 /// </summary>
-/// <typeparam name="TConnection">EN: Provider-specific connection type. PT: Tipo de conexao especifico do provedor.</typeparam>
+/// <typeparam name="TConnection">EN: Provider-specific connection type. PT-br: Tipo de conexao especifico do provedor.</typeparam>
 public abstract class DbTransactionMockBase<TConnection>(
     TConnection connection,
     IsolationLevel? isolationLevel = null) : DbTransaction
@@ -15,7 +15,7 @@ public abstract class DbTransactionMockBase<TConnection>(
 
     /// <summary>
     /// EN: Gets the provider-specific connection associated with this transaction.
-    /// PT: Obtem a conexao especifica do provedor associada a esta transacao.
+    /// PT-br: Obtem a conexao especifica do provedor associada a esta transacao.
     /// </summary>
     protected new TConnection Connection { get; } = connection;
 
@@ -48,9 +48,9 @@ public abstract class DbTransactionMockBase<TConnection>(
 #else
     /// <summary>
     /// EN: Creates a savepoint in the active transaction.
-    /// PT: Cria um savepoint na transacao ativa.
+    /// PT-br: Cria um savepoint na transacao ativa.
     /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    /// <param name="savepointName">EN: Savepoint name. PT-br: Nome do savepoint.</param>
     public void Save(string savepointName)
 #endif
         => Connection.CreateSavepoint(savepointName);
@@ -61,9 +61,9 @@ public abstract class DbTransactionMockBase<TConnection>(
 #else
     /// <summary>
     /// EN: Rolls back to a named savepoint.
-    /// PT: Executa rollback para um savepoint nomeado.
+    /// PT-br: Executa rollback para um savepoint nomeado.
     /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    /// <param name="savepointName">EN: Savepoint name. PT-br: Nome do savepoint.</param>
     public void Rollback(string savepointName)
 #endif
         => Connection.RollbackTransaction(savepointName);
@@ -74,9 +74,9 @@ public abstract class DbTransactionMockBase<TConnection>(
 #else
     /// <summary>
     /// EN: Releases a named savepoint.
-    /// PT: Libera um savepoint nomeado.
+    /// PT-br: Libera um savepoint nomeado.
     /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    /// <param name="savepointName">EN: Savepoint name. PT-br: Nome do savepoint.</param>
     public void Release(string savepointName)
 #endif
         => Connection.ReleaseSavepoint(savepointName);

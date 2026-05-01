@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Covers SQLite mock command and transaction scenarios.
-/// PT: Cobre cenarios de comandos e transacoes do mock SQLite.
+/// PT-br: Cobre cenarios de comandos e transacoes do mock SQLite.
 /// </summary>
 public sealed class SqliteMockTests
     : XUnitTestBase
@@ -11,7 +11,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Creates the SQLite mock test fixture with seeded tables.
-    /// PT: Cria a fixture de teste do mock SQLite com tabelas semeadas.
+    /// PT-br: Cria a fixture de teste do mock SQLite com tabelas semeadas.
     /// </summary>
     public SqliteMockTests(
         ITestOutputHelper helper
@@ -35,7 +35,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies INSERT statements write rows into the SQLite mock.
-    /// PT: Verifica se comandos INSERT gravam linhas no mock SQLite.
+    /// PT-br: Verifica se comandos INSERT gravam linhas no mock SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -52,7 +52,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies a prepared SQLite command can be executed repeatedly with updated parameter values.
-    /// PT: Verifica se um comando SQLite preparado pode ser executado repetidamente com valores de parametro atualizados.
+    /// PT-br: Verifica se um comando SQLite preparado pode ser executado repetidamente com valores de parametro atualizados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -84,7 +84,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes SQL Server TOP syntax on the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa sintaxe TOP do SQL Server no pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa sintaxe TOP do SQL Server no pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -113,7 +113,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes ANSI FETCH FIRST syntax on the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa sintaxe ANSI FETCH FIRST no pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa sintaxe ANSI FETCH FIRST no pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -142,7 +142,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies changing to the current database keeps the select-plan cache generation unchanged.
-    /// PT: Verifica se mudar para o database atual mantem inalterada a geracao do cache de plano de select.
+    /// PT-br: Verifica se mudar para o database atual mantem inalterada a geracao do cache de plano de select.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -170,7 +170,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes INSERT SELECT with TOP through the shared non-query pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa INSERT SELECT com TOP pelo pipeline compartilhado de non-query.
+    /// PT-br: Verifica se o modo automatico de dialeto executa INSERT SELECT com TOP pelo pipeline compartilhado de non-query.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -206,7 +206,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode supports equivalent pagination syntaxes inside the same reader batch.
-    /// PT: Verifica se o modo automatico de dialeto suporta sintaxes equivalentes de paginacao no mesmo batch de leitura.
+    /// PT-br: Verifica se o modo automatico de dialeto suporta sintaxes equivalentes de paginacao no mesmo batch de leitura.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -246,7 +246,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies equivalent pagination syntaxes return the same runtime result when automatic dialect mode is enabled.
-    /// PT: Verifica se sintaxes equivalentes de paginacao retornam o mesmo resultado em runtime quando o modo automatico de dialeto esta habilitado.
+    /// PT-br: Verifica se sintaxes equivalentes de paginacao retornam o mesmo resultado em runtime quando o modo automatico de dialeto esta habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -290,7 +290,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared sequence DDL and expression families through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa DDL compartilhado de sequence e suas familias de expressoes pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa DDL compartilhado de sequence e suas familias de expressoes pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -319,7 +319,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes sequence expressions inside shared DML paths.
-    /// PT: Verifica se o modo automatico de dialeto executa expressoes de sequence dentro de caminhos compartilhados de DML.
+    /// PT-br: Verifica se o modo automatico de dialeto executa expressoes de sequence dentro de caminhos compartilhados de DML.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -348,7 +348,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode preserves session-scoped sequence state and shared DROP SEQUENCE behavior.
-    /// PT: Verifica se o modo automatico de dialeto preserva o estado de sequence por sessao e o comportamento compartilhado de DROP SEQUENCE.
+    /// PT-br: Verifica se o modo automatico de dialeto preserva o estado de sequence por sessao e o comportamento compartilhado de DROP SEQUENCE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -375,7 +375,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies SQLite TRUNC truncates numeric values toward zero and rejects the scale form.
-    /// PT: Verifica se TRUNC do SQLite trunca valores numericos em direcao ao zero e rejeita a forma com escala.
+    /// PT-br: Verifica se TRUNC do SQLite trunca valores numericos em direcao ao zero e rejeita a forma com escala.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -397,7 +397,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies SQLite LOG2 returns the expected base-2 logarithm value.
-    /// PT: Verifica se LOG2 do SQLite retorna o valor esperado do logaritmo de base 2.
+    /// PT-br: Verifica se LOG2 do SQLite retorna o valor esperado do logaritmo de base 2.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -413,7 +413,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies SQLite hyperbolic math functions return the expected values from the bundled math extension.
-    /// PT: Verifica se as funcoes matematicas hiperbolicas do SQLite retornam os valores esperados da extensao matematica embutida.
+    /// PT-br: Verifica se as funcoes matematicas hiperbolicas do SQLite retornam os valores esperados da extensao matematica embutida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -442,7 +442,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes the shared ALTER TABLE ... ADD COLUMN subset and backfills existing rows.
-    /// PT: Verifica se o modo automatico de dialeto executa o subset compartilhado de ALTER TABLE ... ADD COLUMN e preenche linhas existentes.
+    /// PT-br: Verifica se o modo automatico de dialeto executa o subset compartilhado de ALTER TABLE ... ADD COLUMN e preenche linhas existentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -466,7 +466,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies a cached SELECT * plan is invalidated after ALTER TABLE ... ADD COLUMN changes the shape.
-    /// PT: Verifica se um plano cacheado de SELECT * e invalidado depois que ALTER TABLE ... ADD COLUMN altera o shape.
+    /// PT-br: Verifica se um plano cacheado de SELECT * e invalidado depois que ALTER TABLE ... ADD COLUMN altera o shape.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -509,7 +509,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode rejects NOT NULL ALTER TABLE additions without a default when rows already exist.
-    /// PT: Verifica se o modo automatico de dialeto rejeita adicoes NOT NULL via ALTER TABLE sem default quando ja existem linhas.
+    /// PT-br: Verifica se o modo automatico de dialeto rejeita adicoes NOT NULL via ALTER TABLE sem default quando ja existem linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -535,7 +535,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared JSON arrow operators through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa operadores JSON compartilhados pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa operadores JSON compartilhados pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -556,7 +556,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared JSON_EXTRACT and JSON_VALUE functions through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa funcoes compartilhadas JSON_EXTRACT e JSON_VALUE pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa funcoes compartilhadas JSON_EXTRACT e JSON_VALUE pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -580,7 +580,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared temporal aliases through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa aliases temporais compartilhados pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa aliases temporais compartilhados pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -607,7 +607,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared date-add function families through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa familias compartilhadas de funcoes de adicao temporal pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa familias compartilhadas de funcoes de adicao temporal pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -631,7 +631,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared string-aggregate families through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa familias compartilhadas de agregacao textual pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa familias compartilhadas de agregacao textual pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -668,7 +668,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies COUNT(*) over UNION ALL uses the simplified runtime count path.
-    /// PT: Verifica se COUNT(*) sobre UNION ALL usa o caminho simplificado de contagem em runtime.
+    /// PT-br: Verifica se COUNT(*) sobre UNION ALL usa o caminho simplificado de contagem em runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -701,7 +701,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies COUNT(*) over UNION ALL still works when the subquery has ORDER BY.
-    /// PT: Verifica se COUNT(*) sobre UNION ALL continua funcionando quando a subquery tem ORDER BY.
+    /// PT-br: Verifica se COUNT(*) sobre UNION ALL continua funcionando quando a subquery tem ORDER BY.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -735,7 +735,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies COUNT(*) over UNION ALL still works when the outer query applies LIMIT.
-    /// PT: Verifica se COUNT(*) sobre UNION ALL continua funcionando quando a query externa aplica LIMIT.
+    /// PT-br: Verifica se COUNT(*) sobre UNION ALL continua funcionando quando a query externa aplica LIMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -769,7 +769,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies UNION ALL projection preserves rows from both inputs.
-    /// PT: Verifica se a projeção UNION ALL preserva linhas das duas entradas.
+    /// PT-br: Verifica se a projeção UNION ALL preserva linhas das duas entradas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -807,7 +807,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies UNION ALL projection still applies ORDER BY and LIMIT after the fast path.
-    /// PT: Verifica se a projeção UNION ALL ainda aplica ORDER BY e LIMIT após o caminho rapido.
+    /// PT-br: Verifica se a projeção UNION ALL ainda aplica ORDER BY e LIMIT após o caminho rapido.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -848,7 +848,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared rowcount helpers through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa helpers compartilhados de rowcount pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa helpers compartilhados de rowcount pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -880,7 +880,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode exposes the full row count after SQL_CALC_FOUND_ROWS and FOUND_ROWS.
-    /// PT: Verifica se o modo automatico de dialeto expõe a contagem total apos SQL_CALC_FOUND_ROWS e FOUND_ROWS.
+    /// PT-br: Verifica se o modo automatico de dialeto expõe a contagem total apos SQL_CALC_FOUND_ROWS e FOUND_ROWS.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -915,7 +915,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes null-safe equality through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa igualdade null-safe pelo pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa igualdade null-safe pelo pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -936,7 +936,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes ILIKE through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa ILIKE pelo pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa ILIKE pelo pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -957,7 +957,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes MATCH ... AGAINST through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa MATCH ... AGAINST pelo pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa MATCH ... AGAINST pelo pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -978,7 +978,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared conditional and null-substitute helpers.
-    /// PT: Verifica se o modo automatico de dialeto executa helpers compartilhados condicionais e de substituicao de nulos.
+    /// PT-br: Verifica se o modo automatico de dialeto executa helpers compartilhados condicionais e de substituicao de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1014,7 +1014,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes the shared OPENJSON scalar subset.
-    /// PT: Verifica se o modo automatico de dialeto executa o subset escalar compartilhado de OPENJSON.
+    /// PT-br: Verifica se o modo automatico de dialeto executa o subset escalar compartilhado de OPENJSON.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1035,7 +1035,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared window functions through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa funcoes de janela compartilhadas pelo pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa funcoes de janela compartilhadas pelo pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1087,7 +1087,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies LAG with zero offset returns the current row for each ordered row.
-    /// PT: Verifica se LAG com offset zero retorna a linha atual para cada linha ordenada.
+    /// PT-br: Verifica se LAG com offset zero retorna a linha atual para cada linha ordenada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1135,7 +1135,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies FIRST_VALUE, LAST_VALUE and NTH_VALUE keep returning the expected ordered values.
-    /// PT: Verifica se FIRST_VALUE, LAST_VALUE e NTH_VALUE continuam retornando os valores ordenados esperados.
+    /// PT-br: Verifica se FIRST_VALUE, LAST_VALUE e NTH_VALUE continuam retornando os valores ordenados esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1191,7 +1191,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies a scalar COUNT subquery returns the expected total for matching rows.
-    /// PT: Verifica se uma subquery escalar COUNT retorna o total esperado para as linhas correspondentes.
+    /// PT-br: Verifica se uma subquery escalar COUNT retorna o total esperado para as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1221,7 +1221,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies EXISTS subqueries return true when the filtered source has at least one matching row.
-    /// PT: Verifica se subqueries EXISTS retornam true quando a fonte filtrada possui ao menos uma linha correspondente.
+    /// PT-br: Verifica se subqueries EXISTS retornam true quando a fonte filtrada possui ao menos uma linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1254,7 +1254,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies COUNT(column) still ignores NULL values inside a scalar subquery.
-    /// PT: Verifica se COUNT(coluna) continua ignorando valores NULL dentro de uma subquery escalar.
+    /// PT-br: Verifica se COUNT(coluna) continua ignorando valores NULL dentro de uma subquery escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1284,7 +1284,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies IN subqueries match rows using the expected membership set.
-    /// PT: Verifica se subqueries IN combinam linhas usando o conjunto de pertencimento esperado.
+    /// PT-br: Verifica se subqueries IN combinam linhas usando o conjunto de pertencimento esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1317,7 +1317,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies window-function plans can be reused safely across repeated executions.
-    /// PT: Verifica se planos com funcoes de janela podem ser reutilizados com seguranca em execucoes repetidas.
+    /// PT-br: Verifica se planos com funcoes de janela podem ser reutilizados com seguranca em execucoes repetidas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1371,7 +1371,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies window partitions reset row numbers for each partition key.
-    /// PT: Verifica se as particoes de janela reiniciam a numeracao de linhas para cada chave de particao.
+    /// PT-br: Verifica se as particoes de janela reiniciam a numeracao de linhas para cada chave de particao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1429,7 +1429,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes the shared PIVOT subset through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa o subset compartilhado de PIVOT pelo pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa o subset compartilhado de PIVOT pelo pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1465,7 +1465,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared WITH/CTE syntax through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa sintaxe compartilhada de WITH/CTE pelo pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa sintaxe compartilhada de WITH/CTE pelo pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1507,7 +1507,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared DML RETURNING syntax through the SQLite runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa sintaxe compartilhada de RETURNING em DML pelo pipeline de runtime do SQLite.
+    /// PT-br: Verifica se o modo automatico de dialeto executa sintaxe compartilhada de RETURNING em DML pelo pipeline de runtime do SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1548,7 +1548,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies automatic dialect mode executes shared ORDER BY NULLS FIRST/LAST semantics through the shared runtime pipeline.
-    /// PT: Verifica se o modo automatico de dialeto executa a semantica compartilhada de ORDER BY NULLS FIRST/LAST pelo pipeline compartilhado de runtime.
+    /// PT-br: Verifica se o modo automatico de dialeto executa a semantica compartilhada de ORDER BY NULLS FIRST/LAST pelo pipeline compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1597,7 +1597,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies multi-statement INSERT scripts execute through ExecuteNonQuery.
-    /// PT: Verifica se scripts INSERT com varias instrucoes executam via ExecuteNonQuery.
+    /// PT-br: Verifica se scripts INSERT com varias instrucoes executam via ExecuteNonQuery.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1624,7 +1624,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE statements modify the expected SQLite rows.
-    /// PT: Verifica se comandos UPDATE modificam as linhas esperadas no SQLite.
+    /// PT-br: Verifica se comandos UPDATE modificam as linhas esperadas no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1644,7 +1644,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies DELETE statements remove the expected SQLite rows.
-    /// PT: Verifica se comandos DELETE removem as linhas esperadas no SQLite.
+    /// PT-br: Verifica se comandos DELETE removem as linhas esperadas no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1664,7 +1664,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies committed transactions persist SQLite changes.
-    /// PT: Verifica se transacoes confirmadas persistem as alteracoes no SQLite.
+    /// PT-br: Verifica se transacoes confirmadas persistem as alteracoes no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1700,7 +1700,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies insert and update work inside a committed transaction.
-    /// PT: Verifica se insert e update funcionam dentro de uma transacao confirmada.
+    /// PT-br: Verifica se insert e update funcionam dentro de uma transacao confirmada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1723,7 +1723,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies rolled back transactions discard SQLite changes.
-    /// PT: Verifica se transacoes revertidas descartam as alteracoes no SQLite.
+    /// PT-br: Verifica se transacoes revertidas descartam as alteracoes no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1759,9 +1759,9 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
@@ -1770,7 +1770,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies SQLite rejects FOUND_ROWS because the provider exposes CHANGES for row-count inspection.
-    /// PT: Verifica que o SQLite rejeita FOUND_ROWS porque o provider expoe CHANGES para inspecao de contagem de linhas.
+    /// PT-br: Verifica que o SQLite rejeita FOUND_ROWS porque o provider expoe CHANGES para inspecao de contagem de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1794,7 +1794,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies CHANGES returns affected rows for the last UPDATE statement.
-    /// PT: Verifica que CHANGES retorna as linhas afetadas pelo último UPDATE.
+    /// PT-br: Verifica que CHANGES retorna as linhas afetadas pelo último UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1816,7 +1816,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies CHANGES returns zero immediately after beginning a transaction.
-    /// PT: Verifica que CHANGES retorna zero imediatamente após iniciar uma transação.
+    /// PT-br: Verifica que CHANGES retorna zero imediatamente após iniciar uma transação.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1836,7 +1836,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies a BEGIN TRANSACTION followed by CHANGES returns zero in batch execution.
-    /// PT: Verifica que BEGIN TRANSACTION seguido de CHANGES retorna zero em execução em batch.
+    /// PT-br: Verifica que BEGIN TRANSACTION seguido de CHANGES retorna zero em execução em batch.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1855,7 +1855,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies CALL followed by CHANGES returns zero when no DML affected rows.
-    /// PT: Verifica que CALL seguido de CHANGES retorna zero quando nenhum DML afetou linhas.
+    /// PT-br: Verifica que CALL seguido de CHANGES retorna zero quando nenhum DML afetou linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1876,7 +1876,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies CHANGES returns zero after COMMIT in a batch that previously updated rows.
-    /// PT: Verifica que CHANGES retorna zero após COMMIT em um batch que atualizou linhas anteriormente.
+    /// PT-br: Verifica que CHANGES retorna zero após COMMIT em um batch que atualizou linhas anteriormente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1896,7 +1896,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies CHANGES returns zero after rolling back to a savepoint in batch execution.
-    /// PT: Verifica que CHANGES retorna zero após rollback para savepoint em execução em batch.
+    /// PT-br: Verifica que CHANGES retorna zero após rollback para savepoint em execução em batch.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1915,7 +1915,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies CHANGES returns zero after releasing a savepoint in batch execution.
-    /// PT: Verifica que CHANGES retorna zero após liberar um savepoint em execução em batch.
+    /// PT-br: Verifica que CHANGES retorna zero após liberar um savepoint em execução em batch.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1935,7 +1935,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies a mixed batch reports the last DML change count.
-    /// PT: Verifica se um batch misto reporta a ultima contagem de alteracoes de DML.
+    /// PT-br: Verifica se um batch misto reporta a ultima contagem de alteracoes de DML.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1963,7 +1963,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies COMMIT resets the change count in a mixed batch.
-    /// PT: Verifica se COMMIT zera a contagem de alteracoes em um batch misto.
+    /// PT-br: Verifica se COMMIT zera a contagem de alteracoes em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -1985,7 +1985,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies the last DML in a batch determines the reported change count.
-    /// PT: Verifica se o ultimo DML de um batch determina a contagem de alteracoes reportada.
+    /// PT-br: Verifica se o ultimo DML de um batch determina a contagem de alteracoes reportada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -2017,7 +2017,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies INSERT RETURNING yields the inserted rows.
-    /// PT: Verifica se INSERT RETURNING devolve as linhas inseridas.
+    /// PT-br: Verifica se INSERT RETURNING devolve as linhas inseridas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -2038,7 +2038,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE RETURNING yields the updated projection.
-    /// PT: Verifica se UPDATE RETURNING devolve a projeção atualizada.
+    /// PT-br: Verifica se UPDATE RETURNING devolve a projeção atualizada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -2065,7 +2065,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies DELETE RETURNING yields the deleted row snapshot.
-    /// PT: Verifica se DELETE RETURNING devolve o snapshot da linha removida.
+    /// PT-br: Verifica se DELETE RETURNING devolve o snapshot da linha removida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -2093,7 +2093,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies INSERT SELECT RETURNING yields every inserted row.
-    /// PT: Verifica se INSERT SELECT RETURNING devolve cada linha inserida.
+    /// PT-br: Verifica se INSERT SELECT RETURNING devolve cada linha inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]
@@ -2129,7 +2129,7 @@ public sealed class SqliteMockTests
 
     /// <summary>
     /// EN: Verifies qualified wildcard RETURNING includes all updated columns.
-    /// PT: Verifica se RETURNING com curinga qualificado inclui todas as colunas atualizadas.
+    /// PT-br: Verifica se RETURNING com curinga qualificado inclui todas as colunas atualizadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteMock")]

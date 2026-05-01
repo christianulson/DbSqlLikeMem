@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Reads sequence values inside a filtered query over the users table for fidelity coverage.
-/// PT: Le valores de sequence dentro de uma consulta filtrada na tabela de usuarios para cobertura de fidelidade.
+/// PT-br: Le valores de sequence dentro de uma consulta filtrada na tabela de usuarios para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceExpressionFilterServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceExpressionFilterServiceTest(
 {
     /// <summary>
     /// EN: Returns the generated values from a filtered sequence query executed twice.
-    /// PT: Retorna os valores gerados de uma consulta filtrada com sequence executada duas vezes.
+    /// PT-br: Retorna os valores gerados de uma consulta filtrada com sequence executada duas vezes.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceExpressionFilterAsync(args);
 
     /// <summary>
     /// EN: Returns the generated values from a filtered sequence query executed twice.
-    /// PT: Retorna os valores gerados de uma consulta filtrada com sequence executada duas vezes.
+    /// PT-br: Retorna os valores gerados de uma consulta filtrada com sequence executada duas vezes.
     /// </summary>
     public async Task<long[]> RunSequenceExpressionFilterAsync(params object[] args)
     {

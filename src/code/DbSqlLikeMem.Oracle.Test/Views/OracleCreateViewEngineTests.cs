@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Views;
 
 /// <summary>
 /// EN: Covers view execution scenarios in the Oracle mock.
-/// PT: Cobre cenarios de execucao de view no mock Oracle.
+/// PT-br: Cobre cenarios de execucao de view no mock Oracle.
 /// </summary>
 public sealed class OracleCreateViewEngineTests : XUnitTestBase
 {
@@ -12,7 +12,7 @@ public sealed class OracleCreateViewEngineTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the users and orders tables used by the view tests.
-    /// PT: Cria as tabelas users e orders usadas pelos testes de view.
+    /// PT-br: Cria as tabelas users e orders usadas pelos testes de view.
     /// </summary>
     public OracleCreateViewEngineTests(ITestOutputHelper helper) : base(helper)
     {
@@ -38,7 +38,7 @@ public sealed class OracleCreateViewEngineTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies that a view returns rows projected from the base table.
-    /// PT: Verifica se a view retorna linhas projetadas a partir da tabela base.
+    /// PT-br: Verifica se a view retorna linhas projetadas a partir da tabela base.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -56,7 +56,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies that view reads reflect later base table changes.
-    /// PT: Verifica se leituras da view refletem alteracoes posteriores na tabela base.
+    /// PT-br: Verifica se leituras da view refletem alteracoes posteriores na tabela base.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -73,7 +73,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies that CREATE OR REPLACE VIEW replaces the stored definition.
-    /// PT: Verifica se CREATE OR REPLACE VIEW substitui a definicao armazenada.
+    /// PT-br: Verifica se CREATE OR REPLACE VIEW substitui a definicao armazenada.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -90,7 +90,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies that a view name shadows a table with the same name.
-    /// PT: Verifica se o nome da view sobrescreve uma tabela com o mesmo nome.
+    /// PT-br: Verifica se o nome da view sobrescreve uma tabela com o mesmo nome.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -111,7 +111,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies that one view can reference another view.
-    /// PT: Verifica se uma view pode referenciar outra view.
+    /// PT-br: Verifica se uma view pode referenciar outra view.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -126,7 +126,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies that a view can project joins and aggregations.
-    /// PT: Verifica se uma view pode projetar joins e agregacoes.
+    /// PT-br: Verifica se uma view pode projetar joins e agregacoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -151,7 +151,7 @@ GROUP BY u.id;
 
     /// <summary>
     /// EN: Verifies that creating a view with an existing name without OR REPLACE fails.
-    /// PT: Verifica se criar uma view com nome existente sem OR REPLACE falha.
+    /// PT-br: Verifica se criar uma view com nome existente sem OR REPLACE falha.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -163,7 +163,7 @@ GROUP BY u.id;
 
     /// <summary>
     /// EN: Verifies that dropping a view removes its definition.
-    /// PT: Verifica se remover uma view exclui sua definicao.
+    /// PT-br: Verifica se remover uma view exclui sua definicao.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -176,9 +176,9 @@ GROUP BY u.id;
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn.Dispose();

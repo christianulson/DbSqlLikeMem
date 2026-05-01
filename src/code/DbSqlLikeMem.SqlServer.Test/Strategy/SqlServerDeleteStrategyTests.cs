@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
 /// <summary>
 /// EN: Covers DELETE statements in the SqlServer mock.
-/// PT: Cobre instrucoes DELETE no mock SqlServer.
+/// PT-br: Cobre instrucoes DELETE no mock SqlServer.
 /// </summary>
 public sealed class SqlServerCommandDeleteTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlServerCommandDeleteTests(
 {
     /// <summary>
     /// EN: Verifies DELETE removes one matching row.
-    /// PT: Verifica se DELETE remove uma linha correspondente.
+    /// PT-br: Verifica se DELETE remove uma linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -34,7 +34,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE removes every matching row.
-    /// PT: Verifica se DELETE remove todas as linhas correspondentes.
+    /// PT-br: Verifica se DELETE remove todas as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -59,7 +59,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE returns zero when no row matches.
-    /// PT: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
+    /// PT-br: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -81,7 +81,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE throws when the target table does not exist.
-    /// PT: Verifica se DELETE dispara erro quando a tabela alvo nao existe.
+    /// PT-br: Verifica se DELETE dispara erro quando a tabela alvo nao existe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -97,7 +97,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE without FROM still removes one matching row.
-    /// PT: Verifica se DELETE sem FROM ainda remove uma linha correspondente.
+    /// PT-br: Verifica se DELETE sem FROM ainda remove uma linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -121,7 +121,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE is blocked when a foreign key references the target row.
-    /// PT: Verifica se DELETE e bloqueado quando uma chave estrangeira referencia a linha alvo.
+    /// PT-br: Verifica se DELETE e bloqueado quando uma chave estrangeira referencia a linha alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -148,7 +148,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies a thread-safe delete with multiple parent rows stops when one row is still referenced.
-    /// PT: Verifica se um delete thread-safe com varias linhas pai para quando uma linha ainda esta referenciada.
+    /// PT-br: Verifica se um delete thread-safe com varias linhas pai para quando uma linha ainda esta referenciada.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -178,7 +178,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE works in thread-safe and non-thread-safe mode.
-    /// PT: Verifica se DELETE funciona em modo thread-safe e nao thread-safe.
+    /// PT-br: Verifica se DELETE funciona em modo thread-safe e nao thread-safe.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -201,7 +201,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE parsing is case-insensitive.
-    /// PT: Verifica se o parsing de DELETE nao diferencia maiusculas e minusculas.
+    /// PT-br: Verifica se o parsing de DELETE nao diferencia maiusculas e minusculas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -222,7 +222,7 @@ public sealed class SqlServerCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies DELETE accepts a parameter when the mock supports it.
-    /// PT: Verifica se DELETE aceita parametro quando o mock oferece suporte.
+    /// PT-br: Verifica se DELETE aceita parametro quando o mock oferece suporte.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

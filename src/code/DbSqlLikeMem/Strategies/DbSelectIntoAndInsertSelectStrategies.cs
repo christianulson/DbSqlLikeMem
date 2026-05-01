@@ -18,7 +18,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Dispatches parsed AST commands to ExecuteNonQuery handlers.
-    /// PT: Despacha comandos AST parseados para handlers de ExecuteNonQuery.
+    /// PT-br: Despacha comandos AST parseados para handlers de ExecuteNonQuery.
     /// </summary>
     public static DmlExecutionResult ExecuteParsedNonQuery(
         this DbConnectionMockBase connection,
@@ -69,7 +69,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateSchema.
-    /// PT: Implementa ExecuteCreateSchema.
+    /// PT-br: Implementa ExecuteCreateSchema.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateSchema(
         this DbConnectionMockBase connection,
@@ -83,7 +83,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDropTable.
-    /// PT: Implementa ExecuteDropTable.
+    /// PT-br: Implementa ExecuteDropTable.
     /// </summary>
     public static DmlExecutionResult ExecuteDropTable(
         this DbConnectionMockBase connection,
@@ -118,7 +118,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteAlterTableAddColumn.
-    /// PT: Implementa ExecuteAlterTableAddColumn.
+    /// PT-br: Implementa ExecuteAlterTableAddColumn.
     /// </summary>
     public static DmlExecutionResult ExecuteAlterTableAddColumn(
         this DbConnectionMockBase connection,
@@ -172,7 +172,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateTableAsSelect.
-    /// PT: Implementa ExecuteCreateTableAsSelect.
+    /// PT-br: Implementa ExecuteCreateTableAsSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateTableAsSelect(
         this DbConnectionMockBase connection,
@@ -574,7 +574,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateTemporaryTableAsSelect.
-    /// PT: Implementa ExecuteCreateTemporaryTableAsSelect.
+    /// PT-br: Implementa ExecuteCreateTemporaryTableAsSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
@@ -585,7 +585,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateTemporaryTableAsSelect using a pre-built execution context.
-    /// PT: Implementa ExecuteCreateTemporaryTableAsSelect usando um contexto de execucao pre-construido.
+    /// PT-br: Implementa ExecuteCreateTemporaryTableAsSelect usando um contexto de execucao pre-construido.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
@@ -721,7 +721,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteInsertSmart.
-    /// PT: Implementa ExecuteInsertSmart.
+    /// PT-br: Implementa ExecuteInsertSmart.
     /// </summary>
     public static DmlExecutionResult ExecuteInsertSmart(
             this DbConnectionMockBase connection,
@@ -739,7 +739,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteInsertSelect.
-    /// PT: Implementa ExecuteInsertSelect.
+    /// PT-br: Implementa ExecuteInsertSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteInsertSelect(
         this DbConnectionMockBase connection,

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers the SqlAzure-specific DbMock connection factory contract.
-/// PT: Cobre o contrato da factory de conexao DbMock especifica de SqlAzure.
+/// PT-br: Cobre o contrato da factory de conexao DbMock especifica de SqlAzure.
 /// </summary>
 public sealed class DbMockConnectionFactorySqlAzureTests(
         ITestOutputHelper helper

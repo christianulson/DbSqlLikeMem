@@ -7,7 +7,7 @@ public partial class QueryServiceTest
 {
     /// <summary>
     /// EN: Executes a scalar date query and keeps the provider result alive.
-    /// PT: Executa uma consulta escalar de data e mantém o resultado do provedor vivo.
+    /// PT-br: Executa uma consulta escalar de data e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<DateTime> RunDateScalarAsync()
     {
@@ -19,7 +19,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the JSON scalar benchmark when the provider supports it.
-    /// PT: Executa o benchmark escalar de JSON quando o provedor suporta isso.
+    /// PT-br: Executa o benchmark escalar de JSON quando o provedor suporta isso.
     /// </summary>
     public async Task<string?> RunJsonScalarReadAsync()
     {
@@ -35,7 +35,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the nested JSON path benchmark when the provider supports it.
-    /// PT: Executa o benchmark de caminho JSON aninhado quando o provedor suporta isso.
+    /// PT-br: Executa o benchmark de caminho JSON aninhado quando o provedor suporta isso.
     /// </summary>
     public async Task<string?> RunJsonPathReadAsync()
     {
@@ -51,7 +51,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the JSON path benchmark with a missing path and keeps the provider result alive.
-    /// PT: Executa o benchmark de caminho JSON com caminho ausente e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark de caminho JSON com caminho ausente e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<string?> RunJsonMissingPathReadAsync()
     {
@@ -67,7 +67,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the JSON insert and cast benchmark when the provider supports JSON reads.
-    /// PT: Executa o benchmark de insert e cast de JSON quando o provedor suporta leituras JSON.
+    /// PT-br: Executa o benchmark de insert e cast de JSON quando o provedor suporta leituras JSON.
     /// </summary>
     public async Task<string?> RunJsonInsertCastAsync()
     {
@@ -83,7 +83,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the JSON_MODIFY replacement benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark de substituicao JSON_MODIFY e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark de substituicao JSON_MODIFY e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<string?> RunJsonModifyReplaceAsync()
     {
@@ -99,7 +99,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server JSON_QUERY root-fragment benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark de fragmento raiz JSON_QUERY do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark de fragmento raiz JSON_QUERY do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<string?> RunJsonQueryRootFragmentAsync()
     {
@@ -115,7 +115,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server STRING_ESCAPE benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark STRING_ESCAPE do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark STRING_ESCAPE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<string?> RunStringEscapeAsync()
     {
@@ -131,7 +131,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server TRANSLATE benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark TRANSLATE do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark TRANSLATE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<string?> RunTranslateAsync()
     {
@@ -147,7 +147,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server FORMATMESSAGE benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark FORMATMESSAGE do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark FORMATMESSAGE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<string?> RunFormatMessageAsync()
     {
@@ -163,7 +163,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server ISJSON benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark ISJSON do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark ISJSON do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<int> RunIsJsonAsync()
     {
@@ -179,7 +179,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server FORMAT benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark FORMAT do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark FORMAT do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<string?> RunFormatAsync()
     {
@@ -195,7 +195,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared math benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks matematicos compartilhados e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks matematicos compartilhados e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int abs, int ceiling, double degrees, int floor, double naturalLog, double log10, double power, double radians, decimal round, int sign, double sqrt, double square)> RunMathFunctionsAsync()
     {
@@ -235,7 +235,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared explicit-base logarithm benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de logaritmo com base explicita e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de logaritmo com base explicita e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<double> RunMathLogBaseFunctionAsync()
     {
@@ -253,7 +253,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared base-2 logarithm benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de logaritmo de base 2 e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de logaritmo de base 2 e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<double> RunMathLog2FunctionAsync()
     {
@@ -271,7 +271,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared pi benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de pi e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de pi e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<double> RunMathPiFunctionAsync()
     {
@@ -289,7 +289,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared random-number benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de numero aleatorio e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de numero aleatorio e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<double> RunMathRandFunctionAsync()
     {
@@ -307,7 +307,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared remainder benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de resto e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de resto e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<double> RunMathRemainderFunctionAsync()
     {
@@ -325,7 +325,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared numeric truncation benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de truncamento numerico e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de truncamento numerico e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<(decimal trunc, decimal? truncScale)> RunMathTruncFunctionAsync()
     {
@@ -350,7 +350,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared cotangent benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de cotangente e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de cotangente e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<double> RunMathCotFunctionAsync()
     {
@@ -368,7 +368,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared MySQL-family utility math benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de utilitarios matematicos da familia MySQL e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de utilitarios matematicos da familia MySQL e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<(string bin, int greatest, int least, double log2, decimal mod, double pow, decimal truncate)> RunMySqlUtilityMathFunctionsAsync()
     {
@@ -398,7 +398,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared greatest/least/mod benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de greatest/least/mod e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de greatest/least/mod e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<(int greatest, int least, decimal mod)> RunGreatestLeastModFunctionsAsync()
     {
@@ -420,7 +420,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared DB2 alias math benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de aliases matematicos do DB2 e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de aliases matematicos do DB2 e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<(int absVal, decimal mod, decimal trunc, decimal truncate)> RunDb2AliasMathFunctionsAsync()
     {
@@ -444,7 +444,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared Firebird alias math benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de aliases matematicos do Firebird e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de aliases matematicos do Firebird e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<(int absVal, string bin, double cosh, double sinh, double tanh, decimal trunc, decimal truncScale)> RunFirebirdAliasMathFunctionsAsync()
     {
@@ -474,7 +474,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the shared transcendental math benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark compartilhado de matematica transcendental e mantem o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark compartilhado de matematica transcendental e mantem o resultado do provedor vivo.
     /// </summary>
     public async Task<(double acos, double asin, double atan, double atan2, double cos, double exp, double sin, double tan)> RunMathTranscendentalFunctionsAsync()
     {
@@ -506,7 +506,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server string utility benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks de utilitarios de string do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks de utilitarios de string do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int ascii, int charIndex, int binaryChecksumLower, int binaryChecksumUpper, int checksumLower, int checksumUpper, string replicate, string reverse, string space, string stuff)> RunStringUtilityFunctionsAsync()
     {
@@ -549,7 +549,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server PARSENAME, QUOTENAME, and STR benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks PARSENAME, QUOTENAME e STR do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks PARSENAME, QUOTENAME e STR do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(string parsename, string quotename, string str)> RunStringMetadataFunctionsAsync()
     {
@@ -573,7 +573,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server metadata, identifier, and system time benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks de metadados, identificadores e tempo de sistema do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks de metadados, identificadores e tempo de sistema do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(string appName, string localNetAddress, string netTransport, string databaseStatus, string databaseUpdateability, int databasePrincipalId, string currentUser, int nameColumnId, int identityColumnIsIdentity, int emailColumnAllowsNull, int colLength, string colName, int dbId, string dbName, int objectId, int objectPropertyIsTable, int objectPropertyExIsProcedure, string objectName, string objectSchemaName, string originalDbName, int schemaId, string schemaName, DateTime getUtcDate, DateTimeOffset sysDateTimeOffset, DateTime sysUtcDateTime)> RunSqlServerMetadataFunctionsAsync()
     {
@@ -668,7 +668,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server SCOPE_IDENTITY benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark SCOPE_IDENTITY do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark SCOPE_IDENTITY do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<int> RunScopeIdentityAsync()
     {
@@ -694,7 +694,7 @@ public partial class QueryServiceTest
 
     /// <summary>
     /// EN: Executes the SQL Server system-function benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark de funcoes de sistema do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark de funcoes de sistema do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int dateFirst, int identity, int maxPrecision, string serverProperty, string originalLogin, int currentRequestId, int sessionId, int typeId, string typeName, int typeProperty, string sessionUser, int suserId, string suserName, byte[] suserSid, string suserSname, string systemUser, int userId, string userName, int xactState, DateTime currentTimestamp, DateTime getDate, DateTime sysDateTime)> RunSqlServerSystemFunctionsAsync()
     {
@@ -808,7 +808,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server TEXTSIZE and NEWSEQUENTIALID benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark TEXTSIZE e NEWSEQUENTIALID do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark TEXTSIZE e NEWSEQUENTIALID do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int textSize, string newSequentialId)> RunSqlServerSpecialFunctionsAsync()
     {
@@ -829,7 +829,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server metadata and session-style benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks de metadados e de sessao do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks de metadados e de sessao do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int getAnsiNull, int dataLength, int grouping, int groupingId, int hostId, string hostName, int isMember, int isRoleMember, int isSrvRoleMember, int isDateValid, int isDateInvalid, int patIndex, int patIndexMissing)> RunSqlServerSessionFunctionsAsync()
     {
@@ -881,7 +881,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server context-info and session-context benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark de context-info e session-context do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark de context-info e session-context do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(byte[] contextInfo, int sessionContextTenant, string? sessionContextMissing)> RunSqlServerContextFunctionsAsync()
     {
@@ -914,7 +914,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server transaction-state benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark de estado de transacao do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark de estado de transacao do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int xactState, long currentTransactionId)> RunSqlServerTransactionStateFunctionsAsync()
     {
@@ -939,7 +939,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server LEN, LTRIM, RTRIM, and UNICODE benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks LEN, LTRIM, RTRIM e UNICODE do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks LEN, LTRIM, RTRIM e UNICODE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(long length, string ltrim, string rtrim, int unicode)> RunStringBasicFunctionsAsync()
     {
@@ -966,7 +966,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server PARSE, TRY_CONVERT, and TRY_PARSE benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks PARSE, TRY_CONVERT e TRY_PARSE do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks PARSE, TRY_CONVERT e TRY_PARSE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int parse, object? tryConvertNull, int tryConvertValue, object? tryParseNull, int tryParseValue)> RunParseFamilyAsync()
     {
@@ -994,7 +994,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server SOUNDEX and DIFFERENCE benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks SOUNDEX e DIFFERENCE do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks SOUNDEX e DIFFERENCE do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(string soundex, int difference)> RunSoundexAsync()
     {
@@ -1013,7 +1013,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server COMPRESS and DECOMPRESS benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks COMPRESS e DECOMPRESS do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks COMPRESS e DECOMPRESS do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(byte[] compressed, byte[] decompressed)> RunCompressionAsync()
     {
@@ -1034,7 +1034,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server APPROX_COUNT_DISTINCT benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark APPROX_COUNT_DISTINCT do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark APPROX_COUNT_DISTINCT do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<int> RunApproxCountDistinctAsync()
     {
@@ -1051,7 +1051,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes the SQL Server percentile benchmarks and keeps the provider result alive.
-    /// PT: Executa os benchmarks percentis do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os benchmarks percentis do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(double continuous, double discrete)> RunPercentileAggregatesAsync()
     {
@@ -1071,7 +1071,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes SQL Server aggregate benchmarks and keeps the provider result alive.
-    /// PT: Executa benchmarks de agregacao do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa benchmarks de agregacao do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(long countBig, int checksumAgg, string stringAggOrdered, double stdev, double stdevp, double variance, double varp)> RunSqlServerAggregateFunctionsAsync()
     {
@@ -1102,7 +1102,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes json_each over JSON array and returns all rows for fidelity comparison.
-    /// PT: Executa json_each sobre array JSON e retorna todas as linhas para comparação de fidelidade.
+    /// PT-br: Executa json_each sobre array JSON e retorna todas as linhas para comparação de fidelidade.
     /// </summary>
     public async Task<List<Dictionary<string, object?>>> RunJsonEachFromArrayAsync()
     {
@@ -1130,7 +1130,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes json_each over JSON object and returns all rows for fidelity comparison.
-    /// PT: Executa json_each sobre objeto JSON e retorna todas as linhas para comparação de fidelidade.
+    /// PT-br: Executa json_each sobre objeto JSON e retorna todas as linhas para comparação de fidelidade.
     /// </summary>
     public async Task<List<Dictionary<string, object?>>> RunJsonEachFromObjectAsync()
     {
@@ -1158,7 +1158,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes json_tree over JSON and returns full tree structure for fidelity comparison.
-    /// PT: Executa json_tree sobre JSON e retorna estrutura completa para comparação de fidelidade.
+    /// PT-br: Executa json_tree sobre JSON e retorna estrutura completa para comparação de fidelidade.
     /// </summary>
     public async Task<List<Dictionary<string, object?>>> RunJsonTreeStructureAsync()
     {
@@ -1189,7 +1189,7 @@ CREATE TABLE IdentityUsers (
 
     /// <summary>
     /// EN: Executes OPENJSON over a JSON array and returns the projected rows for fidelity comparison.
-    /// PT: Executa OPENJSON sobre um array JSON e retorna as linhas projetadas para comparacao de fidelidade.
+    /// PT-br: Executa OPENJSON sobre um array JSON e retorna as linhas projetadas para comparacao de fidelidade.
     /// </summary>
     public async Task<List<Dictionary<string, object?>>> RunOpenJsonArrayAsync()
     {
@@ -1266,7 +1266,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes a current timestamp scalar query and keeps the provider result alive.
-    /// PT: Executa uma consulta escalar de timestamp atual e mantém o resultado do provedor vivo.
+    /// PT-br: Executa uma consulta escalar de timestamp atual e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<DateTime> RunTemporalCurrentTimestampAsync()
     {
@@ -1278,7 +1278,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes a temporal date-add query and keeps the provider result alive.
-    /// PT: Executa uma consulta temporal de soma de data e mantém o resultado do provedor vivo.
+    /// PT-br: Executa uma consulta temporal de soma de data e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<DateTime> RunTemporalDateAddAsync()
     {
@@ -1290,7 +1290,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the SQL Server DATETRUNC benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark DATETRUNC do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark DATETRUNC do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(DateTime monthValue, DateTime weekValue, DateTime dayOfYearValue, DateTime isoWeekValue, DateTime millisecondValue, DateTime microsecondValue)> RunTemporalDateTruncAsync()
     {
@@ -1324,7 +1324,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the SQL Server time zone offset benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark de offset de fuso horario do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark de offset de fuso horario do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(int literalOffsetMinutes, string literalOffsetText, int utcOffsetMinutes, string utcOffsetText, DateTimeOffset offsetValue, DateTimeOffset switchedValue, int offsetMinutes, string offsetText, int negativeOffsetMinutes, string negativeOffsetText)> RunTemporalTimeZoneOffsetAsync()
     {
@@ -1372,7 +1372,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the SQL Server FROMPARTS temporal constructors and keeps the provider result alive.
-    /// PT: Executa os construtores temporais FROMPARTS do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa os construtores temporais FROMPARTS do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(DateTime dateValue, DateTime dateTimeValue, DateTime dateTime2Value, DateTimeOffset dateTimeOffsetValue, TimeSpan timeValue, DateTime smallDateTimeValue)> RunTemporalFromPartsAsync()
     {
@@ -1407,7 +1407,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the SQL Server EOMONTH benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark EOMONTH do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark EOMONTH do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<DateTime> RunTemporalEndOfMonthAsync()
     {
@@ -1425,7 +1425,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the SQL Server DATEDIFF_BIG benchmark and keeps the provider result alive.
-    /// PT: Executa o benchmark DATEDIFF_BIG do SQL Server e mantém o resultado do provedor vivo.
+    /// PT-br: Executa o benchmark DATEDIFF_BIG do SQL Server e mantém o resultado do provedor vivo.
     /// </summary>
     public async Task<(long dayDiff, long weekDiff, long millisecondDiff, long microsecondDiff, long nanosecondDiff)> RunTemporalDateDiffBigAsync()
     {
@@ -1461,7 +1461,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the provider string aggregation benchmark over sample user names.
-    /// PT: Executa o benchmark de agregacao de strings do provedor sobre nomes de usuarios de exemplo.
+    /// PT-br: Executa o benchmark de agregacao de strings do provedor sobre nomes de usuarios de exemplo.
     /// </summary>
     public async Task<string?> RunStringAggregateAsync(params object[] pars)
     {
@@ -1490,7 +1490,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the ordered string aggregation benchmark over sample user names.
-    /// PT: Executa o benchmark de agregacao ordenada de strings sobre nomes de usuarios de exemplo.
+    /// PT-br: Executa o benchmark de agregacao ordenada de strings sobre nomes de usuarios de exemplo.
     /// </summary>
     public async Task<string?> RunStringAggregateOrderedAsync(params object[] pars)
     {
@@ -1506,7 +1506,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the distinct string aggregation benchmark over sample user names.
-    /// PT: Executa o benchmark de agregacao distinta de strings sobre nomes de usuarios de exemplo.
+    /// PT-br: Executa o benchmark de agregacao distinta de strings sobre nomes de usuarios de exemplo.
     /// </summary>
     public async Task<string?> RunStringAggregateDistinctAsync(params object[] pars)
     {
@@ -1522,7 +1522,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the custom-separator string aggregation benchmark over sample user names.
-    /// PT: Executa o benchmark de agregacao com separador customizado sobre nomes de usuarios de exemplo.
+    /// PT-br: Executa o benchmark de agregacao com separador customizado sobre nomes de usuarios de exemplo.
     /// </summary>
     public async Task<string?> RunStringAggregateCustomSeparatorAsync(params object[] pars)
     {
@@ -1538,7 +1538,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes the large-group string aggregation benchmark over sample user names.
-    /// PT: Executa o benchmark de agregacao de strings em grupo grande sobre nomes de usuarios de exemplo.
+    /// PT-br: Executa o benchmark de agregacao de strings em grupo grande sobre nomes de usuarios de exemplo.
     /// </summary>
     public async Task<string?> RunStringAggregateLargeGroupAsync(params object[] pars)
     {
@@ -1554,7 +1554,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes a string-aggregation summary query with total, distinct, and repeated-name counts over sample user names.
-    /// PT: Executa uma consulta resumo de agregacao de strings com contagens total, distinta e de nomes repetidos sobre nomes de usuarios de exemplo.
+    /// PT-br: Executa uma consulta resumo de agregacao de strings com contagens total, distinta e de nomes repetidos sobre nomes de usuarios de exemplo.
     /// </summary>
     public async Task<QueryResultSnapshot> RunStringAggregateSummaryMatrixAsync(params object[] pars)
     {
@@ -1587,7 +1587,7 @@ ORDER BY [key]
 
     /// <summary>
     /// EN: Executes a grouped string report with CASE and COALESCE over sample user names.
-    /// PT: Executa um relatorio agrupado de strings com CASE e COALESCE sobre nomes de usuarios de exemplo.
+    /// PT-br: Executa um relatorio agrupado de strings com CASE e COALESCE sobre nomes de usuarios de exemplo.
     /// </summary>
     public async Task<QueryResultSnapshot> RunStringAggregateGroupCaseMatrixAsync(params object[] pars)
     {
@@ -1630,7 +1630,7 @@ ORDER BY NameGroup
 
     /// <summary>
     /// EN: Executes a grouped name-initial report with distinct counts and HAVING filtering over the configured users table.
-    /// PT: Executa um relatorio agrupado por inicial do nome com contagens distintas e filtro HAVING na tabela de usuarios configurada.
+    /// PT-br: Executa um relatorio agrupado por inicial do nome com contagens distintas e filtro HAVING na tabela de usuarios configurada.
     /// </summary>
     public async Task<QueryResultSnapshot> RunGroupByNameInitialMatrixAsync(params object[] pars)
     {
@@ -1678,7 +1678,7 @@ ORDER BY {initialExpr}
 
     /// <summary>
     /// EN: Executes a grouped name report with HAVING filtering over the configured users table.
-    /// PT: Executa um relatorio agrupado por nome com filtro HAVING na tabela de usuarios configurada.
+    /// PT-br: Executa um relatorio agrupado por nome com filtro HAVING na tabela de usuarios configurada.
     /// </summary>
     public async Task<QueryResultSnapshot> RunGroupByNameHavingMatrixAsync(params object[] pars)
     {
@@ -1716,7 +1716,7 @@ ORDER BY Name
 
     /// <summary>
     /// EN: Executes a GROUP BY ordinal query over the configured users table and validates grouped counts.
-    /// PT: Executa uma consulta GROUP BY ordinal na tabela de usuarios configurada e valida as contagens agrupadas.
+    /// PT-br: Executa uma consulta GROUP BY ordinal na tabela de usuarios configurada e valida as contagens agrupadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunGroupByOrdinalMatrixAsync(params object[] pars)
     {
@@ -1766,7 +1766,7 @@ ORDER BY 1
 
     /// <summary>
     /// EN: Executes an ORDER BY ordinal query over the configured users table and validates the output order.
-    /// PT: Executa uma consulta ORDER BY ordinal na tabela de usuarios configurada e valida a ordem da saida.
+    /// PT-br: Executa uma consulta ORDER BY ordinal na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
     public async Task<QueryResultSnapshot> RunOrderByOrdinalMatrixAsync(params object[] pars)
     {
@@ -1807,7 +1807,7 @@ ORDER BY 2 DESC
 
     /// <summary>
     /// EN: Executes a DISTINCT query ordered by ordinal and validates the projected names.
-    /// PT: Executa uma consulta DISTINCT ordenada por ordinal e valida os nomes projetados.
+    /// PT-br: Executa uma consulta DISTINCT ordenada por ordinal e valida os nomes projetados.
     /// </summary>
     public async Task<QueryResultSnapshot> RunDistinctOrderByOrdinalMatrixAsync(params object[] pars)
     {
@@ -1848,7 +1848,7 @@ ORDER BY 1
 
     /// <summary>
     /// EN: Executes a DISTINCT query with a text filter ordered by ordinal and validates the projected names.
-    /// PT: Executa uma consulta DISTINCT com filtro de texto ordenada por ordinal e valida os nomes projetados.
+    /// PT-br: Executa uma consulta DISTINCT com filtro de texto ordenada por ordinal e valida os nomes projetados.
     /// </summary>
     public async Task<QueryResultSnapshot> RunDistinctLikeOrderByOrdinalMatrixAsync(params object[] pars)
     {
@@ -1886,7 +1886,7 @@ ORDER BY 1
 
     /// <summary>
     /// EN: Executes an IN-list predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado IN com lista na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado IN com lista na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunInListPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -1898,7 +1898,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a BETWEEN predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado BETWEEN na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado BETWEEN na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunBetweenPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -1910,7 +1910,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a LIKE predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunLikePredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -1922,7 +1922,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a combined BETWEEN, LIKE, and ORDER BY query over the configured users table and returns the matching rowset.
-    /// PT: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa uma consulta combinada com BETWEEN, LIKE e ORDER BY na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public async Task<QueryResultSnapshot> RunBetweenLikeOrderByMatrixAsync(params object[] pars)
     {
@@ -1956,7 +1956,7 @@ ORDER BY Name
 
     /// <summary>
     /// EN: Executes a NOT LIKE predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado NOT LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado NOT LIKE na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunNotLikePredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -1968,7 +1968,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a not-equal predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado diferente de na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado diferente de na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunNotEqualPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -1980,7 +1980,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes an equality predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado de igualdade na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado de igualdade na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunEqualPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -1992,7 +1992,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a parameterized name lookup over the configured users table and returns the matched name.
-    /// PT: Executa uma consulta parametrizada por nome na tabela de usuarios configurada e retorna o nome correspondente.
+    /// PT-br: Executa uma consulta parametrizada por nome na tabela de usuarios configurada e retorna o nome correspondente.
     /// </summary>
     public async Task<string?> RunParameterSelectByNameMatrixAsync(params object[] pars)
     {
@@ -2016,7 +2016,7 @@ WHERE Name = {Repo.Dialect.Parameter("name")}
 
     /// <summary>
     /// EN: Executes a parameterized id lookup over the configured users table and returns the matched name.
-    /// PT: Executa uma consulta parametrizada por id na tabela de usuarios configurada e retorna o nome correspondente.
+    /// PT-br: Executa uma consulta parametrizada por id na tabela de usuarios configurada e retorna o nome correspondente.
     /// </summary>
     public async Task<string?> RunParameterSelectByIdMatrixAsync(params object[] pars)
     {
@@ -2042,7 +2042,7 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
 
     /// <summary>
     /// EN: Executes a parameter roundtrip over typed user columns and validates string, numeric, boolean, date, and null parameters.
-    /// PT: Executa um roundtrip de parametros sobre colunas tipadas de usuarios e valida parametros de texto, numericos, booleanos, data e nulos.
+    /// PT-br: Executa um roundtrip de parametros sobre colunas tipadas de usuarios e valida parametros de texto, numericos, booleanos, data e nulos.
     /// </summary>
     public async Task<int> RunParameterRoundTripMatrixAsync(params object[] pars)
     {
@@ -2148,7 +2148,7 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
 
     /// <summary>
     /// EN: Executes a typed parameter projection and validates ANSI text, fixed-length text, numeric, temporal, GUID, and binary values returned by provider-specific parameter objects.
-    /// PT: Executa uma projeção de parametros tipados e valida valores de texto ANSI, texto de comprimento fixo, numericos, temporais, GUID e binario retornados pelos objetos de parametro especificos do provedor.
+    /// PT-br: Executa uma projeção de parametros tipados e valida valores de texto ANSI, texto de comprimento fixo, numericos, temporais, GUID e binario retornados pelos objetos de parametro especificos do provedor.
     /// </summary>
     public async Task<int> RunParameterTypeMatrixAsync(params object[] pars)
     {
@@ -2265,7 +2265,7 @@ FROM SYSIBM.SYSDUMMY1
 
     /// <summary>
     /// EN: Executes a compact typed parameter projection for date and currency values returned by provider-specific parameter objects.
-    /// PT: Executa uma projeção compacta de parametros tipados para valores de data e moeda retornados pelos objetos de parametro especificos do provedor.
+    /// PT-br: Executa uma projeção compacta de parametros tipados para valores de data e moeda retornados pelos objetos de parametro especificos do provedor.
     /// </summary>
     public async Task<int> RunParameterDateCurrencyMatrixAsync(params object[] pars)
     {
@@ -2303,7 +2303,7 @@ FROM SYSIBM.SYSDUMMY1
 
     /// <summary>
     /// EN: Executes the broad parameter projection benchmark and returns the first projected value.
-    /// PT: Executa o benchmark amplo de projeção de parametros e retorna o primeiro valor projetado.
+    /// PT-br: Executa o benchmark amplo de projeção de parametros e retorna o primeiro valor projetado.
     /// </summary>
     public string? RunParameterProjection()
     {
@@ -2582,7 +2582,7 @@ FROM SYSIBM.SYSDUMMY1
 
     /// <summary>
     /// EN: Executes a greater-than predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado maior que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado maior que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunGreaterThanPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -2594,7 +2594,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a less-than predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado menor que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado menor que na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunLessThanPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -2606,7 +2606,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a greater-than-or-equal predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado maior ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado maior ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunGreaterThanOrEqualPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -2618,7 +2618,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes a less-than-or-equal predicate over the configured users table and returns the matching rowset.
-    /// PT: Executa um predicado menor ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
+    /// PT-br: Executa um predicado menor ou igual na tabela de usuarios configurada e retorna o conjunto de linhas correspondente.
     /// </summary>
     public Task<QueryResultSnapshot> RunLessThanOrEqualPredicateMatrixAsync(params object[] pars)
         => CaptureSnapshotAsync($"""
@@ -2630,7 +2630,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes an ORDER BY Name query over the configured users table and validates the output order.
-    /// PT: Executa uma consulta ORDER BY Name na tabela de usuarios configurada e valida a ordem da saida.
+    /// PT-br: Executa uma consulta ORDER BY Name na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
     public async Task<QueryResultSnapshot> RunOrderByNameMatrixAsync(params object[] pars)
     {
@@ -2666,7 +2666,7 @@ ORDER BY Name
 
     /// <summary>
     /// EN: Executes an ORDER BY Name descending query over the configured users table and validates the output order.
-    /// PT: Executa uma consulta ORDER BY Name descendente na tabela de usuarios configurada e valida a ordem da saida.
+    /// PT-br: Executa uma consulta ORDER BY Name descendente na tabela de usuarios configurada e valida a ordem da saida.
     /// </summary>
     public async Task<QueryResultSnapshot> RunOrderByNameDescendingMatrixAsync(params object[] pars)
     {
@@ -2702,7 +2702,7 @@ ORDER BY Name DESC
 
     /// <summary>
     /// EN: Executes a paged name query using ROW_NUMBER and validates the selected page rows.
-    /// PT: Executa uma consulta paginada por nome usando ROW_NUMBER e valida as linhas da pagina selecionada.
+    /// PT-br: Executa uma consulta paginada por nome usando ROW_NUMBER e valida as linhas da pagina selecionada.
     /// </summary>
     public async Task<QueryResultSnapshot> RunNamePaginationMatrixAsync(params object[] pars)
     {
@@ -2742,7 +2742,7 @@ ORDER BY rn
 
     /// <summary>
     /// EN: Executes a native paged name query and validates the selected page rows for the configured users table.
-    /// PT: Executa uma consulta nativa paginada por nome e valida as linhas da pagina selecionada na tabela de usuarios configurada.
+    /// PT-br: Executa uma consulta nativa paginada por nome e valida as linhas da pagina selecionada na tabela de usuarios configurada.
     /// </summary>
     public async Task<QueryResultSnapshot> RunPagedNameProjectionMatrixAsync(params object[] pars)
     {
@@ -2770,7 +2770,7 @@ ORDER BY rn
 
     /// <summary>
     /// EN: Reads a current-time predicate query result from the configured users table.
-    /// PT: Lê o resultado de uma consulta com predicado de tempo atual na tabela de usuarios configurada.
+    /// PT-br: Lê o resultado de uma consulta com predicado de tempo atual na tabela de usuarios configurada.
     /// </summary>
     public async Task<int> RunTemporalNowWhereAsync(params object[] pars)
     {
@@ -2781,7 +2781,7 @@ ORDER BY rn
 
     /// <summary>
     /// EN: Reads a current-time ordering query result from the configured users table.
-    /// PT: Lê o resultado de uma consulta com ordenação por tempo atual na tabela de usuarios configurada.
+    /// PT-br: Lê o resultado de uma consulta com ordenação por tempo atual na tabela de usuarios configurada.
     /// </summary>
     public async Task<string?> RunTemporalNowOrderByAsync(params object[] pars)
     {

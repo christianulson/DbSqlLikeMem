@@ -4,7 +4,7 @@ public abstract partial class BenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Executes the ordered string aggregate benchmark.
-    /// PT: Executa o benchmark de agregacao de strings ordenada.
+    /// PT-br: Executa o benchmark de agregacao de strings ordenada.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -12,7 +12,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the distinct string aggregate benchmark.
-    /// PT: Executa o benchmark de agregacao de strings distinta.
+    /// PT-br: Executa o benchmark de agregacao de strings distinta.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -20,7 +20,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the custom-separator string aggregate benchmark.
-    /// PT: Executa o benchmark de agregacao de strings com separador personalizado.
+    /// PT-br: Executa o benchmark de agregacao de strings com separador personalizado.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -28,7 +28,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the large-group string aggregate benchmark.
-    /// PT: Executa o benchmark de agregacao de strings para grupo grande.
+    /// PT-br: Executa o benchmark de agregacao de strings para grupo grande.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -36,7 +36,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the string aggregate summary matrix benchmark.
-    /// PT: Executa o benchmark da matriz resumo de agregacao de strings.
+    /// PT-br: Executa o benchmark da matriz resumo de agregacao de strings.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -44,7 +44,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the grouped string aggregate matrix benchmark.
-    /// PT: Executa o benchmark da matriz agrupada de agregacao de strings.
+    /// PT-br: Executa o benchmark da matriz agrupada de agregacao de strings.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -52,7 +52,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the string aggregation summary matrix alias benchmark.
-    /// PT: Executa o benchmark alias da matriz resumo de agregacao de strings.
+    /// PT-br: Executa o benchmark alias da matriz resumo de agregacao de strings.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -60,7 +60,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the grouped string aggregation alias benchmark.
-    /// PT: Executa o benchmark alias da matriz agrupada de agregacao de strings.
+    /// PT-br: Executa o benchmark alias da matriz agrupada de agregacao de strings.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
@@ -68,7 +68,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the string aggregation variants benchmark.
-    /// PT: Executa o benchmark das variantes de agregacao de strings.
+    /// PT-br: Executa o benchmark das variantes de agregacao de strings.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]

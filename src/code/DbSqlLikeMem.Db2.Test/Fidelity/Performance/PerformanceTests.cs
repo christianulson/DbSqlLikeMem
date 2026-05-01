@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Performance;
 
 /// <summary>
 /// EN: Runs Db2 fidelity tests for the shared performance workflows.
-/// PT: Executa testes de fidelidade Db2 para os fluxos compartilhados de performance.
+/// PT-br: Executa testes de fidelidade Db2 para os fluxos compartilhados de performance.
 /// </summary>
 [FidelityNativeClientSkip]
 public class PerformanceTests(

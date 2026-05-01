@@ -2,6 +2,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 
 public abstract partial class BenchmarkSessionBase
 {
+    [BenchmarkFeature(BenchmarkFeatureId.WindowRowNumber)]
     protected virtual void RunWindowRowNumber()
     {
         var state = GetPreparedUsersQueryState(
@@ -11,6 +12,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.WindowLag)]
     protected virtual void RunWindowLag()
     {
         var state = GetPreparedUsersQueryState(
@@ -20,6 +22,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.WindowLead)]
     protected virtual void RunWindowLead()
     {
         var state = GetPreparedUsersQueryState(
@@ -29,6 +32,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.WindowRankDenseRank)]
     protected virtual void RunWindowRankDenseRank()
     {
         var state = GetPreparedUsersQueryState(
@@ -38,6 +42,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.WindowFirstLastValue)]
     protected virtual void RunWindowFirstLastValue()
     {
         var state = GetPreparedUsersQueryState(
@@ -47,6 +52,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.WindowNtile)]
     protected virtual void RunWindowNtile()
     {
         var state = GetPreparedUsersQueryState(
@@ -56,6 +62,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.WindowPercentRankCumeDist)]
     protected virtual void RunWindowPercentRankCumeDist()
     {
         var state = GetPreparedUsersQueryState(
@@ -65,6 +72,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.WindowNthValue)]
     protected virtual void RunWindowNthValue()
     {
         var state = GetPreparedUsersQueryState(

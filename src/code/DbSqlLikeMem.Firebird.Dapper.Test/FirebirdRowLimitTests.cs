@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird row limit syntax through the Dapper-facing provider surface.
-/// PT: Cobre a sintaxe de limite de linhas do Firebird pela surface do provedor exposta ao Dapper.
+/// PT-br: Cobre a sintaxe de limite de linhas do Firebird pela surface do provedor exposta ao Dapper.
 /// </summary>
 public sealed class FirebirdRowLimitTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies FIRST and SKIP return the expected page of rows in Firebird.
-    /// PT: Verifica se FIRST e SKIP retornam a pagina esperada de linhas no Firebird.
+    /// PT-br: Verifica se FIRST e SKIP retornam a pagina esperada de linhas no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -33,7 +33,7 @@ public sealed class FirebirdRowLimitTests(ITestOutputHelper helper) : XUnitTestB
 
     /// <summary>
     /// EN: Verifies ROWS TO returns the expected inclusive range of rows in Firebird.
-    /// PT: Verifica se ROWS TO retorna a faixa inclusiva esperada de linhas no Firebird.
+    /// PT-br: Verifica se ROWS TO retorna a faixa inclusiva esperada de linhas no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -58,7 +58,7 @@ public sealed class FirebirdRowLimitTests(ITestOutputHelper helper) : XUnitTestB
 
     /// <summary>
     /// EN: Verifies NULLS FIRST and NULLS LAST ordering return the expected Firebird row order.
-    /// PT: Verifica se ordenacoes NULLS FIRST e NULLS LAST retornam a ordem esperada de linhas no Firebird.
+    /// PT-br: Verifica se ordenacoes NULLS FIRST e NULLS LAST retornam a ordem esperada de linhas no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]

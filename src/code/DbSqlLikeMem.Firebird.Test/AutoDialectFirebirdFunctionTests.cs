@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Verifies the fallback automatic dialect picks up Firebird-specific function registrations when the Firebird assembly is available.
-/// PT: Verifica se o dialeto automatico de fallback captura registros de funcoes especificas do Firebird quando o assembly Firebird esta disponivel.
+/// PT-br: Verifica se o dialeto automatico de fallback captura registros de funcoes especificas do Firebird quando o assembly Firebird esta disponivel.
 /// </summary>
 public sealed class AutoDialectFirebirdFunctionTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class AutoDialectFirebirdFunctionTests(
 {
     /// <summary>
     /// EN: Verifies the fallback Auto dialect exposes the Firebird scalar registrations used by the automatic parser path.
-    /// PT: Verifica se o dialeto Auto de fallback expõe os registros escalares do Firebird usados pelo caminho automatico do parser.
+    /// PT-br: Verifica se o dialeto Auto de fallback expõe os registros escalares do Firebird usados pelo caminho automatico do parser.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -26,7 +26,7 @@ public sealed class AutoDialectFirebirdFunctionTests(
 
     /// <summary>
     /// EN: Verifies the fallback Auto dialect parses the Firebird temporal and hash function syntax used by the shared automatic path.
-    /// PT: Verifica se o dialeto Auto de fallback interpreta a sintaxe temporal e de hash do Firebird usada pelo caminho automatico compartilhado.
+    /// PT-br: Verifica se o dialeto Auto de fallback interpreta a sintaxe temporal e de hash do Firebird usada pelo caminho automatico compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -51,7 +51,7 @@ public sealed class AutoDialectFirebirdFunctionTests(
 
     /// <summary>
     /// EN: Verifies the fallback Auto dialect executes Firebird temporal, sequence, and hash functions through the connection auto mode.
-    /// PT: Verifica se o dialeto Auto de fallback executa funcoes temporais, de sequence e de hash do Firebird pelo modo automatico da conexao.
+    /// PT-br: Verifica se o dialeto Auto de fallback executa funcoes temporais, de sequence e de hash do Firebird pelo modo automatico da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -93,7 +93,7 @@ public sealed class AutoDialectFirebirdFunctionTests(
 
     /// <summary>
     /// EN: Computes the CRC32 hash used by the Firebird HASH CRC32 variant in the Auto fallback tests.
-    /// PT: Computa o hash CRC32 usado pela variante CRC32 do HASH do Firebird nos testes do fallback Auto.
+    /// PT-br: Computa o hash CRC32 usado pela variante CRC32 do HASH do Firebird nos testes do fallback Auto.
     /// </summary>
     private static uint ComputeCrc32(byte[] bytes)
     {
@@ -109,7 +109,7 @@ public sealed class AutoDialectFirebirdFunctionTests(
 
     /// <summary>
     /// EN: Stores the lookup table used to compute CRC32 values for the Auto fallback tests.
-    /// PT: Armazena a tabela de consulta usada para computar valores CRC32 nos testes do fallback Auto.
+    /// PT-br: Armazena a tabela de consulta usada para computar valores CRC32 nos testes do fallback Auto.
     /// </summary>
     private static readonly Lazy<uint[]> Crc32Table = new(static () =>
     {

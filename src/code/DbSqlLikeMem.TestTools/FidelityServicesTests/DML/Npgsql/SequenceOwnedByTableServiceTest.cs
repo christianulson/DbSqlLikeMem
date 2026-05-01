@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Attaches a PostgreSQL sequence to a table column and verifies the sequence is dropped with the table.
-/// PT: Anexa uma sequence PostgreSQL a uma coluna de tabela e verifica se a sequence e removida junto com a tabela.
+/// PT-br: Anexa uma sequence PostgreSQL a uma coluna de tabela e verifica se a sequence e removida junto com a tabela.
 /// </summary>
 public sealed class SequenceOwnedByTableServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceOwnedByTableServiceTest(
 {
     /// <summary>
     /// EN: Returns the initial sequence value and whether the sequence became unavailable after the table drop.
-    /// PT: Retorna o valor inicial da sequence e se ela ficou indisponivel depois da remocao da tabela.
+    /// PT-br: Retorna o valor inicial da sequence e se ela ficou indisponivel depois da remocao da tabela.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceOwnedByTableAsync();
 
     /// <summary>
     /// EN: Returns the initial sequence value and whether the sequence became unavailable after the table drop.
-    /// PT: Retorna o valor inicial da sequence e se ela ficou indisponivel depois da remocao da tabela.
+    /// PT-br: Retorna o valor inicial da sequence e se ela ficou indisponivel depois da remocao da tabela.
     /// </summary>
     public async Task<long[]> RunSequenceOwnedByTableAsync()
     {

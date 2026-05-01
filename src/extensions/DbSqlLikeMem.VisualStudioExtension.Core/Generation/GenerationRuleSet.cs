@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Normalizes database names and expressions into CLR-friendly generation tokens.
-/// PT: Normaliza nomes de banco e expressoes em tokens de geracao amigaveis ao CLR.
+/// PT-br: Normaliza nomes de banco e expressoes em tokens de geracao amigaveis ao CLR.
 /// </summary>
 public static class GenerationRuleSet
 {
@@ -22,7 +22,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Converts a database identifier into PascalCase for generated names.
-    /// PT: Converte um identificador de banco para PascalCase nos nomes gerados.
+    /// PT-br: Converte um identificador de banco para PascalCase nos nomes gerados.
     /// </summary>
     public static string ToPascalCase(string value)
     {
@@ -48,7 +48,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Maps a database column type to a CLR-friendly generated type name.
-    /// PT: Mapeia um tipo de coluna de banco para um nome de tipo amigavel ao CLR.
+    /// PT-br: Mapeia um tipo de coluna de banco para um nome de tipo amigavel ao CLR.
     /// </summary>
     public static string MapDbType(
         string dataType,
@@ -60,7 +60,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Maps a database column type to a CLR-friendly generated type name, including numeric scale when available.
-    /// PT: Mapeia um tipo de coluna de banco para um nome de tipo amigavel ao CLR, incluindo a escala numerica quando disponivel.
+    /// PT-br: Mapeia um tipo de coluna de banco para um nome de tipo amigavel ao CLR, incluindo a escala numerica quando disponivel.
     /// </summary>
     public static string MapDbType(
         string dataType,
@@ -76,7 +76,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Checks whether a default expression is a simple literal.
-    /// PT: Verifica se uma expressao padrao e um literal simples.
+    /// PT-br: Verifica se uma expressao padrao e um literal simples.
     /// </summary>
     public static bool IsSimpleLiteralDefault(string value)
     {
@@ -89,7 +89,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Formats a default value expression for generated C# code.
-    /// PT: Formata uma expressao de valor padrao para o codigo C# gerado.
+    /// PT-br: Formata uma expressao de valor padrao para o codigo C# gerado.
     /// </summary>
     public static string FormatDefaultLiteral(string value, string dbType)
     {
@@ -108,13 +108,13 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Formats an Oracle sequence default as a DbMock sequence reference.
-    /// PT: Formata um default de sequence do Oracle como uma referencia de sequence do DbMock.
+    /// PT-br: Formata um default de sequence do Oracle como uma referencia de sequence do DbMock.
     /// </summary>
-    /// <param name="value">EN: Oracle default expression. PT: Expressao de default do Oracle.</param>
-    /// <param name="databaseType">EN: Source database type. PT: Tipo de banco de origem.</param>
-    /// <param name="schemaName">EN: Fallback schema name when the expression omits it. PT: Nome do schema de fallback quando a expressao o omite.</param>
-    /// <param name="code">EN: Generated C# code when the expression is a sequence. PT: Codigo C# gerado quando a expressao for uma sequence.</param>
-    /// <returns>EN: True when the default is a sequence reference. PT: True quando o default for uma referencia de sequence.</returns>
+    /// <param name="value">EN: Oracle default expression. PT-br: Expressao de default do Oracle.</param>
+    /// <param name="databaseType">EN: Source database type. PT-br: Tipo de banco de origem.</param>
+    /// <param name="schemaName">EN: Fallback schema name when the expression omits it. PT-br: Nome do schema de fallback quando a expressao o omite.</param>
+    /// <param name="code">EN: Generated C# code when the expression is a sequence. PT-br: Codigo C# gerado quando a expressao for uma sequence.</param>
+    /// <returns>EN: True when the default is a sequence reference. PT-br: True quando o default for uma referencia de sequence.</returns>
     public static bool TryFormatSequenceDefaultValue(
         string value,
         string? databaseType,
@@ -144,7 +144,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Parses enum and set literals into discrete values.
-    /// PT: Analisa literais enum e set em valores discretos.
+    /// PT-br: Analisa literais enum e set em valores discretos.
     /// </summary>
     public static string[] TryParseEnumValues(string columnType)
     {
@@ -161,7 +161,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Converts an SQL IS NULL expression into generated C# code when supported.
-    /// PT: Converte uma expressao SQL IS NULL em codigo C# gerado quando suportado.
+    /// PT-br: Converte uma expressao SQL IS NULL em codigo C# gerado quando suportado.
     /// </summary>
     public static bool TryConvertIfIsNull(string sqlExpr, out string code)
     {
@@ -180,7 +180,7 @@ public static class GenerationRuleSet
 
     /// <summary>
     /// EN: Escapes a string so it can be emitted as a C# string literal.
-    /// PT: Escapa uma string para que ela possa ser emitida como literal de string em C#.
+    /// PT-br: Escapa uma string para que ela possa ser emitida como literal de string em C#.
     /// </summary>
     public static string Literal(string value)
         => "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";

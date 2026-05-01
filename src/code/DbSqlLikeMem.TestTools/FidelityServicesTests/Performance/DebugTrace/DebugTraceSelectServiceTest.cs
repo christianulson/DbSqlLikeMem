@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes debug-trace benchmark workflows and validates the observed provider diagnostics.
-/// PT: Executa fluxos de benchmark de rastreamento de debug e valida os diagnosticos observados do provedor.
+/// PT-br: Executa fluxos de benchmark de rastreamento de debug e valida os diagnosticos observados do provedor.
 /// </summary>
 public class DebugTraceSelectServiceTest(
         RepoService repo,
@@ -12,17 +12,17 @@ public class DebugTraceSelectServiceTest(
 {
     /// <summary>
     /// EN: Executes a select and reads the provider debug SQL trace when available.
-    /// PT: Executa um select e lê o rastreamento SQL de debug do provedor quando disponivel.
+    /// PT-br: Executa um select e lê o rastreamento SQL de debug do provedor quando disponivel.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the query. PT: Id principal opcional do usuario para a consulta.</param>
+    /// <param name="args">EN: Optional primary user id for the query. PT-br: Id principal opcional do usuario para a consulta.</param>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunDebugTraceSelectAsync(args);
 
     /// <summary>
     /// EN: Executes a select and reads the provider debug SQL trace when available.
-    /// PT: Executa um select e lê o rastreamento SQL de debug do provedor quando disponivel.
+    /// PT-br: Executa um select e lê o rastreamento SQL de debug do provedor quando disponivel.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the query. PT: Id principal opcional do usuario para a consulta.</param>
+    /// <param name="args">EN: Optional primary user id for the query. PT-br: Id principal opcional do usuario para a consulta.</param>
     public async Task<string> RunDebugTraceSelectAsync(params object[] args)
     {
         var userId = args.Length > 0 ? (int)args[0] : 1;

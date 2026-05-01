@@ -4,7 +4,7 @@ public abstract partial class BenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Executes a row-count benchmark after an insert operation.
-    /// PT: Executa um benchmark de contagem de linhas apos uma operacao de insert.
+    /// PT-br: Executa um benchmark de contagem de linhas apos uma operacao de insert.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -12,7 +12,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a row-count benchmark after an update operation.
-    /// PT: Executa um benchmark de contagem de linhas apos uma operacao de update.
+    /// PT-br: Executa um benchmark de contagem de linhas apos uma operacao de update.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -20,7 +20,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a row-count benchmark after a select operation.
-    /// PT: Executa um benchmark de contagem de linhas apos uma operacao de select.
+    /// PT-br: Executa um benchmark de contagem de linhas apos uma operacao de select.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("core")]
@@ -28,7 +28,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes a simple common table expression benchmark.
-    /// PT: Executa um benchmark simples de expressao de tabela comum.
+    /// PT-br: Executa um benchmark simples de expressao de tabela comum.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advanced")]
@@ -36,7 +36,7 @@ public abstract partial class BenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the select variant of the simple common table expression benchmark.
-    /// PT: Executa a variante select do benchmark simples de expressao de tabela comum.
+    /// PT-br: Executa a variante select do benchmark simples de expressao de tabela comum.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("advanced")]

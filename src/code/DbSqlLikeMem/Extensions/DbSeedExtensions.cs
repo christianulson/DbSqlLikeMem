@@ -5,7 +5,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Adds fluent seed and column helpers for mock database connections and tables.
-/// PT: Adiciona helpers fluent de seed e colunas para conexoes e tabelas do mock.
+/// PT-br: Adiciona helpers fluent de seed e colunas para conexoes e tabelas do mock.
 /// </summary>
 public static class DbSeedExtensions
 {
@@ -13,7 +13,7 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Ensures a table exists in the mock database and returns the same connection instance.
-    /// PT: Garante que uma tabela exista no banco mock e retorna a mesma instancia de conexao.
+    /// PT-br: Garante que uma tabela exista no banco mock e retorna a mesma instancia de conexao.
     /// </summary>
     public static DbConnectionMockBase Define(
         this DbConnectionMockBase cnn,
@@ -31,7 +31,7 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Ensures a table exists in the mock database and returns the table instance.
-    /// PT: Garante que uma tabela exista no banco mock e retorna a instancia da tabela.
+    /// PT-br: Garante que uma tabela exista no banco mock e retorna a instancia da tabela.
     /// </summary>
     public static ITableMock DefineTable(
         this DbConnectionMockBase cnn,
@@ -49,14 +49,14 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Configures the next identity value and optional explicit identity insertion for a table.
-    /// PT: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
+    /// PT-br: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
     /// </summary>
-    /// <param name="cnn">EN: Target connection. PT: Conexão alvo.</param>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="nextIdentity">EN: Next identity value. PT: Próximo valor de identidade.</param>
-    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT: Habilita valores explícitos de identity quando true.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: Same connection instance. PT: Mesma instância da conexão.</returns>
+    /// <param name="cnn">EN: Target connection. PT-br: Conexão alvo.</param>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="nextIdentity">EN: Next identity value. PT-br: Próximo valor de identidade.</param>
+    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT-br: Habilita valores explícitos de identity quando true.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: Same connection instance. PT-br: Mesma instância da conexão.</returns>
     public static DbConnectionMockBase IdentityOf(
         this DbConnectionMockBase cnn,
         string tableName,
@@ -71,12 +71,12 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Configures the next identity value and optional explicit identity insertion for a table.
-    /// PT: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
+    /// PT-br: Configura o próximo valor de identidade e a inserção explícita opcional de identity para uma tabela.
     /// </summary>
-    /// <param name="tb">EN: Target table. PT: Tabela alvo.</param>
-    /// <param name="nextIdentity">EN: Next identity value. PT: Próximo valor de identidade.</param>
-    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT: Habilita valores explícitos de identity quando true.</param>
-    /// <returns>EN: Same table instance. PT: Mesma instância da tabela.</returns>
+    /// <param name="tb">EN: Target table. PT-br: Tabela alvo.</param>
+    /// <param name="nextIdentity">EN: Next identity value. PT-br: Próximo valor de identidade.</param>
+    /// <param name="allowInsertOverride">EN: Enables explicit identity values when true. PT-br: Habilita valores explícitos de identity quando true.</param>
+    /// <returns>EN: Same table instance. PT-br: Mesma instância da tabela.</returns>
     public static ITableMock IdentityOf(
         this ITableMock tb,
         int nextIdentity,
@@ -90,7 +90,7 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Adds a typed column to a mock table through the connection helper.
-    /// PT: Adiciona uma coluna tipada a uma tabela mock pelo helper de conexao.
+    /// PT-br: Adiciona uma coluna tipada a uma tabela mock pelo helper de conexao.
     /// </summary>
     public static DbConnectionMockBase Column<T>(
         this DbConnectionMockBase cnn,
@@ -131,7 +131,7 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Adds a typed column to a mock table instance.
-    /// PT: Adiciona uma coluna tipada a uma instancia de tabela mock.
+    /// PT-br: Adiciona uma coluna tipada a uma instancia de tabela mock.
     /// </summary>
     public static ITableMock Column<T>(
         this ITableMock tb,
@@ -169,7 +169,7 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Seeds a mock table from a typed row array.
-    /// PT: Faz o seed de uma tabela mock a partir de um array de linhas tipadas.
+    /// PT-br: Faz o seed de uma tabela mock a partir de um array de linhas tipadas.
     /// </summary>
     public static DbConnectionMockBase Seed<T>(
         this DbConnectionMockBase cnn,
@@ -200,7 +200,7 @@ public static class DbSeedExtensions
 
     /// <summary>
     /// EN: Seeds a mock table from an array of positional row values.
-    /// PT: Faz o seed de uma tabela mock a partir de um array de valores posicionais por linha.
+    /// PT-br: Faz o seed de uma tabela mock a partir de um array de valores posicionais por linha.
     /// </summary>
     public static DbConnectionMockBase Seed(
         this DbConnectionMockBase cnn,
@@ -263,7 +263,7 @@ public static class DbSeedExtensions
     // --------------------------- ÍNDICE -------------------------------
     /// <summary>
     /// EN: Implements Index.
-    /// PT: Implementa Index.
+    /// PT-br: Implementa Index.
     /// </summary>
     public static ITableMock Index(this ITableMock tb,
         string name,

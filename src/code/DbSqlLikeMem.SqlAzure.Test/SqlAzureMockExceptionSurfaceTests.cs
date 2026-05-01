@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers SQL Azure exception surface on table-level operations.
-/// PT: Cobre a superficie de excecoes do SQL Azure em operacoes de nivel de tabela.
+/// PT-br: Cobre a superficie de excecoes do SQL Azure em operacoes de nivel de tabela.
 /// </summary>
 public sealed class SqlAzureMockExceptionSurfaceTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests(
 {
     /// <summary>
     /// EN: Ensures unknown column errors use SQL Azure exception type.
-    /// PT: Garante que erros de coluna inexistente usem o tipo de exceção SQL Azure.
+    /// PT-br: Garante que erros de coluna inexistente usem o tipo de exceção SQL Azure.
     /// </summary>
     [Fact]
     public void GetColumn_UnknownColumn_ShouldThrowSqlAzureMockException()
@@ -25,7 +25,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests(
 
     /// <summary>
     /// EN: Ensures duplicate key violations throw SQL Azure exception type and code.
-    /// PT: Garante que violações de chave duplicada lancem tipo e código de exceção SQL Azure.
+    /// PT-br: Garante que violações de chave duplicada lancem tipo e código de exceção SQL Azure.
     /// </summary>
     [Fact]
     public void Add_DuplicatePrimaryKey_ShouldThrowSqlAzureMockException()
@@ -42,7 +42,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests(
 
     /// <summary>
     /// EN: Ensures inserting null into non-nullable column throws SQL Azure exception type and code.
-    /// PT: Garante que inserir nulo em coluna obrigatória lance tipo e código de exceção SQL Azure.
+    /// PT-br: Garante que inserir nulo em coluna obrigatória lance tipo e código de exceção SQL Azure.
     /// </summary>
     [Fact]
     public void Add_NullIntoNotNullableColumn_ShouldThrowSqlAzureMockException()
@@ -57,7 +57,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests(
 
     /// <summary>
     /// EN: Ensures foreign key violations throw SQL Azure exception type and code.
-    /// PT: Garante que violações de chave estrangeira lancem tipo e código de exceção SQL Azure.
+    /// PT-br: Garante que violações de chave estrangeira lancem tipo e código de exceção SQL Azure.
     /// </summary>
     [Fact]
     public void Add_ForeignKeyViolation_ShouldThrowSqlAzureMockException()
@@ -80,7 +80,7 @@ public sealed class SqlAzureMockExceptionSurfaceTests(
 
     /// <summary>
     /// EN: Ensures deleting a referenced parent row throws SQL Azure exception type and referenced-row code.
-    /// PT: Garante que excluir linha pai referenciada lance tipo de exceção SQL Azure e código de linha referenciada.
+    /// PT-br: Garante que excluir linha pai referenciada lance tipo de exceção SQL Azure e código de linha referenciada.
     /// </summary>
     [Fact]
     public void Delete_ReferencedParentRow_ShouldThrowSqlAzureMockException()

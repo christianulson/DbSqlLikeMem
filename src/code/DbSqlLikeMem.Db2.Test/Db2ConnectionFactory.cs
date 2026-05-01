@@ -18,7 +18,7 @@ namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Creates Db2 fidelity connections with a provider-native connection string builder.
-/// PT: Cria conexoes de fidelidade Db2 com um builder nativo do provedor.
+/// PT-br: Cria conexoes de fidelidade Db2 com um builder nativo do provedor.
 /// </summary>
 internal static class Db2ConnectionFactory
 {
@@ -26,10 +26,10 @@ internal static class Db2ConnectionFactory
 
     /// <summary>
     /// EN: Builds and opens a Db2 connection using the provider-specific connection string builder.
-    /// PT: Monta e abre uma conexao Db2 usando o builder de string de conexao especifico do provedor.
+    /// PT-br: Monta e abre uma conexao Db2 usando o builder de string de conexao especifico do provedor.
     /// </summary>
-    /// <param name="connectionString">EN: The base connection string value read from the test environment. PT: O valor base da string de conexao lido do ambiente de teste.</param>
-    /// <returns>EN: A connection instance ready for use by the fidelity tests. PT: Uma instancia de conexao pronta para uso pelos testes de fidelidade.</returns>
+    /// <param name="connectionString">EN: The base connection string value read from the test environment. PT-br: O valor base da string de conexao lido do ambiente de teste.</param>
+    /// <returns>EN: A connection instance ready for use by the fidelity tests. PT-br: Uma instancia de conexao pronta para uso pelos testes de fidelidade.</returns>
     internal static DB2Connection Create(string connectionString)
     {
 #if NET462 || NET6_0

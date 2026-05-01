@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Validates SqlServer-specific DbMock connection factory contract behavior.
-/// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de SqlServer.
+/// PT-br: Valida o comportamento do contrato da factory de conexao DbMock especifica de SqlServer.
 /// </summary>
 public sealed class DbMockConnectionFactorySqlServerTests(
         ITestOutputHelper helper

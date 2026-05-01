@@ -4,31 +4,31 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Provides reusable execution-plan warning assertions across provider-specific test suites.
-/// PT: Fornece asserções reutilizáveis de alertas de plano de execução entre suítes específicas de provedores.
+/// PT-br: Fornece asserções reutilizáveis de alertas de plano de execução entre suítes específicas de provedores.
 /// </summary>
-/// <param name="helper">EN: xUnit output helper for diagnostics. PT: Helper de saída do xUnit para diagnósticos.</param>
+/// <param name="helper">EN: xUnit output helper for diagnostics. PT-br: Helper de saída do xUnit para diagnósticos.</param>
 public abstract class ExecutionPlanPlanWarningsTestsBase(
     ITestOutputHelper helper
     ) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Creates the provider-specific connection used in each scenario.
-    /// PT: Cria a conexão específica do provedor usada em cada cenário.
+    /// PT-br: Cria a conexão específica do provedor usada em cada cenário.
     /// </summary>
     protected abstract DbConnectionMockBase CreateConnection();
     /// <summary>
     /// EN: Creates a provider-specific command for the given SQL text.
-    /// PT: Cria um comando específico do provedor para o texto SQL informado.
+    /// PT-br: Cria um comando específico do provedor para o texto SQL informado.
     /// </summary>
     protected abstract DbCommand CreateCommand(DbConnectionMockBase connection, string commandText);
     /// <summary>
     /// EN: Gets ORDER BY SQL that also applies row limiting for the provider.
-    /// PT: Obtém SQL com ORDER BY que também aplica limitação de linhas para o provedor.
+    /// PT-br: Obtém SQL com ORDER BY que também aplica limitação de linhas para o provedor.
     /// </summary>
     protected abstract string SelectOrderByWithLimitSql { get; }
     /// <summary>
     /// EN: Verifies PW001 is emitted for ORDER BY without row limit and high reads.
-    /// PT: Verifica que PW001 é emitido para ORDER BY sem limite de linhas e com alta leitura.
+    /// PT-br: Verifica que PW001 é emitido para ORDER BY sem limite de linhas e com alta leitura.
     /// </summary>
 
 
@@ -51,7 +51,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW001 is not emitted when row limit is present.
-    /// PT: Verifica que PW001 não é emitido quando há limite de linhas.
+    /// PT-br: Verifica que PW001 não é emitido quando há limite de linhas.
     /// </summary>
 
 
@@ -70,7 +70,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW002 is emitted for low-selectivity predicates with high reads.
-    /// PT: Verifica que PW002 é emitido para predicados de baixa seletividade com alta leitura.
+    /// PT-br: Verifica que PW002 é emitido para predicados de baixa seletividade com alta leitura.
     /// </summary>
 
 
@@ -89,7 +89,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW002 is not emitted when predicate selectivity is high.
-    /// PT: Verifica que PW002 não é emitido quando a seletividade do predicado é alta.
+    /// PT-br: Verifica que PW002 não é emitido quando a seletividade do predicado é alta.
     /// </summary>
 
 
@@ -108,7 +108,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW003 is emitted for SELECT * under high-read conditions.
-    /// PT: Verifica que PW003 é emitido para SELECT * sob condição de alta leitura.
+    /// PT-br: Verifica que PW003 é emitido para SELECT * sob condição de alta leitura.
     /// </summary>
 
 
@@ -127,7 +127,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW003 is not emitted when projection is explicit.
-    /// PT: Verifica que PW003 não é emitido quando a projeção é explícita.
+    /// PT-br: Verifica que PW003 não é emitido quando a projeção é explícita.
     /// </summary>
 
 
@@ -146,7 +146,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies warning metadata appears in stable key order.
-    /// PT: Verifica que os metadados de alerta aparecem em ordem estável de chaves.
+    /// PT-br: Verifica que os metadados de alerta aparecem em ordem estável de chaves.
     /// </summary>
 
 
@@ -184,7 +184,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies threshold values follow the expected technical pattern.
-    /// PT: Verifica que valores de threshold seguem o padrão técnico esperado.
+    /// PT-br: Verifica que valores de threshold seguem o padrão técnico esperado.
     /// </summary>
 
 
@@ -212,7 +212,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW004 is suppressed when DISTINCT already explains high read without WHERE.
-    /// PT: Verifica que PW004 é suprimido quando DISTINCT já explica alta leitura sem WHERE.
+    /// PT-br: Verifica que PW004 é suprimido quando DISTINCT já explica alta leitura sem WHERE.
     /// </summary>
 
 
@@ -232,7 +232,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW004 remains when query has no WHERE and no DISTINCT.
-    /// PT: Verifica que PW004 permanece quando a consulta não tem WHERE nem DISTINCT.
+    /// PT-br: Verifica que PW004 permanece quando a consulta não tem WHERE nem DISTINCT.
     /// </summary>
 
 
@@ -251,7 +251,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW005 is kept and PW004 is suppressed when WHERE and DISTINCT coexist.
-    /// PT: Verifica que PW005 é mantido e PW004 suprimido quando WHERE e DISTINCT coexistem.
+    /// PT-br: Verifica que PW005 é mantido e PW004 suprimido quando WHERE e DISTINCT coexistem.
     /// </summary>
 
 
@@ -272,7 +272,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW005 is not emitted when DISTINCT is absent.
-    /// PT: Verifica que PW005 não é emitido quando DISTINCT está ausente.
+    /// PT-br: Verifica que PW005 não é emitido quando DISTINCT está ausente.
     /// </summary>
 
 
@@ -291,7 +291,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW002 emits stable technical threshold metadata.
-    /// PT: Verifica que PW002 emite metadados técnicos de threshold estáveis.
+    /// PT-br: Verifica que PW002 emite metadados técnicos de threshold estáveis.
     /// </summary>
 
 
@@ -312,7 +312,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
     }
     /// <summary>
     /// EN: Verifies PW004 and PW005 emit stable technical threshold metadata.
-    /// PT: Verifica que PW004 e PW005 emitem metadados técnicos de threshold estáveis.
+    /// PT-br: Verifica que PW004 e PW005 emitem metadados técnicos de threshold estáveis.
     /// </summary>
 
 
@@ -342,7 +342,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Verifies aggregated plan risk score is emitted when warnings are present.
-    /// PT: Verifica que o score agregado de risco é emitido quando há alertas.
+    /// PT-br: Verifica que o score agregado de risco é emitido quando há alertas.
     /// </summary>
 
 
@@ -369,7 +369,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Verifies plan delta is emitted when previous snapshot is provided to formatter.
-    /// PT: Verifica que o delta do plano é emitido quando snapshot anterior é fornecido ao formatter.
+    /// PT-br: Verifica que o delta do plano é emitido quando snapshot anterior é fornecido ao formatter.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -392,7 +392,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Verifies quality grade is omitted when warnings are absent.
-    /// PT: Verifica que a nota qualitativa é omitida quando não há alertas.
+    /// PT-br: Verifica que a nota qualitativa é omitida quando não há alertas.
     /// </summary>
 
 
@@ -415,7 +415,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Verifies top actions are omitted when warnings and index recommendations are absent.
-    /// PT: Verifica que ações prioritárias são omitidas sem warnings e sem recomendações de índice.
+    /// PT-br: Verifica que ações prioritárias são omitidas sem warnings e sem recomendações de índice.
     /// </summary>
 
 
@@ -440,7 +440,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Verifies warning summary is emitted alongside plan warnings.
-    /// PT: Verifica que o resumo de warnings é emitido junto dos alertas do plano.
+    /// PT-br: Verifica que o resumo de warnings é emitido junto dos alertas do plano.
     /// </summary>
 
 
@@ -465,7 +465,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Verifies primary warning hint is emitted for warnings-rich plans.
-    /// PT: Verifica que a indicação de warning primário é emitida em planos com alertas.
+    /// PT-br: Verifica que a indicação de warning primário é emitida em planos com alertas.
     /// </summary>
 
 
@@ -487,7 +487,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Verifies index recommendations are preserved when warnings are present.
-    /// PT: Verifica que recomendações de índice são preservadas quando há alertas.
+    /// PT-br: Verifica que recomendações de índice são preservadas quando há alertas.
     /// </summary>
 
 
@@ -539,7 +539,7 @@ public abstract class ExecutionPlanPlanWarningsTestsBase(
 
     /// <summary>
     /// EN: Seeds the users table with deterministic Active values for warning scenarios.
-    /// PT: Popula a tabela users com valores determinísticos de Active para cenários de alerta.
+    /// PT-br: Popula a tabela users com valores determinísticos de Active para cenários de alerta.
     /// </summary>
     protected static void SeedUsers(DbConnectionMockBase cnn, int totalRows, Func<int, int> activeSelector)
     {

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Creates a PostgreSQL sequence with a lower bound and verifies the minimum value is enforced.
-/// PT: Cria uma sequence PostgreSQL com limite inferior e verifica se o valor minimo e imposto.
+/// PT-br: Cria uma sequence PostgreSQL com limite inferior e verifica se o valor minimo e imposto.
 /// </summary>
 public sealed class SequenceMinValueServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceMinValueServiceTest(
 {
     /// <summary>
     /// EN: Returns the generated values and whether the sequence stopped at the configured minimum.
-    /// PT: Retorna os valores gerados e se a sequence parou no minimo configurado.
+    /// PT-br: Retorna os valores gerados e se a sequence parou no minimo configurado.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceMinValueAsync();
 
     /// <summary>
     /// EN: Returns the generated values and whether the sequence stopped at the configured minimum.
-    /// PT: Retorna os valores gerados e se a sequence parou no minimo configurado.
+    /// PT-br: Retorna os valores gerados e se a sequence parou no minimo configurado.
     /// </summary>
     public async Task<long[]> RunSequenceMinValueAsync()
     {

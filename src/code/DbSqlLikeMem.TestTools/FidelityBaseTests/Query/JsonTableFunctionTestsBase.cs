@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.TestTools.Tests.Query;
 
 /// <summary>
 /// EN: Provides shared fidelity tests for JSON table-valued functions (json_each, json_tree, OPENJSON) across mock and container runs.
-/// PT: Fornece testes de fidelidade compartilhados para funções tabulares JSON (json_each, json_tree, OPENJSON) entre execuções mock e container.
+/// PT-br: Fornece testes de fidelidade compartilhados para funções tabulares JSON (json_each, json_tree, OPENJSON) entre execuções mock e container.
 /// </summary>
 public abstract class JsonTableFunctionTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -18,7 +18,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies json_each returns keys and values from JSON array.
-    /// PT: Verifica json_each retorna keys e valores de array JSON.
+    /// PT-br: Verifica json_each retorna keys e valores de array JSON.
     /// </summary>
     [FidelityFact]
     public async Task JsonEachFromArrayTest()
@@ -39,7 +39,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies json_each returns keys, values and types from JSON object.
-    /// PT: Verifica json_each retorna keys, values e types de objeto JSON.
+    /// PT-br: Verifica json_each retorna keys, values e types de objeto JSON.
     /// </summary>
     [FidelityFact]
     public async Task JsonEachFromObjectTest()
@@ -60,7 +60,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies json_tree returns full tree structure including path and parent.
-    /// PT: Verifica json_tree retorna estrutura completa incluindo path e parent.
+    /// PT-br: Verifica json_tree retorna estrutura completa incluindo path e parent.
     /// </summary>
     [FidelityFact]
     public async Task JsonTreeStructureTest()
@@ -81,7 +81,7 @@ public abstract class JsonTableFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies OPENJSON returns the expected rows from a JSON array for the current provider.
-    /// PT: Verifica se OPENJSON retorna as linhas esperadas de um array JSON para o provedor atual.
+    /// PT-br: Verifica se OPENJSON retorna as linhas esperadas de um array JSON para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task OpenJsonArrayTest()

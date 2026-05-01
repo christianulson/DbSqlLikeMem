@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Covers the first schema snapshot export/load slice over the SQLite mock surface.
-/// PT: Cobre a primeira fatia de exportacao/carga de schema snapshot sobre a superficie do mock SQLite.
+/// PT-br: Cobre a primeira fatia de exportacao/carga de schema snapshot sobre a superficie do mock SQLite.
 /// </summary>
 public sealed class SchemaSnapshotTests(
         ITestOutputHelper helper
@@ -12,7 +12,7 @@ public sealed class SchemaSnapshotTests(
 {
     /// <summary>
     /// EN: Verifies schema snapshot export preserves table and column structural metadata.
-    /// PT: Verifica se a exportacao de schema snapshot preserva metadados estruturais de tabelas e colunas.
+    /// PT-br: Verifica se a exportacao de schema snapshot preserva metadados estruturais de tabelas e colunas.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -60,7 +60,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies schema snapshot JSON round-trip can rebuild the target database structure deterministically.
-    /// PT: Verifica se o round-trip JSON do schema snapshot consegue reconstruir a estrutura do banco de destino de forma deterministica.
+    /// PT-br: Verifica se o round-trip JSON do schema snapshot consegue reconstruir a estrutura do banco de destino de forma deterministica.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -100,7 +100,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies schema snapshot export and replay preserve view definitions and sequence state.
-    /// PT: Verifica se a exportacao e o replay de schema snapshot preservam definicoes de view e estado de sequence.
+    /// PT-br: Verifica se a exportacao e o replay de schema snapshot preservam definicoes de view e estado de sequence.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -148,7 +148,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies schema snapshot export and replay preserve primary keys, indexes, and foreign keys.
-    /// PT: Verifica se a exportacao e o replay de schema snapshot preservam chaves primarias, indices e chaves estrangeiras.
+    /// PT-br: Verifica se a exportacao e o replay de schema snapshot preservam chaves primarias, indices e chaves estrangeiras.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -221,7 +221,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies schema snapshot export and replay preserve stored procedure signatures.
-    /// PT: Verifica se a exportacao e o replay de schema snapshot preservam assinaturas de procedures.
+    /// PT-br: Verifica se a exportacao e o replay de schema snapshot preservam assinaturas de procedures.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -261,7 +261,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies schema snapshot export and replay preserve objects across multiple schemas.
-    /// PT: Verifica se a exportacao e o replay de schema snapshot preservam objetos em multiplos schemas.
+    /// PT-br: Verifica se a exportacao e o replay de schema snapshot preservam objetos em multiplos schemas.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -314,7 +314,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies schema snapshot export and replay preserve cross-schema foreign key targets.
-    /// PT: Verifica se a exportacao e o replay de schema snapshot preservam alvos de chave estrangeira entre schemas.
+    /// PT-br: Verifica se a exportacao e o replay de schema snapshot preservam alvos de chave estrangeira entre schemas.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -359,7 +359,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies connection-level schema snapshot helpers can export and import the current database structure.
-    /// PT: Verifica se os helpers de schema snapshot na conexao conseguem exportar e importar a estrutura atual do banco.
+    /// PT-br: Verifica se os helpers de schema snapshot na conexao conseguem exportar e importar a estrutura atual do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -392,7 +392,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies connection import realigns the current database when the previous schema no longer exists after replay.
-    /// PT: Verifica se o import pela conexao realinha o database atual quando o schema anterior deixa de existir apos o replay.
+    /// PT-br: Verifica se o import pela conexao realinha o database atual quando o schema anterior deixa de existir apos o replay.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -423,7 +423,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies schema snapshot compatibility checks use dialect equality and minimum target version.
-    /// PT: Verifica se as checagens de compatibilidade do schema snapshot usam igualdade de dialeto e versao minima no destino.
+    /// PT-br: Verifica se as checagens de compatibilidade do schema snapshot usam igualdade de dialeto e versao minima no destino.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -441,7 +441,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies strict compatibility validation rejects replay against an incompatible target connection before applying changes.
-    /// PT: Verifica se a validacao estrita de compatibilidade rejeita o replay contra uma conexao de destino incompativel antes de aplicar mudancas.
+    /// PT-br: Verifica se a validacao estrita de compatibilidade rejeita o replay contra uma conexao de destino incompativel antes de aplicar mudancas.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -471,7 +471,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies strict compatibility validation also works when replay targets the raw mock database API.
-    /// PT: Verifica se a validacao estrita de compatibilidade tambem funciona quando o replay usa a API crua de DbMock.
+    /// PT-br: Verifica se a validacao estrita de compatibilidade tambem funciona quando o replay usa a API crua de DbMock.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -496,7 +496,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies snapshot fingerprints stay stable for equivalent structures and change when the schema drifts.
-    /// PT: Verifica se as assinaturas do snapshot permanecem estaveis para estruturas equivalentes e mudam quando o schema deriva.
+    /// PT-br: Verifica se as assinaturas do snapshot permanecem estaveis para estruturas equivalentes e mudam quando o schema deriva.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -527,7 +527,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies snapshot comparisons report structured drift details for diagnostics.
-    /// PT: Verifica se as comparacoes de snapshot reportam detalhes estruturados de drift para diagnostico.
+    /// PT-br: Verifica se as comparacoes de snapshot reportam detalhes estruturados de drift para diagnostico.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -564,7 +564,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies the support profile explicitly describes the current snapshot subset and known out-of-scope metadata.
-    /// PT: Verifica se o perfil de suporte descreve explicitamente o subset atual do snapshot e os metadados conhecidos fora de escopo.
+    /// PT-br: Verifica se o perfil de suporte descreve explicitamente o subset atual do snapshot e os metadados conhecidos fora de escopo.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -599,7 +599,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies a full export replay export cycle remains drift-free for the supported schema snapshot subset.
-    /// PT: Verifica se um ciclo completo de exportacao replay exportacao permanece sem drift para o subset suportado do schema snapshot.
+    /// PT-br: Verifica se um ciclo completo de exportacao replay exportacao permanece sem drift para o subset suportado do schema snapshot.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -654,7 +654,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies snapshot-first helpers can apply directly to a connection without reserializing through the caller.
-    /// PT: Verifica se os helpers orientados a snapshot conseguem aplicar diretamente em uma conexao sem reserializar pelo chamador.
+    /// PT-br: Verifica se os helpers orientados a snapshot conseguem aplicar diretamente em uma conexao sem reserializar pelo chamador.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -712,7 +712,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies file-based schema snapshot helpers can persist and reload versionable JSON fixtures.
-    /// PT: Verifica se os helpers de arquivo de schema snapshot conseguem persistir e recarregar fixtures JSON versionaveis.
+    /// PT-br: Verifica se os helpers de arquivo de schema snapshot conseguem persistir e recarregar fixtures JSON versionaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -755,7 +755,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies connection-level file helpers can export and import schema snapshots through JSON files.
-    /// PT: Verifica se os helpers de arquivo na conexao conseguem exportar e importar schema snapshots por arquivos JSON.
+    /// PT-br: Verifica se os helpers de arquivo na conexao conseguem exportar e importar schema snapshots por arquivos JSON.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -797,7 +797,7 @@ public sealed class SchemaSnapshotTests(
 
     /// <summary>
     /// EN: Verifies static snapshot loaders can apply directly to a connection from JSON text and file paths.
-    /// PT: Verifica se os loaders estaticos de snapshot conseguem aplicar diretamente em uma conexao a partir de texto JSON e caminhos de arquivo.
+    /// PT-br: Verifica se os loaders estaticos de snapshot conseguem aplicar diretamente em uma conexao a partir de texto JSON e caminhos de arquivo.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]

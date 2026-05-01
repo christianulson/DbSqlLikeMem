@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Parser;
 
 /// <summary>
 /// EN: Covers WHERE expression parsing for the Oracle dialect.
-/// PT: Cobre o parsing de expressoes WHERE para o dialeto Oracle.
+/// PT-br: Cobre o parsing de expressoes WHERE para o dialeto Oracle.
 /// </summary>
 public sealed class SqlExpressionParserTests(
     ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies the parser accepts supported real-world WHERE expressions.
-    /// PT: Verifica se o parser aceita expressoes WHERE reais suportadas.
+    /// PT-br: Verifica se o parser aceita expressoes WHERE reais suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -30,7 +30,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Provides WHERE expressions that should be parsed successfully by the Oracle dialect.
-    /// PT: Fornece expressões WHERE que devem ser analisadas com sucesso pelo dialeto Oracle.
+    /// PT-br: Fornece expressões WHERE que devem ser analisadas com sucesso pelo dialeto Oracle.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Supported()
     {
@@ -90,7 +90,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies unsupported WHERE expressions raise an error.
-    /// PT: Verifica se expressoes WHERE nao suportadas geram erro.
+    /// PT-br: Verifica se expressoes WHERE nao suportadas geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -107,9 +107,9 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies Oracle accepts sequence dot expressions for NEXTVAL and CURRVAL.
-    /// PT: Verifica se o Oracle aceita expressoes pontuadas de sequence para NEXTVAL e CURRVAL.
+    /// PT-br: Verifica se o Oracle aceita expressoes pontuadas de sequence para NEXTVAL e CURRVAL.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versao do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versao do dialeto Oracle em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataOracleVersion]
@@ -126,7 +126,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Provides WHERE expressions that are intentionally outside the supported parser subset.
-    /// PT: Fornece expressões WHERE propositalmente fora do subconjunto suportado pelo parser.
+    /// PT-br: Fornece expressões WHERE propositalmente fora do subconjunto suportado pelo parser.
     /// </summary>
     public static IEnumerable<object[]> WhereExpressions_Unsupported()
     {
@@ -147,7 +147,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies OR binds looser than AND.
-    /// PT: Verifica se OR tem precedencia menor que AND.
+    /// PT-br: Verifica se OR tem precedencia menor que AND.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -178,7 +178,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies parentheses override operator precedence.
-    /// PT: Verifica se parenteses sobrescrevem a precedencia dos operadores.
+    /// PT-br: Verifica se parenteses sobrescrevem a precedencia dos operadores.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -202,7 +202,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies NOT expressions are parsed correctly.
-    /// PT: Verifica se expressoes NOT sao parseadas corretamente.
+    /// PT-br: Verifica se expressoes NOT sao parseadas corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -222,7 +222,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies IS NOT NULL is parsed as a negated IS NULL expression.
-    /// PT: Verifica se IS NOT NULL e parseado como uma expressao IS NULL negada.
+    /// PT-br: Verifica se IS NOT NULL e parseado como uma expressao IS NULL negada.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -238,7 +238,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies IN lists are parsed correctly.
-    /// PT: Verifica se listas IN sao parseadas corretamente.
+    /// PT-br: Verifica se listas IN sao parseadas corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -254,7 +254,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies LIKE expressions are parsed correctly.
-    /// PT: Verifica se expressoes LIKE sao parseadas corretamente.
+    /// PT-br: Verifica se expressoes LIKE sao parseadas corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -270,7 +270,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies aliased column identifiers are parsed correctly.
-    /// PT: Verifica se identificadores de coluna com alias sao parseados corretamente.
+    /// PT-br: Verifica se identificadores de coluna com alias sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -295,7 +295,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies parameter tokens are parsed correctly.
-    /// PT: Verifica se tokens de parametro sao parseados corretamente.
+    /// PT-br: Verifica se tokens de parametro sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -311,7 +311,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies double-quoted identifiers are parsed correctly.
-    /// PT: Verifica se identificadores entre aspas duplas sao parseados corretamente.
+    /// PT-br: Verifica se identificadores entre aspas duplas sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -328,7 +328,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies single-quoted string literals are parsed correctly.
-    /// PT: Verifica se literais de string entre aspas simples sao parseados corretamente.
+    /// PT-br: Verifica se literais de string entre aspas simples sao parseados corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -345,7 +345,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies double-quoted tokens are treated as identifiers, not strings.
-    /// PT: Verifica se tokens entre aspas duplas sao tratados como identificadores e nao como strings.
+    /// PT-br: Verifica se tokens entre aspas duplas sao tratados como identificadores e nao como strings.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -361,7 +361,7 @@ public sealed class SqlExpressionParserTests(
 
     /// <summary>
     /// EN: Verifies the printer is stable for a simple expression.
-    /// PT: Verifica se o printer e estavel para uma expressao simples.
+    /// PT-br: Verifica se o printer e estavel para uma expressao simples.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Validates execution-plan warning formatting and i18n resource consistency.
-/// PT: Valida a formatação de alertas do plano de execução e a consistência de recursos de i18n.
+/// PT-br: Valida a formatação de alertas do plano de execução e a consistência de recursos de i18n.
 /// </summary>
 public sealed class ExecutionPlanFormattingAndI18nTests(
         ITestOutputHelper helper
@@ -22,7 +22,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies warning metadata is rendered in deterministic key order.
-    /// PT: Verifica que os metadados de alerta são renderizados em ordem determinística de chaves.
+    /// PT-br: Verifica que os metadados de alerta são renderizados em ordem determinística de chaves.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldPrintPlanWarningMetadataInStableOrder()
@@ -68,7 +68,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies localized execution-plan resources keep base keys and canonical SQL keywords.
-    /// PT: Verifica que recursos localizados de plano de execução mantêm chaves base e palavras-chave SQL canônicas.
+    /// PT-br: Verifica que recursos localizados de plano de execução mantêm chaves base e palavras-chave SQL canônicas.
     /// </summary>
     [Fact]
     public void SqlExecutionPlanMessages_AllLocalizedResxShouldContainBaseKeys_AndKeepCanonicalSqlKeywords()
@@ -122,7 +122,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies threshold metadata stays in stable machine-parseable format.
-    /// PT: Verifica que metadados de threshold permanecem em formato estável legível por máquina.
+    /// PT-br: Verifica que metadados de threshold permanecem em formato estável legível por máquina.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldKeepThresholdInTechnicalParseablePattern()
@@ -153,7 +153,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies plan risk score is emitted and capped at 100 when warnings are present.
-    /// PT: Verifica que o score de risco do plano é emitido e limitado em 100 quando há alertas.
+    /// PT-br: Verifica que o score de risco do plano é emitido e limitado em 100 quando há alertas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanRiskScore_WhenWarningsArePresent()
@@ -177,7 +177,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies plan risk score is omitted when warnings are absent.
-    /// PT: Verifica que o score de risco do plano é omitido quando não há alertas.
+    /// PT-br: Verifica que o score de risco do plano é omitido quando não há alertas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanRiskScore_WhenNoWarnings()
@@ -196,7 +196,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies quality grade is emitted when warnings are present.
-    /// PT: Verifica que a nota qualitativa do plano é emitida quando há alertas.
+    /// PT-br: Verifica que a nota qualitativa do plano é emitida quando há alertas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanQualityGrade_WhenWarningsArePresent()
@@ -218,7 +218,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies quality grade is omitted when warnings are absent.
-    /// PT: Verifica que a nota qualitativa do plano é omitida quando não há alertas.
+    /// PT-br: Verifica que a nota qualitativa do plano é omitida quando não há alertas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanQualityGrade_WhenNoWarnings()
@@ -236,7 +236,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies schema-qualified table-valued sources are rendered with the schema name in the execution plan.
-    /// PT: Verifica se fontes tabulares qualificadas por schema sao renderizadas com o nome do schema no plano de execucao.
+    /// PT-br: Verifica se fontes tabulares qualificadas por schema sao renderizadas com o nome do schema no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderSchemaQualifiedTableFunctionSource()
@@ -261,7 +261,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies OPENJSON sources with explicit WITH schema keep that shape in the execution plan.
-    /// PT: Verifica se fontes OPENJSON com schema explicito em WITH mantem esse shape no plano de execucao.
+    /// PT-br: Verifica se fontes OPENJSON com schema explicito em WITH mantem esse shape no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderOpenJsonWithClauseInTableFunctionSource()
@@ -290,7 +290,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies STRING_SPLIT sources with enable_ordinal keep that shape in the execution plan.
-    /// PT: Verifica se fontes STRING_SPLIT com enable_ordinal mantem esse shape no plano de execucao.
+    /// PT-br: Verifica se fontes STRING_SPLIT com enable_ordinal mantem esse shape no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderStringSplitEnableOrdinalInTableFunctionSource()
@@ -315,7 +315,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies OPENJSON sources with an explicit path keep that shape in the execution plan.
-    /// PT: Verifica se fontes OPENJSON com path explicito mantem esse shape no plano de execucao.
+    /// PT-br: Verifica se fontes OPENJSON com path explicito mantem esse shape no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderOpenJsonPathInTableFunctionSource()
@@ -340,7 +340,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies OPENJSON sources keep strict-path and WITH shape together in the execution plan.
-    /// PT: Verifica se fontes OPENJSON mantem juntos os detalhes de strict-path e WITH no plano de execucao.
+    /// PT-br: Verifica se fontes OPENJSON mantem juntos os detalhes de strict-path e WITH no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderOpenJsonStrictPathWithClauseInTableFunctionSource()
@@ -369,7 +369,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies JSON_TABLE sources keep the row-path and COLUMNS shape in the execution plan.
-    /// PT: Verifica se fontes JSON_TABLE mantem o shape de row-path e COLUMNS no plano de execucao.
+    /// PT-br: Verifica se fontes JSON_TABLE mantem o shape de row-path e COLUMNS no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderJsonTableColumnsShapeInTableFunctionSource()
@@ -399,7 +399,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies nested JSON_TABLE sources keep the row-path and nested COLUMNS shape in the execution plan.
-    /// PT: Verifica se fontes JSON_TABLE aninhadas mantem o shape de row-path e COLUMNS aninhados no plano de execucao.
+    /// PT-br: Verifica se fontes JSON_TABLE aninhadas mantem o shape de row-path e COLUMNS aninhados no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderNestedJsonTableColumnsShapeInTableFunctionSource()
@@ -435,7 +435,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CROSS APPLY join lines preserve strict-path and WITH details for OPENJSON sources.
-    /// PT: Verifica se linhas de CROSS APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
+    /// PT-br: Verifica se linhas de CROSS APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderCrossApplyOpenJsonStrictPathWithClauseInJoinLine()
@@ -469,7 +469,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CROSS APPLY join lines preserve enable_ordinal details for STRING_SPLIT sources.
-    /// PT: Verifica se linhas de CROSS APPLY preservam os detalhes de enable_ordinal para fontes STRING_SPLIT.
+    /// PT-br: Verifica se linhas de CROSS APPLY preservam os detalhes de enable_ordinal para fontes STRING_SPLIT.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderCrossApplyStringSplitEnableOrdinalInJoinLine()
@@ -499,7 +499,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies OUTER APPLY join lines preserve the shared STRING_SPLIT source shape in the execution plan.
-    /// PT: Verifica se linhas de OUTER APPLY preservam o shape compartilhado da fonte STRING_SPLIT no plano de execucao.
+    /// PT-br: Verifica se linhas de OUTER APPLY preservam o shape compartilhado da fonte STRING_SPLIT no plano de execucao.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderOuterApplyStringSplitInJoinLine()
@@ -529,7 +529,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies OUTER APPLY join lines preserve strict-path and WITH details for OPENJSON sources.
-    /// PT: Verifica se linhas de OUTER APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
+    /// PT-br: Verifica se linhas de OUTER APPLY preservam os detalhes de strict-path e WITH para fontes OPENJSON.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderOuterApplyOpenJsonStrictPathWithClauseInJoinLine()
@@ -563,7 +563,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies OUTER APPLY join lines preserve enable_ordinal details for STRING_SPLIT sources.
-    /// PT: Verifica se linhas de OUTER APPLY preservam os detalhes de enable_ordinal para fontes STRING_SPLIT.
+    /// PT-br: Verifica se linhas de OUTER APPLY preservam os detalhes de enable_ordinal para fontes STRING_SPLIT.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldRenderOuterApplyStringSplitEnableOrdinalInJoinLine()
@@ -594,7 +594,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies quality grade thresholds from risk score and performance band remain stable.
-    /// PT: Verifica que os thresholds da nota qualitativa por risco e performance permanecem estáveis.
+    /// PT-br: Verifica que os thresholds da nota qualitativa por risco e performance permanecem estáveis.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanQualityGrade_WithStableThresholdRules()
@@ -624,7 +624,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies risk-score boundary mapping for quality grade on fast band.
-    /// PT: Verifica o mapeamento dos limites de score de risco para nota qualitativa na banda Fast.
+    /// PT-br: Verifica o mapeamento dos limites de score de risco para nota qualitativa na banda Fast.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldMapPlanQualityGrade_ByRiskScoreBoundaries_OnFastBand()
@@ -684,7 +684,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies warning summary is emitted in deterministic severity/code order.
-    /// PT: Verifica que o resumo de warnings é emitido em ordem determinística por severidade/código.
+    /// PT-br: Verifica que o resumo de warnings é emitido em ordem determinística por severidade/código.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanWarningSummary_WhenWarningsArePresent()
@@ -708,7 +708,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies warning summary is omitted when warnings are absent.
-    /// PT: Verifica que o resumo de warnings é omitido quando não há alertas.
+    /// PT-br: Verifica que o resumo de warnings é omitido quando não há alertas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanWarningSummary_WhenNoWarnings()
@@ -727,7 +727,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies primary warning is emitted using deterministic severity/code priority.
-    /// PT: Verifica que o warning primário é emitido com prioridade determinística por severidade/código.
+    /// PT-br: Verifica que o warning primário é emitido com prioridade determinística por severidade/código.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanPrimaryWarning_WhenWarningsArePresent()
@@ -751,7 +751,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies primary warning is omitted when warnings are absent.
-    /// PT: Verifica que o warning primário é omitido quando não há alertas.
+    /// PT-br: Verifica que o warning primário é omitido quando não há alertas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanPrimaryWarning_WhenNoWarnings()
@@ -770,7 +770,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies primary cause group is emitted from primary warning mapping.
-    /// PT: Verifica que o grupo de causa primária é emitido a partir do mapeamento do warning primário.
+    /// PT-br: Verifica que o grupo de causa primária é emitido a partir do mapeamento do warning primário.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanPrimaryCauseGroup_WhenWarningsArePresent()
@@ -793,7 +793,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies primary cause group is omitted when warnings are absent.
-    /// PT: Verifica que o grupo de causa primária é omitido quando não há warnings.
+    /// PT-br: Verifica que o grupo de causa primária é omitido quando não há warnings.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanPrimaryCauseGroup_WhenNoWarnings()
@@ -812,7 +812,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies index recommendation summary is emitted in parseable format.
-    /// PT: Verifica que o resumo de recomendação de índice é emitido em formato parseável.
+    /// PT-br: Verifica que o resumo de recomendação de índice é emitido em formato parseável.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitIndexRecommendationSummary_WhenRecommendationsArePresent()
@@ -835,7 +835,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies index recommendation summary is omitted when recommendations are absent.
-    /// PT: Verifica que o resumo de recomendação de índice é omitido quando não há recomendações.
+    /// PT-br: Verifica que o resumo de recomendação de índice é omitido quando não há recomendações.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitIndexRecommendationSummary_WhenNoRecommendations()
@@ -854,7 +854,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies index recommendation evidence is emitted in parseable deterministic format.
-    /// PT: Verifica que a evidência de recomendação de índice é emitida em formato parseável e determinístico.
+    /// PT-br: Verifica que a evidência de recomendação de índice é emitida em formato parseável e determinístico.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitIndexRecommendationEvidence_WhenRecommendationsArePresent()
@@ -876,7 +876,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies index recommendation evidence is omitted when recommendations are absent.
-    /// PT: Verifica que a evidência de recomendação de índice é omitida quando não há recomendações.
+    /// PT-br: Verifica que a evidência de recomendação de índice é omitida quando não há recomendações.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitIndexRecommendationEvidence_WhenNoRecommendations()
@@ -895,7 +895,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies warning counts are emitted in parseable fixed-key format.
-    /// PT: Verifica que as contagens de warning são emitidas em formato parseável de chaves fixas.
+    /// PT-br: Verifica que as contagens de warning são emitidas em formato parseável de chaves fixas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanWarningCounts_WhenWarningsArePresent()
@@ -920,7 +920,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies warning counts are omitted when warnings are absent.
-    /// PT: Verifica que as contagens de warning são omitidas quando não há alertas.
+    /// PT-br: Verifica que as contagens de warning são omitidas quando não há alertas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanWarningCounts_WhenNoWarnings()
@@ -939,7 +939,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies noise score is emitted when warnings are present.
-    /// PT: Verifica que o score de ruído é emitido quando há warnings.
+    /// PT-br: Verifica que o score de ruído é emitido quando há warnings.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanNoiseScore_WhenWarningsArePresent()
@@ -963,7 +963,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies noise score is omitted when warnings are absent.
-    /// PT: Verifica que o score de ruído é omitido quando não há warnings.
+    /// PT-br: Verifica que o score de ruído é omitido quando não há warnings.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanNoiseScore_WhenNoWarnings()
@@ -982,7 +982,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies top actions are emitted in deterministic priority order and capped at 3.
-    /// PT: Verifica que as ações prioritárias são emitidas em ordem determinística e limitadas a 3.
+    /// PT-br: Verifica que as ações prioritárias são emitidas em ordem determinística e limitadas a 3.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanTopActions_WithDeterministicOrderAndCap()
@@ -1011,7 +1011,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies top actions include index recommendation action when warnings are absent.
-    /// PT: Verifica que as ações incluem recomendação de índice quando não há warnings.
+    /// PT-br: Verifica que as ações incluem recomendação de índice quando não há warnings.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanTopActions_FromIndexRecommendations_WhenWarningsAreAbsent()
@@ -1034,7 +1034,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies top actions are omitted when warnings and recommendations are absent.
-    /// PT: Verifica que as ações são omitidas quando não há warnings e nem recomendações.
+    /// PT-br: Verifica que as ações são omitidas quando não há warnings e nem recomendações.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitPlanTopActions_WhenNoWarningsAndNoRecommendations()
@@ -1053,7 +1053,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies plan delta is emitted when previous metrics are provided.
-    /// PT: Verifica que o delta do plano é emitido quando métricas anteriores são fornecidas.
+    /// PT-br: Verifica que o delta do plano é emitido quando métricas anteriores são fornecidas.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanDelta_WhenPreviousMetricsAreProvided()
@@ -1080,7 +1080,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies severity hint context can be overridden and reflected in output.
-    /// PT: Verifica que o contexto do hint de severidade pode ser sobrescrito e refletido no output.
+    /// PT-br: Verifica que o contexto do hint de severidade pode ser sobrescrito e refletido no output.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanSeverityHint_WithContextOverride()
@@ -1105,7 +1105,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies the formatted execution plan includes the current metadata version marker.
-    /// PT: Verifica que o plano de execução formatado inclui o marcador da versão atual de metadados.
+    /// PT-br: Verifica que o plano de execução formatado inclui o marcador da versão atual de metadados.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanMetadataVersion()
@@ -1124,7 +1124,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies plan correlation id is emitted with stable technical format.
-    /// PT: Verifica que o correlation id do plano é emitido em formato técnico estável.
+    /// PT-br: Verifica que o correlation id do plano é emitido em formato técnico estável.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanCorrelationId_WithStableFormat()
@@ -1148,7 +1148,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies SELECT estimated cost increases when projection includes window-function expressions.
-    /// PT: Verifica que o custo estimado de SELECT aumenta quando a projeção inclui expressões de função de janela.
+    /// PT-br: Verifica que o custo estimado de SELECT aumenta quando a projeção inclui expressões de função de janela.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithWindowProjectionComplexity()
@@ -1184,7 +1184,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies SELECT estimated cost includes source complexity for derived subqueries.
-    /// PT: Verifica que o custo estimado de SELECT inclui complexidade de fonte para subconsultas derivadas.
+    /// PT-br: Verifica que o custo estimado de SELECT inclui complexidade de fonte para subconsultas derivadas.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithDerivedSourceComplexity()
@@ -1213,7 +1213,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies SELECT estimated cost applies higher join-type complexity for LEFT joins versus INNER joins.
-    /// PT: Verifica que o custo estimado de SELECT aplica maior complexidade por tipo de join para LEFT em relação a INNER.
+    /// PT-br: Verifica que o custo estimado de SELECT aplica maior complexidade por tipo de join para LEFT em relação a INNER.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithOuterJoinTypeComplexity()
@@ -1246,7 +1246,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies ORDER BY without row-limit carries additional estimated spill/sort risk cost.
-    /// PT: Verifica que ORDER BY sem limite de linhas carrega custo adicional estimado de risco de sort/spill.
+    /// PT-br: Verifica que ORDER BY sem limite de linhas carrega custo adicional estimado de risco de sort/spill.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForOrderByWithoutLimitRisk()
@@ -1267,7 +1267,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies predicate complexity contributes to estimated cost for WHERE filters.
-    /// PT: Verifica que a complexidade de predicados contribui para o custo estimado em filtros WHERE.
+    /// PT-br: Verifica que a complexidade de predicados contribui para o custo estimado em filtros WHERE.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithWherePredicateComplexity()
@@ -1305,7 +1305,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies join ON predicate complexity contributes to estimated cost.
-    /// PT: Verifica que a complexidade do predicado ON do join contribui para o custo estimado.
+    /// PT-br: Verifica que a complexidade do predicado ON do join contribui para o custo estimado.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithJoinPredicateComplexity()
@@ -1347,7 +1347,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies GROUP BY with HAVING carries higher estimated cost than equivalent non-aggregated query.
-    /// PT: Verifica que GROUP BY com HAVING tem custo estimado maior do que consulta equivalente sem agregação.
+    /// PT-br: Verifica que GROUP BY com HAVING tem custo estimado maior do que consulta equivalente sem agregação.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithGroupByAndHaving()
@@ -1380,7 +1380,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT with ORDER BY and no limit carries higher estimated cost than ORDER BY alone.
-    /// PT: Verifica que DISTINCT com ORDER BY sem limite tem custo estimado maior do que apenas ORDER BY.
+    /// PT-br: Verifica que DISTINCT com ORDER BY sem limite tem custo estimado maior do que apenas ORDER BY.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithDistinctAndOrderByWithoutLimit()
@@ -1401,7 +1401,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION DISTINCT carries higher estimated cost than equivalent UNION ALL.
-    /// PT: Verifica que UNION DISTINCT tem custo estimado maior do que UNION ALL equivalente.
+    /// PT-br: Verifica que UNION DISTINCT tem custo estimado maior do que UNION ALL equivalente.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseForUnionDistinctComparedToUnionAll()
@@ -1425,7 +1425,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION text plan includes localized performance disclaimer.
-    /// PT: Verifica que o plano textual de UNION inclui disclaimer de performance localizado.
+    /// PT-br: Verifica que o plano textual de UNION inclui disclaimer de performance localizado.
     /// </summary>
     [Fact]
     public void FormatUnion_ShouldIncludePerformanceDisclaimer()
@@ -1448,7 +1448,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION estimated cost increases when ALL/DISTINCT operators alternate more often even with the same DISTINCT operator count.
-    /// PT: Verifica que o custo estimado de UNION aumenta quando operadores ALL/DISTINCT alternam com maior frequência mesmo com a mesma contagem de operadores DISTINCT.
+    /// PT-br: Verifica que o custo estimado de UNION aumenta quando operadores ALL/DISTINCT alternam com maior frequência mesmo com a mesma contagem de operadores DISTINCT.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseForAlternatingSetOperatorTransitionsWithSameDistinctCount()
@@ -1494,7 +1494,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION ORDER BY without row limit carries higher estimated cost than equivalent UNION ORDER BY with row limit.
-    /// PT: Verifica que UNION com ORDER BY sem limite de linhas tem custo estimado maior do que UNION equivalente com limite.
+    /// PT-br: Verifica que UNION com ORDER BY sem limite de linhas tem custo estimado maior do que UNION equivalente com limite.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseForOrderByWithoutLimitRisk()
@@ -1519,7 +1519,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies EXISTS/Subquery predicates increase estimated cost compared to a simple scalar predicate.
-    /// PT: Verifica que predicados EXISTS/Subquery aumentam o custo estimado em relação a predicado escalar simples.
+    /// PT-br: Verifica que predicados EXISTS/Subquery aumentam o custo estimado em relação a predicado escalar simples.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithExistsAndSubqueryPredicates()
@@ -1566,7 +1566,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies GROUP BY + HAVING coupling penalty keeps estimated cost above equivalent GROUP BY-only shape.
-    /// PT: Verifica que a penalidade de acoplamento GROUP BY + HAVING mantém custo estimado acima do formato equivalente só com GROUP BY.
+    /// PT-br: Verifica que a penalidade de acoplamento GROUP BY + HAVING mantém custo estimado acima do formato equivalente só com GROUP BY.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWhenGroupingAndHavingAreCombined()
@@ -1599,7 +1599,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT + ORDER BY no-limit coupling penalty is reduced when a row limit is present.
-    /// PT: Verifica que a penalidade de acoplamento DISTINCT + ORDER BY sem limite é reduzida quando há limite de linhas.
+    /// PT-br: Verifica que a penalidade de acoplamento DISTINCT + ORDER BY sem limite é reduzida quando há limite de linhas.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldDecreaseForDistinctOrderByWhenLimitIsPresent()
@@ -1620,7 +1620,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION ORDER BY merge uplift grows with additional UNION parts (fan-in), not only with ORDER BY presence.
-    /// PT: Verifica que o uplift de merge em UNION ORDER BY cresce com partes adicionais de UNION (fan-in), e não apenas com a presença de ORDER BY.
+    /// PT-br: Verifica que o uplift de merge em UNION ORDER BY cresce com partes adicionais de UNION (fan-in), e não apenas com a presença de ORDER BY.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseOrderByMergeUpliftWithAdditionalUnionParts()
@@ -1660,7 +1660,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION ORDER BY fan-in uplift is stronger with complex ORDER BY expressions than with simple key ordering.
-    /// PT: Verifica que o uplift de fan-in em UNION ORDER BY é mais forte com expressões ORDER BY complexas do que com ordenação por chave simples.
+    /// PT-br: Verifica que o uplift de fan-in em UNION ORDER BY é mais forte com expressões ORDER BY complexas do que com ordenação por chave simples.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseOrderByMergeFanInUpliftForComplexOrderExpression()
@@ -1706,7 +1706,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT + GROUP BY + ORDER BY without row limit applies an additional coupling penalty beyond DISTINCT baseline.
-    /// PT: Verifica que DISTINCT + GROUP BY + ORDER BY sem limite de linhas aplica penalidade adicional de acoplamento além da linha de base de DISTINCT.
+    /// PT-br: Verifica que DISTINCT + GROUP BY + ORDER BY sem limite de linhas aplica penalidade adicional de acoplamento além da linha de base de DISTINCT.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldApplyAdditionalPenaltyForDistinctGroupByOrderByMixWithoutLimit()
@@ -1738,7 +1738,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies row-limit reduces DISTINCT + GROUP BY + ORDER BY coupling pressure compared with the same no-limit shape.
-    /// PT: Verifica que limite de linhas reduz a pressão de acoplamento de DISTINCT + GROUP BY + ORDER BY em comparação ao mesmo formato sem limite.
+    /// PT-br: Verifica que limite de linhas reduz a pressão de acoplamento de DISTINCT + GROUP BY + ORDER BY em comparação ao mesmo formato sem limite.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldReduceDistinctGroupByOrderByCouplingWhenLimitIsPresent()
@@ -1770,7 +1770,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies LIMIT with moderate OFFSET still adds noticeable DISTINCT + GROUP BY + ORDER BY coupling pressure compared with the same LIMIT without OFFSET.
-    /// PT: Verifica que LIMIT com OFFSET moderado ainda adiciona pressão perceptível de acoplamento DISTINCT + GROUP BY + ORDER BY em comparação ao mesmo LIMIT sem OFFSET.
+    /// PT-br: Verifica que LIMIT com OFFSET moderado ainda adiciona pressão perceptível de acoplamento DISTINCT + GROUP BY + ORDER BY em comparação ao mesmo LIMIT sem OFFSET.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseDistinctGroupByOrderByCouplingForLimitWithOffset()
@@ -1803,7 +1803,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT + GROUP BY + ORDER BY coupling uplift is stronger when grouping/ordering expressions are complex (CASE/JSON markers) than for simple key expressions.
-    /// PT: Verifica que o uplift de acoplamento DISTINCT + GROUP BY + ORDER BY é mais forte quando expressões de agrupamento/ordenação são complexas (marcadores CASE/JSON) do que para chaves simples.
+    /// PT-br: Verifica que o uplift de acoplamento DISTINCT + GROUP BY + ORDER BY é mais forte quando expressões de agrupamento/ordenação são complexas (marcadores CASE/JSON) do que para chaves simples.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseDistinctGroupByOrderByCouplingForComplexExpressions()
@@ -1844,7 +1844,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT + GROUP BY + ORDER BY coupling uplift grows when expansion-risk joins are present.
-    /// PT: Verifica que o uplift de acoplamento DISTINCT + GROUP BY + ORDER BY cresce quando há joins com risco de expansão.
+    /// PT-br: Verifica que o uplift de acoplamento DISTINCT + GROUP BY + ORDER BY cresce quando há joins com risco de expansão.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseDistinctGroupByOrderByCouplingWhenExpansionRiskJoinsArePresent()
@@ -1888,7 +1888,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies HAVING adds stronger extra cost when DISTINCT + GROUP BY + ORDER BY are already present than in the equivalent non-distinct grouped/ordered shape.
-    /// PT: Verifica que HAVING adiciona custo extra mais forte quando DISTINCT + GROUP BY + ORDER BY já estão presentes do que no formato equivalente agrupado/ordenado sem DISTINCT.
+    /// PT-br: Verifica que HAVING adiciona custo extra mais forte quando DISTINCT + GROUP BY + ORDER BY já estão presentes do que no formato equivalente agrupado/ordenado sem DISTINCT.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseHavingCouplingForDistinctGroupByOrderByShape()
@@ -1935,7 +1935,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies HAVING coupling uplift for DISTINCT + GROUP BY + ORDER BY grows when expansion-risk joins are present.
-    /// PT: Verifica que o uplift de acoplamento de HAVING para DISTINCT + GROUP BY + ORDER BY cresce quando há joins com risco de expansão.
+    /// PT-br: Verifica que o uplift de acoplamento de HAVING para DISTINCT + GROUP BY + ORDER BY cresce quando há joins com risco de expansão.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseHavingCouplingForDistinctGroupByOrderByWithExpansionRiskJoins()
@@ -1986,7 +1986,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies HAVING coupling uplift for DISTINCT + GROUP BY + ORDER BY with expansion-risk joins is stronger when JOIN predicates are deeply nested and mixed with CASE/JSON logic.
-    /// PT: Verifica que o uplift de acoplamento de HAVING para DISTINCT + GROUP BY + ORDER BY com joins de risco de expansão é mais forte quando predicados de JOIN são profundamente aninhados e mistos com lógica CASE/JSON.
+    /// PT-br: Verifica que o uplift de acoplamento de HAVING para DISTINCT + GROUP BY + ORDER BY com joins de risco de expansão é mais forte quando predicados de JOIN são profundamente aninhados e mistos com lógica CASE/JSON.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseHavingJoinCouplingForDistinctGroupByOrderByWithComplexJoinPredicates()
@@ -2062,7 +2062,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional GROUP BY keys.
-    /// PT: Verifica que o custo estimado aumenta com chaves adicionais de GROUP BY.
+    /// PT-br: Verifica que o custo estimado aumenta com chaves adicionais de GROUP BY.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalGroupByKeys()
@@ -2095,7 +2095,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies GROUP BY expression complexity increases estimated cost when grouping key uses CASE expression.
-    /// PT: Verifica que a complexidade de expressão em GROUP BY aumenta o custo estimado quando a chave de agrupamento usa expressão CASE.
+    /// PT-br: Verifica que a complexidade de expressão em GROUP BY aumenta o custo estimado quando a chave de agrupamento usa expressão CASE.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithComplexGroupByExpressions()
@@ -2128,7 +2128,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies GROUP BY JSON-expression complexity increases estimated cost.
-    /// PT: Verifica que a complexidade de expressão JSON em GROUP BY aumenta o custo estimado.
+    /// PT-br: Verifica que a complexidade de expressão JSON em GROUP BY aumenta o custo estimado.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonGroupByExpressions()
@@ -2161,7 +2161,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional ORDER BY keys.
-    /// PT: Verifica que o custo estimado aumenta com chaves adicionais de ORDER BY.
+    /// PT-br: Verifica que o custo estimado aumenta com chaves adicionais de ORDER BY.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalOrderByKeys()
@@ -2185,7 +2185,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies ORDER BY expression complexity increases estimated cost when ordering key uses CASE expression.
-    /// PT: Verifica que a complexidade de expressão em ORDER BY aumenta o custo estimado quando a chave de ordenação usa expressão CASE.
+    /// PT-br: Verifica que a complexidade de expressão em ORDER BY aumenta o custo estimado quando a chave de ordenação usa expressão CASE.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithComplexOrderByExpressions()
@@ -2209,7 +2209,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies ORDER BY JSON-expression complexity increases estimated cost.
-    /// PT: Verifica que a complexidade de expressão JSON em ORDER BY aumenta o custo estimado.
+    /// PT-br: Verifica que a complexidade de expressão JSON em ORDER BY aumenta o custo estimado.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonOrderByExpressions()
@@ -2233,7 +2233,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION estimated cost increases with additional ORDER BY keys.
-    /// PT: Verifica que o custo estimado de UNION aumenta com chaves adicionais de ORDER BY.
+    /// PT-br: Verifica que o custo estimado de UNION aumenta com chaves adicionais de ORDER BY.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseWithAdditionalOrderByKeys()
@@ -2257,7 +2257,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION ORDER BY expression complexity increases estimated cost when ordering key uses CASE expression.
-    /// PT: Verifica que a complexidade de expressão em ORDER BY de UNION aumenta o custo estimado quando a chave usa expressão CASE.
+    /// PT-br: Verifica que a complexidade de expressão em ORDER BY de UNION aumenta o custo estimado quando a chave usa expressão CASE.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseWithComplexOrderByExpressions()
@@ -2282,7 +2282,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies estimated cost increases with larger IN-list cardinality in WHERE predicate.
-    /// PT: Verifica que o custo estimado aumenta com maior cardinalidade da lista IN no predicado WHERE.
+    /// PT-br: Verifica que o custo estimado aumenta com maior cardinalidade da lista IN no predicado WHERE.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithInListCardinality()
@@ -2316,7 +2316,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies estimated cost increases when query includes CTE definitions versus equivalent direct SELECT.
-    /// PT: Verifica que o custo estimado aumenta quando a consulta inclui definições CTE em relação ao SELECT direto equivalente.
+    /// PT-br: Verifica que o custo estimado aumenta quando a consulta inclui definições CTE em relação ao SELECT direto equivalente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithCteDefinitions()
@@ -2345,7 +2345,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional CTE declarations.
-    /// PT: Verifica que o custo estimado aumenta com declarações CTE adicionais.
+    /// PT-br: Verifica que o custo estimado aumenta com declarações CTE adicionais.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalCtes()
@@ -2388,7 +2388,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CTE cost accounts for source complexity when CTE body reads from a derived subquery source.
-    /// PT: Verifica que o custo de CTE considera complexidade da fonte quando o corpo da CTE lê de uma subconsulta derivada.
+    /// PT-br: Verifica que o custo de CTE considera complexidade da fonte quando o corpo da CTE lê de uma subconsulta derivada.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWhenCteBodyUsesDerivedSource()
@@ -2432,7 +2432,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CTE cost reflects row-limit relief for derived UNION sources inside CTE body.
-    /// PT: Verifica que o custo de CTE reflete alívio por limite de linhas para fontes UNION derivadas dentro do corpo da CTE.
+    /// PT-br: Verifica que o custo de CTE reflete alívio por limite de linhas para fontes UNION derivadas dentro do corpo da CTE.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldDecreaseWhenCteDerivedUnionHasRowLimit()
@@ -2491,7 +2491,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CTE-body row-limit relief is stronger for tighter limits than loose limits.
-    /// PT: Verifica que o alívio de limite de linhas no corpo da CTE é mais forte para limites mais restritos do que para limites largos.
+    /// PT-br: Verifica que o alívio de limite de linhas no corpo da CTE é mais forte para limites mais restritos do que para limites largos.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldDecreaseMoreWhenCteBodyUsesTighterRowLimit()
@@ -2530,7 +2530,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CTE-body large OFFSET reduces row-limit relief and therefore increases estimated cost compared with zero OFFSET.
-    /// PT: Verifica que OFFSET alto no corpo da CTE reduz o alívio de limite e, portanto, aumenta o custo estimado em comparação com OFFSET zero.
+    /// PT-br: Verifica que OFFSET alto no corpo da CTE reduz o alívio de limite e, portanto, aumenta o custo estimado em comparação com OFFSET zero.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWhenCteBodyRowLimitUsesLargeOffset()
@@ -2569,7 +2569,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT + GROUP BY + ORDER BY coupling inside CTE body grows more for complex expressions than for simple key expressions.
-    /// PT: Verifica que o acoplamento DISTINCT + GROUP BY + ORDER BY dentro do corpo da CTE cresce mais para expressões complexas do que para chaves simples.
+    /// PT-br: Verifica que o acoplamento DISTINCT + GROUP BY + ORDER BY dentro do corpo da CTE cresce mais para expressões complexas do que para chaves simples.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseCteBodyDistinctGroupByOrderByCouplingForComplexExpressions()
@@ -2620,7 +2620,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT + GROUP BY + ORDER BY coupling uplift inside CTE body grows when expansion-risk joins are present.
-    /// PT: Verifica que o uplift de acoplamento DISTINCT + GROUP BY + ORDER BY no corpo da CTE cresce quando há joins com risco de expansão.
+    /// PT-br: Verifica que o uplift de acoplamento DISTINCT + GROUP BY + ORDER BY no corpo da CTE cresce quando há joins com risco de expansão.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseCteBodyDistinctGroupByOrderByCouplingWhenExpansionRiskJoinsArePresent()
@@ -2674,7 +2674,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CTE-body outer ORDER BY adds stronger cost when source is already an internally ordered derived UNION.
-    /// PT: Verifica que ORDER BY externo no corpo da CTE adiciona custo mais forte quando a fonte já é um UNION derivado ordenado internamente.
+    /// PT-br: Verifica que ORDER BY externo no corpo da CTE adiciona custo mais forte quando a fonte já é um UNION derivado ordenado internamente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseCteBodyNestedOrderByCouplingWhenDerivedUnionIsAlreadyOrdered()
@@ -2747,7 +2747,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies tighter SELECT row limits provide larger estimated-cost relief than loose limits.
-    /// PT: Verifica que limites de linha mais restritos em SELECT proporcionam maior alívio de custo estimado que limites largos.
+    /// PT-br: Verifica que limites de linha mais restritos em SELECT proporcionam maior alívio de custo estimado que limites largos.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldDecreaseMoreWithTighterRowLimit()
@@ -2769,7 +2769,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies tighter UNION row limits provide larger estimated-cost relief than loose limits.
-    /// PT: Verifica que limites de linha mais restritos em UNION proporcionam maior alívio de custo estimado que limites largos.
+    /// PT-br: Verifica que limites de linha mais restritos em UNION proporcionam maior alívio de custo estimado que limites largos.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldDecreaseMoreWithTighterRowLimit()
@@ -2794,7 +2794,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional joins due to join-graph fan-out overhead.
-    /// PT: Verifica que o custo estimado aumenta com joins adicionais devido ao overhead de fan-out do grafo de joins.
+    /// PT-br: Verifica que o custo estimado aumenta com joins adicionais devido ao overhead de fan-out do grafo de joins.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalJoins()
@@ -2831,7 +2831,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies multiple expansion-risk joins (LEFT/CROSS/RIGHT) increase estimated cost versus equivalent all-inner joins.
-    /// PT: Verifica que múltiplos joins de risco de expansão (LEFT/CROSS/RIGHT) aumentam o custo estimado em relação ao equivalente só com INNER.
+    /// PT-br: Verifica que múltiplos joins de risco de expansão (LEFT/CROSS/RIGHT) aumentam o custo estimado em relação ao equivalente só com INNER.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithMultipleExpansionRiskJoins()
@@ -2872,7 +2872,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies SELECT row-limit relief is reduced when large offsets are present.
-    /// PT: Verifica que o alívio de custo por limite de linhas em SELECT é reduzido quando há offsets grandes.
+    /// PT-br: Verifica que o alívio de custo por limite de linhas em SELECT é reduzido quando há offsets grandes.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWhenLargeOffsetReducesLimitRelief()
@@ -2893,7 +2893,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies UNION row-limit relief is reduced when large offsets are present.
-    /// PT: Verifica que o alívio de custo por limite de linhas em UNION é reduzido quando há offsets grandes.
+    /// PT-br: Verifica que o alívio de custo por limite de linhas em UNION é reduzido quando há offsets grandes.
     /// </summary>
     [Fact]
     public void FormatUnion_EstimatedCost_ShouldIncreaseWhenLargeOffsetReducesLimitRelief()
@@ -2918,7 +2918,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies estimated cost increases with additional projected columns due to projection-width overhead.
-    /// PT: Verifica que o custo estimado aumenta com colunas projetadas adicionais devido ao overhead de largura da projeção.
+    /// PT-br: Verifica que o custo estimado aumenta com colunas projetadas adicionais devido ao overhead de largura da projeção.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithProjectionWidth()
@@ -2943,7 +2943,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies wildcard projection carries higher estimated cost than equivalent explicit narrow projection.
-    /// PT: Verifica que projeção curinga tem custo estimado maior do que projeção explícita estreita equivalente.
+    /// PT-br: Verifica que projeção curinga tem custo estimado maior do que projeção explícita estreita equivalente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithWildcardProjection()
@@ -2968,7 +2968,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies CASE expression in WHERE predicate increases estimated cost compared with simple scalar predicate.
-    /// PT: Verifica que expressão CASE no predicado WHERE aumenta o custo estimado em comparação com predicado escalar simples.
+    /// PT-br: Verifica que expressão CASE no predicado WHERE aumenta o custo estimado em comparação com predicado escalar simples.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithCasePredicateComplexity()
@@ -3011,7 +3011,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies JSON access predicates increase estimated cost compared with simple scalar predicate.
-    /// PT: Verifica que predicados com acesso JSON aumentam o custo estimado em comparação com predicado escalar simples.
+    /// PT-br: Verifica que predicados com acesso JSON aumentam o custo estimado em comparação com predicado escalar simples.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonAccessPredicateComplexity()
@@ -3047,7 +3047,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies JSON SQL functions in predicate AST (FunctionCallExpr/CallExpr) carry higher estimated cost than non-JSON functions with equivalent argument shapes.
-    /// PT: Verifica que funções SQL JSON no AST de predicado (FunctionCallExpr/CallExpr) carregam custo estimado maior que funções não-JSON com formato de argumentos equivalente.
+    /// PT-br: Verifica que funções SQL JSON no AST de predicado (FunctionCallExpr/CallExpr) carregam custo estimado maior que funções não-JSON com formato de argumentos equivalente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForJsonFunctionsInPredicateFunctionNodes()
@@ -3096,7 +3096,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies raw WHERE predicates with JSON functions increase estimated cost over equivalent non-JSON raw predicates.
-    /// PT: Verifica que predicados WHERE raw com funções JSON aumentam o custo estimado sobre predicados raw equivalentes sem JSON.
+    /// PT-br: Verifica que predicados WHERE raw com funções JSON aumentam o custo estimado sobre predicados raw equivalentes sem JSON.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithJsonFunctions()
@@ -3129,7 +3129,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies deeply nested raw WHERE predicates with mixed AND/OR plus CASE/JSON tokens increase estimated cost over flatter raw predicates.
-    /// PT: Verifica que predicados WHERE raw profundamente aninhados com AND/OR mistos e tokens CASE/JSON aumentam o custo estimado sobre predicados raw mais planos.
+    /// PT-br: Verifica que predicados WHERE raw profundamente aninhados com AND/OR mistos e tokens CASE/JSON aumentam o custo estimado sobre predicados raw mais planos.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForDeepNestedRawPredicateWithCaseJsonAndMixedLogicalOperators()
@@ -3162,7 +3162,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies raw WHERE predicates with JSON operators (->, ->>) increase estimated cost over equivalent scalar raw predicates.
-    /// PT: Verifica que predicados WHERE raw com operadores JSON (->, ->>) aumentam o custo estimado sobre predicados raw escalares equivalentes.
+    /// PT-br: Verifica que predicados WHERE raw com operadores JSON (->, ->>) aumentam o custo estimado sobre predicados raw escalares equivalentes.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithJsonOperators()
@@ -3195,7 +3195,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies raw predicate cost increases when AND/OR transitions are more frequent even with the same logical operator counts.
-    /// PT: Verifica que o custo do predicado raw aumenta quando transições AND/OR são mais frequentes mesmo com a mesma contagem de operadores lógicos.
+    /// PT-br: Verifica que o custo do predicado raw aumenta quando transições AND/OR são mais frequentes mesmo com a mesma contagem de operadores lógicos.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithAdditionalLogicalOperatorTransitions()
@@ -3228,7 +3228,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies raw predicate cost increases with deeper logical nesting even when AND/OR counts and transitions remain equivalent.
-    /// PT: Verifica que o custo de predicado raw aumenta com aninhamento lógico mais profundo mesmo quando contagens e transições de AND/OR permanecem equivalentes.
+    /// PT-br: Verifica que o custo de predicado raw aumenta com aninhamento lógico mais profundo mesmo quando contagens e transições de AND/OR permanecem equivalentes.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForRawPredicateWithGreaterLogicalDepthAndSameOperatorProfile()
@@ -3261,7 +3261,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies deeply nested logical predicates with mixed CASE/JSON leaves carry higher estimated cost than flatter logical shapes with equivalent leaves.
-    /// PT: Verifica que predicados lógicos profundamente aninhados com folhas mistas de CASE/JSON carregam custo estimado maior que formatos lógicos mais planos com folhas equivalentes.
+    /// PT-br: Verifica que predicados lógicos profundamente aninhados com folhas mistas de CASE/JSON carregam custo estimado maior que formatos lógicos mais planos com folhas equivalentes.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForDeepNestedLogicalPredicatesWithCaseAndJsonLeaves()
@@ -3321,7 +3321,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies mixed logical operators (AND/OR) over equivalent CASE/JSON leaves carry higher estimated cost than homogeneous logical chains.
-    /// PT: Verifica que operadores lógicos mistos (AND/OR) sobre folhas CASE/JSON equivalentes carregam custo estimado maior que cadeias lógicas homogêneas.
+    /// PT-br: Verifica que operadores lógicos mistos (AND/OR) sobre folhas CASE/JSON equivalentes carregam custo estimado maior que cadeias lógicas homogêneas.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForMixedLogicalOperatorsWithCaseAndJsonLeaves()
@@ -3374,7 +3374,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies derived UNION source cost keeps monotonic behavior for ORDER BY with row-limit and large OFFSET.
-    /// PT: Verifica que o custo de fonte UNION derivada mantém comportamento monotônico para ORDER BY com limite de linhas e OFFSET alto.
+    /// PT-br: Verifica que o custo de fonte UNION derivada mantém comportamento monotônico para ORDER BY com limite de linhas e OFFSET alto.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldRemainMonotonicForDerivedUnionOrderByAndLimitOffset()
@@ -3439,7 +3439,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies outer ORDER BY introduces stronger additional cost when source is already a derived UNION with internal ORDER BY (nested sort coupling).
-    /// PT: Verifica que ORDER BY externo introduz custo adicional mais forte quando a fonte já é um UNION derivado com ORDER BY interno (acoplamento de sort aninhado).
+    /// PT-br: Verifica que ORDER BY externo introduz custo adicional mais forte quando a fonte já é um UNION derivado com ORDER BY interno (acoplamento de sort aninhado).
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingWhenDerivedUnionIsAlreadyOrdered()
@@ -3501,7 +3501,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies outer ORDER BY uplift increases when a JOIN source is a derived UNION already ordered internally.
-    /// PT: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um UNION derivado já ordenado internamente.
+    /// PT-br: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um UNION derivado já ordenado internamente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingForOrderedJoinedDerivedUnionSource()
@@ -3562,7 +3562,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies outer ORDER BY uplift increases when a JOIN source is a derived SELECT already ordered internally.
-    /// PT: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um SELECT derivado já ordenado internamente.
+    /// PT-br: Verifica que o uplift de ORDER BY externo aumenta quando uma fonte de JOIN é um SELECT derivado já ordenado internamente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingForOrderedJoinedDerivedSelectSource()
@@ -3612,7 +3612,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies nested ORDER BY coupling delta between ordered and unordered joined sources is stronger when outer ORDER BY expression is complex.
-    /// PT: Verifica que o delta de acoplamento de ORDER BY aninhado entre fontes de JOIN ordenadas e não ordenadas é mais forte quando a expressão externa de ORDER BY é complexa.
+    /// PT-br: Verifica que o delta de acoplamento de ORDER BY aninhado entre fontes de JOIN ordenadas e não ordenadas é mais forte quando a expressão externa de ORDER BY é complexa.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseJoinedNestedOrderByCouplingDeltaForComplexOuterOrderExpression()
@@ -3677,7 +3677,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies nested ORDER BY coupling delta between ordered and unordered joined UNION sources is stronger when inner ORDER BY expression is complex.
-    /// PT: Verifica que o delta de acoplamento de ORDER BY aninhado entre fontes UNION em JOIN ordenadas e não ordenadas é mais forte quando a expressão interna de ORDER BY é complexa.
+    /// PT-br: Verifica que o delta de acoplamento de ORDER BY aninhado entre fontes UNION em JOIN ordenadas e não ordenadas é mais forte quando a expressão interna de ORDER BY é complexa.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseJoinedNestedOrderByCouplingDeltaForComplexInnerOrderExpression()
@@ -3747,7 +3747,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies nested ORDER BY coupling grows when multiple JOIN sources are internally ordered derived sources.
-    /// PT: Verifica que o acoplamento de ORDER BY aninhado cresce quando múltiplas fontes de JOIN são derivadas internamente ordenadas.
+    /// PT-br: Verifica que o acoplamento de ORDER BY aninhado cresce quando múltiplas fontes de JOIN são derivadas internamente ordenadas.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseNestedOrderByCouplingWithMultipleOrderedJoinedDerivedSources()
@@ -3797,7 +3797,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies outer row-limit reduces nested ORDER BY coupling uplift for ordered JOIN derived sources.
-    /// PT: Verifica que limite de linhas externo reduz o uplift de acoplamento de ORDER BY aninhado para fontes derivadas ordenadas em JOIN.
+    /// PT-br: Verifica que limite de linhas externo reduz o uplift de acoplamento de ORDER BY aninhado para fontes derivadas ordenadas em JOIN.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldReduceNestedOrderByCouplingForOrderedJoinedDerivedSourceWhenOuterLimitIsPresent()
@@ -3837,7 +3837,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies nested ORDER BY coupling for ordered JOIN derived UNION source is reduced when the inner UNION has a tight LIMIT.
-    /// PT: Verifica que o acoplamento de ORDER BY aninhado para fonte UNION derivada ordenada em JOIN é reduzido quando o UNION interno tem LIMIT restrito.
+    /// PT-br: Verifica que o acoplamento de ORDER BY aninhado para fonte UNION derivada ordenada em JOIN é reduzido quando o UNION interno tem LIMIT restrito.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldReduceJoinedNestedOrderByCouplingWhenOrderedDerivedUnionHasInnerLimit()
@@ -3908,7 +3908,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies nested ORDER BY coupling for ordered JOIN derived UNION source increases when inner UNION LIMIT uses a large OFFSET.
-    /// PT: Verifica que o acoplamento de ORDER BY aninhado para fonte UNION derivada ordenada em JOIN aumenta quando o LIMIT interno do UNION usa OFFSET alto.
+    /// PT-br: Verifica que o acoplamento de ORDER BY aninhado para fonte UNION derivada ordenada em JOIN aumenta quando o LIMIT interno do UNION usa OFFSET alto.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseJoinedNestedOrderByCouplingWhenOrderedDerivedUnionHasLargeInnerOffset()
@@ -3979,7 +3979,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies aggregate functions in projection add estimated cost beyond equivalent non-aggregate scalar functions.
-    /// PT: Verifica que funções agregadas na projeção adicionam custo estimado além de funções escalares não agregadas equivalentes.
+    /// PT-br: Verifica que funções agregadas na projeção adicionam custo estimado além de funções escalares não agregadas equivalentes.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAggregateFunctionsInProjection()
@@ -4010,7 +4010,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection aggregate-function weighting keeps monotonic ordering COUNT &lt; SUM &lt; AVG for equivalent single-aggregate shapes.
-    /// PT: Verifica que a ponderação de funções agregadas na projeção mantém ordenação monotônica COUNT &lt; SUM &lt; AVG para formatos equivalentes de agregação única.
+    /// PT-br: Verifica que a ponderação de funções agregadas na projeção mantém ordenação monotônica COUNT &lt; SUM &lt; AVG para formatos equivalentes de agregação única.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldKeepAggregateProjectionWeightOrderingForCountSumAvg()
@@ -4041,7 +4041,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies aggregate function detection in projection is robust to optional whitespace before parentheses.
-    /// PT: Verifica que a detecção de função agregada na projeção é robusta a espaços opcionais antes dos parênteses.
+    /// PT-br: Verifica que a detecção de função agregada na projeção é robusta a espaços opcionais antes dos parênteses.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldTreatAggregateProjectionWithAndWithoutWhitespaceAsEquivalent()
@@ -4065,7 +4065,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies COUNT projection with optional whitespace still increases estimated cost over non-aggregate scalar projection.
-    /// PT: Verifica que projeção COUNT com espaço opcional ainda aumenta o custo estimado sobre projeção escalar não agregada.
+    /// PT-br: Verifica que projeção COUNT com espaço opcional ainda aumenta o custo estimado sobre projeção escalar não agregada.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForCountProjectionWithWhitespace()
@@ -4089,7 +4089,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT aggregate projections carry higher estimated cost than equivalent non-distinct aggregate projections.
-    /// PT: Verifica que projeções agregadas com DISTINCT carregam custo estimado maior que projeções agregadas equivalentes sem DISTINCT.
+    /// PT-br: Verifica que projeções agregadas com DISTINCT carregam custo estimado maior que projeções agregadas equivalentes sem DISTINCT.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForDistinctAggregateProjection()
@@ -4113,7 +4113,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies MIN/MAX aggregate projections carry higher estimated cost than equivalent non-aggregate scalar projection.
-    /// PT: Verifica que projeções agregadas MIN/MAX carregam custo estimado maior que projeção escalar não agregada equivalente.
+    /// PT-br: Verifica que projeções agregadas MIN/MAX carregam custo estimado maior que projeção escalar não agregada equivalente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForMinMaxAggregateProjection()
@@ -4144,7 +4144,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT MIN/MAX aggregate projections carry higher estimated cost than equivalent non-distinct MIN/MAX projections.
-    /// PT: Verifica que projeções agregadas MIN/MAX com DISTINCT carregam custo estimado maior que projeções MIN/MAX equivalentes sem DISTINCT.
+    /// PT-br: Verifica que projeções agregadas MIN/MAX com DISTINCT carregam custo estimado maior que projeções MIN/MAX equivalentes sem DISTINCT.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseForDistinctMinMaxAggregateProjection()
@@ -4181,7 +4181,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection cost increases with additional MIN/MAX aggregate calls in the same projection expression.
-    /// PT: Verifica que o custo da projeção aumenta com chamadas agregadas MIN/MAX adicionais na mesma expressão de projeção.
+    /// PT-br: Verifica que o custo da projeção aumenta com chamadas agregadas MIN/MAX adicionais na mesma expressão de projeção.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalMinMaxAggregateCallsInProjection()
@@ -4205,7 +4205,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection JSON function usage increases estimated cost compared with equivalent scalar projection.
-    /// PT: Verifica que uso de função JSON na projeção aumenta o custo estimado em comparação com projeção escalar equivalente.
+    /// PT-br: Verifica que uso de função JSON na projeção aumenta o custo estimado em comparação com projeção escalar equivalente.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonFunctionsInProjection()
@@ -4229,7 +4229,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection cost increases with additional JSON function calls in the same projection expression.
-    /// PT: Verifica que o custo da projeção aumenta com chamadas de função JSON adicionais na mesma expressão de projeção.
+    /// PT-br: Verifica que o custo da projeção aumenta com chamadas de função JSON adicionais na mesma expressão de projeção.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalJsonFunctionsInProjection()
@@ -4253,7 +4253,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies JSON arrow operators in projection and ORDER BY expression raise estimated cost over equivalent non-JSON shapes.
-    /// PT: Verifica que operadores JSON de seta em projeção e expressão ORDER BY elevam o custo estimado sobre formatos equivalentes sem JSON.
+    /// PT-br: Verifica que operadores JSON de seta em projeção e expressão ORDER BY elevam o custo estimado sobre formatos equivalentes sem JSON.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithJsonArrowOperatorsInProjectionAndOrderBy()
@@ -4287,7 +4287,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies DISTINCT aggregate detection remains robust when optional whitespace appears after opening parenthesis.
-    /// PT: Verifica que a detecção de agregação DISTINCT permanece robusta quando há espaço opcional após parêntese de abertura.
+    /// PT-br: Verifica que a detecção de agregação DISTINCT permanece robusta quando há espaço opcional após parêntese de abertura.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldTreatDistinctAggregateWithAndWithoutWhitespaceAsEquivalent()
@@ -4311,7 +4311,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection cost increases with additional DISTINCT aggregate calls in the same projection expression.
-    /// PT: Verifica que o custo de projeção aumenta com chamadas agregadas DISTINCT adicionais na mesma expressão de projeção.
+    /// PT-br: Verifica que o custo de projeção aumenta com chamadas agregadas DISTINCT adicionais na mesma expressão de projeção.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalDistinctAggregateCallsInProjection()
@@ -4335,7 +4335,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection cost increases with additional CASE expressions in the same projection item.
-    /// PT: Verifica que o custo da projeção aumenta com expressões CASE adicionais no mesmo item de projeção.
+    /// PT-br: Verifica que o custo da projeção aumenta com expressões CASE adicionais no mesmo item de projeção.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalCaseExpressionsInProjection()
@@ -4359,7 +4359,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection cost increases with additional OVER clauses in the same projection item.
-    /// PT: Verifica que o custo da projeção aumenta com cláusulas OVER adicionais no mesmo item de projeção.
+    /// PT-br: Verifica que o custo da projeção aumenta com cláusulas OVER adicionais no mesmo item de projeção.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalOverClausesInProjection()
@@ -4383,7 +4383,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies projection cost increases with additional scalar subqueries in SELECT items.
-    /// PT: Verifica que o custo da projeção aumenta com subconsultas escalares adicionais nos itens do SELECT.
+    /// PT-br: Verifica que o custo da projeção aumenta com subconsultas escalares adicionais nos itens do SELECT.
     /// </summary>
     [Fact]
     public void FormatSelect_EstimatedCost_ShouldIncreaseWithAdditionalProjectionSubqueries()
@@ -4417,7 +4417,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies optional JSON payload mirrors common aggregated metadata from text output.
-    /// PT: Verifica que o payload JSON opcional espelha metadados agregados comuns do output textual.
+    /// PT-br: Verifica que o payload JSON opcional espelha metadados agregados comuns do output textual.
     /// </summary>
     [Fact]
     public void FormatSelectJson_ShouldMatchTextOutput_ForCommonAggregatedFields()
@@ -4461,7 +4461,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies optional JSON payload omits warning-derived fields when warnings are absent.
-    /// PT: Verifica que o payload JSON opcional omite campos derivados de warning quando não há warnings.
+    /// PT-br: Verifica que o payload JSON opcional omite campos derivados de warning quando não há warnings.
     /// </summary>
     [Fact]
     public void FormatSelectJson_ShouldOmitWarningDerivedFields_WhenNoWarnings()
@@ -4488,7 +4488,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies aggregated metadata contract is emitted with parseable stable prefixes.
-    /// PT: Verifica que o contrato de metadados agregados é emitido com prefixos parseáveis estáveis.
+    /// PT-br: Verifica que o contrato de metadados agregados é emitido com prefixos parseáveis estáveis.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitStableAggregatedMetadataContract_ForWarningsAndRecommendations()
@@ -4529,7 +4529,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies primary index recommendation is emitted with deterministic selection.
-    /// PT: Verifica que a recomendação primária de índice é emitida com seleção determinística.
+    /// PT-br: Verifica que a recomendação primária de índice é emitida com seleção determinística.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitIndexPrimaryRecommendation_WhenRecommendationsArePresent()
@@ -4553,7 +4553,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies primary index recommendation is omitted when recommendations are absent.
-    /// PT: Verifica que a recomendação primária de índice é omitida quando não há recomendações.
+    /// PT-br: Verifica que a recomendação primária de índice é omitida quando não há recomendações.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldNotEmitIndexPrimaryRecommendation_WhenNoRecommendations()
@@ -4572,7 +4572,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies plan flags are emitted with stable keys and boolean values.
-    /// PT: Verifica que as flags do plano são emitidas com chaves estáveis e valores booleanos.
+    /// PT-br: Verifica que as flags do plano são emitidas com chaves estáveis e valores booleanos.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanFlags_WithWarningsAndRecommendationsState()
@@ -4595,7 +4595,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies plan flags reflect no warnings and no index recommendations.
-    /// PT: Verifica que as flags do plano refletem ausência de alerts e recomendações de índice.
+    /// PT-br: Verifica que as flags do plano refletem ausência de alerts e recomendações de índice.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanFlags_WithNoWarningsAndNoRecommendations()
@@ -4614,7 +4614,7 @@ public sealed class ExecutionPlanFormattingAndI18nTests(
 
     /// <summary>
     /// EN: Verifies performance band is emitted according to elapsed milliseconds.
-    /// PT: Verifica que a faixa de performance é emitida conforme milissegundos de execução.
+    /// PT-br: Verifica que a faixa de performance é emitida conforme milissegundos de execução.
     /// </summary>
     [Fact]
     public void FormatSelect_ShouldEmitPlanPerformanceBand_ForElapsedMsThresholds()

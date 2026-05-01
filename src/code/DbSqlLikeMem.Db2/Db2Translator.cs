@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2;
 #pragma warning disable CA1305 // Specify IFormatProvider
 /// <summary>
 /// EN: Translates LINQ expressions into Db2-compatible SQL statements.
-/// PT: Traduz expressões LINQ para instruções SQL compatíveis com Db2.
+/// PT-br: Traduz expressões LINQ para instruções SQL compatíveis com Db2.
 /// </summary>
 public class Db2Translator : ExpressionVisitor
 {
@@ -25,7 +25,7 @@ public class Db2Translator : ExpressionVisitor
 
     /// <summary>
     /// EN: Translates a LINQ expression into SQL and parameters.
-    /// PT: Traduz uma expressão LINQ em SQL e parâmetros.
+    /// PT-br: Traduz uma expressão LINQ em SQL e parâmetros.
     /// </summary>
     public TranslationResult Translate(Expression expression)
     {
@@ -95,7 +95,7 @@ public class Db2Translator : ExpressionVisitor
 #pragma warning disable CS8605 // Unboxing a possibly null value.
     /// <summary>
     /// EN: Represents Visit Method Call.
-    /// PT: Representa Visit Method Call.
+    /// PT-br: Representa Visit Method Call.
     /// </summary>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
@@ -165,7 +165,7 @@ public class Db2Translator : ExpressionVisitor
 
     /// <summary>
     /// EN: Represents Visit Constant.
-    /// PT: Representa Visit Constant.
+    /// PT-br: Representa Visit Constant.
     /// </summary>
     protected override Expression VisitConstant(ConstantExpression node)
     {
@@ -206,7 +206,7 @@ public class Db2Translator : ExpressionVisitor
 
     /// <summary>
     /// EN: Represents Visit Binary.
-    /// PT: Representa Visit Binary.
+    /// PT-br: Representa Visit Binary.
     /// </summary>
     protected override Expression VisitBinary(BinaryExpression node)
     {
@@ -229,7 +229,7 @@ public class Db2Translator : ExpressionVisitor
 
     /// <summary>
     /// EN: Represents Visit Member.
-    /// PT: Representa Visit Member.
+    /// PT-br: Representa Visit Member.
     /// </summary>
     protected override Expression VisitMember(MemberExpression node)
     {

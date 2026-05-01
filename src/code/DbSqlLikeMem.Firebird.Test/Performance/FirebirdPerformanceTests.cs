@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Performance;
 
 /// <summary>
 /// EN: Measures CRUD throughput against the Firebird mock provider.
-/// PT: Mede o throughput CRUD contra o provedor mock do Firebird.
+/// PT-br: Mede o throughput CRUD contra o provedor mock do Firebird.
 /// </summary>
 public sealed class FirebirdPerformanceTests : XUnitTestBase
 {
@@ -12,9 +12,9 @@ public sealed class FirebirdPerformanceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the Firebird performance fixture with a seeded Users table.
-    /// PT: Cria a fixture de performance do Firebird com a tabela Users semeada.
+    /// PT-br: Cria a fixture de performance do Firebird com a tabela Users semeada.
     /// </summary>
-    /// <param name="helper">EN: The xUnit output helper. PT: O helper de saida do xUnit.</param>
+    /// <param name="helper">EN: The xUnit output helper. PT-br: O helper de saida do xUnit.</param>
     public FirebirdPerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new FirebirdDbMock();
@@ -42,7 +42,7 @@ public sealed class FirebirdPerformanceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies baseline CRUD performance metrics for the Users table.
-    /// PT: Verifica as metricas base de performance CRUD para a tabela Users.
+    /// PT-br: Verifica as metricas base de performance CRUD para a tabela Users.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -128,7 +128,7 @@ public sealed class FirebirdPerformanceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Measures repeated scalar function execution for the Firebird mock function surface.
-    /// PT: Mede a execucao repetida de funcoes escalares na surface de funcoes do mock Firebird.
+    /// PT-br: Mede a execucao repetida de funcoes escalares na surface de funcoes do mock Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -156,7 +156,7 @@ public sealed class FirebirdPerformanceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with scoped input parameters for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com parametros de entrada no escopo da surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com parametros de entrada no escopo da surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -186,7 +186,7 @@ END
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with nested BEGIN ... END compound statements for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com blocos compostos BEGIN ... END aninhados na surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com blocos compostos BEGIN ... END aninhados na surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -219,7 +219,7 @@ END
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with IF ... THEN ... ELSE branching for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com ramificacao IF ... THEN ... ELSE na surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com ramificacao IF ... THEN ... ELSE na surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -259,7 +259,7 @@ END
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with WHILE loop branching for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com loop WHILE na surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com loop WHILE na surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -295,7 +295,7 @@ END
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with FOR SELECT iteration for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com iteracao FOR SELECT na surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com iteracao FOR SELECT na surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -329,7 +329,7 @@ END
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with FOR EXECUTE STATEMENT iteration for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com iteracao FOR EXECUTE STATEMENT na surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com iteracao FOR EXECUTE STATEMENT na surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -363,7 +363,7 @@ END
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with parameterized FOR EXECUTE STATEMENT iteration for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com iteracao FOR EXECUTE STATEMENT parametrizada na surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com iteracao FOR EXECUTE STATEMENT parametrizada na surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]
@@ -397,7 +397,7 @@ END
 
     /// <summary>
     /// EN: Measures repeated EXECUTE BLOCK execution with parameterized EXECUTE STATEMENT payloads for the Firebird mock surface.
-    /// PT: Mede a execucao repetida de EXECUTE BLOCK com cargas parametrizadas de EXECUTE STATEMENT na surface mock do Firebird.
+    /// PT-br: Mede a execucao repetida de EXECUTE BLOCK com cargas parametrizadas de EXECUTE STATEMENT na surface mock do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Performance")]

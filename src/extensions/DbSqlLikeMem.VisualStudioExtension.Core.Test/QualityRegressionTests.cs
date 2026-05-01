@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Regression tests focused on quality and performance-sensitive flows.
-/// PT: Testes de regressao focados em fluxos sensiveis de qualidade e performance.
+/// PT-br: Testes de regressao focados em fluxos sensiveis de qualidade e performance.
 /// </summary>
 public sealed class QualityRegressionTests
 {
     /// <summary>
     /// EN: Ensures the shared UI database type catalog stays aligned with the core normalizer.
-    /// PT: Garante que o catalogo compartilhado de tipos de banco da UI permaneça alinhado com o normalizador do core.
+    /// PT-br: Garante que o catalogo compartilhado de tipos de banco da UI permaneça alinhado com o normalizador do core.
     /// </summary>
     [Fact]
     [Trait("Category", "QualityRegression")]
@@ -23,7 +23,7 @@ public sealed class QualityRegressionTests
 
     /// <summary>
     /// EN: Ensures database object type labels stay canonical across the UI and tree builders.
-    /// PT: Garante que os rótulos de tipos de objeto de banco permaneçam canônicos na UI e nos construtores de árvore.
+    /// PT-br: Garante que os rótulos de tipos de objeto de banco permaneçam canônicos na UI e nos construtores de árvore.
     /// </summary>
     [Theory]
     [Trait("Category", "QualityRegression")]
@@ -39,7 +39,7 @@ public sealed class QualityRegressionTests
 
     /// <summary>
     /// EN: Ensures database type normalization keeps canonical labels and lookup keys aligned.
-    /// PT: Garante que a normalizacao de tipo de banco mantenha rotulos canônicos e chaves de consulta alinhados.
+    /// PT-br: Garante que a normalizacao de tipo de banco mantenha rotulos canônicos e chaves de consulta alinhados.
     /// </summary>
     [Theory]
     [Trait("Category", "QualityRegression")]
@@ -55,7 +55,7 @@ public sealed class QualityRegressionTests
 
     /// <summary>
     /// EN: Ensures legacy database type aliases are normalized in the connection definition constructor.
-    /// PT: Garante que aliases legados de tipo de banco sejam normalizados no construtor da definicao de conexao.
+    /// PT-br: Garante que aliases legados de tipo de banco sejam normalizados no construtor da definicao de conexao.
     /// </summary>
     [Theory]
     [Trait("Category", "QualityRegression")]
@@ -73,7 +73,7 @@ public sealed class QualityRegressionTests
 
     /// <summary>
     /// EN: Ensures generation honors cancellation and does not continue writing files.
-    /// PT: Garante que a geracao respeita cancelamento e nao continua gravando arquivos.
+    /// PT-br: Garante que a geracao respeita cancelamento e nao continua gravando arquivos.
     /// </summary>
     [Fact]
     [Trait("Category", "QualityRegression")]
@@ -141,7 +141,7 @@ public sealed class QualityRegressionTests
 
     /// <summary>
     /// EN: Ensures snapshot reader falls back to the provided reference when metadata is not present.
-    /// PT: Garante fallback para a referencia fornecida quando os metadados nao estao presentes no arquivo.
+    /// PT-br: Garante fallback para a referencia fornecida quando os metadados nao estao presentes no arquivo.
     /// </summary>
     [Fact]
     [Trait("Category", "QualityRegression")]
@@ -178,7 +178,7 @@ public sealed class QualityRegressionTests
 
     /// <summary>
     /// EN: Ensures consistency checker returns synchronized status when local and database properties match.
-    /// PT: Garante que o verificador de consistencia retorne status sincronizado quando as propriedades locais e do banco coincidem.
+    /// PT-br: Garante que o verificador de consistencia retorne status sincronizado quando as propriedades locais e do banco coincidem.
     /// </summary>
     [Fact]
     [Trait("Category", "QualityRegression")]
@@ -213,7 +213,7 @@ public sealed class QualityRegressionTests
     {
         /// <summary>
         /// EN: Returns the single in-memory object used by the regression test provider.
-        /// PT: Retorna o unico objeto em memoria usado pelo provider do teste de regressao.
+        /// PT-br: Retorna o unico objeto em memoria usado pelo provider do teste de regressao.
         /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(
             ConnectionDefinition connection,
@@ -222,7 +222,7 @@ public sealed class QualityRegressionTests
 
         /// <summary>
         /// EN: Returns the same in-memory object for every metadata lookup.
-        /// PT: Retorna o mesmo objeto em memoria para toda consulta de metadados.
+        /// PT-br: Retorna o mesmo objeto em memoria para toda consulta de metadados.
         /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(
             ConnectionDefinition connection,

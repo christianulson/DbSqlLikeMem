@@ -4,7 +4,7 @@ internal static class DbDdlViewStrategy
 {
     /// <summary>
     /// EN: Implements ExecuteCreateView.
-    /// PT: Implementa ExecuteCreateView.
+    /// PT-br: Implementa ExecuteCreateView.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateView(
         this DbConnectionMockBase connection,
@@ -31,7 +31,7 @@ internal static class DbDdlViewStrategy
 
     /// <summary>
     /// EN: Implements ExecuteDropView.
-    /// PT: Implementa ExecuteDropView.
+    /// PT-br: Implementa ExecuteDropView.
     /// </summary>
     public static DmlExecutionResult ExecuteDropView(
         this DbConnectionMockBase connection,

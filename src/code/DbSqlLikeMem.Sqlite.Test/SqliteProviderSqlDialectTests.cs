@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Contains tests for the SQLite provider SQL dialect helper.
-/// PT: Contem testes para o helper de dialeto SQL do provedor SQLite.
+/// PT-br: Contem testes para o helper de dialeto SQL do provedor SQLite.
 /// </summary>
 public sealed class SqliteProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the SQLite helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper SQLite.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper SQLite.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchSqlite()
@@ -35,7 +35,7 @@ public sealed class SqliteProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits SQLite-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compativel com SQLite para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compativel com SQLite para savepoint.
     /// </summary>
     [Fact]
     public void SavepointSql_ShouldUseSqliteSyntax()

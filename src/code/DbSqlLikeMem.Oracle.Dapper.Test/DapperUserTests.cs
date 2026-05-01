@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Covers Oracle Dapper user-query scenarios against the mock provider.
-/// PT: Cobre cenarios de consulta de usuarios do Dapper para Oracle contra o provedor mock.
+/// PT-br: Cobre cenarios de consulta de usuarios do Dapper para Oracle contra o provedor mock.
 /// </summary>
 public sealed class DapperUserTests(
     ITestOutputHelper helper

@@ -17,7 +17,7 @@ public class MariaDb_DbSqlLikeMem_Benchmarks : SequenceBenchmarkSuiteBase
 
     /// <summary>
     /// EN: Executes the sequence-next-value benchmark.
-    /// PT: Executa o benchmark de sequence next value.
+    /// PT-br: Executa o benchmark de sequence next value.
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]

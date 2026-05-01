@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Validates Db2-specific DbMock connection factory contract behavior.
-/// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de Db2.
+/// PT-br: Valida o comportamento do contrato da factory de conexao DbMock especifica de Db2.
 /// </summary>
 public sealed class DbMockConnectionFactoryDb2Tests(
         ITestOutputHelper helper

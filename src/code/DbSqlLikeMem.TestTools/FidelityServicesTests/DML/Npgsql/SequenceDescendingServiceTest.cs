@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Creates a PostgreSQL sequence that counts downward and reads the generated values for fidelity coverage.
-/// PT: Cria uma sequence PostgreSQL que conta para baixo e le os valores gerados para cobertura de fidelidade.
+/// PT-br: Cria uma sequence PostgreSQL que conta para baixo e le os valores gerados para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceDescendingServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceDescendingServiceTest(
 {
     /// <summary>
     /// EN: Returns the values produced by a descending sequence before cleanup.
-    /// PT: Retorna os valores produzidos por uma sequence descendente antes da limpeza.
+    /// PT-br: Retorna os valores produzidos por uma sequence descendente antes da limpeza.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceDescendingAsync();
 
     /// <summary>
     /// EN: Returns the values produced by a descending sequence before cleanup.
-    /// PT: Retorna os valores produzidos por uma sequence descendente antes da limpeza.
+    /// PT-br: Retorna os valores produzidos por uma sequence descendente antes da limpeza.
     /// </summary>
     public async Task<long[]> RunSequenceDescendingAsync()
     {

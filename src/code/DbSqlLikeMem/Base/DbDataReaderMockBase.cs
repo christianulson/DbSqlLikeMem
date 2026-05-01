@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Implements an in-memory data reader for query results.
-/// PT: Implementa um leitor de dados em memória para resultados de consulta.
+/// PT-br: Implementa um leitor de dados em memória para resultados de consulta.
 /// </summary>
 public abstract class DbDataReaderMockBase(
     IList<TableResultMock> tables
@@ -65,12 +65,12 @@ public abstract class DbDataReaderMockBase(
 
     /// <summary>
     /// EN: Gets the column value by ordinal index.
-    /// PT: Obtém o valor da coluna pelo índice ordinal.
+    /// PT-br: Obtém o valor da coluna pelo índice ordinal.
     /// </summary>
     public override object this[int i] => NormalizeReaderValue(i, _resultSets[_currentResultSetIndex][_currentIndex][i] ?? DBNull.Value);
     /// <summary>
     /// EN: Gets the column value by name.
-    /// PT: Obtém o valor da coluna pelo nome.
+    /// PT-br: Obtém o valor da coluna pelo nome.
     /// </summary>
     public override object this[string name]
     {
@@ -83,52 +83,52 @@ public abstract class DbDataReaderMockBase(
 
     /// <summary>
     /// EN: Reader depth (not used).
-    /// PT: Profundidade do leitor (não utilizada).
+    /// PT-br: Profundidade do leitor (não utilizada).
     /// </summary>
     public override int Depth { get; }
     private bool _isClosed;
     /// <summary>
     /// EN: Indicates whether the reader is closed.
-    /// PT: Indica se o leitor está fechado.
+    /// PT-br: Indica se o leitor está fechado.
     /// </summary>
     public override bool IsClosed => _isClosed;
     /// <summary>
     /// EN: Number of records affected in the current set.
-    /// PT: Número de registros afetados no conjunto atual.
+    /// PT-br: Número de registros afetados no conjunto atual.
     /// </summary>
     public override int RecordsAffected => _resultSets[_currentResultSetIndex].Count;
     /// <summary>
     /// EN: Number of columns in the current set.
-    /// PT: Quantidade de colunas do conjunto atual.
+    /// PT-br: Quantidade de colunas do conjunto atual.
     /// </summary>
     public override int FieldCount => _columnsDic[_currentResultSetIndex].Count;
 
     /// <summary>
     /// EN: Indicates whether the current set has rows.
-    /// PT: Indica se o conjunto atual possui linhas.
+    /// PT-br: Indica se o conjunto atual possui linhas.
     /// </summary>
     public override bool HasRows => _resultSets.Count > 0 && _resultSets[_currentResultSetIndex].Count > 0;
 
     /// <summary>
     /// EN: Closes the reader.
-    /// PT: Fecha o leitor.
+    /// PT-br: Fecha o leitor.
     /// </summary>
     public override void Close()
         => _isClosed = true;
 
     /// <summary>
     /// EN: Gets a boolean value from the specified column.
-    /// PT: Obtém valor booleano da coluna indicada.
+    /// PT-br: Obtém valor booleano da coluna indicada.
     /// </summary>
     public override bool GetBoolean(int ordinal) => (bool)this[ordinal];
     /// <summary>
     /// EN: Gets a byte value from the specified column.
-    /// PT: Obtém valor byte da coluna indicada.
+    /// PT-br: Obtém valor byte da coluna indicada.
     /// </summary>
     public override byte GetByte(int ordinal) => (byte)this[ordinal];
     /// <summary>
     /// EN: Implements GetBytes.
-    /// PT: Implementa GetBytes.
+    /// PT-br: Implementa GetBytes.
     /// </summary>
     public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length)
     {
@@ -165,12 +165,12 @@ public abstract class DbDataReaderMockBase(
     }
     /// <summary>
     /// EN: Gets a char value from the specified column.
-    /// PT: Obtém valor char da coluna indicada.
+    /// PT-br: Obtém valor char da coluna indicada.
     /// </summary>
     public override char GetChar(int ordinal) => (char)this[ordinal];
     /// <summary>
     /// EN: Implements GetChars.
-    /// PT: Implementa GetChars.
+    /// PT-br: Implementa GetChars.
     /// </summary>
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length)
     {
@@ -207,10 +207,10 @@ public abstract class DbDataReaderMockBase(
     }
     /// <summary>
     /// EN: Gets a nested data reader for the specified ordinal.
-    /// PT: Obtém um data leitor aninhado para o ordinal especificado.
+    /// PT-br: Obtém um data leitor aninhado para o ordinal especificado.
     /// </summary>
-    /// <param name="ordinal">EN: Column ordinal. PT: Ordinal da coluna.</param>
-    /// <returns>EN: Nested data reader. PT: Data reader aninhado.</returns>
+    /// <param name="ordinal">EN: Column ordinal. PT-br: Ordinal da coluna.</param>
+    /// <returns>EN: Nested data reader. PT-br: Data reader aninhado.</returns>
     protected override DbDataReader GetDbDataReader(int ordinal)
     {
         var value = this[ordinal];
@@ -220,58 +220,58 @@ public abstract class DbDataReaderMockBase(
     }
     /// <summary>
     /// EN: Gets the data type name of the column.
-    /// PT: Obtém o nome do tipo de dados da coluna.
+    /// PT-br: Obtém o nome do tipo de dados da coluna.
     /// </summary>
     public override string GetDataTypeName(int ordinal) => _columnsDic[_currentResultSetIndex][ordinal].DbType.ToString();
     /// <summary>
     /// EN: Gets a DateTime value from the specified column.
-    /// PT: Obtém valor DateTime da coluna indicada.
+    /// PT-br: Obtém valor DateTime da coluna indicada.
     /// </summary>
     public override DateTime GetDateTime(int ordinal) => (DateTime)this[ordinal];
     /// <summary>
     /// EN: Gets a decimal value from the specified column.
-    /// PT: Obtém valor decimal da coluna indicada.
+    /// PT-br: Obtém valor decimal da coluna indicada.
     /// </summary>
     public override decimal GetDecimal(int ordinal) => Convert.ToDecimal(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets a double value from the specified column.
-    /// PT: Obtém valor double da coluna indicada.
+    /// PT-br: Obtém valor double da coluna indicada.
     /// </summary>
     public override double GetDouble(int ordinal) => Convert.ToDouble(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets the .NET type of the specified column.
-    /// PT: Obtém o tipo .NET da coluna indicada.
+    /// PT-br: Obtém o tipo .NET da coluna indicada.
     /// </summary>
     public override Type GetFieldType(int ordinal)
         => _columnsDic[_currentResultSetIndex][ordinal].DbType.ConvertDbTypeToType();
     /// <summary>
     /// EN: Gets a float value from the specified column.
-    /// PT: Obtém valor float da coluna indicada.
+    /// PT-br: Obtém valor float da coluna indicada.
     /// </summary>
     public override float GetFloat(int ordinal) => Convert.ToSingle(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets a Guid value from the specified column.
-    /// PT: Obtém valor Guid da coluna indicada.
+    /// PT-br: Obtém valor Guid da coluna indicada.
     /// </summary>
     public override Guid GetGuid(int ordinal) => (Guid)this[ordinal];
     /// <summary>
     /// EN: Gets an Int16 value from the specified column.
-    /// PT: Obtém valor Int16 da coluna indicada.
+    /// PT-br: Obtém valor Int16 da coluna indicada.
     /// </summary>
     public override short GetInt16(int ordinal) => Convert.ToInt16(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets an Int32 value from the specified column.
-    /// PT: Obtém valor Int32 da coluna indicada.
+    /// PT-br: Obtém valor Int32 da coluna indicada.
     /// </summary>
     public override int GetInt32(int ordinal) => Convert.ToInt32(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets an Int64 value from the specified column.
-    /// PT: Obtém valor Int64 da coluna indicada.
+    /// PT-br: Obtém valor Int64 da coluna indicada.
     /// </summary>
     public override long GetInt64(int ordinal) => Convert.ToInt64(this[ordinal], CultureInfo.InvariantCulture);
     /// <summary>
     /// EN: Gets the column name by ordinal.
-    /// PT: Obtém o nome da coluna pelo ordinal.
+    /// PT-br: Obtém o nome da coluna pelo ordinal.
     /// </summary>
     public override string GetName(int ordinal)
     {
@@ -281,10 +281,10 @@ public abstract class DbDataReaderMockBase(
 
     /// <summary>
     /// EN: Gets the ordinal of a column by name.
-    /// PT: Obtém o ordinal de uma coluna pelo nome.
+    /// PT-br: Obtém o ordinal de uma coluna pelo nome.
     /// </summary>
-    /// <param name="name">EN: Column name. PT: Nome da coluna.</param>
-    /// <returns>EN: Column index. PT: Índice da coluna.</returns>
+    /// <param name="name">EN: Column name. PT-br: Nome da coluna.</param>
+    /// <returns>EN: Column index. PT-br: Índice da coluna.</returns>
     public override int GetOrdinal(string name)
     {
         name = NormalizeColumnName(name);
@@ -326,7 +326,7 @@ public abstract class DbDataReaderMockBase(
     }
     /// <summary>
     /// EN: Returns a DataTable with column metadata.
-    /// PT: Retorna uma DataTable com metadados das colunas.
+    /// PT-br: Retorna uma DataTable com metadados das colunas.
     /// </summary>
     public override DataTable GetSchemaTable()
     {
@@ -343,12 +343,12 @@ public abstract class DbDataReaderMockBase(
 
     /// <summary>
     /// EN: Gets a string value from the specified column.
-    /// PT: Obtém valor string da coluna indicada.
+    /// PT-br: Obtém valor string da coluna indicada.
     /// </summary>
     public override string GetString(int ordinal) => (string)this[ordinal];
     /// <summary>
     /// EN: Gets the value of the specified column.
-    /// PT: Obtém o valor da coluna indicada.
+    /// PT-br: Obtém o valor da coluna indicada.
     /// </summary>
     public override object GetValue(int ordinal)
     {
@@ -360,7 +360,7 @@ public abstract class DbDataReaderMockBase(
     }
     /// <summary>
     /// EN: Gets the typed value of the specified column.
-    /// PT: Obtém o valor tipado da coluna indicada.
+    /// PT-br: Obtém o valor tipado da coluna indicada.
     /// </summary>
     public override T GetFieldValue<T>(int ordinal)
     {
@@ -375,10 +375,10 @@ public abstract class DbDataReaderMockBase(
     }
     /// <summary>
     /// EN: Copies the values of the current row into the provided array.
-    /// PT: Copia os valores da linha atual para o array fornecido.
+    /// PT-br: Copia os valores da linha atual para o array fornecido.
     /// </summary>
-    /// <param name="values">EN: Destination array. PT: Array de destino.</param>
-    /// <returns>EN: Number of copied columns. PT: Número de colunas copiadas.</returns>
+    /// <param name="values">EN: Destination array. PT-br: Array de destino.</param>
+    /// <returns>EN: Number of copied columns. PT-br: Número de colunas copiadas.</returns>
     public override int GetValues(object[] values)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(values, nameof(values));
@@ -393,12 +393,12 @@ public abstract class DbDataReaderMockBase(
     }
     /// <summary>
     /// EN: Indicates whether the column value is DBNull.
-    /// PT: Indica se o valor da coluna é DBNull.
+    /// PT-br: Indica se o valor da coluna é DBNull.
     /// </summary>
     public override bool IsDBNull(int ordinal) => this[ordinal] == null || this[ordinal] == DBNull.Value;
     /// <summary>
     /// EN: Advances to the next result set.
-    /// PT: Avança para o próximo conjunto de resultados.
+    /// PT-br: Avança para o próximo conjunto de resultados.
     /// </summary>
     public override bool NextResult()
     {
@@ -410,7 +410,7 @@ public abstract class DbDataReaderMockBase(
 
     /// <summary>
     /// EN: Advances to the next row in the current set.
-    /// PT: Avança para a próxima linha do conjunto atual.
+    /// PT-br: Avança para a próxima linha do conjunto atual.
     /// </summary>
     public override bool Read()
     {
@@ -421,7 +421,7 @@ public abstract class DbDataReaderMockBase(
 
     /// <summary>
     /// EN: Returns an enumerator of the result sets.
-    /// PT: Retorna um enumerador dos conjuntos de resultados.
+    /// PT-br: Retorna um enumerador dos conjuntos de resultados.
     /// </summary>
     public override IEnumerator GetEnumerator() => _resultSets.GetEnumerator();
 
@@ -455,11 +455,11 @@ public abstract class DbDataReaderMockBase(
 
     /// <summary>
     /// EN: Resolves the column name returned by GetName for the current provider.
-    /// PT: Resolve o nome de coluna retornado por GetName para o provedor atual.
+    /// PT-br: Resolve o nome de coluna retornado por GetName para o provedor atual.
     /// </summary>
-    /// <param name="columnAlias">EN: Column alias reported by the result set. PT: Alias da coluna informado pelo conjunto de resultados.</param>
-    /// <param name="columnName">EN: Source column name reported by the result set. PT: Nome de origem da coluna informado pelo conjunto de resultados.</param>
-    /// <returns>EN: Column name exposed by the reader. PT: Nome da coluna exposto pelo leitor.</returns>
+    /// <param name="columnAlias">EN: Column alias reported by the result set. PT-br: Alias da coluna informado pelo conjunto de resultados.</param>
+    /// <param name="columnName">EN: Source column name reported by the result set. PT-br: Nome de origem da coluna informado pelo conjunto de resultados.</param>
+    /// <returns>EN: Column name exposed by the reader. PT-br: Nome da coluna exposto pelo leitor.</returns>
     protected virtual string NormalizeColumnNameForGetName(string columnAlias, string columnName)
         => NormalizeColumnName(columnAlias);
 
@@ -469,9 +469,9 @@ public abstract class DbDataReaderMockBase(
             : $"{value} ({value.GetType().Name})";
     /// <summary>
     /// EN: Disposes the data reader and associated resources.
-    /// PT: Descarta o data leitor e recursos associados.
+    /// PT-br: Descarta o data leitor e recursos associados.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (disposedValue)

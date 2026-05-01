@@ -2,19 +2,19 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for SqlServer mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos simulado SqlServer.
+/// PT-br: Testes de cobertura de plano de execução para comandos simulado SqlServer.
 /// </summary>
 /// <remarks>
 /// EN: Creates the execution plan test helper with xUnit output integration.
-/// PT: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
+/// PT-br: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
 /// </remarks>
-/// <param name="helper">EN: xUnit output helper. PT: Helper de saída do xUnit.</param>
+/// <param name="helper">EN: xUnit output helper. PT-br: Helper de saída do xUnit.</param>
 public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
 
     /// <summary>
     /// EN: Verifies command execution prints a readable plan to test output.
-    /// PT: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
+    /// PT-br: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -57,7 +57,7 @@ public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures execution plan suggests missing index for filter/sort columns.
-    /// PT: Garante que o plano de execução sugira índice ausente para colunas de filtro/ordenação.
+    /// PT-br: Garante que o plano de execução sugira índice ausente para colunas de filtro/ordenação.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -89,7 +89,7 @@ public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures index recommendations include estimated before/after and gain metrics.
-    /// PT: Garante que recomendações de índice incluam métricas estimadas de antes/depois e ganho.
+    /// PT-br: Garante que recomendações de índice incluam métricas estimadas de antes/depois e ganho.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -122,7 +122,7 @@ public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures advisor skips recommendation for tiny scans to reduce noise.
-    /// PT: Garante que o advisor não recomende índice para scans muito pequenos, reduzindo ruído.
+    /// PT-br: Garante que o advisor não recomende índice para scans muito pequenos, reduzindo ruído.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -150,7 +150,7 @@ public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures execution plan does not suggest index when a matching index already exists.
-    /// PT: Garante que o plano não sugira índice quando já existe índice aderente.
+    /// PT-br: Garante que o plano não sugira índice quando já existe índice aderente.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]

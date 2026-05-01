@@ -2,15 +2,15 @@ namespace DbSqlLikeMem.Db2.Dapper.Test.Strategy;
 
 /// <summary>
 /// EN: Covers DB2 MERGE upsert behavior in the command mock pipeline.
-/// PT: Cobre o comportamento de upsert com merge no pipeline do comando simulado DB2.
+/// PT-br: Cobre o comportamento de upsert com merge no pipeline do comando simulado DB2.
 /// </summary>
 public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures MERGE parsing follows DB2 dialect version support.
-    /// PT: Garante que o parse de merge siga o suporte por versão do dialeto DB2.
+    /// PT-br: Garante que o parse de merge siga o suporte por versão do dialeto DB2.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Strategy")]
     [MemberDataDb2Version]
@@ -37,7 +37,7 @@ public sealed class Db2MergeUpsertTests(ITestOutputHelper helper) : XUnitTestBas
 
     /// <summary>
     /// EN: Ensures MERGE updates an existing row when the ON condition matches.
-    /// PT: Garante que merge atualize uma linha existente quando a condição ON é satisfeita.
+    /// PT-br: Garante que merge atualize uma linha existente quando a condição ON é satisfeita.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -88,7 +88,7 @@ WHEN NOT MATCHED THEN
 
     /// <summary>
     /// EN: Ensures MERGE resolves source alias without AS for insert path.
-    /// PT: Garante que o merge resolva alias da fonte sem AS no caminho de inserção.
+    /// PT-br: Garante que o merge resolva alias da fonte sem AS no caminho de inserção.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]

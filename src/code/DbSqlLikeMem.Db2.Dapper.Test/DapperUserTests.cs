@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// EN: Covers DB2 Dapper user-query scenarios against the mock provider.
-/// PT: Cobre cenarios de consulta de usuarios do Dapper para DB2 contra o provedor mock.
+/// PT-br: Cobre cenarios de consulta de usuarios do Dapper para DB2 contra o provedor mock.
 /// </summary>
 public sealed class DapperUserTests(
     ITestOutputHelper helper

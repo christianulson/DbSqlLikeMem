@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Adds focused coverage for FirebirdDataAdapterMock typed command wiring.
-/// PT: Adiciona cobertura focada para a vinculação tipada de comandos do FirebirdDataAdapterMock.
+/// PT-br: Adiciona cobertura focada para a vinculação tipada de comandos do FirebirdDataAdapterMock.
 /// </summary>
 public sealed class FirebirdDataAdapterMockCoverageTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdDataAdapterMockCoverageTests(
 {
     /// <summary>
     /// EN: Verifies typed command properties keep the underlying adapter command slots synchronized.
-    /// PT: Verifica se as propriedades tipadas de comando mantem sincronizados os slots de comando do adapter.
+    /// PT-br: Verifica se as propriedades tipadas de comando mantem sincronizados os slots de comando do adapter.
     /// </summary>
     [Fact]
     public void TypedCommands_ShouldSynchronizeWithBaseProperties()
@@ -32,7 +32,7 @@ public sealed class FirebirdDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies the select-command constructors set the provider-specific select command.
-    /// PT: Verifica se os construtores com select command definem o comando select especifico do provedor.
+    /// PT-br: Verifica se os construtores com select command definem o comando select especifico do provedor.
     /// </summary>
     [Fact]
     public void Constructors_WithSelectCommand_ShouldSetTypedSelectCommand()

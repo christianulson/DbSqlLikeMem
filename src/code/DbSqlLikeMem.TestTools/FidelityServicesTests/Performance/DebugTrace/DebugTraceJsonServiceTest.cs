@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes debug-trace benchmark workflows and validates the observed provider diagnostics.
-/// PT: Executa fluxos de benchmark de rastreamento de debug e valida os diagnosticos observados do provedor.
+/// PT-br: Executa fluxos de benchmark de rastreamento de debug e valida os diagnosticos observados do provedor.
 /// </summary>
 public class DebugTraceJsonServiceTest(
         RepoService repo,
@@ -12,14 +12,14 @@ public class DebugTraceJsonServiceTest(
 {
     /// <summary>
     /// EN: Serializes a JSON payload used by the debug-trace benchmark.
-    /// PT: Serializa um payload JSON usado pelo benchmark de debug trace.
+    /// PT-br: Serializa um payload JSON usado pelo benchmark de debug trace.
     /// </summary>
     public Task<object?> RunTestAsync(params object[] args)
         => Task.FromResult<object?>(RunDebugTraceJsonAsync());
 
     /// <summary>
     /// EN: Serializes a JSON payload used by the debug-trace benchmark.
-    /// PT: Serializa um payload JSON usado pelo benchmark de debug trace.
+    /// PT-br: Serializa um payload JSON usado pelo benchmark de debug trace.
     /// </summary>
     public string RunDebugTraceJsonAsync()
     {
@@ -33,7 +33,7 @@ public class DebugTraceJsonServiceTest(
 
     /// <summary>
     /// EN: Serializes the debug-trace payload without requiring a database connection.
-    /// PT: Serializa o payload de debug trace sem exigir uma conexao de banco de dados.
+    /// PT-br: Serializa o payload de debug trace sem exigir uma conexao de banco de dados.
     /// </summary>
     public static string RunDebugTraceJson(
         string providerDisplayName,

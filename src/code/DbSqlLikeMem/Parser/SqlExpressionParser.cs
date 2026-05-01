@@ -12,12 +12,12 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
     /// <summary>
     /// EN: Parses a WHERE expression using the provided dialect and no command parameters.
-    /// PT: Faz o parsing de uma expressao WHERE usando o dialeto informado e sem parametros de comando.
+    /// PT-br: Faz o parsing de uma expressao WHERE usando o dialeto informado e sem parametros de comando.
     /// </summary>
-    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <param name="whereSql">EN: WHERE expression text. PT-br: Texto da expressao WHERE.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <returns>EN: Parsed expression AST. PT-br: AST da expressao parseada.</returns>
     public static SqlExpr ParseWhere(
         string whereSql,
         DbMock db,
@@ -26,14 +26,14 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
     /// <summary>
     /// EN: Parses a WHERE expression using the provided dialect, parameters, and optional custom function resolver.
-    /// PT: Faz o parsing de uma expressao WHERE usando o dialeto informado, parametros e um resolvedor opcional de funcoes customizadas.
+    /// PT-br: Faz o parsing de uma expressao WHERE usando o dialeto informado, parametros e um resolvedor opcional de funcoes customizadas.
     /// </summary>
-    /// <param name="whereSql">EN: WHERE expression text. PT: Texto da expressao WHERE.</param>
+    /// <param name="whereSql">EN: WHERE expression text. PT-br: Texto da expressao WHERE.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
-    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT-br: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
+    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT-br: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
+    /// <returns>EN: Parsed expression AST. PT-br: AST da expressao parseada.</returns>
     public static SqlExpr ParseWhere(
         string whereSql,
         DbMock db,
@@ -44,12 +44,12 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
     /// <summary>
     /// EN: Parses a scalar expression using the provided dialect and no command parameters.
-    /// PT: Faz o parsing de uma expressao escalar usando o dialeto informado e sem parametros de comando.
+    /// PT-br: Faz o parsing de uma expressao escalar usando o dialeto informado e sem parametros de comando.
     /// </summary>
-    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="sql">EN: Scalar SQL expression to parse. PT-br: Expressao SQL escalar para parsear.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <returns>EN: Parsed expression AST. PT-br: AST da expressao parseada.</returns>
     public static SqlExpr ParseScalar(
         string sql,
         DbMock db,
@@ -58,11 +58,11 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
     /// <summary>
     /// EN: Parses a scalar expression using the provided dialect and no command parameters.
-    /// PT: Faz o parsing de uma expressao escalar usando o dialeto informado e sem parametros de comando.
+    /// PT-br: Faz o parsing de uma expressao escalar usando o dialeto informado e sem parametros de comando.
     /// </summary>
-    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="sql">EN: Scalar SQL expression to parse. PT-br: Expressao SQL escalar para parsear.</param>
     /// <param name="db"></param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    /// <returns>EN: Parsed expression AST. PT-br: AST da expressao parseada.</returns>
     public static SqlExpr ParseScalar(
         string sql,
         DbMock db)
@@ -70,14 +70,14 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
     /// <summary>
     /// EN: Parses a scalar expression using the provided dialect, parameters, and optional custom function resolver.
-    /// PT: Faz o parsing de uma expressao escalar usando o dialeto informado, parametros e um resolvedor opcional de funcoes customizadas.
+    /// PT-br: Faz o parsing de uma expressao escalar usando o dialeto informado, parametros e um resolvedor opcional de funcoes customizadas.
     /// </summary>
-    /// <param name="sql">EN: Scalar SQL expression to parse. PT: Expressao SQL escalar para parsear.</param>
+    /// <param name="sql">EN: Scalar SQL expression to parse. PT-br: Expressao SQL escalar para parsear.</param>
     /// <param name="db"></param>
-    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
-    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
-    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
-    /// <returns>EN: Parsed expression AST. PT: AST da expressao parseada.</returns>
+    /// <param name="dialect">EN: Dialect that controls tokenizer/parser behavior and feature gates. PT-br: Dialeto que controla o comportamento do tokenizer/parser e os gates de recursos.</param>
+    /// <param name="parameters">EN: Optional command parameters used by parser paths that resolve parameterized values. PT-br: Parametros de comando opcionais usados por caminhos do parser que resolvem valores parametrizados.</param>
+    /// <param name="customFunctionSupported">EN: Optional custom function resolver used to accept schema-defined functions during validation. PT-br: Resolver opcional de funcoes customizadas usado para aceitar funcoes definidas no schema durante a validacao.</param>
+    /// <returns>EN: Parsed expression AST. PT-br: AST da expressao parseada.</returns>
     public static SqlExpr ParseScalar(
         string sql,
         DbMock db,
@@ -123,7 +123,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     // Pratt: parse com binding power
     /// <summary>
     /// EN: Implements ParseExpression.
-    /// PT: Implementa ParseExpression.
+    /// PT-br: Implementa ParseExpression.
     /// </summary>
     public SqlExpr ParseExpression(int minBp)
         => ParseExpression(minBp, allowIsNullPostfix: true);
@@ -776,7 +776,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
     /// <summary>
     /// EN: Tries to parse quantified comparison right side (`ANY`/`SOME`/`ALL` with subquery) after a comparison operator.
-    /// PT: Tenta parsear o lado direito de comparação quantificada (`ANY`/`SOME`/`ALL` com subquery) após operador de comparação.
+    /// PT-br: Tenta parsear o lado direito de comparação quantificada (`ANY`/`SOME`/`ALL` com subquery) após operador de comparação.
     /// </summary>
     private bool TryParseQuantifiedComparisonRightSide(
         SqlExpr left,

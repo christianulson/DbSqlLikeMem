@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Verifies SQL Server command execution, transaction handling, and query helpers against the mock engine.
-/// PT: Verifica a execucao de comandos SQL Server, o tratamento de transacoes e os helpers de consulta no motor mock.
+/// PT-br: Verifica a execucao de comandos SQL Server, o tratamento de transacoes e os helpers de consulta no motor mock.
 /// </summary>
 public sealed class SqlServerMockTests
     : XUnitTestBase
@@ -13,7 +13,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Creates the SQL Server mock connection used by the test suite.
-    /// PT: Cria a conexao mock SQL Server usada pela suite de testes.
+    /// PT-br: Cria a conexao mock SQL Server usada pela suite de testes.
     /// </summary>
     public SqlServerMockTests(
         ITestOutputHelper helper
@@ -36,7 +36,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies public routine registration APIs keep functions, procedures, and snapshots in sync.
-    /// PT: Verifica se as APIs publicas de registro de routines mantem funcoes, procedimentos e snapshots sincronizados.
+    /// PT-br: Verifica se as APIs publicas de registro de routines mantem funcoes, procedimentos e snapshots sincronizados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -73,7 +73,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies INSERT statements persist rows into the SQL Server mock table.
-    /// PT: Verifica se instrucoes INSERT persistem linhas na tabela mock do SQL Server.
+    /// PT-br: Verifica se instrucoes INSERT persistem linhas na tabela mock do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -90,7 +90,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies multi-statement INSERT scripts add all rows and return the total affected count.
-    /// PT: Verifica se scripts INSERT com multiplas instrucoes adicionam todas as linhas e retornam o total afetado.
+    /// PT-br: Verifica se scripts INSERT com multiplas instrucoes adicionam todas as linhas e retornam o total afetado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -117,7 +117,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE statements modify the targeted SQL Server row.
-    /// PT: Verifica se instrucoes UPDATE modificam a linha alvo no SQL Server.
+    /// PT-br: Verifica se instrucoes UPDATE modificam a linha alvo no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -137,7 +137,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies DELETE statements remove the targeted SQL Server row.
-    /// PT: Verifica se instrucoes DELETE removem a linha alvo no SQL Server.
+    /// PT-br: Verifica se instrucoes DELETE removem a linha alvo no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -157,7 +157,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies committed transactions preserve inserted SQL Server rows.
-    /// PT: Verifica se transacoes confirmadas preservam as linhas inseridas no SQL Server.
+    /// PT-br: Verifica se transacoes confirmadas preservam as linhas inseridas no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -193,7 +193,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies committing a transaction preserves the latest SQL Server update.
-    /// PT: Verifica se confirmar uma transacao preserva a ultima atualizacao do SQL Server.
+    /// PT-br: Verifica se confirmar uma transacao preserva a ultima atualizacao do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -216,7 +216,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies rolled back transactions discard inserted SQL Server rows.
-    /// PT: Verifica se transacoes revertidas descartam as linhas inseridas no SQL Server.
+    /// PT-br: Verifica se transacoes revertidas descartam as linhas inseridas no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -252,7 +252,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies SQL Server savepoint commands use the native SAVE TRANSACTION and ROLLBACK TRANSACTION syntax.
-    /// PT: Verifica se comandos de savepoint do SQL Server usam a sintaxe nativa SAVE TRANSACTION e ROLLBACK TRANSACTION.
+    /// PT-br: Verifica se comandos de savepoint do SQL Server usam a sintaxe nativa SAVE TRANSACTION e ROLLBACK TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -280,7 +280,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SELECT with SQL Server table hints executes correctly.
-    /// PT: Garante que SELECT com hints de tabela do SQL Server execute corretamente.
+    /// PT-br: Garante que SELECT com hints de tabela do SQL Server execute corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -300,7 +300,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures common scalar functions return expected SQL Server values.
-    /// PT: Garante que funcoes escalares comuns retornem valores esperados no SQL Server.
+    /// PT-br: Garante que funcoes escalares comuns retornem valores esperados no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -337,7 +337,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server date and metadata helpers return expected values.
-    /// PT: Garante que helpers de data e metadados do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers de data e metadados do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -445,7 +445,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Normalizes date-like scalar values to DateTime for stable assertions in SQL Server mock tests.
-    /// PT: Normaliza valores escalares semelhantes a data para DateTime e permitir asserts estaveis nos testes do mock SQL Server.
+    /// PT-br: Normaliza valores escalares semelhantes a data para DateTime e permitir asserts estaveis nos testes do mock SQL Server.
     /// </summary>
     private static DateTime NormalizeDateValue(object? value)
         => value switch
@@ -458,7 +458,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server date part constructors return expected values.
-    /// PT: Garante que construtores de data do SQL Server retornem valores esperados.
+    /// PT-br: Garante que construtores de data do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -489,7 +489,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server math and error helpers return expected values.
-    /// PT: Garante que helpers matematicos e de erro do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers matematicos e de erro do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -523,7 +523,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures common SQL Server metadata and validation helpers return expected values.
-    /// PT: Garante que helpers de metadados e validacao do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers de metadados e validacao do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -568,7 +568,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures common string and math functions return expected SQL Server values.
-    /// PT: Garante que funcoes comuns de string e matematica retornem valores esperados no SQL Server.
+    /// PT-br: Garante que funcoes comuns de string e matematica retornem valores esperados no SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -593,9 +593,9 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
@@ -604,7 +604,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies SQL Server rejects FOUND_ROWS because the provider exposes ROWCOUNT and @@ROWCOUNT for row-count inspection.
-    /// PT: Verifica que o SQL Server rejeita FOUND_ROWS porque o provider expoe ROWCOUNT e @@ROWCOUNT para inspecao de contagem de linhas.
+    /// PT-br: Verifica que o SQL Server rejeita FOUND_ROWS porque o provider expoe ROWCOUNT e @@ROWCOUNT para inspecao de contagem de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -627,7 +627,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row count functions expose the last SELECT row count.
-    /// PT: Verifica se as funcoes de contagem de linhas expõem a contagem da ultima SELECT.
+    /// PT-br: Verifica se as funcoes de contagem de linhas expõem a contagem da ultima SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -657,7 +657,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies SQL Server row-count variables expose the last SELECT row count.
-    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server expõem a contagem da ultima SELECT.
+    /// PT-br: Verifica se as variaveis de contagem de linhas do SQL Server expõem a contagem da ultima SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -687,7 +687,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies SQL Server row-count variables expose affected rows after UPDATE.
-    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server expõem as linhas afetadas apos UPDATE.
+    /// PT-br: Verifica se as variaveis de contagem de linhas do SQL Server expõem as linhas afetadas apos UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -709,7 +709,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies SQL Server row-count variables return zero after CREATE VIEW.
-    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server retornam zero apos CREATE VIEW.
+    /// PT-br: Verifica se as variaveis de contagem de linhas do SQL Server retornam zero apos CREATE VIEW.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -729,7 +729,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies SQL Server row-count variables return zero after BEGIN TRANSACTION.
-    /// PT: Verifica se as variaveis de contagem de linhas do SQL Server retornam zero apos BEGIN TRANSACTION.
+    /// PT-br: Verifica se as variaveis de contagem de linhas do SQL Server retornam zero apos BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -747,7 +747,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables are zero in a BEGIN TRANSACTION batch.
-    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero em um lote com BEGIN TRANSACTION.
+    /// PT-br: Verifica se as variaveis de contagem de linhas ficam em zero em um lote com BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -766,7 +766,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables are zero after SAVEPOINT in a batch.
-    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos SAVEPOINT em um lote.
+    /// PT-br: Verifica se as variaveis de contagem de linhas ficam em zero apos SAVEPOINT em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -785,7 +785,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables are zero after CALL in a batch.
-    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos CALL em um lote.
+    /// PT-br: Verifica se as variaveis de contagem de linhas ficam em zero apos CALL em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -806,7 +806,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables are zero after UPDATE followed by COMMIT.
-    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos UPDATE seguido de COMMIT.
+    /// PT-br: Verifica se as variaveis de contagem de linhas ficam em zero apos UPDATE seguido de COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -826,7 +826,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables are zero after rollback to savepoint.
-    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos rollback para savepoint.
+    /// PT-br: Verifica se as variaveis de contagem de linhas ficam em zero apos rollback para savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -845,7 +845,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables are zero after releasing a savepoint.
-    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos liberar um savepoint.
+    /// PT-br: Verifica se as variaveis de contagem de linhas ficam em zero apos liberar um savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -865,7 +865,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables reflect the last DML in a mixed SELECT/UPDATE batch.
-    /// PT: Verifica se as variaveis de contagem de linhas refletem a ultima DML em um lote misto de SELECT/UPDATE.
+    /// PT-br: Verifica se as variaveis de contagem de linhas refletem a ultima DML em um lote misto de SELECT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -893,7 +893,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables are zero after CALL, UPDATE, and COMMIT.
-    /// PT: Verifica se as variaveis de contagem de linhas ficam em zero apos CALL, UPDATE e COMMIT.
+    /// PT-br: Verifica se as variaveis de contagem de linhas ficam em zero apos CALL, UPDATE e COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -915,7 +915,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies row-count variables reflect the last SELECT in a mixed UPDATE/SELECT batch.
-    /// PT: Verifica se as variaveis de contagem de linhas refletem o ultimo SELECT em um lote misto de UPDATE/SELECT.
+    /// PT-br: Verifica se as variaveis de contagem de linhas refletem o ultimo SELECT em um lote misto de UPDATE/SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -950,7 +950,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies INSERT ... OUTPUT returns the inserted projection.
-    /// PT: Verifica se INSERT ... OUTPUT retorna a projeção inserida.
+    /// PT-br: Verifica se INSERT ... OUTPUT retorna a projeção inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -971,7 +971,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE ... OUTPUT returns deleted and inserted values.
-    /// PT: Verifica se UPDATE ... OUTPUT retorna os valores excluidos e inseridos.
+    /// PT-br: Verifica se UPDATE ... OUTPUT retorna os valores excluidos e inseridos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -998,7 +998,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Verifies DELETE ... OUTPUT returns the deleted snapshot.
-    /// PT: Verifica se DELETE ... OUTPUT retorna o snapshot das linhas excluidas.
+    /// PT-br: Verifica se DELETE ... OUTPUT retorna o snapshot das linhas excluidas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1026,7 +1026,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures CROSS APPLY executes correlated derived subqueries and keeps only rows with matching right-side results.
-    /// PT: Garante que CROSS APPLY execute subqueries derivadas correlacionadas e mantenha apenas linhas com resultado correspondente no lado direito.
+    /// PT-br: Garante que CROSS APPLY execute subqueries derivadas correlacionadas e mantenha apenas linhas com resultado correspondente no lado direito.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1077,7 +1077,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures OUTER APPLY executes correlated derived subqueries and preserves left rows when the right-side result is empty.
-    /// PT: Garante que OUTER APPLY execute subqueries derivadas correlacionadas e preserve linhas da esquerda quando o resultado do lado direito estiver vazio.
+    /// PT-br: Garante que OUTER APPLY execute subqueries derivadas correlacionadas e preserve linhas da esquerda quando o resultado do lado direito estiver vazio.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1123,7 +1123,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures CROSS APPLY OPENJSON expands correlated JSON arrays into rows on the shared SQL Server runtime path.
-    /// PT: Garante que CROSS APPLY OPENJSON expanda arrays JSON correlacionados em linhas no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que CROSS APPLY OPENJSON expanda arrays JSON correlacionados em linhas no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1168,7 +1168,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures OPENJSON WITH explicit schema projects typed columns and JSON fragments on the shared SQL Server runtime path.
-    /// PT: Garante que OPENJSON WITH com schema explicito projete colunas tipadas e fragmentos JSON no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que OPENJSON WITH com schema explicito projete colunas tipadas e fragmentos JSON no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1217,7 +1217,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures OPENJSON supports quoted-key paths and array indexes in the shared SQL Server runtime path.
-    /// PT: Garante que OPENJSON suporte paths com chave entre aspas e indices de array no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que OPENJSON suporte paths com chave entre aspas e indices de array no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1251,7 +1251,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures OPENJSON strict column paths raise an actionable error when the requested property is missing.
-    /// PT: Garante que paths strict em colunas do OPENJSON gerem erro acionavel quando a propriedade solicitada estiver ausente.
+    /// PT-br: Garante que paths strict em colunas do OPENJSON gerem erro acionavel quando a propriedade solicitada estiver ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1284,7 +1284,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures UNPIVOT expands selected source columns into rows and skips NULL values on the shared SQL Server runtime path.
-    /// PT: Garante que UNPIVOT expanda colunas selecionadas da fonte em linhas e ignore valores NULL no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que UNPIVOT expanda colunas selecionadas da fonte em linhas e ignore valores NULL no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1331,7 +1331,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures PIVOT and UNPIVOT preserve source column metadata for copied columns on the shared SQL Server runtime path.
-    /// PT: Garante que PIVOT e UNPIVOT preservem o metadata das colunas de origem para colunas copiadas no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que PIVOT e UNPIVOT preservem o metadata das colunas de origem para colunas copiadas no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1409,7 +1409,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures PIVOT computes STDEV, STDEVP, VAR, and VARP through the shared SQL Server runtime path.
-    /// PT: Garante que PIVOT calcule STDEV, STDEVP, VAR e VARP pelo caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que PIVOT calcule STDEV, STDEVP, VAR e VARP pelo caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1455,7 +1455,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures PIVOT computes COUNT_BIG with bigint-shaped results on the shared SQL Server runtime path.
-    /// PT: Garante que PIVOT calcule COUNT_BIG com resultado no shape bigint no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que PIVOT calcule COUNT_BIG com resultado no shape bigint no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1487,7 +1487,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures PIVOT exposes aggregate column metadata aligned with COUNT_BIG and statistical return types on the shared SQL Server runtime path.
-    /// PT: Garante que PIVOT exponha metadados de coluna alinhados aos tipos de retorno de COUNT_BIG e agregadores estatisticos no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que PIVOT exponha metadados de coluna alinhados aos tipos de retorno de COUNT_BIG e agregadores estatisticos no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1866,7 +1866,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures FOR JSON PATH serializes the final SQL Server rowset with nested aliases and ROOT wrapper.
-    /// PT: Garante que FOR JSON PATH serialize o rowset final do SQL Server com aliases aninhados e wrapper ROOT.
+    /// PT-br: Garante que FOR JSON PATH serialize o rowset final do SQL Server com aliases aninhados e wrapper ROOT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1913,7 +1913,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures FOR JSON PATH rejects conflicting nested alias order instead of silently merging incompatible object paths.
-    /// PT: Garante que FOR JSON PATH rejeite ordem conflitante de aliases aninhados em vez de mesclar silenciosamente caminhos de objeto incompativeis.
+    /// PT-br: Garante que FOR JSON PATH rejeite ordem conflitante de aliases aninhados em vez de mesclar silenciosamente caminhos de objeto incompativeis.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1937,7 +1937,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures FOR JSON AUTO groups joined SQL Server rows into nested arrays by non-root source alias.
-    /// PT: Garante que FOR JSON AUTO agrupe linhas com join no SQL Server em arrays aninhados pelo alias da fonte não raiz.
+    /// PT-br: Garante que FOR JSON AUTO agrupe linhas com join no SQL Server em arrays aninhados pelo alias da fonte não raiz.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -1992,7 +1992,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures FOR JSON AUTO does not materialize nested arrays for LEFT JOIN rows without child matches, even with INCLUDE_NULL_VALUES.
-    /// PT: Garante que FOR JSON AUTO não materialize arrays aninhados para linhas de LEFT JOIN sem correspondência filha, mesmo com INCLUDE_NULL_VALUES.
+    /// PT-br: Garante que FOR JSON AUTO não materialize arrays aninhados para linhas de LEFT JOIN sem correspondência filha, mesmo com INCLUDE_NULL_VALUES.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2038,7 +2038,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures FOR JSON PATH embeds OPENJSON AS JSON fragments as nested JSON instead of escaped text.
-    /// PT: Garante que FOR JSON PATH incorpore fragmentos de OPENJSON AS JSON como JSON aninhado em vez de texto escapado.
+    /// PT-br: Garante que FOR JSON PATH incorpore fragmentos de OPENJSON AS JSON como JSON aninhado em vez de texto escapado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2077,7 +2077,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures FOR JSON PATH preserves JSON_QUERY fragments as nested JSON instead of escaped strings.
-    /// PT: Garante que FOR JSON PATH preserve fragmentos de JSON_QUERY como JSON aninhado em vez de strings escapadas.
+    /// PT-br: Garante que FOR JSON PATH preserve fragmentos de JSON_QUERY como JSON aninhado em vez de strings escapadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2112,7 +2112,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures JSON_QUERY without an explicit path preserves a root JSON object as a raw fragment on the shared SQL Server runtime path.
-    /// PT: Garante que JSON_QUERY sem path explicito preserve um objeto JSON de raiz como fragmento bruto no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que JSON_QUERY sem path explicito preserve um objeto JSON de raiz como fragmento bruto no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2217,7 +2217,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server rejects NTILE with a non-positive runtime bucket count.
-    /// PT: Garante que o SQL Server rejeite NTILE com contagem de buckets nao positiva em tempo de execucao.
+    /// PT-br: Garante que o SQL Server rejeite NTILE com contagem de buckets nao positiva em tempo de execucao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2240,7 +2240,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server rejects LAG with a runtime offset that evaluates below zero.
-    /// PT: Garante que o SQL Server rejeite LAG com offset em runtime que avalia abaixo de zero.
+    /// PT-br: Garante que o SQL Server rejeite LAG com offset em runtime que avalia abaixo de zero.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2263,7 +2263,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server rejects LEAD with a runtime offset that evaluates below zero.
-    /// PT: Garante que o SQL Server rejeite LEAD com offset em runtime que avalia abaixo de zero.
+    /// PT-br: Garante que o SQL Server rejeite LEAD com offset em runtime que avalia abaixo de zero.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2286,7 +2286,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server rejects NTH_VALUE with a runtime ordinal that evaluates below one.
-    /// PT: Garante que o SQL Server rejeite NTH_VALUE com ordinal em runtime que avalia abaixo de um.
+    /// PT-br: Garante que o SQL Server rejeite NTH_VALUE com ordinal em runtime que avalia abaixo de um.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2309,7 +2309,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures SQL Server uses the default ordered window frame for LAST_VALUE and NTH_VALUE.
-    /// PT: Garante que o SQL Server use o frame padrao de janela ordenada para LAST_VALUE e NTH_VALUE.
+    /// PT-br: Garante que o SQL Server use o frame padrao de janela ordenada para LAST_VALUE e NTH_VALUE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2354,7 +2354,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures ordered window aggregates treat peer rows as the same default frame when ORDER BY values repeat.
-    /// PT: Garante que agregados de janela ordenados tratem linhas pares como o mesmo frame padrao quando os valores de ORDER BY se repetem.
+    /// PT-br: Garante que agregados de janela ordenados tratem linhas pares como o mesmo frame padrao quando os valores de ORDER BY se repetem.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2393,7 +2393,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures ROWS and RANGE keep distinct default-frame behavior when ORDER BY values repeat.
-    /// PT: Garante que ROWS e RANGE mantenham comportamento distinto de frame padrao quando os valores de ORDER BY se repetem.
+    /// PT-br: Garante que ROWS e RANGE mantenham comportamento distinto de frame padrao quando os valores de ORDER BY se repetem.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2432,7 +2432,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Inserts the two users used by the ordered window frame tests.
-    /// PT: Insere os dois usuarios usados pelos testes de frame ordenado de janela.
+    /// PT-br: Insere os dois usuarios usados pelos testes de frame ordenado de janela.
     /// </summary>
     private void SeedWindowFrameUsers()
     {
@@ -2453,7 +2453,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures schema-qualified STRING_SPLIT works through CROSS APPLY on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT qualificado por schema funcione via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT qualificado por schema funcione via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2486,7 +2486,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures schema-qualified OPENJSON WITH explicit schema works through CROSS APPLY on the shared SQL Server runtime path.
-    /// PT: Garante que OPENJSON qualificado por schema com WITH explicito funcione via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que OPENJSON qualificado por schema com WITH explicito funcione via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2522,7 +2522,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures schema-qualified STRING_SPLIT with enable_ordinal returns the ordinal column on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal retorne a coluna ordinal no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT qualificado por schema com enable_ordinal retorne a coluna ordinal no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2560,7 +2560,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures schema-qualified STRING_SPLIT enable_ordinal rejects numeric text on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT qualificado por schema com enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2589,7 +2589,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures schema-qualified STRING_SPLIT enable_ordinal rejects invalid numeric text outside the 0 or 1 subset on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT qualificado por schema com enable_ordinal rejeite texto numerico invalido fora do subset 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT qualificado por schema com enable_ordinal rejeite texto numerico invalido fora do subset 0 ou 1 no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2617,7 +2617,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures OUTER APPLY STRING_SPLIT preserves left rows and materializes split values for correlated text sources.
-    /// PT: Garante que OUTER APPLY STRING_SPLIT preserve linhas da esquerda e materialize valores divididos para fontes de texto correlacionadas.
+    /// PT-br: Garante que OUTER APPLY STRING_SPLIT preserve linhas da esquerda e materialize valores divididos para fontes de texto correlacionadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2661,7 +2661,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures STRING_SPLIT with enable_ordinal returns a one-based ordinal column on SQL Server 2022 semantics.
-    /// PT: Garante que STRING_SPLIT com enable_ordinal retorne uma coluna ordinal baseada em um na semantica do SQL Server 2022.
+    /// PT-br: Garante que STRING_SPLIT com enable_ordinal retorne uma coluna ordinal baseada em um na semantica do SQL Server 2022.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2705,7 +2705,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures STRING_SPLIT enable_ordinal accepts decimal constants that evaluate to 0 or 1 on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal aceite constantes decimais que avaliam para 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT enable_ordinal aceite constantes decimais que avaliam para 0 ou 1 no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2745,7 +2745,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures STRING_SPLIT enable_ordinal rejects numeric text on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2776,7 +2776,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures STRING_SPLIT enable_ordinal rejects numeric text on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT enable_ordinal rejeite texto numerico no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -2807,7 +2807,7 @@ public sealed class SqlServerMockTests
 
     /// <summary>
     /// EN: Ensures STRING_SPLIT enable_ordinal rejects invalid numeric text values outside the 0 or 1 subset on the shared SQL Server runtime path.
-    /// PT: Garante que STRING_SPLIT enable_ordinal rejeite valores textuais numericos invalidos fora do subset 0 ou 1 no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que STRING_SPLIT enable_ordinal rejeite valores textuais numericos invalidos fora do subset 0 ou 1 no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]

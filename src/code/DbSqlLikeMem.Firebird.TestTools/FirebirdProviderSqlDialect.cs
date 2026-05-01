@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.TestTools;
 
 /// <summary>
 /// EN: Provides Firebird-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de Firebird usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de Firebird usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
 {

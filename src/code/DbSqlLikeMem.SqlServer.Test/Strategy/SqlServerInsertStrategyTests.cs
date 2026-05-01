@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 /// <summary>
 /// EN: Covers single-row INSERT execution in the SqlServer mock.
-/// PT: Cobre execucao de INSERT de uma linha no mock SqlServer.
+/// PT-br: Cobre execucao de INSERT de uma linha no mock SqlServer.
 /// </summary>
 public sealed class SqlServerInsertStrategyTests(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class SqlServerInsertStrategyTests(
 {
     /// <summary>
     /// EN: Verifies that a single INSERT adds one row to the target table.
-    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
+    /// PT-br: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

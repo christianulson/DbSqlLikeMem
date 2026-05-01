@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies governance drift detection between the baseline catalog and the versioned review metadata.
-/// PT: Verifica a deteccao de drift de governanca entre o catalogo de baseline e os metadados versionados de revisao.
+/// PT-br: Verifica a deteccao de drift de governanca entre o catalogo de baseline e os metadados versionados de revisao.
 /// </summary>
 public sealed class TemplateBaselineGovernanceTests
 {
     /// <summary>
     /// EN: Ensures the current repository metadata stays aligned with the API and Worker baseline profiles.
-    /// PT: Garante que os metadados atuais do repositorio permaneçam alinhados aos perfis de baseline API e Worker.
+    /// PT-br: Garante que os metadados atuais do repositorio permaneçam alinhados aos perfis de baseline API e Worker.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineGovernance")]
@@ -25,7 +25,7 @@ public sealed class TemplateBaselineGovernanceTests
 
     /// <summary>
     /// EN: Ensures governance drift is reported when review metadata disagrees with the selected baseline profile.
-    /// PT: Garante que drift de governanca seja reportado quando os metadados de revisao divergirem do perfil de baseline selecionado.
+    /// PT-br: Garante que drift de governanca seja reportado quando os metadados de revisao divergirem do perfil de baseline selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineGovernance")]
@@ -54,7 +54,7 @@ public sealed class TemplateBaselineGovernanceTests
 
     /// <summary>
     /// EN: Ensures overdue review windows are reported even when the catalog and metadata otherwise match.
-    /// PT: Garante que janelas de revisao vencidas sejam reportadas mesmo quando catalogo e metadata coincidem no restante.
+    /// PT-br: Garante que janelas de revisao vencidas sejam reportadas mesmo quando catalogo e metadata coincidem no restante.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineGovernance")]

@@ -2,17 +2,17 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for Firebird mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos simulados do Firebird.
+/// PT-br: Testes de cobertura de plano de execução para comandos simulados do Firebird.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper.
-/// PT: Helper de saída do xUnit.
+/// PT-br: Helper de saída do xUnit.
 /// </param>
 public sealed class ExecutionPlanTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies command execution prints a readable plan to test output.
-    /// PT: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
+    /// PT-br: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]

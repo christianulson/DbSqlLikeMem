@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Reads PostgreSQL session-local sequence values from two independent connections.
-/// PT: Lê valores de sequence locais da sessão PostgreSQL a partir de duas conexões independentes.
+/// PT-br: Lê valores de sequence locais da sessão PostgreSQL a partir de duas conexões independentes.
 /// </summary>
 public sealed class SequenceSessionLocalServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceSessionLocalServiceTest(
 {
     /// <summary>
     /// EN: Returns the observed session-local sequence values for currval or lastval across two connections.
-    /// PT: Retorna os valores observados de sequence locais da sessao para currval ou lastval em duas conexoes.
+    /// PT-br: Retorna os valores observados de sequence locais da sessao para currval ou lastval em duas conexoes.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceSessionLocalAsync(args.Length > 0 && args[0] is bool flag && flag);
 
     /// <summary>
     /// EN: Returns the observed session-local sequence values for currval or lastval across two connections.
-    /// PT: Retorna os valores observados de sequence locais da sessao para currval ou lastval em duas conexoes.
+    /// PT-br: Retorna os valores observados de sequence locais da sessao para currval ou lastval em duas conexoes.
     /// </summary>
     public async Task<long[]> RunSequenceSessionLocalAsync(bool useLastVal)
     {

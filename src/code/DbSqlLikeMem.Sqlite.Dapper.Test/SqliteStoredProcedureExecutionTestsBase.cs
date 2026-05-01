@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// EN: SQLite-specific stored procedure contract tests preserving the provider's parameter-direction limitations.
-/// PT: Testes de contrato específicos de stored procedure para SQLite, preservando as limitações do provedor em direções de parâmetro.
+/// PT-br: Testes de contrato específicos de stored procedure para SQLite, preservando as limitações do provedor em direções de parâmetro.
 /// </summary>
 public abstract class SqliteStoredProcedureExecutionTestsBase(
     ITestOutputHelper helper
@@ -10,25 +10,25 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 {
     /// <summary>
     /// EN: Creates and opens the SQLite mock connection used by stored procedure contract tests.
-    /// PT: Cria e abre a conexao simulada do SQLite usada pelos testes de contrato de stored procedure.
+    /// PT-br: Cria e abre a conexao simulada do SQLite usada pelos testes de contrato de stored procedure.
     /// </summary>
     protected abstract SqliteConnectionMock CreateOpenConnection();
 
     /// <summary>
     /// EN: Creates a command configured to execute a stored procedure on the SQLite mock connection.
-    /// PT: Cria um comando configurado para executar uma stored procedure na conexao simulada do SQLite.
+    /// PT-br: Cria um comando configurado para executar uma stored procedure na conexao simulada do SQLite.
     /// </summary>
     protected abstract SqliteCommandMock CreateStoredProcedureCommand(SqliteConnectionMock connection, string procedureName);
 
     /// <summary>
     /// EN: Creates a text command for executing raw SQL against the SQLite mock connection.
-    /// PT: Cria um comando de texto para executar SQL bruto na conexao simulada do SQLite.
+    /// PT-br: Cria um comando de texto para executar SQL bruto na conexao simulada do SQLite.
     /// </summary>
     protected abstract SqliteCommandMock CreateTextCommand(SqliteConnectionMock connection, string commandText);
 
     /// <summary>
     /// EN: Creates a SQLite parameter adapted to the provider limitations around parameter direction.
-    /// PT: Cria um parametro SQLite adaptado as limitacoes do provedor em torno da direcao do parametro.
+    /// PT-br: Cria um parametro SQLite adaptado as limitacoes do provedor em torno da direcao do parametro.
     /// </summary>
     protected virtual SqliteParameter CreateParameter(string name, object? value, DbType dbType, ParameterDirection direction = ParameterDirection.Input)
     {
@@ -47,7 +47,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies stored procedure execution succeeds when all required input parameters are provided.
-    /// PT: Verifica se a execucao da stored procedure funciona quando todos os parametros de entrada obrigatorios sao fornecidos.
+    /// PT-br: Verifica se a execucao da stored procedure funciona quando todos os parametros de entrada obrigatorios sao fornecidos.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -73,7 +73,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies stored procedure execution throws when a required input parameter is missing.
-    /// PT: Verifica se a execucao da stored procedure lanca excecao quando falta um parametro de entrada obrigatorio.
+    /// PT-br: Verifica se a execucao da stored procedure lanca excecao quando falta um parametro de entrada obrigatorio.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -99,7 +99,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies stored procedure execution throws when a required input parameter is null.
-    /// PT: Verifica se a execucao da stored procedure lanca excecao quando um parametro de entrada obrigatorio e nulo.
+    /// PT-br: Verifica se a execucao da stored procedure lanca excecao quando um parametro de entrada obrigatorio e nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -126,7 +126,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies stored procedure execution populates output parameters with default values.
-    /// PT: Verifica se a execucao da stored procedure preenche parametros de saida com valores padrao.
+    /// PT-br: Verifica se a execucao da stored procedure preenche parametros de saida com valores padrao.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -159,7 +159,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies CALL syntax validates parameters and returns an empty result set when appropriate.
-    /// PT: Verifica se a sintaxe CALL valida os parametros e retorna um conjunto de resultados vazio quando apropriado.
+    /// PT-br: Verifica se a sintaxe CALL valida os parametros e retorna um conjunto de resultados vazio quando apropriado.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -183,7 +183,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies return value parameters remain unset when the provider does not support that direction.
-    /// PT: Verifica se parametros de valor de retorno permanecem sem valor quando o provedor nao suporta essa direcao.
+    /// PT-br: Verifica se parametros de valor de retorno permanecem sem valor quando o provedor nao suporta essa direcao.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -207,7 +207,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies execution does not throw when the provider cannot represent output direction semantics.
-    /// PT: Verifica se a execucao nao lanca excecao quando o provedor nao consegue representar a semantica de direcao de saida.
+    /// PT-br: Verifica se a execucao nao lanca excecao quando o provedor nao consegue representar a semantica de direcao de saida.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -228,7 +228,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies Dapper can execute stored procedures through CommandType.StoredProcedure.
-    /// PT: Verifica se o Dapper consegue executar stored procedures por meio de CommandType.StoredProcedure.
+    /// PT-br: Verifica se o Dapper consegue executar stored procedures por meio de CommandType.StoredProcedure.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -255,7 +255,7 @@ public abstract class SqliteStoredProcedureExecutionTestsBase(
 
     /// <summary>
     /// EN: Verifies Dapper stored procedure execution throws when a required parameter is missing.
-    /// PT: Verifica se a execucao de stored procedure via Dapper lanca excecao quando falta um parametro obrigatorio.
+    /// PT-br: Verifica se a execucao de stored procedure via Dapper lanca excecao quando falta um parametro obrigatorio.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]

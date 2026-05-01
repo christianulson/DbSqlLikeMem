@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.Performance;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared performance workflows.
-/// PT: Executa testes de fidelidade SQLite para os fluxos compartilhados de performance.
+/// PT-br: Executa testes de fidelidade SQLite para os fluxos compartilhados de performance.
 /// </summary>
 public class PerformanceTests(
     ITestOutputHelper helper

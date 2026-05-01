@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MySql.Test.Fidelity.Schema;
 
 /// <summary>
 /// EN: Runs MySQL fidelity tests for the shared schema-snapshot workflows.
-/// PT: Executa testes de fidelidade MySQL para os fluxos compartilhados de snapshot de schema.
+/// PT-br: Executa testes de fidelidade MySQL para os fluxos compartilhados de snapshot de schema.
 /// </summary>
 public class SchemaSnapshotTests(
     ITestOutputHelper helper

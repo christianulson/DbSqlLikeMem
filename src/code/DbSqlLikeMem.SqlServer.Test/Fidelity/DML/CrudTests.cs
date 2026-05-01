@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs SQL Server fidelity tests for the shared CRUD workflows.
-/// PT: Executa testes de fidelidade SQL Server para os fluxos compartilhados de CRUD.
+/// PT-br: Executa testes de fidelidade SQL Server para os fluxos compartilhados de CRUD.
 /// </summary>
 public class CrudTests(
     ITestOutputHelper helper

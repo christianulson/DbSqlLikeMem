@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Adds focused coverage for MySqlDataAdapterMock batching, events, and async wrappers.
-/// PT: Adiciona cobertura focada para batching, eventos e wrappers assincronos de MySqlDataAdapterMock.
+/// PT-br: Adiciona cobertura focada para batching, eventos e wrappers assincronos de MySqlDataAdapterMock.
 /// </summary>
 public sealed class MySqlDataAdapterMockCoverageTests(
         ITestOutputHelper helper
@@ -19,7 +19,7 @@ public sealed class MySqlDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies typed command properties keep the underlying adapter command slots synchronized.
-    /// PT: Verifica se as propriedades tipadas de comando mantem sincronizados os slots de comando do adapter.
+    /// PT-br: Verifica se as propriedades tipadas de comando mantem sincronizados os slots de comando do adapter.
     /// </summary>
     [Fact]
     public void TypedCommands_ShouldSynchronizeWithBaseProperties()
@@ -45,7 +45,7 @@ public sealed class MySqlDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies protected batching hooks can collect commands, expose parameters, execute inserts, and reset the batch state.
-    /// PT: Verifica se os hooks protegidos de batching conseguem coletar comandos, expor parametros, executar inserts e resetar o estado do lote.
+    /// PT-br: Verifica se os hooks protegidos de batching conseguem coletar comandos, expor parametros, executar inserts e resetar o estado do lote.
     /// </summary>
     [Fact]
     public void ProtectedBatchingHooks_ShouldBatchCommandsAndParameters()
@@ -91,7 +91,7 @@ public sealed class MySqlDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies row event factories and event dispatch use the provider-specific event argument types.
-    /// PT: Verifica se as fabricas e o disparo de eventos de linha usam os tipos especificos de argumentos do provedor.
+    /// PT-br: Verifica se as fabricas e o disparo de eventos de linha usam os tipos especificos de argumentos do provedor.
     /// </summary>
     [Fact]
     public void RowEvents_ShouldUseProviderSpecificEventArgs()
@@ -123,7 +123,7 @@ public sealed class MySqlDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies the protected Update path opens closed provider connections for pending rows and closes them afterward.
-    /// PT: Verifica se o caminho protegido de Update abre conexoes fechadas do provedor para linhas pendentes e as fecha ao final.
+    /// PT-br: Verifica se o caminho protegido de Update abre conexoes fechadas do provedor para linhas pendentes e as fecha ao final.
     /// </summary>
     [Fact]
     public void ProtectedUpdate_ShouldOpenClosedConnectionsAndCloseThemAfterward()
@@ -161,7 +161,7 @@ public sealed class MySqlDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies reader-based wrapper overloads complete successfully when provided with in-memory reader input.
-    /// PT: Verifica se as sobrecargas wrapper baseadas em reader concluem com sucesso quando recebem entrada de reader em memoria.
+    /// PT-br: Verifica se as sobrecargas wrapper baseadas em reader concluem com sucesso quando recebem entrada de reader em memoria.
     /// </summary>
     [Fact]
 #pragma warning disable xUnit1051
@@ -197,7 +197,7 @@ public sealed class MySqlDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies the remaining async overloads honor pre-canceled tokens before executing any work.
-    /// PT: Verifica se as sobrecargas assincronas restantes respeitam tokens previamente cancelados antes de executar qualquer trabalho.
+    /// PT-br: Verifica se as sobrecargas assincronas restantes respeitam tokens previamente cancelados antes de executar qualquer trabalho.
     /// </summary>
     [Fact]
 #pragma warning disable xUnit1051
@@ -237,7 +237,7 @@ public sealed class MySqlDataAdapterMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies wrapper overloads without explicit tokens surface a faulted task when required adapter state is missing.
-    /// PT: Verifica se as sobrecargas wrapper sem token explicito expõem task com falha quando falta estado obrigatorio do adapter.
+    /// PT-br: Verifica se as sobrecargas wrapper sem token explicito expõem task com falha quando falta estado obrigatorio do adapter.
     /// </summary>
     [Fact]
 #pragma warning disable xUnit1051

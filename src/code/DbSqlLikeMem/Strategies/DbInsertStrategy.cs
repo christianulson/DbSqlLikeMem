@@ -4,7 +4,7 @@ internal static class DbInsertStrategy
 {
     /// <summary>
     /// EN: Implements ExecuteInsert.
-    /// PT: Implementa ExecuteInsert.
+    /// PT-br: Implementa ExecuteInsert.
     /// </summary>
     public static DmlExecutionResult ExecuteInsert(
         this DbConnectionMockBase connection,
@@ -18,7 +18,7 @@ internal static class DbInsertStrategy
 
     /// <summary>
     /// EN: Implements ExecuteInsert using a pre-built execution context.
-    /// PT: Implementa ExecuteInsert usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteInsert usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteInsert(
         this DbConnectionMockBase connection,
@@ -30,7 +30,7 @@ internal static class DbInsertStrategy
 
     /// <summary>
     /// EN: Implements ExecuteReplace.
-    /// PT: Implementa ExecuteReplace.
+    /// PT-br: Implementa ExecuteReplace.
     /// </summary>
     public static DmlExecutionResult ExecuteReplace(
         this DbConnectionMockBase connection,
@@ -44,7 +44,7 @@ internal static class DbInsertStrategy
 
     /// <summary>
     /// EN: Implements ExecuteReplace using a pre-built execution context.
-    /// PT: Implementa ExecuteReplace usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteReplace usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteReplace(
         this DbConnectionMockBase connection,

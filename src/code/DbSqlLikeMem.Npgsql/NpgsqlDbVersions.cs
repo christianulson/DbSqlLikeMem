@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Npgsql;
 
 /// <summary>
 /// EN: Extension for verions PostgreSQL versions supported by this provider mock.
-/// PT: Extesão para versões do PostgreSQL suportadas por este mock de provedor.
+/// PT-br: Extesão para versões do PostgreSQL suportadas por este mock de provedor.
 /// </summary>
 public static class NpgsqlDbVersions
 {
     /// <summary>
     /// EN: Returns PostgreSQL versions supported by this provider mock.
-    /// PT: Retorna as versões do PostgreSQL suportadas por este mock de provedor.
+    /// PT-br: Retorna as versões do PostgreSQL suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

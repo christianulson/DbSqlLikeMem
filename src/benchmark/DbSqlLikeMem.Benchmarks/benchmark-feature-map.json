@@ -1,5 +1,6 @@
 {
   "description": "Benchmark map for comparing DbSqlLikeMem capabilities and performance against real/native database engines.",
+  "resultSchema": "./benchmark-result.schema.json",
   "organization": [
     "Core",
     "Transactions",
@@ -3252,6 +3253,7 @@
       "displayName": "Insert in table with FK",
       "category": "Setup",
       "comparable": true,
+      "status": "Deprecated",
       "notes": "Alias benchmark for the foreign-key table insert flow."
     },
     {
@@ -4054,6 +4056,7 @@
       "displayName": "JSON missing path returns null",
       "category": "Json",
       "comparable": true,
+      "status": "Deprecated",
       "notes": "Alias benchmark for a missing JSON path that returns null."
     },
     {
@@ -4172,6 +4175,7 @@
       "displayName": "String aggregation summary matrix",
       "category": "Dialect",
       "comparable": true,
+      "status": "Deprecated",
       "notes": "Alias benchmark for the string aggregation summary matrix."
     },
     {
@@ -4584,6 +4588,7 @@
       "displayName": "Batch row count in batch",
       "category": "Batch",
       "comparable": true,
+      "status": "Deprecated",
       "notes": "Alias benchmark for the batched row-count flow."
     },
     {
@@ -4689,6 +4694,7 @@
       "displayName": "Batch returning insert",
       "category": "AdvancedQuery",
       "comparable": false,
+      "status": "Deprecated",
       "notes": "Alias benchmark for the batch insert returning flow."
     },
     {
@@ -4696,6 +4702,7 @@
       "displayName": "Returning update",
       "category": "AdvancedQuery",
       "comparable": false,
+      "status": "Deprecated",
       "notes": "Provider-specific alias for a plain update/readback path when RETURNING or OUTPUT is unavailable."
     },
     {
@@ -4703,6 +4710,7 @@
       "displayName": "Merge basic",
       "category": "AdvancedQuery",
       "comparable": false,
+      "status": "Deprecated",
       "notes": "Provider-specific alias for the upsert path."
     },
     {

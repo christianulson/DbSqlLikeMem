@@ -6,6 +6,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the FOR JSON PATH projection benchmark and keeps the serialized payload alive.
     /// PT-br: Executa o benchmark de projecao FOR JSON PATH e mantem o payload serializado ativo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.ForJsonPathProjection)]
     protected virtual void RunForJsonPathProjection()
     {
         if (!Dialect.SupportsForJsonClause)
@@ -26,6 +27,7 @@ public abstract partial class BenchmarkSessionBase
         }
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.JsonInsertCast)]
     protected virtual void RunJsonInsertCast()
     {
         var state = GetPreparedNoopQueryState("NoopQuery");
@@ -36,8 +38,9 @@ public abstract partial class BenchmarkSessionBase
 
     /// <summary>
     /// EN: Executes the JSON insert cast benchmark and keeps the provider result alive when it is null.
-    /// PT: Executa o benchmark de insert e cast de JSON e mantem o resultado do provedor vivo quando ele eh nulo.
+    /// PT-br: Executa o benchmark de insert e cast de JSON e mantem o resultado do provedor vivo quando ele eh nulo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.JsonInsertCastReturnsNull)]
     protected virtual void RunJsonInsertCastReturnsNull()
         => RunJsonInsertCast();
 
@@ -45,6 +48,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the SQL Server ISJSON benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark ISJSON do SQL Server e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.IsJson)]
     protected virtual void RunIsJson()
     {
         if (!Dialect.SupportsSqlServerScalarFunction("ISJSON"))

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Creates intercepted ADO.NET connections from an inner connection factory.
-/// PT: Cria conexoes ADO.NET interceptadas a partir de uma factory interna de conexoes.
+/// PT-br: Cria conexoes ADO.NET interceptadas a partir de uma factory interna de conexoes.
 /// </summary>
 public sealed class DbInterceptionConnectionFactory : IDbInterceptionConnectionFactory
 {
@@ -11,10 +11,10 @@ public sealed class DbInterceptionConnectionFactory : IDbInterceptionConnectionF
 
     /// <summary>
     /// EN: Creates a factory that wraps connections produced by the supplied delegate.
-    /// PT: Cria uma factory que encapsula conexoes produzidas pelo delegate informado.
+    /// PT-br: Cria uma factory que encapsula conexoes produzidas pelo delegate informado.
     /// </summary>
-    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT: Delegate que cria a conexao interna.</param>
-    /// <param name="interceptorsFactory">EN: Delegate that provides the interceptors for each connection. PT: Delegate que fornece os interceptors para cada conexao.</param>
+    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT-br: Delegate que cria a conexao interna.</param>
+    /// <param name="interceptorsFactory">EN: Delegate that provides the interceptors for each connection. PT-br: Delegate que fornece os interceptors para cada conexao.</param>
     public DbInterceptionConnectionFactory(
         Func<DbConnection> connectionFactory,
         Func<DbConnectionInterceptor[]> interceptorsFactory)
@@ -27,10 +27,10 @@ public sealed class DbInterceptionConnectionFactory : IDbInterceptionConnectionF
 
     /// <summary>
     /// EN: Creates a factory that wraps connections using interceptors built from the supplied options.
-    /// PT: Cria uma factory que encapsula conexoes usando interceptors construidos a partir das opcoes informadas.
+    /// PT-br: Cria uma factory que encapsula conexoes usando interceptors construidos a partir das opcoes informadas.
     /// </summary>
-    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT: Delegate que cria a conexao interna.</param>
-    /// <param name="options">EN: Interception options. PT: Opcoes de interceptacao.</param>
+    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT-br: Delegate que cria a conexao interna.</param>
+    /// <param name="options">EN: Interception options. PT-br: Opcoes de interceptacao.</param>
     public DbInterceptionConnectionFactory(
         Func<DbConnection> connectionFactory,
         DbInterceptionOptions options)

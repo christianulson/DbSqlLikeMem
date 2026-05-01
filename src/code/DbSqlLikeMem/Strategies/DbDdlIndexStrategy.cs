@@ -4,7 +4,7 @@ internal static class DbDdlIndexStrategy
 {
     /// <summary>
     /// EN: Implements ExecuteCreateIndex.
-    /// PT: Implementa ExecuteCreateIndex.
+    /// PT-br: Implementa ExecuteCreateIndex.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateIndex(
         this DbConnectionMockBase connection,
@@ -33,7 +33,7 @@ internal static class DbDdlIndexStrategy
 
     /// <summary>
     /// EN: Implements ExecuteDropIndex.
-    /// PT: Implementa ExecuteDropIndex.
+    /// PT-br: Implementa ExecuteDropIndex.
     /// </summary>
     public static DmlExecutionResult ExecuteDropIndex(
         this DbConnectionMockBase connection,

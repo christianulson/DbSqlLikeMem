@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Auto;
 
 /// <summary>
 /// EN: Table mock specialized for Auto schema operations.
-/// PT: Tabela simulada especializada para operações de esquema no Auto.
+/// PT-br: Tabela simulada especializada para operações de esquema no Auto.
 /// </summary>
 internal class AutoTableMock(
         string tableName,

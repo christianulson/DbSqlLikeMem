@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Npgsql.Test;
 /// <summary>
 /// EN: Contains fluent API smoke tests for the Npgsql provider.
-/// PT: Contem testes de smoke da API fluente para o provedor Npgsql.
+/// PT-br: Contem testes de smoke da API fluente para o provedor Npgsql.
 /// </summary>
 public sealed class FluentTest(
         ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class FluentTest(
 
     /// <summary>
     /// EN: Verifies the fluent insert, update, and delete workflow works end to end.
-    /// PT: Verifica se o fluxo fluente de insercao, atualizacao e exclusao funciona de ponta a ponta.
+    /// PT-br: Verifica se o fluxo fluente de insercao, atualizacao e exclusao funciona de ponta a ponta.
     /// </summary>
     [Fact]
     [Trait("Category", "FluentTest")]
@@ -22,7 +22,7 @@ public sealed class FluentTest(
 
     /// <summary>
     /// EN: Verifies the fluent API composes and executes the expected operations.
-    /// PT: Verifica se a API fluente compoe e executa as operacoes esperadas.
+    /// PT-br: Verifica se a API fluente compoe e executa as operacoes esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "FluentTest")]

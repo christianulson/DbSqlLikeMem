@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Service that tests upsert operations by inserting a row and then updating it with a second upsert.
-/// PT: Serviço que testa operações de upsert, inserindo uma linha e depois atualizando-a com um segundo upsert.
+/// PT-br: Serviço que testa operações de upsert, inserindo uma linha e depois atualizando-a com um segundo upsert.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,7 +14,7 @@ public class DmlMutationUpsertInsertThenUpdateServiceTest(
 {
     /// <summary>
     /// EN: Inserts a row with upsert and then updates the same row with a second upsert.
-    /// PT: Insere uma linha com upsert e depois atualiza a mesma linha com um segundo upsert.
+    /// PT-br: Insere uma linha com upsert e depois atualiza a mesma linha com um segundo upsert.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Creates a PostgreSQL sequence with IF NOT EXISTS and reads the generated values for fidelity coverage.
-/// PT: Cria uma sequence PostgreSQL com IF NOT EXISTS e le os valores gerados para cobertura de fidelidade.
+/// PT-br: Cria uma sequence PostgreSQL com IF NOT EXISTS e le os valores gerados para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceCreateIfNotExistsServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceCreateIfNotExistsServiceTest(
 {
     /// <summary>
     /// EN: Returns the first two values produced after an idempotent sequence creation.
-    /// PT: Retorna os dois primeiros valores produzidos apos uma criacao idempotente de sequence.
+    /// PT-br: Retorna os dois primeiros valores produzidos apos uma criacao idempotente de sequence.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceCreateIfNotExistsAsync();
 
     /// <summary>
     /// EN: Returns the first two values produced after an idempotent sequence creation.
-    /// PT: Retorna os dois primeiros valores produzidos apos uma criacao idempotente de sequence.
+    /// PT-br: Retorna os dois primeiros valores produzidos apos uma criacao idempotente de sequence.
     /// </summary>
     public async Task<long[]> RunSequenceCreateIfNotExistsAsync()
     {

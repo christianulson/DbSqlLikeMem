@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Parser;
 
 /// <summary>
 /// EN: Covers SQL Server-specific parser feature behavior.
-/// PT: Cobre o comportamento de recursos de parser específicos do SQL Server.
+/// PT-br: Cobre o comportamento de recursos de parser específicos do SQL Server.
 /// </summary>
 public sealed class SqlServerDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -10,9 +10,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 {
     /// <summary>
     /// EN: Ensures JSON_TABLE is rejected in SQL Server dialect with an explicit dialect gate.
-    /// PT: Garante que JSON_TABLE seja rejeitado no dialeto SQL Server com gate explicito de dialeto.
+    /// PT-br: Garante que JSON_TABLE seja rejeitado no dialeto SQL Server com gate explicito de dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -29,9 +29,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server dialect keeps MATCH ... AGAINST disabled in its explicit capability hook.
-    /// PT: Garante que o dialeto SQL Server mantenha MATCH ... AGAINST desabilitado em seu hook explicito de capability.
+    /// PT-br: Garante que o dialeto SQL Server mantenha MATCH ... AGAINST desabilitado em seu hook explicito de capability.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -42,9 +42,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server row-count helpers are exposed through dialect-owned capabilities.
-    /// PT: Garante que os helpers de row-count do SQL Server sejam expostos por capabilities do próprio dialeto.
+    /// PT-br: Garante que os helpers de row-count do SQL Server sejam expostos por capabilities do próprio dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -59,9 +59,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server exposes its join-based mutation syntax through dialect-owned capabilities.
-    /// PT: Garante que o SQL Server exponha sua sintaxe de mutacao com join por capabilities do proprio dialeto.
+    /// PT-br: Garante que o SQL Server exponha sua sintaxe de mutacao com join por capabilities do proprio dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -79,9 +79,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server exposes APPLY support only for versions that already include the native clause.
-    /// PT: Garante que o SQL Server exponha suporte a APPLY apenas para versoes que ja incluem a clausula nativa.
+    /// PT-br: Garante que o SQL Server exponha suporte a APPLY apenas para versoes que ja incluem a clausula nativa.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -94,9 +94,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server metadata functions added to the mock remain enabled for every supported version.
-    /// PT: Garante que as funcoes de metadados do SQL Server adicionadas ao mock permaneçam habilitadas para todas as versoes suportadas.
+    /// PT-br: Garante que as funcoes de metadados do SQL Server adicionadas ao mock permaneçam habilitadas para todas as versoes suportadas.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -138,9 +138,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server metadata identifiers include @@TEXTSIZE for every supported version.
-    /// PT: Garante que os identificadores de metadados do SQL Server incluam @@TEXTSIZE para todas as versoes suportadas.
+    /// PT-br: Garante que os identificadores de metadados do SQL Server incluam @@TEXTSIZE para todas as versoes suportadas.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -153,9 +153,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server scalar functions include NEWSEQUENTIALID for every supported version.
-    /// PT: Garante que funcoes escalares do SQL Server incluam NEWSEQUENTIALID para todas as versoes suportadas.
+    /// PT-br: Garante que funcoes escalares do SQL Server incluam NEWSEQUENTIALID para todas as versoes suportadas.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -168,9 +168,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses CROSS APPLY with correlated derived subqueries once the dialect version supports the native clause.
-    /// PT: Garante que o SQL Server interprete CROSS APPLY com subqueries derivadas correlacionadas quando a versao do dialeto suportar a clausula nativa.
+    /// PT-br: Garante que o SQL Server interprete CROSS APPLY com subqueries derivadas correlacionadas quando a versao do dialeto suportar a clausula nativa.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -205,9 +205,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses OUTER APPLY with correlated derived subqueries once the dialect version supports the native clause.
-    /// PT: Garante que o SQL Server interprete OUTER APPLY com subqueries derivadas correlacionadas quando a versao do dialeto suportar a clausula nativa.
+    /// PT-br: Garante que o SQL Server interprete OUTER APPLY com subqueries derivadas correlacionadas quando a versao do dialeto suportar a clausula nativa.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -242,9 +242,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses CROSS APPLY OPENJSON only once the dialect version reaches the SQL Server 2016 JSON feature set.
-    /// PT: Garante que o SQL Server interprete CROSS APPLY OPENJSON apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
+    /// PT-br: Garante que o SQL Server interprete CROSS APPLY OPENJSON apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -281,9 +281,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses OPENJSON WITH explicit schema only once the dialect version reaches the SQL Server 2016 JSON feature set.
-    /// PT: Garante que o SQL Server interprete OPENJSON WITH com schema explicito apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
+    /// PT-br: Garante que o SQL Server interprete OPENJSON WITH com schema explicito apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -330,9 +330,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser preserves OPENJSON path modifiers and quoted-key JSON paths in the explicit schema subset.
-    /// PT: Garante que o parser SQL Server preserve modificadores de path do OPENJSON e paths JSON com chave entre aspas no subset de schema explicito.
+    /// PT-br: Garante que o parser SQL Server preserve modificadores de path do OPENJSON e paths JSON com chave entre aspas no subset de schema explicito.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -371,9 +371,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses OUTER APPLY STRING_SPLIT only once the dialect version reaches the SQL Server 2016 function set.
-    /// PT: Garante que o SQL Server interprete OUTER APPLY STRING_SPLIT apenas quando a versao do dialeto atingir o conjunto de funcoes do SQL Server 2016.
+    /// PT-br: Garante que o SQL Server interprete OUTER APPLY STRING_SPLIT apenas quando a versao do dialeto atingir o conjunto de funcoes do SQL Server 2016.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -410,9 +410,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses STRING_SPLIT enable_ordinal only once the dialect version reaches SQL Server 2022 semantics.
-    /// PT: Garante que o SQL Server interprete STRING_SPLIT com enable_ordinal apenas quando a versao do dialeto atingir a semantica do SQL Server 2022.
+    /// PT-br: Garante que o SQL Server interprete STRING_SPLIT com enable_ordinal apenas quando a versao do dialeto atingir a semantica do SQL Server 2022.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -463,9 +463,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses UNPIVOT sources into the shared table-transform AST shape.
-    /// PT: Garante que o SQL Server interprete fontes UNPIVOT no shape compartilhado de transformacao tabular da AST.
+    /// PT-br: Garante que o SQL Server interprete fontes UNPIVOT no shape compartilhado de transformacao tabular da AST.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -493,9 +493,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses FOR JSON PATH only once the dialect version reaches the SQL Server 2016 JSON feature set.
-    /// PT: Garante que o SQL Server interprete FOR JSON PATH apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
+    /// PT-br: Garante que o SQL Server interprete FOR JSON PATH apenas quando a versao do dialeto atingir o conjunto JSON do SQL Server 2016.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -527,9 +527,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses FOR JSON AUTO options into the shared JSON serialization clause shape.
-    /// PT: Garante que o SQL Server interprete opcoes de FOR JSON AUTO no shape compartilhado da clausula de serializacao JSON.
+    /// PT-br: Garante que o SQL Server interprete opcoes de FOR JSON AUTO no shape compartilhado da clausula de serializacao JSON.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -561,9 +561,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser accepts ROWCOUNT() and rejects foreign row-count helper aliases.
-    /// PT: Garante que o parser SQL Server aceite ROWCOUNT() e rejeite aliases de row-count de outros bancos.
+    /// PT-br: Garante que o parser SQL Server aceite ROWCOUNT() e rejeite aliases de row-count de outros bancos.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -584,9 +584,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server metadata and session scalar helpers are exposed through an explicit dialect capability.
-    /// PT: Garante que helpers escalares de metadados e sessao do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// PT-br: Garante que helpers escalares de metadados e sessao do SQL Server sejam expostos por uma capability explicita do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -646,9 +646,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser accepts metadata and session helpers only through the explicit shared metadata capability.
-    /// PT: Garante que o parser SQL Server aceite helpers de metadados e sessao apenas pela capability explicita compartilhada de metadados.
+    /// PT-br: Garante que o parser SQL Server aceite helpers de metadados e sessao apenas pela capability explicita compartilhada de metadados.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -716,9 +716,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server session and user identifiers are exposed through an explicit dialect capability.
-    /// PT: Garante que identificadores de sessao e usuario do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// PT-br: Garante que identificadores de sessao e usuario do SQL Server sejam expostos por uma capability explicita do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -737,9 +737,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server date helpers are exposed through an explicit dialect capability.
-    /// PT: Garante que helpers de data do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// PT-br: Garante que helpers de data do SQL Server sejam expostos por uma capability explicita do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -759,9 +759,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server FROM PARTS helpers are exposed through an explicit dialect capability.
-    /// PT: Garante que helpers FROM PARTS do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// PT-br: Garante que helpers FROM PARTS do SQL Server sejam expostos por uma capability explicita do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versao do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versao do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -780,9 +780,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server aggregate helpers are exposed through explicit dialect capabilities.
-    /// PT: Garante que helpers de agregacao do SQL Server sejam expostos por capabilities explicitas do dialeto.
+    /// PT-br: Garante que helpers de agregacao do SQL Server sejam expostos por capabilities explicitas do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -799,9 +799,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser accepts approximate and checksum aggregate helpers only through explicit dialect capabilities.
-    /// PT: Garante que o parser SQL Server aceite helpers aproximados e de checksum apenas por capabilities explicitas do dialeto.
+    /// PT-br: Garante que o parser SQL Server aceite helpers aproximados e de checksum apenas por capabilities explicitas do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -825,9 +825,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser accepts date helpers only through the explicit SQL Server date-function capability.
-    /// PT: Garante que o parser SQL Server aceite helpers de data apenas pela capability explicita de funcoes de data do SQL Server.
+    /// PT-br: Garante que o parser SQL Server aceite helpers de data apenas pela capability explicita de funcoes de data do SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -859,9 +859,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser accepts identifier-style session and user tokens only through the explicit metadata-identifier capability.
-    /// PT: Garante que o parser SQL Server aceite tokens de sessao e usuario em estilo identificador apenas pela capability explicita de identificador de metadados.
+    /// PT-br: Garante que o parser SQL Server aceite tokens de sessao e usuario em estilo identificador apenas pela capability explicita de identificador de metadados.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -880,9 +880,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server string and scalar helpers are exposed through an explicit dialect capability.
-    /// PT: Garante que helpers de string e escalares do SQL Server sejam expostos por uma capability explicita do dialeto.
+    /// PT-br: Garante que helpers de string e escalares do SQL Server sejam expostos por uma capability explicita do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -963,9 +963,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser accepts selected string and scalar helpers only through the explicit SQL Server scalar-function capability.
-    /// PT: Garante que o parser SQL Server aceite helpers selecionados de string e escalares apenas pela capability explicita de funcoes escalares do SQL Server.
+    /// PT-br: Garante que o parser SQL Server aceite helpers selecionados de string e escalares apenas pela capability explicita de funcoes escalares do SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1108,9 +1108,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser/tokenizer accepts @@ROWCOUNT through dialect-owned syntax capability.
-    /// PT: Garante que o parser/tokenizer SQL Server aceite @@ROWCOUNT pela capability de sintaxe do próprio dialeto.
+    /// PT-br: Garante que o parser/tokenizer SQL Server aceite @@ROWCOUNT pela capability de sintaxe do próprio dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1126,9 +1126,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL-style ILIKE is rejected in SQL Server dialect.
-    /// PT: Garante que ILIKE no estilo PostgreSQL seja rejeitado no dialeto SQL Server.
+    /// PT-br: Garante que ILIKE no estilo PostgreSQL seja rejeitado no dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1144,9 +1144,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL-style sequence function calls are rejected in SQL Server dialect.
-    /// PT: Garante que chamadas de sequence no estilo PostgreSQL sejam rejeitadas no dialeto SQL Server.
+    /// PT-br: Garante que chamadas de sequence no estilo PostgreSQL sejam rejeitadas no dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1174,9 +1174,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures CREATE SEQUENCE follows SQL Server version support and captures numeric options in the AST.
-    /// PT: Garante que CREATE SEQUENCE siga o suporte por versao do SQL Server e capture opcoes numericas na AST.
+    /// PT-br: Garante que CREATE SEQUENCE siga o suporte por versao do SQL Server e capture opcoes numericas na AST.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1201,9 +1201,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DROP SEQUENCE follows SQL Server version support and preserves the IF EXISTS flag.
-    /// PT: Garante que DROP SEQUENCE siga o suporte por versao do SQL Server e preserve a flag IF EXISTS.
+    /// PT-br: Garante que DROP SEQUENCE siga o suporte por versao do SQL Server e preserve a flag IF EXISTS.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1227,7 +1227,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects OWNED BY for sequence DDL even when sequence syntax is available.
-    /// PT: Garante que o SQL Server rejeite OWNED BY em DDL de sequence mesmo quando a sintaxe de sequence esta disponivel.
+    /// PT-br: Garante que o SQL Server rejeite OWNED BY em DDL de sequence mesmo quando a sintaxe de sequence esta disponivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1250,9 +1250,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses the first pragmatic scalar FUNCTION DDL subset.
-    /// PT: Garante que o SQL Server interprete o primeiro subset pragmatico de FUNCTION escalar.
+    /// PT-br: Garante que o SQL Server interprete o primeiro subset pragmatico de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1281,9 +1281,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects CREATE OR REPLACE FUNCTION outside the supported provider-real subset.
-    /// PT: Garante que o SQL Server rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
+    /// PT-br: Garante que o SQL Server rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Vers+�o do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Vers+�o do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1299,7 +1299,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server accepts DROP INDEX ... ON &lt;table&gt; in the pragmatic shared DDL subset.
-    /// PT: Garante que o SQL Server aceite DROP INDEX ... ON &lt;table&gt; no subset DDL pragmático compartilhado.
+    /// PT-br: Garante que o SQL Server aceite DROP INDEX ... ON &lt;table&gt; no subset DDL pragmático compartilhado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1319,7 +1319,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects CREATE INDEX when the table reference uses an alias outside the pragmatic shared subset.
-    /// PT: Garante que o SQL Server rejeite CREATE INDEX quando a referencia da tabela usa alias fora do subset pragmatico compartilhado.
+    /// PT-br: Garante que o SQL Server rejeite CREATE INDEX quando a referencia da tabela usa alias fora do subset pragmatico compartilhado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1337,7 +1337,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects CREATE INDEX when the table reference is a derived source outside the pragmatic shared subset.
-    /// PT: Garante que o SQL Server rejeite CREATE INDEX quando a referencia da tabela e uma fonte derivada fora do subset pragmatico compartilhado.
+    /// PT-br: Garante que o SQL Server rejeite CREATE INDEX quando a referencia da tabela e uma fonte derivada fora do subset pragmatico compartilhado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1355,7 +1355,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects CREATE INDEX with an empty key-column list outside the pragmatic shared subset.
-    /// PT: Garante que o SQL Server rejeite CREATE INDEX com lista vazia de colunas-chave fora do subset pragmatico compartilhado.
+    /// PT-br: Garante que o SQL Server rejeite CREATE INDEX com lista vazia de colunas-chave fora do subset pragmatico compartilhado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1373,7 +1373,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects DROP INDEX ... ON when the table name is omitted from the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite DROP INDEX ... ON quando o nome da tabela for omitido no subset pragmático.
+    /// PT-br: Garante que o SQL Server rejeite DROP INDEX ... ON quando o nome da tabela for omitido no subset pragmático.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1391,7 +1391,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects DROP INDEX ... ON when the table reference uses an alias outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite DROP INDEX ... ON quando a referencia da tabela usa alias fora do subset pragmático.
+    /// PT-br: Garante que o SQL Server rejeite DROP INDEX ... ON quando a referencia da tabela usa alias fora do subset pragmático.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1409,7 +1409,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects DROP INDEX ... ON when the table reference is a derived source outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite DROP INDEX ... ON quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite DROP INDEX ... ON quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1427,7 +1427,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server accepts the pragmatic ALTER TABLE ... ADD subset with ADD syntax and captures column metadata.
-    /// PT: Garante que o SQL Server aceite o subset pragmático de ALTER TABLE ... ADD com sintaxe ADD e capture os metadados da coluna.
+    /// PT-br: Garante que o SQL Server aceite o subset pragmático de ALTER TABLE ... ADD com sintaxe ADD e capture os metadados da coluna.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1450,7 +1450,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o SQL Server preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o SQL Server preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1472,7 +1472,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o SQL Server preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o SQL Server preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1492,7 +1492,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1510,7 +1510,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1528,7 +1528,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1546,7 +1546,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when VARCHAR type arguments are not numeric outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR nao sao numericos fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR nao sao numericos fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1564,7 +1564,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when DECIMAL scale arguments are not numeric outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de escala de DECIMAL nao sao numericos fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de escala de DECIMAL nao sao numericos fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1582,7 +1582,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when VARCHAR type arguments are empty outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR estao vazios fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR estao vazios fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1600,7 +1600,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when DECIMAL type arguments are empty outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo DECIMAL estao vazios fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo DECIMAL estao vazios fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1618,7 +1618,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when VARCHAR type arguments contain a trailing empty entry outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR contem uma entrada vazia final fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo VARCHAR contem uma entrada vazia final fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1636,7 +1636,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects ALTER TABLE ... ADD when DECIMAL type arguments contain a trailing empty entry outside the pragmatic subset.
-    /// PT: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo DECIMAL contem uma entrada vazia final fora do subset pragmatico.
+    /// PT-br: Garante que o SQL Server rejeite ALTER TABLE ... ADD quando os argumentos de tipo DECIMAL contem uma entrada vazia final fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1654,9 +1654,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Validates OFFSET/FETCH without ORDER BY according to dialect version rules.
-    /// PT: Valida OFFSET/FETCH sem ORDER BY conforme as regras de versão do dialeto.
+    /// PT-br: Valida OFFSET/FETCH sem ORDER BY conforme as regras de versão do dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1680,9 +1680,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OFFSET/FETCH accepts command parameters in parser execution mode.
-    /// PT: Garante que OFFSET/FETCH aceite parâmetros de comando no modo de execução do parser.
+    /// PT-br: Garante que OFFSET/FETCH aceite parâmetros de comando no modo de execução do parser.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1707,9 +1707,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server OFFSET/FETCH pagination is normalized to the canonical row-limit AST node.
-    /// PT: Garante que a paginação OFFSET/FETCH do SQL Server seja normalizada para o nó canônico de AST de limite de linhas.
+    /// PT-br: Garante que a paginação OFFSET/FETCH do SQL Server seja normalizada para o nó canônico de AST de limite de linhas.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1735,7 +1735,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects NULLS FIRST and NULLS LAST modifiers in ORDER BY clauses.
-    /// PT: Garante que o SQL Server rejeite modifiers NULLS FIRST e NULLS LAST em clausulas ORDER BY.
+    /// PT-br: Garante que o SQL Server rejeite modifiers NULLS FIRST e NULLS LAST em clausulas ORDER BY.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1755,9 +1755,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies parsing SELECT with LIMIT returns an actionable hint for SQL Server pagination syntax.
-    /// PT: Verifica que o parsing de SELECT com LIMIT retorna uma dica acionável para a sintaxe de paginação do SQL Server.
+    /// PT-br: Verifica que o parsing de SELECT com LIMIT retorna uma dica acionável para a sintaxe de paginação do SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1777,9 +1777,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies unsupported top-level statements return guidance-focused errors.
-    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// PT-br: Verifica que comandos de topo não suportados retornam erros com orientação.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1796,9 +1796,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects Oracle-style JSON_VALUE RETURNING clause with an actionable dialect gate.
-    /// PT: Garante que o SQL Server rejeite a cláusula Oracle-style JSON_VALUE RETURNING com gate acionável de dialeto.
+    /// PT-br: Garante que o SQL Server rejeite a cláusula Oracle-style JSON_VALUE RETURNING com gate acionável de dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1816,9 +1816,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_QUERY follows SQL Server version support starting in 2016.
-    /// PT: Garante que JSON_QUERY siga o suporte por versão do SQL Server a partir de 2016.
+    /// PT-br: Garante que JSON_QUERY siga o suporte por versão do SQL Server a partir de 2016.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1841,9 +1841,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server exposes high-precision temporal calls only for versions that support them natively.
-    /// PT: Garante que o SQL Server exponha chamadas temporais de alta precisão apenas para versões que as suportam nativamente.
+    /// PT-br: Garante que o SQL Server exponha chamadas temporais de alta precisão apenas para versões que as suportam nativamente.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1861,9 +1861,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server FROMPARTS constructors are gated by the native 2012+ feature boundary.
-    /// PT: Garante que os construtores FROMPARTS do SQL Server sejam controlados pelo limite nativo do recurso 2012+.
+    /// PT-br: Garante que os construtores FROMPARTS do SQL Server sejam controlados pelo limite nativo do recurso 2012+.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1910,9 +1910,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server TRY_CAST is gated by the native 2012+ feature boundary and preserves the target type as raw SQL.
-    /// PT: Garante que TRY_CAST no SQL Server seja controlado pelo limite nativo do recurso 2012+ e preserve o tipo de destino como SQL bruto.
+    /// PT-br: Garante que TRY_CAST no SQL Server seja controlado pelo limite nativo do recurso 2012+ e preserve o tipo de destino como SQL bruto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1938,9 +1938,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures TRY_CONVERT follows SQL Server version support starting in 2012 and keeps the target type as raw SQL.
-    /// PT: Garante que TRY_CONVERT siga o suporte por versão do SQL Server a partir de 2012 e mantenha o tipo de destino como SQL bruto.
+    /// PT-br: Garante que TRY_CONVERT siga o suporte por versão do SQL Server a partir de 2012 e mantenha o tipo de destino como SQL bruto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1967,9 +1967,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PARSE follows SQL Server version support starting in 2012 and keeps the target type as raw SQL.
-    /// PT: Garante que PARSE siga o suporte por versão do SQL Server a partir de 2012 e mantenha o tipo de destino como SQL bruto.
+    /// PT-br: Garante que PARSE siga o suporte por versão do SQL Server a partir de 2012 e mantenha o tipo de destino como SQL bruto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -1996,9 +1996,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures TRY_PARSE follows SQL Server version support starting in 2012 and keeps the target type as raw SQL.
-    /// PT: Garante que TRY_PARSE siga o suporte por versão do SQL Server a partir de 2012 e mantenha o tipo de destino como SQL bruto.
+    /// PT-br: Garante que TRY_PARSE siga o suporte por versão do SQL Server a partir de 2012 e mantenha o tipo de destino como SQL bruto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2025,9 +2025,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures EOMONTH follows SQL Server version support starting in 2012.
-    /// PT: Garante que EOMONTH siga o suporte por versão do SQL Server a partir de 2012.
+    /// PT-br: Garante que EOMONTH siga o suporte por versão do SQL Server a partir de 2012.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2052,9 +2052,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures TRANSLATE follows SQL Server version support starting in 2017.
-    /// PT: Garante que TRANSLATE siga o suporte por versão do SQL Server a partir de 2017.
+    /// PT-br: Garante que TRANSLATE siga o suporte por versão do SQL Server a partir de 2017.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2079,9 +2079,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures GETUTCDATE remains available as a zero-argument SQL Server temporal call across supported versions.
-    /// PT: Garante que GETUTCDATE permaneça disponivel como chamada temporal sem argumentos do SQL Server em todas as versões suportadas.
+    /// PT-br: Garante que GETUTCDATE permaneça disponivel como chamada temporal sem argumentos do SQL Server em todas as versões suportadas.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2099,9 +2099,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OPENJSON follows SQL Server version support starting in 2016.
-    /// PT: Garante que OPENJSON siga o suporte por versão do SQL Server a partir de 2016.
+    /// PT-br: Garante que OPENJSON siga o suporte por versão do SQL Server a partir de 2016.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2119,9 +2119,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses schema-qualified table-valued functions in APPLY once the shared function subset is supported.
-    /// PT: Garante que o SQL Server interprete funcoes de tabela qualificadas por schema em APPLY quando o subset compartilhado de funcoes estiver suportado.
+    /// PT-br: Garante que o SQL Server interprete funcoes de tabela qualificadas por schema em APPLY quando o subset compartilhado de funcoes estiver suportado.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2158,9 +2158,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses schema-qualified OPENJSON WITH explicit schema through the shared APPLY table-function path.
-    /// PT: Garante que o SQL Server interprete OPENJSON qualificado por schema com WITH explicito pelo caminho compartilhado de funcao tabular em APPLY.
+    /// PT-br: Garante que o SQL Server interprete OPENJSON qualificado por schema com WITH explicito pelo caminho compartilhado de funcao tabular em APPLY.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2201,9 +2201,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parses schema-qualified STRING_SPLIT enable_ordinal only once the dialect reaches SQL Server 2022 semantics.
-    /// PT: Garante que o SQL Server interprete STRING_SPLIT qualificado por schema com enable_ordinal apenas quando o dialeto atingir a semantica do SQL Server 2022.
+    /// PT-br: Garante que o SQL Server interprete STRING_SPLIT qualificado por schema com enable_ordinal apenas quando o dialeto atingir a semantica do SQL Server 2022.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2247,9 +2247,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server accepts DATEADD and rejects MySQL DATE_ADD/TIMESTAMPADD syntax.
-    /// PT: Garante que o SQL Server aceite DATEADD e rejeite a sintaxe DATE_ADD/TIMESTAMPADD do MySQL.
+    /// PT-br: Garante que o SQL Server aceite DATEADD e rejeite a sintaxe DATE_ADD/TIMESTAMPADD do MySQL.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2273,9 +2273,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures NEXT/PREVIOUS VALUE FOR follow SQL Server sequence-expression support by version.
-    /// PT: Garante que NEXT/PREVIOUS VALUE FOR sigam o suporte a expressoes de sequence por versao no SQL Server.
+    /// PT-br: Garante que NEXT/PREVIOUS VALUE FOR sigam o suporte a expressoes de sequence por versao no SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2306,9 +2306,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE parsing follows SQL Server version support and preserves target table metadata.
-    /// PT: Garante que o parsing de MERGE siga o suporte por versão do SQL Server e preserve metadados da tabela alvo.
+    /// PT-br: Garante que o parsing de MERGE siga o suporte por versão do SQL Server e preserve metadados da tabela alvo.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2333,9 +2333,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE accepts the WHEN NOT MATCHED clause form in merge-capable dialect versions.
-    /// PT: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
+    /// PT-br: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2352,9 +2352,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without USING is rejected with actionable parser guidance in SQL Server dialect.
-    /// PT: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto SQL Server.
+    /// PT-br: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2370,9 +2370,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without ON is rejected with actionable parser guidance in SQL Server dialect.
-    /// PT: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto SQL Server.
+    /// PT-br: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2388,9 +2388,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE requires ON at top-level and does not accept ON tokens nested inside USING subqueries.
-    /// PT: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING.
+    /// PT-br: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2407,9 +2407,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without WHEN is rejected with actionable parser guidance in SQL Server dialect.
-    /// PT: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto SQL Server.
+    /// PT-br: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2425,9 +2425,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE does not accept a source alias named WHEN as a replacement for top-level WHEN clauses.
-    /// PT: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
+    /// PT-br: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2444,9 +2444,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE requires WHEN at top-level and does not accept WHEN tokens nested inside USING subqueries.
-    /// PT: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
+    /// PT-br: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2464,9 +2464,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE rejects invalid top-level WHEN forms that are not WHEN MATCHED/WHEN NOT MATCHED.
-    /// PT: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
+    /// PT-br: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.MergeMinVersion)]
@@ -2483,9 +2483,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures WITH RECURSIVE syntax is rejected.
-    /// PT: Garante que a sintaxe with recursive seja rejeitada.
+    /// PT-br: Garante que a sintaxe with recursive seja rejeitada.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2506,9 +2506,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
-    /// PT: Garante que o SQL Server rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// PT-br: Garante que o SQL Server rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.WithCteMinVersion)]
@@ -2530,9 +2530,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies WITH RECURSIVE rejection includes actionable SQL Server guidance.
-    /// PT: Verifica que a rejeição de WITH RECURSIVE inclui orientação acionável para SQL Server.
+    /// PT-br: Verifica que a rejeição de WITH RECURSIVE inclui orientação acionável para SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion(VersionGraterOrEqual = SqlServerDialect.WithCteMinVersion)]
@@ -2548,9 +2548,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server table hints in WITH (...) form are parsed.
-    /// PT: Garante que hints de tabela SQL Server na forma WITH (...) sejam interpretados.
+    /// PT-br: Garante que hints de tabela SQL Server na forma WITH (...) sejam interpretados.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2566,9 +2566,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures legacy SQL Server table hint syntax is parsed.
-    /// PT: Garante que a sintaxe legada de hint de tabela do SQL Server seja interpretada.
+    /// PT-br: Garante que a sintaxe legada de hint de tabela do SQL Server seja interpretada.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2584,9 +2584,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server OPTION(...) query hints are accepted by parser capability.
-    /// PT: Garante que hints de consulta SQL Server OPTION(...) sejam aceitos pela capability do parser.
+    /// PT-br: Garante que hints de consulta SQL Server OPTION(...) sejam aceitos pela capability do parser.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2603,9 +2603,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OPTION(...) is accepted after UNION query tails.
-    /// PT: Garante que OPTION(...) seja aceito após o tail de consultas UNION.
+    /// PT-br: Garante que OPTION(...) seja aceito após o tail de consultas UNION.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2623,9 +2623,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures unsupported quoted aliases are rejected with actionable parser diagnostics for this dialect.
-    /// PT: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
+    /// PT-br: Garante que aliases com quoting não suportado sejam rejeitados com diagnóstico acionável do parser para este dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2642,9 +2642,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server accepts bracket-quoted aliases and preserves the normalized alias text in AST.
-    /// PT: Garante que o SQL Server aceite aliases com colchetes e preserve o texto normalizado do alias na AST.
+    /// PT-br: Garante que o SQL Server aceite aliases com colchetes e preserve o texto normalizado do alias na AST.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2662,9 +2662,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server unescapes doubled brackets inside bracket-quoted aliases when normalizing AST alias text.
-    /// PT: Garante que o SQL Server faça unescape de colchetes duplicados dentro de aliases com colchetes ao normalizar o texto do alias na AST.
+    /// PT-br: Garante que o SQL Server faça unescape de colchetes duplicados dentro de aliases com colchetes ao normalizar o texto do alias na AST.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2682,9 +2682,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server unescapes doubled double-quotes inside quoted aliases when normalizing AST alias text.
-    /// PT: Garante que o SQL Server faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
+    /// PT-br: Garante que o SQL Server faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2703,9 +2703,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PIVOT clause parsing is available for this dialect.
-    /// PT: Garante que o parsing da cláusula pivot esteja disponível para este dialeto.
+    /// PT-br: Garante que o parsing da cláusula pivot esteja disponível para este dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2722,9 +2722,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures invalid PIVOT syntax fails with parser validation error.
-    /// PT: Garante que sintaxe inválida de pivot falhe com erro de validação do parser.
+    /// PT-br: Garante que sintaxe inválida de pivot falhe com erro de validação do parser.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2741,9 +2741,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
-    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// PT-br: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2765,9 +2765,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures unsupported SQL uses the standard not-supported message.
-    /// PT: Garante que SQL não suportado use a mensagem padrão de não suportado.
+    /// PT-br: Garante que SQL não suportado use a mensagem padrão de não suportado.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -2784,7 +2784,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Validates window function capability by SQL Server version and function name.
-    /// PT: Valida a capacidade de funções de janela por versão do SQL Server e nome da função.
+    /// PT-br: Valida a capacidade de funções de janela por versão do SQL Server e nome da função.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2801,7 +2801,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates window function names against SQL Server dialect capabilities by version.
-    /// PT: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto SQL Server por versão.
+    /// PT-br: Garante que o parser valide nomes de função de janela contra as capacidades do dialeto SQL Server por versão.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2827,7 +2827,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
-    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// PT-br: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2852,7 +2852,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates window function argument arity for supported functions.
-    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// PT-br: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2884,7 +2884,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates literal semantic ranges for window function arguments.
-    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// PT-br: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2915,7 +2915,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
-    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// PT-br: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2935,7 +2935,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
-    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// PT-br: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -2967,7 +2967,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures supported window frame clauses parse on aggregate window functions.
-    /// PT: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
+    /// PT-br: Garante que cláusulas de frame suportadas sejam interpretadas em funções de janela agregadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3006,7 +3006,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser accepts ordered-set WITHIN GROUP for STRING_AGG.
-    /// PT: Garante que o parser SQL Server aceite ordered-set WITHIN GROUP para STRING_AGG.
+    /// PT-br: Garante que o parser SQL Server aceite ordered-set WITHIN GROUP para STRING_AGG.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3043,9 +3043,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser rejects DISTINCT directly inside STRING_AGG.
-    /// PT: Garante que o parser SQL Server rejeite DISTINCT diretamente dentro de STRING_AGG.
+    /// PT-br: Garante que o parser SQL Server rejeite DISTINCT diretamente dentro de STRING_AGG.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3064,7 +3064,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
-    /// PT: Garante que o parser SQL Server bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// PT-br: Garante que o parser SQL Server bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3080,7 +3080,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
-    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// PT-br: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3105,7 +3105,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures trailing commas in WITHIN GROUP ORDER BY are rejected with actionable message.
-    /// PT: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3130,7 +3130,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures empty ORDER BY lists in WITHIN GROUP are rejected with actionable message.
-    /// PT: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3155,7 +3155,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures leading commas in WITHIN GROUP ORDER BY are rejected with actionable message.
-    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3181,7 +3181,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures missing commas between WITHIN GROUP ORDER BY expressions are rejected with actionable message.
-    /// PT: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3208,7 +3208,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures invalid window frame bound ordering is rejected by parser semantic validation.
-    /// PT: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
+    /// PT-br: Garante que ordenação inválida de limites de frame de janela seja rejeitada pela validação semântica do parser.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3232,9 +3232,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL RETURNING clause is rejected for SQL Server UPDATE statements.
-    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no SQL Server.
+    /// PT-br: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3253,7 +3253,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL RETURNING clause is rejected for SQL Server UPDATE statements even without WHERE.
-    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no SQL Server mesmo sem WHERE.
+    /// PT-br: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em UPDATE no SQL Server mesmo sem WHERE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3272,7 +3272,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures empty RETURNING list in SQL Server UPDATE remains blocked by dialect gate.
-    /// PT: Garante que lista vazia em RETURNING no UPDATE do SQL Server continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista vazia em RETURNING no UPDATE do SQL Server continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3291,7 +3291,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with leading comma in SQL Server UPDATE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula inicial no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula inicial no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3310,7 +3310,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with trailing comma in SQL Server UPDATE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula final no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING malformado com vírgula final no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3329,7 +3329,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures RETURNING alias without expression in SQL Server UPDATE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING com alias sem expressão no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING com alias sem expressão no UPDATE do SQL Server continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3349,7 +3349,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE with unexpected trailing token is rejected with actionable message.
-    /// PT: Garante que UPDATE com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que UPDATE com token inesperado ao final seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3369,7 +3369,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE WHERE without predicate is rejected with actionable message.
-    /// PT: Garante que UPDATE com WHERE sem predicado seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que UPDATE com WHERE sem predicado seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3389,7 +3389,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE WHERE terminated only by semicolon is rejected with actionable message.
-    /// PT: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que UPDATE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3409,7 +3409,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE SET assignments without comma separator are rejected with actionable message.
-    /// PT: Garante que atribuições em UPDATE SET sem separação por vírgula sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que atribuições em UPDATE SET sem separação por vírgula sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3428,7 +3428,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE SET assignment with malformed expression is rejected with actionable message.
-    /// PT: Garante que atribuição em UPDATE SET com expressão malformada seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que atribuição em UPDATE SET com expressão malformada seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3447,7 +3447,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE SET assignment without equals is rejected with actionable message.
-    /// PT: Garante que atribuição em UPDATE SET sem sinal de igual seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que atribuição em UPDATE SET sem sinal de igual seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3466,7 +3466,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE SET without assignments and terminated by semicolon is rejected with actionable token context.
-    /// PT: Garante que UPDATE SET sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
+    /// PT-br: Garante que UPDATE SET sem atribuições e finalizado por ponto e vírgula seja rejeitado com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3486,7 +3486,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE SET with repeated SET keyword is rejected with actionable message.
-    /// PT: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que UPDATE SET com palavra-chave SET repetida seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3506,7 +3506,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE SET leading comma is rejected with actionable token context.
-    /// PT: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// PT-br: Garante que vírgula inicial em UPDATE SET seja rejeitada com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3526,7 +3526,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE SET trailing comma is rejected with actionable token context.
-    /// PT: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
+    /// PT-br: Garante que vírgula final em UPDATE SET seja rejeitada com contexto acionável de token.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3546,7 +3546,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE WHERE with malformed predicate is rejected with actionable message.
-    /// PT: Garante que UPDATE com WHERE malformado seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que UPDATE com WHERE malformado seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3565,9 +3565,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL RETURNING clause is rejected for SQL Server DELETE statements.
-    /// PT: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em DELETE no SQL Server.
+    /// PT-br: Garante que a cláusula RETURNING do PostgreSQL seja rejeitada em DELETE no SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3585,9 +3585,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures empty RETURNING list in SQL Server DELETE remains blocked by dialect gate.
-    /// PT: Garante que lista vazia em RETURNING no DELETE do SQL Server continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista vazia em RETURNING no DELETE do SQL Server continue bloqueada pelo gate de dialeto.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3605,9 +3605,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with leading comma in DELETE remains blocked by SQL Server dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula inicial no DELETE continue bloqueado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que RETURNING malformado com vírgula inicial no DELETE continue bloqueado pelo gate de dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3625,9 +3625,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with trailing comma in DELETE remains blocked by SQL Server dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula final no DELETE continue bloqueado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que RETURNING malformado com vírgula final no DELETE continue bloqueado pelo gate de dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3645,9 +3645,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING expression in DELETE remains blocked by SQL Server dialect gate.
-    /// PT: Garante que expressão malformada em RETURNING no DELETE continue bloqueada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que expressão malformada em RETURNING no DELETE continue bloqueada pelo gate de dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3665,9 +3665,9 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with unbalanced parentheses in DELETE remains blocked by SQL Server dialect gate.
-    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no DELETE continue bloqueado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que RETURNING malformado com parênteses desbalanceados no DELETE continue bloqueado pelo gate de dialeto SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -3685,7 +3685,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures RETURNING alias without expression in SQL Server DELETE remains blocked by dialect gate.
-    /// PT: Garante que RETURNING com alias sem expressão no DELETE do SQL Server continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING com alias sem expressão no DELETE do SQL Server continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3705,7 +3705,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DELETE with unexpected trailing token is rejected with actionable message.
-    /// PT: Garante que DELETE com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que DELETE com token inesperado ao final seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3725,7 +3725,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DELETE WHERE without predicate is rejected with actionable message.
-    /// PT: Garante que DELETE com WHERE sem predicado seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que DELETE com WHERE sem predicado seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3745,7 +3745,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DELETE WHERE terminated only by semicolon is rejected with actionable message.
-    /// PT: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que DELETE com WHERE finalizado apenas por ponto e vírgula seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3765,7 +3765,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DELETE WHERE with malformed predicate is rejected with actionable message.
-    /// PT: Garante que DELETE com WHERE malformado seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que DELETE com WHERE malformado seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3785,7 +3785,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING in INSERT remains blocked by SQL Server dialect gate.
-    /// PT: Garante que RETURNING malformado em INSERT continue bloqueado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que RETURNING malformado em INSERT continue bloqueado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3804,7 +3804,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures empty RETURNING list in SQL Server INSERT remains blocked by dialect gate.
-    /// PT: Garante que lista vazia em RETURNING no INSERT do SQL Server continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista vazia em RETURNING no INSERT do SQL Server continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3823,7 +3823,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with trailing comma in INSERT remains blocked by SQL Server dialect gate.
-    /// PT: Garante que RETURNING malformado com vírgula final no INSERT continue bloqueado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que RETURNING malformado com vírgula final no INSERT continue bloqueado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3842,7 +3842,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING expression in INSERT remains blocked by SQL Server dialect gate.
-    /// PT: Garante que expressão malformada em RETURNING no INSERT continue bloqueada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que expressão malformada em RETURNING no INSERT continue bloqueada pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3861,7 +3861,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with unbalanced parentheses in INSERT remains blocked by SQL Server dialect gate.
-    /// PT: Garante que RETURNING malformado com parênteses desbalanceados no INSERT continue bloqueado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que RETURNING malformado com parênteses desbalanceados no INSERT continue bloqueado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3880,7 +3880,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures RETURNING alias without expression in SQL Server INSERT remains blocked by dialect gate.
-    /// PT: Garante que RETURNING com alias sem expressão no INSERT do SQL Server continue bloqueado pelo gate de dialeto.
+    /// PT-br: Garante que RETURNING com alias sem expressão no INSERT do SQL Server continue bloqueado pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3899,7 +3899,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed ON DUPLICATE KEY UPDATE remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE malformado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3917,7 +3917,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3935,7 +3935,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with malformed RETURNING expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3953,7 +3953,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with empty RETURNING list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3971,7 +3971,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with unbalanced parentheses in RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com parênteses desbalanceados em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com parênteses desbalanceados em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -3989,7 +3989,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with leading comma in RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula inicial em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com vírgula inicial em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4007,7 +4007,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with trailing comma in RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com vírgula final em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com vírgula final em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4025,7 +4025,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4043,7 +4043,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and followed by RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e seguido por RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e seguido por RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4061,7 +4061,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with empty RETURNING list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4079,7 +4079,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with unbalanced RETURNING expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4097,7 +4097,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with WHERE clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula WHERE continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula WHERE continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4115,7 +4115,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with FROM clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4133,7 +4133,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE without assignments and with USING clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE sem atribuições e com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4151,7 +4151,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with repeated SET keyword remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4169,7 +4169,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE assignment without equals remains rejected by SQL Server dialect gate.
-    /// PT: Garante que atribuição em ON DUPLICATE KEY UPDATE sem sinal de igual continue rejeitada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que atribuição em ON DUPLICATE KEY UPDATE sem sinal de igual continue rejeitada pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4187,7 +4187,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE leading comma remains rejected by SQL Server dialect gate.
-    /// PT: Garante que vírgula inicial em ON DUPLICATE KEY UPDATE continue rejeitada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que vírgula inicial em ON DUPLICATE KEY UPDATE continue rejeitada pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4205,7 +4205,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with WHERE clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula WHERE continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com cláusula WHERE continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4223,7 +4223,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with table-source clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula de table-source continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com cláusula de table-source continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4241,7 +4241,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON DUPLICATE KEY UPDATE with USING clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON DUPLICATE KEY UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON DUPLICATE KEY UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4260,7 +4260,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT with unexpected trailing token is rejected with actionable message.
-    /// PT: Garante que INSERT com token inesperado ao final seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que INSERT com token inesperado ao final seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4280,7 +4280,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES trailing comma is rejected with actionable message.
-    /// PT: Garante que vírgula final em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que vírgula final em INSERT VALUES seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4300,7 +4300,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES tuples without comma separator are rejected with actionable message.
-    /// PT: Garante que tuplas em INSERT VALUES sem vírgula separadora sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que tuplas em INSERT VALUES sem vírgula separadora sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4319,7 +4319,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES leading comma is rejected with actionable message.
-    /// PT: Garante que vírgula inicial em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que vírgula inicial em INSERT VALUES seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4338,7 +4338,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES with malformed scalar expression is rejected with actionable message.
-    /// PT: Garante que INSERT VALUES com expressão escalar malformada seja rejeitado com mensagem acionável.
+    /// PT-br: Garante que INSERT VALUES com expressão escalar malformada seja rejeitado com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4357,7 +4357,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES reports row/position for malformed expression in later rows.
-    /// PT: Garante que INSERT VALUES reporte linha/posição para expressão malformada em linhas posteriores.
+    /// PT-br: Garante que INSERT VALUES reporte linha/posição para expressão malformada em linhas posteriores.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4377,7 +4377,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT column list trailing comma is rejected with actionable message.
-    /// PT: Garante que vírgula final na lista de colunas do INSERT seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que vírgula final na lista de colunas do INSERT seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4396,7 +4396,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT empty column list is rejected with actionable message.
-    /// PT: Garante que lista de colunas vazia no INSERT seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que lista de colunas vazia no INSERT seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4416,7 +4416,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT column list leading comma is rejected with actionable message.
-    /// PT: Garante que vírgula inicial na lista de colunas do INSERT seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que vírgula inicial na lista de colunas do INSERT seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4435,7 +4435,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT column list unclosed before semicolon is rejected with actionable message.
-    /// PT: Garante que lista de colunas do INSERT não fechada antes de ponto e vírgula seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que lista de colunas do INSERT não fechada antes de ponto e vírgula seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4455,7 +4455,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES rejects empty expression between commas inside tuple.
-    /// PT: Garante que INSERT VALUES rejeite expressão vazia entre vírgulas dentro da tupla.
+    /// PT-br: Garante que INSERT VALUES rejeite expressão vazia entre vírgulas dentro da tupla.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4474,7 +4474,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES rejects trailing comma inside tuple.
-    /// PT: Garante que INSERT VALUES rejeite vírgula final dentro da tupla.
+    /// PT-br: Garante que INSERT VALUES rejeite vírgula final dentro da tupla.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4494,7 +4494,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES tuple with unclosed parenthesis is rejected with actionable message.
-    /// PT: Garante que tupla em INSERT VALUES com parêntese não fechado seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que tupla em INSERT VALUES com parêntese não fechado seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4514,7 +4514,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES row expression count mismatch is rejected with actionable message.
-    /// PT: Garante que divergência entre número de colunas e expressões em INSERT VALUES seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que divergência entre número de colunas e expressões em INSERT VALUES seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4535,7 +4535,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT VALUES rows with inconsistent expression counts are rejected with actionable message.
-    /// PT: Garante que linhas de INSERT VALUES com cardinalidade inconsistente de expressões sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que linhas de INSERT VALUES com cardinalidade inconsistente de expressões sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4556,7 +4556,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PostgreSQL ON CONFLICT remains rejected by SQL Server dialect gate even when malformed.
-    /// PT: Garante que ON CONFLICT do PostgreSQL continue rejeitado pelo gate de dialeto SQL Server mesmo malformado.
+    /// PT-br: Garante que ON CONFLICT do PostgreSQL continue rejeitado pelo gate de dialeto SQL Server mesmo malformado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4575,7 +4575,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target interrupted by semicolon remains rejected by SQL Server dialect gate.
-    /// PT: Garante que alvo de ON CONFLICT interrompido por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que alvo de ON CONFLICT interrompido por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4594,7 +4594,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed ON CONFLICT DO UPDATE SET remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE SET malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE SET malformado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4613,7 +4613,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT without DO branch remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT sem ramo DO continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT sem ramo DO continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4631,7 +4631,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING with additional clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula adicional continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING com cláusula adicional continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4649,7 +4649,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING with FROM clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4667,7 +4667,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING with USING clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4685,7 +4685,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING with SET clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4703,7 +4703,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING with UPDATE clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4721,7 +4721,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4739,7 +4739,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE SET ... RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE SET ... RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE SET ... RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4757,7 +4757,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4775,7 +4775,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4793,7 +4793,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4811,7 +4811,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO NOTHING with unexpected continuation token remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4830,7 +4830,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE without predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com WHERE de alvo sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com WHERE de alvo sem predicado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4848,7 +4848,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed ON CONFLICT target expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que expressão malformada no alvo de ON CONFLICT continue rejeitada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que expressão malformada no alvo de ON CONFLICT continue rejeitada pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4866,7 +4866,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com WHERE de alvo finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com WHERE de alvo finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4884,7 +4884,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE with malformed predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com WHERE de alvo malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com WHERE de alvo malformado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4902,7 +4902,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4920,7 +4920,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE WHERE without predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE sem predicado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4938,7 +4938,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE WHERE with malformed predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE malformado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4956,7 +4956,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4974,7 +4974,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -4992,7 +4992,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE with valid WHERE and empty RETURNING list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com WHERE válido e lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com WHERE válido e lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5010,7 +5010,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5028,7 +5028,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5046,7 +5046,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5064,7 +5064,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5082,7 +5082,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5100,7 +5100,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with unexpected continuation token remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5118,7 +5118,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with FROM clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5136,7 +5136,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with USING clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5154,7 +5154,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with SET clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5172,7 +5172,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with UPDATE clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5190,7 +5190,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO NOTHING with additional WHERE clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula WHERE adicional continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO NOTHING com cláusula WHERE adicional continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5208,7 +5208,7 @@ public sealed class SqlServerDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5231,7 +5231,7 @@ RETURNING id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5254,7 +5254,7 @@ RETURNING id +";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5277,7 +5277,7 @@ RETURNING (id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5300,7 +5300,7 @@ RETURNING;";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT target WHERE + DO UPDATE WHERE remains rejected by SQL Server dialect gate even without RETURNING.
-    /// PT: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
+    /// PT-br: Garante que ON CONFLICT com target WHERE + DO UPDATE WHERE continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5322,7 +5322,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5340,7 +5340,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5358,7 +5358,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5376,7 +5376,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE with table-source clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com cláusula de table-source continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com cláusula de table-source continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5394,7 +5394,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE SET followed directly by FROM remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE SET seguido diretamente por FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE SET seguido diretamente por FROM continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5412,7 +5412,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE SET followed directly by USING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE SET seguido diretamente por USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE SET seguido diretamente por USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5430,7 +5430,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE with USING clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5448,7 +5448,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed ON CONFLICT DO UPDATE SET assignment expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que expressão de atribuição malformada em ON CONFLICT DO UPDATE SET continue rejeitada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que expressão de atribuição malformada em ON CONFLICT DO UPDATE SET continue rejeitada pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5466,7 +5466,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE SET with repeated SET keyword remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT DO UPDATE SET com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT DO UPDATE SET com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5484,7 +5484,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT DO UPDATE SET assignment without equals remains rejected by SQL Server dialect gate.
-    /// PT: Garante que atribuição em ON CONFLICT DO UPDATE SET sem sinal de igual continue rejeitada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que atribuição em ON CONFLICT DO UPDATE SET sem sinal de igual continue rejeitada pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5503,7 +5503,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT without name remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT sem nome continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5521,7 +5521,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT without name at end-of-statement remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT sem nome no fim do statement continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5539,7 +5539,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT without DO branch remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT sem ramo DO continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT sem ramo DO continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5557,7 +5557,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO with invalid continuation remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO com continuação inválida continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO com continuação inválida continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5575,7 +5575,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE without SET remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE sem SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE sem SET continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5593,7 +5593,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET without assignments remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET sem atribuições continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET sem atribuições continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5611,7 +5611,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with leading comma remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula inicial continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula inicial continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5629,7 +5629,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with trailing comma remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula final continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com vírgula final continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5647,7 +5647,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET assignments without comma separator remain rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuições sem separador por vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuições sem separador por vírgula continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5665,7 +5665,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with repeated SET keyword remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com palavra-chave SET repetida continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5683,7 +5683,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET assignment without equals remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuição sem sinal de igual continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com atribuição sem sinal de igual continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5701,7 +5701,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET with malformed assignment expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com expressão de atribuição malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET com expressão de atribuição malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5719,7 +5719,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with FROM clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5737,7 +5737,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with USING clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5755,7 +5755,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by FROM remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por FROM continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5773,7 +5773,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE SET followed directly by USING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE SET seguido diretamente por USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5791,7 +5791,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5809,7 +5809,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5827,7 +5827,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5845,7 +5845,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5863,7 +5863,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5881,7 +5881,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5899,7 +5899,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5917,7 +5917,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5935,7 +5935,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5953,7 +5953,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5971,7 +5971,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -5989,7 +5989,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6007,7 +6007,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO NOTHING + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO NOTHING + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6025,7 +6025,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with FROM clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula FROM continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6043,7 +6043,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with USING clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula USING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6061,7 +6061,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with SET clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula SET continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6079,7 +6079,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with UPDATE clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula UPDATE continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6097,7 +6097,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with additional WHERE clause remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula WHERE adicional continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com cláusula WHERE adicional continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6115,7 +6115,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO NOTHING with unexpected continuation token remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO NOTHING com token de continuação inesperado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6133,7 +6133,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE without predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo sem predicado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6151,7 +6151,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6169,7 +6169,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE with malformed predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com WHERE de alvo malformado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6187,7 +6187,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE malformed before DO UPDATE SET remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com WHERE malformado antes do DO UPDATE SET continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com WHERE malformado antes do DO UPDATE SET continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6205,7 +6205,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6228,7 +6228,7 @@ RETURNING id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING with malformed expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com expressão malformada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6251,7 +6251,7 @@ RETURNING id +";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING with unbalanced parentheses remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com parênteses desbalanceados continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6274,7 +6274,7 @@ RETURNING (id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE + RETURNING with empty projection list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE + RETURNING com lista de projeção vazia continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6297,7 +6297,7 @@ RETURNING;";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT target WHERE + DO UPDATE WHERE remains rejected by SQL Server dialect gate even without RETURNING.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT com target WHERE + DO UPDATE WHERE continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6319,7 +6319,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE terminated only by semicolon remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6337,7 +6337,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE terminated only by semicolon remains rejected by SQL Server dialect gate even without RETURNING.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE finalizado apenas por ponto e vírgula continue rejeitado pelo gate de dialeto SQL Server mesmo sem RETURNING.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6355,7 +6355,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE without predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE sem predicado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE sem predicado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6373,7 +6373,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE WHERE with malformed predicate remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE malformado continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE malformado continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6391,7 +6391,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and malformed RETURNING expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão malformada em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6409,7 +6409,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and unbalanced RETURNING expression remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e expressão RETURNING desbalanceada continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6427,7 +6427,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures ON CONFLICT ON CONSTRAINT DO UPDATE with valid WHERE and empty RETURNING list remains rejected by SQL Server dialect gate.
-    /// PT: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que ON CONFLICT ON CONSTRAINT DO UPDATE com WHERE válido e lista vazia em RETURNING continue rejeitado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6445,7 +6445,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING with unbalanced parentheses in UPDATE remains blocked by SQL Server dialect gate.
-    /// PT: Garante que RETURNING malformado com parênteses desbalanceados em UPDATE continue bloqueado pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que RETURNING malformado com parênteses desbalanceados em UPDATE continue bloqueado pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6464,7 +6464,7 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Ensures malformed RETURNING expression in UPDATE remains blocked by SQL Server dialect gate.
-    /// PT: Garante que expressão malformada em RETURNING no UPDATE continue bloqueada pelo gate de dialeto SQL Server.
+    /// PT-br: Garante que expressão malformada em RETURNING no UPDATE continue bloqueada pelo gate de dialeto SQL Server.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -6484,9 +6484,9 @@ WHERE users.id = EXCLUDED.id";
 
     /// <summary>
     /// EN: Verifies UPDATE parsing keeps SET subquery text and WHERE boundary intact when FROM contains joins.
-    /// PT: Verifica que o parsing de UPDATE mantém o texto da subquery no SET e o limite do WHERE intacto quando o FROM contém joins.
+    /// PT-br: Verifica que o parsing de UPDATE mantém o texto da subquery no SET e o limite do WHERE intacto quando o FROM contém joins.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlServerVersion]
@@ -6510,7 +6510,7 @@ WHERE u.id > 0";
 
     /// <summary>
     /// EN: Ensures SQL Server parser rejects MySQL full-text MATCH ... AGAINST syntax.
-    /// PT: Garante que o parser SQL Server rejeite sintaxe full-text MATCH ... AGAINST do MySQL.
+    /// PT-br: Garante que o parser SQL Server rejeite sintaxe full-text MATCH ... AGAINST do MySQL.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

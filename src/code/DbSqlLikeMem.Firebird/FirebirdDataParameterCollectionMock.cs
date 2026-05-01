@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird;
 
 /// <summary>
 /// EN: Mock parameter collection for Firebird commands.
-/// PT: Coleção de parâmetros simulada para comandos Firebird.
+/// PT-br: Coleção de parâmetros simulada para comandos Firebird.
 /// </summary>
 public class FirebirdDataParameterCollectionMock
     : DbParameterCollection, IList<FbParameter>
@@ -81,7 +81,7 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets or sets the parameter at the specified index.
-    /// PT: Obtem ou define o parametro no indice especificado.
+    /// PT-br: Obtem ou define o parametro no indice especificado.
     /// </summary>
     public new FbParameter this[int index]
     {
@@ -91,7 +91,7 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets or sets the parameter with the specified name.
-    /// PT: Obtem ou define o parametro com o nome especificado.
+    /// PT-br: Obtem ou define o parametro com o nome especificado.
     /// </summary>
     public new FbParameter this[string name]
     {
@@ -107,7 +107,7 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Adds a new parameter with the specified name and type.
-    /// PT: Adiciona um novo parametro com o nome e o tipo especificados.
+    /// PT-br: Adiciona um novo parametro com o nome e o tipo especificados.
     /// </summary>
     public FbParameter Add(string parameterName, DbType dbType)
     {
@@ -130,7 +130,7 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Adds an existing Firebird parameter to the collection.
-    /// PT: Adiciona um parametro Firebird ja existente a colecao.
+    /// PT-br: Adiciona um parametro Firebird ja existente a colecao.
     /// </summary>
     public FbParameter Add(FbParameter parameter)
     {
@@ -141,13 +141,13 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Adds a new parameter with the specified Firebird type.
-    /// PT: Adiciona um novo parametro com o tipo Firebird especificado.
+    /// PT-br: Adiciona um novo parametro com o tipo Firebird especificado.
     /// </summary>
     public FbParameter Add(string parameterName, FbDbType fbDbType) => Add(new(parameterName, fbDbType));
 
     /// <summary>
     /// EN: Adds a new parameter with the specified Firebird type and size.
-    /// PT: Adiciona um novo parametro com o tipo Firebird e o tamanho especificados.
+    /// PT-br: Adiciona um novo parametro com o tipo Firebird e o tamanho especificados.
     /// </summary>
     public FbParameter Add(string parameterName, FbDbType fbDbType, int size) => Add(new(parameterName, fbDbType, size));
 
@@ -161,7 +161,7 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Adds a new parameter and assigns its value immediately.
-    /// PT: Adiciona um novo parametro e atribui seu valor imediatamente.
+    /// PT-br: Adiciona um novo parametro e atribui seu valor imediatamente.
     /// </summary>
     public FbParameter AddWithValue(string parameterName, object? value)
     {
@@ -214,7 +214,7 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Inserts a Firebird parameter at the specified index.
-    /// PT: Insere um parametro Firebird no indice especificado.
+    /// PT-br: Insere um parametro Firebird no indice especificado.
     /// </summary>
     public void Insert(int index, FbParameter item)
         => Items[index] = item;
@@ -246,7 +246,7 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets the index of the specified Firebird parameter.
-    /// PT: Obtem o indice do parametro Firebird especificado.
+    /// PT-br: Obtem o indice do parametro Firebird especificado.
     /// </summary>
     public int IndexOf(FbParameter item)
         => Items.IndexOf(item);
@@ -257,21 +257,21 @@ public class FirebirdDataParameterCollectionMock
 
     /// <summary>
     /// EN: Determines whether the collection contains the specified Firebird parameter.
-    /// PT: Determina se a colecao contem o parametro Firebird especificado.
+    /// PT-br: Determina se a colecao contem o parametro Firebird especificado.
     /// </summary>
     public bool Contains(FbParameter item)
         => Items.Contains(item);
 
     /// <summary>
     /// EN: Copies the Firebird parameters to the specified array.
-    /// PT: Copia os parametros Firebird para o array especificado.
+    /// PT-br: Copia os parametros Firebird para o array especificado.
     /// </summary>
     public void CopyTo(FbParameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
 
     /// <summary>
     /// EN: Removes the specified Firebird parameter from the collection.
-    /// PT: Remove o parametro Firebird especificado da colecao.
+    /// PT-br: Remove o parametro Firebird especificado da colecao.
     /// </summary>
     public bool Remove(FbParameter item)
     {

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Creates and drops the rows needed for the update-with-IN-subquery fidelity test.
-/// PT: Cria e remove as linhas necessarias para o teste de fidelidade de update com subquery IN.
+/// PT-br: Cria e remove as linhas necessarias para o teste de fidelidade de update com subquery IN.
 /// </summary>
 public sealed class UpdateWithInSubqueryScenario(
     RepoService repo,
@@ -11,7 +11,7 @@ public sealed class UpdateWithInSubqueryScenario(
 {
     /// <summary>
     /// EN: Creates the tables and seeds the rows needed by the fidelity check.
-    /// PT: Cria as tabelas e preenche as linhas necessarias para a validacao de fidelidade.
+    /// PT-br: Cria as tabelas e preenche as linhas necessarias para a validacao de fidelidade.
     /// </summary>
     public async Task CreateScenarioAsync()
     {
@@ -56,7 +56,7 @@ VALUES (2, 202, 'A', :createdAt, NULL)",
 
     /// <summary>
     /// EN: Drops the tables used by the fidelity fixture.
-    /// PT: Remove as tabelas usadas pela fixture de fidelidade.
+    /// PT-br: Remove as tabelas usadas pela fixture de fidelidade.
     /// </summary>
     public async Task DropScenarioAsync()
     {

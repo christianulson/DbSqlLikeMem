@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.MySql.Test;
 /// <summary>
 /// EN: Verifies MySQL parameter collections normalize names, preserve ordering, and enforce guard clauses.
-/// PT: Verifica se colecoes de parametros do MySQL normalizam nomes, preservam a ordem e aplicam validacoes.
+/// PT-br: Verifica se colecoes de parametros do MySQL normalizam nomes, preservam a ordem e aplicam validacoes.
 /// </summary>
 public sealed class MySqlDataParameterCollectionMockTest(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class MySqlDataParameterCollectionMockTest(
 {
     /// <summary>
     /// EN: Verifies parameter names normalize correctly for positional, quoted, and prefixed MySQL forms.
-    /// PT: Verifica se nomes de parametros sao normalizados corretamente para formas posicionais, entre aspas e com prefixo do MySQL.
+    /// PT-br: Verifica se nomes de parametros sao normalizados corretamente para formas posicionais, entre aspas e com prefixo do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlDataParameterCollectionMockTest")]
@@ -24,7 +24,7 @@ public sealed class MySqlDataParameterCollectionMockTest(
 
     /// <summary>
     /// EN: Verifies duplicate parameter names are rejected case-insensitively.
-    /// PT: Verifica se nomes duplicados de parametros sao rejeitados sem considerar maiusculas e minusculas.
+    /// PT-br: Verifica se nomes duplicados de parametros sao rejeitados sem considerar maiusculas e minusculas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlDataParameterCollectionMockTest")]
@@ -38,7 +38,7 @@ public sealed class MySqlDataParameterCollectionMockTest(
 
     /// <summary>
     /// EN: Verifies removing a parameter by name keeps the collection index map in sync.
-    /// PT: Verifica se remover um parametro pelo nome mantem o mapa de indices da colecao sincronizado.
+    /// PT-br: Verifica se remover um parametro pelo nome mantem o mapa de indices da colecao sincronizado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlDataParameterCollectionMockTest")]
@@ -61,7 +61,7 @@ public sealed class MySqlDataParameterCollectionMockTest(
 
     /// <summary>
     /// EN: Verifies add overloads, contains, copy, and clear keep the collection and dictionary synchronized.
-    /// PT: Verifica se as sobrecargas de add, contains, copy e clear mantem a colecao e o dicionario sincronizados.
+    /// PT-br: Verifica se as sobrecargas de add, contains, copy e clear mantem a colecao e o dicionario sincronizados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlDataParameterCollectionMockTest")]
@@ -101,7 +101,7 @@ public sealed class MySqlDataParameterCollectionMockTest(
 
     /// <summary>
     /// EN: Verifies replacing and removing parameters updates name lookups and reindexing correctly.
-    /// PT: Verifica se substituir e remover parametros atualiza corretamente as buscas por nome e a reindexacao.
+    /// PT-br: Verifica se substituir e remover parametros atualiza corretamente as buscas por nome e a reindexacao.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlDataParameterCollectionMockTest")]
@@ -144,7 +144,7 @@ public sealed class MySqlDataParameterCollectionMockTest(
 
     /// <summary>
     /// EN: Verifies guard clauses throw for nulls, duplicates, and missing parameter names.
-    /// PT: Verifica se as validacoes lancam excecao para nulos, duplicados e nomes de parametros ausentes.
+    /// PT-br: Verifica se as validacoes lancam excecao para nulos, duplicados e nomes de parametros ausentes.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlDataParameterCollectionMockTest")]

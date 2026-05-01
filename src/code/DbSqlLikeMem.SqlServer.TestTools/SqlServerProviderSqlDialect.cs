@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.TestTools;
 
 /// <summary>
 /// EN: Provides SQL Server-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de SQL Server usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de SQL Server usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public class SqlServerProviderSqlDialect : ProviderSqlDialect
 {
@@ -429,7 +429,7 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
 
     /// <summary>
     /// EN: Returns the SQL Server no-op command used when release-savepoint handling is exercised.
-    /// PT: Retorna o comando sem efeito do SQL Server usado quando o tratamento de release-savepoint eh exercitado.
+    /// PT-br: Retorna o comando sem efeito do SQL Server usado quando o tratamento de release-savepoint eh exercitado.
     /// </summary>
     public override string ReleaseSavepoint(string savepointName) => "SELECT 1";
 

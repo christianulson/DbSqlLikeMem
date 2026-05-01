@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers the initial ADO.NET interception pipeline wrappers and callback order.
-/// PT: Cobre os wrappers iniciais do pipeline de interceptacao ADO.NET e a ordem dos callbacks.
+/// PT-br: Cobre os wrappers iniciais do pipeline de interceptacao ADO.NET e a ordem dos callbacks.
 /// </summary>
 public sealed class DbInterceptionPipelineTests(
         ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class DbInterceptionPipelineTests(
 {
     /// <summary>
     /// EN: Ensures command creation and non-query execution notify interceptors and allow command mutation.
-    /// PT: Garante que a criacao do comando e a execucao non-query notifiquem interceptors e permitam mutacao do comando.
+    /// PT-br: Garante que a criacao do comando e a execucao non-query notifiquem interceptors e permitam mutacao do comando.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -45,7 +45,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures open and close dispatch lifecycle callbacks in pipeline order.
-    /// PT: Garante que open e close despachem callbacks de ciclo de vida na ordem do pipeline.
+    /// PT-br: Garante que open e close despachem callbacks de ciclo de vida na ordem do pipeline.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -73,7 +73,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures failures flow through the failure callback chain in reverse order.
-    /// PT: Garante que falhas passem pela cadeia de callback de falha em ordem reversa.
+    /// PT-br: Garante que falhas passem pela cadeia de callback de falha em ordem reversa.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -101,7 +101,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures transactions created by the wrapper keep the wrapped connection on the public surface.
-    /// PT: Garante que transacoes criadas pelo wrapper mantenham a conexao encapsulada na superficie publica.
+    /// PT-br: Garante que transacoes criadas pelo wrapper mantenham a conexao encapsulada na superficie publica.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -116,7 +116,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures transaction begin, commit, and rollback notify interceptors in the expected order.
-    /// PT: Garante que inicio, commit e rollback de transacao notifiquem interceptors na ordem esperada.
+    /// PT-br: Garante que inicio, commit e rollback de transacao notifiquem interceptors na ordem esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -155,7 +155,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the delegate-based interceptor supports lightweight wrapping scenarios.
-    /// PT: Garante que o interceptor baseado em delegates suporte cenarios leves de wrapping.
+    /// PT-br: Garante que o interceptor baseado em delegates suporte cenarios leves de wrapping.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -189,7 +189,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures disposing wrappers also disposes the inner ADO.NET objects.
-    /// PT: Garante que descartar wrappers tambem descarte os objetos ADO.NET internos.
+    /// PT-br: Garante que descartar wrappers tambem descarte os objetos ADO.NET internos.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -211,7 +211,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the built-in recording interceptor captures connection, command, and transaction events with details.
-    /// PT: Garante que o interceptor interno de gravacao capture eventos de conexao, comando e transacao com detalhes.
+    /// PT-br: Garante que o interceptor interno de gravacao capture eventos de conexao, comando e transacao com detalhes.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -257,7 +257,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the fault-injection interceptor can fail command execution before the inner command runs.
-    /// PT: Garante que o interceptor de injecao de falha possa falhar a execucao do comando antes de o comando interno executar.
+    /// PT-br: Garante que o interceptor de injecao de falha possa falhar a execucao do comando antes de o comando interno executar.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -281,7 +281,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the fault-injection interceptor can fail transaction start and connection open paths.
-    /// PT: Garante que o interceptor de injecao de falha possa falhar os fluxos de inicio de transacao e abertura de conexao.
+    /// PT-br: Garante que o interceptor de injecao de falha possa falhar os fluxos de inicio de transacao e abertura de conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -311,7 +311,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the logging interceptor emits structured messages for connection, command, and transaction flows.
-    /// PT: Garante que o interceptor de logging emita mensagens estruturadas para fluxos de conexao, comando e transacao.
+    /// PT-br: Garante que o interceptor de logging emita mensagens estruturadas para fluxos de conexao, comando e transacao.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -348,7 +348,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the text-writer interceptor writes one formatted line per captured event.
-    /// PT: Garante que o interceptor de text writer escreva uma linha formatada por evento capturado.
+    /// PT-br: Garante que o interceptor de text writer escreva uma linha formatada por evento capturado.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -374,7 +374,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures interception options compose the configured built-in interceptors and custom interceptors.
-    /// PT: Garante que as opcoes de interceptacao componham os interceptors nativos configurados e os interceptors customizados.
+    /// PT-br: Garante que as opcoes de interceptacao componham os interceptors nativos configurados e os interceptors customizados.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -410,7 +410,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the generic interception connection factory wraps and opens connections produced by an inner factory delegate.
-    /// PT: Garante que a factory generica de conexao com interceptacao encapsule e abra conexoes produzidas por um delegate interno.
+    /// PT-br: Garante que a factory generica de conexao com interceptacao encapsule e abra conexoes produzidas por um delegate interno.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -432,7 +432,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the interception connection factory can compose options-based interceptors for each created connection.
-    /// PT: Garante que a factory de conexao com interceptacao consiga compor interceptors baseados em opcoes para cada conexao criada.
+    /// PT-br: Garante que a factory de conexao com interceptacao consiga compor interceptors baseados em opcoes para cada conexao criada.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -457,7 +457,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the interception connection factory also accepts a prebuilt options instance directly.
-    /// PT: Garante que a factory de conexao com interceptacao tambem aceite diretamente uma instancia pronta de opcoes.
+    /// PT-br: Garante que a factory de conexao com interceptacao tambem aceite diretamente uma instancia pronta de opcoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -483,7 +483,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures fluent option helpers configure the interception pipeline without manual property wiring.
-    /// PT: Garante que os helpers fluentes de opcoes configurem o pipeline de interceptacao sem wiring manual de propriedades.
+    /// PT-br: Garante que os helpers fluentes de opcoes configurem o pipeline de interceptacao sem wiring manual de propriedades.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -516,7 +516,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the static pipeline API can configure interception options inline without using extension helpers.
-    /// PT: Garante que a API estatica do pipeline consiga configurar opcoes de interceptacao inline sem usar extensions.
+    /// PT-br: Garante que a API estatica do pipeline consiga configurar opcoes de interceptacao inline sem usar extensions.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -538,7 +538,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the shared formatter emits the normalized representation used by logging and recording helpers.
-    /// PT: Garante que o formatter compartilhado emita a representacao normalizada usada pelos helpers de logging e gravacao.
+    /// PT-br: Garante que o formatter compartilhado emita a representacao normalizada usada pelos helpers de logging e gravacao.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -564,7 +564,7 @@ public sealed class DbInterceptionPipelineTests(
 
     /// <summary>
     /// EN: Ensures the diagnostic-listener interceptor publishes typed payloads with the documented event names.
-    /// PT: Garante que o interceptor de diagnostic listener publique payloads tipados com os nomes de evento documentados.
+    /// PT-br: Garante que o interceptor de diagnostic listener publique payloads tipados com os nomes de evento documentados.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -600,7 +600,7 @@ public sealed class DbInterceptionPipelineTests(
 #if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures the activity-source interceptor emits activities with the documented names and tags.
-    /// PT: Garante que o interceptor de activity source emita activities com os nomes e tags documentados.
+    /// PT-br: Garante que o interceptor de activity source emita activities com os nomes e tags documentados.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]

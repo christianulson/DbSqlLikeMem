@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.Performance;
 
 /// <summary>
 /// EN: Runs SQL Server fidelity tests for the shared performance workflows.
-/// PT: Executa testes de fidelidade SQL Server para os fluxos compartilhados de performance.
+/// PT-br: Executa testes de fidelidade SQL Server para os fluxos compartilhados de performance.
 /// </summary>
 public class PerformanceTests(
     ITestOutputHelper helper

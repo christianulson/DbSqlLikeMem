@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Builds xUnit v2 fidelity test cases that resolve provider-specific skip reasons before execution.
-/// PT: Monta test cases de fidelidade do xUnit v2 que resolvem motivos de skip especificos do provedor antes da execucao.
+/// PT-br: Monta test cases de fidelidade do xUnit v2 que resolvem motivos de skip especificos do provedor antes da execucao.
 /// </summary>
 public sealed class FidelityXunitTestCase : XunitTestCase
 {
@@ -15,7 +15,7 @@ public sealed class FidelityXunitTestCase : XunitTestCase
 
     /// <summary>
     /// EN: Creates the deserialization instance required by xUnit.
-    /// PT: Cria a instancia de desserializacao exigida pelo xUnit.
+    /// PT-br: Cria a instancia de desserializacao exigida pelo xUnit.
     /// </summary>
 #pragma warning disable CS0618
     public FidelityXunitTestCase()
@@ -25,13 +25,13 @@ public sealed class FidelityXunitTestCase : XunitTestCase
 
     /// <summary>
     /// EN: Creates a fidelity test case for the current method.
-    /// PT: Cria um test case de fidelidade para o metodo atual.
+    /// PT-br: Cria um test case de fidelidade para o metodo atual.
     /// </summary>
-    /// <param name="diagnosticMessageSink">EN: Sink used for xUnit diagnostic messages. PT: Canal usado para mensagens diagnosticas do xUnit.</param>
-    /// <param name="defaultMethodDisplay">EN: Default method display selected by the runner. PT: Exibicao padrao de metodo selecionada pelo runner.</param>
-    /// <param name="defaultMethodDisplayOptions">EN: Default method display options selected by the runner. PT: Opcoes padrao de exibicao de metodo selecionadas pelo runner.</param>
-    /// <param name="testMethod">EN: Test method associated with this case. PT: Metodo de teste associado a este caso.</param>
-    /// <param name="testMethodArguments">EN: Arguments used by the test method. PT: Argumentos usados pelo metodo de teste.</param>
+    /// <param name="diagnosticMessageSink">EN: Sink used for xUnit diagnostic messages. PT-br: Canal usado para mensagens diagnosticas do xUnit.</param>
+    /// <param name="defaultMethodDisplay">EN: Default method display selected by the runner. PT-br: Exibicao padrao de metodo selecionada pelo runner.</param>
+    /// <param name="defaultMethodDisplayOptions">EN: Default method display options selected by the runner. PT-br: Opcoes padrao de exibicao de metodo selecionadas pelo runner.</param>
+    /// <param name="testMethod">EN: Test method associated with this case. PT-br: Metodo de teste associado a este caso.</param>
+    /// <param name="testMethodArguments">EN: Arguments used by the test method. PT-br: Argumentos usados pelo metodo de teste.</param>
     public FidelityXunitTestCase(
         IMessageSink diagnosticMessageSink,
         TestMethodDisplay defaultMethodDisplay,

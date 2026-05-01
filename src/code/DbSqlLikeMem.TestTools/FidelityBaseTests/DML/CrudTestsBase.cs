@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.Tests.DML;
 
 /// <summary>
 /// EN: Provides shared CRUD fidelity tests for update and delete workflows across mock and container runs.
-/// PT: Fornece testes de fidelidade CRUD compartilhados para fluxos de update e delete entre mock e container.
+/// PT-br: Fornece testes de fidelidade CRUD compartilhados para fluxos de update e delete entre mock e container.
 /// </summary>
 public abstract class CrudTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -17,7 +17,7 @@ public abstract class CrudTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that an update followed by a delete keeps the expected row count and remaining value for the current provider.
-    /// PT: Verifica se um update seguido de delete mantem a contagem esperada de linhas e o valor restante para o provedor atual.
+    /// PT-br: Verifica se um update seguido de delete mantem a contagem esperada de linhas e o valor restante para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task UpdateDeleteRoundTripTest()
@@ -33,7 +33,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that update and delete actions committed inside a transaction keep the expected final state.
-    /// PT: Verifica se acoes de update e delete confirmadas dentro de uma transacao mantem o estado final esperado.
+    /// PT-br: Verifica se acoes de update e delete confirmadas dentro de uma transacao mantem o estado final esperado.
     /// </summary>
     [FidelityFact]
     public async Task TransactionalUpdateDeleteCommitTest()
@@ -49,7 +49,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that updating a single user row persists the expected value for the current provider.
-    /// PT: Verifica se a atualizacao de uma unica linha de usuario persiste o valor esperado para o provedor atual.
+    /// PT-br: Verifica se a atualizacao de uma unica linha de usuario persiste o valor esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task UpdateByPkTest()
@@ -65,7 +65,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that the returning-update benchmark alias keeps the same update-by-key result for the current provider.
-    /// PT: Verifica se o alias de benchmark ReturningUpdate mantem o mesmo resultado de update por chave para o provedor atual.
+    /// PT-br: Verifica se o alias de benchmark ReturningUpdate mantem o mesmo resultado de update por chave para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ReturningUpdateTest()
@@ -81,7 +81,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that deleting a single user row keeps the expected remaining row for the current provider.
-    /// PT: Verifica se a exclusao de uma unica linha de usuario mantem a linha restante esperada para o provedor atual.
+    /// PT-br: Verifica se a exclusao de uma unica linha de usuario mantem a linha restante esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task DeleteByPkTest()
@@ -102,7 +102,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that an update reports a valid affected-row count and persists the new value for the current provider.
-    /// PT: Verifica se uma atualizacao retorna uma contagem valida de linhas afetadas e persiste o novo valor para o provedor atual.
+    /// PT-br: Verifica se uma atualizacao retorna uma contagem valida de linhas afetadas e persiste o novo valor para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task RowCountAfterUpdateTest()
@@ -118,7 +118,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies typed provider parameters update and delete rows correctly in the users table for the current provider, including Oracle empty-string normalization in the updated email column.
-    /// PT: Verifica se parametros tipados do provedor atualizam e excluem linhas corretamente na tabela de usuarios do provedor atual, incluindo a normalizacao de string vazia no email atualizado para Oracle.
+    /// PT-br: Verifica se parametros tipados do provedor atualizam e excluem linhas corretamente na tabela de usuarios do provedor atual, incluindo a normalizacao de string vazia no email atualizado para Oracle.
     /// </summary>
     [FidelityFact]
     public async Task ParameterUpdateDeleteRoundTripTest()
@@ -144,7 +144,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies typed provider parameters insert rows correctly in the users table for the current provider.
-    /// PT: Verifica se parametros tipados do provedor inserem linhas corretamente na tabela de usuarios do provedor atual.
+    /// PT-br: Verifica se parametros tipados do provedor inserem linhas corretamente na tabela de usuarios do provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ParameterInsertRoundTripTest()
@@ -180,7 +180,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies typed provider parameters insert nullable values correctly in the users table for the current provider.
-    /// PT: Verifica se parametros tipados do provedor inserem valores anulaveis corretamente na tabela de usuarios do provedor atual.
+    /// PT-br: Verifica se parametros tipados do provedor inserem valores anulaveis corretamente na tabela de usuarios do provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ParameterInsertNullRoundTripTest()
@@ -205,7 +205,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies typed provider parameters insert rows correctly inside a committed transaction for the current provider.
-    /// PT: Verifica se parametros tipados do provedor inserem linhas corretamente dentro de uma transacao confirmada para o provedor atual.
+    /// PT-br: Verifica se parametros tipados do provedor inserem linhas corretamente dentro de uma transacao confirmada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ParameterTransactionCommitTest()
@@ -229,7 +229,7 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies typed provider parameters roll back correctly inside a transaction for the current provider.
-    /// PT: Verifica se parametros tipados do provedor fazem rollback corretamente dentro de uma transacao para o provedor atual.
+    /// PT-br: Verifica se parametros tipados do provedor fazem rollback corretamente dentro de uma transacao para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ParameterTransactionRollbackTest()
@@ -253,10 +253,10 @@ public abstract class CrudTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Normalizes DateTime input values used by parameter roundtrip tests for the current provider.
-    /// PT: Normaliza valores de entrada DateTime usados pelos testes de roundtrip de parametros para o provedor atual.
+    /// PT-br: Normaliza valores de entrada DateTime usados pelos testes de roundtrip de parametros para o provedor atual.
     /// </summary>
-    /// <param name="value">EN: The input DateTime value. PT: O valor DateTime de entrada.</param>
-    /// <returns>EN: The normalized DateTime value. PT: O valor DateTime normalizado.</returns>
+    /// <param name="value">EN: The input DateTime value. PT-br: O valor DateTime de entrada.</param>
+    /// <returns>EN: The normalized DateTime value. PT-br: O valor DateTime normalizado.</returns>
     protected virtual DateTime NormalizeParameterDateTimeInput(DateTime value)
         => value;
 }

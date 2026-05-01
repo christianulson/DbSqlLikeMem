@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
 /// EN: Covers INSERT ... ON DUPLICATE scenarios in the Sqlite mock.
-/// PT: Cobre cenarios de INSERT ... ON DUPLICATE no mock Sqlite.
+/// PT-br: Cobre cenarios de INSERT ... ON DUPLICATE no mock Sqlite.
 /// </summary>
 public class SqliteInsertOnDuplicateTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public class SqliteInsertOnDuplicateTests(
 {
     /// <summary>
     /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY syntax.
-    /// PT: Verifica se o SQLite rejeita a sintaxe MySQL-style INSERT ... ON DUPLICATE KEY.
+    /// PT-br: Verifica se o SQLite rejeita a sintaxe MySQL-style INSERT ... ON DUPLICATE KEY.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -38,7 +38,7 @@ public class SqliteInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates with VALUES().
-    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY com VALUES().
+    /// PT-br: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY com VALUES().
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -68,7 +68,7 @@ public class SqliteInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates matched by a unique index.
-    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY encontradas por um indice unico.
+    /// PT-br: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY encontradas por um indice unico.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -101,7 +101,7 @@ public class SqliteInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates with mixed literals and parameters.
-    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY com literais e parametros mistos.
+    /// PT-br: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY com literais e parametros mistos.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -135,7 +135,7 @@ public class SqliteInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies SQLite rejects MySQL-style INSERT ... ON DUPLICATE KEY updates that aggregate existing and incoming values.
-    /// PT: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY que agregam valores existentes e recebidos.
+    /// PT-br: Verifica se o SQLite rejeita atualizacoes MySQL-style INSERT ... ON DUPLICATE KEY que agregam valores existentes e recebidos.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -170,7 +170,7 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
 
     /// <summary>
     /// EN: Verifies ON CONFLICT DO NOTHING leaves the existing row unchanged.
-    /// PT: Verifica se ON CONFLICT DO NOTHING mantem a linha existente sem alteracao.
+    /// PT-br: Verifica se ON CONFLICT DO NOTHING mantem a linha existente sem alteracao.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -197,7 +197,7 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
 
     /// <summary>
     /// EN: Verifies the ON CONFLICT DO UPDATE branch is skipped when the predicate is false.
-    /// PT: Verifica se a ramificacao ON CONFLICT DO UPDATE e ignorada quando o predicado e falso.
+    /// PT-br: Verifica se a ramificacao ON CONFLICT DO UPDATE e ignorada quando o predicado e falso.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -224,7 +224,7 @@ INSERT INTO users (Id, Qtd) VALUES (@p0, @p1)
 
     /// <summary>
     /// EN: Verifies the ON CONFLICT DO UPDATE branch applies when the predicate is true.
-    /// PT: Verifica se a ramificacao ON CONFLICT DO UPDATE e aplicada quando o predicado e verdadeiro.
+    /// PT-br: Verifica se a ramificacao ON CONFLICT DO UPDATE e aplicada quando o predicado e verdadeiro.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]

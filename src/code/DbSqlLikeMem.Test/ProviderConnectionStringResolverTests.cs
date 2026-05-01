@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Verifies provider connection string resolution for the database-backed test environment variables.
-/// PT: Verifica a resolucao de connection string dos provedores para as variaveis de ambiente usadas nos testes com banco de dados.
+/// PT-br: Verifica a resolucao de connection string dos provedores para as variaveis de ambiente usadas nos testes com banco de dados.
 /// </summary>
 public sealed class ProviderConnectionStringResolverTests
 {
     /// <summary>
     /// EN: Verifies the resolver prefers benchmark environment variables for each provider family.
-    /// PT: Verifica se o resolvedor prefere as variaveis de ambiente de benchmark para cada familia de provedor.
+    /// PT-br: Verifica se o resolvedor prefere as variaveis de ambiente de benchmark para cada familia de provedor.
     /// </summary>
     [Theory]
     [MemberData(nameof(PreferredBenchmarkConnectionStrings))]
@@ -32,7 +32,7 @@ public sealed class ProviderConnectionStringResolverTests
 
     /// <summary>
     /// EN: Verifies the resolver falls back to the legacy PostgreSQL aliases when the benchmark aliases are absent.
-    /// PT: Verifica se o resolvedor usa os aliases legados de PostgreSQL quando os aliases de benchmark estao ausentes.
+    /// PT-br: Verifica se o resolvedor usa os aliases legados de PostgreSQL quando os aliases de benchmark estao ausentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -56,7 +56,7 @@ public sealed class ProviderConnectionStringResolverTests
 
     /// <summary>
     /// EN: Returns benchmark connection string cases used by the provider-backed query tests.
-    /// PT: Retorna os casos de connection string de benchmark usados pelos testes de query com banco.
+    /// PT-br: Retorna os casos de connection string de benchmark usados pelos testes de query com banco.
     /// </summary>
     public static TheoryData<ProviderId, IReadOnlyDictionary<string, string?>, string, string> PreferredBenchmarkConnectionStrings => new()
     {

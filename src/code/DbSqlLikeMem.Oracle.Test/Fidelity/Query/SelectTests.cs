@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Oracle.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Oracle fidelity tests for the shared primary-key select scenario.
-/// PT: Executa testes de fidelidade do Oracle para o cenario compartilhado de selecao por chave primaria.
+/// PT-br: Executa testes de fidelidade do Oracle para o cenario compartilhado de selecao por chave primaria.
 /// </summary>
 public class SelectTests(
     ITestOutputHelper helper
@@ -18,7 +18,7 @@ public class SelectTests(
 {
     /// <summary>
     /// EN: Gets the column names to be used in the projection of the select query.
-    /// PT: Obtém os nomes das colunas a serem usadas na projeção da consulta de seleção.
+    /// PT-br: Obtém os nomes das colunas a serem usadas na projeção da consulta de seleção.
     /// </summary>
     protected override string[] ApplyProjectionColumnNames()
     => ["USERID", "USERNAME", "NOTE"];
@@ -26,7 +26,7 @@ public class SelectTests(
 
     /// <summary>
     /// EN: Normalizes the column names in the snapshot to match the expected format for Oracle.
-    /// PT: Normaliza os nomes das colunas no snapshot para corresponder ao formato esperado para o Oracle.
+    /// PT-br: Normaliza os nomes das colunas no snapshot para corresponder ao formato esperado para o Oracle.
     /// </summary>
     protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
     {
@@ -42,7 +42,7 @@ public class SelectTests(
 
     /// <summary>
     /// EN: Formats the decimal value as a fixed two-decimal invariant string for Oracle snapshot assertions.
-    /// PT: Formata o valor decimal como uma string invariavel com duas casas decimais para as assercoes de snapshot do Oracle.
+    /// PT-br: Formata o valor decimal como uma string invariavel com duas casas decimais para as assercoes de snapshot do Oracle.
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>

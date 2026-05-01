@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Oracle.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs Oracle fidelity tests for the shared upsert workflows.
-/// PT: Executa testes de fidelidade Oracle para os fluxos compartilhados de upsert.
+/// PT-br: Executa testes de fidelidade Oracle para os fluxos compartilhados de upsert.
 /// </summary>
 public class UpsertTests(
     ITestOutputHelper helper

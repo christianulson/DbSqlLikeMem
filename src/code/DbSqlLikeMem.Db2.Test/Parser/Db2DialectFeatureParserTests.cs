@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Test.Parser;
 
 /// <summary>
 /// EN: Covers Db2 parser rejections for unsupported SQL features.
-/// PT: Cobre rejeicoes do parser Db2 para recursos SQL nao suportados.
+/// PT-br: Cobre rejeicoes do parser Db2 para recursos SQL nao suportados.
 /// </summary>
 public sealed class Db2DialectFeatureParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class Db2DialectFeatureParserTests(
 {
     /// <summary>
     /// EN: Ensures DB2 preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o DB2 preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o DB2 preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -30,7 +30,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o DB2 preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o DB2 preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -52,7 +52,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
-    /// PT: Garante que o DB2 rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// PT-br: Garante que o DB2 rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -70,7 +70,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
-    /// PT: Garante que o DB2 rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// PT-br: Garante que o DB2 rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -88,7 +88,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
-    /// PT: Garante que o DB2 rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// PT-br: Garante que o DB2 rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -106,9 +106,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 parses the pragmatic provider-real scalar FUNCTION DDL subset.
-    /// PT: Garante que o DB2 interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
+    /// PT-br: Garante que o DB2 interprete o subset pragmatico e realista do provider para DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -140,9 +140,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 parses CREATE OR REPLACE FUNCTION and preserves the function contract.
-    /// PT: Garante que o DB2 interprete CREATE OR REPLACE FUNCTION e preserve o contrato da function.
+    /// PT-br: Garante que o DB2 interprete CREATE OR REPLACE FUNCTION e preserve o contrato da function.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -166,9 +166,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 parses CREATE OR REPLACE PROCEDURE and preserves the procedure signature.
-    /// PT: Garante que o DB2 interprete CREATE OR REPLACE PROCEDURE e preserve a assinatura da procedure.
+    /// PT-br: Garante que o DB2 interprete CREATE OR REPLACE PROCEDURE e preserve a assinatura da procedure.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -191,9 +191,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 parses CREATE OR REPLACE TRIGGER and preserves the trigger contract.
-    /// PT: Garante que o DB2 interprete CREATE OR REPLACE TRIGGER e preserve o contrato do trigger.
+    /// PT-br: Garante que o DB2 interprete CREATE OR REPLACE TRIGGER e preserve o contrato do trigger.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -214,7 +214,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 exposes ROW_COUNT() through the dialect capability used by the executor.
-    /// PT: Garante que o DB2 exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
+    /// PT-br: Garante que o DB2 exponha ROW_COUNT() pela capability de dialeto usada pelo executor.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -230,7 +230,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 parser accepts ROW_COUNT() and rejects foreign row-count helper aliases.
-    /// PT: Garante que o parser DB2 aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
+    /// PT-br: Garante que o parser DB2 aceite ROW_COUNT() e rejeite aliases de row-count de outros bancos.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -248,9 +248,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is available.
-    /// PT: Garante que o DB2 rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
+    /// PT-br: Garante que o DB2 rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -268,8 +268,8 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies recursive SELECT statements are rejected.
-    /// PT: Verifica se instrucoes SELECT recursivas sao rejeitadas.
-    /// PT: Testa o comportamento de ParseSelect_WithRecursive_ShouldBeRejected.
+    /// PT-br: Verifica se instrucoes SELECT recursivas sao rejeitadas.
+    /// PT-br: Testa o comportamento de ParseSelect_WithRecursive_ShouldBeRejected.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -291,7 +291,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
-    /// PT: Garante que o DB2 rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// PT-br: Garante que o DB2 rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -309,8 +309,8 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies INSERT ... ON CONFLICT statements are rejected.
-    /// PT: Verifica se instrucoes INSERT ... ON CONFLICT sao rejeitadas.
-    /// PT: Testa o comportamento de ParseInsert_OnConflict_ShouldBeRejected.
+    /// PT-br: Verifica se instrucoes INSERT ... ON CONFLICT sao rejeitadas.
+    /// PT-br: Testa o comportamento de ParseInsert_OnConflict_ShouldBeRejected.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -327,9 +327,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE parsing follows DB2 version support and preserves target table metadata.
-    /// PT: Garante que o parsing de MERGE siga o suporte por versão do DB2 e preserve metadados da tabela alvo.
+    /// PT-br: Garante que o parsing de MERGE siga o suporte por versão do DB2 e preserve metadados da tabela alvo.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -353,9 +353,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE accepts the WHEN NOT MATCHED clause form in merge-capable dialect versions.
-    /// PT: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
+    /// PT-br: Garante que MERGE aceite a forma de cláusula WHEN NOT MATCHED em versões de dialeto com suporte.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -371,9 +371,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without USING is rejected with actionable parser guidance in DB2 dialect.
-    /// PT: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto DB2.
+    /// PT-br: Garante que MERGE sem USING seja rejeitado com orientação acionável do parser no dialeto DB2.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -388,9 +388,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without ON is rejected with actionable parser guidance in DB2 dialect.
-    /// PT: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto DB2.
+    /// PT-br: Garante que MERGE sem ON seja rejeitado com orientação acionável do parser no dialeto DB2.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -405,9 +405,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE requires ON at top-level and does not accept ON tokens nested inside USING subqueries in DB2 dialect.
-    /// PT: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING no dialeto DB2.
+    /// PT-br: Garante que MERGE exija ON em nível top-level e não aceite tokens ON aninhados dentro de subqueries no USING no dialeto DB2.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -423,9 +423,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE without WHEN is rejected with actionable parser guidance in DB2 dialect.
-    /// PT: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto DB2.
+    /// PT-br: Garante que MERGE sem WHEN seja rejeitado com orientação acionável do parser no dialeto DB2.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -442,9 +442,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE does not accept a source alias named WHEN as a replacement for top-level WHEN clauses.
-    /// PT: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
+    /// PT-br: Garante que MERGE não aceite um alias de origem chamado WHEN como substituto para cláusulas WHEN em nível top-level.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -460,9 +460,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE requires WHEN at top-level and does not accept WHEN tokens nested inside USING subqueries.
-    /// PT: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
+    /// PT-br: Garante que MERGE exija WHEN em nível top-level e não aceite tokens WHEN aninhados dentro de subqueries no USING.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -479,9 +479,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MERGE rejects invalid top-level WHEN forms that are not WHEN MATCHED/WHEN NOT MATCHED.
-    /// PT: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
+    /// PT-br: Garante que MERGE rejeite formas inválidas de WHEN em nível top-level que não sejam WHEN MATCHED/WHEN NOT MATCHED.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version(VersionGraterOrEqual = Db2Dialect.MergeMinVersion)]
@@ -497,9 +497,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_QUERY follows DB2 version support starting in version 11.
-    /// PT: Garante que JSON_QUERY siga o suporte por versão do DB2 a partir da versão 11.
+    /// PT-br: Garante que JSON_QUERY siga o suporte por versão do DB2 a partir da versão 11.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -522,9 +522,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_VALUE follows DB2 version support starting in version 11.
-    /// PT: Garante que JSON_VALUE siga o suporte por versão do DB2 a partir da versão 11.
+    /// PT-br: Garante que JSON_VALUE siga o suporte por versão do DB2 a partir da versão 11.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -547,9 +547,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE follows DB2 version support starting in version 11.
-    /// PT: Garante que JSON_TABLE siga o suporte por versao do DB2 a partir da versao 11.
+    /// PT-br: Garante que JSON_TABLE siga o suporte por versao do DB2 a partir da versao 11.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -587,8 +587,8 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies MySql index hints are rejected by the Db2 parser.
-    /// PT: Verifica se dicas de indice do MySql sao rejeitadas pelo parser Db2.
-    /// PT: Testa o comportamento de ParseSelect_WithMySqlIndexHints_ShouldBeRejected.
+    /// PT-br: Verifica se dicas de indice do MySql sao rejeitadas pelo parser Db2.
+    /// PT-br: Testa o comportamento de ParseSelect_WithMySqlIndexHints_ShouldBeRejected.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -603,9 +603,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server OPTION(...) query hints are rejected for DB2.
-    /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para DB2.
+    /// PT-br: Garante que hints SQL Server OPTION(...) sejam rejeitados para DB2.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -621,9 +621,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 rejects unsupported alias quoting style with an actionable message.
-    /// PT: Garante que o DB2 rejeite estilo de quoting de alias não suportado com mensagem acionável.
+    /// PT-br: Garante que o DB2 rejeite estilo de quoting de alias não suportado com mensagem acionável.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -639,9 +639,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies unsupported top-level statements in DB2 return actionable parser guidance.
-    /// PT: Verifica que instruções de nível superior não suportadas no DB2 retornam orientação acionável do parser.
+    /// PT-br: Verifica que instruções de nível superior não suportadas no DB2 retornam orientação acionável do parser.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -658,9 +658,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 accepts double-quoted aliases and preserves the normalized alias text in AST.
-    /// PT: Garante que o DB2 aceite aliases com aspas duplas e preserve o texto normalizado do alias na AST.
+    /// PT-br: Garante que o DB2 aceite aliases com aspas duplas e preserve o texto normalizado do alias na AST.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -678,9 +678,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DB2 unescapes doubled double-quotes inside quoted aliases when normalizing AST alias text.
-    /// PT: Garante que o DB2 faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
+    /// PT-br: Garante que o DB2 faça unescape de aspas duplas duplicadas dentro de aliases quoted ao normalizar o texto do alias na AST.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -698,7 +698,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies unsupported SQL uses the standard not supported message.
-    /// PT: Verifica se SQL nao suportado usa a mensagem padrao de nao suportado.
+    /// PT-br: Verifica se SQL nao suportado usa a mensagem padrao de nao suportado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -717,7 +717,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies UNION queries with ORDER BY parse as a union query.
-    /// PT: Verifica se consultas UNION com ORDER BY sao analisadas como uma union query.
+    /// PT-br: Verifica se consultas UNION com ORDER BY sao analisadas como uma union query.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -739,7 +739,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies a simple CTE parses when the Db2 version supports CTEs.
-    /// PT: Verifica se uma CTE simples e analisada quando a versao do Db2 suporta CTEs.
+    /// PT-br: Verifica se uma CTE simples e analisada quando a versao do Db2 suporta CTEs.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -763,7 +763,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OFFSET/FETCH pagination is accepted by DB2 parser.
-    /// PT: Garante que paginação OFFSET/FETCH seja aceita pelo parser DB2.
+    /// PT-br: Garante que paginação OFFSET/FETCH seja aceita pelo parser DB2.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -786,9 +786,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
-    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// PT-br: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -826,9 +826,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
-    /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// PT-br: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -849,9 +849,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies DELETE without FROM returns an actionable error message.
-    /// PT: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
+    /// PT-br: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -868,9 +868,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies DELETE target alias before FROM returns an actionable error message.
-    /// PT: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
+    /// PT-br: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versão do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versão do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -887,9 +887,9 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
-    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// PT-br: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataDb2Version]
@@ -910,7 +910,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Validates known and unknown window function capability for DB2 dialect versions.
-    /// PT: Valida a capacidade de funções de janela conhecidas e desconhecidas nas versões do dialeto DB2.
+    /// PT-br: Valida a capacidade de funções de janela conhecidas e desconhecidas nas versões do dialeto DB2.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -926,7 +926,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser accepts known window functions and rejects unknown names for DB2 dialect versions.
-    /// PT: Garante que o parser aceite funções de janela conhecidas e rejeite nomes desconhecidos nas versões do DB2.
+    /// PT-br: Garante que o parser aceite funções de janela conhecidas e rejeite nomes desconhecidos nas versões do DB2.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -944,7 +944,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
-    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// PT-br: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -963,7 +963,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates window function argument arity for supported functions.
-    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// PT-br: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -989,7 +989,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates literal semantic ranges for window function arguments.
-    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// PT-br: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1014,7 +1014,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
-    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// PT-br: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1032,7 +1032,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
-    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// PT-br: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1057,7 +1057,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window frame clause tokens are gated by dialect capability.
-    /// PT: Garante que tokens de cláusula de frame de janela sejam controlados pela capability do dialeto.
+    /// PT-br: Garante que tokens de cláusula de frame de janela sejam controlados pela capability do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1085,7 +1085,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Db2 parser accepts ordered-set WITHIN GROUP for LISTAGG.
-    /// PT: Garante que o parser Db2 aceite ordered-set WITHIN GROUP para LISTAGG.
+    /// PT-br: Garante que o parser Db2 aceite ordered-set WITHIN GROUP para LISTAGG.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1105,7 +1105,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Db2 parser blocks non-native ordered-set aggregate names with WITHIN GROUP.
-    /// PT: Garante que o parser Db2 bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
+    /// PT-br: Garante que o parser Db2 bloqueie nomes não nativos de agregação ordered-set com WITHIN GROUP.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1122,7 +1122,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed WITHIN GROUP clause fails with actionable ORDER BY message.
-    /// PT: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
+    /// PT-br: Garante que cláusula WITHIN GROUP malformada falhe com mensagem acionável de ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1139,7 +1139,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures trailing commas in WITHIN GROUP ORDER BY are rejected with actionable message.
-    /// PT: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que vírgulas finais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1156,7 +1156,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures empty ORDER BY lists in WITHIN GROUP are rejected with actionable message.
-    /// PT: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que listas ORDER BY vazias em WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1173,7 +1173,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures leading commas in WITHIN GROUP ORDER BY are rejected with actionable message.
-    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
+    /// PT-br: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP sejam rejeitadas com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1191,7 +1191,7 @@ public sealed class Db2DialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures missing commas between WITHIN GROUP ORDER BY expressions are rejected with actionable message.
-    /// PT: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// PT-br: Garante que ausência de vírgula entre expressões de ORDER BY no WITHIN GROUP seja rejeitada com mensagem acionável.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

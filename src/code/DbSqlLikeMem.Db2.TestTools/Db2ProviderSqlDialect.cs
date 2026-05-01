@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.TestTools;
 
 /// <summary>
 /// EN: Provides DB2-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de DB2 usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de DB2 usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class Db2ProviderSqlDialect : ProviderSqlDialect
 {

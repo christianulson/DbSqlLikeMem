@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.MySql.Test.Strategy;
 /// <summary>
 /// EN: Covers single-row INSERT execution in the MySql mock.
-/// PT: Cobre execucao de INSERT de uma linha no mock MySql.
+/// PT-br: Cobre execucao de INSERT de uma linha no mock MySql.
 /// </summary>
 public sealed class MySqlInsertStrategyTests(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class MySqlInsertStrategyTests(
 {
     /// <summary>
     /// EN: Verifies that a single INSERT adds one row to the target table.
-    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
+    /// PT-br: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

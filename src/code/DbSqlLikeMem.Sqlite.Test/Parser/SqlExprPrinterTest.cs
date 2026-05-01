@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the Sqlite parser.
-/// PT: Cobre o round-trip de impressao de expressoes SQL no parser Sqlite.
+/// PT-br: Cobre o round-trip de impressao de expressoes SQL no parser Sqlite.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlExprPrinterTest(
 {
     /// <summary>
     /// EN: Verifies parsed expressions can be printed and parsed again without changing the normalized output.
-    /// PT: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
+    /// PT-br: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -30,7 +30,7 @@ public sealed class SqlExprPrinterTest(
 
     /// <summary>
     /// EN: Provides test data for Expressions.
-    /// PT: Fornece dados de teste para Expressions.
+    /// PT-br: Fornece dados de teste para Expressions.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {
@@ -43,7 +43,7 @@ public sealed class SqlExprPrinterTest(
 
     /// <summary>
     /// EN: Provides SQLite JSON arrow expressions that require a newer dialect version.
-    /// PT: Fornece expressoes JSON arrow do SQLite que exigem uma versao mais nova do dialeto.
+    /// PT-br: Fornece expressoes JSON arrow do SQLite que exigem uma versao mais nova do dialeto.
     /// </summary>
     public static IEnumerable<object[]> Expressions_JsonArrowOperators()
     {
@@ -53,7 +53,7 @@ public sealed class SqlExprPrinterTest(
 
     /// <summary>
     /// EN: Verifies SQLite JSON arrow expressions round-trip only on supported versions.
-    /// PT: Verifica se expressoes JSON arrow do SQLite fazem round-trip apenas em versoes suportadas.
+    /// PT-br: Verifica se expressoes JSON arrow do SQLite fazem round-trip apenas em versoes suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Reads schema objects and routine metadata from a database connection.
-/// PT: Le objetos de schema e metadados de rotinas a partir de uma conexao de banco.
+/// PT-br: Le objetos de schema e metadados de rotinas a partir de uma conexao de banco.
 /// </summary>
 /// <remarks>
 /// Initializes a metadata provider backed by a SQL query executor.
@@ -51,12 +51,12 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
 
     /// <summary>
     /// EN: Gets detailed metadata for a database object without rechecking its presence in the object list.
-    /// PT: Obtem metadados detalhados de um objeto de banco sem verificar novamente sua presenca na listagem.
+    /// PT-br: Obtem metadados detalhados de um objeto de banco sem verificar novamente sua presenca na listagem.
     /// </summary>
-    /// <param name="connection">EN: Connection definition used to query metadata. PT: Definicao de conexao usada para consultar metadados.</param>
-    /// <param name="reference">EN: Database object reference to hydrate. PT: Referencia do objeto de banco a ser enriquecida.</param>
-    /// <param name="cancellationToken">EN: Cancellation token for the operation. PT: Token de cancelamento para a operacao.</param>
-    /// <returns>EN: The populated object reference, or null when the object cannot be read. PT: A referencia populada do objeto, ou null quando o objeto nao puder ser lido.</returns>
+    /// <param name="connection">EN: Connection definition used to query metadata. PT-br: Definicao de conexao usada para consultar metadados.</param>
+    /// <param name="reference">EN: Database object reference to hydrate. PT-br: Referencia do objeto de banco a ser enriquecida.</param>
+    /// <param name="cancellationToken">EN: Cancellation token for the operation. PT-br: Token de cancelamento para a operacao.</param>
+    /// <returns>EN: The populated object reference, or null when the object cannot be read. PT-br: A referencia populada do objeto, ou null quando o objeto nao puder ser lido.</returns>
     public async Task<DatabaseObjectReference?> GetObjectDetailsAsync(
         ConnectionDefinition connection,
         DatabaseObjectReference reference,

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.Tests.DML;
 
 /// <summary>
 /// EN: Provides shared merge fidelity tests across mock and container runs.
-/// PT: Fornece testes de fidelidade de merge compartilhados entre execucoes mock e container.
+/// PT-br: Fornece testes de fidelidade de merge compartilhados entre execucoes mock e container.
 /// </summary>
 public abstract class MergeTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -17,7 +17,7 @@ public abstract class MergeTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that an initial merge inserts a row and a second merge updates the same row.
-    /// PT: Verifica se um merge inicial insere uma linha e um segundo merge atualiza a mesma linha.
+    /// PT-br: Verifica se um merge inicial insere uma linha e um segundo merge atualiza a mesma linha.
     /// </summary>
     [FidelityFact]
     public async Task MergeInsertThenUpdateTest()

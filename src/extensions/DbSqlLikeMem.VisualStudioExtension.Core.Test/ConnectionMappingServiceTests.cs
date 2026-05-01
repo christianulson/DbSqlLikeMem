@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies object-type mapping updates for the Visual Studio extension generation flow.
-/// PT: Verifica atualizacoes de mapeamento por tipo de objeto para o fluxo de geracao da extensao do Visual Studio.
+/// PT-br: Verifica atualizacoes de mapeamento por tipo de objeto para o fluxo de geracao da extensao do Visual Studio.
 /// </summary>
 public sealed class ConnectionMappingServiceTests
 {
     /// <summary>
     /// EN: Ensures missing mappings fall back to the shared default output and file pattern.
-    /// PT: Garante que mapeamentos ausentes voltem ao diretorio e padrao de arquivo compartilhados por padrao.
+    /// PT-br: Garante que mapeamentos ausentes voltem ao diretorio e padrao de arquivo compartilhados por padrao.
     /// </summary>
     [Fact]
     [Trait("Category", "ConnectionMappingService")]
@@ -26,7 +26,7 @@ public sealed class ConnectionMappingServiceTests
 
     /// <summary>
     /// EN: Ensures updates affect only the selected object type and preserve remaining mappings for the same connection.
-    /// PT: Garante que atualizacoes afetem apenas o tipo de objeto selecionado e preservem os mapeamentos restantes da mesma conexao.
+    /// PT-br: Garante que atualizacoes afetem apenas o tipo de objeto selecionado e preservem os mapeamentos restantes da mesma conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "ConnectionMappingService")]
@@ -63,7 +63,7 @@ public sealed class ConnectionMappingServiceTests
 
     /// <summary>
     /// EN: Ensures creating a mapping for a new connection still keeps defaults for the object types not explicitly configured.
-    /// PT: Garante que criar um mapeamento para uma nova conexao ainda mantenha valores padrao para os tipos nao configurados explicitamente.
+    /// PT-br: Garante que criar um mapeamento para uma nova conexao ainda mantenha valores padrao para os tipos nao configurados explicitamente.
     /// </summary>
     [Fact]
     [Trait("Category", "ConnectionMappingService")]
@@ -92,7 +92,7 @@ public sealed class ConnectionMappingServiceTests
 
     /// <summary>
     /// EN: Ensures baseline-driven mapping defaults reuse the versioned profile catalog while preserving the informed namespace.
-    /// PT: Garante que defaults de mapeamento guiados por baseline reutilizem o catalogo versionado de perfis preservando o namespace informado.
+    /// PT-br: Garante que defaults de mapeamento guiados por baseline reutilizem o catalogo versionado de perfis preservando o namespace informado.
     /// </summary>
     [Fact]
     [Trait("Category", "ConnectionMappingService")]
@@ -110,7 +110,7 @@ public sealed class ConnectionMappingServiceTests
 
     /// <summary>
     /// EN: Ensures function mappings reuse the same baseline catalog defaults while preserving the informed namespace.
-    /// PT: Garante que mapeamentos de function reutilizem os mesmos defaults do catalogo de baseline preservando o namespace informado.
+    /// PT-br: Garante que mapeamentos de function reutilizem os mesmos defaults do catalogo de baseline preservando o namespace informado.
     /// </summary>
     [Fact]
     [Trait("Category", "ConnectionMappingService")]

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Covers Firebird RECREATE PROCEDURE and TRIGGER execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de RECREATE PROCEDURE e TRIGGER no motor simulado Firebird.
+/// PT-br: Cobre cenarios de execucao de RECREATE PROCEDURE e TRIGGER no motor simulado Firebird.
 /// </summary>
 public sealed class FirebirdRecreateProcedureAndTriggerDdlTests : XUnitTestBase
 {
@@ -12,7 +12,7 @@ public sealed class FirebirdRecreateProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the Firebird database objects used by the recreate tests.
-    /// PT: Cria os objetos de banco Firebird usados pelos testes de recreate.
+    /// PT-br: Cria os objetos de banco Firebird usados pelos testes de recreate.
     /// </summary>
     public FirebirdRecreateProcedureAndTriggerDdlTests(ITestOutputHelper helper) : base(helper)
     {
@@ -27,7 +27,7 @@ public sealed class FirebirdRecreateProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies RECREATE PROCEDURE replaces the stored signature and allows CALL execution.
-    /// PT: Verifica se RECREATE PROCEDURE substitui a assinatura armazenada e permite execucao via CALL.
+    /// PT-br: Verifica se RECREATE PROCEDURE substitui a assinatura armazenada e permite execucao via CALL.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -78,7 +78,7 @@ public sealed class FirebirdRecreateProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies RECREATE TRIGGER replaces the trigger event and keeps table DML working.
-    /// PT: Verifica se RECREATE TRIGGER substitui o evento do trigger e mantém o DML da tabela funcionando.
+    /// PT-br: Verifica se RECREATE TRIGGER substitui o evento do trigger e mantém o DML da tabela funcionando.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -114,9 +114,9 @@ public sealed class FirebirdRecreateProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Disposes the Firebird connection used by the recreate tests.
-    /// PT: Descarta a conexao Firebird usada pelos testes de recreate.
+    /// PT-br: Descarta a conexao Firebird usada pelos testes de recreate.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         connection.Dispose();

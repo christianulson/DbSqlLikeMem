@@ -4,15 +4,15 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Execution plan coverage tests for Sqlite mock commands.
-/// PT: Testes de cobertura de plano de execução para comandos simulado Sqlite.
+/// PT-br: Testes de cobertura de plano de execução para comandos simulado Sqlite.
 /// </summary>
 public sealed class ExecutionPlanTests : XUnitTestBase
 {
     /// <summary>
     /// EN: Creates the execution plan test helper with xUnit output integration.
-    /// PT: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
+    /// PT-br: Cria o helper dos testes de plano de execucao com integracao de saida do xUnit.
     /// </summary>
-    /// <param name="helper">EN: xUnit output helper. PT: Helper de saída do xUnit.</param>
+    /// <param name="helper">EN: xUnit output helper. PT-br: Helper de saída do xUnit.</param>
     public ExecutionPlanTests(ITestOutputHelper helper)
         : base(helper)
     {
@@ -20,7 +20,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies command execution prints a readable plan to test output.
-    /// PT: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
+    /// PT-br: Verifica se a execucao do comando imprime um plano legivel na saida do teste.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -63,7 +63,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies INSERT non-query execution also prints a readable plan.
-    /// PT: Verifica se a execucao non-query de INSERT tambem imprime um plano legivel.
+    /// PT-br: Verifica se a execucao non-query de INSERT tambem imprime um plano legivel.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -90,7 +90,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures UPDATE non-query execution also generates a readable execution plan with target and filter details.
-    /// PT: Garante que a execucao non-query de UPDATE tambem gere um plano de execucao legivel com detalhes de alvo e filtro.
+    /// PT-br: Garante que a execucao non-query de UPDATE tambem gere um plano de execucao legivel com detalhes de alvo e filtro.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -122,7 +122,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures DELETE non-query execution also generates a readable execution plan with target and filter details.
-    /// PT: Garante que a execucao non-query de DELETE tambem gere um plano de execucao legivel com detalhes de alvo e filtro.
+    /// PT-br: Garante que a execucao non-query de DELETE tambem gere um plano de execucao legivel com detalhes de alvo e filtro.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -153,7 +153,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures DebugSql captures a lightweight runtime operator trace for SELECT execution.
-    /// PT: Garante que DebugSql capture um trace leve de operadores em runtime para execucao de SELECT.
+    /// PT-br: Garante que DebugSql capture um trace leve de operadores em runtime para execucao de SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -186,7 +186,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures DebugSql keeps the captured trace available even when it auto-opens and auto-closes the connection.
-    /// PT: Garante que DebugSql mantenha o trace capturado disponivel mesmo quando abre e fecha a conexao automaticamente.
+    /// PT-br: Garante que DebugSql mantenha o trace capturado disponivel mesmo quando abre e fecha a conexao automaticamente.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -211,7 +211,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures DebugSql captures a single UNION trace without leaking internal SELECT traces into the public result.
-    /// PT: Garante que DebugSql capture um unico trace de UNION sem vazar traces internos de SELECT no resultado publico.
+    /// PT-br: Garante que DebugSql capture um unico trace de UNION sem vazar traces internos de SELECT no resultado publico.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -245,7 +245,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures grouped debug traces expose diagnostic details for grouping, having, projection and distinct steps.
-    /// PT: Garante que traces agrupados exponham detalhes diagnosticos para agrupamento, having, projecao e distinct.
+    /// PT-br: Garante que traces agrupados exponham detalhes diagnosticos para agrupamento, having, projecao e distinct.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -279,7 +279,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures batch debug returns all traces captured for a multi-statement reader execution.
-    /// PT: Garante que o debug em lote retorne todos os traces capturados para uma execucao reader com multiplos statements.
+    /// PT-br: Garante que o debug em lote retorne todos os traces capturados para uma execucao reader com multiplos statements.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -300,7 +300,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures debug trace retention can be capped without losing the latest captured trace.
-    /// PT: Garante que a retencao de traces de debug possa ser limitada sem perder o ultimo trace capturado.
+    /// PT-br: Garante que a retencao de traces de debug possa ser limitada sem perder o ultimo trace capturado.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -321,7 +321,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures a new debug execution replaces prior trace history instead of accumulating across calls.
-    /// PT: Garante que uma nova execucao de debug substitua o historico anterior em vez de acumular entre chamadas.
+    /// PT-br: Garante que uma nova execucao de debug substitua o historico anterior em vez de acumular entre chamadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -342,7 +342,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures captured debug traces can be cleared explicitly without affecting execution plans.
-    /// PT: Garante que os traces de debug capturados possam ser limpos explicitamente sem afetar os planos de execucao.
+    /// PT-br: Garante que os traces de debug capturados possam ser limpos explicitamente sem afetar os planos de execucao.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -363,7 +363,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures the current debug trace snapshot can be exported without reexecuting SQL.
-    /// PT: Garante que o snapshot atual de traces de debug possa ser exportado sem reexecutar SQL.
+    /// PT-br: Garante que o snapshot atual de traces de debug possa ser exportado sem reexecutar SQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -391,7 +391,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures the last retained debug trace can be exported directly without reexecuting SQL.
-    /// PT: Garante que o ultimo trace de debug retido possa ser exportado diretamente sem reexecutar SQL.
+    /// PT-br: Garante que o ultimo trace de debug retido possa ser exportado diretamente sem reexecutar SQL.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -420,7 +420,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures the non-throwing last-trace API reports availability explicitly.
-    /// PT: Garante que a API sem excecao para o ultimo trace informe explicitamente a disponibilidade.
+    /// PT-br: Garante que a API sem excecao para o ultimo trace informe explicitamente a disponibilidade.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -440,7 +440,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures snapshot APIs behave predictably when no debug trace is retained.
-    /// PT: Garante que as APIs de snapshot se comportem de forma previsivel quando nenhum trace de debug estiver retido.
+    /// PT-br: Garante que as APIs de snapshot se comportem de forma previsivel quando nenhum trace de debug estiver retido.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -468,7 +468,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures the connection can return a formatted debug trace directly for ad-hoc inspection.
-    /// PT: Garante que a conexao consiga retornar diretamente um trace de debug formatado para inspecao ad-hoc.
+    /// PT-br: Garante que a conexao consiga retornar diretamente um trace de debug formatado para inspecao ad-hoc.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -486,7 +486,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures the connection can return a structured JSON debug trace directly for automation.
-    /// PT: Garante que a conexao consiga retornar diretamente um trace de debug JSON estruturado para automacao.
+    /// PT-br: Garante que a conexao consiga retornar diretamente um trace de debug JSON estruturado para automacao.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -506,7 +506,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures the connection can return formatted batch debug text with aggregated batch metadata.
-    /// PT: Garante que a conexao consiga retornar texto de debug em lote com metadados agregados do batch.
+    /// PT-br: Garante que a conexao consiga retornar texto de debug em lote com metadados agregados do batch.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -527,7 +527,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures the connection can return structured batch debug JSON with aggregated batch metadata.
-    /// PT: Garante que a conexao consiga retornar JSON estruturado de debug em lote com metadados agregados do batch.
+    /// PT-br: Garante que a conexao consiga retornar JSON estruturado de debug em lote com metadados agregados do batch.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -551,7 +551,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures execution plan suggests missing index for filter/sort columns.
-    /// PT: Garante que o plano de execução sugira índice ausente para colunas de filtro/ordenação.
+    /// PT-br: Garante que o plano de execução sugira índice ausente para colunas de filtro/ordenação.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -583,7 +583,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures index recommendations include estimated before/after and gain metrics.
-    /// PT: Garante que recomendações de índice incluam métricas estimadas de antes/depois e ganho.
+    /// PT-br: Garante que recomendações de índice incluam métricas estimadas de antes/depois e ganho.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -616,7 +616,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures advisor skips recommendation for tiny scans to reduce noise.
-    /// PT: Garante que o advisor não recomende índice para scans muito pequenos, reduzindo ruído.
+    /// PT-br: Garante que o advisor não recomende índice para scans muito pequenos, reduzindo ruído.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -644,7 +644,7 @@ public sealed class ExecutionPlanTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures execution plan does not suggest index when a matching index already exists.
-    /// PT: Garante que o plano não sugira índice quando já existe índice aderente.
+    /// PT-br: Garante que o plano não sugira índice quando já existe índice aderente.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]

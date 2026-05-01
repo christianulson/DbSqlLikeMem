@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Represents a stored procedure parameter with type and default value.
-/// PT: Representa um parâmetro de procedimento armazenado, com tipo e valor padrão.
+/// PT-br: Representa um parâmetro de procedimento armazenado, com tipo e valor padrão.
 /// </summary>
 public sealed record ProcParam(
     string Name,
@@ -12,7 +12,7 @@ public sealed record ProcParam(
 
 /// <summary>
 /// EN: Defines the signature of an in-memory stored procedure.
-/// PT: Define a assinatura de um procedimento armazenado em memória.
+/// PT-br: Define a assinatura de um procedimento armazenado em memória.
 /// </summary>
 public sealed record ProcedureDef(
     string Name,
@@ -24,10 +24,10 @@ public sealed record ProcedureDef(
 {
     /// <summary>
     /// EN: Normalizes the parameter name by removing prefixes and spaces.
-    /// PT: Normaliza o nome do parâmetro removendo prefixos e espaços.
+    /// PT-br: Normaliza o nome do parâmetro removendo prefixos e espaços.
     /// </summary>
-    /// <param name="name">EN: Name to normalize. PT: Nome a normalizar.</param>
-    /// <returns>EN: Normalized name. PT: Nome normalizado.</returns>
+    /// <param name="name">EN: Name to normalize. PT-br: Nome a normalizar.</param>
+    /// <returns>EN: Normalized name. PT-br: Nome normalizado.</returns>
     public static string NormalizeParamName(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return string.Empty;

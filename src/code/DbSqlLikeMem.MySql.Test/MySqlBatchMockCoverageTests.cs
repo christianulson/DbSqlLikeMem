@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Adds focused coverage for MySqlBatchMock and MySqlBatchCommandMock guard and surface behavior.
-/// PT: Adiciona cobertura focada para comportamento de superficie e validacoes de MySqlBatchMock e MySqlBatchCommandMock.
+/// PT-br: Adiciona cobertura focada para comportamento de superficie e validacoes de MySqlBatchMock e MySqlBatchCommandMock.
 /// </summary>
 public sealed class MySqlBatchMockCoverageTests(
         ITestOutputHelper helper
@@ -26,7 +26,7 @@ public sealed class MySqlBatchMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies batch commands expose their default provider-facing surface.
-    /// PT: Verifica se comandos em lote expõem sua superficie padrao voltada ao provedor.
+    /// PT-br: Verifica se comandos em lote expõem sua superficie padrao voltada ao provedor.
     /// </summary>
     [Fact]
     public void BatchCommand_ShouldExposeExpectedDefaults()
@@ -60,7 +60,7 @@ public sealed class MySqlBatchMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies batch execution rejects invalid state such as missing connection, empty command list, and disposed instances.
-    /// PT: Verifica se a execucao em lote rejeita estado invalido como conexao ausente, lista vazia de comandos e instancias descartadas.
+    /// PT-br: Verifica se a execucao em lote rejeita estado invalido como conexao ausente, lista vazia de comandos e instancias descartadas.
     /// </summary>
     [Fact]
     public void BatchExecution_ShouldValidateStateBeforeRunning()
@@ -84,7 +84,7 @@ public sealed class MySqlBatchMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies prepare rejects non-text commands and async execution honors canceled tokens after validation succeeds.
-    /// PT: Verifica se prepare rejeita comandos nao textuais e se a execucao assincrona respeita tokens cancelados apos a validacao.
+    /// PT-br: Verifica se prepare rejeita comandos nao textuais e se a execucao assincrona respeita tokens cancelados apos a validacao.
     /// </summary>
     [Fact]
 #pragma warning disable xUnit1051
@@ -120,7 +120,7 @@ public sealed class MySqlBatchMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies valid async execution runs commands, returns results, and preserves command settings in generated commands.
-    /// PT: Verifica se a execucao assincrona valida executa comandos, retorna resultados e preserva configuracoes nos comandos gerados.
+    /// PT-br: Verifica se a execucao assincrona valida executa comandos, retorna resultados e preserva configuracoes nos comandos gerados.
     /// </summary>
     [Fact]
 #pragma warning disable AsyncFixer02
@@ -174,7 +174,7 @@ public sealed class MySqlBatchMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies the async reader overload propagates the requested command behavior to the batch execution pipeline.
-    /// PT: Verifica se o overload async de reader propaga o comportamento de comando solicitado para o pipeline de execucao em lote.
+    /// PT-br: Verifica se o overload async de reader propaga o comportamento de comando solicitado para o pipeline de execucao em lote.
     /// </summary>
     [Fact]
 #pragma warning disable AsyncFixer02
@@ -210,7 +210,7 @@ public sealed class MySqlBatchMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies prepare succeeds for text commands and binds batch commands back to the owning connection.
-    /// PT: Verifica se o prepare tem sucesso para comandos textuais e vincula os comandos do lote de volta a conexao dona.
+    /// PT-br: Verifica se o prepare tem sucesso para comandos textuais e vincula os comandos do lote de volta a conexao dona.
     /// </summary>
     [Fact]
     public void PrepareAsync_WithTextCommands_ShouldCompleteAndBindProviderState()

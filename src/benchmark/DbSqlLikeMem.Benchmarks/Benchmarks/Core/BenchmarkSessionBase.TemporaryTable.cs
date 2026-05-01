@@ -6,6 +6,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the temporary-table create-and-use benchmark and keeps the projected rows alive.
     /// PT-br: Executa o benchmark de criar e usar tabela temporaria e mantem as linhas projetadas ativas.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TempTableCreateAndUse)]
     protected virtual void RunTempTableCreateAndUse()
     {
         var state = GetPreparedTemporaryTableSourceState("TempTableSource");
@@ -17,6 +18,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the temporary-table rollback benchmark and keeps the provider result alive.
     /// PT-br: Executa o benchmark de rollback com tabela temporaria e mantem o resultado do provedor vivo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TempTableRollback)]
     protected virtual void RunTempTableRollback()
     {
         var state = GetPreparedTemporaryUsersState("TempUsers");
@@ -27,6 +29,7 @@ public abstract partial class BenchmarkSessionBase
     /// EN: Executes the temporary-table cross-connection isolation benchmark and keeps the result alive.
     /// PT-br: Executa o benchmark de isolamento de tabela temporaria entre conexoes e mantem o resultado ativo.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.TempTableCrossConnectionIsolation)]
     protected virtual void RunTempTableCrossConnectionIsolation()
     {
         var state = GetPreparedTemporaryUsersState("TempUsersIsolation");

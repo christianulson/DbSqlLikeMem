@@ -1,23 +1,23 @@
 namespace DbSqlLikeMem.MySql;
 /// <summary>
 /// EN: IQueryable wrapper for MySQL LINQ translation.
-/// PT: Wrapper IQueryable para tradução LINQ do MySQL.
+/// PT-br: Wrapper IQueryable para tradução LINQ do MySQL.
 /// </summary>
 public class MySqlQueryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
     /// EN: Gets or sets TableName.
-    /// PT: Obtém ou define TableName.
+    /// PT-br: Obtém ou define TableName.
     /// </summary>
     public string TableName { get; }
     /// <summary>
     /// EN: Gets or sets Expression.
-    /// PT: Obtém ou define Expression.
+    /// PT-br: Obtém ou define Expression.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
     /// EN: Gets or sets Provider.
-    /// PT: Obtém ou define Provider.
+    /// PT-br: Obtém ou define Provider.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -45,14 +45,14 @@ public class MySqlQueryable<T> : IOrderedQueryable<T>
 
     /// <summary>
     /// EN: Implements typeof.
-    /// PT: Implementa typeof.
+    /// PT-br: Implementa typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
     /// EN: Implements GetEnumerator.
-    /// PT: Implementa GetEnumerator.
+    /// PT-br: Implementa GetEnumerator.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();

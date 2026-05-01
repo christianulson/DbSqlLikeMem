@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Service that tests upsert operations by executing a provider-specific upsert path and validating the updated value.
-/// PT: Serviço que testa operações de upsert, executando um caminho de upsert específico do provedor e validando o valor atualizado.
+/// PT-br: Serviço que testa operações de upsert, executando um caminho de upsert específico do provedor e validando o valor atualizado.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,9 +14,9 @@ public class DmlMutationUpsertServiceTest(
 {
     /// <summary>
     /// EN: Executes the provider-specific upsert path and validates the updated value.
-    /// PT: Executa o caminho de upsert específico do provedor e valida o valor atualizado.
+    /// PT-br: Executa o caminho de upsert específico do provedor e valida o valor atualizado.
     /// </summary>
-    /// <param name="args">EN: Optional primary user id for the upsert flow. PT: Id principal opcional do usuario para o fluxo de upsert.</param>
+    /// <param name="args">EN: Optional primary user id for the upsert flow. PT-br: Id principal opcional do usuario para o fluxo de upsert.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         if (!Repo.Dialect.SupportsUpsert)

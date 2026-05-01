@@ -67,62 +67,62 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Gets or sets allows bracket identifiers.
-    /// PT: Obtém ou define allows bracket identifiers.
+    /// PT-br: Obtém ou define allows bracket identifiers.
     /// </summary>
     public override bool AllowsBracketIdentifiers => true;
 
     /// <summary>
     /// EN: Gets or sets identifier escape style.
-    /// PT: Obtém ou define identifier escape style.
+    /// PT-br: Obtém ou define identifier escape style.
     /// </summary>
     public override SqlIdentifierEscapeStyle IdentifierEscapeStyle => SqlIdentifierEscapeStyle.bracket;
 
     /// <summary>
     /// EN: Determines whether the character is treated as a string quote delimiter.
-    /// PT: Determina se o caractere é tratado como delimitador de string.
+    /// PT-br: Determina se o caractere é tratado como delimitador de string.
     /// </summary>
     public override bool IsStringQuote(char ch) => ch == '\'';
     /// <summary>
     /// EN: Gets or sets string escape style.
-    /// PT: Obtém ou define string escape style.
+    /// PT-br: Obtém ou define string escape style.
     /// </summary>
     public override SqlStringEscapeStyle StringEscapeStyle => SqlStringEscapeStyle.doubled_quote;
     /// <summary>
     /// EN: Gets or sets text comparison.
-    /// PT: Obtém ou define text comparison.
+    /// PT-br: Obtém ou define text comparison.
     /// </summary>
     public override StringComparison TextComparison => StringComparison.OrdinalIgnoreCase;
 
     /// <summary>
     /// EN: Gets whether top is supported.
-    /// PT: Obtém se há suporte a top.
+    /// PT-br: Obtém se há suporte a top.
     /// </summary>
     public override bool SupportsTop => true;
 
     /// <summary>
     /// EN: Indicates whether SQL window functions are supported by the configured SQL Server version.
-    /// PT: Indica se funções de janela SQL são suportadas pela versão configurada do SQL Server.
+    /// PT-br: Indica se funções de janela SQL são suportadas pela versão configurada do SQL Server.
     /// </summary>
     public override bool SupportsWindowFunctions => Version >= WindowFunctionsMinVersion;
 
     /// <summary>
     /// EN: Indicates whether SQL window frame clauses are supported by the configured version.
-    /// PT: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
+    /// PT-br: Indica se cláusulas de frame de janela SQL são suportadas pela versão configurada.
     /// </summary>
     public override bool SupportsWindowFrameClause => Version >= WindowFrameClauseMinVersion;
     /// <summary>
     /// EN: Indicates whether ROWS window frame clauses are supported by the configured SQL Server version.
-    /// PT: Indica se cláusulas de frame ROWS são suportadas pela versão configurada do SQL Server.
+    /// PT-br: Indica se cláusulas de frame ROWS são suportadas pela versão configurada do SQL Server.
     /// </summary>
     public override bool SupportsWindowFrameRowsClause => Version >= WindowFrameClauseMinVersion;
     /// <summary>
     /// EN: Indicates whether RANGE window frame clauses are supported by the configured SQL Server version.
-    /// PT: Indica se cláusulas de frame RANGE são suportadas pela versão configurada do SQL Server.
+    /// PT-br: Indica se cláusulas de frame RANGE são suportadas pela versão configurada do SQL Server.
     /// </summary>
     public override bool SupportsWindowFrameRangeClause => Version >= WindowFrameClauseMinVersion;
     /// <summary>
     /// EN: Indicates whether GROUPS window frame clauses are supported by the configured SQL Server version.
-    /// PT: Indica se cláusulas de frame GROUPS são suportadas pela versão configurada do SQL Server.
+    /// PT-br: Indica se cláusulas de frame GROUPS são suportadas pela versão configurada do SQL Server.
     /// </summary>
     public override bool SupportsWindowFrameGroupsClause => Version >= WindowFrameGroupsMinVersion;
 
@@ -133,43 +133,43 @@ internal sealed class SqlServerDialect : SqlDialectBase
     // OFFSET ... FETCH entrou no SQL Server 2012.
     /// <summary>
     /// EN: Gets whether offset fetch is supported.
-    /// PT: Obtém se há suporte a offset fetch.
+    /// PT-br: Obtém se há suporte a offset fetch.
     /// </summary>
     public override bool SupportsOffsetFetch => Version >= OffsetFetchMinVersion;
     /// <summary>
     /// EN: Gets or sets requires order by for offset fetch.
-    /// PT: Obtém ou define requires order by for offset fetch.
+    /// PT-br: Obtém ou define requires order by for offset fetch.
     /// </summary>
     public override bool RequiresOrderByForOffsetFetch => true;
 
     /// <summary>
     /// EN: Gets whether delete without from is supported.
-    /// PT: Obtém se há suporte a delete without from.
+    /// PT-br: Obtém se há suporte a delete without from.
     /// </summary>
     public override bool SupportsDeleteWithoutFrom => true; // DELETE [FROM] t
     /// <summary>
     /// EN: Gets whether delete target alias is supported.
-    /// PT: Obtém se há suporte a delete target alias.
+    /// PT-br: Obtém se há suporte a delete target alias.
     /// </summary>
     public override bool SupportsDeleteTargetAlias => true; // DELETE alias FROM t alias JOIN ...
     public override bool SupportsUpdateFromJoinSubquerySyntax => true;
     public override bool SupportsDeleteTargetFromJoinSubquerySyntax => true;
     /// <summary>
     /// EN: Gets whether with cte is supported.
-    /// PT: Obtém se há suporte a with cte.
+    /// PT-br: Obtém se há suporte a with cte.
     /// </summary>
     public override bool SupportsWithCte => Version >= WithCteMinVersion;
     // SQL Server supports CTE but not the "WITH RECURSIVE" keyword form.
     /// <summary>
     /// EN: Gets whether with recursive is supported.
-    /// PT: Obtém se há suporte a with recursive.
+    /// PT-br: Obtém se há suporte a with recursive.
     /// </summary>
     public override bool SupportsWithRecursive => false;
     /// <inheritdoc />
     public override bool SupportsForJsonClause => Version >= JsonFunctionsMinVersion;
     /// <summary>
     /// EN: Gets whether merge is supported.
-    /// PT: Obtém se há suporte a merge.
+    /// PT-br: Obtém se há suporte a merge.
     /// </summary>
     public override bool SupportsMerge => Version >= MergeMinVersion;
     public override bool SupportsAlterTableAddColumn => true;
@@ -179,7 +179,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsDoubleAtIdentifierSyntax => true;
     /// <summary>
     /// EN: Gets whether pivot clause is supported.
-    /// PT: Obtém se há suporte a pivot clause.
+    /// PT-br: Obtém se há suporte a pivot clause.
     /// </summary>
     public override bool SupportsPivotClause => true;
     /// <inheritdoc />
@@ -187,12 +187,12 @@ internal sealed class SqlServerDialect : SqlDialectBase
     public override bool SupportsApplyClause => Version >= WithCteMinVersion;
     /// <summary>
     /// EN: Gets whether sql server table hints is supported.
-    /// PT: Obtém se há suporte a sql server table hints.
+    /// PT-br: Obtém se há suporte a sql server table hints.
     /// </summary>
     public override bool SupportsSqlServerTableHints => true;
     /// <summary>
     /// EN: Gets whether sql server query hints is supported.
-    /// PT: Obtém se há suporte a sql server consulta hints.
+    /// PT-br: Obtém se há suporte a sql server consulta hints.
     /// </summary>
     public override bool SupportsSqlServerQueryHints => true;
 
@@ -358,7 +358,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Checks whether a SQL Server metadata function is supported by this dialect.
-    /// PT: Verifica se uma funcao de metadados do SQL Server e suportada por este dialeto.
+    /// PT-br: Verifica se uma funcao de metadados do SQL Server e suportada por este dialeto.
     /// </summary>
     public override bool SupportsSqlServerMetadataFunction(string functionName)
         => IsRegisteredSqlServerCall(functionName)
@@ -372,7 +372,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Checks whether a SQL Server metadata identifier is supported by this dialect.
-    /// PT: Verifica se um identificador de metadados do SQL Server e suportado por este dialeto.
+    /// PT-br: Verifica se um identificador de metadados do SQL Server e suportado por este dialeto.
     /// </summary>
     public override bool SupportsSqlServerMetadataIdentifier(string identifier)
         => !string.IsNullOrWhiteSpace(identifier)
@@ -383,7 +383,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Checks whether a SQL Server scalar function is supported by this dialect.
-    /// PT: Verifica se uma funcao escalar do SQL Server e suportada por este dialeto.
+    /// PT-br: Verifica se uma funcao escalar do SQL Server e suportada por este dialeto.
     /// </summary>
     public override bool SupportsSqlServerScalarFunction(string functionName)
         => IsRegisteredSqlServerCall(functionName)
@@ -395,7 +395,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Checks whether a SQL Server date function is supported by this dialect.
-    /// PT: Verifica se uma funcao de data do SQL Server e suportada por este dialeto.
+    /// PT-br: Verifica se uma funcao de data do SQL Server e suportada por este dialeto.
     /// </summary>
     public override bool SupportsSqlServerDateFunction(string functionName)
     {
@@ -410,7 +410,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Checks whether a SQL Server aggregate function is supported by this dialect.
-    /// PT: Verifica se uma funcao de agregacao do SQL Server e suportada por este dialeto.
+    /// PT-br: Verifica se uma funcao de agregacao do SQL Server e suportada por este dialeto.
     /// </summary>
     public override bool SupportsSqlServerAggregateFunction(string functionName)
         => !string.IsNullOrWhiteSpace(functionName)
@@ -427,7 +427,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Indicates whether a SQL Server FROM PARTS-style function is supported by this dialect.
-    /// PT: Indica se uma funcao estilo FROM PARTS do SQL Server e suportada por este dialeto.
+    /// PT-br: Indica se uma funcao estilo FROM PARTS do SQL Server e suportada por este dialeto.
     /// </summary>
     public bool SupportsSqlServerFromPartsFunction(string functionName)
         => IsRegisteredSqlServerCall(functionName)
@@ -440,7 +440,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Gets or sets null substitute function names.
-    /// PT: Obtém ou define null substitute function names.
+    /// PT-br: Obtém ou define null substitute function names.
     /// </summary>
     public override IReadOnlyCollection<string> NullSubstituteFunctionNames => ["ISNULL"];
 
@@ -452,13 +452,13 @@ internal sealed class SqlServerDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Gets or sets allows hash identifiers.
-    /// PT: Obtém ou define allows hash identifiers.
+    /// PT-br: Obtém ou define allows hash identifiers.
     /// </summary>
     public override bool AllowsHashIdentifiers => true;
 
     /// <summary>
     /// EN: Gets temporary table scope.
-    /// PT: Obtém temporary table scope.
+    /// PT-br: Obtém temporary table scope.
     /// </summary>
     public override TemporaryTableScope GetTemporaryTableScope(string tableName, string? schemaName)
     {

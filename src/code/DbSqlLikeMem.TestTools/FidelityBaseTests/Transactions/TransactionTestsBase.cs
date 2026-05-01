@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.Tests.Transactions;
 
 /// <summary>
 /// EN: Provides shared transaction fidelity tests for commit, rollback, and savepoint workflows across mock and container runs.
-/// PT: Fornece testes de fidelidade de transacao compartilhados para fluxos de commit, rollback e savepoint entre mock e container.
+/// PT-br: Fornece testes de fidelidade de transacao compartilhados para fluxos de commit, rollback e savepoint entre mock e container.
 /// </summary>
 public abstract class TransactionTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -17,7 +17,7 @@ public abstract class TransactionTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that a transaction commit persists the inserted row for the current provider.
-    /// PT: Verifica se o commit de uma transacao persiste a linha inserida para o provedor atual.
+    /// PT-br: Verifica se o commit de uma transacao persiste a linha inserida para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TransactionCommitTest()
@@ -31,7 +31,7 @@ public abstract class TransactionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a transaction rollback removes the inserted row for the current provider.
-    /// PT: Verifica se o rollback de uma transacao remove a linha inserida para o provedor atual.
+    /// PT-br: Verifica se o rollback de uma transacao remove a linha inserida para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TransactionRollbackTest()
@@ -45,7 +45,7 @@ public abstract class TransactionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that creating a savepoint works for the current provider.
-    /// PT: Verifica se a criacao de um savepoint funciona para o provedor atual.
+    /// PT-br: Verifica se a criacao de um savepoint funciona para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SavepointCreateTest()
@@ -63,7 +63,7 @@ public abstract class TransactionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that rolling back to a savepoint keeps the expected row count for the current provider.
-    /// PT: Verifica se o rollback para um savepoint mantem a contagem de linhas esperada para o provedor atual.
+    /// PT-br: Verifica se o rollback para um savepoint mantem a contagem de linhas esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task RollbackToSavepointTest()
@@ -77,7 +77,7 @@ public abstract class TransactionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that releasing a savepoint works for the current provider.
-    /// PT: Verifica se a liberacao de um savepoint funciona para o provedor atual.
+    /// PT-br: Verifica se a liberacao de um savepoint funciona para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ReleaseSavepointTest()
@@ -108,7 +108,7 @@ public abstract class TransactionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that nested savepoints keep the expected row count for the current provider.
-    /// PT: Verifica se savepoints aninhados mantem a contagem de linhas esperada para o provedor atual.
+    /// PT-br: Verifica se savepoints aninhados mantem a contagem de linhas esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task NestedSavepointFlowTest()

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Shared EXISTS/NOT EXISTS behavior tests executed by provider-specific derived classes.
-/// PT: Testes compartilhados de EXISTS/NOT EXISTS executados por classes derivadas de cada provedor.
+/// PT-br: Testes compartilhados de EXISTS/NOT EXISTS executados por classes derivadas de cada provedor.
 /// </summary>
 public abstract class ExistsTestsBase(
         ITestOutputHelper helper
@@ -10,13 +10,13 @@ public abstract class ExistsTestsBase(
 {
     /// <summary>
     /// EN: Creates a provider-specific mock connection used by shared EXISTS tests.
-    /// PT: Cria uma conexão simulada específica do provedor usada pelos testes compartilhados de EXISTS.
+    /// PT-br: Cria uma conexão simulada específica do provedor usada pelos testes compartilhados de EXISTS.
     /// </summary>
     protected abstract DbConnectionMockBase CreateConnection();
 
     /// <summary>
     /// EN: Verifies EXISTS returns users that have matching orders.
-    /// PT: Verifica se EXISTS retorna usuarios que possuem pedidos correspondentes.
+    /// PT-br: Verifica se EXISTS retorna usuarios que possuem pedidos correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -48,7 +48,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Verifies NOT EXISTS returns users that do not have matching orders.
-    /// PT: Verifica se NOT EXISTS retorna usuarios que nao possuem pedidos correspondentes.
+    /// PT-br: Verifica se NOT EXISTS retorna usuarios que nao possuem pedidos correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -79,7 +79,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Verifies a LEFT JOIN anti-join returns the same users as NOT EXISTS for the current provider.
-    /// PT: Verifica se um anti-join com LEFT JOIN retorna os mesmos usuarios que NOT EXISTS para o provedor atual.
+    /// PT-br: Verifica se um anti-join com LEFT JOIN retorna os mesmos usuarios que NOT EXISTS para o provedor atual.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -118,7 +118,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Verifies EXISTS honors an additional predicate inside the correlated subquery.
-    /// PT: Verifica se EXISTS respeita um predicado adicional dentro da subquery correlacionada.
+    /// PT-br: Verifica se EXISTS respeita um predicado adicional dentro da subquery correlacionada.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -150,7 +150,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests NOT IN with a subquery containing NULL follows SQL semantics (unknown -> filtered out).
-    /// PT: Testa que NOT IN com subquery contendo NULL segue semântica SQL (unknown -> filtrado).
+    /// PT-br: Testa que NOT IN com subquery contendo NULL segue semântica SQL (unknown -> filtrado).
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -181,7 +181,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests NOT IN with an explicit NULL item follows SQL semantics (unknown -> filtered out).
-    /// PT: Testa que NOT IN com item NULL explícito segue semântica SQL (unknown -> filtrado).
+    /// PT-br: Testa que NOT IN com item NULL explícito segue semântica SQL (unknown -> filtrado).
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -208,7 +208,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified comparison with ANY subquery behaves like membership for equality.
-    /// PT: Testa que comparação quantificada com subquery ANY se comporta como pertencimento para igualdade.
+    /// PT-br: Testa que comparação quantificada com subquery ANY se comporta como pertencimento para igualdade.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -239,7 +239,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified comparison with ALL subquery requires predicate to hold for all returned rows.
-    /// PT: Testa que comparação quantificada com subquery ALL exige que o predicado seja verdadeiro para todas as linhas retornadas.
+    /// PT-br: Testa que comparação quantificada com subquery ALL exige que o predicado seja verdadeiro para todas as linhas retornadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -270,7 +270,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified comparison with SOME subquery as an alias of ANY.
-    /// PT: Testa comparação quantificada com subquery SOME como alias de ANY.
+    /// PT-br: Testa comparação quantificada com subquery SOME como alias de ANY.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -301,7 +301,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified comparison with ALL over an empty subquery returns true (vacuous truth).
-    /// PT: Testa que comparação quantificada com ALL sobre subquery vazia retorna verdadeiro (verdade vacuamente).
+    /// PT-br: Testa que comparação quantificada com ALL sobre subquery vazia retorna verdadeiro (verdade vacuamente).
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -328,7 +328,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified ANY accepts an extra parenthesis wrapper around subquery.
-    /// PT: Testa que ANY quantificado aceita um parêntese extra envolvendo a subquery.
+    /// PT-br: Testa que ANY quantificado aceita um parêntese extra envolvendo a subquery.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -359,7 +359,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified ALL accepts an extra parenthesis wrapper around subquery.
-    /// PT: Testa que ALL quantificado aceita um parêntese extra envolvendo a subquery.
+    /// PT-br: Testa que ALL quantificado aceita um parêntese extra envolvendo a subquery.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -390,7 +390,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified ANY with NULL-only candidates results in UNKNOWN and filters out rows when no TRUE match exists.
-    /// PT: Testa que ANY quantificado com candidatos apenas NULL resulta em UNKNOWN e filtra linhas quando não há correspondência TRUE.
+    /// PT-br: Testa que ANY quantificado com candidatos apenas NULL resulta em UNKNOWN e filtra linhas quando não há correspondência TRUE.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -421,7 +421,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests quantified ALL with at least one NULL candidate and no FALSE comparison yields UNKNOWN and filters out rows.
-    /// PT: Testa que ALL quantificado com ao menos um candidato NULL e sem comparação FALSE gera UNKNOWN e filtra linhas.
+    /// PT-br: Testa que ALL quantificado com ao menos um candidato NULL e sem comparação FALSE gera UNKNOWN e filtra linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -451,7 +451,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent quantified ANY correlated subqueries with and without explicit projection AS alias share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes com ANY quantificado com e sem alias AS explícito na projeção compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes com ANY quantificado com e sem alias AS explícito na projeção compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -482,7 +482,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests correlated EXISTS subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
-    /// PT: Testa que subquery correlacionada com EXISTS reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
+    /// PT-br: Testa que subquery correlacionada com EXISTS reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -512,7 +512,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests correlated IN-subquery reuses evaluation for duplicate outer rows, reducing repeated source access.
-    /// PT: Testa que subquery correlacionada em IN reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
+    /// PT-br: Testa que subquery correlacionada em IN reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -542,7 +542,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests correlated scalar subquery in projection reuses evaluation for duplicate outer rows, reducing repeated source access.
-    /// PT: Testa que subquery escalar correlacionada na projeção reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
+    /// PT-br: Testa que subquery escalar correlacionada na projeção reutiliza avaliação para linhas externas duplicadas, reduzindo acessos repetidos à fonte.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -572,7 +572,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests correlated scalar subquery returning NULL still reuses evaluation for duplicate outer rows.
-    /// PT: Testa que subquery escalar correlacionada com retorno NULL ainda reutiliza avaliação para linhas externas duplicadas.
+    /// PT-br: Testa que subquery escalar correlacionada com retorno NULL ainda reutiliza avaliação para linhas externas duplicadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -602,7 +602,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests correlated EXISTS cache key ignores non-referenced outer columns, allowing reuse when only unrelated fields differ.
-    /// PT: Testa que a chave de cache de EXISTS correlacionado ignora colunas externas não referenciadas, permitindo reuso quando apenas campos não relacionados diferem.
+    /// PT-br: Testa que a chave de cache de EXISTS correlacionado ignora colunas externas não referenciadas, permitindo reuso quando apenas campos não relacionados diferem.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -632,7 +632,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests correlated scalar-subquery cache key ignores non-referenced outer columns, allowing reuse when only unrelated fields differ.
-    /// PT: Testa que a chave de cache de subquery escalar correlacionada ignora colunas externas não referenciadas, permitindo reuso quando apenas campos não relacionados diferem.
+    /// PT-br: Testa que a chave de cache de subquery escalar correlacionada ignora colunas externas não referenciadas, permitindo reuso quando apenas campos não relacionados diferem.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -662,7 +662,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests uncorrelated EXISTS subquery is reused across outer rows and does not re-read source per row.
-    /// PT: Testa que subquery EXISTS não correlacionada é reutilizada entre linhas externas e não releitura a fonte por linha.
+    /// PT-br: Testa que subquery EXISTS não correlacionada é reutilizada entre linhas externas e não releitura a fonte por linha.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -692,7 +692,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests uncorrelated scalar subquery in projection is reused across outer rows and does not re-read source per row.
-    /// PT: Testa que subquery escalar não correlacionada na projeção é reutilizada entre linhas externas e não releitura a fonte por linha.
+    /// PT-br: Testa que subquery escalar não correlacionada na projeção é reutilizada entre linhas externas e não releitura a fonte por linha.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -722,7 +722,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with different identifier casing share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com casing diferente de identificadores compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com casing diferente de identificadores compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -753,7 +753,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with different whitespace around qualified identifiers share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com espaços diferentes em identificadores qualificados compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com espaços diferentes em identificadores qualificados compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -784,7 +784,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with different identifier casing share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com casing diferente de identificadores compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com casing diferente de identificadores compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -815,7 +815,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with different identifier casing share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com casing diferente de identificadores compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com casing diferente de identificadores compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -846,7 +846,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with different inner aliases share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com aliases internos diferentes compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com aliases internos diferentes compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -877,7 +877,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with different inner aliases share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com aliases internos diferentes compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com aliases internos diferentes compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -908,7 +908,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with different inner aliases share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com aliases internos diferentes compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com aliases internos diferentes compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -939,7 +939,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with top-level AND predicates in different order share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -970,7 +970,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with top-level AND predicates in different order share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1001,7 +1001,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with top-level AND predicates in different order share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com predicados AND de topo em ordem diferente compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1032,7 +1032,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with redundant outer parentheses around AND predicate share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com parênteses externos redundantes em predicado AND compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com parênteses externos redundantes em predicado AND compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1063,7 +1063,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with redundant outer parentheses around AND predicate share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com parênteses externos redundantes em predicado AND compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com parênteses externos redundantes em predicado AND compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1094,7 +1094,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with redundant outer parentheses around AND predicate share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com parênteses externos redundantes em predicado AND compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com parênteses externos redundantes em predicado AND compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1125,7 +1125,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with inverted equality operands share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com operandos invertidos em igualdade compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com operandos invertidos em igualdade compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1156,7 +1156,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with inverted equality operands share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com operandos invertidos em igualdade compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com operandos invertidos em igualdade compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1187,7 +1187,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with inverted equality operands share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com operandos invertidos em igualdade compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com operandos invertidos em igualdade compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1218,7 +1218,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with and without AS in inner aliases share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com e sem AS em aliases internos compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com e sem AS em aliases internos compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1249,7 +1249,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with and without AS in inner aliases share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com e sem AS em aliases internos compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com e sem AS em aliases internos compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1280,7 +1280,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with and without AS in inner aliases share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com e sem AS em aliases internos compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com e sem AS em aliases internos compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1311,7 +1311,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with different relational-operator spacing share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com espaçamento diferente em operadores relacionais compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com espaçamento diferente em operadores relacionais compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1342,7 +1342,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with different relational-operator spacing share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com espaçamento diferente em operadores relacionais compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com espaçamento diferente em operadores relacionais compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1373,7 +1373,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with different relational-operator spacing share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com espaçamento diferente em operadores relacionais compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com espaçamento diferente em operadores relacionais compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1404,7 +1404,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with different projection payloads share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com payloads de projeção diferentes compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com payloads de projeção diferentes compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1435,7 +1435,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated EXISTS subqueries with DISTINCT projection payload variation share the same cache entry.
-    /// PT: Testa que subqueries EXISTS correlacionadas equivalentes com variação de payload de projeção DISTINCT compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries EXISTS correlacionadas equivalentes com variação de payload de projeção DISTINCT compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1466,7 +1466,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated IN subqueries with explicit AS projection aliases share the same cache entry.
-    /// PT: Testa que subqueries correlacionadas equivalentes em IN com aliases explícitos AS na projeção compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries correlacionadas equivalentes em IN com aliases explícitos AS na projeção compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1497,7 +1497,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Tests equivalent correlated scalar subqueries with explicit AS projection aliases share the same cache entry.
-    /// PT: Testa que subqueries escalares correlacionadas equivalentes com aliases explícitos AS na projeção compartilham a mesma entrada de cache.
+    /// PT-br: Testa que subqueries escalares correlacionadas equivalentes com aliases explícitos AS na projeção compartilham a mesma entrada de cache.
     /// </summary>
     [Fact]
     [Trait("Category", "Exists")]
@@ -1556,7 +1556,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Gets how many times a table source was touched according to connection metrics.
-    /// PT: Obtém quantas vezes uma fonte de tabela foi acessada segundo as métricas da conexão.
+    /// PT-br: Obtém quantas vezes uma fonte de tabela foi acessada segundo as métricas da conexão.
     /// </summary>
     private static int GetTableHintCount(DbConnectionMockBase cnn, string tableName)
         => cnn.Metrics.TableHints.TryGetValue(tableName, out var count)
@@ -1565,7 +1565,7 @@ ORDER BY u.Id";
 
     /// <summary>
     /// EN: Executes query and returns total row count.
-    /// PT: Executa a consulta e retorna a contagem total de linhas.
+    /// PT-br: Executa a consulta e retorna a contagem total de linhas.
     /// </summary>
     private static int ExecuteAndCountRows(DbConnectionMockBase cnn, string sql)
     {

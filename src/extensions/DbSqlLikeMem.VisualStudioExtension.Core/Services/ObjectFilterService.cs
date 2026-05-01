@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Services;
 
 /// <summary>
 /// EN: Filters database objects by name using the selected comparison mode.
-/// PT: Filtra objetos de banco pelo nome usando o modo de comparacao selecionado.
+/// PT-br: Filtra objetos de banco pelo nome usando o modo de comparacao selecionado.
 /// </summary>
 public sealed class ObjectFilterService
 {
     /// <summary>
     /// EN: Returns the objects whose names match the provided filter value.
-    /// PT: Retorna os objetos cujos nomes correspondem ao valor de filtro informado.
+    /// PT-br: Retorna os objetos cujos nomes correspondem ao valor de filtro informado.
     /// </summary>
     public IReadOnlyCollection<DatabaseObjectReference> Filter(
         IEnumerable<DatabaseObjectReference> objects,

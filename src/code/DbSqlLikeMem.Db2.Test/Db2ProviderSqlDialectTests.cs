@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Contains tests for the DB2 provider SQL dialect helper.
-/// PT: Contem testes para o helper de dialeto SQL do provedor DB2.
+/// PT-br: Contem testes para o helper de dialeto SQL do provedor DB2.
 /// </summary>
 public sealed class Db2ProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the DB2 helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper DB2.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper DB2.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchDb2()
@@ -28,7 +28,7 @@ public sealed class Db2ProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits DB2-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compativel com DB2 para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compativel com DB2 para savepoint.
     /// </summary>
     [Fact]
     public void SavepointSql_ShouldUseDb2Syntax()

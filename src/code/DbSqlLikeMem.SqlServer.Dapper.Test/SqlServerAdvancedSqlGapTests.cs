@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// EN: Covers version-gated SQL Server gap scenarios that are not fully implemented in the in-memory mock yet.
-/// PT: Cobre cenarios de gap do SQL Server controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
+/// PT-br: Cobre cenarios de gap do SQL Server controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
 /// </summary>
 public sealed class SqlServerAdvancedSqlGapTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class SqlServerAdvancedSqlGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory SQL Server connection used by the advanced gap tests.
-    /// PT: Cria a conexao SQL Server em memoria usada pelos testes de gap avancados.
+    /// PT-br: Cria a conexao SQL Server em memoria usada pelos testes de gap avancados.
     /// </summary>
     public SqlServerAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -47,7 +47,7 @@ public sealed class SqlServerAdvancedSqlGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ROW_NUMBER respects the configured SQL Server version.
-    /// PT: Verifica se ROW_NUMBER respeita a versao SQL Server configurada.
+    /// PT-br: Verifica se ROW_NUMBER respeita a versao SQL Server configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -64,7 +64,7 @@ ORDER BY tenantid, id").ToList();
 
     /// <summary>
     /// EN: Verifies RANK and DENSE_RANK respect the configured SQL Server version.
-    /// PT: Verifica se RANK e DENSE_RANK respeitam a versao SQL Server configurada.
+    /// PT-br: Verifica se RANK e DENSE_RANK respeitam a versao SQL Server configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -84,7 +84,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies NTILE respects the configured SQL Server version.
-    /// PT: Verifica se NTILE respeita a versao SQL Server configurada.
+    /// PT-br: Verifica se NTILE respeita a versao SQL Server configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -102,7 +102,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies PERCENT_RANK and CUME_DIST respect the configured SQL Server version.
-    /// PT: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao SQL Server configurada.
+    /// PT-br: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao SQL Server configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -127,7 +127,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies LAG and LEAD respect the configured SQL Server version.
-    /// PT: Verifica se LAG e LEAD respeitam a versao SQL Server configurada.
+    /// PT-br: Verifica se LAG e LEAD respeitam a versao SQL Server configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -147,7 +147,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies FIRST_VALUE and LAST_VALUE respect the configured SQL Server version.
-    /// PT: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao SQL Server configurada.
+    /// PT-br: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao SQL Server configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -167,7 +167,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies NTH_VALUE respects the configured SQL Server version.
-    /// PT: Verifica se NTH_VALUE respeita a versao SQL Server configurada.
+    /// PT-br: Verifica se NTH_VALUE respeita a versao SQL Server configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -185,7 +185,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies zero-offset LAG and LEAD return the current row.
-    /// PT: Verifica se LAG e LEAD com offset zero retornam a linha atual.
+    /// PT-br: Verifica se LAG e LEAD com offset zero retornam a linha atual.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -204,7 +204,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies a SQL Server reference query combining CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST and ROW_NUMBER returns the expected rows.
-    /// PT: Verifica se uma query de referencia do SQL Server combinando CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// PT-br: Verifica se uma query de referencia do SQL Server combinando CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -288,7 +288,7 @@ ORDER BY tenantid, rn, id").ToList();
 
     /// <summary>
     /// EN: Verifies NOT REGEXP filters rows as expected.
-    /// PT: Verifica se NOT REGEXP filtra as linhas como esperado.
+    /// PT-br: Verifica se NOT REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -301,7 +301,7 @@ ORDER BY tenantid, rn, id").ToList();
 
     /// <summary>
     /// EN: Verifies NOT LIKE filters rows as expected.
-    /// PT: Verifica se NOT LIKE filtra as linhas como esperado.
+    /// PT-br: Verifica se NOT LIKE filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -314,7 +314,7 @@ ORDER BY tenantid, rn, id").ToList();
 
     /// <summary>
     /// EN: Verifies expression-based offsets in LAG and NTH_VALUE return the expected rows.
-    /// PT: Verifica se offsets baseados em expressao em LAG e NTH_VALUE retornam as linhas esperadas.
+    /// PT-br: Verifica se offsets baseados em expressao em LAG e NTH_VALUE retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -334,7 +334,7 @@ SELECT id,
 
     /// <summary>
     /// EN: Verifies expression-based bucket counts in NTILE return the expected rows.
-    /// PT: Verifica se contagens de buckets baseadas em expressao no NTILE retornam as linhas esperadas.
+    /// PT-br: Verifica se contagens de buckets baseadas em expressao no NTILE retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -352,7 +352,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies SQL Server rejects frame clauses on ranking and offset window functions.
-    /// PT: Verifica se o SQL Server rejeita clausulas de frame em funcoes de ranking e janelas com offset.
+    /// PT-br: Verifica se o SQL Server rejeita clausulas de frame em funcoes de ranking e janelas com offset.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -374,7 +374,7 @@ ORDER BY id").ToList(), "RANK");
 
     /// <summary>
     /// EN: Verifies SQL Server rejects GROUPS frames on ranking window functions.
-    /// PT: Verifica se o SQL Server rejeita frames GROUPS em funcoes de ranking.
+    /// PT-br: Verifica se o SQL Server rejeita frames GROUPS em funcoes de ranking.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -394,7 +394,7 @@ ORDER BY id").ToList(), "RANK");
 
     /// <summary>
     /// EN: Verifies SQL Server rejects RANGE frames with offset on composite ORDER BY.
-    /// PT: Verifica se o SQL Server rejeita frames RANGE com offset em ORDER BY composto.
+    /// PT-br: Verifica se o SQL Server rejeita frames RANGE com offset em ORDER BY composto.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -412,7 +412,7 @@ ORDER BY id").ToList());
 
     /// <summary>
     /// EN: Verifies SQL Server rejects RANGE frames with offset on text ORDER BY.
-    /// PT: Verifica se o SQL Server rejeita frames RANGE com offset em ORDER BY textual.
+    /// PT-br: Verifica se o SQL Server rejeita frames RANGE com offset em ORDER BY textual.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -431,7 +431,7 @@ ORDER BY id").ToList());
 
     /// <summary>
     /// EN: Verifies SQL Server rejects RANGE CURRENT ROW on ranking window functions.
-    /// PT: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking.
+    /// PT-br: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -449,7 +449,7 @@ ORDER BY id").ToList(), "RANK");
 
     /// <summary>
     /// EN: Verifies SQL Server rejects RANGE CURRENT ROW on ranking window functions with text ORDER BY.
-    /// PT: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking com ORDER BY textual.
+    /// PT-br: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking com ORDER BY textual.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -466,7 +466,7 @@ ORDER BY id").ToList(), "RANK");
 
     /// <summary>
     /// EN: Verifies SQL Server rejects RANGE CURRENT ROW on ranking window functions with DESC ordering.
-    /// PT: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking com ordenacao DESC.
+    /// PT-br: Verifica se o SQL Server rejeita RANGE CURRENT ROW em funcoes de ranking com ordenacao DESC.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -484,7 +484,7 @@ ORDER BY id").ToList(), "RANK");
 
     /// <summary>
     /// EN: Verifies SQL Server rejects RANGE frames with DateTime ORDER BY offsets.
-    /// PT: Verifica se o SQL Server rejeita frames RANGE com offsets em ORDER BY DateTime.
+    /// PT-br: Verifica se o SQL Server rejeita frames RANGE com offsets em ORDER BY DateTime.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -503,7 +503,7 @@ ORDER BY id").ToList());
 
     /// <summary>
     /// EN: Verifies SQL Server rejects GROUPS frames on ranking window functions with mixed-direction ORDER BY.
-    /// PT: Verifica se o SQL Server rejeita frames GROUPS em funcoes de ranking com ORDER BY de direcoes mistas.
+    /// PT-br: Verifica se o SQL Server rejeita frames GROUPS em funcoes de ranking com ORDER BY de direcoes mistas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -519,7 +519,7 @@ ORDER BY id").ToList(), "RANK");
 
     /// <summary>
     /// EN: Verifies SQL Server rejects RANGE frames that exclude the current row on ranking window functions.
-    /// PT: Verifica se o SQL Server rejeita frames RANGE que excluem a linha atual em funcoes de ranking.
+    /// PT-br: Verifica se o SQL Server rejeita frames RANGE que excluem a linha atual em funcoes de ranking.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -541,7 +541,7 @@ ORDER BY id").ToList(), "RANK");
 
     /// <summary>
     /// EN: Verifies correlated subqueries in the select list return the expected totals.
-    /// PT: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
+    /// PT-br: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -558,7 +558,7 @@ ORDER BY u.id").ToList();
 
     /// <summary>
     /// EN: Verifies DATE_ADD with a day interval returns the expected dates.
-    /// PT: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
+    /// PT-br: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -578,7 +578,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies string-to-int casts return the expected integer value.
-    /// PT: Verifica se casts de string para int retornam o valor inteiro esperado.
+    /// PT-br: Verifica se casts de string para int retornam o valor inteiro esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -591,7 +591,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies REGEXP filters rows as expected.
-    /// PT: Verifica se REGEXP filtra as linhas como esperado.
+    /// PT-br: Verifica se REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -605,7 +605,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies FIELD can be used to order rows explicitly.
-    /// PT: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
+    /// PT-br: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -617,7 +617,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies string comparison follows the configured column collation.
-    /// PT: Verifica se a comparacao de strings segue a collation configurada da coluna.
+    /// PT-br: Verifica se a comparacao de strings segue a collation configurada da coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -633,7 +633,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies PIVOT counting by tenant returns the expected rows.
-    /// PT: Verifica se o PIVOT de contagem por tenant retorna as linhas esperadas.
+    /// PT-br: Verifica se o PIVOT de contagem por tenant retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -656,7 +656,7 @@ PIVOT (
 
     /// <summary>
     /// EN: Verifies PIVOT supports SUM, MIN, MAX and AVG for SQL Server buckets.
-    /// PT: Verifica se o PIVOT suporta SUM, MIN, MAX e AVG para buckets do SQL Server.
+    /// PT-br: Verifica se o PIVOT suporta SUM, MIN, MAX e AVG para buckets do SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAdvancedSqlGap")]
@@ -728,9 +728,9 @@ PIVOT (
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

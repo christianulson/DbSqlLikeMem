@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Validates MySql service collection registration helpers.
-/// PT: Valida os helpers de registro de MySql na coleção de serviços.
+/// PT-br: Valida os helpers de registro de MySql na coleção de serviços.
 /// </summary>
 public sealed class MySqlServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -17,7 +17,7 @@ public sealed class MySqlServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddMySqlDbMockTransient registers a transient factory that creates new configured MySqlDbMock instances on each resolution.
-    /// PT: Verifica se AddMySqlDbMockTransient registra uma factory transient que cria novas instancias configuradas de MySqlDbMock em cada resolucao.
+    /// PT-br: Verifica se AddMySqlDbMockTransient registra uma factory transient que cria novas instancias configuradas de MySqlDbMock em cada resolucao.
     /// </summary>
     [Fact]
     public void AddMySqlDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()
@@ -49,7 +49,7 @@ public sealed class MySqlServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddMySqlDbMockSingleton registers one configured instance reused across resolutions.
-    /// PT: Verifica se AddMySqlDbMockSingleton registra uma instancia configurada reutilizada entre resolucoes.
+    /// PT-br: Verifica se AddMySqlDbMockSingleton registra uma instancia configurada reutilizada entre resolucoes.
     /// </summary>
     [Fact]
     public void AddMySqlDbMockSingleton_ShouldReuseConfiguredInstance()
@@ -81,7 +81,7 @@ public sealed class MySqlServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddMySqlDbMockScoped registers a scoped factory that creates configured instances.
-    /// PT: Verifica se AddMySqlDbMockScoped registra uma factory com escopo que cria instancias configuradas.
+    /// PT-br: Verifica se AddMySqlDbMockScoped registra uma factory com escopo que cria instancias configuradas.
     /// </summary>
     [Fact]
     public void AddMySqlDbMockScoped_ShouldCreateConfiguredInstance()
@@ -113,7 +113,7 @@ public sealed class MySqlServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies default registration overloads return the same service collection and still register MySqlDbMock.
-    /// PT: Verifica se as sobrecargas padrão retornam a mesma coleção de serviços e ainda registram MySqlDbMock.
+    /// PT-br: Verifica se as sobrecargas padrão retornam a mesma coleção de serviços e ainda registram MySqlDbMock.
     /// </summary>
     [Fact]
     public void DefaultOverloads_ShouldReturnSameServiceCollectionAndRegisterService()

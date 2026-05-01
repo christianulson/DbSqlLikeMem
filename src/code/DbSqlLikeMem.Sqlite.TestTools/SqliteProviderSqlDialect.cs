@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Sqlite.TestTools;
 
 /// <summary>
 /// EN: Provides SQLite-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de SQLite usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de SQLite usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
 {

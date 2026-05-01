@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.TestTools.Query;
 
 /// <summary>
 /// EN: Executes shared window-function query workflows against the active provider.
-/// PT: Executa fluxos compartilhados de consultas com funcoes de janela no provedor ativo.
+/// PT-br: Executa fluxos compartilhados de consultas com funcoes de janela no provedor ativo.
 /// </summary>
 public partial class QueryServiceTest
 {
     /// <summary>
     /// EN: Executes a ranking window query with duplicate names and validates rank, dense-rank, and row-number behavior.
-    /// PT: Executa uma consulta de janela com ranking e nomes duplicados e valida o comportamento de rank, dense-rank e row-number.
+    /// PT-br: Executa uma consulta de janela com ranking e nomes duplicados e valida o comportamento de rank, dense-rank e row-number.
     /// </summary>
     public async Task<QueryResultSnapshot> RunWindowRankDenseRank(params object[] pars)
     {
@@ -68,7 +68,7 @@ ORDER BY Name, Id
 
     /// <summary>
     /// EN: Executes a FIRST_VALUE and LAST_VALUE window query and validates the projected rows.
-    /// PT: Executa uma consulta de janela com FIRST_VALUE e LAST_VALUE e valida as linhas projetadas.
+    /// PT-br: Executa uma consulta de janela com FIRST_VALUE e LAST_VALUE e valida as linhas projetadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunWindowFirstLastValue(params object[] pars)
     {
@@ -125,7 +125,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Executes an NTILE window query and validates the projected bucket values.
-    /// PT: Executa uma consulta de janela NTILE e valida os valores de bucket projetados.
+    /// PT-br: Executa uma consulta de janela NTILE e valida os valores de bucket projetados.
     /// </summary>
     public async Task<QueryResultSnapshot> RunWindowNtile(params object[] pars)
     {
@@ -179,7 +179,7 @@ ORDER BY Name, Id
 
     /// <summary>
     /// EN: Executes a PERCENT_RANK and CUME_DIST window query and validates the projected rows.
-    /// PT: Executa uma consulta de janela com PERCENT_RANK e CUME_DIST e valida as linhas projetadas.
+    /// PT-br: Executa uma consulta de janela com PERCENT_RANK e CUME_DIST e valida as linhas projetadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunWindowPercentRankCumeDist(params object[] pars)
     {
@@ -262,7 +262,7 @@ ORDER BY Name, Id
 
     /// <summary>
     /// EN: Executes an NTH_VALUE window query and validates the projected rows.
-    /// PT: Executa uma consulta de janela NTH_VALUE e valida as linhas projetadas.
+    /// PT-br: Executa uma consulta de janela NTH_VALUE e valida as linhas projetadas.
     /// </summary>
     public async Task<QueryResultSnapshot> RunWindowNthValue(params object[] pars)
     {

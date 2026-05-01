@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers core coercion/comparison behaviors from SqlExtensions used by AST execution.
-/// PT: Cobre comportamentos centrais de coerção/comparação de SqlExtensions usados pela execução AST.
+/// PT-br: Cobre comportamentos centrais de coerção/comparação de SqlExtensions usados pela execução AST.
 /// </summary>
 public sealed class SqlExtensionsTypingTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlExtensionsTypingTests(
 {
     /// <summary>
     /// EN: Ensures ToBool parses decimal text using invariant culture.
-    /// PT: Garante que ToBool faça parse de texto decimal usando cultura invariável.
+    /// PT-br: Garante que ToBool faça parse de texto decimal usando cultura invariável.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -22,7 +22,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures ToBool handles common textual boolean aliases.
-    /// PT: Garante que ToBool trate aliases textuais comuns de booleano.
+    /// PT-br: Garante que ToBool trate aliases textuais comuns de booleano.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -36,7 +36,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures ToBool handles signed/unsigned integral families consistently.
-    /// PT: Garante que ToBool trate famílias integrais signed/unsigned de forma consistente.
+    /// PT-br: Garante que ToBool trate famílias integrais signed/unsigned de forma consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -54,7 +54,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures ToBool does not overflow for ulong values above Int64.MaxValue.
-    /// PT: Garante que ToBool não estoure para valores ulong acima de Int64.MaxValue.
+    /// PT-br: Garante que ToBool não estoure para valores ulong acima de Int64.MaxValue.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -65,7 +65,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures ToDec maps boolean values to numeric SQL-like semantics.
-    /// PT: Garante que ToDec mapeie valores booleanos para semântica numérica estilo SQL.
+    /// PT-br: Garante que ToDec mapeie valores booleanos para semântica numérica estilo SQL.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -77,7 +77,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures ToDec handles signed/unsigned integral families without textual fallback ambiguity.
-    /// PT: Garante que ToDec trate famílias integrais signed/unsigned sem ambiguidade de fallback textual.
+    /// PT-br: Garante que ToDec trate famílias integrais signed/unsigned sem ambiguidade de fallback textual.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -91,7 +91,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures ToDec keeps temporal numeric comparability for DateTimeOffset and TimeSpan.
-    /// PT: Garante que ToDec mantenha comparabilidade numérica temporal para DateTimeOffset e TimeSpan.
+    /// PT-br: Garante que ToDec mantenha comparabilidade numérica temporal para DateTimeOffset e TimeSpan.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -106,7 +106,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures mixed numeric/boolean values can be compared through implicit numeric coercion.
-    /// PT: Garante que valores numéricos/booleanos mistos possam ser comparados via coerção numérica implícita.
+    /// PT-br: Garante que valores numéricos/booleanos mistos possam ser comparados via coerção numérica implícita.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -120,7 +120,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures Compare uses numeric coercion for mixed boolean/numeric values when enabled.
-    /// PT: Garante que Compare use coerção numérica para valores booleanos/numéricos mistos quando habilitada.
+    /// PT-br: Garante que Compare use coerção numérica para valores booleanos/numéricos mistos quando habilitada.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -132,7 +132,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures temporal mixed types are comparable when implicit numeric coercion is enabled.
-    /// PT: Garante que tipos temporais mistos sejam comparáveis quando a coerção numérica implícita está habilitada.
+    /// PT-br: Garante que tipos temporais mistos sejam comparáveis quando a coerção numérica implícita está habilitada.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -146,7 +146,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures temporal mixed types use textual fallback when implicit numeric coercion is disabled.
-    /// PT: Garante que tipos temporais mistos usem fallback textual quando a coerção numérica implícita está desabilitada.
+    /// PT-br: Garante que tipos temporais mistos usem fallback textual quando a coerção numérica implícita está desabilitada.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -161,7 +161,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures binary values compare by content equality instead of reference identity.
-    /// PT: Garante que valores binários comparem por igualdade de conteúdo em vez de identidade de referência.
+    /// PT-br: Garante que valores binários comparem por igualdade de conteúdo em vez de identidade de referência.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -177,7 +177,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures binary comparison ordering is deterministic and lexicographical.
-    /// PT: Garante que a ordenação de comparação binária seja determinística e lexicográfica.
+    /// PT-br: Garante que a ordenação de comparação binária seja determinística e lexicográfica.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -195,7 +195,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures implicit numeric coercion can be disabled by dialect policy.
-    /// PT: Garante que a coerção numérica implícita possa ser desabilitada pela política do dialeto.
+    /// PT-br: Garante que a coerção numérica implícita possa ser desabilitada pela política do dialeto.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -208,7 +208,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures Compare follows textual ordering when implicit numeric coercion is disabled.
-    /// PT: Garante que Compare siga ordenação textual quando a coerção numérica implícita está desabilitada.
+    /// PT-br: Garante que Compare siga ordenação textual quando a coerção numérica implícita está desabilitada.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -222,7 +222,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures an explicit ESCAPE expression makes LIKE treat wildcard tokens as literals.
-    /// PT: Garante que uma expressão ESCAPE explícita faça o LIKE tratar curingas como literais.
+    /// PT-br: Garante que uma expressão ESCAPE explícita faça o LIKE tratar curingas como literais.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -238,7 +238,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures the default LIKE escape behavior follows the configured dialect policy.
-    /// PT: Garante que o escape padrão de LIKE siga a política configurada no dialeto.
+    /// PT-br: Garante que o escape padrão de LIKE siga a política configurada no dialeto.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -257,7 +257,7 @@ public sealed class SqlExtensionsTypingTests(
 
     /// <summary>
     /// EN: Ensures invalid explicit ESCAPE values are rejected when the dialect requires a single character.
-    /// PT: Garante que valores ESCAPE explícitos inválidos sejam rejeitados quando o dialeto exige um único caractere.
+    /// PT-br: Garante que valores ESCAPE explícitos inválidos sejam rejeitados quando o dialeto exige um único caractere.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -279,7 +279,7 @@ public sealed class SqlExtensionsTypingTests(
 
         /// <summary>
         /// EN: Initializes a lightweight dialect stub for SqlExtensions behavior tests.
-        /// PT: Inicializa um stub de dialeto leve para testes de comportamento de SqlExtensions.
+        /// PT-br: Inicializa um stub de dialeto leve para testes de comportamento de SqlExtensions.
         /// </summary>
         public SqlExtensionsTestDialect(
             bool supportsImplicitNumericStringComparison,
@@ -297,13 +297,13 @@ public sealed class SqlExtensionsTypingTests(
 
         /// <summary>
         /// EN: Gets whether implicit numeric/string comparison is enabled.
-        /// PT: Obtém se a comparação implícita número/string está habilitada.
+        /// PT-br: Obtém se a comparação implícita número/string está habilitada.
         /// </summary>
         public override bool SupportsImplicitNumericStringComparison => _supportsImplicitNumericStringComparison;
 
         /// <summary>
         /// EN: Gets the default LIKE escape character used by this lightweight dialect stub.
-        /// PT: Obtém o caractere padrão de escape do LIKE usado por este stub leve de dialeto.
+        /// PT-br: Obtém o caractere padrão de escape do LIKE usado por este stub leve de dialeto.
         /// </summary>
         public override char? LikeDefaultEscapeCharacter => _likeDefaultEscapeCharacter;
     }

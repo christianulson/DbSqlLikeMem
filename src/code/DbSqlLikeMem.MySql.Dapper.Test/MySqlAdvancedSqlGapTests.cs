@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// EN: Covers version-gated MySQL gap scenarios that are not fully implemented in the in-memory mock yet.
-/// PT: Cobre cenarios de gap do MySQL controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
+/// PT-br: Cobre cenarios de gap do MySQL controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
 /// </summary>
 public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
 {
@@ -11,7 +11,7 @@ public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory MySQL connection used by the advanced gap tests.
-    /// PT: Cria a conexao MySQL em memoria usada pelos testes de gap avancados.
+    /// PT-br: Cria a conexao MySQL em memoria usada pelos testes de gap avancados.
     /// </summary>
     public MySqlAdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -46,7 +46,7 @@ public sealed class MySqlAdvancedSqlGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ROW_NUMBER respects the configured MySQL version.
-    /// PT: Verifica se ROW_NUMBER respeita a versao MySQL configurada.
+    /// PT-br: Verifica se ROW_NUMBER respeita a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -78,7 +78,7 @@ ORDER BY tenantid, id").ToList();
 
     /// <summary>
     /// EN: Verifies RANK and DENSE_RANK respect the configured MySQL version.
-    /// PT: Verifica se RANK e DENSE_RANK respeitam a versao MySQL configurada.
+    /// PT-br: Verifica se RANK e DENSE_RANK respeitam a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -114,7 +114,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies NTILE respects the configured MySQL version.
-    /// PT: Verifica se NTILE respeita a versao MySQL configurada.
+    /// PT-br: Verifica se NTILE respeita a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -147,7 +147,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies PERCENT_RANK and CUME_DIST respect the configured MySQL version.
-    /// PT: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao MySQL configurada.
+    /// PT-br: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -188,7 +188,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies LAG and LEAD respect the configured MySQL version.
-    /// PT: Verifica se LAG e LEAD respeitam a versao MySQL configurada.
+    /// PT-br: Verifica se LAG e LEAD respeitam a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -224,7 +224,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies FIRST_VALUE and LAST_VALUE respect the configured MySQL version.
-    /// PT: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao MySQL configurada.
+    /// PT-br: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -260,7 +260,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies NTH_VALUE respects the configured MySQL version.
-    /// PT: Verifica se NTH_VALUE respeita a versao MySQL configurada.
+    /// PT-br: Verifica se NTH_VALUE respeita a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -293,7 +293,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies zero-offset LAG and LEAD return the current row when the version supports window functions.
-    /// PT: Verifica se LAG e LEAD com offset zero retornam a linha atual quando a versao suporta funcoes de janela.
+    /// PT-br: Verifica se LAG e LEAD com offset zero retornam a linha atual quando a versao suporta funcoes de janela.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -328,7 +328,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies a combined MySQL reference query respects the configured version.
-    /// PT: Verifica se uma query combinada de referencia do MySQL respeita a versao configurada.
+    /// PT-br: Verifica se uma query combinada de referencia do MySQL respeita a versao configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -407,7 +407,7 @@ ORDER BY tenantid, rn, id";
 
     /// <summary>
     /// EN: Verifies NOT REGEXP filters rows as expected.
-    /// PT: Verifica se NOT REGEXP filtra as linhas como esperado.
+    /// PT-br: Verifica se NOT REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -420,7 +420,7 @@ ORDER BY tenantid, rn, id";
 
     /// <summary>
     /// EN: Verifies NOT LIKE filters rows as expected.
-    /// PT: Verifica se NOT LIKE filtra as linhas como esperado.
+    /// PT-br: Verifica se NOT LIKE filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -433,7 +433,7 @@ ORDER BY tenantid, rn, id";
 
     /// <summary>
     /// EN: Verifies expression-based offsets in LAG and NTH_VALUE respect the configured MySQL version.
-    /// PT: Verifica se offsets baseados em expressao em LAG e NTH_VALUE respeitam a versao MySQL configurada.
+    /// PT-br: Verifica se offsets baseados em expressao em LAG e NTH_VALUE respeitam a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -469,7 +469,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies expression-based bucket counts in NTILE respect the configured MySQL version.
-    /// PT: Verifica se contagens de buckets baseadas em expressao no NTILE respeitam a versao MySQL configurada.
+    /// PT-br: Verifica se contagens de buckets baseadas em expressao no NTILE respeitam a versao MySQL configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -502,7 +502,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies correlated subqueries in the select list return the expected totals.
-    /// PT: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
+    /// PT-br: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -519,7 +519,7 @@ ORDER BY u.id").ToList();
 
     /// <summary>
     /// EN: Verifies DATE_ADD with a day interval returns the expected dates.
-    /// PT: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
+    /// PT-br: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -539,7 +539,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies string-to-int casts return the expected integer value.
-    /// PT: Verifica se casts de string para int retornam o valor inteiro esperado.
+    /// PT-br: Verifica se casts de string para int retornam o valor inteiro esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -552,7 +552,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies REGEXP filters rows as expected.
-    /// PT: Verifica se REGEXP filtra as linhas como esperado.
+    /// PT-br: Verifica se REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -564,7 +564,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies REGEXP respects the configured dialect case sensitivity.
-    /// PT: Verifica se REGEXP respeita a sensibilidade a maiusculas e minusculas do dialeto configurado.
+    /// PT-br: Verifica se REGEXP respeita a sensibilidade a maiusculas e minusculas do dialeto configurado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -577,7 +577,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies FIELD can be used to order rows explicitly.
-    /// PT: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
+    /// PT-br: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -589,7 +589,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies string comparison follows the configured column collation.
-    /// PT: Verifica se a comparacao de strings segue a collation configurada da coluna.
+    /// PT-br: Verifica se a comparacao de strings segue a collation configurada da coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAdvancedSqlGap")]
@@ -603,9 +603,9 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

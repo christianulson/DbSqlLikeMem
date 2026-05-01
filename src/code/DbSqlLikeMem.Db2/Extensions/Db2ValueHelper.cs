@@ -25,14 +25,14 @@ internal static class Db2ValueHelper
 
     /// <summary>
     /// EN: Resets the positional parameter cursor used to resolve DB2 `?` placeholders in order.
-    /// PT: Reinicia o cursor de parametros posicionais usado para resolver placeholders `?` do DB2 em ordem.
+    /// PT-br: Reinicia o cursor de parametros posicionais usado para resolver placeholders `?` do DB2 em ordem.
     /// </summary>
     internal static void ResetPositionalParameterCursor()
         => _positionalParameterCursor.Value = 0;
 
     /// <summary>
     /// EN: Implements ResolveRowsFrameRange.
-    /// PT: Implementa ResolveRowsFrameRange.
+    /// PT-br: Implementa ResolveRowsFrameRange.
     /// </summary>
     public static object? Resolve(
         string token,
@@ -244,7 +244,7 @@ internal static class Db2ValueHelper
     // LIKE simples %xxx% → usa Contains
     /// <summary>
     /// EN: Implements Like.
-    /// PT: Implementa Like.
+    /// PT-br: Implementa Like.
     /// </summary>
     public static bool Like(string value, string pattern)
     {

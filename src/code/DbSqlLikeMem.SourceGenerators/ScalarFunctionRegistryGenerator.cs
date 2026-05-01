@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.SourceGenerators;
 
 /// <summary>
 /// EN: Generates a registry for scalar functions marked with the ScalarFunctionAttribute.
-/// PT: Gera um registro para funções escalares marcadas com o ScalarFunctionAttribute.
+/// PT-br: Gera um registro para funções escalares marcadas com o ScalarFunctionAttribute.
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
@@ -17,7 +17,7 @@ public sealed class ScalarFunctionRegistryGenerator : IIncrementalGenerator
 
     /// <summary>
     /// EN: Initialize
-    /// PT: Inicializa
+    /// PT-br: Inicializa
     /// </summary>
     /// <param name="context"></param>
     public void Initialize(IncrementalGeneratorInitializationContext context)

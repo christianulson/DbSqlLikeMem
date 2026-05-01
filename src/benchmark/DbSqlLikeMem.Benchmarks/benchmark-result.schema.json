@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dbsqlikemem.local/schemas/benchmark-result.schema.json",
+  "title": "DbSqlLikeMem benchmark result schema",
+  "description": "Structured benchmark result contract used by the benchmark export pipeline.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "benchmarkStableId",
+    "benchmarkFeatureId",
+    "providerId",
+    "engine",
+    "suiteName",
+    "methodName",
+    "category",
+    "environment",
+    "status"
+  ],
+  "properties": {
+    "benchmarkStableId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable benchmark identifier used across catalog, exports, and comparisons."
+    },
+    "benchmarkFeatureId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Enum-backed benchmark feature identifier."
+    },
+    "providerId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Provider identifier used by the benchmark catalog."
+    },
+    "engine": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Execution engine label for the benchmark run."
+    },
+    "suiteName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Public benchmark suite name."
+    },
+    "methodName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Public benchmark method name."
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Logical benchmark category."
+    },
+    "environment": {
+      "$ref": "#/$defs/environment"
+    },
+    "status": {
+      "$ref": "#/$defs/status"
+    },
+    "meanMicroseconds": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Primary mean value emitted by the export pipeline in microseconds."
+    },
+    "errorMicroseconds": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Optional error margin emitted by the export pipeline in microseconds."
+    },
+    "ratio": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Optional ratio field used by comparison exports."
+    },
+    "iterationCount": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Number of measured benchmark iterations."
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Optional classification tags for downstream exports."
+    }
+  },
+  "$defs": {
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "os",
+        "framework",
+        "runtime"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "enum": [
+            "smoke",
+            "core",
+            "full",
+            "diagnostic"
+          ],
+          "description": "Execution profile used for the benchmark run."
+        },
+        "os": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Operating system label for the run environment."
+        },
+        "framework": {
+          "type": "string",
+          "minLength": 1,
+          "description": ".NET target framework used by the benchmark run."
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Runtime identifier or version label."
+        },
+        "machine": {
+          "type": ["string", "null"],
+          "description": "Optional machine name or host label."
+        },
+        "providerVersion": {
+          "type": ["string", "null"],
+          "description": "Optional version label for the simulated or external provider."
+        },
+        "benchmarkDotNetVersion": {
+          "type": ["string", "null"],
+          "description": "Optional BenchmarkDotNet version label."
+        },
+        "timestampUtc": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "Optional UTC timestamp for the exported run."
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Succeeded",
+        "Skipped",
+        "NotSupported",
+        "Failed"
+      ],
+      "description": "Structured execution outcome for the exported benchmark row."
+    }
+  }
+}

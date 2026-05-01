@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers extra Firebird SELECT and WHERE scenarios over a direct mock connection.
-/// PT: Cobre cenarios extras de SELECT e WHERE Firebird sobre uma conexao mock direta.
+/// PT-br: Cobre cenarios extras de SELECT e WHERE Firebird sobre uma conexao mock direta.
 /// </summary>
 public sealed class FirebirdSelectAndWhereMoreCoverageTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class FirebirdSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory Firebird database used by the extra SELECT and WHERE coverage tests.
-    /// PT: Cria o banco Firebird em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
+    /// PT-br: Cria o banco Firebird em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
     /// </summary>
     public FirebirdSelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {
@@ -39,7 +39,7 @@ public sealed class FirebirdSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies BETWEEN filters rows in Firebird SELECT and WHERE coverage.
-    /// PT: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do Firebird.
+    /// PT-br: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdSelectAndWhereMoreCoverage")]
@@ -51,7 +51,7 @@ public sealed class FirebirdSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies NOT IN filters rows in Firebird SELECT and WHERE coverage.
-    /// PT: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do Firebird.
+    /// PT-br: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdSelectAndWhereMoreCoverage")]
@@ -64,7 +64,7 @@ public sealed class FirebirdSelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies EXISTS subqueries filter rows in Firebird coverage.
-    /// PT: Verifica se subconsultas EXISTS filtram linhas na cobertura do Firebird.
+    /// PT-br: Verifica se subconsultas EXISTS filtram linhas na cobertura do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdSelectAndWhereMoreCoverage")]
@@ -86,7 +86,7 @@ WHERE EXISTS (
 
     /// <summary>
     /// EN: Verifies CASE WHEN projections return the expected values.
-    /// PT: Verifica se projeções CASE WHEN retornam os valores esperados.
+    /// PT-br: Verifica se projeções CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdSelectAndWhereMoreCoverage")]
@@ -109,7 +109,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies COALESCE-based null fallback in Firebird SELECT coverage.
-    /// PT: Verifica o fallback de nulos com COALESCE na cobertura de SELECT do Firebird.
+    /// PT-br: Verifica o fallback de nulos com COALESCE na cobertura de SELECT do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdSelectAndWhereMoreCoverage")]
@@ -135,9 +135,9 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

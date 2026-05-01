@@ -1,14 +1,14 @@
-﻿namespace DbSqlLikeMem.Firebird.Test.Strategy;
+namespace DbSqlLikeMem.Firebird.Test.Strategy;
 
 /// <summary>
 /// EN: Covers UPDATE execution scenarios in the Firebird mock.
-/// PT: Cobre cenarios de execucao de UPDATE no mock Firebird.
+/// PT-br: Cobre cenarios de execucao de UPDATE no mock Firebird.
 /// </summary>
 public sealed class FirebirdUpdateStrategyTests
 {
     /// <summary>
     /// EN: Verifies that UPDATE modifies an existing row.
-    /// PT: Verifica se UPDATE modifica uma linha existente.
+    /// PT-br: Verifica se UPDATE modifica uma linha existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -35,7 +35,7 @@ public sealed class FirebirdUpdateStrategyTests
 
     /// <summary>
     /// EN: Verifies that UPDATE returns zero when no rows match the predicate.
-    /// PT: Verifica se UPDATE retorna zero quando nenhuma linha atende ao predicado.
+    /// PT-br: Verifica se UPDATE retorna zero quando nenhuma linha atende ao predicado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -62,7 +62,7 @@ public sealed class FirebirdUpdateStrategyTests
 
     /// <summary>
     /// EN: Verifies that UPDATE changes every row matched by the predicate.
-    /// PT: Verifica se UPDATE altera todas as linhas batidas pelo predicado.
+    /// PT-br: Verifica se UPDATE altera todas as linhas batidas pelo predicado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

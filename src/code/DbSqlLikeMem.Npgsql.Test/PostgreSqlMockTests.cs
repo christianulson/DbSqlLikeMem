@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers PostgreSQL mock CRUD, transaction, batch, and RETURNING behavior.
-/// PT: Cobre comportamento de CRUD, transacoes, batches e RETURNING do mock PostgreSQL.
+/// PT-br: Cobre comportamento de CRUD, transacoes, batches e RETURNING do mock PostgreSQL.
 /// </summary>
 public sealed class PostgreSqlMockTests
     : XUnitTestBase
@@ -11,7 +11,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Creates the PostgreSQL mock database used by the test suite.
-    /// PT: Cria o banco mock PostgreSQL usado pela suite de testes.
+    /// PT-br: Cria o banco mock PostgreSQL usado pela suite de testes.
     /// </summary>
     public PostgreSqlMockTests(
         ITestOutputHelper helper
@@ -34,7 +34,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies INSERT adds a row to the PostgreSQL mock.
-    /// PT: Verifica se INSERT adiciona uma linha no mock PostgreSQL.
+    /// PT-br: Verifica se INSERT adiciona uma linha no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -51,7 +51,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ExecuteNonQuery applies each INSERT in a multi-statement script and returns the total affected rows.
-    /// PT: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
+    /// PT-br: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -78,7 +78,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE modifies an existing row in the PostgreSQL mock.
-    /// PT: Verifica se UPDATE modifica uma linha existente no mock PostgreSQL.
+    /// PT-br: Verifica se UPDATE modifica uma linha existente no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -98,7 +98,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies DELETE removes an existing row in the PostgreSQL mock.
-    /// PT: Verifica se DELETE remove uma linha existente no mock PostgreSQL.
+    /// PT-br: Verifica se DELETE remove uma linha existente no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -118,7 +118,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies committed transactions persist their changes.
-    /// PT: Verifica se transacoes confirmadas persistem suas alteracoes.
+    /// PT-br: Verifica se transacoes confirmadas persistem suas alteracoes.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -154,7 +154,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies insert and update changes survive a committed transaction.
-    /// PT: Verifica se alteracoes de insert e update sobrevivem a uma transacao confirmada.
+    /// PT-br: Verifica se alteracoes de insert e update sobrevivem a uma transacao confirmada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -177,7 +177,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies rolled back transactions discard their changes.
-    /// PT: Verifica se transacoes revertidas descartam suas alteracoes.
+    /// PT-br: Verifica se transacoes revertidas descartam suas alteracoes.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -213,9 +213,9 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
@@ -224,7 +224,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies PostgreSQL rejects FOUND_ROWS because the provider exposes ROW_COUNT for row-count inspection.
-    /// PT: Verifica que o PostgreSQL rejeita FOUND_ROWS porque o provider expoe ROW_COUNT para inspecao de contagem de linhas.
+    /// PT-br: Verifica que o PostgreSQL rejeita FOUND_ROWS porque o provider expoe ROW_COUNT para inspecao de contagem de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -247,7 +247,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns the row count from the last SELECT statement.
-    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas do ultimo SELECT.
+    /// PT-br: Verifica se ROW_COUNT retorna a contagem de linhas do ultimo SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -271,7 +271,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies SQL_CALC_FOUND_ROWS is not supported by the PostgreSQL mock.
-    /// PT: Verifica se SQL_CALC_FOUND_ROWS nao tem suporte no mock PostgreSQL.
+    /// PT-br: Verifica se SQL_CALC_FOUND_ROWS nao tem suporte no mock PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -288,7 +288,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns the affected row count after UPDATE.
-    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas afetadas apos UPDATE.
+    /// PT-br: Verifica se ROW_COUNT retorna a contagem de linhas afetadas apos UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -311,7 +311,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after BEGIN TRANSACTION in a batch.
-    /// PT: Verifica se ROW_COUNT retorna zero apos BEGIN TRANSACTION em um batch.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos BEGIN TRANSACTION em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -330,7 +330,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after CALL in a batch.
-    /// PT: Verifica se ROW_COUNT retorna zero apos CALL em um batch.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos CALL em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -351,7 +351,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after UPDATE followed by COMMIT.
-    /// PT: Verifica se ROW_COUNT retorna zero apos UPDATE seguido de COMMIT.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos UPDATE seguido de COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -371,7 +371,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after ROLLBACK TO SAVEPOINT.
-    /// PT: Verifica se ROW_COUNT retorna zero apos ROLLBACK TO SAVEPOINT.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos ROLLBACK TO SAVEPOINT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -390,7 +390,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after RELEASE SAVEPOINT.
-    /// PT: Verifica se ROW_COUNT retorna zero apos RELEASE SAVEPOINT.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos RELEASE SAVEPOINT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -410,7 +410,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT reflects the last DML statement in a mixed batch.
-    /// PT: Verifica se ROW_COUNT reflete a ultima instrucao DML em um batch misto.
+    /// PT-br: Verifica se ROW_COUNT reflete a ultima instrucao DML em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -438,7 +438,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after CALL, UPDATE, and COMMIT in a batch.
-    /// PT: Verifica se ROW_COUNT retorna zero apos CALL, UPDATE e COMMIT em um batch.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos CALL, UPDATE e COMMIT em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -460,7 +460,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT reflects the last SELECT result set in a mixed batch.
-    /// PT: Verifica se ROW_COUNT reflete o ultimo conjunto de resultados SELECT em um batch misto.
+    /// PT-br: Verifica se ROW_COUNT reflete o ultimo conjunto de resultados SELECT em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -492,7 +492,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies INSERT ... RETURNING exposes the inserted rows.
-    /// PT: Verifica se INSERT ... RETURNING expõe as linhas inseridas.
+    /// PT-br: Verifica se INSERT ... RETURNING expõe as linhas inseridas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -513,7 +513,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE ... RETURNING exposes the updated projection.
-    /// PT: Verifica se UPDATE ... RETURNING expõe a projeção atualizada.
+    /// PT-br: Verifica se UPDATE ... RETURNING expõe a projeção atualizada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -540,7 +540,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies DELETE ... RETURNING exposes the deleted row snapshot.
-    /// PT: Verifica se DELETE ... RETURNING expõe o snapshot da linha removida.
+    /// PT-br: Verifica se DELETE ... RETURNING expõe o snapshot da linha removida.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -568,7 +568,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies INSERT ... SELECT ... RETURNING exposes every inserted row.
-    /// PT: Verifica se INSERT ... SELECT ... RETURNING expõe cada linha inserida.
+    /// PT-br: Verifica se INSERT ... SELECT ... RETURNING expõe cada linha inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -604,7 +604,7 @@ public sealed class PostgreSqlMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE ... RETURNING users.* exposes all columns.
-    /// PT: Verifica se UPDATE ... RETURNING users.* expõe todas as colunas.
+    /// PT-br: Verifica se UPDATE ... RETURNING users.* expõe todas as colunas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]

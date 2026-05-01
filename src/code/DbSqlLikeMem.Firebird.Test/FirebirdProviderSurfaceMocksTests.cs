@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for Firebird provider surface mocks.
-/// PT: Contém testes para mocks de superfície do provedor Firebird.
+/// PT-br: Contém testes para mocks de superfície do provedor Firebird.
 /// </summary>
 public sealed class FirebirdProviderSurfaceMocksTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdProviderSurfaceMocksTests(
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.
-    /// PT: Garante que a propriedade tipada SelectCommand permaneça sincronizada com a SelectCommand da classe base.
+    /// PT-br: Garante que a propriedade tipada SelectCommand permaneça sincronizada com a SelectCommand da classe base.
     /// </summary>
     [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
@@ -24,7 +24,7 @@ public sealed class FirebirdProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures the data source mock creates a provider-specific connection bound to the same in-memory database.
-    /// PT: Garante que o mock de fonte de dados crie uma conexão específica do provedor vinculada ao mesmo banco em memória.
+    /// PT-br: Garante que o mock de fonte de dados crie uma conexão específica do provedor vinculada ao mesmo banco em memória.
     /// </summary>
     [Fact]
     public void DataSource_ShouldCreateFirebirdConnection()
@@ -40,7 +40,7 @@ public sealed class FirebirdProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures default adapter state matches the provider contract surface.
-    /// PT: Garante que o estado padrão do adaptador corresponda à superfície contratual do provedor.
+    /// PT-br: Garante que o estado padrão do adaptador corresponda à superfície contratual do provedor.
     /// </summary>
     [Fact]
     public void DataAdapter_DefaultCtor_ShouldExposeExpectedDefaults()
@@ -54,7 +54,7 @@ public sealed class FirebirdProviderSurfaceMocksTests(
 #if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures batch support is exposed by the provider surface.
-    /// PT: Garante que o suporte a lote seja exposto pela superfície do provedor.
+    /// PT-br: Garante que o suporte a lote seja exposto pela superfície do provedor.
     /// </summary>
     [Fact]
     public void Batch_ShouldCreateProviderBatchAndCommand()

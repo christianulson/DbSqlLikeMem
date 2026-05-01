@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Applies ALTER SEQUENCE RESTART WITH and reads the next values for SQL Server sequence fidelity.
-/// PT: Aplica ALTER SEQUENCE RESTART WITH e le os proximos valores para fidelidade de sequence do SQL Server.
+/// PT-br: Aplica ALTER SEQUENCE RESTART WITH e le os proximos valores para fidelidade de sequence do SQL Server.
 /// </summary>
 public sealed class SequenceAlterRestartServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceAlterRestartServiceTest(
 {
     /// <summary>
     /// EN: Resets the current sequence and returns the next generated values after the restart.
-    /// PT: Reinicia a sequence atual e retorna os proximos valores gerados depois do restart.
+    /// PT-br: Reinicia a sequence atual e retorna os proximos valores gerados depois do restart.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceAlterRestartAsync();
 
     /// <summary>
     /// EN: Resets the current sequence and returns the next generated values after the restart.
-    /// PT: Reinicia a sequence atual e retorna os proximos valores gerados depois do restart.
+    /// PT-br: Reinicia a sequence atual e retorna os proximos valores gerados depois do restart.
     /// </summary>
     public async Task<long[]> RunSequenceAlterRestartAsync()
     {

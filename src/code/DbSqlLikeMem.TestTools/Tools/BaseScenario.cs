@@ -1,4 +1,4 @@
-﻿namespace DbSqlLikeMem.TestTools;
+namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// Provides a base class for scenario implementations, supplying access to repository services, SQL dialect
@@ -12,21 +12,21 @@ public class BaseScenario(
 {
     /// <summary>
     /// EN: Provides access to the repository service for executing SQL commands and queries within the scenario.
-    /// PT: Fornece acesso ao serviço de repositório para executar comandos e consultas SQL dentro do cenário.
+    /// PT-br: Fornece acesso ao serviço de repositório para executar comandos e consultas SQL dentro do cenário.
     /// </summary>
     public RepoService Repo => repo;
 
     /// <summary>
     /// EN: Provides access to the SQL dialect used by the provider for formatting and executing SQL statements within the scenario.
-    /// PT: Fornece acesso ao dialeto SQL usado pelo provedor para formatar e executar instruções SQL dentro do cenário.
+    /// PT-br: Fornece acesso ao dialeto SQL usado pelo provedor para formatar e executar instruções SQL dentro do cenário.
     /// </summary>
     public FidelityTestContext Context => context;
 
     ///// <summary>
     ///// EN: Generates a new unique token that can be used for naming tables or other objects in the scenario. The token is an 8-character uppercase string derived from a GUID, ensuring uniqueness across different runs of the scenario.
-    ///// PT: Gera um novo token único que pode ser usado para nomear tabelas ou outros objetos no cenário. O token é uma string maiúscula de 8 caracteres derivada de um GUID, garantindo unicidade em diferentes execuções do cenário.
+    ///// PT-br: Gera um novo token único que pode ser usado para nomear tabelas ou outros objetos no cenário. O token é uma string maiúscula de 8 caracteres derivada de um GUID, garantindo unicidade em diferentes execuções do cenário.
     ///// </summary>
-    ///// <returns>EN: A new unique token. PT: Um novo token único.</returns>
+    ///// <returns>EN: A new unique token. PT-br: Um novo token único.</returns>
     //protected static string NewToken()
     //    => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
 }

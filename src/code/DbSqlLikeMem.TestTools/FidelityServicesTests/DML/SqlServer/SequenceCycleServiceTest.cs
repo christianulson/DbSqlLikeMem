@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Creates a SQL Server sequence with CYCLE and reads the wrapped values for fidelity coverage.
-/// PT: Cria uma sequence SQL Server com CYCLE e le os valores reiniciados para cobertura de fidelidade.
+/// PT-br: Cria uma sequence SQL Server com CYCLE e le os valores reiniciados para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceCycleServiceTest(
     RepoService repo,
@@ -12,7 +12,7 @@ public sealed class SequenceCycleServiceTest(
 {
     /// <summary>
     /// EN: Creates a bounded cycle sequence, reads three generated values, and removes the temporary sequence.
-    /// PT: Cria uma sequence ciclica limitada, le tres valores gerados e remove a sequence temporaria.
+    /// PT-br: Cria uma sequence ciclica limitada, le tres valores gerados e remove a sequence temporaria.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {

@@ -94,7 +94,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Applies operation-specific canonicalization rules for subquery SQL used in correlated cache keys.
-    /// PT: Aplica regras de canonização específicas por operação para SQL de subquery usado em chaves de cache correlacionado.
+    /// PT-br: Aplica regras de canonização específicas por operação para SQL de subquery usado em chaves de cache correlacionado.
     /// </summary>
     private static string NormalizeOperationSpecificSubquerySqlForCacheKey(
         string operation,
@@ -117,7 +117,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Selects relevant outer-row fields for correlated subquery cache keys, prioritizing identifiers explicitly referenced in subquery SQL.
-    /// PT: Seleciona campos relevantes da linha externa para chaves de cache de subquery correlacionada, priorizando identificadores explicitamente referenciados no SQL da subquery.
+    /// PT-br: Seleciona campos relevantes da linha externa para chaves de cache de subquery correlacionada, priorizando identificadores explicitamente referenciados no SQL da subquery.
     /// </summary>
     private static IReadOnlyList<KeyValuePair<string, object?>> GetCorrelatedSubqueryCacheFields(
         string subquerySql,
@@ -262,7 +262,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Checks whether a candidate identifier token appears in SQL text using lightweight identifier-boundary guards.
-    /// PT: Verifica se um token identificador candidato aparece no texto SQL usando guardas leves de fronteira de identificador.
+    /// PT-br: Verifica se um token identificador candidato aparece no texto SQL usando guardas leves de fronteira de identificador.
     /// </summary>
     private static bool ContainsSqlIdentifierToken(string sql, string token)
     {
@@ -289,14 +289,14 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Determines whether a character can participate in SQL identifiers when evaluating token boundaries.
-    /// PT: Determina se um caractere pode participar de identificadores SQL ao avaliar fronteiras de token.
+    /// PT-br: Determina se um caractere pode participar de identificadores SQL ao avaliar fronteiras de token.
     /// </summary>
     private static bool IsSqlIdentifierChar(char c)
         => char.IsLetterOrDigit(c) || c is '_' or '$';
 
     /// <summary>
     /// EN: Extracts qualified identifier tokens (alias.column) from SQL text using lightweight lexical boundaries.
-    /// PT: Extrai tokens de identificador qualificado (alias.coluna) do texto SQL usando fronteiras léxicas leves.
+    /// PT-br: Extrai tokens de identificador qualificado (alias.coluna) do texto SQL usando fronteiras léxicas leves.
     /// </summary>
     private static HashSet<string> ExtractQualifiedSqlIdentifiers(string sql)
     {
@@ -317,7 +317,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Detects whether SQL text appears to reference any qualifier from outer-row fields, even when full token matching failed.
-    /// PT: Detecta se o texto SQL parece referenciar algum qualificador dos campos da linha externa, mesmo quando o matching completo de token falha.
+    /// PT-br: Detecta se o texto SQL parece referenciar algum qualificador dos campos da linha externa, mesmo quando o matching completo de token falha.
     /// </summary>
     private static bool ContainsPotentialOuterQualifierReference(
         string sql,
@@ -350,7 +350,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Normalizes SQL text by collapsing optional whitespace around dot separators in qualified identifiers.
-    /// PT: Normaliza texto SQL colapsando espaços opcionais ao redor de separadores com ponto em identificadores qualificados.
+    /// PT-br: Normaliza texto SQL colapsando espaços opcionais ao redor de separadores com ponto em identificadores qualificados.
     /// </summary>
     private static string NormalizeSqlIdentifierSpacing(string sql)
         => string.IsNullOrWhiteSpace(sql)
@@ -359,7 +359,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Canonicalizes subquery SQL text for cache-key usage by normalizing identifier spacing, keyword casing and redundant whitespace while preserving string literals.
-    /// PT: Canoniza o texto SQL da subquery para uso na chave de cache normalizando espaçamento de identificadores, casing de palavras-chave e whitespace redundante preservando literais de texto.
+    /// PT-br: Canoniza o texto SQL da subquery para uso na chave de cache normalizando espaçamento de identificadores, casing de palavras-chave e whitespace redundante preservando literais de texto.
     /// </summary>
     private static string NormalizeSubquerySqlForCacheKey(string sql)
     {
@@ -405,7 +405,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Inserts a space after WHERE and HAVING when they are followed immediately by an opening parenthesis.
-    /// PT: Insere um espaco apos WHERE e HAVING quando eles sao seguidos imediatamente por um parenteses de abertura.
+    /// PT-br: Insere um espaco apos WHERE e HAVING quando eles sao seguidos imediatamente por um parenteses de abertura.
     /// </summary>
     private static string NormalizeClauseKeywordSpacingForCacheKey(string sql)
     {
@@ -450,7 +450,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Appends a SQL quoted segment handling escaped quote doubles and returns the consumed end index.
-    /// PT: Anexa um segmento SQL entre aspas tratando escape por duplicidade de aspas e retorna o índice final consumido.
+    /// PT-br: Anexa um segmento SQL entre aspas tratando escape por duplicidade de aspas e retorna o índice final consumido.
     /// </summary>
     private static int AppendQuotedSegment(
         string sql,
@@ -487,7 +487,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Appends a SQL bracket-identifier segment and returns the consumed end index.
-    /// PT: Anexa um segmento SQL de identificador entre colchetes e retorna o índice final consumido.
+    /// PT-br: Anexa um segmento SQL de identificador entre colchetes e retorna o índice final consumido.
     /// </summary>
     private static int AppendBracketIdentifierSegment(
         string sql,
@@ -533,7 +533,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Normalizes local aliases declared inside the subquery so semantically equivalent aliases generate the same cache-key SQL fragment.
-    /// PT: Normaliza aliases locais declarados dentro da subquery para que aliases semanticamente equivalentes gerem o mesmo fragmento SQL da chave de cache.
+    /// PT-br: Normaliza aliases locais declarados dentro da subquery para que aliases semanticamente equivalentes gerem o mesmo fragmento SQL da chave de cache.
     /// </summary>
     private static string NormalizeSubqueryLocalAliasesForCacheKey(string sql)
     {
@@ -563,7 +563,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Extracts a deterministic map of local alias names declared in FROM/JOIN clauses to canonical placeholders.
-    /// PT: Extrai um mapa determinístico de nomes de aliases locais declarados em cláusulas FROM/JOIN para placeholders canônicos.
+    /// PT-br: Extrai um mapa determinístico de nomes de aliases locais declarados em cláusulas FROM/JOIN para placeholders canônicos.
     /// </summary>
     private static IReadOnlyDictionary<string, string> ExtractSubqueryAliasMap(string sql)
     {
@@ -592,7 +592,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Rewrites FROM/JOIN alias declarations to canonical placeholders for cache-key normalization.
-    /// PT: Reescreve declarações de alias em FROM/JOIN para placeholders canônicos na normalização da chave de cache.
+    /// PT-br: Reescreve declarações de alias em FROM/JOIN para placeholders canônicos na normalização da chave de cache.
     /// </summary>
     private static string ReplaceAliasDeclarationForCacheKey(
         string sql,
@@ -615,7 +615,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Rewrites alias-qualified references (alias.column) outside quoted segments to canonical placeholders for cache-key normalization.
-    /// PT: Reescreve referências qualificadas por alias (alias.coluna) fora de segmentos entre aspas para placeholders canônicos na normalização da chave de cache.
+    /// PT-br: Reescreve referências qualificadas por alias (alias.coluna) fora de segmentos entre aspas para placeholders canônicos na normalização da chave de cache.
     /// </summary>
     private static string ReplaceAliasQualifierReferencesForCacheKey(
         string sql,
@@ -650,7 +650,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Checks whether the SQL text at a given index starts with an alias qualifier reference (alias followed by dot) respecting identifier boundaries.
-    /// PT: Verifica se o texto SQL em um índice inicia uma referência de qualificador por alias (alias seguido de ponto) respeitando fronteiras de identificador.
+    /// PT-br: Verifica se o texto SQL em um índice inicia uma referência de qualificador por alias (alias seguido de ponto) respeitando fronteiras de identificador.
     /// </summary>
     private static bool IsAliasQualifierReferenceAt(
         string sql,
@@ -679,7 +679,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Normalizes spacing around top-level relational operators outside quoted segments so semantically equivalent operator formatting maps to the same cache-key SQL.
-    /// PT: Normaliza espaçamento ao redor de operadores relacionais no topo fora de segmentos entre aspas para que formatações equivalentes mapeiem para o mesmo SQL de chave de cache.
+    /// PT-br: Normaliza espaçamento ao redor de operadores relacionais no topo fora de segmentos entre aspas para que formatações equivalentes mapeiem para o mesmo SQL de chave de cache.
     /// </summary>
     private static string NormalizeRelationalOperatorSpacingForCacheKey(string sql)
     {
@@ -715,7 +715,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Tries to read a relational comparison operator at the current index, including two-character variants.
-    /// PT: Tenta ler um operador relacional de comparação no índice atual, incluindo variantes de dois caracteres.
+    /// PT-br: Tenta ler um operador relacional de comparação no índice atual, incluindo variantes de dois caracteres.
     /// </summary>
     private static bool TryReadRelationalOperator(
         string sql,
@@ -772,7 +772,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Trims trailing spaces from a StringBuilder buffer.
-    /// PT: Remove espaços à direita de um buffer StringBuilder.
+    /// PT-br: Remove espaços à direita de um buffer StringBuilder.
     /// </summary>
     private static void TrimTrailingSpaces(StringBuilder sb)
     {
@@ -782,7 +782,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Collapses repeated whitespace outside quoted or bracket-delimited segments while preserving inner literal content.
-    /// PT: Colapsa whitespace repetido fora de segmentos entre aspas ou delimitados por colchetes preservando o conteúdo interno de literais.
+    /// PT-br: Colapsa whitespace repetido fora de segmentos entre aspas ou delimitados por colchetes preservando o conteúdo interno de literais.
     /// </summary>
     private static string CollapseWhitespaceOutsideQuotedSegments(string sql)
     {
@@ -821,14 +821,14 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Canonicalizes top-level EXISTS subquery projection payload by replacing SELECT list with a fixed token while preserving relational clauses.
-    /// PT: Canoniza o payload de projeção de subquery EXISTS no nível de topo substituindo a lista do SELECT por token fixo preservando cláusulas relacionais.
+    /// PT-br: Canoniza o payload de projeção de subquery EXISTS no nível de topo substituindo a lista do SELECT por token fixo preservando cláusulas relacionais.
     /// </summary>
     private static string NormalizeExistsProjectionPayloadForCacheKey(string sql)
         => RewriteTopLevelSelectPayloadForCacheKey(sql, static _ => "<EXISTS_PAYLOAD>");
 
     /// <summary>
     /// EN: Canonicalizes top-level SELECT projection aliases by removing explicit AS aliases while preserving projection expressions and relational clauses.
-    /// PT: Canoniza aliases da projeção SELECT no nível de topo removendo aliases explícitos AS e preservando expressões projetadas e cláusulas relacionais.
+    /// PT-br: Canoniza aliases da projeção SELECT no nível de topo removendo aliases explícitos AS e preservando expressões projetadas e cláusulas relacionais.
     /// </summary>
     private static string NormalizeSelectProjectionAliasesForCacheKey(string sql)
         => RewriteTopLevelSelectPayloadForCacheKey(sql, NormalizeSelectListAliasesForCacheKey);
@@ -873,7 +873,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Normalizes explicit AS aliases from a top-level SELECT list while preserving nested expressions.
-    /// PT: Normaliza aliases explícitos AS de uma lista SELECT de topo preservando expressões aninhadas.
+    /// PT-br: Normaliza aliases explícitos AS de uma lista SELECT de topo preservando expressões aninhadas.
     /// </summary>
     private static string NormalizeSelectListAliasesForCacheKey(string selectList)
     {
@@ -892,7 +892,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Splits text by top-level comma separators outside quoted segments and nested parentheses.
-    /// PT: Divide o texto por vírgulas de topo fora de segmentos entre aspas e parênteses aninhados.
+    /// PT-br: Divide o texto por vírgulas de topo fora de segmentos entre aspas e parênteses aninhados.
     /// </summary>
     private static List<string> SplitTopLevelCommaSegments(string text)
     {
@@ -939,7 +939,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Removes a trailing explicit AS alias from a SELECT expression when alias syntax is valid.
-    /// PT: Remove alias explícito AS ao final de uma expressão SELECT quando a sintaxe do alias é válida.
+    /// PT-br: Remove alias explícito AS ao final de uma expressão SELECT quando a sintaxe do alias é válida.
     /// </summary>
     private static string RemoveExplicitAsAliasFromSelectExpression(string expression)
     {
@@ -974,7 +974,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Validates whether an alias token matches supported explicit alias forms (identifier or quoted identifier).
-    /// PT: Valida se um token de alias corresponde às formas suportadas de alias explícito (identificador ou identificador entre delimitadores).
+    /// PT-br: Valida se um token de alias corresponde às formas suportadas de alias explícito (identificador ou identificador entre delimitadores).
     /// </summary>
     private static bool IsValidExplicitAliasToken(string aliasToken)
     {
@@ -999,7 +999,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Tries to find a top-level SQL keyword index outside quoted segments and nested parentheses, starting from a given position.
-    /// PT: Tenta localizar o índice de uma palavra-chave SQL no topo fora de segmentos entre aspas e parênteses aninhados, iniciando em uma posição informada.
+    /// PT-br: Tenta localizar o índice de uma palavra-chave SQL no topo fora de segmentos entre aspas e parênteses aninhados, iniciando em uma posição informada.
     /// </summary>
     private static bool TryFindTopLevelKeywordIndex(
         string sql,
@@ -1067,7 +1067,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Normalizes commutative top-level AND chains in WHERE/HAVING clauses so equivalent predicate orderings reuse the same cache-key SQL fragment.
-    /// PT: Normaliza cadeias comutativas de AND no topo em cláusulas WHERE/HAVING para que ordenações equivalentes de predicados reutilizem o mesmo fragmento SQL da chave de cache.
+    /// PT-br: Normaliza cadeias comutativas de AND no topo em cláusulas WHERE/HAVING para que ordenações equivalentes de predicados reutilizem o mesmo fragmento SQL da chave de cache.
     /// </summary>
     private static string NormalizeCommutativeAndClausesForCacheKey(string sql)
     {
@@ -1088,7 +1088,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Canonicalizes a predicate text by sorting top-level AND segments when safe (no top-level OR and no BETWEEN token).
-    /// PT: Canoniza um texto de predicado ordenando segmentos AND de topo quando seguro (sem OR de topo e sem token BETWEEN).
+    /// PT-br: Canoniza um texto de predicado ordenando segmentos AND de topo quando seguro (sem OR de topo e sem token BETWEEN).
     /// </summary>
     private static string NormalizeTopLevelAndPredicateForCacheKey(string predicate)
     {
@@ -1121,7 +1121,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Splits predicate text by top-level AND operators outside quoted segments and nested parentheses.
-    /// PT: Divide o texto do predicado por operadores AND de topo fora de segmentos entre aspas e parênteses aninhados.
+    /// PT-br: Divide o texto do predicado por operadores AND de topo fora de segmentos entre aspas e parênteses aninhados.
     /// </summary>
     private static List<string> SplitTopLevelAndSegments(string predicate)
     {
@@ -1173,7 +1173,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Normalizes an individual predicate segment by trimming redundant outer parentheses and canonicalizing simple commutative equalities.
-    /// PT: Normaliza um segmento individual de predicado removendo parênteses externos redundantes e canonizando igualdades comutativas simples.
+    /// PT-br: Normaliza um segmento individual de predicado removendo parênteses externos redundantes e canonizando igualdades comutativas simples.
     /// </summary>
     private static string NormalizePredicateSegmentForCacheKey(string segment)
     {
@@ -1186,7 +1186,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Canonicalizes a simple top-level equality segment (`lhs = rhs`) by sorting operands lexicographically when safe.
-    /// PT: Canoniza um segmento de igualdade simples no topo (`lhs = rhs`) ordenando operandos lexicograficamente quando seguro.
+    /// PT-br: Canoniza um segmento de igualdade simples no topo (`lhs = rhs`) ordenando operandos lexicograficamente quando seguro.
     /// </summary>
     private static string NormalizeCommutativeEqualitySegmentForCacheKey(string segment)
     {
@@ -1221,7 +1221,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Tries to find a single standalone top-level equality operator, excluding composite comparisons such as less-or-equal, greater-or-equal, different and double-equals.
-    /// PT: Tenta localizar um único operador de igualdade isolado no topo, excluindo comparações compostas como menor-ou-igual, maior-ou-igual, diferente e igualdade dupla.
+    /// PT-br: Tenta localizar um único operador de igualdade isolado no topo, excluindo comparações compostas como menor-ou-igual, maior-ou-igual, diferente e igualdade dupla.
     /// </summary>
     private static bool TryFindStandaloneTopLevelEqualityOperator(string segment, out int equalityIndex)
     {
@@ -1271,7 +1271,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Removes redundant outer parentheses that wrap the full expression while preserving inner structure.
-    /// PT: Remove parênteses externos redundantes que envolvem a expressão inteira preservando a estrutura interna.
+    /// PT-br: Remove parênteses externos redundantes que envolvem a expressão inteira preservando a estrutura interna.
     /// </summary>
     private static string TrimRedundantOuterParentheses(string expression)
     {
@@ -1292,7 +1292,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Checks whether the first and last parentheses wrap the whole expression without closing earlier at top level.
-    /// PT: Verifica se o primeiro e o último parêntese envolvem toda a expressão sem fechar antes no nível de topo.
+    /// PT-br: Verifica se o primeiro e o último parêntese envolvem toda a expressão sem fechar antes no nível de topo.
     /// </summary>
     private static bool HasSingleOuterParenthesesWrappingWholeExpression(string expression)
     {
@@ -1332,14 +1332,14 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Detects whether a token appears outside quoted segments and nested parentheses.
-    /// PT: Detecta se um token aparece fora de segmentos entre aspas e parênteses aninhados.
+    /// PT-br: Detecta se um token aparece fora de segmentos entre aspas e parênteses aninhados.
     /// </summary>
     private static bool ContainsTokenOutsideQuotedSegments(string sql, string token)
         => TryFindTopLevelKeywordIndex(sql, token, 0, out _);
 
     /// <summary>
     /// EN: Matches a SQL keyword token at a position ensuring identifier boundaries.
-    /// PT: Compara um token de palavra-chave SQL em uma posição garantindo fronteiras de identificador.
+    /// PT-br: Compara um token de palavra-chave SQL em uma posição garantindo fronteiras de identificador.
     /// </summary>
     private static bool MatchesKeywordTokenAt(string sql, int startIndex, string token)
     {
@@ -1367,7 +1367,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Finds the end index of a quoted SQL segment handling escaped doubled quote characters.
-    /// PT: Localiza o índice final de um segmento SQL entre aspas tratando escapes por duplicidade de aspas.
+    /// PT-br: Localiza o índice final de um segmento SQL entre aspas tratando escapes por duplicidade de aspas.
     /// </summary>
     private static int FindQuotedSegmentEndIndex(string sql, int startIndex, char quoteChar)
     {
@@ -1394,7 +1394,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Finds the end index of a bracket-delimited SQL identifier segment.
-    /// PT: Localiza o índice final de um segmento SQL de identificador delimitado por colchetes.
+    /// PT-br: Localiza o índice final de um segmento SQL de identificador delimitado por colchetes.
     /// </summary>
     private static int FindBracketSegmentEndIndex(string sql, int startIndex)
     {
@@ -1411,7 +1411,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
     /// <summary>
     /// EN: Normalizes scalar and tuple-like values into stable cache-key fragments for correlated subquery memoization.
-    /// PT: Normaliza valores escalares e em formato tupla em fragmentos estáveis de chave de cache para memoização de subquery correlacionada.
+    /// PT-br: Normaliza valores escalares e em formato tupla em fragmentos estáveis de chave de cache para memoização de subquery correlacionada.
     /// </summary>
     private static string NormalizeSubqueryCacheValue(object? value)
     {

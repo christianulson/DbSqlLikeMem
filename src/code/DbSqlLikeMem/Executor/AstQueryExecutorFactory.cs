@@ -17,7 +17,7 @@ internal static class AstQueryExecutorFactory
 
     /// <summary>
     /// EN: Gets the registered AST executors keyed by dialect name.
-    /// PT: Obtem os executores de AST registrados pela chave do nome do dialeto.
+    /// PT-br: Obtem os executores de AST registrados pela chave do nome do dialeto.
     /// </summary>
     public static IReadOnlyDictionary<string, Func<
         QueryExecutionContext,
@@ -25,7 +25,7 @@ internal static class AstQueryExecutorFactory
 
     /// <summary>
     /// EN: Registers a dialect executor when it is not already available.
-    /// PT: Registra um executor de dialeto quando ele ainda nao esta disponivel.
+    /// PT-br: Registra um executor de dialeto quando ele ainda nao esta disponivel.
     /// </summary>
     public static void RegisterExecutor(
         string dialectName,
@@ -38,7 +38,7 @@ internal static class AstQueryExecutorFactory
 
     /// <summary>
     /// EN: Creates an AST executor for the requested dialect or returns a fallback executor when one is unavailable.
-    /// PT: Cria um executor de AST para o dialeto solicitado ou retorna um executor fallback quando ele nao estiver disponivel.
+    /// PT-br: Cria um executor de AST para o dialeto solicitado ou retorna um executor fallback quando ele nao estiver disponivel.
     /// </summary>
     public static IAstQueryExecutor Create(
         ISqlDialect dialect,
@@ -54,7 +54,7 @@ internal static class AstQueryExecutorFactory
 
     /// <summary>
     /// EN: Creates an AST executor from a pre-built query execution context.
-    /// PT: Cria um executor de AST a partir de um contexto de execução de query pre-construído.
+    /// PT-br: Cria um executor de AST a partir de um contexto de execução de query pre-construído.
     /// </summary>
     public static IAstQueryExecutor Create(QueryExecutionContext context)
     {
@@ -80,7 +80,7 @@ internal static class AstQueryExecutorFactory
 
         /// <summary>
         /// EN: Executes a SELECT through the fallback executor and reports that the dialect is not implemented.
-        /// PT: Executa um SELECT pelo executor fallback e informa que o dialeto nao esta implementado.
+        /// PT-br: Executa um SELECT pelo executor fallback e informa que o dialeto nao esta implementado.
         /// </summary>
         public TableResultMock ExecuteSelect(SqlSelectQuery q)
             => throw new NotSupportedException(
@@ -89,7 +89,7 @@ internal static class AstQueryExecutorFactory
 
         /// <summary>
         /// EN: Executes a UNION through the fallback executor and reports that the dialect is not implemented.
-        /// PT: Executa um UNION pelo executor fallback e informa que o dialeto nao esta implementado.
+        /// PT-br: Executa um UNION pelo executor fallback e informa que o dialeto nao esta implementado.
         /// </summary>
         public TableResultMock ExecuteUnion(
             IReadOnlyList<SqlSelectQuery> parts,

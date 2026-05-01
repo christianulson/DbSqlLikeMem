@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 /// <summary>
 /// EN: Covers PostgreSQL ON CONFLICT upsert scenarios against the Dapper provider.
-/// PT: Cobre cenarios de upsert com ON CONFLICT do PostgreSQL contra o provedor Dapper.
+/// PT-br: Cobre cenarios de upsert com ON CONFLICT do PostgreSQL contra o provedor Dapper.
 /// </summary>
 public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies ON CONFLICT inserts a row when no conflict exists.
-    /// PT: Verifica se ON CONFLICT insere uma linha quando nao existe conflito.
+    /// PT-br: Verifica se ON CONFLICT insere uma linha quando nao existe conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -33,7 +33,7 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
 
     /// <summary>
     /// EN: Verifies ON CONFLICT updates the matching row when a conflict exists.
-    /// PT: Verifica se ON CONFLICT atualiza a linha correspondente quando ha conflito.
+    /// PT-br: Verifica se ON CONFLICT atualiza a linha correspondente quando ha conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -61,7 +61,7 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
 
     /// <summary>
     /// EN: Verifies DO NOTHING leaves the existing row unchanged on conflict.
-    /// PT: Verifica se DO NOTHING mantem a linha existente inalterada em caso de conflito.
+    /// PT-br: Verifica se DO NOTHING mantem a linha existente inalterada em caso de conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -87,7 +87,7 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
 
     /// <summary>
     /// EN: Verifies a false DO UPDATE WHERE clause skips the conflict update.
-    /// PT: Verifica se uma clausula DO UPDATE WHERE falsa ignora a atualizacao do conflito.
+    /// PT-br: Verifica se uma clausula DO UPDATE WHERE falsa ignora a atualizacao do conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -113,7 +113,7 @@ public sealed class PostgreSqlOnConflictUpsertTests(ITestOutputHelper helper) : 
 
     /// <summary>
     /// EN: Verifies a true DO UPDATE WHERE clause applies the conflict update.
-    /// PT: Verifica se uma clausula DO UPDATE WHERE verdadeira aplica a atualizacao do conflito.
+    /// PT-br: Verifica se uma clausula DO UPDATE WHERE verdadeira aplica a atualizacao do conflito.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

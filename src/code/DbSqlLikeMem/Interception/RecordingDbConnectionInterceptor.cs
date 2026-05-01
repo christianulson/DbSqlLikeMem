@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Records interception events in memory for diagnostics, tests, and lightweight tracing.
-/// PT: Registra eventos de interceptacao em memoria para diagnostico, testes e tracing leve.
+/// PT-br: Registra eventos de interceptacao em memoria para diagnostico, testes e tracing leve.
 /// </summary>
 public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
 {
@@ -15,7 +15,7 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Gets the events captured by this interceptor.
-    /// PT: Obtem os eventos capturados por este interceptor.
+    /// PT-br: Obtem os eventos capturados por este interceptor.
     /// </summary>
     public IReadOnlyList<DbInterceptionEvent> Events
     {
@@ -28,7 +28,7 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Clears the recorded event history.
-    /// PT: Limpa o historico de eventos registrados.
+    /// PT-br: Limpa o historico de eventos registrados.
     /// </summary>
     public void Clear()
     {
@@ -38,9 +38,9 @@ public sealed class RecordingDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Returns the recorded event history already formatted as structured text lines.
-    /// PT: Retorna o historico de eventos registrados ja formatado como linhas de texto estruturadas.
+    /// PT-br: Retorna o historico de eventos registrados ja formatado como linhas de texto estruturadas.
     /// </summary>
-    /// <returns>EN: Formatted event lines. PT: Linhas de evento formatadas.</returns>
+    /// <returns>EN: Formatted event lines. PT-br: Linhas de evento formatadas.</returns>
     public IReadOnlyList<string> GetFormattedEvents()
     {
         lock (_gate)

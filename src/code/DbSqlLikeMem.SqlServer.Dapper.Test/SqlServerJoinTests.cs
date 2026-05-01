@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// EN: Covers SQL Server join scenarios against the Dapper provider.
-/// PT: Cobre cenarios de join SQL Server contra o provedor Dapper.
+/// PT-br: Cobre cenarios de join SQL Server contra o provedor Dapper.
 /// </summary>
 public sealed class SqlServerJoinTests(
     ITestOutputHelper helper
@@ -14,7 +14,7 @@ public sealed class SqlServerJoinTests(
 
     /// <summary>
     /// EN: Verifies left joins keep all rows from the left table.
-    /// PT: Verifica se left joins mantem todas as linhas da tabela da esquerda.
+    /// PT-br: Verifica se left joins mantem todas as linhas da tabela da esquerda.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerJoin")]
@@ -23,7 +23,7 @@ public sealed class SqlServerJoinTests(
 
     /// <summary>
     /// EN: Verifies right joins keep all rows from the right table.
-    /// PT: Verifica se right joins mantem todas as linhas da tabela da direita.
+    /// PT-br: Verifica se right joins mantem todas as linhas da tabela da direita.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerJoin")]
@@ -32,7 +32,7 @@ public sealed class SqlServerJoinTests(
 
     /// <summary>
     /// EN: Verifies join conditions with multiple AND predicates are evaluated correctly.
-    /// PT: Verifica se condicoes de join com multiplos predicados AND sao avaliadas corretamente.
+    /// PT-br: Verifica se condicoes de join com multiplos predicados AND sao avaliadas corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerJoin")]

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Models;
 
 /// <summary>
 /// EN: Normalizes database type labels and lookup keys across the extensions.
-/// PT: Normaliza rótulos e chaves de tipo de banco entre as extensions.
+/// PT-br: Normaliza rótulos e chaves de tipo de banco entre as extensions.
 /// </summary>
 public static class DatabaseTypeNormalizer
 {
@@ -44,7 +44,7 @@ public static class DatabaseTypeNormalizer
 
     /// <summary>
     /// EN: Returns the normalized lookup key for a database type.
-    /// PT: Retorna a chave normalizada de consulta para um tipo de banco.
+    /// PT-br: Retorna a chave normalizada de consulta para um tipo de banco.
     /// </summary>
     public static string NormalizeKey(string? databaseType)
     {
@@ -64,7 +64,7 @@ public static class DatabaseTypeNormalizer
 
     /// <summary>
     /// EN: Returns the canonical database type label used by the core.
-    /// PT: Retorna o rótulo canônico de tipo de banco usado pelo core.
+    /// PT-br: Retorna o rótulo canônico de tipo de banco usado pelo core.
     /// </summary>
     public static string NormalizeDisplayName(string? databaseType)
     {
@@ -82,7 +82,7 @@ public static class DatabaseTypeNormalizer
 
     /// <summary>
     /// EN: Returns the supported database type labels used by the UI catalogs.
-    /// PT: Retorna os rótulos de tipo de banco suportados usados pelos catalogos da interface.
+    /// PT-br: Retorna os rótulos de tipo de banco suportados usados pelos catalogos da interface.
     /// </summary>
     public static IReadOnlyList<string> GetSupportedDisplayNames() => SupportedDisplayNames;
 }

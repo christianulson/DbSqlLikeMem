@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Represents a composite key for fast index lookups without string allocation.
-/// PT: Representa uma chave composta para buscas rápidas de índice sem alocação de string.
+/// PT-br: Representa uma chave composta para buscas rápidas de índice sem alocação de string.
 /// </summary>
 public readonly struct IndexKey : IEquatable<IndexKey>
 {
@@ -15,9 +15,9 @@ public readonly struct IndexKey : IEquatable<IndexKey>
 
     /// <summary>
     /// EN: Initializes a new IndexKey with a single value.
-    /// PT: Inicializa uma nova IndexKey com um único valor.
+    /// PT-br: Inicializa uma nova IndexKey com um único valor.
     /// </summary>
-    /// <param name="value">EN: Key value. PT: Valor da chave.</param>
+    /// <param name="value">EN: Key value. PT-br: Valor da chave.</param>
     public IndexKey(object? value)
     {
         _v1 = value;
@@ -30,7 +30,7 @@ public readonly struct IndexKey : IEquatable<IndexKey>
 
     /// <summary>
     /// EN: Initializes a new IndexKey with two values.
-    /// PT: Inicializa uma nova IndexKey com dois valores.
+    /// PT-br: Inicializa uma nova IndexKey com dois valores.
     /// </summary>
     public IndexKey(object? v1, object? v2)
     {
@@ -47,7 +47,7 @@ public readonly struct IndexKey : IEquatable<IndexKey>
 
     /// <summary>
     /// EN: Initializes a new IndexKey with three values.
-    /// PT: Inicializa uma nova IndexKey com três valores.
+    /// PT-br: Inicializa uma nova IndexKey com três valores.
     /// </summary>
     public IndexKey(object? v1, object? v2, object? v3)
     {
@@ -65,9 +65,9 @@ public readonly struct IndexKey : IEquatable<IndexKey>
 
     /// <summary>
     /// EN: Initializes a new IndexKey with multiple values.
-    /// PT: Inicializa uma nova IndexKey com múltiplos valores.
+    /// PT-br: Inicializa uma nova IndexKey com múltiplos valores.
     /// </summary>
-    /// <param name="values">EN: Key values in order. PT: Valores da chave em ordem.</param>
+    /// <param name="values">EN: Key values in order. PT-br: Valores da chave em ordem.</param>
     public IndexKey(object?[] values)
     {
         _count = values.Length;
@@ -114,7 +114,7 @@ public readonly struct IndexKey : IEquatable<IndexKey>
 
     /// <summary>
     /// EN: Gets the key values.
-    /// PT: Obtém os valores da chave.
+    /// PT-br: Obtém os valores da chave.
     /// </summary>
     public IReadOnlyList<object?> Values
     {
@@ -130,7 +130,7 @@ public readonly struct IndexKey : IEquatable<IndexKey>
 
     /// <summary>
     /// EN: Formats the key for error messages.
-    /// PT: Formata a chave para mensagens de erro.
+    /// PT-br: Formata a chave para mensagens de erro.
     /// </summary>
     public override string ToString()
     {

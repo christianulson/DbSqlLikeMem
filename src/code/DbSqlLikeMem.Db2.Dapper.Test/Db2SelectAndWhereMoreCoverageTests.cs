@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
+namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// EN: Covers extra DB2 SELECT and WHERE scenarios over a direct mock connection.
-/// PT: Cobre cenarios extras de SELECT e WHERE DB2 sobre uma conexao mock direta.
+/// PT-br: Cobre cenarios extras de SELECT e WHERE DB2 sobre uma conexao mock direta.
 /// </summary>
 public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory DB2 database used by the extra SELECT and WHERE coverage tests.
-    /// PT: Cria o banco DB2 em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
+    /// PT-br: Cria o banco DB2 em memoria usado pelos testes extras de cobertura de SELECT e WHERE.
     /// </summary>
     public Db2SelectAndWhereMoreCoverageTests(ITestOutputHelper helper) : base(helper)
     {
@@ -40,7 +40,7 @@ public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies BETWEEN filters rows in DB2 SELECT and WHERE coverage.
-    /// PT: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do DB2.
+    /// PT-br: Verifica se BETWEEN filtra linhas na cobertura de SELECT e WHERE do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -52,7 +52,7 @@ public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies NOT IN filters rows in DB2 SELECT and WHERE coverage.
-    /// PT: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do DB2.
+    /// PT-br: Verifica se NOT IN filtra linhas na cobertura de SELECT e WHERE do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -65,7 +65,7 @@ public sealed class Db2SelectAndWhereMoreCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies EXISTS subqueries filter rows in DB2 coverage.
-    /// PT: Verifica se subconsultas EXISTS filtram linhas na cobertura do DB2.
+    /// PT-br: Verifica se subconsultas EXISTS filtram linhas na cobertura do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -87,7 +87,7 @@ ORDER BY u.id").ToList();
 
     /// <summary>
     /// EN: Verifies CASE WHEN projections return the expected values.
-    /// PT: Verifica se projeções CASE WHEN retornam os valores esperados.
+    /// PT-br: Verifica se projeções CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -107,7 +107,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies IFNULL returns the expected fallback value.
-    /// PT: Verifica se IFNULL retorna o valor de fallback esperado.
+    /// PT-br: Verifica se IFNULL retorna o valor de fallback esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SelectAndWhereMoreCoverage")]
@@ -119,9 +119,9 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

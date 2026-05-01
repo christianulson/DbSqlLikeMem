@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.NHibernate.TestTools;
 
 /// <summary>
 /// EN: Shared NHibernate integration contract tests for provider mock connections.
-/// PT: Testes de contrato de integração NHibernate compartilhados para conexões simulado por provedor.
+/// PT-br: Testes de contrato de integração NHibernate compartilhados para conexões simulado por provedor.
 /// </summary>
 public abstract class NHibernateSupportTestsBase(
     ITestOutputHelper helper
@@ -17,31 +17,31 @@ public abstract class NHibernateSupportTestsBase(
 {
     /// <summary>
     /// EN: NHibernate dialect class full name used by this provider contract run.
-    /// PT: Nome completo da classe de dialeto do NHibernate usada nesta execução por provedor.
+    /// PT-br: Nome completo da classe de dialeto do NHibernate usada nesta execução por provedor.
     /// </summary>
     protected abstract string NhDialectClass { get; }
 
     /// <summary>
     /// EN: Creates and opens a provider-specific mock connection.
-    /// PT: Cria e abre uma conexão simulada específica de provedor.
+    /// PT-br: Cria e abre uma conexão simulada específica de provedor.
     /// </summary>
     protected abstract DbConnection CreateOpenConnection();
 
     /// <summary>
     /// EN: Optional NHibernate driver class for provider-specific mocked connections.
-    /// PT: Classe opcional de driver NHibernate para conexões simulado específicas do provedor.
+    /// PT-br: Classe opcional de driver NHibernate para conexões simulado específicas do provedor.
     /// </summary>
     protected virtual string? NhDriverClass => null;
 
     /// <summary>
     /// EN: Enables in-memory pagination fallback for dialects whose mocked providers do not support parameterized LIMIT/OFFSET forms.
-    /// PT: Habilita fallback de paginação em memória para dialetos cujos provedores simulado não suportam formas parametrizadas de LIMIT/OFFSET.
+    /// PT-br: Habilita fallback de paginação em memória para dialetos cujos provedores simulado não suportam formas parametrizadas de LIMIT/OFFSET.
     /// </summary>
     protected virtual bool UseInMemoryPaginationFallback => false;
 
     /// <summary>
     /// EN: Verifies native SQL with a named parameter returns the expected row.
-    /// PT: Verifica se SQL nativo com parâmetro nomeado retorna a linha esperada.
+    /// PT-br: Verifica se SQL nativo com parâmetro nomeado retorna a linha esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -65,7 +65,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies a mapped entity can be saved and loaded using NHibernate.
-    /// PT: Verifica se uma entidade mapeada pode ser salva e carregada usando NHibernate.
+    /// PT-br: Verifica se uma entidade mapeada pode ser salva e carregada usando NHibernate.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -92,7 +92,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies mapped entity updates are persisted across sessions.
-    /// PT: Verifica se atualizações de entidade mapeada são persistidas entre sessões.
+    /// PT-br: Verifica se atualizações de entidade mapeada são persistidas entre sessões.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -128,7 +128,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies rolled-back transactions do not persist data changes.
-    /// PT: Verifica se transações com rollback não persistem alterações de dados.
+    /// PT-br: Verifica se transações com rollback não persistem alterações de dados.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -163,7 +163,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies deleting a mapped entity removes it from the store.
-    /// PT: Verifica se excluir uma entidade mapeada a remove do armazenamento.
+    /// PT-br: Verifica se excluir uma entidade mapeada a remove do armazenamento.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -197,7 +197,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies mapped query pagination works with FirstResult/MaxResults.
-    /// PT: Verifica se a paginação da consulta mapeada funciona com FirstResult/MaxResults.
+    /// PT-br: Verifica se a paginação da consulta mapeada funciona com FirstResult/MaxResults.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -262,7 +262,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies basic HQL and Criteria APIs work with mapped entities.
-    /// PT: Verifica se APIs básicas de HQL e Criteria funcionam com entidades mapeadas.
+    /// PT-br: Verifica se APIs básicas de HQL e Criteria funcionam com entidades mapeadas.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -301,7 +301,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies session Evict detaches an entity and a subsequent load reflects persisted changes.
-    /// PT: Verifica se Evict na sessão destaca a entidade e se um novo load reflete mudanças persistidas.
+    /// PT-br: Verifica se Evict na sessão destaca a entidade e se um novo load reflete mudanças persistidas.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -343,7 +343,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies session Clear detaches tracked entities and a new query observes latest state.
-    /// PT: Verifica se Clear na sessão destaca entidades rastreadas e se nova consulta observa estado mais recente.
+    /// PT-br: Verifica se Clear na sessão destaca entidades rastreadas e se nova consulta observa estado mais recente.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -384,7 +384,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Merge persists changes made while an entity was detached.
-    /// PT: Verifica se Merge persiste mudanças feitas enquanto a entidade estava destacada.
+    /// PT-br: Verifica se Merge persiste mudanças feitas enquanto a entidade estava destacada.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -425,7 +425,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Merge returns a managed instance and detached object changes after merge are ignored.
-    /// PT: Verifica se Merge retorna instância gerenciada e se alterações no objeto destacado após merge são ignoradas.
+    /// PT-br: Verifica se Merge retorna instância gerenciada e se alterações no objeto destacado após merge são ignoradas.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -472,7 +472,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies changes made after Evict are not auto-persisted by Flush in the same session.
-    /// PT: Verifica se mudanças após Evict não são persistidas automaticamente por Flush na mesma sessão.
+    /// PT-br: Verifica se mudanças após Evict não são persistidas automaticamente por Flush na mesma sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -509,7 +509,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies session Clear detaches all tracked entities from the current persistence context.
-    /// PT: Verifica se Clear da sessão destaca todas as entidades rastreadas do contexto de persistência atual.
+    /// PT-br: Verifica se Clear da sessão destaca todas as entidades rastreadas do contexto de persistência atual.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -542,7 +542,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Refresh discards in-memory changes and reloads current persisted state.
-    /// PT: Verifica se Refresh descarta mudanças em memória e recarrega o estado persistido atual.
+    /// PT-br: Verifica se Refresh descarta mudanças em memória e recarrega o estado persistido atual.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -581,7 +581,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies null and basic typed parameters (string/int/datetime/decimal) are handled correctly.
-    /// PT: Verifica se parâmetros nulos e tipados básicos (string/int/datetime/decimal) são tratados corretamente.
+    /// PT-br: Verifica se parâmetros nulos e tipados básicos (string/int/datetime/decimal) são tratados corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -635,7 +635,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies rollback on mapped entity save does not persist rows.
-    /// PT: Verifica se rollback em save de entidade mapeada não persiste linhas.
+    /// PT-br: Verifica se rollback em save de entidade mapeada não persiste linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -660,7 +660,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies one-to-many mapped collections can be loaded from parent entities.
-    /// PT: Verifica se coleções one-to-many mapeadas podem ser carregadas a partir da entidade pai.
+    /// PT-br: Verifica se coleções one-to-many mapeadas podem ser carregadas a partir da entidade pai.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -691,7 +691,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL join/group-by aggregation works on mapped one-to-many relationships.
-    /// PT: Verifica se agregação HQL com join/group-by funciona em relacionamentos one-to-many mapeados.
+    /// PT-br: Verifica se agregação HQL com join/group-by funciona em relacionamentos one-to-many mapeados.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -730,7 +730,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies mapped many-to-one relationships can be persisted and queried through HQL.
-    /// PT: Verifica se relacionamentos many-to-one mapeados podem ser persistidos e consultados via HQL.
+    /// PT-br: Verifica se relacionamentos many-to-one mapeados podem ser persistidos e consultados via HQL.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -770,7 +770,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies changing many-to-one navigation updates the persisted foreign key.
-    /// PT: Verifica se alterar navegação many-to-one atualiza a chave estrangeira persistida.
+    /// PT-br: Verifica se alterar navegação many-to-one atualiza a chave estrangeira persistida.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -818,7 +818,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies setting a many-to-one association to null persists a null foreign key.
-    /// PT: Verifica se definir associação many-to-one como nula persiste chave estrangeira nula.
+    /// PT-br: Verifica se definir associação many-to-one como nula persiste chave estrangeira nula.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -865,7 +865,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL can filter entities whose many-to-one association is null.
-    /// PT: Verifica se HQL pode filtrar entidades cuja associação many-to-one é nula.
+    /// PT-br: Verifica se HQL pode filtrar entidades cuja associação many-to-one é nula.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -897,7 +897,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies multiple many-to-one reference changes in one session persist only the final foreign-key target.
-    /// PT: Verifica se múltiplas trocas de referência many-to-one em uma sessão persistem apenas o alvo final da chave estrangeira.
+    /// PT-br: Verifica se múltiplas trocas de referência many-to-one em uma sessão persistem apenas o alvo final da chave estrangeira.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -946,7 +946,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies inverse collections stay consistent after reparenting and a fresh session reload.
-    /// PT: Verifica se coleções inversas permanecem consistentes após reparenting e recarga em nova sessão.
+    /// PT-br: Verifica se coleções inversas permanecem consistentes após reparenting e recarga em nova sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -993,7 +993,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies multiple reparentings in one session persist final inverse-collection state in a fresh session.
-    /// PT: Verifica se múltiplos reparentings em uma sessão persistem o estado final das coleções inversas em nova sessão.
+    /// PT-br: Verifica se múltiplos reparentings em uma sessão persistem o estado final das coleções inversas em nova sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1045,7 +1045,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies removing a child from a parent collection persists relationship changes after flush and in a new session.
-    /// PT: Verifica se remover filho da coleção do pai persiste mudanças de relacionamento após flush e em nova sessão.
+    /// PT-br: Verifica se remover filho da coleção do pai persiste mudanças de relacionamento após flush e em nova sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1105,7 +1105,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies moving a child between groups updates both relationship collections in a new session.
-    /// PT: Verifica se mover um filho entre grupos atualiza ambas as coleções de relacionamento em nova sessão.
+    /// PT-br: Verifica se mover um filho entre grupos atualiza ambas as coleções de relacionamento em nova sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1157,7 +1157,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies optimistic concurrency detects stale updates on versioned entities.
-    /// PT: Verifica se concorrência otimista detecta atualizações obsoletas em entidades versionadas.
+    /// PT-br: Verifica se concorrência otimista detecta atualizações obsoletas em entidades versionadas.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1208,7 +1208,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies version is incremented after a successful update on a versioned entity.
-    /// PT: Verifica se a versão é incrementada após update bem-sucedido em entidade versionada.
+    /// PT-br: Verifica se a versão é incrementada após update bem-sucedido em entidade versionada.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1249,7 +1249,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies refreshing stale reads in a second session allows consistent commit after a concurrent update.
-    /// PT: Verifica se atualizar leitura obsoleta na segunda sessão permite commit consistente após update concorrente.
+    /// PT-br: Verifica se atualizar leitura obsoleta na segunda sessão permite commit consistente após update concorrente.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1292,7 +1292,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL partial projection returns selected scalar columns.
-    /// PT: Verifica se projeção parcial em HQL retorna colunas escalares selecionadas.
+    /// PT-br: Verifica se projeção parcial em HQL retorna colunas escalares selecionadas.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1323,7 +1323,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies ordering by relationship property works in HQL joins.
-    /// PT: Verifica se ordenação por propriedade de relacionamento funciona em joins HQL.
+    /// PT-br: Verifica se ordenação por propriedade de relacionamento funciona em joins HQL.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1361,7 +1361,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Criteria API can apply multiple restrictions in one query.
-    /// PT: Verifica se a API Criteria pode aplicar múltiplas restrições em uma única consulta.
+    /// PT-br: Verifica se a API Criteria pode aplicar múltiplas restrições em uma única consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1393,7 +1393,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Criteria can filter by relationship using alias and multiple restrictions.
-    /// PT: Verifica se Criteria pode filtrar por relacionamento usando alias e múltiplas restrições.
+    /// PT-br: Verifica se Criteria pode filtrar por relacionamento usando alias e múltiplas restrições.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1434,7 +1434,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies optimistic concurrency refresh flow increments version on each successful commit.
-    /// PT: Verifica se o fluxo com refresh em concorrência otimista incrementa versão a cada commit bem-sucedido.
+    /// PT-br: Verifica se o fluxo com refresh em concorrência otimista incrementa versão a cada commit bem-sucedido.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1480,7 +1480,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies clearing session after relationship mutation and re-querying returns persisted association state.
-    /// PT: Verifica se limpar a sessão após mutação de relacionamento e consultar novamente retorna estado de associação persistido.
+    /// PT-br: Verifica se limpar a sessão após mutação de relacionamento e consultar novamente retorna estado de associação persistido.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1523,7 +1523,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies FlushMode.Commit defers persistence visibility until transaction commit.
-    /// PT: Verifica se FlushMode.Commit adia a visibilidade de persistência até o commit da transação.
+    /// PT-br: Verifica se FlushMode.Commit adia a visibilidade de persistência até o commit da transação.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1560,7 +1560,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies FlushMode.Auto flushes pending inserts before query execution.
-    /// PT: Verifica se FlushMode.Auto executa flush de inserts pendentes antes da execução de query.
+    /// PT-br: Verifica se FlushMode.Auto executa flush de inserts pendentes antes da execução de query.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1588,7 +1588,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies FlushMode.Manual requires explicit Flush before commit to persist changes.
-    /// PT: Verifica se FlushMode.Manual exige Flush explícito antes do commit para persistir alterações.
+    /// PT-br: Verifica se FlushMode.Manual exige Flush explícito antes do commit para persistir alterações.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1626,7 +1626,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies FlushMode.Manual without explicit Flush does not persist changes on commit.
-    /// PT: Verifica se FlushMode.Manual sem Flush explícito não persiste alterações no commit.
+    /// PT-br: Verifica se FlushMode.Manual sem Flush explícito não persiste alterações no commit.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1651,7 +1651,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies SaveOrUpdate inserts a new transient assigned-id entity.
-    /// PT: Verifica se SaveOrUpdate insere uma nova entidade transient com id atribuído.
+    /// PT-br: Verifica se SaveOrUpdate insere uma nova entidade transient com id atribuído.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1678,7 +1678,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies SaveOrUpdate persists changes for a detached entity instance.
-    /// PT: Verifica se SaveOrUpdate persiste alterações para uma instância de entidade destacada.
+    /// PT-br: Verifica se SaveOrUpdate persiste alterações para uma instância de entidade destacada.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1723,7 +1723,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL projection with aliases can be consumed as dictionaries through AliasToEntityMap.
-    /// PT: Verifica se projeção HQL com aliases pode ser consumida como dicionário via AliasToEntityMap.
+    /// PT-br: Verifica se projeção HQL com aliases pode ser consumida como dicionário via AliasToEntityMap.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1754,7 +1754,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies left join projection includes parent rows even when no related children exist.
-    /// PT: Verifica se projeção com left join inclui linhas pai mesmo sem filhos relacionados.
+    /// PT-br: Verifica se projeção com left join inclui linhas pai mesmo sem filhos relacionados.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1790,7 +1790,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL projection with relationship join and scalar aggregate returns expected tuple.
-    /// PT: Verifica se projeção HQL com join de relacionamento e agregação escalar retorna a tupla esperada.
+    /// PT-br: Verifica se projeção HQL com join de relacionamento e agregação escalar retorna a tupla esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1824,7 +1824,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Refresh on a versioned entity synchronizes stale version and latest values after concurrent commit.
-    /// PT: Verifica se Refresh em entidade versionada sincroniza versão obsoleta e valores mais recentes após commit concorrente.
+    /// PT-br: Verifica se Refresh em entidade versionada sincroniza versão obsoleta e valores mais recentes após commit concorrente.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1862,7 +1862,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies moving a child between groups persists expected foreign-key distribution at SQL level.
-    /// PT: Verifica se mover um filho entre grupos persiste a distribuição esperada de chave estrangeira em nível SQL.
+    /// PT-br: Verifica se mover um filho entre grupos persiste a distribuição esperada de chave estrangeira em nível SQL.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1918,7 +1918,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL ordering by relationship and user name remains deterministic under pagination window.
-    /// PT: Verifica se ordenação HQL por relacionamento e nome de usuário permanece determinística sob janela de paginação.
+    /// PT-br: Verifica se ordenação HQL por relacionamento e nome de usuário permanece determinística sob janela de paginação.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -1969,7 +1969,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL count by relationship filter returns the expected scalar value.
-    /// PT: Verifica se contagem HQL por filtro de relacionamento retorna o valor escalar esperado.
+    /// PT-br: Verifica se contagem HQL por filtro de relacionamento retorna o valor escalar esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2004,7 +2004,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies relationship move rolled back in transaction keeps original foreign key distribution.
-    /// PT: Verifica se movimentação de relacionamento com rollback transacional mantém a distribuição original de chave estrangeira.
+    /// PT-br: Verifica se movimentação de relacionamento com rollback transacional mantém a distribuição original de chave estrangeira.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2060,7 +2060,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Criteria count projection with relationship alias returns expected scalar.
-    /// PT: Verifica se projeção de contagem via Criteria com alias de relacionamento retorna escalar esperado.
+    /// PT-br: Verifica se projeção de contagem via Criteria com alias de relacionamento retorna escalar esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2097,7 +2097,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Criteria with Conjunction/Disjunction applies deterministic filtering and ordering.
-    /// PT: Verifica se Criteria com Conjunction/Disjunction aplica filtro e ordenação determinísticos.
+    /// PT-br: Verifica se Criteria com Conjunction/Disjunction aplica filtro e ordenação determinísticos.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2138,7 +2138,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies alternating sequential updates across sessions increase version predictably.
-    /// PT: Verifica se updates sequenciais alternados entre sessões incrementam a versão de forma previsível.
+    /// PT-br: Verifica se updates sequenciais alternados entre sessões incrementam a versão de forma previsível.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2191,7 +2191,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies stale-update recovery flow using refresh and controlled retry preserves intended final state.
-    /// PT: Verifica se fluxo de recuperação de stale-update com refresh e retry controlado preserva o estado final pretendido.
+    /// PT-br: Verifica se fluxo de recuperação de stale-update com refresh e retry controlado preserva o estado final pretendido.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2247,7 +2247,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies stale recovery can reapply business intent after refresh and commit merged result.
-    /// PT: Verifica se recuperação de stale pode reaplicar intenção de negócio após refresh e commitar resultado mesclado.
+    /// PT-br: Verifica se recuperação de stale pode reaplicar intenção de negócio após refresh e commitar resultado mesclado.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2304,7 +2304,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies cascade-none mapping does not auto-persist transient children added only through inverse parent collection updates.
-    /// PT: Verifica se mapping com cascade-none não persiste automaticamente filhos transient adicionados apenas via atualização da coleção inversa do pai.
+    /// PT-br: Verifica se mapping com cascade-none não persiste automaticamente filhos transient adicionados apenas via atualização da coleção inversa do pai.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2339,7 +2339,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies optional many-to-one can repeatedly transition null -> group -> null and persist final null state in a fresh session.
-    /// PT: Verifica se many-to-one opcional pode transicionar repetidamente null -> group -> null e persistir estado final nulo em nova sessão.
+    /// PT-br: Verifica se many-to-one opcional pode transicionar repetidamente null -> group -> null e persistir estado final nulo em nova sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2378,7 +2378,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies deleting a parent with existing children and physical FK behaves consistently: providers with enforced FK throw, non-enforcing mocks may allow deletion.
-    /// PT: Verifica se excluir pai com filhos existentes e FK física se comporta de forma consistente: provedores com FK aplicada lançam erro, mocks sem enforcement podem permitir exclusão.
+    /// PT-br: Verifica se excluir pai com filhos existentes e FK física se comporta de forma consistente: provedores com FK aplicada lançam erro, mocks sem enforcement podem permitir exclusão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2435,7 +2435,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies parent deletion succeeds after explicit child dissociation when physical FK is present and mapping uses Cascade.None.
-    /// PT: Verifica se exclusão do pai funciona após dissociação explícita do filho quando há FK física e o mapping usa Cascade.None.
+    /// PT-br: Verifica se exclusão do pai funciona após dissociação explícita do filho quando há FK física e o mapping usa Cascade.None.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2476,7 +2476,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies mutating only the inverse one-to-many collection does not persist FK changes when many-to-one is the owning side.
-    /// PT: Verifica se mutar apenas a coleção one-to-many inversa não persiste mudanças de FK quando many-to-one é o lado dono.
+    /// PT-br: Verifica se mutar apenas a coleção one-to-many inversa não persiste mudanças de FK quando many-to-one é o lado dono.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2526,7 +2526,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies adding an existing ungrouped child only to the inverse collection does not persist FK when many-to-one is the owning side.
-    /// PT: Verifica se adicionar um filho sem grupo apenas na coleção inversa não persiste FK quando many-to-one é o lado dono.
+    /// PT-br: Verifica se adicionar um filho sem grupo apenas na coleção inversa não persiste FK quando many-to-one é o lado dono.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2572,7 +2572,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies setting many-to-one owning side assigns FK and is reflected by parent collection in a fresh session.
-    /// PT: Verifica se definir o lado dono many-to-one atribui FK e é refletido na coleção do pai em nova sessão.
+    /// PT-br: Verifica se definir o lado dono many-to-one atribui FK e é refletido na coleção do pai em nova sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2623,7 +2623,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies when inverse-collection add conflicts with many-to-one assignment, owning-side value wins and final FK matches many-to-one.
-    /// PT: Verifica que quando add na coleção inversa conflita com atribuição many-to-one, o valor do lado dono prevalece e a FK final segue many-to-one.
+    /// PT-br: Verifica que quando add na coleção inversa conflita com atribuição many-to-one, o valor do lado dono prevalece e a FK final segue many-to-one.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2670,7 +2670,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Update vs Merge reattach semantics with explicit Contains and managed-instance identity assertions.
-    /// PT: Verifica semântica de reattach em Update vs Merge com asserts explícitos de Contains e identidade da instância gerenciada.
+    /// PT-br: Verifica semântica de reattach em Update vs Merge com asserts explícitos de Contains e identidade da instância gerenciada.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2735,7 +2735,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies IsDirty changes only when tracked state mutates and returns to clean after flush.
-    /// PT: Verifica se IsDirty muda apenas quando há mutação do estado rastreado e retorna limpo após flush.
+    /// PT-br: Verifica se IsDirty muda apenas quando há mutação do estado rastreado e retorna limpo após flush.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2769,7 +2769,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Update throws when another instance with the same identifier is already associated in the session.
-    /// PT: Verifica se Update lança exceção quando outra instância com o mesmo identificador já está associada na sessão.
+    /// PT-br: Verifica se Update lança exceção quando outra instância com o mesmo identificador já está associada na sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2806,7 +2806,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Merge reuses the already managed instance when the same identifier is loaded in the session.
-    /// PT: Verifica se Merge reutiliza a instância já gerenciada quando o mesmo identificador está carregado na sessão.
+    /// PT-br: Verifica se Merge reutiliza a instância já gerenciada quando o mesmo identificador está carregado na sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2848,7 +2848,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies three-session alternating updates preserve final state and increment version per successful commit.
-    /// PT: Verifica se updates alternados em três sessões preservam estado final e incrementam versão por commit bem-sucedido.
+    /// PT-br: Verifica se updates alternados em três sessões preservam estado final e incrementam versão por commit bem-sucedido.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2911,7 +2911,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies stale-retry flow can safely reapply idempotent business intent without duplicating effect.
-    /// PT: Verifica se fluxo stale+retry reaplica intenção de negócio idempotente sem duplicar efeito.
+    /// PT-br: Verifica se fluxo stale+retry reaplica intenção de negócio idempotente sem duplicar efeito.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -2972,7 +2972,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies HQL join fetch eagerly initializes relationship references; SQL-count N+1 assertions are documented as out of scope for this mock harness.
-    /// PT: Verifica se join fetch em HQL inicializa eager as referências de relacionamento; asserts por contagem SQL para N+1 ficam fora de escopo deste harness de mock.
+    /// PT-br: Verifica se join fetch em HQL inicializa eager as referências de relacionamento; asserts por contagem SQL para N+1 ficam fora de escopo deste harness de mock.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -3008,7 +3008,7 @@ public abstract class NHibernateSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Criteria can combine projection, ordering, and pagination in one query with deterministic windowed results.
-    /// PT: Verifica se Criteria combina projeção, ordenação e paginação em uma única consulta com janela determinística.
+    /// PT-br: Verifica se Criteria combina projeção, ordenação e paginação em uma única consulta com janela determinística.
     /// </summary>
     [Fact]
     [Trait("Category", "NHibernate")]
@@ -3230,7 +3230,7 @@ internal sealed class NhVersionedUserMap : ClassMapping<NhVersionedUser>
 
 /// <summary>
 /// EN: Reusable smoke test wrapper for NHibernate provider integrations.
-/// PT: Wrapper reutilizável de smoke tests para integrações NHibernate por provedor.
+/// PT-br: Wrapper reutilizável de smoke tests para integrações NHibernate por provedor.
 /// </summary>
 public abstract class NHibernateSmokeTestsBase(
     ITestOutputHelper helper,
@@ -3244,25 +3244,25 @@ public abstract class NHibernateSmokeTestsBase(
 
     /// <summary>
     /// EN: Gets the NHibernate dialect class name used by the smoke contract.
-    /// PT: Obtém o nome da classe de dialeto NHibernate usada pelo contrato smoke.
+    /// PT-br: Obtém o nome da classe de dialeto NHibernate usada pelo contrato smoke.
     /// </summary>
     protected override string NhDialectClass { get; } = nhDialectClass;
 
     /// <summary>
     /// EN: Gets the optional NHibernate driver class name used by the smoke contract.
-    /// PT: Obtém o nome opcional da classe de driver NHibernate usada pelo contrato smoke.
+    /// PT-br: Obtém o nome opcional da classe de driver NHibernate usada pelo contrato smoke.
     /// </summary>
     protected override string? NhDriverClass { get; } = nhDriverClass;
 
     /// <summary>
     /// EN: Indicates whether the smoke contract should use the in-memory pagination fallback.
-    /// PT: Indica se o contrato smoke deve usar o fallback de paginação em memória.
+    /// PT-br: Indica se o contrato smoke deve usar o fallback de paginação em memória.
     /// </summary>
     protected override bool UseInMemoryPaginationFallback { get; } = useInMemoryPaginationFallback;
 
     /// <summary>
     /// EN: Creates the provider-specific open connection used by the NHibernate smoke contract.
-    /// PT: Cria a conexão aberta específica do provider usada pelo contrato smoke de NHibernate.
+    /// PT-br: Cria a conexão aberta específica do provider usada pelo contrato smoke de NHibernate.
     /// </summary>
     protected override DbConnection CreateOpenConnection()
         => _connectionFactory();

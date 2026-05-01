@@ -1,9 +1,9 @@
-﻿#pragma warning disable RCS1194
+#pragma warning disable RCS1194
 namespace DbSqlLikeMem.SqlAzure;
 
 /// <summary>
 /// EN: Represents Sql Server Mock Exception.
-/// PT: Representa Sql Server simulada Exceção.
+/// PT-br: Representa Sql Server simulada Exceção.
 /// </summary>
 public sealed class SqlAzureMockException
     : SqlMockException
@@ -11,7 +11,7 @@ public sealed class SqlAzureMockException
 {
     /// <summary>
     /// EN: Represents SQL Azure mock exception.
-    /// PT: Representa exceção simulada do SQL Azure.
+    /// PT-br: Representa exceção simulada do SQL Azure.
     /// </summary>
     public SqlAzureMockException(string message, int code) : base(message, code)
     {
@@ -19,7 +19,7 @@ public sealed class SqlAzureMockException
 
     /// <summary>
     /// EN: Represents SQL Azure mock exception.
-    /// PT: Representa exceção simulada do SQL Azure.
+    /// PT-br: Representa exceção simulada do SQL Azure.
     /// </summary>
     public SqlAzureMockException() : base()
     {
@@ -27,7 +27,7 @@ public sealed class SqlAzureMockException
 
     /// <summary>
     /// EN: Represents SQL Azure mock exception.
-    /// PT: Representa exceção simulada do SQL Azure.
+    /// PT-br: Representa exceção simulada do SQL Azure.
     /// </summary>
     public SqlAzureMockException(string? message) : base(message)
     {
@@ -35,7 +35,7 @@ public sealed class SqlAzureMockException
 
     /// <summary>
     /// EN: Represents SQL Azure mock exception.
-    /// PT: Representa exceção simulada do SQL Azure.
+    /// PT-br: Representa exceção simulada do SQL Azure.
     /// </summary>
     public SqlAzureMockException(string? message, Exception? innerException) : base(message, innerException)
     {

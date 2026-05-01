@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Represents the My Sql Connector Factory Mock type used by provider mocks.
-/// PT: Representa o tipo My Sql Connector Factory simulado usado pelos mocks do provedor.
+/// PT-br: Representa o tipo My Sql Connector Factory simulado usado pelos mocks do provedor.
 /// </summary>
 public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 {
     /// <summary>
     /// EN: Creates a factory instance for this provider mock.
-    /// PT: Cria uma instancia de fabrica para este simulado de provedor.
+    /// PT-br: Cria uma instancia de fabrica para este simulado de provedor.
     /// </summary>
     public static MySqlConnectorFactoryMock GetInstance(MySqlDbMock? db = null)
         => new(db);
@@ -17,56 +17,56 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 
     /// <summary>
     /// EN: Creates a new command instance.
-    /// PT: Cria uma nova instância de comando.
+    /// PT-br: Cria uma nova instância de comando.
     /// </summary>
     public override DbCommand CreateCommand() => new MySqlCommandMock();
 
     /// <summary>
     /// EN: Creates a new connection instance.
-    /// PT: Cria uma nova instância de conexão.
+    /// PT-br: Cria uma nova instância de conexão.
     /// </summary>
     public override DbConnection CreateConnection() => new MySqlConnectionMock(Db);
 
     /// <summary>
     /// EN: Creates a new connection string builder instance.
-    /// PT: Cria uma nova instância de construtor de string de conexão.
+    /// PT-br: Cria uma nova instância de construtor de string de conexão.
     /// </summary>
     public override DbConnectionStringBuilder CreateConnectionStringBuilder() => new MySqlConnectionStringBuilder();
 
     /// <summary>
     /// EN: Creates a new parameter instance.
-    /// PT: Cria uma nova instância de parâmetro.
+    /// PT-br: Cria uma nova instância de parâmetro.
     /// </summary>
     public override DbParameter CreateParameter() => new MySqlParameter();
 
     /// <summary>
     /// EN: Creates a new command builder instance.
-    /// PT: Cria uma nova instância de construtor de comandos.
+    /// PT-br: Cria uma nova instância de construtor de comandos.
     /// </summary>
     public override DbCommandBuilder CreateCommandBuilder() => new MySqlCommandBuilder();
 
     /// <summary>
     /// EN: Creates a new data adapter instance.
-    /// PT: Cria uma nova instância de adaptador de dados.
+    /// PT-br: Cria uma nova instância de adaptador de dados.
     /// </summary>
     public override DbDataAdapter CreateDataAdapter() => new MySqlDataAdapterMock();
 
     /// <summary>
     /// EN: Gets whether data source enumerator creation is supported.
-    /// PT: Obtém se a criação de enumerador de fonte de dados é suportada.
+    /// PT-br: Obtém se a criação de enumerador de fonte de dados é suportada.
     /// </summary>
     public override bool CanCreateDataSourceEnumerator => false;
 
 #if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether command builder creation is supported.
-    /// PT: Obtém se a criação de construtor de comandos é suportada.
+    /// PT-br: Obtém se a criação de construtor de comandos é suportada.
     /// </summary>
     public override bool CanCreateCommandBuilder => true;
 
     /// <summary>
     /// EN: Gets whether data adapter creation is supported.
-    /// PT: Obtém se a criação de adaptador de dados é suportada.
+    /// PT-br: Obtém se a criação de adaptador de dados é suportada.
     /// </summary>
     public override bool CanCreateDataAdapter => true;
 #endif
@@ -75,13 +75,13 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Creates a new batch instance.
-    /// PT: Cria uma nova instância de lote.
+    /// PT-br: Cria uma nova instância de lote.
     /// </summary>
     public override DbBatch CreateBatch() => new MySqlBatchMock();
 #else
     /// <summary>
     /// EN: Creates a new batch instance.
-    /// PT: Cria uma nova instância de lote.
+    /// PT-br: Cria uma nova instância de lote.
     /// </summary>
     public MySqlBatchMock CreateBatch() => new();
 #endif
@@ -89,13 +89,13 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Creates a new batch command instance.
-    /// PT: Cria uma nova instância de comando em lote.
+    /// PT-br: Cria uma nova instância de comando em lote.
     /// </summary>
     public override DbBatchCommand CreateBatchCommand() => new MySqlBatchCommandMock();
 #else
     /// <summary>
     /// EN: Creates a new batch command instance.
-    /// PT: Cria uma nova instância de comando em lote.
+    /// PT-br: Cria uma nova instância de comando em lote.
     /// </summary>
     public MySqlBatchCommandMock CreateBatchCommand() => new();
 #endif
@@ -103,20 +103,20 @@ public sealed class MySqlConnectorFactoryMock : DbProviderFactory
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether batch creation is supported.
-    /// PT: Obtém se a criação de lote é suportada.
+    /// PT-br: Obtém se a criação de lote é suportada.
     /// </summary>
     public override bool CanCreateBatch => true;
 #else
     /// <summary>
     /// EN: Gets whether batch creation is supported.
-    /// PT: Obtém se a criação de lote é suportada.
+    /// PT-br: Obtém se a criação de lote é suportada.
     /// </summary>
     public bool CanCreateBatch => true;
 #endif
 
     /// <summary>
     /// EN: Creates a provider-specific data source mock for the supplied connection string.
-    /// PT: Cria um simulado de fonte de dados específico do provedor para a string de conexão informada.
+    /// PT-br: Cria um simulado de fonte de dados específico do provedor para a string de conexão informada.
     /// </summary>
     public
 #if NET7_0_OR_GREATER

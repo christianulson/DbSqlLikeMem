@@ -1,14 +1,14 @@
-﻿namespace DbSqlLikeMem.Firebird.Test.Strategy;
+namespace DbSqlLikeMem.Firebird.Test.Strategy;
 
 /// <summary>
 /// EN: Covers single-row INSERT execution in the Firebird mock.
-/// PT: Cobre execucao de INSERT de uma linha no mock Firebird.
+/// PT-br: Cobre execucao de INSERT de uma linha no mock Firebird.
 /// </summary>
 public sealed class FirebirdInsertStrategyTests
 {
     /// <summary>
     /// EN: Verifies that a single INSERT adds one row to the target table.
-    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
+    /// PT-br: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

@@ -1,5 +1,6 @@
 {
   "description": "Application-specific benchmark map for DbSqlLikeMem internals, diagnostics, snapshots, lifecycle and setup capabilities.",
+  "resultSchema": "./benchmark-result.schema.json",
   "organization": [
     "Diagnostics",
     "Snapshot",

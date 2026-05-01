@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared scalar temporal workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados temporais escalares.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados temporais escalares.
 /// </summary>
 [FidelityNativeClientSkip]
 public class ScalarTemporalTests(

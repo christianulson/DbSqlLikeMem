@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
 /// EN: Contains trigger behavior tests for the Db2 strategy.
-/// PT: Contém testes de comportamento de gatilhos para a estratégia Db2.
+/// PT-br: Contém testes de comportamento de gatilhos para a estratégia Db2.
 /// </summary>
 public sealed class Db2TriggerStrategyTests
 {
     /// <summary>
     /// EN: Ensures that an AFTER INSERT trigger is executed for a non-temporary table.
-    /// PT: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
+    /// PT-br: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -31,7 +31,7 @@ public sealed class Db2TriggerStrategyTests
 
     /// <summary>
     /// EN: Ensures that an AFTER INSERT trigger is not executed for a temporary table.
-    /// PT: Garante que um gatilho AFTER INSERT não seja executado para uma tabela temporária.
+    /// PT-br: Garante que um gatilho AFTER INSERT não seja executado para uma tabela temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

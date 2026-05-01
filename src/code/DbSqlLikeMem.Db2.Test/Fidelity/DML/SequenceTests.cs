@@ -9,7 +9,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs DB2 fidelity tests for the shared sequence workflows.
-/// PT: Executa testes de fidelidade DB2 para os fluxos compartilhados de sequence.
+/// PT-br: Executa testes de fidelidade DB2 para os fluxos compartilhados de sequence.
 /// </summary>
 [FidelityNativeClientSkip]
 public class SequenceTests(
@@ -23,7 +23,7 @@ public class SequenceTests(
 {
     /// <summary>
     /// EN: Verifies NEXT VALUE FOR can be used inside a filtered DB2 query and advances in execution order.
-    /// PT: Verifica se NEXT VALUE FOR pode ser usado dentro de uma consulta filtrada do DB2 e avanca na ordem de execucao.
+    /// PT-br: Verifica se NEXT VALUE FOR pode ser usado dentro de uma consulta filtrada do DB2 e avanca na ordem de execucao.
     /// </summary>
     [FidelityFact]
     [Trait("Category", "ExtendedDb2Mock")]
@@ -43,7 +43,7 @@ public class SequenceTests(
 
     /// <summary>
     /// EN: Verifies DB2 sequence values remain session-local across two independent connections.
-    /// PT: Verifica se os valores de sequence do DB2 permanecem locais a sessao em duas conexoes independentes.
+    /// PT-br: Verifica se os valores de sequence do DB2 permanecem locais a sessao em duas conexoes independentes.
     /// </summary>
     [FidelityFact]
     [Trait("Category", "ExtendedDb2Mock")]

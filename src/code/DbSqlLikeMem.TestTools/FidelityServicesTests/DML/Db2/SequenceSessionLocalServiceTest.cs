@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Reads DB2 session-local sequence values from two independent connections.
-/// PT: Lê valores de sequence locais da sessao DB2 a partir de duas conexoes independentes.
+/// PT-br: Lê valores de sequence locais da sessao DB2 a partir de duas conexoes independentes.
 /// </summary>
 public sealed class SequenceSessionLocalServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceSessionLocalServiceTest(
 {
     /// <summary>
     /// EN: Returns the observed next and previous sequence values across two DB2 sessions.
-    /// PT: Retorna os valores observados de next e previous da sequence em duas sessoes DB2.
+    /// PT-br: Retorna os valores observados de next e previous da sequence em duas sessoes DB2.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceSessionLocalAsync();
 
     /// <summary>
     /// EN: Returns the observed next and previous sequence values across two DB2 sessions.
-    /// PT: Retorna os valores observados de next e previous da sequence em duas sessoes DB2.
+    /// PT-br: Retorna os valores observados de next e previous da sequence em duas sessoes DB2.
     /// </summary>
     public async Task<long[]> RunSequenceSessionLocalAsync()
     {

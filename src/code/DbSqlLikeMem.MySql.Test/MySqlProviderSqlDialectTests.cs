@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Contains tests for the MySQL provider SQL dialect helper.
-/// PT: Contem testes para o helper de dialeto SQL do provedor MySQL.
+/// PT-br: Contem testes para o helper de dialeto SQL do provedor MySQL.
 /// </summary>
 public sealed class MySqlProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the MySQL helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper MySQL.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper MySQL.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchMySql()
@@ -27,7 +27,7 @@ public sealed class MySqlProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits MySQL-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compativel com MySQL para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compativel com MySQL para savepoint.
     /// </summary>
     [Fact]
     public void SavepointSql_ShouldUseMySqlSyntax()

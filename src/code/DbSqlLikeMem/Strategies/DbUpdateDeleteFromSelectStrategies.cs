@@ -24,7 +24,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteUpdateSmart.
-    /// PT: Implementa ExecuteUpdateSmart.
+    /// PT-br: Implementa ExecuteUpdateSmart.
     /// </summary>
     public static DmlExecutionResult ExecuteUpdateSmart(
         this DbConnectionMockBase connection,
@@ -43,7 +43,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteUpdateFromSelect.
-    /// PT: Implementa ExecuteUpdateFromSelect.
+    /// PT-br: Implementa ExecuteUpdateFromSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteUpdateFromSelect(
         this DbConnectionMockBase connection,
@@ -54,7 +54,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteUpdateSmart using a pre-built execution context.
-    /// PT: Implementa ExecuteUpdateSmart usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteUpdateSmart usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteUpdateSmart(
         this DbConnectionMockBase connection,
@@ -64,7 +64,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDeleteSmart.
-    /// PT: Implementa ExecuteDeleteSmart.
+    /// PT-br: Implementa ExecuteDeleteSmart.
     /// </summary>
     public static DmlExecutionResult ExecuteDeleteSmart(
         this DbConnectionMockBase connection,
@@ -83,7 +83,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDeleteSmart using a pre-built execution context.
-    /// PT: Implementa ExecuteDeleteSmart usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteDeleteSmart usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteDeleteSmart(
         this DbConnectionMockBase connection,
@@ -93,7 +93,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteUpdateFromSelect.
-    /// PT: Implementa ExecuteUpdateFromSelect.
+    /// PT-br: Implementa ExecuteUpdateFromSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteUpdateFromSelect(
         this DbConnectionMockBase connection,
@@ -381,7 +381,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDeleteFromSelect.
-    /// PT: Implementa ExecuteDeleteFromSelect.
+    /// PT-br: Implementa ExecuteDeleteFromSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteDeleteFromSelect(
         this DbConnectionMockBase connection,
@@ -618,12 +618,12 @@ internal static class DbUpdateDeleteFromSelectStrategies
     {
         /// <summary>
         /// EN: Implements Equals.
-        /// PT: Implementa Equals.
+        /// PT-br: Implementa Equals.
         /// </summary>
         public new bool Equals(object? x, object? y) => object.Equals(x, y);
         /// <summary>
         /// EN: Implements GetHashCode.
-        /// PT: Implementa GetHashCode.
+        /// PT-br: Implementa GetHashCode.
         /// </summary>
         public int GetHashCode(object obj) => obj?.GetHashCode() ?? 0;
     }

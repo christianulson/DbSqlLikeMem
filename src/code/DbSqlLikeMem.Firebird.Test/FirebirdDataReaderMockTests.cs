@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for Firebird data reader mock behavior.
-/// PT: Contem testes para o comportamento do leitor de dados simulador Firebird.
+/// PT-br: Contem testes para o comportamento do leitor de dados simulador Firebird.
 /// </summary>
 public sealed class FirebirdDataReaderMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdDataReaderMockTests(
 {
     /// <summary>
     /// EN: Verifies the Firebird reader can read values, resolve ordinals, and copy field values.
-    /// PT: Verifica se o leitor Firebird consegue ler valores, resolver ordinais e copiar valores dos campos.
+    /// PT-br: Verifica se o leitor Firebird consegue ler valores, resolver ordinais e copiar valores dos campos.
     /// </summary>
     [Fact]
     public void ReadAndProjection_ShouldExposeFieldValues()

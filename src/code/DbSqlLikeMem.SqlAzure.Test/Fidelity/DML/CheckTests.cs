@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlAzure.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs SQL Azure fidelity tests for the shared check-constraint workflows.
-/// PT: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de restricao check.
+/// PT-br: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de restricao check.
 /// </summary>
 public class CheckTests(
     ITestOutputHelper helper

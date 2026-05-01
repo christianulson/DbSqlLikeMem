@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers Firebird temporary table execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de tabela temporaria Firebird no motor simulado.
+/// PT-br: Cobre cenarios de execucao de tabela temporaria Firebird no motor simulado.
 /// </summary>
 public sealed class FirebirdTemporaryTableEngineTests
 {
     /// <summary>
     /// EN: Verifies CREATE TEMPORARY TABLE AS SELECT returns the projected rows.
-    /// PT: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
+    /// PT-br: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]
@@ -44,7 +44,7 @@ SELECT id FROM tmp_users ORDER BY id;";
 
     /// <summary>
     /// EN: Verifies temporary tables stay isolated from secondary connections.
-    /// PT: Verifica se tabelas temporarias permanecem isoladas de conexoes secundarias.
+    /// PT-br: Verifica se tabelas temporarias permanecem isoladas de conexoes secundarias.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]
@@ -74,7 +74,7 @@ SELECT id FROM tmp_users ORDER BY id;";
 
     /// <summary>
     /// EN: Verifies global temporary table rows stay isolated from secondary connections.
-    /// PT: Verifica se as linhas de uma tabela temporaria global permanecem isoladas de conexoes secundarias.
+    /// PT-br: Verifica se as linhas de uma tabela temporaria global permanecem isoladas de conexoes secundarias.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

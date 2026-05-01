@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers PostgreSQL UNION, LIMIT, and JSON compatibility scenarios already supported by the in-memory mock.
-/// PT: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do PostgreSQL que o mock em memoria ja suporta.
+/// PT-br: Cobre cenarios de compatibilidade de UNION, LIMIT e JSON do PostgreSQL que o mock em memoria ja suporta.
 /// </summary>
 /// <remarks>
 /// EN: Creates the in-memory PostgreSQL connection used by the UNION, LIMIT, and JSON compatibility tests.
-/// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
+/// PT-br: Cria a conexao PostgreSQL em memoria usada pelos testes de compatibilidade de UNION, LIMIT e JSON.
 /// </remarks>
 public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>(helper)
 {
@@ -20,7 +20,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Verifies UNION ALL keeps duplicates and UNION removes them.
-    /// PT: Verifica se UNION ALL mantem duplicatas e se UNION as remove.
+    /// PT-br: Verifica se UNION ALL mantem duplicatas e se UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -29,7 +29,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Verifies OFFSET and LIMIT pagination works in PostgreSQL coverage.
-    /// PT: Verifica se a paginacao com OFFSET e LIMIT funciona na cobertura do PostgreSQL.
+    /// PT-br: Verifica se a paginacao com OFFSET e LIMIT funciona na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -42,7 +42,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Verifies JSON path extraction respects the PostgreSQL version gate.
-    /// PT: Verifica se a extracao por caminho JSON respeita a restricao de versao do PostgreSQL.
+    /// PT-br: Verifica se a extracao por caminho JSON respeita a restricao de versao do PostgreSQL.
     /// </summary>
     [Theory]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -69,7 +69,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Verifies explicit NULLS FIRST ordering is applied in PostgreSQL coverage.
-    /// PT: Verifica se a ordenacao explicita NULLS FIRST e aplicada na cobertura do PostgreSQL.
+    /// PT-br: Verifica se a ordenacao explicita NULLS FIRST e aplicada na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -82,7 +82,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Verifies unsupported JSON functions still throw for this dialect.
-    /// PT: Verifica se funcoes JSON sem suporte ainda lancam erro para este dialeto.
+    /// PT-br: Verifica se funcoes JSON sem suporte ainda lancam erro para este dialeto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -96,7 +96,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
-    /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
+    /// PT-br: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -105,7 +105,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
-    /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
+    /// PT-br: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]
@@ -116,7 +116,7 @@ public sealed class PostgreSqlUnionLimitAndJsonCompatibilityTests(ITestOutputHel
 
     /// <summary>
     /// EN: Ensures UNION schema keeps aliases from the first SELECT projection.
-    /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
+    /// PT-br: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlUnionLimitAndJsonCompatibility")]

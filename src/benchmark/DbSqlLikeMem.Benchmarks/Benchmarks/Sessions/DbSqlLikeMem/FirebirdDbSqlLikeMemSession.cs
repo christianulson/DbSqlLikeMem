@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
 /// <summary>
 /// EN: Runs Firebird benchmark scenarios against the in-memory DbSqlLikeMem Firebird mock provider.
-/// PT: Executa cenarios de benchmark Firebird contra o provedor mock em memoria DbSqlLikeMem de Firebird.
+/// PT-br: Executa cenarios de benchmark Firebird contra o provedor mock em memoria DbSqlLikeMem de Firebird.
 /// </summary>
 internal sealed class FirebirdDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new FirebirdProviderSqlDialect())
@@ -14,7 +14,7 @@ internal sealed class FirebirdDbSqlLikeMemSession()
 
     /// <summary>
     /// EN: Executes the Firebird EXECUTE BLOCK benchmark that traps SQLSTATE 23000.
-    /// PT: Executa o benchmark Firebird de EXECUTE BLOCK que trata SQLSTATE 23000.
+    /// PT-br: Executa o benchmark Firebird de EXECUTE BLOCK que trata SQLSTATE 23000.
     /// </summary>
     private void RunExecuteBlockSqlState23000()
     {
@@ -24,7 +24,7 @@ internal sealed class FirebirdDbSqlLikeMemSession()
 
     /// <summary>
     /// EN: Dispatches Firebird-specific benchmark features before falling back to the shared implementation.
-    /// PT: Encaminha recursos de benchmark específicos do Firebird antes de delegar para a implementação compartilhada.
+    /// PT-br: Encaminha recursos de benchmark específicos do Firebird antes de delegar para a implementação compartilhada.
     /// </summary>
     public override void Execute(BenchmarkFeatureId feature)
     {
@@ -49,7 +49,7 @@ internal sealed class FirebirdDbSqlLikeMemSession()
 
     /// <summary>
     /// EN: Creates a new DbSqlLikeMem Firebird mock connection.
-    /// PT: Cria uma nova conexao mock DbSqlLikeMem de Firebird.
+    /// PT-br: Cria uma nova conexao mock DbSqlLikeMem de Firebird.
     /// </summary>
     /// <inheritdoc />
     protected override DbConnection CreateConnection()

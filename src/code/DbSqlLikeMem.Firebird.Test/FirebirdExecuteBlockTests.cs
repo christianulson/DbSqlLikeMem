@@ -1,7 +1,7 @@
-﻿namespace DbSqlLikeMem.Firebird.Test;
+namespace DbSqlLikeMem.Firebird.Test;
 /// <summary>
 /// EN: Covers Firebird EXECUTE BLOCK execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de EXECUTE BLOCK no motor simulado Firebird.
+/// PT-br: Cobre cenarios de execucao de EXECUTE BLOCK no motor simulado Firebird.
 /// </summary>
 public sealed class FirebirdExecuteBlockTests : XUnitTestBase
 {
@@ -35,7 +35,7 @@ public sealed class FirebirdExecuteBlockTests : XUnitTestBase
     private readonly ITableMock users;
     /// <summary>
     /// EN: Creates the Firebird database objects used by the execute block tests.
-    /// PT: Cria os objetos de banco Firebird usados pelos testes de execute block.
+    /// PT-br: Cria os objetos de banco Firebird usados pelos testes de execute block.
     /// </summary>
     public FirebirdExecuteBlockTests(ITestOutputHelper helper) : base(helper)
     {
@@ -50,7 +50,7 @@ public sealed class FirebirdExecuteBlockTests : XUnitTestBase
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes supported statements in the block body.
-    /// PT: Verifica se EXECUTE BLOCK executa as instrucoes suportadas no corpo do bloco.
+    /// PT-br: Verifica se EXECUTE BLOCK executa as instrucoes suportadas no corpo do bloco.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -77,7 +77,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can execute CREATE OR ALTER PROCEDURE statements inside the body.
-    /// PT: Verifica se EXECUTE BLOCK pode executar instrucoes CREATE OR ALTER PROCEDURE dentro do corpo.
+    /// PT-br: Verifica se EXECUTE BLOCK pode executar instrucoes CREATE OR ALTER PROCEDURE dentro do corpo.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -103,7 +103,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts parameter and RETURNS clauses while executing the block body.
-    /// PT: Verifica se EXECUTE BLOCK aceita clausulas de parametro e RETURNS enquanto executa o corpo do bloco.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita clausulas de parametro e RETURNS enquanto executa o corpo do bloco.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -130,7 +130,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK ignores SUSPEND statements while executing supported SQL statements in the body.
-    /// PT: Verifica se EXECUTE BLOCK ignora instrucoes SUSPEND enquanto executa instrucoes SQL suportadas no corpo.
+    /// PT-br: Verifica se EXECUTE BLOCK ignora instrucoes SUSPEND enquanto executa instrucoes SQL suportadas no corpo.
     /// </summary>
 
     [Fact]
@@ -171,7 +171,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK stops executing statements after EXIT while keeping earlier work.
-    /// PT: Verifica se EXECUTE BLOCK para de executar instrucoes apos EXIT mantendo o trabalho anterior.
+    /// PT-br: Verifica se EXECUTE BLOCK para de executar instrucoes apos EXIT mantendo o trabalho anterior.
     /// </summary>
 
     [Fact]
@@ -221,7 +221,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes simple EXECUTE STATEMENT payloads through the block body.
-    /// PT: Verifica se EXECUTE BLOCK executa cargas simples de EXECUTE STATEMENT pelo corpo do bloco.
+    /// PT-br: Verifica se EXECUTE BLOCK executa cargas simples de EXECUTE STATEMENT pelo corpo do bloco.
     /// </summary>
 
     [Fact]
@@ -265,7 +265,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK assigns the first row returned by EXECUTE STATEMENT into scoped variables.
-    /// PT: Verifica se EXECUTE BLOCK atribui a primeira linha retornada por EXECUTE STATEMENT em variaveis no escopo.
+    /// PT-br: Verifica se EXECUTE BLOCK atribui a primeira linha retornada por EXECUTE STATEMENT em variaveis no escopo.
     /// </summary>
 
     [Fact]
@@ -315,7 +315,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes parameterized EXECUTE STATEMENT payloads with Firebird clauses in the supported subset.
-    /// PT: Verifica se EXECUTE BLOCK executa cargas parametrizadas de EXECUTE STATEMENT com clausulas Firebird no subset suportado.
+    /// PT-br: Verifica se EXECUTE BLOCK executa cargas parametrizadas de EXECUTE STATEMENT com clausulas Firebird no subset suportado.
     /// </summary>
 
     [Fact]
@@ -359,7 +359,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK keeps autonomous EXECUTE STATEMENT changes after the outer transaction rolls back.
-    /// PT: Verifica se EXECUTE BLOCK mantem alteracoes autonomas de EXECUTE STATEMENT depois do rollback da transacao externa.
+    /// PT-br: Verifica se EXECUTE BLOCK mantem alteracoes autonomas de EXECUTE STATEMENT depois do rollback da transacao externa.
     /// </summary>
 
     [Fact]
@@ -413,7 +413,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK keeps common-transaction EXECUTE STATEMENT changes tied to the outer transaction.
-    /// PT: Verifica se EXECUTE BLOCK mantem alteracoes de EXECUTE STATEMENT com transacao comum presas à transacao externa.
+    /// PT-br: Verifica se EXECUTE BLOCK mantem alteracoes de EXECUTE STATEMENT com transacao comum presas à transacao externa.
     /// </summary>
 
     [Fact]
@@ -467,7 +467,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN ANY DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN ANY DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN ANY DO.
     /// </summary>
 
     [Fact]
@@ -519,7 +519,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN SQLCODE DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN SQLCODE DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN SQLCODE DO.
     /// </summary>
 
     [Fact]
@@ -579,7 +579,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using the Firebird SQLCODE -803 form.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando a forma Firebird SQLCODE -803.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando a forma Firebird SQLCODE -803.
     /// </summary>
 
     [Fact]
@@ -639,7 +639,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can resolve a comma-separated WHEN SQLCODE selector list.
-    /// PT: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN SQLCODE separada por virgula.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN SQLCODE separada por virgula.
     /// </summary>
 
     [Fact]
@@ -699,7 +699,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN GDSCODE DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN GDSCODE DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN GDSCODE DO.
     /// </summary>
 
     [Fact]
@@ -759,7 +759,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a specific WHEN SQLCODE &lt;code&gt; DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN SQLCODE &lt;codigo&gt; DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN SQLCODE &lt;codigo&gt; DO.
     /// </summary>
 
     [Fact]
@@ -819,7 +819,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a specific WHEN GDSCODE &lt;name&gt; DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN GDSCODE &lt;nome&gt; DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN GDSCODE &lt;nome&gt; DO.
     /// </summary>
 
     [Fact]
@@ -879,7 +879,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key DO.
     /// </summary>
 
     [Fact]
@@ -939,7 +939,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN SQLSTATE '23000' DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN SQLSTATE '23000' DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN SQLSTATE '23000' DO.
     /// </summary>
 
     [Fact]
@@ -999,7 +999,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN SQLSTATE '23000' DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN SQLSTATE '23000' DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN SQLSTATE '23000' DO.
     /// </summary>
 
     [Fact]
@@ -1075,7 +1075,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_violation DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO.
     /// </summary>
 
     [Fact]
@@ -1135,7 +1135,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_violation DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO.
     /// </summary>
 
     [Fact]
@@ -1195,7 +1195,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_exists DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_exists DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_exists DO.
     /// </summary>
 
     [Fact]
@@ -1255,7 +1255,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key DO.
     /// </summary>
 
     [Fact]
@@ -1331,7 +1331,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key_violation DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO.
     /// </summary>
 
     [Fact]
@@ -1407,7 +1407,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key_violation DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO.
     /// </summary>
 
     [Fact]
@@ -1483,7 +1483,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE not_null_violation DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE not_null_violation DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE not_null_violation DO.
     /// </summary>
 
     [Fact]
@@ -1535,7 +1535,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a referenced-row error using a specific WHEN GDSCODE referenced_row DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de linha referenciada usando um handler especifico WHEN GDSCODE referenced_row DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de linha referenciada usando um handler especifico WHEN GDSCODE referenced_row DO.
     /// </summary>
 
     [Fact]
@@ -1613,7 +1613,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE column_cannot_be_null DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO.
     /// </summary>
 
     [Fact]
@@ -1665,7 +1665,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE column_cannot_be_null DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO.
     /// </summary>
 
     [Fact]
@@ -1717,7 +1717,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can resolve a comma-separated WHEN GDSCODE selector list.
-    /// PT: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN GDSCODE separada por virgula.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN GDSCODE separada por virgula.
     /// </summary>
 
     [Fact]
@@ -1769,7 +1769,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK keeps the first matching WHEN handler when multiple handlers are present.
-    /// PT: Verifica se EXECUTE BLOCK preserva o primeiro handler WHEN correspondente quando ha varios handlers.
+    /// PT-br: Verifica se EXECUTE BLOCK preserva o primeiro handler WHEN correspondente quando ha varios handlers.
     /// </summary>
 
     [Fact]
@@ -1836,7 +1836,7 @@ END;
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN EXCEPTION &lt;name&gt; DO handler.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN EXCEPTION &lt;nome&gt; DO.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN EXCEPTION &lt;nome&gt; DO.
     /// </summary>
 
     [Fact]
@@ -1896,7 +1896,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK does not match WHEN EXCEPTION handlers with a different logical name.
-    /// PT: Verifica se EXECUTE BLOCK nao corresponde a handlers WHEN EXCEPTION com nome logico diferente.
+    /// PT-br: Verifica se EXECUTE BLOCK nao corresponde a handlers WHEN EXCEPTION com nome logico diferente.
     /// </summary>
 
     [Fact]
@@ -1952,7 +1952,7 @@ END
     }
     /// <summary>
     /// EN: Verifies ON EXTERNAL DATA SOURCE is preserved on the cloned external connection.
-    /// PT: Verifica se ON EXTERNAL DATA SOURCE e preservado na conexao externa clonada.
+    /// PT-br: Verifica se ON EXTERNAL DATA SOURCE e preservado na conexao externa clonada.
     /// </summary>
 
     [Fact]
@@ -2020,7 +2020,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts Firebird external EXECUTE STATEMENT clauses in the supported subset.
-    /// PT: Verifica se EXECUTE BLOCK aceita clausulas externas do EXECUTE STATEMENT do Firebird no subset suportado.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita clausulas externas do EXECUTE STATEMENT do Firebird no subset suportado.
     /// </summary>
 
     [Fact]
@@ -2074,7 +2074,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE STATEMENT external user and role clauses affect Firebird context values in the mock.
-    /// PT: Verifica se as clausulas externas de usuario e role do EXECUTE STATEMENT afetam os valores de contexto Firebird no mock.
+    /// PT-br: Verifica se as clausulas externas de usuario e role do EXECUTE STATEMENT afetam os valores de contexto Firebird no mock.
     /// </summary>
 
     [Fact]
@@ -2134,7 +2134,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE STATEMENT accepts Firebird option clauses in different orders inside EXECUTE BLOCK.
-    /// PT: Verifica se EXECUTE STATEMENT aceita clausulas de opcao do Firebird em ordens diferentes dentro de EXECUTE BLOCK.
+    /// PT-br: Verifica se EXECUTE STATEMENT aceita clausulas de opcao do Firebird em ordens diferentes dentro de EXECUTE BLOCK.
     /// </summary>
 
     [Fact]
@@ -2188,7 +2188,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK resolves declared input parameters inside the block body.
-    /// PT: Verifica se EXECUTE BLOCK resolve parametros de entrada declarados dentro do corpo do bloco.
+    /// PT-br: Verifica se EXECUTE BLOCK resolve parametros de entrada declarados dentro do corpo do bloco.
     /// </summary>
 
     [Fact]
@@ -2234,7 +2234,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can assign RETURNS variables and reuse them later in the block body.
-    /// PT: Verifica se EXECUTE BLOCK pode atribuir variaveis de RETURNS e reutiliza-las depois no corpo do bloco.
+    /// PT-br: Verifica se EXECUTE BLOCK pode atribuir variaveis de RETURNS e reutiliza-las depois no corpo do bloco.
     /// </summary>
 
     [Fact]
@@ -2284,7 +2284,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates IF ... THEN ... ELSE blocks and uses the selected branch output.
-    /// PT: Verifica se EXECUTE BLOCK avalia blocos IF ... THEN ... ELSE e usa a saida do ramo selecionado.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia blocos IF ... THEN ... ELSE e usa a saida do ramo selecionado.
     /// </summary>
 
     [Fact]
@@ -2350,7 +2350,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates WHILE loops and keeps loop variables scoped across iterations.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops WHILE e mantem variaveis do loop no escopo entre iteracoes.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops WHILE e mantem variaveis do loop no escopo entre iteracoes.
     /// </summary>
 
     [Fact]
@@ -2412,7 +2412,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK stops a WHILE loop when BREAK is reached.
-    /// PT: Verifica se EXECUTE BLOCK interrompe um loop WHILE quando BREAK e alcancado.
+    /// PT-br: Verifica se EXECUTE BLOCK interrompe um loop WHILE quando BREAK e alcancado.
     /// </summary>
 
     [Fact]
@@ -2480,7 +2480,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates FOR SELECT loops and assigns the selected row values to scoped variables.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops FOR SELECT e atribui os valores da linha selecionada a variaveis no escopo.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops FOR SELECT e atribui os valores da linha selecionada a variaveis no escopo.
     /// </summary>
 
     [Fact]
@@ -2550,7 +2550,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts AS CURSOR on FOR SELECT loops while preserving the selected rows.
-    /// PT: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR SELECT enquanto preserva as linhas selecionadas.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR SELECT enquanto preserva as linhas selecionadas.
     /// </summary>
 
     [Fact]
@@ -2616,7 +2616,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates FOR EXECUTE STATEMENT loops and assigns selected values to scoped variables.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT e atribui os valores selecionados a variaveis no escopo.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT e atribui os valores selecionados a variaveis no escopo.
     /// </summary>
 
     [Fact]
@@ -2686,7 +2686,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts AS CURSOR on FOR EXECUTE STATEMENT loops while preserving the selected rows.
-    /// PT: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR EXECUTE STATEMENT enquanto preserva as linhas selecionadas.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR EXECUTE STATEMENT enquanto preserva as linhas selecionadas.
     /// </summary>
 
     [Fact]
@@ -2756,7 +2756,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates FOR EXECUTE STATEMENT loops with named parameters and assigns selected values to scoped variables.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT com parametros nomeados e atribui os valores selecionados a variaveis no escopo.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT com parametros nomeados e atribui os valores selecionados a variaveis no escopo.
     /// </summary>
 
     [Fact]
@@ -2824,7 +2824,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts FOR EXECUTE STATEMENT with autonomous transaction clauses in the supported subset.
-    /// PT: Verifica se EXECUTE BLOCK aceita FOR EXECUTE STATEMENT com clausulas de transacao autonoma no subset suportado.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita FOR EXECUTE STATEMENT com clausulas de transacao autonoma no subset suportado.
     /// </summary>
 
     [Fact]
@@ -2894,7 +2894,7 @@ END
     }
     /// <summary>
     /// EN: Verifies FOR EXECUTE STATEMENT preserves the external connection string details in the cloned connection.
-    /// PT: Verifica se FOR EXECUTE STATEMENT preserva os detalhes da connection string externa na conexao clonada.
+    /// PT-br: Verifica se FOR EXECUTE STATEMENT preserva os detalhes da connection string externa na conexao clonada.
     /// </summary>
 
     [Fact]
@@ -2990,7 +2990,7 @@ END
     }
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes nested BEGIN ... END compound statements in the block body.
-    /// PT: Verifica se EXECUTE BLOCK executa blocos compostos BEGIN ... END aninhados no corpo do bloco.
+    /// PT-br: Verifica se EXECUTE BLOCK executa blocos compostos BEGIN ... END aninhados no corpo do bloco.
     /// </summary>
 
     [Fact]
@@ -3046,9 +3046,9 @@ END
     }
     /// <summary>
     /// EN: Disposes the Firebird connection used by the execute block tests.
-    /// PT: Descarta a conexao Firebird usada pelos testes de execute block.
+    /// PT-br: Descarta a conexao Firebird usada pelos testes de execute block.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
 
     protected override void Dispose(bool disposing)
 

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers CREATE TEMPORARY TABLE execution scenarios in the Npgsql mock.
-/// PT: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock Npgsql.
+/// PT-br: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock Npgsql.
 /// </summary>
 public sealed class PostgreSqlTemporaryTableEngineTests
 {
@@ -10,7 +10,7 @@ public sealed class PostgreSqlTemporaryTableEngineTests
 
     /// <summary>
     /// EN: Verifies that CREATE TEMPORARY TABLE AS SELECT returns the projected rows.
-    /// PT: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
+    /// PT-br: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]
@@ -48,7 +48,7 @@ SELECT id FROM tmp_users ORDER BY id;";
 
     /// <summary>
     /// EN: Verifies that pg_temp-backed temporary tables return the projected rows.
-    /// PT: Verifica se tabelas temporarias apoiadas por pg_temp retornam as linhas projetadas.
+    /// PT-br: Verifica se tabelas temporarias apoiadas por pg_temp retornam as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

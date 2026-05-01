@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies file name resolution for template-based generation.
-/// PT: Verifica a resolucao de nomes de arquivo para a geracao baseada em templates.
+/// PT-br: Verifica a resolucao de nomes de arquivo para a geracao baseada em templates.
 /// </summary>
 public sealed class TemplateFileNamePatternResolverTests
 {
     /// <summary>
     /// EN: Ensures the default file name patterns remain stable for model and repository generation.
-    /// PT: Garante que os padroes padrao de nome de arquivo permaneçam estaveis para geracao de model e repository.
+    /// PT-br: Garante que os padroes padrao de nome de arquivo permaneçam estaveis para geracao de model e repository.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateFileNamePatternResolver")]
@@ -26,7 +26,7 @@ public sealed class TemplateFileNamePatternResolverTests
 
     /// <summary>
     /// EN: Ensures configured placeholders are expanded for template-based file names.
-    /// PT: Garante que placeholders configurados sejam expandidos nos nomes de arquivo baseados em template.
+    /// PT-br: Garante que placeholders configurados sejam expandidos nos nomes de arquivo baseados em template.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateFileNamePatternResolver")]

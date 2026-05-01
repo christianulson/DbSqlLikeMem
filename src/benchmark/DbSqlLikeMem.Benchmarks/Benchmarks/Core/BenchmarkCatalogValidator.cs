@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 
 /// <summary>
 /// EN: Validates the benchmark catalog against the public benchmark suite surface.
-/// PT: Valida o catalogo de benchmarks contra a superficie publica da suite de benchmark.
+/// PT-br: Valida o catalogo de benchmarks contra a superficie publica da suite de benchmark.
 /// </summary>
 internal static class BenchmarkCatalogValidator
 {
@@ -17,15 +17,17 @@ internal static class BenchmarkCatalogValidator
 
     /// <summary>
     /// EN: Validates benchmark feature and provider catalogs and the benchmark suite method mapping.
-    /// PT: Valida os catalogos de recursos e provedores de benchmark e o mapeamento de metodos da suite.
+    /// PT-br: Valida os catalogos de recursos e provedores de benchmark e o mapeamento de metodos da suite.
     /// </summary>
-    /// <returns>EN: Validation report with any detected issues. PT: Relatorio de validacao com eventuais problemas detectados.</returns>
+    /// <returns>EN: Validation report with any detected issues. PT-br: Relatorio de validacao com eventuais problemas detectados.</returns>
     public static BenchmarkCatalogValidationReport Validate()
     {
         var issues = new List<string>();
 
         ValidateDistinctIds(FeatureCatalog.All.Select(static feature => feature.Id), "feature", issues);
+        ValidateDistinctIds(FeatureCatalog.All.Select(GetStableFeatureId), "feature stable", issues);
         ValidateDistinctIds(ProviderCatalog.All.Select(static provider => provider.Id), "provider", issues);
+        ValidateFeatureLifecycle(FeatureCatalog.All, issues);
 
         var suiteMethods = typeof(BenchmarkSuiteBase)
             .Assembly
@@ -127,6 +129,16 @@ internal static class BenchmarkCatalogValidator
         }
 
         return false;
+    }
+
+    private static string GetStableFeatureId(FeatureDefinition feature)
+    {
+        if (!string.IsNullOrWhiteSpace(feature.StableId))
+        {
+            return feature.StableId;
+        }
+
+        return feature.Id.ToString();
     }
 
     private static OpCode ReadOpCode(byte[] il, ref int index)
@@ -276,26 +288,37 @@ internal static class BenchmarkCatalogValidator
             issues.Add($"Duplicate {label} id '{id}'.");
         }
     }
+
+    private static void ValidateFeatureLifecycle(IEnumerable<FeatureDefinition> features, ICollection<string> issues)
+    {
+        foreach (var feature in features)
+        {
+            if (feature.Status == FeatureStatus.Removed && feature.Comparable)
+            {
+                issues.Add($"Removed catalog feature '{feature.Id}' cannot be comparable.");
+            }
+        }
+    }
 }
 
 /// <summary>
 /// EN: Represents the outcome of a benchmark catalog validation pass.
-/// PT: Representa o resultado de uma validacao do catalogo de benchmark.
+/// PT-br: Representa o resultado de uma validacao do catalogo de benchmark.
 /// </summary>
-/// <param name="Issues">EN: The validation issues, if any. PT: Os problemas de validacao, se existirem.</param>
+/// <param name="Issues">EN: The validation issues, if any. PT-br: Os problemas de validacao, se existirem.</param>
 public sealed record BenchmarkCatalogValidationReport(IReadOnlyList<string> Issues)
 {
     /// <summary>
     /// EN: Gets a value that indicates whether the validation succeeded without issues.
-    /// PT: Obtem um valor que indica se a validacao ocorreu sem problemas.
+    /// PT-br: Obtem um valor que indica se a validacao ocorreu sem problemas.
     /// </summary>
     public bool IsValid => Issues.Count == 0;
 
     /// <summary>
     /// EN: Formats the validation result for console output.
-    /// PT: Formata o resultado da validacao para saida no console.
+    /// PT-br: Formata o resultado da validacao para saida no console.
     /// </summary>
-    /// <returns>EN: Formatted validation summary. PT: Resumo formatado da validacao.</returns>
+    /// <returns>EN: Formatted validation summary. PT-br: Resumo formatado da validacao.</returns>
     public string Format()
     {
         if (IsValid)

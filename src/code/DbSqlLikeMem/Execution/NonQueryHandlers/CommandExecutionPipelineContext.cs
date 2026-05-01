@@ -17,7 +17,7 @@ internal sealed class CommandExecutionPipelineContext(
 
     /// <summary>
     /// EN: Lazily builds a QueryExecutionContext for this pipeline run, reusing it across handlers.
-    /// PT: Constrói lazily um QueryExecutionContext para este pipeline, reutilizando-o entre handlers.
+    /// PT-br: Constrói lazily um QueryExecutionContext para este pipeline, reutilizando-o entre handlers.
     /// </summary>
     public QueryExecutionContext ExecutionContext
         => _executionContext ??= QueryExecutionContext.FromConnection(Connection, Parameters);

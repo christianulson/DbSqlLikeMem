@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for Firebird dialect version gates.
-/// PT: Contem testes para os gates de versao do dialeto Firebird.
+/// PT-br: Contem testes para os gates de versao do dialeto Firebird.
 /// </summary>
 public sealed class FirebirdDialectVersionTests
 {
     /// <summary>
     /// EN: Verifies FUNCTION DDL support starts at Firebird 3.0 and stays enabled afterwards.
-    /// PT: Verifica se o suporte a FUNCTION DDL inicia no Firebird 3.0 e permanece habilitado depois disso.
+    /// PT-br: Verifica se o suporte a FUNCTION DDL inicia no Firebird 3.0 e permanece habilitado depois disso.
     /// </summary>
     [Theory]
     [InlineData(FirebirdDbVersions.Version2_1, false)]
@@ -25,7 +25,7 @@ public sealed class FirebirdDialectVersionTests
 
     /// <summary>
     /// EN: Verifies window function support follows the ROW_NUMBER gate and keeps the window frame gate aligned.
-    /// PT: Verifica se o suporte a window functions segue o gate de ROW_NUMBER e mantém o gate de window frame alinhado.
+    /// PT-br: Verifica se o suporte a window functions segue o gate de ROW_NUMBER e mantém o gate de window frame alinhado.
     /// </summary>
     [Theory]
     [InlineData(FirebirdDbVersions.Version2_1, false)]
@@ -43,7 +43,7 @@ public sealed class FirebirdDialectVersionTests
 
     /// <summary>
     /// EN: Verifies the Firebird concat null contract stays aligned with the legacy behavior.
-    /// PT: Verifica se o contrato de nulidade da concatenacao Firebird permanece alinhado ao comportamento legado.
+    /// PT-br: Verifica se o contrato de nulidade da concatenacao Firebird permanece alinhado ao comportamento legado.
     /// </summary>
     [Fact]
     public void ConcatNullContract_ShouldStayEnabled()

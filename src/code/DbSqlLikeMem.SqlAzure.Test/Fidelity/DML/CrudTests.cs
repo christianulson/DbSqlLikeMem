@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlAzure.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs SQL Azure fidelity tests for the shared CRUD workflows.
-/// PT: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de CRUD.
+/// PT-br: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de CRUD.
 /// </summary>
 public class CrudTests(
     ITestOutputHelper helper

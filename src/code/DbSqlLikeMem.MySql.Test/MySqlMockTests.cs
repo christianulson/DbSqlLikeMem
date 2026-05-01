@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Verifies MySQL command execution, transaction handling, and query helpers against the mock engine.
-/// PT: Verifica a execucao de comandos MySQL, o tratamento de transacoes e os helpers de consulta no motor mock.
+/// PT-br: Verifica a execucao de comandos MySQL, o tratamento de transacoes e os helpers de consulta no motor mock.
 /// </summary>
 public sealed class MySqlMockTests
     : XUnitTestBase
@@ -11,7 +11,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Creates the MySQL mock connection used by the test suite.
-    /// PT: Cria a conexao mock MySQL usada pela suite de testes.
+    /// PT-br: Cria a conexao mock MySQL usada pela suite de testes.
     /// </summary>
     public MySqlMockTests(
         ITestOutputHelper helper
@@ -35,9 +35,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures MySQL executes the pragmatic scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o MySQL execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// PT-br: Garante que o MySQL execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versao do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versao do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -58,7 +58,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies INSERT statements persist rows into the MySQL mock table.
-    /// PT: Verifica se instrucoes INSERT persistem linhas na tabela mock do MySQL.
+    /// PT-br: Verifica se instrucoes INSERT persistem linhas na tabela mock do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -75,7 +75,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies multi-statement INSERT scripts add all rows and return the total affected count.
-    /// PT: Verifica se scripts INSERT com multiplas instrucoes adicionam todas as linhas e retornam o total afetado.
+    /// PT-br: Verifica se scripts INSERT com multiplas instrucoes adicionam todas as linhas e retornam o total afetado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -102,7 +102,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies UPDATE statements modify the targeted MySQL row.
-    /// PT: Verifica se instrucoes UPDATE modificam a linha alvo no MySQL.
+    /// PT-br: Verifica se instrucoes UPDATE modificam a linha alvo no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -122,7 +122,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DELETE statements remove the targeted MySQL row.
-    /// PT: Verifica se instrucoes DELETE removem a linha alvo no MySQL.
+    /// PT-br: Verifica se instrucoes DELETE removem a linha alvo no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -142,7 +142,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CREATE INDEX and DROP INDEX ON table mutate table index metadata through ExecuteNonQuery.
-    /// PT: Verifica se CREATE INDEX e DROP INDEX ON table alteram a metadata de indices da tabela via ExecuteNonQuery.
+    /// PT-br: Verifica se CREATE INDEX e DROP INDEX ON table alteram a metadata de indices da tabela via ExecuteNonQuery.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -164,7 +164,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CREATE INDEX rejects duplicate key columns and leaves index metadata unchanged.
-    /// PT: Verifica se CREATE INDEX rejeita colunas-chave duplicadas e mantem a metadata de indices inalterada.
+    /// PT-br: Verifica se CREATE INDEX rejeita colunas-chave duplicadas e mantem a metadata de indices inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -183,7 +183,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CREATE INDEX rejects unknown key columns even when the target table is empty and leaves index metadata unchanged.
-    /// PT: Verifica se CREATE INDEX rejeita colunas-chave desconhecidas mesmo quando a tabela alvo esta vazia e mantem a metadata de indices inalterada.
+    /// PT-br: Verifica se CREATE INDEX rejeita colunas-chave desconhecidas mesmo quando a tabela alvo esta vazia e mantem a metadata de indices inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -202,7 +202,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies direct index creation rejects duplicate include columns and leaves index metadata unchanged.
-    /// PT: Verifica se a criacao direta de indice rejeita colunas include duplicadas e mantem a metadata de indices inalterada.
+    /// PT-br: Verifica se a criacao direta de indice rejeita colunas include duplicadas e mantem a metadata de indices inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -221,7 +221,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies direct index creation rejects include columns that overlap the key columns and leaves index metadata unchanged.
-    /// PT: Verifica se a criacao direta de indice rejeita colunas include que sobrepoem as colunas-chave e mantem a metadata de indices inalterada.
+    /// PT-br: Verifica se a criacao direta de indice rejeita colunas include que sobrepoem as colunas-chave e mantem a metadata de indices inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -240,7 +240,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DROP INDEX without a table name rejects ambiguous matches and keeps both index registrations intact.
-    /// PT: Verifica se DROP INDEX sem nome de tabela rejeita correspondencias ambiguas e mantem os dois registros de indice intactos.
+    /// PT-br: Verifica se DROP INDEX sem nome de tabela rejeita correspondencias ambiguas e mantem os dois registros de indice intactos.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -271,7 +271,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures MySQL CREATE TABLE captures trailing PARTITION BY metadata in the table contract.
-    /// PT: Garante que CREATE TABLE do MySQL capture metadados finais de PARTITION BY no contrato da tabela.
+    /// PT-br: Garante que CREATE TABLE do MySQL capture metadados finais de PARTITION BY no contrato da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -305,7 +305,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL routes partitioned inserts automatically when the target table already defines partitions.
-    /// PT: Verifica se o MySQL roteia insercoes particionadas automaticamente quando a tabela alvo ja define particoes.
+    /// PT-br: Verifica se o MySQL roteia insercoes particionadas automaticamente quando a tabela alvo ja define particoes.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -362,7 +362,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies INSERT PARTITION accepts known partition names and rejects unknown ones against captured metadata.
-    /// PT: Verifica se INSERT PARTITION aceita nomes de particao conhecidos e rejeita nomes desconhecidos contra o metadado capturado.
+    /// PT-br: Verifica se INSERT PARTITION aceita nomes de particao conhecidos e rejeita nomes desconhecidos contra o metadado capturado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -424,7 +424,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL table-source PARTITION filters rows from the requested partition only.
-    /// PT: Verifica se a PARTITION na fonte da tabela MySQL filtra apenas as linhas da particao solicitada.
+    /// PT-br: Verifica se a PARTITION na fonte da tabela MySQL filtra apenas as linhas da particao solicitada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -477,7 +477,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL table-source PARTITION can target the MAXVALUE range and return only that subset.
-    /// PT: Verifica se a PARTITION na fonte da tabela MySQL consegue atingir o range MAXVALUE e retornar apenas esse subconjunto.
+    /// PT-br: Verifica se a PARTITION na fonte da tabela MySQL consegue atingir o range MAXVALUE e retornar apenas esse subconjunto.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -529,7 +529,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when the predicate constrains the partitioned column directly.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando o predicado restringe diretamente a coluna particionada.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando o predicado restringe diretamente a coluna particionada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -582,7 +582,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when the predicate uses IN on the partitioned column.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando o predicado usa IN na coluna particionada.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando o predicado usa IN na coluna particionada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -635,7 +635,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when the predicate uses BETWEEN on the partitioned column.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando o predicado usa BETWEEN na coluna particionada.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando o predicado usa BETWEEN na coluna particionada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -688,7 +688,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when the date column is bounded directly by a year-aligned range.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando a coluna de data e limitada diretamente por um intervalo alinhado ao ano.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando a coluna de data e limitada diretamente por um intervalo alinhado ao ano.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -742,7 +742,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads across multiple partitions when the direct date range spans multiple years.
-    /// PT: Verifica se o MySQL poda leituras particionadas em multiplas particoes quando o intervalo direto de datas cobre varios anos.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas em multiplas particoes quando o intervalo direto de datas cobre varios anos.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -800,7 +800,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL supports LIST partition metadata and prunes reads by the partitioned year value.
-    /// PT: Verifica se o MySQL suporta metadata de particionamento LIST e poda leituras pelo valor de ano particionado.
+    /// PT-br: Verifica se o MySQL suporta metadata de particionamento LIST e poda leituras pelo valor de ano particionado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -853,7 +853,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when both sides of an OR predicate map to known partitions.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando os dois lados de um predicado OR mapeiam para particoes conhecidas.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando os dois lados de um predicado OR mapeiam para particoes conhecidas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -909,7 +909,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when both sides of an OR BETWEEN predicate map to known partitions.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando os dois lados de um predicado OR BETWEEN mapeiam para particoes conhecidas.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando os dois lados de um predicado OR BETWEEN mapeiam para particoes conhecidas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -965,7 +965,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when OR mixes equality and IN on the partitioned column.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando OR mistura igualdade e IN na coluna particionada.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando OR mistura igualdade e IN na coluna particionada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1021,7 +1021,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when YEAR() on the partitioned column matches a known partition.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando YEAR() na coluna particionada corresponde a uma particao conhecida.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando YEAR() na coluna particionada corresponde a uma particao conhecida.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1074,7 +1074,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when YEAR() on the partitioned column is constrained by BETWEEN.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando YEAR() na coluna particionada e restringido por BETWEEN.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando YEAR() na coluna particionada e restringido por BETWEEN.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1127,7 +1127,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when YEAR() is bounded by comparison operators.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando YEAR() e limitado por operadores de comparacao.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando YEAR() e limitado por operadores de comparacao.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1181,7 +1181,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) targets the partitioned column.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) aponta para a coluna particionada.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) aponta para a coluna particionada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1234,7 +1234,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) is constrained by BETWEEN.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) e restringido por BETWEEN.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) e restringido por BETWEEN.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1289,7 +1289,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) uses comparison bounds on the partitioned column.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) usa limites de comparacao na coluna particionada.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) usa limites de comparacao na coluna particionada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1345,7 +1345,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) comparisons are written in reverse order.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando as comparacoes com EXTRACT(YEAR FROM ...) sao escritas na ordem inversa.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando as comparacoes com EXTRACT(YEAR FROM ...) sao escritas na ordem inversa.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1401,7 +1401,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when safe EXTRACT(YEAR FROM ...) branches are combined with OR.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando ramos seguros de EXTRACT(YEAR FROM ...) sao combinados com OR.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando ramos seguros de EXTRACT(YEAR FROM ...) sao combinados com OR.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1459,7 +1459,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when safe BETWEEN branches over EXTRACT(YEAR FROM ...) are combined with OR.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando ramos seguros de BETWEEN sobre EXTRACT(YEAR FROM ...) sao combinados com OR.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando ramos seguros de BETWEEN sobre EXTRACT(YEAR FROM ...) sao combinados com OR.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1517,7 +1517,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL prunes partitioned reads when EXTRACT(YEAR FROM ...) uses IN on the partitioned column.
-    /// PT: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) usa IN na coluna particionada.
+    /// PT-br: Verifica se o MySQL poda leituras particionadas quando EXTRACT(YEAR FROM ...) usa IN na coluna particionada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1574,7 +1574,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies schema snapshot export/import keeps MySQL partition metadata intact.
-    /// PT: Verifica se exportacao/importacao de schema snapshot preserva a metadata de particionamento do MySQL.
+    /// PT-br: Verifica se exportacao/importacao de schema snapshot preserva a metadata de particionamento do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "SchemaSnapshot")]
@@ -1613,7 +1613,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN updates metadata and backfills existing rows with the shared default literal subset.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN atualiza os metadados e preenche linhas existentes com o subset compartilhado de literal DEFAULT.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN atualiza os metadados e preenche linhas existentes com o subset compartilhado de literal DEFAULT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1636,7 +1636,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN preserves DECIMAL precision and scale metadata in the runtime path.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN preserva os metadados de precisao e escala de DECIMAL no caminho de runtime.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN preserva os metadados de precisao e escala de DECIMAL no caminho de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1659,7 +1659,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN preserves binary column size metadata in the runtime path.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN preserva o metadado de tamanho de coluna binaria no caminho de runtime.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN preserva o metadado de tamanho de coluna binaria no caminho de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1680,7 +1680,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects NOT NULL combined with DEFAULT NULL and leaves table metadata unchanged.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita NOT NULL combinado com DEFAULT NULL e mantem a metadata da tabela inalterada.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN rejeita NOT NULL combinado com DEFAULT NULL e mantem a metadata da tabela inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1699,7 +1699,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects malformed VARCHAR type arguments and leaves table metadata unchanged.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos malformados de tipo VARCHAR e mantem a metadata da tabela inalterada.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos malformados de tipo VARCHAR e mantem a metadata da tabela inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1718,7 +1718,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects empty VARCHAR type arguments and leaves table metadata unchanged.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos vazios de tipo VARCHAR e mantem a metadata da tabela inalterada.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos vazios de tipo VARCHAR e mantem a metadata da tabela inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1737,7 +1737,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects trailing-empty VARCHAR type arguments and leaves table metadata unchanged.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos de tipo VARCHAR com entrada vazia final e mantem a metadata da tabela inalterada.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN rejeita argumentos de tipo VARCHAR com entrada vazia final e mantem a metadata da tabela inalterada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1756,7 +1756,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ALTER TABLE ... ADD COLUMN rejects duplicate column names without mutating the table metadata twice.
-    /// PT: Verifica se ALTER TABLE ... ADD COLUMN rejeita nomes de coluna duplicados sem alterar a metadata da tabela duas vezes.
+    /// PT-br: Verifica se ALTER TABLE ... ADD COLUMN rejeita nomes de coluna duplicados sem alterar a metadata da tabela duas vezes.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1780,7 +1780,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Tests creating a table with an inline primary key and inserting data into it.
-    /// PT: Testa a criação de uma tabela com chave primária inline e a inserção de dados nela.
+    /// PT-br: Testa a criação de uma tabela com chave primária inline e a inserção de dados nela.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1799,7 +1799,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies committed transactions preserve inserted MySQL rows.
-    /// PT: Verifica se transacoes confirmadas preservam as linhas inseridas no MySQL.
+    /// PT-br: Verifica se transacoes confirmadas preservam as linhas inseridas no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1835,7 +1835,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies committing a transaction preserves the latest MySQL update.
-    /// PT: Verifica se confirmar uma transacao preserva a ultima atualizacao do MySQL.
+    /// PT-br: Verifica se confirmar uma transacao preserva a ultima atualizacao do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1858,7 +1858,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies rolled back transactions discard inserted MySQL rows.
-    /// PT: Verifica se transacoes revertidas descartam as linhas inseridas no MySQL.
+    /// PT-br: Verifica se transacoes revertidas descartam as linhas inseridas no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1895,7 +1895,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures SELECT with MySQL index hints executes correctly.
-    /// PT: Garante que SELECT com hints de índice do MySQL execute corretamente.
+    /// PT-br: Garante que SELECT com hints de índice do MySQL execute corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1916,7 +1916,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures common scalar function evaluation paths execute with MySQL semantics.
-    /// PT: Garante que caminhos comuns de avaliação de funções escalares executem com semântica MySQL.
+    /// PT-br: Garante que caminhos comuns de avaliação de funções escalares executem com semântica MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1940,7 +1940,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures string functions exercise parser/executor branches in DbSqlLikeMem core.
-    /// PT: Garante que funções de string exercitem ramificações do parser/executor no núcleo DbSqlLikeMem.
+    /// PT-br: Garante que funções de string exercitem ramificações do parser/executor no núcleo DbSqlLikeMem.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1964,7 +1964,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures FIND_IN_SET is evaluated and keeps one-based indexing behavior.
-    /// PT: Garante que FIND_IN_SET seja avaliada e mantenha o comportamento de índice iniciado em um.
+    /// PT-br: Garante que FIND_IN_SET seja avaliada e mantenha o comportamento de índice iniciado em um.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -1981,7 +1981,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures text normalization helpers (LOWER/UPPER/TRIM/CHAR_LENGTH) execute correctly.
-    /// PT: Garante que funções de normalização de texto (LOWER/UPPER/TRIM/CHAR_LENGTH) executem corretamente.
+    /// PT-br: Garante que funções de normalização de texto (LOWER/UPPER/TRIM/CHAR_LENGTH) executem corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2010,7 +2010,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures common numeric functions return expected results in MySQL.
-    /// PT: Garante que funcoes numericas comuns retornem resultados esperados no MySQL.
+    /// PT-br: Garante que funcoes numericas comuns retornem resultados esperados no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2055,7 +2055,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures ADDDATE and ADDTIME behave for literal arguments.
-    /// PT: Garante que ADDDATE e ADDTIME se comportem com argumentos literais.
+    /// PT-br: Garante que ADDDATE e ADDTIME se comportem com argumentos literais.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2076,7 +2076,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures ANY_VALUE and BIT_ aggregates return expected values.
-    /// PT: Garante que agregados ANY_VALUE e BIT_ retornem valores esperados.
+    /// PT-br: Garante que agregados ANY_VALUE e BIT_ retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2106,7 +2106,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures IPv4/IPv6 predicate helpers report expected results.
-    /// PT: Garante que validacoes de IPv4/IPv6 retornem resultados esperados.
+    /// PT-br: Garante que validacoes de IPv4/IPv6 retornem resultados esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2139,7 +2139,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures UUID and JSON helper functions return expected results.
-    /// PT: Garante que funcoes auxiliares de UUID e JSON retornem resultados esperados.
+    /// PT-br: Garante que funcoes auxiliares de UUID e JSON retornem resultados esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2172,7 +2172,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures JSON utility helpers return expected results for common inputs.
-    /// PT: Garante que utilitarios JSON retornem resultados esperados para entradas comuns.
+    /// PT-br: Garante que utilitarios JSON retornem resultados esperados para entradas comuns.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2262,7 +2262,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures LAST_DAY, LAST_INSERT_ID, and LEAST return expected values.
-    /// PT: Garante que LAST_DAY, LAST_INSERT_ID e LEAST retornem valores esperados.
+    /// PT-br: Garante que LAST_DAY, LAST_INSERT_ID e LEAST retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2289,7 +2289,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures LOCATE, LOG and LPAD return expected values.
-    /// PT: Garante que LOCATE, LOG e LPAD retornem valores esperados.
+    /// PT-br: Garante que LOCATE, LOG e LPAD retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2325,7 +2325,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures MAKEDATE, MAKETIME, MICROSECOND, and MD5 return expected values.
-    /// PT: Garante que MAKEDATE, MAKETIME, MICROSECOND e MD5 retornem valores esperados.
+    /// PT-br: Garante que MAKEDATE, MAKETIME, MICROSECOND e MD5 retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2349,7 +2349,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures MID, MOD, and MONTHNAME return expected values.
-    /// PT: Garante que MID, MOD e MONTHNAME retornem valores esperados.
+    /// PT-br: Garante que MID, MOD e MONTHNAME retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2370,7 +2370,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures OCT, OCTET_LENGTH, and NAME_CONST return expected values.
-    /// PT: Garante que OCT, OCTET_LENGTH e NAME_CONST retornem valores esperados.
+    /// PT-br: Garante que OCT, OCTET_LENGTH e NAME_CONST retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2391,7 +2391,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures ORD, POSITION, PI, POWER, and PERIOD_* functions return expected values.
-    /// PT: Garante que ORD, POSITION, PI, POWER e PERIOD_* retornem valores esperados.
+    /// PT-br: Garante que ORD, POSITION, PI, POWER e PERIOD_* retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2424,7 +2424,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures common date, math, and string helpers return expected values.
-    /// PT: Garante que helpers comuns de data, matematica e string retornem valores esperados.
+    /// PT-br: Garante que helpers comuns de data, matematica e string retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2460,7 +2460,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures ROUND, RPAD, SEC_TO_TIME, SHA*, SIN, and SOUNDEX return expected values.
-    /// PT: Garante que ROUND, RPAD, SEC_TO_TIME, SHA*, SIN e SOUNDEX retornem valores esperados.
+    /// PT-br: Garante que ROUND, RPAD, SEC_TO_TIME, SHA*, SIN e SOUNDEX retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2496,7 +2496,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures SPACE and SQRT return expected values.
-    /// PT: Garante que SPACE e SQRT retornem valores esperados.
+    /// PT-br: Garante que SPACE e SQRT retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2514,7 +2514,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures common time and string helpers return expected values.
-    /// PT: Garante que helpers comuns de tempo e string retornem valores esperados.
+    /// PT-br: Garante que helpers comuns de tempo e string retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2553,7 +2553,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures common date conversion helpers return expected values.
-    /// PT: Garante que helpers comuns de conversao de data retornem valores esperados.
+    /// PT-br: Garante que helpers comuns de conversao de data retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2591,7 +2591,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures UTC_TIMESTAMP, UUID_SHORT, and week helpers return expected values.
-    /// PT: Garante que UTC_TIMESTAMP, UUID_SHORT e helpers de semana retornem valores esperados.
+    /// PT-br: Garante que UTC_TIMESTAMP, UUID_SHORT e helpers de semana retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2625,7 +2625,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures variance aggregates return expected values.
-    /// PT: Garante que agregados de variancia retornem valores esperados.
+    /// PT-br: Garante que agregados de variancia retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2653,7 +2653,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures TRY_CAST follows MySQL mock behavior and returns DBNull on non-convertible values in ExecuteScalar.
-    /// PT: Garante que TRY_CAST siga o comportamento do mock MySQL e retorne DBNull no ExecuteScalar para valores não conversíveis.
+    /// PT-br: Garante que TRY_CAST siga o comportamento do mock MySQL e retorne DBNull no ExecuteScalar para valores não conversíveis.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2672,7 +2672,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures CAST to JSON accepts JSON parameter payloads and keeps JSON_EXTRACT usable.
-    /// PT: Garante que CAST para JSON aceite payload JSON em parâmetro e mantenha JSON_EXTRACT funcional.
+    /// PT-br: Garante que CAST para JSON aceite payload JSON em parâmetro e mantenha JSON_EXTRACT funcional.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2690,9 +2690,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures MySQL executes JSON_TABLE through the shared runtime path for supported versions.
-    /// PT: Garante que o MySQL execute JSON_TABLE pelo caminho de runtime compartilhado nas versoes suportadas.
+    /// PT-br: Garante que o MySQL execute JSON_TABLE pelo caminho de runtime compartilhado nas versoes suportadas.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -2762,7 +2762,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures INSERT/UPSERT with CAST(@param AS JSON) stores JSON payload instead of raw CAST SQL text.
-    /// PT: Garante que INSERT/UPSERT com CAST(@param AS JSON) persista payload JSON, e não texto bruto CAST SQL.
+    /// PT-br: Garante que INSERT/UPSERT com CAST(@param AS JSON) persista payload JSON, e não texto bruto CAST SQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2875,7 +2875,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures backtick alias split logic is preserved through parser and execution.
-    /// PT: Garante que a lógica de alias com crase seja preservada no parser e na execução.
+    /// PT-br: Garante que a lógica de alias com crase seja preservada no parser e na execução.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2898,7 +2898,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures INSERT without an explicit column list maps values in table column order.
-    /// PT: Garante que INSERT sem lista explícita de colunas mapeie valores na ordem das colunas da tabela.
+    /// PT-br: Garante que INSERT sem lista explícita de colunas mapeie valores na ordem das colunas da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2919,7 +2919,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures window slot computation path executes for ROW_NUMBER over ordered rows.
-    /// PT: Garante que o caminho de cálculo de janela execute para ROW_NUMBER sobre linhas ordenadas.
+    /// PT-br: Garante que o caminho de cálculo de janela execute para ROW_NUMBER sobre linhas ordenadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2953,7 +2953,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures INSERT INTO ... SELECT executes end-to-end and copies projected rows.
-    /// PT: Garante que INSERT INTO ... SELECT execute de ponta a ponta e copie as linhas projetadas.
+    /// PT-br: Garante que INSERT INTO ... SELECT execute de ponta a ponta e copie as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2978,7 +2978,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures date-like scalar function paths execute in function evaluator.
-    /// PT: Garante que caminhos de funções escalares relacionadas a data executem no avaliador de funções.
+    /// PT-br: Garante que caminhos de funções escalares relacionadas a data executem no avaliador de funções.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -2998,7 +2998,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MySQL temporal functions work in SELECT projections and WHERE filters.
-    /// PT: Verifica se funcoes temporais do MySQL funcionam em projecoes SELECT e filtros WHERE.
+    /// PT-br: Verifica se funcoes temporais do MySQL funcionam em projecoes SELECT e filtros WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -3026,9 +3026,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CURDATE and CURTIME return date and time values across MySQL versions.
-    /// PT: Verifica se CURDATE e CURTIME retornam valores de data e hora em todas as versoes do MySQL.
+    /// PT-br: Verifica se CURDATE e CURTIME retornam valores de data e hora em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3048,9 +3048,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies STRCMP returns expected comparison results across MySQL versions.
-    /// PT: Verifica se STRCMP retorna os resultados de comparacao esperados em todas as versoes do MySQL.
+    /// PT-br: Verifica se STRCMP retorna os resultados de comparacao esperados em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3066,9 +3066,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies EXTRACT returns expected date parts across MySQL versions.
-    /// PT: Verifica se EXTRACT retorna as partes de data esperadas em todas as versoes do MySQL.
+    /// PT-br: Verifica se EXTRACT retorna as partes de data esperadas em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3084,9 +3084,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies RANDOM_BYTES follows version support rules.
-    /// PT: Verifica se RANDOM_BYTES segue as regras de versao.
+    /// PT-br: Verifica se RANDOM_BYTES segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3107,9 +3107,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies COMPRESS/UNCOMPRESS/UNCOMPRESSED_LENGTH follow version support rules.
-    /// PT: Verifica se COMPRESS/UNCOMPRESS/UNCOMPRESSED_LENGTH seguem as regras de versao.
+    /// PT-br: Verifica se COMPRESS/UNCOMPRESS/UNCOMPRESSED_LENGTH seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3130,9 +3130,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FORMAT_BYTES follows version support rules.
-    /// PT: Verifica se FORMAT_BYTES segue as regras de versao.
+    /// PT-br: Verifica se FORMAT_BYTES segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3153,9 +3153,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FORMAT_PICO_TIME follows version support rules.
-    /// PT: Verifica se FORMAT_PICO_TIME segue as regras de versao.
+    /// PT-br: Verifica se FORMAT_PICO_TIME segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3176,9 +3176,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies GROUPING follows MySQL version support rules.
-    /// PT: Verifica se GROUPING segue as regras de versao do MySQL.
+    /// PT-br: Verifica se GROUPING segue as regras de versao do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3198,9 +3198,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies EXTRACTVALUE follows version support rules.
-    /// PT: Verifica se EXTRACTVALUE segue as regras de versao.
+    /// PT-br: Verifica se EXTRACTVALUE segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3213,9 +3213,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies UPDATEXML follows version support rules.
-    /// PT: Verifica se UPDATEXML segue as regras de versao.
+    /// PT-br: Verifica se UPDATEXML segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3228,9 +3228,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies REGEXP_INSTR and REGEXP_REPLACE follow version support rules.
-    /// PT: Verifica se REGEXP_INSTR e REGEXP_REPLACE seguem as regras de versao.
+    /// PT-br: Verifica se REGEXP_INSTR e REGEXP_REPLACE seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3253,9 +3253,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies REGEXP_LIKE and REGEXP_SUBSTR follow version support rules.
-    /// PT: Verifica se REGEXP_LIKE e REGEXP_SUBSTR seguem as regras de versao.
+    /// PT-br: Verifica se REGEXP_LIKE e REGEXP_SUBSTR seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3278,9 +3278,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_STORAGE_SIZE follows version support rules.
-    /// PT: Verifica se JSON_STORAGE_SIZE segue as regras de versao.
+    /// PT-br: Verifica se JSON_STORAGE_SIZE segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3300,9 +3300,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_OVERLAPS follows version support rules.
-    /// PT: Verifica se JSON_OVERLAPS segue as regras de versao.
+    /// PT-br: Verifica se JSON_OVERLAPS segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3323,9 +3323,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_APPEND follows version support rules.
-    /// PT: Verifica se JSON_APPEND segue as regras de versao.
+    /// PT-br: Verifica se JSON_APPEND segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3345,9 +3345,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_ARRAY_APPEND follows version support rules.
-    /// PT: Verifica se JSON_ARRAY_APPEND segue as regras de versao.
+    /// PT-br: Verifica se JSON_ARRAY_APPEND segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3367,9 +3367,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_ARRAY_INSERT follows version support rules.
-    /// PT: Verifica se JSON_ARRAY_INSERT segue as regras de versao.
+    /// PT-br: Verifica se JSON_ARRAY_INSERT segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3389,9 +3389,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_MERGE follows version support rules.
-    /// PT: Verifica se JSON_MERGE segue as regras de versao.
+    /// PT-br: Verifica se JSON_MERGE segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3412,9 +3412,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_MERGE_PRESERVE follows version support rules.
-    /// PT: Verifica se JSON_MERGE_PRESERVE segue as regras de versao.
+    /// PT-br: Verifica se JSON_MERGE_PRESERVE segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3435,9 +3435,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_MERGE_PATCH follows version support rules.
-    /// PT: Verifica se JSON_MERGE_PATCH segue as regras de versao.
+    /// PT-br: Verifica se JSON_MERGE_PATCH segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3457,9 +3457,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies JSON_OBJECTAGG follows version support rules.
-    /// PT: Verifica se JSON_OBJECTAGG segue as regras de versao.
+    /// PT-br: Verifica se JSON_OBJECTAGG segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3484,9 +3484,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies AES_ENCRYPT/AES_DECRYPT follow version support rules.
-    /// PT: Verifica se AES_ENCRYPT/AES_DECRYPT seguem as regras de versao.
+    /// PT-br: Verifica se AES_ENCRYPT/AES_DECRYPT seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3500,9 +3500,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DES_ENCRYPT/DES_DECRYPT follow version support rules.
-    /// PT: Verifica se DES_ENCRYPT/DES_DECRYPT seguem as regras de versao.
+    /// PT-br: Verifica se DES_ENCRYPT/DES_DECRYPT seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3525,9 +3525,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ENCODE/DECODE follow version support rules.
-    /// PT: Verifica se ENCODE/DECODE seguem as regras de versao.
+    /// PT-br: Verifica se ENCODE/DECODE seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3550,9 +3550,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ENCRYPT follows version support rules.
-    /// PT: Verifica se ENCRYPT segue as regras de versao.
+    /// PT-br: Verifica se ENCRYPT segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3573,9 +3573,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DEFAULT returns the column default value across MySQL versions.
-    /// PT: Verifica se DEFAULT retorna o valor padrao da coluna em todas as versoes do MySQL.
+    /// PT-br: Verifica se DEFAULT retorna o valor padrao da coluna em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3601,9 +3601,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies IS NOT NULL follows MySQL version support rules.
-    /// PT: Verifica se IS NOT NULL segue as regras de versao do MySQL.
+    /// PT-br: Verifica se IS NOT NULL segue as regras de versao do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3616,9 +3616,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies NOT EXISTS follows MySQL version support rules.
-    /// PT: Verifica se NOT EXISTS segue as regras de versao do MySQL.
+    /// PT-br: Verifica se NOT EXISTS segue as regras de versao do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3631,9 +3631,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MEMBER OF follows MySQL version support rules.
-    /// PT: Verifica se MEMBER OF segue as regras de versao do MySQL.
+    /// PT-br: Verifica se MEMBER OF segue as regras de versao do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3654,9 +3654,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies SLEEP follows version support rules.
-    /// PT: Verifica se SLEEP segue as regras de versao.
+    /// PT-br: Verifica se SLEEP segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3670,9 +3670,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies STD/STDDEV aggregates follow version support rules.
-    /// PT: Verifica se agregacoes STD/STDDEV seguem as regras de versao.
+    /// PT-br: Verifica se agregacoes STD/STDDEV seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3696,9 +3696,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies GREATEST returns the maximum value across MySQL versions.
-    /// PT: Verifica se GREATEST retorna o maior valor em todas as versoes do MySQL.
+    /// PT-br: Verifica se GREATEST retorna o maior valor em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3712,9 +3712,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies INSTR returns the expected position across MySQL versions.
-    /// PT: Verifica se INSTR retorna a posicao esperada em todas as versoes do MySQL.
+    /// PT-br: Verifica se INSTR retorna a posicao esperada em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3729,9 +3729,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies RTRIM removes trailing spaces across MySQL versions.
-    /// PT: Verifica se RTRIM remove espacos finais em todas as versoes do MySQL.
+    /// PT-br: Verifica se RTRIM remove espacos finais em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3744,9 +3744,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FORMAT returns the formatted number across MySQL versions.
-    /// PT: Verifica se FORMAT retorna o numero formatado em todas as versoes do MySQL.
+    /// PT-br: Verifica se FORMAT retorna o numero formatado em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3760,9 +3760,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies HEX and UNHEX follow version support rules.
-    /// PT: Verifica se HEX e UNHEX seguem as regras de versao.
+    /// PT-br: Verifica se HEX e UNHEX seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3777,9 +3777,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CRC32 returns the expected checksum across MySQL versions.
-    /// PT: Verifica se CRC32 retorna o checksum esperado em todas as versoes do MySQL.
+    /// PT-br: Verifica se CRC32 retorna o checksum esperado em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3793,9 +3793,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies INET_ATON/INET_NTOA follow version support rules.
-    /// PT: Verifica se INET_ATON/INET_NTOA seguem as regras de versao.
+    /// PT-br: Verifica se INET_ATON/INET_NTOA seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3809,9 +3809,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies INET6_ATON/INET6_NTOA follow version support rules.
-    /// PT: Verifica se INET6_ATON/INET6_NTOA seguem as regras de versao.
+    /// PT-br: Verifica se INET6_ATON/INET6_NTOA seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3835,9 +3835,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies UUID_TO_BIN/BIN_TO_UUID follow version support rules and preserve values.
-    /// PT: Verifica se UUID_TO_BIN/BIN_TO_UUID seguem as regras de versao e preservam valores.
+    /// PT-br: Verifica se UUID_TO_BIN/BIN_TO_UUID seguem as regras de versao e preservam valores.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3864,9 +3864,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FROM_BASE64 follows version support rules and returns decoded bytes when available.
-    /// PT: Verifica se FROM_BASE64 segue as regras de versao e retorna bytes decodificados quando disponivel.
+    /// PT-br: Verifica se FROM_BASE64 segue as regras de versao e retorna bytes decodificados quando disponivel.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3887,9 +3887,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies TO_BASE64 follows version support rules and returns encoded text when available.
-    /// PT: Verifica se TO_BASE64 segue as regras de versao e retorna o texto codificado quando disponivel.
+    /// PT-br: Verifica se TO_BASE64 segue as regras de versao e retorna o texto codificado quando disponivel.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3910,9 +3910,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DATE_FORMAT returns formatted output across MySQL versions.
-    /// PT: Verifica se DATE_FORMAT retorna o texto formatado em todas as versoes do MySQL.
+    /// PT-br: Verifica se DATE_FORMAT retorna o texto formatado em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3926,9 +3926,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies STR_TO_DATE follows version support rules.
-    /// PT: Verifica se STR_TO_DATE segue as regras de versao.
+    /// PT-br: Verifica se STR_TO_DATE segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3942,9 +3942,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FROM_UNIXTIME returns the expected date across MySQL versions.
-    /// PT: Verifica se FROM_UNIXTIME retorna a data esperada em todas as versoes do MySQL.
+    /// PT-br: Verifica se FROM_UNIXTIME retorna a data esperada em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3958,9 +3958,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FROM_DAYS follows version support rules.
-    /// PT: Verifica se FROM_DAYS segue as regras de versao.
+    /// PT-br: Verifica se FROM_DAYS segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3974,9 +3974,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DATE_SUB follows version support rules.
-    /// PT: Verifica se DATE_SUB segue as regras de versao.
+    /// PT-br: Verifica se DATE_SUB segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -3990,9 +3990,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies GET_FORMAT returns expected patterns across MySQL versions.
-    /// PT: Verifica se GET_FORMAT retorna os formatos esperados em todas as versoes do MySQL.
+    /// PT-br: Verifica se GET_FORMAT retorna os formatos esperados em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4006,9 +4006,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CONVERT_TZ follows version support rules.
-    /// PT: Verifica se CONVERT_TZ segue as regras de versao.
+    /// PT-br: Verifica se CONVERT_TZ segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4022,9 +4022,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ELT returns the selected element across MySQL versions.
-    /// PT: Verifica se ELT retorna o elemento selecionado em todas as versoes do MySQL.
+    /// PT-br: Verifica se ELT retorna o elemento selecionado em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4038,9 +4038,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies MAKE_SET returns comma-separated values across MySQL versions.
-    /// PT: Verifica se MAKE_SET retorna valores separados por virgula em todas as versoes do MySQL.
+    /// PT-br: Verifica se MAKE_SET retorna valores separados por virgula em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4054,9 +4054,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies EXPORT_SET follows version support rules.
-    /// PT: Verifica se EXPORT_SET segue as regras de versao.
+    /// PT-br: Verifica se EXPORT_SET segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4069,9 +4069,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CHARACTER_LENGTH returns the expected length across MySQL versions.
-    /// PT: Verifica se CHARACTER_LENGTH retorna o tamanho esperado em todas as versoes do MySQL.
+    /// PT-br: Verifica se CHARACTER_LENGTH retorna o tamanho esperado em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4084,9 +4084,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CONVERT returns string output across MySQL versions.
-    /// PT: Verifica se CONVERT retorna texto em todas as versoes do MySQL.
+    /// PT-br: Verifica se CONVERT retorna texto em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4099,9 +4099,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CONV follows version support rules.
-    /// PT: Verifica se CONV segue as regras de versao.
+    /// PT-br: Verifica se CONV segue as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4114,9 +4114,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DATEDIFF uses the MySQL 2-argument signature across versions.
-    /// PT: Verifica se DATEDIFF usa a assinatura de 2 argumentos do MySQL em todas as versoes.
+    /// PT-br: Verifica se DATEDIFF usa a assinatura de 2 argumentos do MySQL em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4129,9 +4129,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies day helper functions follow version support rules.
-    /// PT: Verifica se os helpers de dia seguem as regras de versao.
+    /// PT-br: Verifica se os helpers de dia seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4148,9 +4148,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies DATABASE and SCHEMA follow version support rules.
-    /// PT: Verifica se DATABASE e SCHEMA seguem as regras de versao.
+    /// PT-br: Verifica se DATABASE e SCHEMA seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4164,9 +4164,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CONNECTION_ID returns a stable identifier across MySQL versions.
-    /// PT: Verifica se CONNECTION_ID retorna um identificador estavel em todas as versoes do MySQL.
+    /// PT-br: Verifica se CONNECTION_ID retorna um identificador estavel em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4179,9 +4179,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies SESSION_USER and CURRENT_USER follow version support rules.
-    /// PT: Verifica se SESSION_USER e CURRENT_USER seguem as regras de versao.
+    /// PT-br: Verifica se SESSION_USER e CURRENT_USER seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4196,9 +4196,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies LOCALTIME and LOCALTIMESTAMP follow version support rules.
-    /// PT: Verifica se LOCALTIME e LOCALTIMESTAMP seguem as regras de versao.
+    /// PT-br: Verifica se LOCALTIME e LOCALTIMESTAMP seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4212,9 +4212,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies CHARSET and COERCIBILITY follow version support rules.
-    /// PT: Verifica se CHARSET e COERCIBILITY seguem as regras de versao.
+    /// PT-br: Verifica se CHARSET e COERCIBILITY seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4228,9 +4228,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies COLLATION returns a default collation across MySQL versions.
-    /// PT: Verifica se COLLATION retorna uma collation padrao em todas as versoes do MySQL.
+    /// PT-br: Verifica se COLLATION retorna uma collation padrao em todas as versoes do MySQL.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4243,9 +4243,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies numeric helpers follow version support rules.
-    /// PT: Verifica se helpers numericos seguem as regras de versao.
+    /// PT-br: Verifica se helpers numericos seguem as regras de versao.
     /// </summary>
-    /// <param name="version">EN: MySQL dialect version under test. PT: Versão do dialeto MySQL em teste.</param>
+    /// <param name="version">EN: MySQL dialect version under test. PT-br: Versão do dialeto MySQL em teste.</param>
     [Theory]
     [Trait("Category", "MySqlMock")]
     [MemberDataMySqlVersion]
@@ -4263,7 +4263,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures DbMock implements IReadOnlyDictionary indexer for existing schemas.
-    /// PT: Garante que DbMock implemente o indexador de IReadOnlyDictionary para schemas existentes.
+    /// PT-br: Garante que DbMock implemente o indexador de IReadOnlyDictionary para schemas existentes.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4280,7 +4280,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures DbMock IReadOnlyDictionary indexer throws for missing schema names.
-    /// PT: Garante que o indexador IReadOnlyDictionary de DbMock lance erro para schema inexistente.
+    /// PT-br: Garante que o indexador IReadOnlyDictionary de DbMock lance erro para schema inexistente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4294,9 +4294,9 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
@@ -4305,7 +4305,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies SQL_CALC_FOUND_ROWS exposes the full result count.
-    /// PT: Verifica se SQL_CALC_FOUND_ROWS expoe a contagem total de resultados.
+    /// PT-br: Verifica se SQL_CALC_FOUND_ROWS expoe a contagem total de resultados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4332,7 +4332,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS rejects unexpected arguments.
-    /// PT: Verifica se FOUND_ROWS rejeita argumentos inesperados.
+    /// PT-br: Verifica se FOUND_ROWS rejeita argumentos inesperados.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4349,7 +4349,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS returns the affected row count after INSERT.
-    /// PT: Verifica se FOUND_ROWS retorna a contagem de linhas afetadas apos INSERT.
+    /// PT-br: Verifica se FOUND_ROWS retorna a contagem de linhas afetadas apos INSERT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4369,7 +4369,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns the affected row count after UPDATE.
-    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas afetadas apos UPDATE.
+    /// PT-br: Verifica se ROW_COUNT retorna a contagem de linhas afetadas apos UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4391,7 +4391,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS resets to zero after BEGIN TRANSACTION.
-    /// PT: Verifica se FOUND_ROWS volta para zero apos BEGIN TRANSACTION.
+    /// PT-br: Verifica se FOUND_ROWS volta para zero apos BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4409,7 +4409,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS stays zero in a BEGIN TRANSACTION batch.
-    /// PT: Verifica se FOUND_ROWS permanece zero em um lote com BEGIN TRANSACTION.
+    /// PT-br: Verifica se FOUND_ROWS permanece zero em um lote com BEGIN TRANSACTION.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4428,7 +4428,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS stays zero after SAVEPOINT in a batch.
-    /// PT: Verifica se FOUND_ROWS permanece zero apos SAVEPOINT em um lote.
+    /// PT-br: Verifica se FOUND_ROWS permanece zero apos SAVEPOINT em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4447,7 +4447,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS stays zero after CALL in a batch.
-    /// PT: Verifica se FOUND_ROWS permanece zero apos CALL em um lote.
+    /// PT-br: Verifica se FOUND_ROWS permanece zero apos CALL em um lote.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4468,7 +4468,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS resets to zero after UPDATE followed by COMMIT.
-    /// PT: Verifica se FOUND_ROWS volta para zero apos UPDATE seguido de COMMIT.
+    /// PT-br: Verifica se FOUND_ROWS volta para zero apos UPDATE seguido de COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4488,7 +4488,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS resets to zero after rollback to savepoint.
-    /// PT: Verifica se FOUND_ROWS volta para zero apos rollback para savepoint.
+    /// PT-br: Verifica se FOUND_ROWS volta para zero apos rollback para savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4507,7 +4507,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS resets to zero after releasing a savepoint.
-    /// PT: Verifica se FOUND_ROWS volta para zero apos liberar um savepoint.
+    /// PT-br: Verifica se FOUND_ROWS volta para zero apos liberar um savepoint.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4527,7 +4527,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS reflects the last DML in a mixed SELECT/UPDATE batch.
-    /// PT: Verifica se FOUND_ROWS reflete a ultima DML em um lote misto de SELECT/UPDATE.
+    /// PT-br: Verifica se FOUND_ROWS reflete a ultima DML em um lote misto de SELECT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4555,7 +4555,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS resets to zero after CALL, UPDATE, and COMMIT.
-    /// PT: Verifica se FOUND_ROWS volta para zero apos CALL, UPDATE e COMMIT.
+    /// PT-br: Verifica se FOUND_ROWS volta para zero apos CALL, UPDATE e COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4577,7 +4577,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Verifies FOUND_ROWS reflects the last SELECT in a mixed UPDATE/SELECT batch.
-    /// PT: Verifica se FOUND_ROWS reflete o ultimo SELECT em um lote misto de UPDATE/SELECT.
+    /// PT-br: Verifica se FOUND_ROWS reflete o ultimo SELECT em um lote misto de UPDATE/SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4609,7 +4609,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures boolean-mode MATCH ... AGAINST filtering honors required and prohibited terms.
-    /// PT: Garante que o filtro MATCH ... AGAINST em modo boolean respeite termos obrigatórios e proibidos.
+    /// PT-br: Garante que o filtro MATCH ... AGAINST em modo boolean respeite termos obrigatórios e proibidos.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4636,7 +4636,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures ORDER BY MATCH ... AGAINST score prioritizes most relevant row in mock scoring.
-    /// PT: Garante que ORDER BY com score de MATCH ... AGAINST priorize a linha mais relevante no scoring do mock.
+    /// PT-br: Garante que ORDER BY com score de MATCH ... AGAINST priorize a linha mais relevante no scoring do mock.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]
@@ -4663,7 +4663,7 @@ public sealed class MySqlMockTests
 
     /// <summary>
     /// EN: Ensures semantic chunk lexical candidate query with MATCH ... AGAINST and parameterized LIMIT executes end-to-end.
-    /// PT: Garante que a query de candidatos léxicos com MATCH ... AGAINST e LIMIT parametrizado execute ponta a ponta.
+    /// PT-br: Garante que a query de candidatos léxicos com MATCH ... AGAINST e LIMIT parametrizado execute ponta a ponta.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlMock")]

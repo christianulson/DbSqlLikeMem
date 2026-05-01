@@ -8,16 +8,16 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Provides mock-only fidelity test helpers for provider-specific scenarios.
-/// PT: Fornece helpers de testes de fidelidade apenas com mock para cenarios especificos de provider.
+/// PT-br: Fornece helpers de testes de fidelidade apenas com mock para cenarios especificos de provider.
 /// </summary>
 /// <typeparam name="TCnn1"></typeparam>
 /// <summary>
 /// EN: Creates a mock-only test service for the supplied connection factory.
-/// PT: Cria um service de teste apenas com mock para a factory de conexoes informada.
+/// PT-br: Cria um service de teste apenas com mock para a factory de conexoes informada.
 /// </summary>
-/// <param name="connectionMock">EN: Delegate that creates the mock connection. PT: Delegado que cria a conexao mock.</param>
-/// <param name="dialect">EN: SQL dialect used by the service. PT: Dialeto SQL usado pelo service.</param>
-/// <param name="initialData">EN: Initial scenario rows. PT: Linhas iniciais do cenario.</param>
+/// <param name="connectionMock">EN: Delegate that creates the mock connection. PT-br: Delegado que cria a conexao mock.</param>
+/// <param name="dialect">EN: SQL dialect used by the service. PT-br: Dialeto SQL usado pelo service.</param>
+/// <param name="initialData">EN: Initial scenario rows. PT-br: Linhas iniciais do cenario.</param>
 public class NotFidelityTestService<TCnn1>(
     Func<TCnn1> connectionMock,
     ProviderSqlDialect dialect,
@@ -27,19 +27,19 @@ public class NotFidelityTestService<TCnn1>(
 {
     /// <summary>
     /// EN: Gets the repository service instance used for executing database operations in the test scenarios. This property is initialized in the constructor with a connection factory and SQL dialect, and it provides the necessary methods for interacting with the database during tests.
-    /// PT: Obtém a instância do serviço de repositório usado para executar operações de banco de dados nos cenários de teste. Esta propriedade é inicializada no construtor com uma fábrica de conexões e um dialeto SQL, e fornece os métodos necessários para interagir com o banco de dados durante os testes.
+    /// PT-br: Obtém a instância do serviço de repositório usado para executar operações de banco de dados nos cenários de teste. Esta propriedade é inicializada no construtor com uma fábrica de conexões e um dialeto SQL, e fornece os métodos necessários para interagir com o banco de dados durante os testes.
     /// </summary>
     protected RepoService RepoMock { get; } = new RepoService(connectionMock, dialect);
 
     /// <summary>
     /// EN: Gets the initial data to be used for the test scenarios. This property is an array of object arrays, allowing for flexible representation of various types of initial data that may be required by different test scenarios. It is initialized in the constructor and can be used to set up the necessary state for the tests.
-    /// PT: Obtém os dados iniciais a serem usados nos cenários de teste. Esta propriedade é um array de arrays de objetos, permitindo uma representação flexível de vários tipos de dados iniciais que podem ser necessários para diferentes cenários de teste. Ela é inicializada no construtor e pode ser usada para configurar o estado necessário para os testes.
+    /// PT-br: Obtém os dados iniciais a serem usados nos cenários de teste. Esta propriedade é um array de arrays de objetos, permitindo uma representação flexível de vários tipos de dados iniciais que podem ser necessários para diferentes cenários de teste. Ela é inicializada no construtor e pode ser usada para configurar o estado necessário para os testes.
     /// </summary>
     protected object?[][] InitialData { get; } = CloneInitialData(initialData);
 
     /// <summary>
     /// EN: Executes the specified test scenario on the mock connection and returns the service result.
-    /// PT: Executa o cenario de teste na conexao mock e retorna o resultado do service.
+    /// PT-br: Executa o cenario de teste na conexao mock e retorna o resultado do service.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -52,7 +52,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenario on the mock connection and returns a typed service result.
-    /// PT: Executa o cenario de teste na conexao mock e retorna um resultado tipado do service.
+    /// PT-br: Executa o cenario de teste na conexao mock e retorna um resultado tipado do service.
     /// </summary>
     public virtual Task<TResult> RunTestAsync<TScenario, TServiceTest, TResult>(
         Func<TServiceTest, object[], Task<TResult>> fnRunTest,
@@ -63,7 +63,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes two test scenarios on the mock connection and returns the service result.
-    /// PT: Executa dois cenarios de teste na conexao mock e retorna o resultado do service.
+    /// PT-br: Executa dois cenarios de teste na conexao mock e retorna o resultado do service.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -78,7 +78,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes two test scenarios on the mock connection and returns a typed service result.
-    /// PT: Executa dois cenarios de teste na conexao mock e retorna um resultado tipado do service.
+    /// PT-br: Executa dois cenarios de teste na conexao mock e retorna um resultado tipado do service.
     /// </summary>
     public virtual Task<TResult> RunTestAsync<TScenario, TScenario2, TServiceTest, TResult>(
         Func<TServiceTest, object[], Task<TResult>> fnRunTest,
@@ -90,7 +90,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenario on the mock connection and returns the service result.
-    /// PT: Executa o cenario de teste na conexao mock e retorna o resultado do service.
+    /// PT-br: Executa o cenario de teste na conexao mock e retorna o resultado do service.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -104,7 +104,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -120,7 +120,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -159,7 +159,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenario and returns the typed result produced by the service test.
-    /// PT: Executa o cenario de teste especificado e retorna o resultado tipado produzido pelo teste de servico.
+    /// PT-br: Executa o cenario de teste especificado e retorna o resultado tipado produzido pelo teste de servico.
     /// </summary>
     protected static async Task<TResult> Execute<TScenario, TServiceTest, TResult>(
         Func<TServiceTest, object[], Task<TResult>> fnRunTest,
@@ -190,7 +190,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenarios and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenarios and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa os cenários de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias dos cenários e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa os cenários de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias dos cenários e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -235,7 +235,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenarios on the mock connection and returns a typed service result.
-    /// PT: Executa os cenarios de teste na conexao mock e retorna um resultado tipado do service.
+    /// PT-br: Executa os cenarios de teste na conexao mock e retorna um resultado tipado do service.
     /// </summary>
     protected static async Task<TResult> Execute<TScenario, TScenario2, TServiceTest, TResult>(
         Func<TServiceTest, object[], Task<TResult>> fnRunTest,
@@ -270,7 +270,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -311,7 +311,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Executes the specified test scenarios and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenarios and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa os cenários de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias dos cenários e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa os cenários de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias dos cenários e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -362,9 +362,9 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Releases the mock repository connection used by the test service.
-    /// PT: Libera a conexao mock do repositorio usada pelo service de teste.
+    /// PT-br: Libera a conexao mock do repositorio usada pelo service de teste.
     /// </summary>
-    /// <param name="disposing">EN: True when managed resources should be released. PT: True quando os recursos gerenciados devem ser liberados.</param>
+    /// <param name="disposing">EN: True when managed resources should be released. PT-br: True quando os recursos gerenciados devem ser liberados.</param>
     protected virtual void Dispose(bool disposing)
     {
         if (!disposedValue)
@@ -377,7 +377,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Ensures the mock repository connection is released if Dispose is not called.
-    /// PT: Garante que a conexao mock do repositorio seja liberada se Dispose nao for chamado.
+    /// PT-br: Garante que a conexao mock do repositorio seja liberada se Dispose nao for chamado.
     /// </summary>
     ~NotFidelityTestService()
     {
@@ -387,7 +387,7 @@ public class NotFidelityTestService<TCnn1>(
 
     /// <summary>
     /// EN: Releases the mock repository connection and suppresses finalization.
-    /// PT: Libera a conexao mock do repositorio e suprime a finalizacao.
+    /// PT-br: Libera a conexao mock do repositorio e suprime a finalizacao.
     /// </summary>
     public void Dispose()
     {

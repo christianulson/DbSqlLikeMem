@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird transaction and lifecycle scenarios against the Dapper provider.
-/// PT: Cobre cenarios de transacao e ciclo de vida do Firebird contra o provedor Dapper.
+/// PT-br: Cobre cenarios de transacao e ciclo de vida do Firebird contra o provedor Dapper.
 /// </summary>
 public sealed class FirebirdTransactionTests(
     ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies committing a transaction persists inserted data.
-    /// PT: Verifica se confirmar uma transacao persiste os dados inseridos.
+    /// PT-br: Verifica se confirmar uma transacao persiste os dados inseridos.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -21,7 +21,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies rolling back a transaction prevents inserted data from persisting.
-    /// PT: Verifica se reverter uma transacao impede que os dados inseridos sejam persistidos.
+    /// PT-br: Verifica se reverter uma transacao impede que os dados inseridos sejam persistidos.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -29,7 +29,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies a rollback restores connection-scoped temporary table contents.
-    /// PT: Verifica se um rollback restaura o conteudo das tabelas temporarias de escopo da conexao.
+    /// PT-br: Verifica se um rollback restaura o conteudo das tabelas temporarias de escopo da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -37,7 +37,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies rolling back to a savepoint restores the temporary table snapshot.
-    /// PT: Verifica se reverter para um savepoint restaura o snapshot da tabela temporaria.
+    /// PT-br: Verifica se reverter para um savepoint restaura o snapshot da tabela temporaria.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -45,7 +45,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data clears rows, resets identities, and clears session temp tables.
-    /// PT: Verifica se resetar todos os dados volateis limpa linhas, reinicia identidades e limpa tabelas temporarias da sessao.
+    /// PT-br: Verifica se resetar todos os dados volateis limpa linhas, reinicia identidades e limpa tabelas temporarias da sessao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -53,7 +53,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies database volatile-data reset respects the global temporary table flag for Firebird rows.
-    /// PT: Verifica se o reset de dados volateis no banco respeita a flag de tabelas temporarias globais para linhas do Firebird.
+    /// PT-br: Verifica se o reset de dados volateis no banco respeita a flag de tabelas temporarias globais para linhas do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -83,7 +83,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies resetting volatile data on the database preserves table definitions.
-    /// PT: Verifica se resetar dados volateis no banco preserva as definicoes das tabelas.
+    /// PT-br: Verifica se resetar dados volateis no banco preserva as definicoes das tabelas.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -91,7 +91,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies database volatile-data reset does not affect connection-scoped temporary tables.
-    /// PT: Verifica se o reset de dados volateis no banco nao afeta tabelas temporarias de escopo da conexao.
+    /// PT-br: Verifica se o reset de dados volateis no banco nao afeta tabelas temporarias de escopo da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -99,7 +99,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data clears rows from global temporary tables.
-    /// PT: Verifica se resetar todos os dados volateis limpa as linhas das tabelas temporarias globais.
+    /// PT-br: Verifica se resetar todos os dados volateis limpa as linhas das tabelas temporarias globais.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -107,7 +107,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data invalidates existing savepoints.
-    /// PT: Verifica se resetar todos os dados volateis invalida os savepoints existentes.
+    /// PT-br: Verifica se resetar todos os dados volateis invalida os savepoints existentes.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -115,7 +115,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies connection-scoped temporary tables remain isolated between different connections.
-    /// PT: Verifica se tabelas temporarias de escopo da conexao permanecem isoladas entre conexoes diferentes.
+    /// PT-br: Verifica se tabelas temporarias de escopo da conexao permanecem isoladas entre conexoes diferentes.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -123,7 +123,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies closing a connection clears session-scoped transactional and temporary state.
-    /// PT: Verifica se fechar uma conexao limpa o estado transacional e temporario de escopo da sessao.
+    /// PT-br: Verifica se fechar uma conexao limpa o estado transacional e temporario de escopo da sessao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -131,7 +131,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies closing a connection preserves permanent tables and shared global temporary state.
-    /// PT: Verifica se fechar uma conexao preserva tabelas permanentes e o estado compartilhado de tabelas temporarias globais.
+    /// PT-br: Verifica se fechar uma conexao preserva tabelas permanentes e o estado compartilhado de tabelas temporarias globais.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]
@@ -139,7 +139,7 @@ public sealed class FirebirdTransactionTests(
 
     /// <summary>
     /// EN: Verifies reopening after close starts a fresh session while preserving shared database state.
-    /// PT: Verifica se reabrir apos fechar inicia uma nova sessao preservando o estado compartilhado do banco.
+    /// PT-br: Verifica se reabrir apos fechar inicia uma nova sessao preservando o estado compartilhado do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransaction")]

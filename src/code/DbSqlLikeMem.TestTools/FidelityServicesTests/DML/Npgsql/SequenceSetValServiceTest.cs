@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Applies setval with is_called false and reads the session-local sequence state for PostgreSQL fidelity.
-/// PT: Aplica setval com is_called false e le o estado local da sessao para fidelidade de PostgreSQL.
+/// PT-br: Aplica setval com is_called false e le o estado local da sessao para fidelidade de PostgreSQL.
 /// </summary>
 public sealed class SequenceSetValServiceTest(
     RepoService repo,
@@ -12,14 +12,14 @@ public sealed class SequenceSetValServiceTest(
 {
     /// <summary>
     /// EN: Returns the observed sequence values before and after setval without calling nextval again first.
-    /// PT: Retorna os valores observados da sequence antes e depois de setval sem chamar nextval novamente antes.
+    /// PT-br: Retorna os valores observados da sequence antes e depois de setval sem chamar nextval novamente antes.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
         => await RunSequenceSetValAsync();
 
     /// <summary>
     /// EN: Returns the observed sequence values before and after setval without calling nextval again first.
-    /// PT: Retorna os valores observados da sequence antes e depois de setval sem chamar nextval novamente antes.
+    /// PT-br: Retorna os valores observados da sequence antes e depois de setval sem chamar nextval novamente antes.
     /// </summary>
     public async Task<long[]> RunSequenceSetValAsync()
     {

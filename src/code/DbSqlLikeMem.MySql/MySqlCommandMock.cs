@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Mock command for MySQL connections.
-/// PT: Comando simulado para conexões MySQL.
+/// PT-br: Comando simulado para conexões MySQL.
 /// </summary>
 public class MySqlCommandMock(
     MySqlConnectionMock? connection,
@@ -34,19 +34,19 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Gets or sets CommandTimeout.
-    /// PT: Obtém ou define CommandTimeout.
+    /// PT-br: Obtém ou define CommandTimeout.
     /// </summary>
     public override int CommandTimeout { get; set; }
 
     /// <summary>
     /// EN: Gets or sets CommandType.
-    /// PT: Obtém ou define CommandType.
+    /// PT-br: Obtém ou define CommandType.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
     /// EN: Gets or sets the associated connection.
-    /// PT: Obtém ou define a conexão associada.
+    /// PT-br: Obtém ou define a conexão associada.
     /// </summary>
     public new MySqlConnectionMock? Connection
     {
@@ -65,7 +65,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Gets or sets the associated connection.
-    /// PT: Obtém ou define a conexão associada.
+    /// PT-br: Obtém ou define a conexão associada.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -208,13 +208,13 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Gets the parameter collection for the command.
-    /// PT: Obtém a coleção de parâmetros do comando.
+    /// PT-br: Obtém a coleção de parâmetros do comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
     /// EN: Gets or sets the current transaction.
-    /// PT: Obtém ou define a transação atual.
+    /// PT-br: Obtém ou define a transação atual.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -224,33 +224,33 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Gets or sets UpdatedRowSource.
-    /// PT: Obtém ou define UpdatedRowSource.
+    /// PT-br: Obtém ou define UpdatedRowSource.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
 
     /// <summary>
     /// EN: Gets or sets DesignTimeVisible.
-    /// PT: Obtém ou define DesignTimeVisible.
+    /// PT-br: Obtém ou define DesignTimeVisible.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
     /// EN: Implements Cancel.
-    /// PT: Implementa Cancel.
+    /// PT-br: Implementa Cancel.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
     /// EN: Creates a new MySQL parameter.
-    /// PT: Cria um novo parâmetro MySQL.
+    /// PT-br: Cria um novo parâmetro MySQL.
     /// </summary>
-    /// <returns>EN: Parameter instance. PT: Instância do parâmetro.</returns>
+    /// <returns>EN: Parameter instance. PT-br: Instância do parâmetro.</returns>
     protected override DbParameter CreateDbParameter()
         => new MySqlParameter();
 
     /// <summary>
     /// EN: Implements ExecuteNonQuery.
-    /// PT: Implementa ExecuteNonQuery.
+    /// PT-br: Implementa ExecuteNonQuery.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -306,10 +306,10 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um data leitor.
+    /// PT-br: Executa o comando e retorna um data leitor.
     /// </summary>
-    /// <param name="behavior">EN: Command behavior. PT: Comportamento do comando.</param>
-    /// <returns>EN: Data reader. PT: Data reader.</returns>
+    /// <param name="behavior">EN: Command behavior. PT-br: Comportamento do comando.</param>
+    /// <returns>EN: Data reader. PT-br: Data reader.</returns>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -375,7 +375,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Executes INSERT and materializes RETURNING result rows when requested.
-    /// PT: Executa INSERT e materializa linhas de resultado de RETURNING quando solicitado.
+    /// PT-br: Executa INSERT e materializa linhas de resultado de RETURNING quando solicitado.
     /// </summary>
     private TableResultMock? ExecuteInsertReturning(SqlInsertQuery query)
     {
@@ -401,7 +401,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Executes UPDATE and materializes RETURNING result rows when requested.
-    /// PT: Executa UPDATE e materializa linhas de resultado de RETURNING quando solicitado.
+    /// PT-br: Executa UPDATE e materializa linhas de resultado de RETURNING quando solicitado.
     /// </summary>
     private TableResultMock? ExecuteUpdateReturning(SqlUpdateQuery query)
     {
@@ -427,7 +427,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Executes DELETE and materializes RETURNING result rows when requested.
-    /// PT: Executa DELETE e materializa linhas de resultado de RETURNING quando solicitado.
+    /// PT-br: Executa DELETE e materializa linhas de resultado de RETURNING quando solicitado.
     /// </summary>
     private TableResultMock? ExecuteDeleteReturning(SqlDeleteQuery query)
     {
@@ -456,7 +456,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Builds a RETURNING result set from affected row indexes without cloning full source rows.
-    /// PT: Monta um conjunto de resultado RETURNING a partir dos índices afetados sem clonar linhas completas.
+    /// PT-br: Monta um conjunto de resultado RETURNING a partir dos índices afetados sem clonar linhas completas.
     /// </summary>
     private static TableResultMock BuildReturningResultFromIndexes(
         IReadOnlyList<ReturningProjection> projections,
@@ -490,7 +490,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Creates projection metadata and resolvers for RETURNING items.
-    /// PT: Cria metadados de projeção e resolvedores para itens de RETURNING.
+    /// PT-br: Cria metadados de projeção e resolvedores para itens de RETURNING.
     /// </summary>
     private List<ReturningProjection> BuildReturningProjection(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -543,7 +543,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Gets cached RETURNING projection templates for the current table shape and projection list.
-    /// PT: Obtém templates cacheados de projeção RETURNING para o formato atual da tabela e da lista de projeções.
+    /// PT-br: Obtém templates cacheados de projeção RETURNING para o formato atual da tabela e da lista de projeções.
     /// </summary>
     private IReadOnlyList<ReturningProjectionTemplate> GetReturningProjectionTemplates(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -561,7 +561,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Builds cached RETURNING projection templates from parsed expressions.
-    /// PT: Monta templates cacheáveis de projeção RETURNING a partir das expressões parseadas.
+    /// PT-br: Monta templates cacheáveis de projeção RETURNING a partir das expressões parseadas.
     /// </summary>
     private IReadOnlyList<ReturningProjectionTemplate> BuildReturningProjectionTemplates(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -625,7 +625,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Appends cached templates for all table columns in ordinal order.
-    /// PT: Adiciona templates cacheáveis para todas as colunas da tabela na ordem ordinal.
+    /// PT-br: Adiciona templates cacheáveis para todas as colunas da tabela na ordem ordinal.
     /// </summary>
     private static void AppendAllColumnTemplates(
         ICollection<ReturningProjectionTemplate> templates,
@@ -638,7 +638,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Appends a cached template for a single column projection.
-    /// PT: Adiciona um template cacheável para a projeção de uma única coluna.
+    /// PT-br: Adiciona um template cacheável para a projeção de uma única coluna.
     /// </summary>
     private static void AppendColumnTemplate(
         ICollection<ReturningProjectionTemplate> templates,
@@ -653,7 +653,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Appends a cached template for a resolved table column.
-    /// PT: Adiciona um template cacheável para uma coluna da tabela já resolvida.
+    /// PT-br: Adiciona um template cacheável para uma coluna da tabela já resolvida.
     /// </summary>
     private static void AppendColumnTemplate(
         ICollection<ReturningProjectionTemplate> templates,
@@ -675,7 +675,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Finds row indexes matched by simple WHERE conditions used by DML strategies.
-    /// PT: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
+    /// PT-br: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
     /// </summary>
     private List<int> MatchRowIndexes(
         ITableMock table,
@@ -696,7 +696,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Normalizes a qualified column reference to a table-local column name.
-    /// PT: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
+    /// PT-br: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
     /// </summary>
     private static string NormalizeColumnReference(string rawColumnName)
     {
@@ -709,7 +709,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Builds a cache key for RETURNING projection templates from table identity, schema and projection text.
-    /// PT: Monta uma chave de cache para templates de projeção RETURNING a partir da identidade da tabela, esquema e texto da projeção.
+    /// PT-br: Monta uma chave de cache para templates de projeção RETURNING a partir da identidade da tabela, esquema e texto da projeção.
     /// </summary>
     private static string BuildReturningProjectionCacheKey(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -724,7 +724,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Builds a normalized lookup for current parameter values used by cached RETURNING plans.
-    /// PT: Monta um lookup normalizado para os valores atuais dos parâmetros usados por planos cacheados de RETURNING.
+    /// PT-br: Monta um lookup normalizado para os valores atuais dos parâmetros usados por planos cacheados de RETURNING.
     /// </summary>
     private Dictionary<string, object?> BuildParameterValueLookup()
     {
@@ -736,7 +736,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Normalizes a SQL parameter placeholder name for cache and lookup operations.
-    /// PT: Normaliza o nome de um placeholder de parâmetro SQL para operações de cache e lookup.
+    /// PT-br: Normaliza o nome de um placeholder de parâmetro SQL para operações de cache e lookup.
     /// </summary>
     private static string NormalizeParameterName(string? rawName)
     {
@@ -748,7 +748,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Tries to resolve the target table from an AST table source.
-    /// PT: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
+    /// PT-br: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
@@ -781,7 +781,7 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Implements ExecuteScalar.
-    /// PT: Implementa ExecuteScalar.
+    /// PT-br: Implementa ExecuteScalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -811,15 +811,15 @@ public class MySqlCommandMock(
 
     /// <summary>
     /// EN: Implements Prepare.
-    /// PT: Implementa Prepare.
+    /// PT-br: Implementa Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
     /// EN: Disposes the command and resources.
-    /// PT: Descarta o comando e os recursos.
+    /// PT-br: Descarta o comando e os recursos.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         if (!disposedValue)

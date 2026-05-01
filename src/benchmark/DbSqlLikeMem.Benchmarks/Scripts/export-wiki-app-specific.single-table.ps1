@@ -1,7 +1,8 @@
 ﻿param(
     [string] $ArtifactsDir = "../../../docs/Wiki/BenchmarkResults/results",
     [string] $OutFile = "../../../docs/Wiki/performance-matrix-app-specific.md",
-    [string] $CatalogFile = ".\benchmark-feature-map.app-specific.json"
+    [string] $CatalogFile = ".\benchmark-feature-map.app-specific.json",
+    [string] $EnvironmentManifestFile = "../../../docs/Wiki/BenchmarkResults/benchmark-run.environment.json"
 )
 
 Set-StrictMode -Version Latest
@@ -133,7 +134,78 @@ function Get-SupportedFeatures {
     return @()
 }
 
+function Get-FeatureKey {
+    param([Parameter(Mandatory)] [pscustomobject] $Feature)
+
+    if ($Feature.PSObject.Properties.Name -contains 'stableId' -and -not [string]::IsNullOrWhiteSpace([string]$Feature.stableId)) {
+        return [string]$Feature.stableId
+    }
+
+    return [string]$Feature.id
+}
+
+function Get-FeatureStatus {
+    param([Parameter(Mandatory)] [pscustomobject] $Feature)
+
+    if ($Feature.PSObject.Properties.Name -contains 'status' -and -not [string]::IsNullOrWhiteSpace([string]$Feature.status)) {
+        return [string]$Feature.status
+    }
+
+    return 'Active'
+}
+
+function Get-CategoryRow {
+    param(
+        [Parameter(Mandatory)] [string] $Category,
+        [Parameter(Mandatory)] [int] $ColumnCount
+    )
+
+    $cells = New-Object System.Collections.Generic.List[string]
+    $cells.Add("**$Category**") | Out-Null
+
+    for ($i = 1; $i -lt $ColumnCount; $i++) {
+        $cells.Add('') | Out-Null
+    }
+
+    return '| ' + ($cells -join ' | ') + ' |'
+}
+
+function Get-EnvironmentHeaderLine {
+    param([Parameter(Mandatory)] [pscustomobject] $Environment)
+
+    $runEnvironment = if ($Environment.PSObject.Properties.Name -contains 'environment') { $Environment.environment } else { $Environment }
+    $profile = if ($runEnvironment.PSObject.Properties.Name -contains 'profile') { [string]$runEnvironment.profile } else { '' }
+    $os = if ($runEnvironment.PSObject.Properties.Name -contains 'os') { [string]$runEnvironment.os } elseif ($runEnvironment.PSObject.Properties.Name -contains 'operatingSystem') { [string]$runEnvironment.operatingSystem } else { '' }
+    $framework = if ($runEnvironment.PSObject.Properties.Name -contains 'framework') { [string]$runEnvironment.framework } else { '' }
+    $runtime = if ($runEnvironment.PSObject.Properties.Name -contains 'runtime') { [string]$runEnvironment.runtime } else { '' }
+    $timestampUtc = if ($runEnvironment.PSObject.Properties.Name -contains 'timestampUtc') { [string]$runEnvironment.timestampUtc } else { '' }
+    $jobId = if ($Environment.PSObject.Properties.Name -contains 'jobId') { [string]$Environment.jobId } else { '' }
+
+    return "> Ambiente: profile=$profile; jobId=$jobId; os=$os; framework=$framework; runtime=$runtime; timestampUtc=$timestampUtc"
+}
+
 $catalog = Get-Content $CatalogFile -Raw | ConvertFrom-Json
+$schemaPath = if ($catalog.PSObject.Properties.Name -contains 'resultSchema') { [string]$catalog.resultSchema } else { $null }
+if ([string]::IsNullOrWhiteSpace($schemaPath)) {
+    throw "Catalog file does not declare resultSchema: $CatalogFile"
+}
+
+$catalogDir = Split-Path -Parent $CatalogFile
+$schemaFullPath = Join-Path $catalogDir $schemaPath
+if (-not (Test-Path $schemaFullPath)) {
+    throw "Result schema file not found: $schemaFullPath"
+}
+
+$resultSchema = Get-Content $schemaFullPath -Raw | ConvertFrom-Json
+if ([string]::IsNullOrWhiteSpace([string]$resultSchema.title)) {
+    throw "Result schema title is missing: $schemaFullPath"
+}
+
+$environmentManifest = $null
+if (Test-Path $EnvironmentManifestFile) {
+    $environmentManifest = Get-Content $EnvironmentManifestFile -Raw | ConvertFrom-Json
+}
+
 $reportFiles = Get-ChildItem -Path $ArtifactsDir -Filter '*-report-github.md' | Sort-Object Name
 
 $reports = @{}
@@ -146,6 +218,9 @@ $null = $lines.Add('# Performance features - App Specific')
 $null = $lines.Add('')
 $null = $lines.Add('> Gerado automaticamente a partir dos relatórios `*-report-github.md` do BenchmarkDotNet e do catálogo `benchmark-feature-map.app-specific.json`.')
 $null = $lines.Add('> Tabela única com uma coluna por banco/provider.')
+if ($null -ne $environmentManifest) {
+    $null = $lines.Add((Get-EnvironmentHeaderLine -Environment $environmentManifest))
+}
 $null = $lines.Add('')
 
 $providerTitles = New-Object System.Collections.Generic.List[string]
@@ -153,34 +228,37 @@ foreach ($provider in $catalog.providers) {
     $providerTitles.Add((Get-DisplayTitle -Provider $provider)) | Out-Null
 }
 
-$header = '| Feature | ' + (($providerTitles | ForEach-Object { $_ }) -join ' | ') + ' | Description |'
-$sep = '|---|' + (($providerTitles | ForEach-Object { '---:' }) -join '|') + '|:---:|'
+$header = '| Feature | Status | ' + (($providerTitles | ForEach-Object { $_ }) -join ' | ') + ' | Description |'
+$sep = '|---|:---:|' + (($providerTitles | ForEach-Object { '---:' }) -join '|') + '|:---:|'
 $null = $lines.Add($header)
 $null = $lines.Add($sep)
 
 $category = $null
 
 foreach ($feature in ($catalog.features | Sort-Object category, id)) {
+    $featureKey = Get-FeatureKey -Feature $feature
+
     if ($category -ne $feature.category) {
         $category = $feature.category
-        $null = $lines.Add("| **$category** |  |  |  |  |  |  |")
+        $null = $lines.Add((Get-CategoryRow -Category $category -ColumnCount ($providerTitles.Count + 3)))
     }
 
     $row = New-Object System.Collections.Generic.List[string]
     $row.Add([string]$feature.displayName) | Out-Null
+    $row.Add((Get-FeatureStatus -Feature $feature)) | Out-Null
 
     foreach ($provider in $catalog.providers) {
         $mockReportName = "DbSqlLikeMem.Benchmarks.Suites.$($provider.id)_DbSqlLikeMem_Benchmarks-report-github.md"
         $mockResults = if ($reports.ContainsKey($mockReportName)) { $reports[$mockReportName] } else { @{} }
         $supportedFeatures = Get-SupportedFeatures -Provider $provider
-        $supported = $supportedFeatures -contains $feature.id
+        $supported = $supportedFeatures -contains $featureKey
 
         $mockCell = 'N/A'
 
         if ($supported) {
-            if ($mockResults.ContainsKey($feature.id)) {
+            if ($mockResults.ContainsKey($featureKey)) {
                 $culture = [System.Globalization.CultureInfo]::GetCultureInfo('pt-BR')
-                $mockCell = [math]::Round($mockResults[$feature.id].Microseconds, 2, [System.MidpointRounding]::AwayFromZero).ToString('N2', $culture) + ' ' + ([string][char]0x03BC) +'s'
+                $mockCell = [math]::Round($mockResults[$featureKey].Microseconds, 2, [System.MidpointRounding]::AwayFromZero).ToString('N2', $culture) + ' ' + ([string][char]0x03BC) +'s'
             }
             else {
                 $mockCell = 'pending'

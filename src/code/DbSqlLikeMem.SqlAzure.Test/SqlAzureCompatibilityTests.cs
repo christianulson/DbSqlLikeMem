@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers SqlAzure compatibility-level behavior.
-/// PT: Cobre o comportamento por nível de compatibilidade do SqlAzure.
+/// PT-br: Cobre o comportamento por nível de compatibilidade do SqlAzure.
 /// </summary>
 public sealed class SqlAzureCompatibilityTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlAzureCompatibilityTests(
 {
     /// <summary>
     /// EN: Returns sample SQL rows used by compatibility-level theory data.
-    /// PT: Retorna linhas SQL de exemplo usadas pelos dados teoricos por nivel de compatibilidade.
+    /// PT-br: Retorna linhas SQL de exemplo usadas pelos dados teoricos por nivel de compatibilidade.
     /// </summary>
     public static IEnumerable<object[]> SqlSamples()
     {
@@ -20,7 +20,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures default SqlAzure compatibility level is used when not explicitly provided.
-    /// PT: Garante que o nível de compatibilidade padrão do SqlAzure seja usado quando não for informado.
+    /// PT-br: Garante que o nível de compatibilidade padrão do SqlAzure seja usado quando não for informado.
     /// </summary>
     [Fact]
     public void SqlAzureDbMock_ShouldUseDefaultCompatibilityLevel()
@@ -31,7 +31,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures explicit SQL Azure compatibility level is respected.
-    /// PT: Garante que o nível explícito de compatibilidade SQL Azure seja respeitado.
+    /// PT-br: Garante que o nível explícito de compatibilidade SQL Azure seja respeitado.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -43,7 +43,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure connection can be created with SQL Azure db mock.
-    /// PT: Garante que a conexão SQL Azure possa ser criada com o db mock SQL Azure.
+    /// PT-br: Garante que a conexão SQL Azure possa ser criada com o db mock SQL Azure.
     /// </summary>
     [Fact]
     public void SqlAzureConnectionMock_ShouldAcceptSqlAzureDbMock()
@@ -54,7 +54,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure connection exposes SQL Azure server version text.
-    /// PT: Garante que a conexão SQL Azure exponha texto de versão de servidor SQL Azure.
+    /// PT-br: Garante que a conexão SQL Azure exponha texto de versão de servidor SQL Azure.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -66,7 +66,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure data source creates SQL Azure connection instances.
-    /// PT: Garante que a fonte de dados SQL Azure crie instâncias de conexão SQL Azure.
+    /// PT-br: Garante que a fonte de dados SQL Azure crie instâncias de conexão SQL Azure.
     /// </summary>
     [Fact]
     public void SqlAzureDataSourceMock_ShouldCreateSqlAzureConnection()
@@ -82,7 +82,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure data adapter keeps typed select command synchronized.
-    /// PT: Garante que o data adapter SQL Azure mantenha sincronizado o comando select tipado.
+    /// PT-br: Garante que o data adapter SQL Azure mantenha sincronizado o comando select tipado.
     /// </summary>
     [Fact]
     public void SqlAzureDataAdapterMock_ShouldKeepTypedSelectCommand()
@@ -95,7 +95,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure connector factory creates SQL Azure specific objects.
-    /// PT: Garante que a factory SQL Azure crie objetos específicos de SQL Azure.
+    /// PT-br: Garante que a factory SQL Azure crie objetos específicos de SQL Azure.
     /// </summary>
     [Fact]
     public void SqlAzureConnectorFactoryMock_ShouldCreateSqlAzureObjects()
@@ -108,7 +108,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures provider-specific internal exception factory returns SQL Azure exception type.
-    /// PT: Garante que a fábrica interna de exceções do provedor retorne tipo de exceção SQL Azure.
+    /// PT-br: Garante que a fábrica interna de exceções do provedor retorne tipo de exceção SQL Azure.
     /// </summary>
     [Fact]
     public void SqlAzureConnectionMock_NewException_ShouldReturnSqlAzureMockException()
@@ -122,7 +122,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility levels are exposed in ascending order.
-    /// PT: Garante que os níveis de compatibilidade do SQL Azure sejam expostos em ordem crescente.
+    /// PT-br: Garante que os níveis de compatibilidade do SQL Azure sejam expostos em ordem crescente.
     /// </summary>
     [Fact]
     public void SqlAzureDbCompatibilityLevels_ShouldExposeExpectedAscendingLevels()
@@ -142,7 +142,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures SqlAzureDbVersions aliases the same compatibility sequence.
-    /// PT: Garante que SqlAzureDbVersions faça alias da mesma sequência de compatibilidade.
+    /// PT-br: Garante que SqlAzureDbVersions faça alias da mesma sequência de compatibilidade.
     /// </summary>
     [Fact]
     public void SqlAzureDbVersions_ShouldMatchCompatibilityLevels()
@@ -152,7 +152,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures MemberDataSqlAzureCompatibilityLevel emits valid compatibility levels.
-    /// PT: Garante que MemberDataSqlAzureCompatibilityLevel emita níveis de compatibilidade válidos.
+    /// PT-br: Garante que MemberDataSqlAzureCompatibilityLevel emita níveis de compatibilidade válidos.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -166,7 +166,7 @@ public sealed class SqlAzureCompatibilityTests(
 
     /// <summary>
     /// EN: Ensures member data by compatibility level appends SQL Azure levels to each source row.
-    /// PT: Garante que os dados por nível de compatibilidade anexem níveis SQL Azure em cada linha de origem.
+    /// PT-br: Garante que os dados por nível de compatibilidade anexem níveis SQL Azure em cada linha de origem.
     /// </summary>
     [Theory]
     [MemberDataBySqlAzureCompatibilityLevel(nameof(SqlSamples), VersionGraterOrEqual = SqlAzureDbCompatibilityLevels.SqlServer2019)]

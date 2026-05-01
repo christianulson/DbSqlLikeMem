@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers advanced PostgreSQL SQL scenarios that the mock validates against version gates.
-/// PT: Cobre cenarios SQL avancados do PostgreSQL que o mock valida com base em restricoes de versao.
+/// PT-br: Cobre cenarios SQL avancados do PostgreSQL que o mock valida com base em restricoes de versao.
 /// </summary>
 /// <remarks>
 /// EN: Creates the in-memory PostgreSQL connection used by the advanced gap tests.
-/// PT: Cria a conexao PostgreSQL em memoria usada pelos testes de gap avancados.
+/// PT-br: Cria a conexao PostgreSQL em memoria usada pelos testes de gap avancados.
 /// </remarks>
 public sealed class PostgreSqlAdvancedSqlGapTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
@@ -41,7 +41,7 @@ public sealed class PostgreSqlAdvancedSqlGapTests(ITestOutputHelper helper) : XU
 
     /// <summary>
     /// EN: Verifies ROW_NUMBER partitioning works in PostgreSQL window coverage.
-    /// PT: Verifica se o particionamento com ROW_NUMBER funciona na cobertura de janela do PostgreSQL.
+    /// PT-br: Verifica se o particionamento com ROW_NUMBER funciona na cobertura de janela do PostgreSQL.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -68,7 +68,7 @@ ORDER BY tenantid, id";
 
     /// <summary>
     /// EN: Verifies RANK and DENSE_RANK work in PostgreSQL window coverage.
-    /// PT: Verifica se RANK e DENSE_RANK funcionam na cobertura de janela do PostgreSQL.
+    /// PT-br: Verifica se RANK e DENSE_RANK funcionam na cobertura de janela do PostgreSQL.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -98,7 +98,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies NTILE works in PostgreSQL window coverage.
-    /// PT: Verifica se NTILE funciona na cobertura de janela do PostgreSQL.
+    /// PT-br: Verifica se NTILE funciona na cobertura de janela do PostgreSQL.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -126,7 +126,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies PERCENT_RANK and CUME_DIST work in PostgreSQL window coverage.
-    /// PT: Verifica se PERCENT_RANK e CUME_DIST funcionam na cobertura de janela do PostgreSQL.
+    /// PT-br: Verifica se PERCENT_RANK e CUME_DIST funcionam na cobertura de janela do PostgreSQL.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -161,7 +161,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies LAG and LEAD work in PostgreSQL window coverage.
-    /// PT: Verifica se LAG e LEAD funcionam na cobertura de janela do PostgreSQL.
+    /// PT-br: Verifica se LAG e LEAD funcionam na cobertura de janela do PostgreSQL.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -191,7 +191,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies FIRST_VALUE and LAST_VALUE work in PostgreSQL window coverage.
-    /// PT: Verifica se FIRST_VALUE e LAST_VALUE funcionam na cobertura de janela do PostgreSQL.
+    /// PT-br: Verifica se FIRST_VALUE e LAST_VALUE funcionam na cobertura de janela do PostgreSQL.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -221,7 +221,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies NTH_VALUE works in PostgreSQL window coverage.
-    /// PT: Verifica se NTH_VALUE funciona na cobertura de janela do PostgreSQL.
+    /// PT-br: Verifica se NTH_VALUE funciona na cobertura de janela do PostgreSQL.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -249,7 +249,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies zero-offset LAG and LEAD return the current row.
-    /// PT: Verifica se LAG e LEAD com offset zero retornam a linha atual.
+    /// PT-br: Verifica se LAG e LEAD com offset zero retornam a linha atual.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -278,7 +278,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies a PostgreSQL reference query combining CTE, JOIN, LEFT JOIN, LATERAL, FILTER, STRING_AGG, COALESCE, INTERVAL, CASE, CAST and ROW_NUMBER returns the expected rows.
-    /// PT: Verifica se uma query de referencia do PostgreSQL combinando CTE, JOIN, LEFT JOIN, LATERAL, FILTER, STRING_AGG, COALESCE, INTERVAL, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// PT-br: Verifica se uma query de referencia do PostgreSQL combinando CTE, JOIN, LEFT JOIN, LATERAL, FILTER, STRING_AGG, COALESCE, INTERVAL, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -366,7 +366,7 @@ ORDER BY tenantid, rn, id";
 
     /// <summary>
     /// EN: Verifies NOT REGEXP works in PostgreSQL compatibility coverage.
-    /// PT: Verifica se NOT REGEXP funciona na cobertura de compatibilidade do PostgreSQL.
+    /// PT-br: Verifica se NOT REGEXP funciona na cobertura de compatibilidade do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -379,7 +379,7 @@ ORDER BY tenantid, rn, id";
 
     /// <summary>
     /// EN: Verifies NOT LIKE works in PostgreSQL compatibility coverage.
-    /// PT: Verifica se NOT LIKE funciona na cobertura de compatibilidade do PostgreSQL.
+    /// PT-br: Verifica se NOT LIKE funciona na cobertura de compatibilidade do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -392,7 +392,7 @@ ORDER BY tenantid, rn, id";
 
     /// <summary>
     /// EN: Verifies expression-based offsets work for LAG and NTH_VALUE.
-    /// PT: Verifica se offsets baseados em expressao funcionam para LAG e NTH_VALUE.
+    /// PT-br: Verifica se offsets baseados em expressao funcionam para LAG e NTH_VALUE.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -422,7 +422,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies expression-based bucket counts work for NTILE.
-    /// PT: Verifica se contagens de buckets baseadas em expressao funcionam para NTILE.
+    /// PT-br: Verifica se contagens de buckets baseadas em expressao funcionam para NTILE.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -450,7 +450,7 @@ ORDER BY id";
 
     /// <summary>
     /// EN: Verifies correlated subqueries work in the SELECT list.
-    /// PT: Verifica se subconsultas correlacionadas funcionam na lista SELECT.
+    /// PT-br: Verifica se subconsultas correlacionadas funcionam na lista SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -467,7 +467,7 @@ ORDER BY u.id").ToList();
 
     /// <summary>
     /// EN: Verifies interval-based date addition works in PostgreSQL coverage.
-    /// PT: Verifica se a adicao de data baseada em intervalo funciona na cobertura do PostgreSQL.
+    /// PT-br: Verifica se a adicao de data baseada em intervalo funciona na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -487,7 +487,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies string-to-int casts work in PostgreSQL coverage.
-    /// PT: Verifica se conversoes de string para int funcionam na cobertura do PostgreSQL.
+    /// PT-br: Verifica se conversoes de string para int funcionam na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -500,7 +500,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies REGEXP operators work in PostgreSQL coverage.
-    /// PT: Verifica se operadores REGEXP funcionam na cobertura do PostgreSQL.
+    /// PT-br: Verifica se operadores REGEXP funcionam na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -514,7 +514,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies ORDER BY FIELD-style sorting works in PostgreSQL coverage.
-    /// PT: Verifica se a ordenacao estilo ORDER BY FIELD funciona na cobertura do PostgreSQL.
+    /// PT-br: Verifica se a ordenacao estilo ORDER BY FIELD funciona na cobertura do PostgreSQL.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -526,7 +526,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies collation-sensitive comparisons follow the column collation.
-    /// PT: Verifica se as comparacoes sensiveis a collation seguem a collation da coluna.
+    /// PT-br: Verifica se as comparacoes sensiveis a collation seguem a collation da coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAdvancedSqlGap")]
@@ -539,9 +539,9 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Validates interception pipeline registration helpers for dependency injection.
-/// PT: Valida os helpers de registro do pipeline de interceptacao para injecao de dependencia.
+/// PT-br: Valida os helpers de registro do pipeline de interceptacao para injecao de dependencia.
 /// </summary>
 public sealed class DbInterceptionServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 {
     /// <summary>
     /// EN: Verifies AddDbInterception registers built-in interceptors that can be resolved and applied to a connection.
-    /// PT: Verifica se AddDbInterception registra interceptors nativos que podem ser resolvidos e aplicados a uma conexao.
+    /// PT-br: Verifica se AddDbInterception registra interceptors nativos que podem ser resolvidos e aplicados a uma conexao.
     /// </summary>
     [Fact]
     public void AddDbInterception_ShouldRegisterBuiltInInterceptors()
@@ -46,7 +46,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddDbInterception can compose built-in interceptors from services already registered in the container.
-    /// PT: Verifica se AddDbInterception consegue compor interceptors nativos a partir de servicos ja registrados no container.
+    /// PT-br: Verifica se AddDbInterception consegue compor interceptors nativos a partir de servicos ja registrados no container.
     /// </summary>
     [Fact]
     public void AddDbInterception_WithServiceProviderOptions_ShouldRegisterBuiltInInterceptors()
@@ -78,7 +78,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddDbConnectionInterceptor registers custom interceptors that participate in wrapping via service provider.
-    /// PT: Verifica se AddDbConnectionInterceptor registra interceptors customizados que participam do wrapping via service provider.
+    /// PT-br: Verifica se AddDbConnectionInterceptor registra interceptors customizados que participam do wrapping via service provider.
     /// </summary>
     [Fact]
     public void AddDbConnectionInterceptor_ShouldRegisterCustomInterceptor()
@@ -103,7 +103,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies the high-level DI helpers register recorder, logging, and text-writer interceptors with concrete resolution.
-    /// PT: Verifica se os helpers de DI em alto nivel registram os interceptors de recorder, logging e text writer com resolucao concreta.
+    /// PT-br: Verifica se os helpers de DI em alto nivel registram os interceptors de recorder, logging e text writer com resolucao concreta.
     /// </summary>
     [Fact]
     public void HighLevelHelpers_ShouldRegisterConcreteInterceptors()
@@ -134,7 +134,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies the ILogger helper registers the concrete interceptor and emits formatted messages.
-    /// PT: Verifica se o helper de ILogger registra o interceptor concreto e emite mensagens formatadas.
+    /// PT-br: Verifica se o helper de ILogger registra o interceptor concreto e emite mensagens formatadas.
     /// </summary>
     [Fact]
     public void AddDbInterceptionLogger_ShouldRegisterConcreteInterceptorAndEmitMessages()
@@ -158,7 +158,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies the built-in interceptors emit performance deltas when a mock command accumulates metrics.
-    /// PT: Verifica se os interceptors nativos emitem deltas de performance quando um comando mock acumula metricas.
+    /// PT-br: Verifica se os interceptors nativos emitem deltas de performance quando um comando mock acumula metricas.
     /// </summary>
     [Fact]
     public void Interceptors_ShouldEmitPerformanceDeltaWhenMetricsChange()
@@ -217,7 +217,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies the DI helper can register an interception connection factory from explicit interceptors.
-    /// PT: Verifica se o helper de DI consegue registrar uma factory de conexao com interceptacao a partir de interceptors explicitos.
+    /// PT-br: Verifica se o helper de DI consegue registrar uma factory de conexao com interceptacao a partir de interceptors explicitos.
     /// </summary>
     [Fact]
     public void AddDbInterceptionConnectionFactory_WithInterceptors_ShouldRegisterFactory()
@@ -241,7 +241,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies the DI helper can register an interception connection factory from options.
-    /// PT: Verifica se o helper de DI consegue registrar uma factory de conexao com interceptacao a partir de opcoes.
+    /// PT-br: Verifica se o helper de DI consegue registrar uma factory de conexao com interceptacao a partir de opcoes.
     /// </summary>
     [Fact]
     public void AddDbInterceptionConnectionFactory_WithOptions_ShouldRegisterFactory()
@@ -265,7 +265,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies the service-provider-based factory overload reuses interceptors already registered in DI.
-    /// PT: Verifica se a sobrecarga da factory baseada no service provider reutiliza os interceptors ja registrados no DI.
+    /// PT-br: Verifica se a sobrecarga da factory baseada no service provider reutiliza os interceptors ja registrados no DI.
     /// </summary>
     [Fact]
     public void AddDbInterceptionConnectionFactory_WithServiceProviderDelegate_ShouldReuseRegisteredInterceptors()
@@ -289,7 +289,7 @@ public sealed class DbInterceptionServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies the service-provider-based options overload can compose built-in interceptors from registered services.
-    /// PT: Verifica se a sobrecarga de opcoes baseada no service provider consegue compor interceptors nativos a partir de servicos registrados.
+    /// PT-br: Verifica se a sobrecarga de opcoes baseada no service provider consegue compor interceptors nativos a partir de servicos registrados.
     /// </summary>
     [Fact]
     public void AddDbInterceptionConnectionFactory_WithServiceProviderOptions_ShouldComposeBuiltInInterceptors()

@@ -5,17 +5,17 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Registers interception pipeline services in dependency injection.
-/// PT: Registra servicos do pipeline de interceptacao na injecao de dependencia.
+/// PT-br: Registra servicos do pipeline de interceptacao na injecao de dependencia.
 /// </summary>
 public static class DbInterceptionServiceCollectionExtensions
 {
     /// <summary>
     /// EN: Registers a shared recording interceptor and exposes it both by concrete type and pipeline interface.
-    /// PT: Registra um interceptor de gravacao compartilhado e o expoe tanto pelo tipo concreto quanto pela interface do pipeline.
+    /// PT-br: Registra um interceptor de gravacao compartilhado e o expoe tanto pelo tipo concreto quanto pela interface do pipeline.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="recorder">EN: Optional recorder instance to reuse. PT: Instancia opcional de recorder a reutilizar.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="recorder">EN: Optional recorder instance to reuse. PT-br: Instancia opcional de recorder a reutilizar.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionRecording(
         this IServiceCollection services,
         RecordingDbConnectionInterceptor? recorder = null)
@@ -29,11 +29,11 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers structured logging through the supplied text callback.
-    /// PT: Registra logging estruturado por meio do callback de texto informado.
+    /// PT-br: Registra logging estruturado por meio do callback de texto informado.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="writeLine">EN: Callback that receives formatted lines. PT: Callback que recebe linhas formatadas.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="writeLine">EN: Callback that receives formatted lines. PT-br: Callback que recebe linhas formatadas.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionLogging(
         this IServiceCollection services,
         Action<string> writeLine)
@@ -48,11 +48,11 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers text-writer based interception logging.
-    /// PT: Registra logging de interceptacao baseado em text writer.
+    /// PT-br: Registra logging de interceptacao baseado em text writer.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="writer">EN: Writer that receives formatted lines. PT: Writer que recebe linhas formatadas.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="writer">EN: Writer that receives formatted lines. PT-br: Writer que recebe linhas formatadas.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionTextWriter(
         this IServiceCollection services,
         TextWriter writer)
@@ -67,11 +67,11 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers interception logging through <see cref="ILogger"/>.
-    /// PT: Registra logging de interceptacao por meio de <see cref="ILogger"/>.
+    /// PT-br: Registra logging de interceptacao por meio de <see cref="ILogger"/>.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="logger">EN: Logger receiving formatted interception events. PT: Logger que recebe os eventos formatados de interceptacao.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="logger">EN: Logger receiving formatted interception events. PT-br: Logger que recebe os eventos formatados de interceptacao.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionLogger(
         this IServiceCollection services,
         ILogger logger)
@@ -86,11 +86,11 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers built-in interceptors composed from the supplied options.
-    /// PT: Registra interceptors nativos compostos a partir das opcoes informadas.
+    /// PT-br: Registra interceptors nativos compostos a partir das opcoes informadas.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="configure">EN: Options configuration. PT: Configuracao das opcoes.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="configure">EN: Options configuration. PT-br: Configuracao das opcoes.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterception(
         this IServiceCollection services,
         Action<DbInterceptionOptions>? configure = null)
@@ -111,11 +111,11 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers built-in interceptors composed from options configured with access to the service provider.
-    /// PT: Registra interceptors nativos compostos a partir de opcoes configuradas com acesso ao service provider.
+    /// PT-br: Registra interceptors nativos compostos a partir de opcoes configuradas com acesso ao service provider.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="configure">EN: Options configuration that can resolve services. PT: Configuracao das opcoes que pode resolver servicos.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="configure">EN: Options configuration that can resolve services. PT-br: Configuracao das opcoes que pode resolver servicos.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterception(
         this IServiceCollection services,
         Action<IServiceProvider, DbInterceptionOptions> configure)
@@ -133,11 +133,11 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers a custom interceptor type as part of the interception pipeline.
-    /// PT: Registra um tipo customizado de interceptor como parte do pipeline de interceptacao.
+    /// PT-br: Registra um tipo customizado de interceptor como parte do pipeline de interceptacao.
     /// </summary>
-    /// <typeparam name="TInterceptor">EN: Interceptor type. PT: Tipo do interceptor.</typeparam>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <typeparam name="TInterceptor">EN: Interceptor type. PT-br: Tipo do interceptor.</typeparam>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbConnectionInterceptor<TInterceptor>(
         this IServiceCollection services)
         where TInterceptor : DbConnectionInterceptor
@@ -149,12 +149,12 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers an interception connection factory built from a connection delegate and explicit interceptors.
-    /// PT: Registra uma factory de conexao com interceptacao criada a partir de um delegate de conexao e interceptors explicitos.
+    /// PT-br: Registra uma factory de conexao com interceptacao criada a partir de um delegate de conexao e interceptors explicitos.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT: Delegate que cria a conexao interna.</param>
-    /// <param name="interceptors">EN: Interceptors applied to each created connection. PT: Interceptors aplicados a cada conexao criada.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT-br: Delegate que cria a conexao interna.</param>
+    /// <param name="interceptors">EN: Interceptors applied to each created connection. PT-br: Interceptors aplicados a cada conexao criada.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionConnectionFactory(
         this IServiceCollection services,
         Func<DbConnection> connectionFactory,
@@ -170,12 +170,12 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers an interception connection factory built from a connection delegate and interception options.
-    /// PT: Registra uma factory de conexao com interceptacao criada a partir de um delegate de conexao e opcoes de interceptacao.
+    /// PT-br: Registra uma factory de conexao com interceptacao criada a partir de um delegate de conexao e opcoes de interceptacao.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT: Delegate que cria a conexao interna.</param>
-    /// <param name="configure">EN: Options configuration. PT: Configuracao das opcoes.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="connectionFactory">EN: Delegate that creates the inner connection. PT-br: Delegate que cria a conexao interna.</param>
+    /// <param name="configure">EN: Options configuration. PT-br: Configuracao das opcoes.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionConnectionFactory(
         this IServiceCollection services,
         Func<DbConnection> connectionFactory,
@@ -193,11 +193,11 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers an interception connection factory that resolves its interceptors from the same service provider.
-    /// PT: Registra uma factory de conexao com interceptacao que resolve seus interceptors a partir do mesmo service provider.
+    /// PT-br: Registra uma factory de conexao com interceptacao que resolve seus interceptors a partir do mesmo service provider.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="connectionFactory">EN: Delegate that creates the inner connection using the service provider. PT: Delegate que cria a conexao interna usando o service provider.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="connectionFactory">EN: Delegate that creates the inner connection using the service provider. PT-br: Delegate que cria a conexao interna usando o service provider.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionConnectionFactory(
         this IServiceCollection services,
         Func<IServiceProvider, DbConnection> connectionFactory)
@@ -213,12 +213,12 @@ public static class DbInterceptionServiceCollectionExtensions
 
     /// <summary>
     /// EN: Registers an interception connection factory that builds its options from the same service provider.
-    /// PT: Registra uma factory de conexao com interceptacao que monta suas opcoes a partir do mesmo service provider.
+    /// PT-br: Registra uma factory de conexao com interceptacao que monta suas opcoes a partir do mesmo service provider.
     /// </summary>
-    /// <param name="services">EN: Service collection. PT: Colecao de servicos.</param>
-    /// <param name="connectionFactory">EN: Delegate that creates the inner connection using the service provider. PT: Delegate que cria a conexao interna usando o service provider.</param>
-    /// <param name="configure">EN: Delegate that configures interception options using the service provider. PT: Delegate que configura as opcoes de interceptacao usando o service provider.</param>
-    /// <returns>EN: Same service collection. PT: Mesma colecao de servicos.</returns>
+    /// <param name="services">EN: Service collection. PT-br: Colecao de servicos.</param>
+    /// <param name="connectionFactory">EN: Delegate that creates the inner connection using the service provider. PT-br: Delegate que cria a conexao interna usando o service provider.</param>
+    /// <param name="configure">EN: Delegate that configures interception options using the service provider. PT-br: Delegate que configura as opcoes de interceptacao usando o service provider.</param>
+    /// <returns>EN: Same service collection. PT-br: Mesma colecao de servicos.</returns>
     public static IServiceCollection AddDbInterceptionConnectionFactory(
         this IServiceCollection services,
         Func<IServiceProvider, DbConnection> connectionFactory,

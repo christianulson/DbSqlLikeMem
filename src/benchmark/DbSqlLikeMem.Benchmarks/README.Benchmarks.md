@@ -8,13 +8,21 @@ Estrutura pensada para comparar **DbSqlLikeMem** contra **banco real** usando o 
 - `Benchmarks/Sessions`: sessões que sabem abrir conexão mock ou conexão real.
 - `*.TestTools`: SQL por provedor, compartilhado entre benchmark e fidelidade.
 - `benchmark-feature-map.json`: catálogo para gerar a wiki/matriz.
+- `benchmark-result.schema.json`: contrato estrutural do resultado publicado e da chave estavel do benchmark.
 - `Scripts/export-wiki.ps1`: converte os relatórios do BenchmarkDotNet em markdown para Wiki.
+- `Scripts/export-wiki-all.ps1`: orquestra a publicacao das duas matrizes principais em uma unica execucao.
+
+O catálogo publicado agora referencia `benchmark-result.schema.json` no topo do JSON para deixar explícito o contrato estrutural esperado pelos exportadores.
+Cada execução também grava `docs/Wiki/BenchmarkResults/benchmark-run.environment.json` com `profile`, `jobId` e metadados básicos do ambiente para a etapa de exportação estruturada.
+O catálogo também passou a sinalizar `FeatureStatus` no JSON publicado. Entradas marcadas como `Deprecated` continuam rastreáveis no histórico, enquanto `Removed` fica reservado para remoção formal e não deve aparecer como recurso comparável.
+Os exportadores da wiki agora mostram o status da feature ao lado do nome para deixar explícito quando a entrada é ativa ou depreciada.
+As tabelas geradas pela wiki mantêm essa sinalização tanto na matriz comparativa quanto na versão de coluna única.
 
 ## Convenções
 
 - Classes seguem o padrão `<Provider>_<Engine>_Benchmarks`.
-- Métodos seguem exatamente o nome da feature (`ConnectionOpen`, `CreateSchema`, `InsertSingle`...).
-- O script da wiki usa essas duas convenções para montar a matriz automaticamente.
+- Métodos normalmente seguem o nome da feature (`ConnectionOpen`, `CreateSchema`, `InsertSingle`...), mas alias e wrappers continuam válidos quando o catálogo ou o registry os expõem.
+- O script da wiki usa essas convenções junto com o catálogo para montar a matriz automaticamente.
 
 ## Execução sugerida
 
@@ -58,8 +66,11 @@ dotnet run -c Release -- --validate-catalog
 ## Scripts build Reports
 
 powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-app-specific.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-all.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-all.ps1 -IncludeLegacySingleTable
 
-powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-app-specific.single-table.ps1
+`export-wiki-app-specific.single-table.ps1` ficou como atalho legado opcional e nao faz parte do fluxo normal de publicacao.
 
 
 
@@ -77,6 +88,19 @@ se quiser reduzir também o overhead de processo:
 
 `inprocess` fica reservado para filtros curtos de `DbSqlLikeMem` ou `Sqlite`; para `Testcontainers`, use o runner sem essa flag.
 Quando você roda o lote completo com `--inprocess`, o runner separa automaticamente os benchmarks rápidos (`DbSqlLikeMem` e `Sqlite`) da passagem `Testcontainers`, para evitar o erro de toolchain e manter a execução rápida onde faz sentido.
+
+Perfis aceitos pelo runner:
+
+- `smoke`
+- `core`
+- `full`
+- `diagnostic`
+
+Exemplo:
+
+```powershell
+dotnet run -c Release --profile smoke --filter *Sqlite_DbSqlLikeMem_Benchmarks*
+```
 
 
 docker compose -f docker-compose.benchmarks.yml down

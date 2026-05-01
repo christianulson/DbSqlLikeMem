@@ -9,7 +9,7 @@ internal static class FirebirdValueHelper
 
     /// <summary>
     /// EN: Gets or sets the column currently being resolved by Firebird value helpers.
-    /// PT: Obtém ou define a coluna atualmente resolvida pelos auxiliares de valor do Firebird.
+    /// PT-br: Obtém ou define a coluna atualmente resolvida pelos auxiliares de valor do Firebird.
     /// </summary>
     internal static string? CurrentColumn
     {
@@ -19,7 +19,7 @@ internal static class FirebirdValueHelper
 
     /// <summary>
     /// EN: Resolves a token to a Firebird-compatible value.
-    /// PT: Resolve um token para um valor compatível com Firebird.
+    /// PT-br: Resolve um token para um valor compatível com Firebird.
     /// </summary>
     public static object? Resolve(
         string token,

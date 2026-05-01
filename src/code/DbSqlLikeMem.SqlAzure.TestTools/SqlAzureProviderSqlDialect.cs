@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.SqlAzure.TestTools;
 
 /// <summary>
 /// EN: Provides SQL Azure-specific SQL snippets built on the shared SQL Server shape.
-/// PT: Fornece trechos SQL especificos de SQL Azure com base na mesma estrutura compartilhada do SQL Server.
+/// PT-br: Fornece trechos SQL especificos de SQL Azure com base na mesma estrutura compartilhada do SQL Server.
 /// </summary>
 public sealed class SqlAzureProviderSqlDialect : SqlServerProviderSqlDialect
 {

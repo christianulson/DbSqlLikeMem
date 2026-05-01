@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Captures and reapplies the structural schema state of a mock database.
-/// PT: Captura e reaplica o estado estrutural de schema de um banco simulado.
+/// PT-br: Captura e reaplica o estado estrutural de schema de um banco simulado.
 /// </summary>
 public sealed record SchemaSnapshot
 {
@@ -36,36 +36,36 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Serialized dialect name associated with the exported schema.
-    /// PT: Nome do dialeto serializado associado ao schema exportado.
+    /// PT-br: Nome do dialeto serializado associado ao schema exportado.
     /// </summary>
     public required string DialectName { get; init; }
 
     /// <summary>
     /// EN: Simulated provider version associated with the exported schema.
-    /// PT: Versao simulada do provider associada ao schema exportado.
+    /// PT-br: Versao simulada do provider associada ao schema exportado.
     /// </summary>
     public required int Version { get; init; }
 
     /// <summary>
     /// EN: Schemas captured in the snapshot.
-    /// PT: Schemas capturados no snapshot.
+    /// PT-br: Schemas capturados no snapshot.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotSchema> Schemas { get; init; }
 
     /// <summary>
     /// EN: Returns the current supported subset profile for this snapshot contract.
-    /// PT: Retorna o perfil do subset atualmente suportado por este contrato de snapshot.
+    /// PT-br: Retorna o perfil do subset atualmente suportado por este contrato de snapshot.
     /// </summary>
-    /// <returns>EN: Supported subset profile. PT: Perfil do subset suportado.</returns>
+    /// <returns>EN: Supported subset profile. PT-br: Perfil do subset suportado.</returns>
     public SchemaSnapshotSupportProfile GetSupportProfile()
         => CreateSupportProfile(DialectName, Version);
 
     /// <summary>
     /// EN: Exports the current structural schema from a mock connection.
-    /// PT: Exporta o schema estrutural atual de uma conexao simulada.
+    /// PT-br: Exporta o schema estrutural atual de uma conexao simulada.
     /// </summary>
-    /// <param name="connection">EN: Connection whose schema will be exported. PT: Conexao cujo schema sera exportado.</param>
-    /// <returns>EN: Captured schema snapshot. PT: Snapshot de schema capturado.</returns>
+    /// <param name="connection">EN: Connection whose schema will be exported. PT-br: Conexao cujo schema sera exportado.</param>
+    /// <returns>EN: Captured schema snapshot. PT-br: Snapshot de schema capturado.</returns>
     public static SchemaSnapshot Export(DbConnectionMockBase connection)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -74,10 +74,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Exports the current structural schema from a mock database.
-    /// PT: Exporta o schema estrutural atual de um banco simulado.
+    /// PT-br: Exporta o schema estrutural atual de um banco simulado.
     /// </summary>
-    /// <param name="db">EN: Database whose schema will be exported. PT: Banco cujo schema sera exportado.</param>
-    /// <returns>EN: Captured schema snapshot. PT: Snapshot de schema capturado.</returns>
+    /// <param name="db">EN: Database whose schema will be exported. PT-br: Banco cujo schema sera exportado.</param>
+    /// <returns>EN: Captured schema snapshot. PT-br: Snapshot de schema capturado.</returns>
     public static SchemaSnapshot Export(DbMock db)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
@@ -94,10 +94,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Returns the current supported subset profile for a target mock database.
-    /// PT: Retorna o perfil do subset atualmente suportado para um banco simulado de destino.
+    /// PT-br: Retorna o perfil do subset atualmente suportado para um banco simulado de destino.
     /// </summary>
-    /// <param name="db">EN: Target database. PT: Banco de destino.</param>
-    /// <returns>EN: Supported subset profile. PT: Perfil do subset suportado.</returns>
+    /// <param name="db">EN: Target database. PT-br: Banco de destino.</param>
+    /// <returns>EN: Supported subset profile. PT-br: Perfil do subset suportado.</returns>
     public static SchemaSnapshotSupportProfile GetSupportProfile(DbMock db)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
@@ -106,10 +106,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Returns the current supported subset profile for a target mock connection.
-    /// PT: Retorna o perfil do subset atualmente suportado para uma conexao simulada de destino.
+    /// PT-br: Retorna o perfil do subset atualmente suportado para uma conexao simulada de destino.
     /// </summary>
-    /// <param name="connection">EN: Target connection. PT: Conexao de destino.</param>
-    /// <returns>EN: Supported subset profile. PT: Perfil do subset suportado.</returns>
+    /// <param name="connection">EN: Target connection. PT-br: Conexao de destino.</param>
+    /// <returns>EN: Supported subset profile. PT-br: Perfil do subset suportado.</returns>
     public static SchemaSnapshotSupportProfile GetSupportProfile(DbConnectionMockBase connection)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -118,10 +118,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Loads a snapshot from JSON text.
-    /// PT: Carrega um snapshot a partir de texto JSON.
+    /// PT-br: Carrega um snapshot a partir de texto JSON.
     /// </summary>
-    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
-    /// <returns>EN: Deserialized schema snapshot. PT: Snapshot de schema desserializado.</returns>
+    /// <param name="json">EN: Serialized schema snapshot. PT-br: Snapshot de schema serializado.</param>
+    /// <returns>EN: Deserialized schema snapshot. PT-br: Snapshot de schema desserializado.</returns>
     public static SchemaSnapshot Load(string json)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(json, nameof(json));
@@ -135,20 +135,20 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Loads a snapshot from JSON text and applies it to the target database.
-    /// PT: Carrega um snapshot a partir de texto JSON e o aplica ao banco de destino.
+    /// PT-br: Carrega um snapshot a partir de texto JSON e o aplica ao banco de destino.
     /// </summary>
-    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
-    /// <param name="db">EN: Target database to rebuild. PT: Banco de destino a reconstruir.</param>
+    /// <param name="json">EN: Serialized schema snapshot. PT-br: Snapshot de schema serializado.</param>
+    /// <param name="db">EN: Target database to rebuild. PT-br: Banco de destino a reconstruir.</param>
     public static void Load(string json, DbMock db)
         => Load(json, db, ensureCompatibility: false);
 
     /// <summary>
     /// EN: Loads a snapshot from JSON text and applies it to the target database with optional compatibility validation.
-    /// PT: Carrega um snapshot a partir de texto JSON e o aplica ao banco de destino com validacao opcional de compatibilidade.
+    /// PT-br: Carrega um snapshot a partir de texto JSON e o aplica ao banco de destino com validacao opcional de compatibilidade.
     /// </summary>
-    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
-    /// <param name="db">EN: Target database to rebuild. PT: Banco de destino a reconstruir.</param>
-    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    /// <param name="json">EN: Serialized schema snapshot. PT-br: Snapshot de schema serializado.</param>
+    /// <param name="db">EN: Target database to rebuild. PT-br: Banco de destino a reconstruir.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT-br: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
     public static void Load(
         string json,
         DbMock db,
@@ -157,11 +157,11 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Loads a snapshot from JSON text and applies it to the target connection database.
-    /// PT: Carrega um snapshot a partir de texto JSON e o aplica ao banco da conexao de destino.
+    /// PT-br: Carrega um snapshot a partir de texto JSON e o aplica ao banco da conexao de destino.
     /// </summary>
-    /// <param name="json">EN: Serialized schema snapshot. PT: Snapshot de schema serializado.</param>
-    /// <param name="connection">EN: Target connection whose database will be rebuilt. PT: Conexao de destino cujo banco sera reconstruido.</param>
-    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    /// <param name="json">EN: Serialized schema snapshot. PT-br: Snapshot de schema serializado.</param>
+    /// <param name="connection">EN: Target connection whose database will be rebuilt. PT-br: Conexao de destino cujo banco sera reconstruido.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT-br: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
     public static void Load(
         string json,
         DbConnectionMockBase connection,
@@ -170,10 +170,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Loads a snapshot from a JSON file path.
-    /// PT: Carrega um snapshot a partir do caminho de um arquivo JSON.
+    /// PT-br: Carrega um snapshot a partir do caminho de um arquivo JSON.
     /// </summary>
-    /// <param name="path">EN: JSON file path. PT: Caminho do arquivo JSON.</param>
-    /// <returns>EN: Deserialized schema snapshot. PT: Snapshot de schema desserializado.</returns>
+    /// <param name="path">EN: JSON file path. PT-br: Caminho do arquivo JSON.</param>
+    /// <returns>EN: Deserialized schema snapshot. PT-br: Snapshot de schema desserializado.</returns>
     public static SchemaSnapshot LoadFromFile(string path)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(path, nameof(path));
@@ -182,20 +182,20 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Loads a snapshot from a JSON file path and applies it to the target database.
-    /// PT: Carrega um snapshot a partir do caminho de um arquivo JSON e o aplica ao banco de destino.
+    /// PT-br: Carrega um snapshot a partir do caminho de um arquivo JSON e o aplica ao banco de destino.
     /// </summary>
-    /// <param name="path">EN: JSON file path. PT: Caminho do arquivo JSON.</param>
-    /// <param name="db">EN: Target database to rebuild. PT: Banco de destino a reconstruir.</param>
+    /// <param name="path">EN: JSON file path. PT-br: Caminho do arquivo JSON.</param>
+    /// <param name="db">EN: Target database to rebuild. PT-br: Banco de destino a reconstruir.</param>
     public static void LoadFromFile(string path, DbMock db)
         => LoadFromFile(path, db, ensureCompatibility: false);
 
     /// <summary>
     /// EN: Loads a snapshot from a JSON file path and applies it to the target database with optional compatibility validation.
-    /// PT: Carrega um snapshot a partir do caminho de um arquivo JSON e o aplica ao banco de destino com validacao opcional de compatibilidade.
+    /// PT-br: Carrega um snapshot a partir do caminho de um arquivo JSON e o aplica ao banco de destino com validacao opcional de compatibilidade.
     /// </summary>
-    /// <param name="path">EN: JSON file path. PT: Caminho do arquivo JSON.</param>
-    /// <param name="db">EN: Target database to rebuild. PT: Banco de destino a reconstruir.</param>
-    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    /// <param name="path">EN: JSON file path. PT-br: Caminho do arquivo JSON.</param>
+    /// <param name="db">EN: Target database to rebuild. PT-br: Banco de destino a reconstruir.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT-br: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
     public static void LoadFromFile(
         string path,
         DbMock db,
@@ -204,11 +204,11 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Loads a snapshot from a JSON file path and applies it to the target connection database.
-    /// PT: Carrega um snapshot a partir do caminho de um arquivo JSON e o aplica ao banco da conexao de destino.
+    /// PT-br: Carrega um snapshot a partir do caminho de um arquivo JSON e o aplica ao banco da conexao de destino.
     /// </summary>
-    /// <param name="path">EN: JSON file path. PT: Caminho do arquivo JSON.</param>
-    /// <param name="connection">EN: Target connection whose database will be rebuilt. PT: Conexao de destino cujo banco sera reconstruido.</param>
-    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    /// <param name="path">EN: JSON file path. PT-br: Caminho do arquivo JSON.</param>
+    /// <param name="connection">EN: Target connection whose database will be rebuilt. PT-br: Conexao de destino cujo banco sera reconstruido.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT-br: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
     public static void LoadFromFile(
         string path,
         DbConnectionMockBase connection,
@@ -217,10 +217,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Checks whether the snapshot is compatible with the target mock database provider and version.
-    /// PT: Verifica se o snapshot e compativel com o provider e a versao do banco simulado de destino.
+    /// PT-br: Verifica se o snapshot e compativel com o provider e a versao do banco simulado de destino.
     /// </summary>
-    /// <param name="db">EN: Target database to validate. PT: Banco de destino a validar.</param>
-    /// <returns>EN: True when the target can consume the snapshot under the explicit compatibility gate. PT: True quando o destino pode consumir o snapshot sob o gate explicito de compatibilidade.</returns>
+    /// <param name="db">EN: Target database to validate. PT-br: Banco de destino a validar.</param>
+    /// <returns>EN: True when the target can consume the snapshot under the explicit compatibility gate. PT-br: True quando o destino pode consumir o snapshot sob o gate explicito de compatibilidade.</returns>
     public bool IsCompatibleWith(DbMock db)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
@@ -231,10 +231,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Checks whether the snapshot is compatible with the target mock connection provider and version.
-    /// PT: Verifica se o snapshot e compativel com o provider e a versao da conexao simulada de destino.
+    /// PT-br: Verifica se o snapshot e compativel com o provider e a versao da conexao simulada de destino.
     /// </summary>
-    /// <param name="connection">EN: Target connection to validate. PT: Conexao de destino a validar.</param>
-    /// <returns>EN: True when the target can consume the snapshot under the explicit compatibility gate. PT: True quando o destino pode consumir o snapshot sob o gate explicito de compatibilidade.</returns>
+    /// <param name="connection">EN: Target connection to validate. PT-br: Conexao de destino a validar.</param>
+    /// <returns>EN: True when the target can consume the snapshot under the explicit compatibility gate. PT-br: True quando o destino pode consumir o snapshot sob o gate explicito de compatibilidade.</returns>
     public bool IsCompatibleWith(DbConnectionMockBase connection)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -243,9 +243,9 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Throws when the snapshot is not compatible with the target mock database provider and version.
-    /// PT: Lanca erro quando o snapshot nao e compativel com o provider e a versao do banco simulado de destino.
+    /// PT-br: Lanca erro quando o snapshot nao e compativel com o provider e a versao do banco simulado de destino.
     /// </summary>
-    /// <param name="db">EN: Target database to validate. PT: Banco de destino a validar.</param>
+    /// <param name="db">EN: Target database to validate. PT-br: Banco de destino a validar.</param>
     public void EnsureCompatibleWith(DbMock db)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
@@ -265,9 +265,9 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Throws when the snapshot is not compatible with the target mock connection provider and version.
-    /// PT: Lanca erro quando o snapshot nao e compativel com o provider e a versao da conexao simulada de destino.
+    /// PT-br: Lanca erro quando o snapshot nao e compativel com o provider e a versao da conexao simulada de destino.
     /// </summary>
-    /// <param name="connection">EN: Target connection to validate. PT: Conexao de destino a validar.</param>
+    /// <param name="connection">EN: Target connection to validate. PT-br: Conexao de destino a validar.</param>
     public void EnsureCompatibleWith(DbConnectionMockBase connection)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -276,17 +276,17 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Serializes the snapshot to JSON.
-    /// PT: Serializa o snapshot para JSON.
+    /// PT-br: Serializa o snapshot para JSON.
     /// </summary>
-    /// <returns>EN: JSON representation of the snapshot. PT: Representacao JSON do snapshot.</returns>
+    /// <returns>EN: JSON representation of the snapshot. PT-br: Representacao JSON do snapshot.</returns>
     public string ToJson()
         => JsonSerializer.Serialize(this, JsonOptions);
 
     /// <summary>
     /// EN: Computes a stable fingerprint for the current snapshot content.
-    /// PT: Calcula uma assinatura estavel para o conteudo atual do snapshot.
+    /// PT-br: Calcula uma assinatura estavel para o conteudo atual do snapshot.
     /// </summary>
-    /// <returns>EN: Stable fingerprint string for the snapshot. PT: String de assinatura estavel do snapshot.</returns>
+    /// <returns>EN: Stable fingerprint string for the snapshot. PT-br: String de assinatura estavel do snapshot.</returns>
     public string GetFingerprint()
     {
         var utf8 = Encoding.UTF8.GetBytes(ToJson());
@@ -300,10 +300,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Checks whether another snapshot has the same structural content.
-    /// PT: Verifica se outro snapshot possui o mesmo conteudo estrutural.
+    /// PT-br: Verifica se outro snapshot possui o mesmo conteudo estrutural.
     /// </summary>
-    /// <param name="other">EN: Snapshot to compare. PT: Snapshot a comparar.</param>
-    /// <returns>EN: True when both snapshots have the same structural content. PT: True quando os dois snapshots possuem o mesmo conteudo estrutural.</returns>
+    /// <param name="other">EN: Snapshot to compare. PT-br: Snapshot a comparar.</param>
+    /// <returns>EN: True when both snapshots have the same structural content. PT-br: True quando os dois snapshots possuem o mesmo conteudo estrutural.</returns>
     public bool Matches(SchemaSnapshot other)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(other, nameof(other));
@@ -312,10 +312,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Checks whether the target mock database matches the current snapshot content.
-    /// PT: Verifica se o banco simulado de destino corresponde ao conteudo atual do snapshot.
+    /// PT-br: Verifica se o banco simulado de destino corresponde ao conteudo atual do snapshot.
     /// </summary>
-    /// <param name="db">EN: Target database to compare. PT: Banco de destino a comparar.</param>
-    /// <returns>EN: True when the target database exports to the same structural content. PT: True quando o banco de destino exporta para o mesmo conteudo estrutural.</returns>
+    /// <param name="db">EN: Target database to compare. PT-br: Banco de destino a comparar.</param>
+    /// <returns>EN: True when the target database exports to the same structural content. PT-br: True quando o banco de destino exporta para o mesmo conteudo estrutural.</returns>
     public bool Matches(DbMock db)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
@@ -324,10 +324,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Checks whether the target mock connection database matches the current snapshot content.
-    /// PT: Verifica se o banco da conexao simulada de destino corresponde ao conteudo atual do snapshot.
+    /// PT-br: Verifica se o banco da conexao simulada de destino corresponde ao conteudo atual do snapshot.
     /// </summary>
-    /// <param name="connection">EN: Target connection to compare. PT: Conexao de destino a comparar.</param>
-    /// <returns>EN: True when the target connection database exports to the same structural content. PT: True quando o banco da conexao de destino exporta para o mesmo conteudo estrutural.</returns>
+    /// <param name="connection">EN: Target connection to compare. PT-br: Conexao de destino a comparar.</param>
+    /// <returns>EN: True when the target connection database exports to the same structural content. PT-br: True quando o banco da conexao de destino exporta para o mesmo conteudo estrutural.</returns>
     public bool Matches(DbConnectionMockBase connection)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -336,10 +336,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Compares the current snapshot against another snapshot and returns a structured drift report.
-    /// PT: Compara o snapshot atual com outro snapshot e retorna um relatorio estruturado de drift.
+    /// PT-br: Compara o snapshot atual com outro snapshot e retorna um relatorio estruturado de drift.
     /// </summary>
-    /// <param name="other">EN: Snapshot to compare. PT: Snapshot a comparar.</param>
-    /// <returns>EN: Structured comparison result. PT: Resultado estruturado da comparacao.</returns>
+    /// <param name="other">EN: Snapshot to compare. PT-br: Snapshot a comparar.</param>
+    /// <returns>EN: Structured comparison result. PT-br: Resultado estruturado da comparacao.</returns>
     public SchemaSnapshotComparison CompareTo(SchemaSnapshot other)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(other, nameof(other));
@@ -365,10 +365,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Compares the current snapshot against a target mock database and returns a structured drift report.
-    /// PT: Compara o snapshot atual com um banco simulado de destino e retorna um relatorio estruturado de drift.
+    /// PT-br: Compara o snapshot atual com um banco simulado de destino e retorna um relatorio estruturado de drift.
     /// </summary>
-    /// <param name="db">EN: Target database to compare. PT: Banco de destino a comparar.</param>
-    /// <returns>EN: Structured comparison result. PT: Resultado estruturado da comparacao.</returns>
+    /// <param name="db">EN: Target database to compare. PT-br: Banco de destino a comparar.</param>
+    /// <returns>EN: Structured comparison result. PT-br: Resultado estruturado da comparacao.</returns>
     public SchemaSnapshotComparison CompareTo(DbMock db)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(db, nameof(db));
@@ -377,10 +377,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Compares the current snapshot against a target mock connection database and returns a structured drift report.
-    /// PT: Compara o snapshot atual com o banco de uma conexao simulada de destino e retorna um relatorio estruturado de drift.
+    /// PT-br: Compara o snapshot atual com o banco de uma conexao simulada de destino e retorna um relatorio estruturado de drift.
     /// </summary>
-    /// <param name="connection">EN: Target connection to compare. PT: Conexao de destino a comparar.</param>
-    /// <returns>EN: Structured comparison result. PT: Resultado estruturado da comparacao.</returns>
+    /// <param name="connection">EN: Target connection to compare. PT-br: Conexao de destino a comparar.</param>
+    /// <returns>EN: Structured comparison result. PT-br: Resultado estruturado da comparacao.</returns>
     public SchemaSnapshotComparison CompareTo(DbConnectionMockBase connection)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
@@ -389,9 +389,9 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Writes the snapshot JSON representation to a file path.
-    /// PT: Escreve a representacao JSON do snapshot em um caminho de arquivo.
+    /// PT-br: Escreve a representacao JSON do snapshot em um caminho de arquivo.
     /// </summary>
-    /// <param name="path">EN: Target JSON file path. PT: Caminho do arquivo JSON de destino.</param>
+    /// <param name="path">EN: Target JSON file path. PT-br: Caminho do arquivo JSON de destino.</param>
     public void SaveToFile(string path)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(path, nameof(path));
@@ -400,10 +400,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Rebuilds the structural schema of the target database from this snapshot.
-    /// PT: Reconstroi o schema estrutural do banco de destino a partir deste snapshot.
+    /// PT-br: Reconstroi o schema estrutural do banco de destino a partir deste snapshot.
     /// </summary>
-    /// <param name="db">EN: Target database to rebuild. PT: Banco de destino a reconstruir.</param>
-    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    /// <param name="db">EN: Target database to rebuild. PT-br: Banco de destino a reconstruir.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT-br: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
     public void ApplyTo(
         DbMock db,
         bool ensureCompatibility = false)
@@ -501,10 +501,10 @@ public sealed record SchemaSnapshot
 
     /// <summary>
     /// EN: Rebuilds the structural schema of the target connection database from this snapshot.
-    /// PT: Reconstroi o schema estrutural do banco da conexao de destino a partir deste snapshot.
+    /// PT-br: Reconstroi o schema estrutural do banco da conexao de destino a partir deste snapshot.
     /// </summary>
-    /// <param name="connection">EN: Target connection whose database will be rebuilt. PT: Conexao de destino cujo banco sera reconstruido.</param>
-    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
+    /// <param name="connection">EN: Target connection whose database will be rebuilt. PT-br: Conexao de destino cujo banco sera reconstruido.</param>
+    /// <param name="ensureCompatibility">EN: True to enforce dialect/version compatibility before replay. PT-br: True para exigir compatibilidade de dialeto/versao antes do replay.</param>
     public void ApplyTo(
         DbConnectionMockBase connection,
         bool ensureCompatibility = false)
@@ -681,43 +681,43 @@ public sealed record SchemaSnapshot
 
 /// <summary>
 /// EN: Captures a schema and its tables inside a schema snapshot.
-/// PT: Captura um schema e suas tabelas dentro de um snapshot de schema.
+/// PT-br: Captura um schema e suas tabelas dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotSchema
 {
     /// <summary>
     /// EN: Schema name.
-    /// PT: Nome do schema.
+    /// PT-br: Nome do schema.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Tables captured for the schema.
-    /// PT: Tabelas capturadas para o schema.
+    /// PT-br: Tabelas capturadas para o schema.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotTable> Tables { get; init; }
 
     /// <summary>
     /// EN: Views captured for the schema.
-    /// PT: Views capturadas para o schema.
+    /// PT-br: Views capturadas para o schema.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotView> Views { get; init; }
 
     /// <summary>
     /// EN: User-defined functions captured for the schema.
-    /// PT: Funcoes definidas pelo usuario capturadas para o schema.
+    /// PT-br: Funcoes definidas pelo usuario capturadas para o schema.
     /// </summary>
     public IReadOnlyList<SchemaSnapshotFunction> Functions { get; init; } = [];
 
     /// <summary>
     /// EN: Stored procedures captured for the schema.
-    /// PT: Procedures capturadas para o schema.
+    /// PT-br: Procedures capturadas para o schema.
     /// </summary>
     public IReadOnlyList<SchemaSnapshotProcedure> Procedures { get; init; } = [];
 
     /// <summary>
     /// EN: Sequences captured for the schema.
-    /// PT: Sequences capturadas para o schema.
+    /// PT-br: Sequences capturadas para o schema.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotSequence> Sequences { get; init; }
 
@@ -745,55 +745,55 @@ public sealed record SchemaSnapshotSchema
 
 /// <summary>
 /// EN: Captures the structural metadata of a table inside a schema snapshot.
-/// PT: Captura os metadados estruturais de uma tabela dentro de um snapshot de schema.
+/// PT-br: Captura os metadados estruturais de uma tabela dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotTable
 {
     /// <summary>
     /// EN: Table name.
-    /// PT: Nome da tabela.
+    /// PT-br: Nome da tabela.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Next identity value stored for the table.
-    /// PT: Proximo valor de identidade armazenado para a tabela.
+    /// PT-br: Proximo valor de identidade armazenado para a tabela.
     /// </summary>
     public required int NextIdentity { get; init; }
 
     /// <summary>
     /// EN: Columns captured for the table.
-    /// PT: Colunas capturadas para a tabela.
+    /// PT-br: Colunas capturadas para a tabela.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotColumn> Columns { get; init; }
 
     /// <summary>
     /// EN: Primary key columns captured for the table.
-    /// PT: Colunas da chave primaria capturadas para a tabela.
+    /// PT-br: Colunas da chave primaria capturadas para a tabela.
     /// </summary>
     public required IReadOnlyList<string> PrimaryKeyColumns { get; init; }
 
     /// <summary>
     /// EN: Secondary indexes captured for the table.
-    /// PT: Indices secundarios capturados para a tabela.
+    /// PT-br: Indices secundarios capturados para a tabela.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotIndex> Indexes { get; init; }
 
     /// <summary>
     /// EN: Foreign keys captured for the table.
-    /// PT: Chaves estrangeiras capturadas para a tabela.
+    /// PT-br: Chaves estrangeiras capturadas para a tabela.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotForeignKey> ForeignKeys { get; init; }
 
     /// <summary>
     /// EN: Optional partition metadata captured for the table.
-    /// PT: Metadado opcional de particionamento capturado para a tabela.
+    /// PT-br: Metadado opcional de particionamento capturado para a tabela.
     /// </summary>
     public string? PartitionClauseSql { get; init; }
 
     /// <summary>
     /// EN: Check constraints captured for the table.
-    /// PT: Restricoes check capturadas para a tabela.
+    /// PT-br: Restricoes check capturadas para a tabela.
     /// </summary>
     public IReadOnlyList<SchemaSnapshotCheckConstraint>? CheckConstraints { get; init; }
 
@@ -824,61 +824,61 @@ public sealed record SchemaSnapshotTable
 
 /// <summary>
 /// EN: Captures the structural metadata of a single column inside a schema snapshot.
-/// PT: Captura os metadados estruturais de uma unica coluna dentro de um snapshot de schema.
+/// PT-br: Captura os metadados estruturais de uma unica coluna dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotColumn
 {
     /// <summary>
     /// EN: Column name.
-    /// PT: Nome da coluna.
+    /// PT-br: Nome da coluna.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Serialized database type of the column.
-    /// PT: Tipo de banco serializado da coluna.
+    /// PT-br: Tipo de banco serializado da coluna.
     /// </summary>
     public required DbType DbType { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the column accepts null values.
-    /// PT: Indica se a coluna aceita valores nulos.
+    /// PT-br: Indica se a coluna aceita valores nulos.
     /// </summary>
     public required bool Nullable { get; init; }
 
     /// <summary>
     /// EN: Optional size metadata for the column.
-    /// PT: Metadado opcional de tamanho da coluna.
+    /// PT-br: Metadado opcional de tamanho da coluna.
     /// </summary>
     public int? Size { get; init; }
 
     /// <summary>
     /// EN: Optional decimal places metadata for the column.
-    /// PT: Metadado opcional de casas decimais da coluna.
+    /// PT-br: Metadado opcional de casas decimais da coluna.
     /// </summary>
     public int? DecimalPlaces { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the column is identity/auto increment.
-    /// PT: Indica se a coluna e identity/auto incremento.
+    /// PT-br: Indica se a coluna e identity/auto incremento.
     /// </summary>
     public required bool Identity { get; init; }
 
     /// <summary>
     /// EN: Serialized default value when present.
-    /// PT: Valor padrao serializado quando presente.
+    /// PT-br: Valor padrao serializado quando presente.
     /// </summary>
     public JsonElement? DefaultValue { get; init; }
 
     /// <summary>
     /// EN: Optional enum value set configured for the column.
-    /// PT: Conjunto opcional de valores enum configurado para a coluna.
+    /// PT-br: Conjunto opcional de valores enum configurado para a coluna.
     /// </summary>
     public IReadOnlyList<string>? EnumValues { get; init; }
 
     /// <summary>
     /// EN: Optional computed expression text captured for the column.
-    /// PT: Texto opcional da expressao computada capturado para a coluna.
+    /// PT-br: Texto opcional da expressao computada capturado para a coluna.
     /// </summary>
     public string? ComputedExpression { get; init; }
 
@@ -911,19 +911,19 @@ public sealed record SchemaSnapshotColumn
 
 /// <summary>
 /// EN: Captures a non-materialized view definition inside a schema snapshot.
-/// PT: Captura a definicao de uma view nao materializada dentro de um snapshot de schema.
+/// PT-br: Captura a definicao de uma view nao materializada dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotView
 {
     /// <summary>
     /// EN: View name.
-    /// PT: Nome da view.
+    /// PT-br: Nome da view.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Raw SELECT SQL used to rebuild the view definition.
-    /// PT: SQL bruto do SELECT usado para reconstruir a definicao da view.
+    /// PT-br: SQL bruto do SELECT usado para reconstruir a definicao da view.
     /// </summary>
     public required string SelectSql { get; init; }
 
@@ -937,31 +937,31 @@ public sealed record SchemaSnapshotView
 
 /// <summary>
 /// EN: Captures a secondary index definition inside a schema snapshot.
-/// PT: Captura a definicao de um indice secundario dentro de um snapshot de schema.
+/// PT-br: Captura a definicao de um indice secundario dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotIndex
 {
     /// <summary>
     /// EN: Index name.
-    /// PT: Nome do indice.
+    /// PT-br: Nome do indice.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Key columns that compose the index.
-    /// PT: Colunas chave que compoem o indice.
+    /// PT-br: Colunas chave que compoem o indice.
     /// </summary>
     public required IReadOnlyList<string> KeyColumns { get; init; }
 
     /// <summary>
     /// EN: Included non-key columns.
-    /// PT: Colunas incluídas fora da chave.
+    /// PT-br: Colunas incluídas fora da chave.
     /// </summary>
     public required IReadOnlyList<string> IncludeColumns { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the index is unique.
-    /// PT: Indica se o indice e unico.
+    /// PT-br: Indica se o indice e unico.
     /// </summary>
     public required bool Unique { get; init; }
 
@@ -977,31 +977,31 @@ public sealed record SchemaSnapshotIndex
 
 /// <summary>
 /// EN: Captures a foreign key definition inside a schema snapshot.
-/// PT: Captura a definicao de uma chave estrangeira dentro de um snapshot de schema.
+/// PT-br: Captura a definicao de uma chave estrangeira dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotForeignKey
 {
     /// <summary>
     /// EN: Foreign key name.
-    /// PT: Nome da chave estrangeira.
+    /// PT-br: Nome da chave estrangeira.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Referenced table name.
-    /// PT: Nome da tabela referenciada.
+    /// PT-br: Nome da tabela referenciada.
     /// </summary>
     public required string RefTableName { get; init; }
 
     /// <summary>
     /// EN: Referenced schema name when the foreign key points outside the local schema.
-    /// PT: Nome do schema referenciado quando a chave estrangeira aponta para fora do schema local.
+    /// PT-br: Nome do schema referenciado quando a chave estrangeira aponta para fora do schema local.
     /// </summary>
     public string? RefSchemaName { get; init; }
 
     /// <summary>
     /// EN: Column mappings captured for the foreign key.
-    /// PT: Mapeamentos de colunas capturados para a chave estrangeira.
+    /// PT-br: Mapeamentos de colunas capturados para a chave estrangeira.
     /// </summary>
     public required IReadOnlyList<SchemaSnapshotForeignKeyReference> References { get; init; }
 
@@ -1028,105 +1028,105 @@ public sealed record SchemaSnapshotForeignKey
 
 /// <summary>
 /// EN: Captures a single local-to-referenced column mapping of a foreign key.
-/// PT: Captura um unico mapeamento de coluna local-para-referenciada de uma chave estrangeira.
+/// PT-br: Captura um unico mapeamento de coluna local-para-referenciada de uma chave estrangeira.
 /// </summary>
 public sealed record SchemaSnapshotForeignKeyReference
 {
     /// <summary>
     /// EN: Local column name.
-    /// PT: Nome da coluna local.
+    /// PT-br: Nome da coluna local.
     /// </summary>
     public required string ColumnName { get; init; }
 
     /// <summary>
     /// EN: Referenced column name.
-    /// PT: Nome da coluna referenciada.
+    /// PT-br: Nome da coluna referenciada.
     /// </summary>
     public required string RefColumnName { get; init; }
 }
 
 /// <summary>
 /// EN: Captures a check constraint definition inside a schema snapshot.
-/// PT: Captura a definicao de uma restricao check dentro de um snapshot de schema.
+/// PT-br: Captura a definicao de uma restricao check dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotCheckConstraint
 {
     /// <summary>
     /// EN: Check constraint name.
-    /// PT: Nome da restricao check.
+    /// PT-br: Nome da restricao check.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: SQL expression defining the check condition.
-    /// PT: Expressao SQL que define a condicao do check.
+    /// PT-br: Expressao SQL que define a condicao do check.
     /// </summary>
     public required string Expression { get; init; }
 }
 
 /// <summary>
 /// EN: Captures a sequence definition and current state inside a schema snapshot.
-/// PT: Captura uma definicao de sequence e seu estado atual dentro de um snapshot de schema.
+/// PT-br: Captura uma definicao de sequence e seu estado atual dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotSequence
 {
     /// <summary>
     /// EN: Sequence name.
-    /// PT: Nome da sequence.
+    /// PT-br: Nome da sequence.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: First value produced by the sequence.
-    /// PT: Primeiro valor produzido pela sequence.
+    /// PT-br: Primeiro valor produzido pela sequence.
     /// </summary>
     public required long StartValue { get; init; }
 
     /// <summary>
     /// EN: Increment step between generated values.
-    /// PT: Passo de incremento entre os valores gerados.
+    /// PT-br: Passo de incremento entre os valores gerados.
     /// </summary>
     public required long IncrementBy { get; init; }
 
     /// <summary>
     /// EN: Minimum allowed value when the sequence is bounded.
-    /// PT: Valor minimo permitido quando a sequence e limitada.
+    /// PT-br: Valor minimo permitido quando a sequence e limitada.
     /// </summary>
     public long? MinValue { get; init; }
 
     /// <summary>
     /// EN: Maximum allowed value when the sequence is bounded.
-    /// PT: Valor maximo permitido quando a sequence e limitada.
+    /// PT-br: Valor maximo permitido quando a sequence e limitada.
     /// </summary>
     public long? MaxValue { get; init; }
 
     /// <summary>
     /// EN: Whether the sequence wraps around when it reaches a bound.
-    /// PT: Se a sequence reinicia ao atingir um limite.
+    /// PT-br: Se a sequence reinicia ao atingir um limite.
     /// </summary>
     public bool IsCycle { get; init; }
 
     /// <summary>
     /// EN: Current sequence value when already initialized.
-    /// PT: Valor atual da sequence quando ja inicializada.
+    /// PT-br: Valor atual da sequence quando ja inicializada.
     /// </summary>
     public long? CurrentValue { get; init; }
 
     /// <summary>
     /// EN: Schema of the owning table when the sequence is attached to a column.
-    /// PT: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.
+    /// PT-br: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.
     /// </summary>
     public string? OwnedBySchema { get; init; }
 
     /// <summary>
     /// EN: Owning table name when the sequence is attached to a column.
-    /// PT: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.
+    /// PT-br: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.
     /// </summary>
     public string? OwnedByTable { get; init; }
 
     /// <summary>
     /// EN: Owning column name when the sequence is attached to a column.
-    /// PT: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.
+    /// PT-br: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.
     /// </summary>
     public string? OwnedByColumn { get; init; }
 
@@ -1148,31 +1148,31 @@ public sealed record SchemaSnapshotSequence
 
 /// <summary>
 /// EN: Captures a user-defined function body and signature inside a schema snapshot.
-/// PT: Captura o corpo e a assinatura de uma funcao definida pelo usuario dentro de um snapshot de schema.
+/// PT-br: Captura o corpo e a assinatura de uma funcao definida pelo usuario dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotFunction
 {
     /// <summary>
     /// EN: Function name.
-    /// PT: Nome da funcao.
+    /// PT-br: Nome da funcao.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: SQL return type declared by the function.
-    /// PT: Tipo de retorno SQL declarado pela funcao.
+    /// PT-br: Tipo de retorno SQL declarado pela funcao.
     /// </summary>
     public string? ReturnTypeSql { get; init; }
 
     /// <summary>
     /// EN: Parameters declared by the function.
-    /// PT: Parametros declarados pela funcao.
+    /// PT-br: Parametros declarados pela funcao.
     /// </summary>
     public IReadOnlyList<SchemaSnapshotFunctionParam> Parameters { get; init; } = [];
 
     /// <summary>
     /// EN: Scalar SQL body of the function.
-    /// PT: Corpo SQL escalar da funcao.
+    /// PT-br: Corpo SQL escalar da funcao.
     /// </summary>
     public string? BodySql { get; init; }
 
@@ -1210,49 +1210,49 @@ public sealed record SchemaSnapshotFunction
 
 /// <summary>
 /// EN: Captures a user-defined function parameter inside a schema snapshot.
-/// PT: Captura um parametro de funcao definida pelo usuario dentro de um snapshot de schema.
+/// PT-br: Captura um parametro de funcao definida pelo usuario dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotFunctionParam
 {
     /// <summary>
     /// EN: Parameter name.
-    /// PT: Nome do parametro.
+    /// PT-br: Nome do parametro.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: SQL type text associated with the parameter.
-    /// PT: Texto SQL do tipo associado ao parametro.
+    /// PT-br: Texto SQL do tipo associado ao parametro.
     /// </summary>
     public string? TypeSql { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the parameter is required.
-    /// PT: Indica se o parametro e obrigatorio.
+    /// PT-br: Indica se o parametro e obrigatorio.
     /// </summary>
     public required bool Required { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the parameter accepts variadic values.
-    /// PT: Indica se o parametro aceita valores variadicos.
+    /// PT-br: Indica se o parametro aceita valores variadicos.
     /// </summary>
     public bool IsVariadic { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the parameter represents an ORDER BY clause.
-    /// PT: Indica se o parametro representa uma clausula ORDER BY.
+    /// PT-br: Indica se o parametro representa uma clausula ORDER BY.
     /// </summary>
     public bool IsOrderByClause { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the parameter represents a frame clause.
-    /// PT: Indica se o parametro representa uma clausula de frame.
+    /// PT-br: Indica se o parametro representa uma clausula de frame.
     /// </summary>
     public bool IsFrameClause { get; init; }
 
     /// <summary>
     /// EN: Serialized default value when present.
-    /// PT: Valor padrao serializado quando presente.
+    /// PT-br: Valor padrao serializado quando presente.
     /// </summary>
     public JsonElement? Value { get; init; }
 
@@ -1281,37 +1281,37 @@ public sealed record SchemaSnapshotFunctionParam
 
 /// <summary>
 /// EN: Captures a stored procedure signature inside a schema snapshot.
-/// PT: Captura a assinatura de uma procedure dentro de um snapshot de schema.
+/// PT-br: Captura a assinatura de uma procedure dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotProcedure
 {
     /// <summary>
     /// EN: Procedure name.
-    /// PT: Nome da procedure.
+    /// PT-br: Nome da procedure.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Required input parameters of the procedure.
-    /// PT: Parametros de entrada obrigatorios da procedure.
+    /// PT-br: Parametros de entrada obrigatorios da procedure.
     /// </summary>
     public IReadOnlyList<SchemaSnapshotProcParam> RequiredIn { get; init; } = [];
 
     /// <summary>
     /// EN: Optional input parameters of the procedure.
-    /// PT: Parametros de entrada opcionais da procedure.
+    /// PT-br: Parametros de entrada opcionais da procedure.
     /// </summary>
     public IReadOnlyList<SchemaSnapshotProcParam> OptionalIn { get; init; } = [];
 
     /// <summary>
     /// EN: Output parameters of the procedure.
-    /// PT: Parametros de saida da procedure.
+    /// PT-br: Parametros de saida da procedure.
     /// </summary>
     public IReadOnlyList<SchemaSnapshotProcParam> OutParams { get; init; } = [];
 
     /// <summary>
     /// EN: Optional return parameter of the procedure.
-    /// PT: Parametro de retorno opcional da procedure.
+    /// PT-br: Parametro de retorno opcional da procedure.
     /// </summary>
     public SchemaSnapshotProcParam? ReturnParam { get; init; }
 
@@ -1338,31 +1338,31 @@ public sealed record SchemaSnapshotProcedure
 
 /// <summary>
 /// EN: Captures a stored procedure parameter inside a schema snapshot.
-/// PT: Captura um parametro de procedure dentro de um snapshot de schema.
+/// PT-br: Captura um parametro de procedure dentro de um snapshot de schema.
 /// </summary>
 public sealed record SchemaSnapshotProcParam
 {
     /// <summary>
     /// EN: Parameter name.
-    /// PT: Nome do parametro.
+    /// PT-br: Nome do parametro.
     /// </summary>
     public required string Name { get; init; }
 
     /// <summary>
     /// EN: Serialized database type of the parameter.
-    /// PT: Tipo de banco serializado do parametro.
+    /// PT-br: Tipo de banco serializado do parametro.
     /// </summary>
     public required DbType DbType { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the parameter is required.
-    /// PT: Indica se o parametro e obrigatorio.
+    /// PT-br: Indica se o parametro e obrigatorio.
     /// </summary>
     public required bool Required { get; init; }
 
     /// <summary>
     /// EN: Serialized parameter default/current value when present.
-    /// PT: Valor padrao/atual serializado do parametro quando presente.
+    /// PT-br: Valor padrao/atual serializado do parametro quando presente.
     /// </summary>
     public JsonElement? Value { get; init; }
 
@@ -1385,12 +1385,12 @@ public sealed record SchemaSnapshotProcParam
 
 /// <summary>
 /// EN: Reports structural drift detected while comparing two schema snapshots.
-/// PT: Reporta o drift estrutural detectado ao comparar dois schema snapshots.
+/// PT-br: Reporta o drift estrutural detectado ao comparar dois schema snapshots.
 /// </summary>
-/// <param name="IsMatch">EN: Indicates whether both sides are structurally equivalent. PT: Indica se os dois lados sao estruturalmente equivalentes.</param>
-/// <param name="SourceFingerprint">EN: Fingerprint of the source snapshot. PT: Fingerprint do snapshot de origem.</param>
-/// <param name="TargetFingerprint">EN: Fingerprint of the snapshot or database compared against the source. PT: Fingerprint do snapshot ou banco comparado com a origem.</param>
-/// <param name="Differences">EN: Human-readable drift entries detected during comparison. PT: Entradas legiveis de drift detectadas durante a comparacao.</param>
+/// <param name="IsMatch">EN: Indicates whether both sides are structurally equivalent. PT-br: Indica se os dois lados sao estruturalmente equivalentes.</param>
+/// <param name="SourceFingerprint">EN: Fingerprint of the source snapshot. PT-br: Fingerprint do snapshot de origem.</param>
+/// <param name="TargetFingerprint">EN: Fingerprint of the snapshot or database compared against the source. PT-br: Fingerprint do snapshot ou banco comparado com a origem.</param>
+/// <param name="Differences">EN: Human-readable drift entries detected during comparison. PT-br: Entradas legiveis de drift detectadas durante a comparacao.</param>
 public sealed record SchemaSnapshotComparison(
     bool IsMatch,
     string SourceFingerprint,
@@ -1399,9 +1399,9 @@ public sealed record SchemaSnapshotComparison(
 {
     /// <summary>
     /// EN: Formats the comparison as multi-line text for logs and diagnostics.
-    /// PT: Formata a comparacao como texto multilinha para logs e diagnosticos.
+    /// PT-br: Formata a comparacao como texto multilinha para logs e diagnosticos.
     /// </summary>
-    /// <returns>EN: Multi-line comparison text. PT: Texto multilinha da comparacao.</returns>
+    /// <returns>EN: Multi-line comparison text. PT-br: Texto multilinha da comparacao.</returns>
     public string ToText()
     {
         var lines = new List<string>
@@ -1425,12 +1425,12 @@ public sealed record SchemaSnapshotComparison(
 
 /// <summary>
 /// EN: Describes the currently supported schema snapshot subset for a dialect/version pair.
-/// PT: Descreve o subset atualmente suportado de schema snapshot para um par de dialeto/versao.
+/// PT-br: Descreve o subset atualmente suportado de schema snapshot para um par de dialeto/versao.
 /// </summary>
-/// <param name="DialectName">EN: Dialect name of the profiled target. PT: Nome do dialeto do alvo perfilado.</param>
-/// <param name="Version">EN: Simulated provider version of the profiled target. PT: Versao simulada do provider do alvo perfilado.</param>
-/// <param name="SupportedObjects">EN: Structural object families explicitly covered by the snapshot contract. PT: Familias de objetos estruturais explicitamente cobertas pelo contrato de snapshot.</param>
-/// <param name="UnsupportedObjects">EN: Metadata or executable objects intentionally outside the current snapshot contract. PT: Metadados ou objetos executaveis intencionalmente fora do contrato atual de snapshot.</param>
+/// <param name="DialectName">EN: Dialect name of the profiled target. PT-br: Nome do dialeto do alvo perfilado.</param>
+/// <param name="Version">EN: Simulated provider version of the profiled target. PT-br: Versao simulada do provider do alvo perfilado.</param>
+/// <param name="SupportedObjects">EN: Structural object families explicitly covered by the snapshot contract. PT-br: Familias de objetos estruturais explicitamente cobertas pelo contrato de snapshot.</param>
+/// <param name="UnsupportedObjects">EN: Metadata or executable objects intentionally outside the current snapshot contract. PT-br: Metadados ou objetos executaveis intencionalmente fora do contrato atual de snapshot.</param>
 public sealed record SchemaSnapshotSupportProfile(
     string DialectName,
     int Version,
@@ -1439,9 +1439,9 @@ public sealed record SchemaSnapshotSupportProfile(
 {
     /// <summary>
     /// EN: Formats the support profile as multi-line text for diagnostics and documentation.
-    /// PT: Formata o perfil de suporte como texto multilinha para diagnosticos e documentacao.
+    /// PT-br: Formata o perfil de suporte como texto multilinha para diagnosticos e documentacao.
     /// </summary>
-    /// <returns>EN: Multi-line support profile text. PT: Texto multilinha do perfil de suporte.</returns>
+    /// <returns>EN: Multi-line support profile text. PT-br: Texto multilinha do perfil de suporte.</returns>
     public string ToText()
     {
         var lines = new List<string>

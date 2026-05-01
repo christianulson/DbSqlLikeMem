@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MariaDb.TestTools;
 
 /// <summary>
 /// EN: Provides MariaDB-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de MariaDB usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de MariaDB usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class MariaDbProviderSqlDialect : ProviderSqlDialect
 {
@@ -62,11 +62,11 @@ public sealed class MariaDbProviderSqlDialect : ProviderSqlDialect
 
     /// <summary>
     /// EN: Normalizes MariaDB temporal parameter values to an invariant SQL timestamp text.
-    /// PT: Normaliza valores temporais de parametros MariaDB para um texto de timestamp SQL invariavel.
+    /// PT-br: Normaliza valores temporais de parametros MariaDB para um texto de timestamp SQL invariavel.
     /// </summary>
-    /// <param name="dbType">EN: Parameter database type. PT: Tipo de banco do parametro.</param>
-    /// <param name="value">EN: Parameter value. PT: Valor do parametro.</param>
-    /// <returns>EN: Normalized parameter value. PT: Valor do parametro normalizado.</returns>
+    /// <param name="dbType">EN: Parameter database type. PT-br: Tipo de banco do parametro.</param>
+    /// <param name="value">EN: Parameter value. PT-br: Valor do parametro.</param>
+    /// <returns>EN: Normalized parameter value. PT-br: Valor do parametro normalizado.</returns>
     protected override object? NormalizeParameterValue(DbType dbType, object? value)
         => value is null
             ? DBNull.Value

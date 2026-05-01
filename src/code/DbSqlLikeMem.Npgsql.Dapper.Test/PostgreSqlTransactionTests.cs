@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers PostgreSQL transaction scenarios against the Dapper provider.
-/// PT: Cobre cenarios de transacao PostgreSQL contra o provedor Dapper.
+/// PT-br: Cobre cenarios de transacao PostgreSQL contra o provedor Dapper.
 /// </summary>
 public sealed class PostgreSqlTransactionTests(
     ITestOutputHelper helper
@@ -14,7 +14,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies committed transactions persist their data changes.
-    /// PT: Verifica se transacoes confirmadas persistem suas alteracoes de dados.
+    /// PT-br: Verifica se transacoes confirmadas persistem suas alteracoes de dados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -22,7 +22,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies rolled back transactions do not persist data changes.
-    /// PT: Verifica se transacoes revertidas nao persistem alteracoes de dados.
+    /// PT-br: Verifica se transacoes revertidas nao persistem alteracoes de dados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -30,7 +30,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies transaction rollback restores connection-scoped temporary tables.
-    /// PT: Verifica se o rollback da transacao restaura tabelas temporarias do escopo da conexao.
+    /// PT-br: Verifica se o rollback da transacao restaura tabelas temporarias do escopo da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -38,7 +38,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies rollback to savepoint restores the snapshot of connection temporary tables.
-    /// PT: Verifica se rollback para savepoint restaura o snapshot das tabelas temporarias da conexao.
+    /// PT-br: Verifica se rollback para savepoint restaura o snapshot das tabelas temporarias da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -46,7 +46,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies resetting volatile data clears rows and resets identity values.
-    /// PT: Verifica se redefinir dados volateis limpa as linhas e reinicia os valores de identidade.
+    /// PT-br: Verifica se redefinir dados volateis limpa as linhas e reinicia os valores de identidade.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -54,7 +54,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies database-level volatile reset respects the global temporary tables flag.
-    /// PT: Verifica se o reset de dados volateis no banco respeita a flag de tabelas temporarias globais.
+    /// PT-br: Verifica se o reset de dados volateis no banco respeita a flag de tabelas temporarias globais.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -62,7 +62,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies database-level volatile reset keeps table definitions intact.
-    /// PT: Verifica se o reset de dados volateis no banco mantem as definicoes das tabelas intactas.
+    /// PT-br: Verifica se o reset de dados volateis no banco mantem as definicoes das tabelas intactas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -70,7 +70,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies database-level volatile reset does not affect connection temporary tables.
-    /// PT: Verifica se o reset de dados volateis no banco nao afeta tabelas temporarias da conexao.
+    /// PT-br: Verifica se o reset de dados volateis no banco nao afeta tabelas temporarias da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -78,7 +78,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data clears rows from global temporary tables.
-    /// PT: Verifica se redefinir todos os dados volateis limpa as linhas das tabelas temporarias globais.
+    /// PT-br: Verifica se redefinir todos os dados volateis limpa as linhas das tabelas temporarias globais.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -86,7 +86,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data invalidates existing savepoints.
-    /// PT: Verifica se redefinir todos os dados volateis invalida savepoints existentes.
+    /// PT-br: Verifica se redefinir todos os dados volateis invalida savepoints existentes.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -94,7 +94,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies connection temporary tables remain isolated between different connections.
-    /// PT: Verifica se tabelas temporarias da conexao permanecem isoladas entre conexoes diferentes.
+    /// PT-br: Verifica se tabelas temporarias da conexao permanecem isoladas entre conexoes diferentes.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -102,7 +102,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies closing a connection clears its session-specific state.
-    /// PT: Verifica se fechar uma conexao limpa seu estado especifico de sessao.
+    /// PT-br: Verifica se fechar uma conexao limpa seu estado especifico de sessao.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -110,7 +110,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies closing a connection preserves permanent and globally shared state.
-    /// PT: Verifica se fechar uma conexao preserva o estado permanente e globalmente compartilhado.
+    /// PT-br: Verifica se fechar uma conexao preserva o estado permanente e globalmente compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]
@@ -118,7 +118,7 @@ public sealed class PostgreSqlTransactionTests(
 
     /// <summary>
     /// EN: Verifies reopening after close starts a fresh session while preserving shared state.
-    /// PT: Verifica se reabrir apos fechar inicia uma nova sessao preservando o estado compartilhado.
+    /// PT-br: Verifica se reabrir apos fechar inicia uma nova sessao preservando o estado compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlTransaction")]

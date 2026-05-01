@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
+namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// EN: Covers version-gated DB2 gap scenarios that are not fully implemented in the in-memory mock yet.
-/// PT: Cobre cenarios de gap do DB2 controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
+/// PT-br: Cobre cenarios de gap do DB2 controlados por versao que ainda nao estao totalmente implementados no mock em memoria.
 /// </summary>
 public sealed class Db2AdvancedSqlGapTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class Db2AdvancedSqlGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory DB2 connection used by the advanced gap tests.
-    /// PT: Cria a conexao DB2 em memoria usada pelos testes de gap avancados.
+    /// PT-br: Cria a conexao DB2 em memoria usada pelos testes de gap avancados.
     /// </summary>
     public Db2AdvancedSqlGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -47,7 +47,7 @@ public sealed class Db2AdvancedSqlGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ROW_NUMBER respects the configured DB2 version.
-    /// PT: Verifica se ROW_NUMBER respeita a versao DB2 configurada.
+    /// PT-br: Verifica se ROW_NUMBER respeita a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -64,7 +64,7 @@ ORDER BY tenantid, id").ToList();
 
     /// <summary>
     /// EN: Verifies RANK and DENSE_RANK respect the configured DB2 version.
-    /// PT: Verifica se RANK e DENSE_RANK respeitam a versao DB2 configurada.
+    /// PT-br: Verifica se RANK e DENSE_RANK respeitam a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -84,7 +84,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies NTILE respects the configured DB2 version.
-    /// PT: Verifica se NTILE respeita a versao DB2 configurada.
+    /// PT-br: Verifica se NTILE respeita a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -102,7 +102,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies PERCENT_RANK and CUME_DIST respect the configured DB2 version.
-    /// PT: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao DB2 configurada.
+    /// PT-br: Verifica se PERCENT_RANK e CUME_DIST respeitam a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -127,7 +127,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies LAG and LEAD respect the configured DB2 version.
-    /// PT: Verifica se LAG e LEAD respeitam a versao DB2 configurada.
+    /// PT-br: Verifica se LAG e LEAD respeitam a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -147,7 +147,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies FIRST_VALUE and LAST_VALUE respect the configured DB2 version.
-    /// PT: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao DB2 configurada.
+    /// PT-br: Verifica se FIRST_VALUE e LAST_VALUE respeitam a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -167,7 +167,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies NTH_VALUE respects the configured DB2 version.
-    /// PT: Verifica se NTH_VALUE respeita a versao DB2 configurada.
+    /// PT-br: Verifica se NTH_VALUE respeita a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -185,7 +185,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies zero-offset LAG and LEAD return the current row when the version supports window functions.
-    /// PT: Verifica se LAG e LEAD com offset zero retornam a linha atual quando a versao suporta funcoes de janela.
+    /// PT-br: Verifica se LAG e LEAD com offset zero retornam a linha atual quando a versao suporta funcoes de janela.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -204,7 +204,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies a DB2 reference query combining CTE, JOIN, LEFT JOIN, correlated subquery, LISTAGG, VALUE, DAYS, CHAR, CASE, CAST and ROW_NUMBER returns the expected rows.
-    /// PT: Verifica se uma query de referencia do DB2 combinando CTE, JOIN, LEFT JOIN, subquery correlacionada, LISTAGG, VALUE, DAYS, CHAR, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
+    /// PT-br: Verifica se uma query de referencia do DB2 combinando CTE, JOIN, LEFT JOIN, subquery correlacionada, LISTAGG, VALUE, DAYS, CHAR, CASE, CAST e ROW_NUMBER retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -278,7 +278,7 @@ ORDER BY tenantid, rn, id").ToList();
 
     /// <summary>
     /// EN: Verifies NOT REGEXP filters rows as expected.
-    /// PT: Verifica se NOT REGEXP filtra as linhas como esperado.
+    /// PT-br: Verifica se NOT REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -291,7 +291,7 @@ ORDER BY tenantid, rn, id").ToList();
 
     /// <summary>
     /// EN: Verifies NOT LIKE filters rows as expected.
-    /// PT: Verifica se NOT LIKE filtra as linhas como esperado.
+    /// PT-br: Verifica se NOT LIKE filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -304,7 +304,7 @@ ORDER BY tenantid, rn, id").ToList();
 
     /// <summary>
     /// EN: Verifies expression-based offsets in LAG and NTH_VALUE respect the configured DB2 version.
-    /// PT: Verifica se offsets baseados em expressao em LAG e NTH_VALUE respeitam a versao DB2 configurada.
+    /// PT-br: Verifica se offsets baseados em expressao em LAG e NTH_VALUE respeitam a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -324,7 +324,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies expression-based bucket counts in NTILE respect the configured DB2 version.
-    /// PT: Verifica se contagens de buckets baseadas em expressao no NTILE respeitam a versao DB2 configurada.
+    /// PT-br: Verifica se contagens de buckets baseadas em expressao no NTILE respeitam a versao DB2 configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -342,7 +342,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies ranking and distribution functions follow the composite ORDER BY even when the ROWS frame is CURRENT ROW.
-    /// PT: Verifica se as funcoes de ranking e distribuicao seguem o ORDER BY composto mesmo com frame ROWS CURRENT ROW.
+    /// PT-br: Verifica se as funcoes de ranking e distribuicao seguem o ORDER BY composto mesmo com frame ROWS CURRENT ROW.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -372,7 +372,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies LAG and LEAD follow the composite ORDER BY sequence and use defaults only outside the partition.
-    /// PT: Verifica se LAG e LEAD seguem a sequencia do ORDER BY composto e usam defaults somente fora da particao.
+    /// PT-br: Verifica se LAG e LEAD seguem a sequencia do ORDER BY composto e usam defaults somente fora da particao.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -392,7 +392,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies ROWS frame boundaries do not change ranking, distribution, or NTILE semantics.
-    /// PT: Verifica se os limites do frame ROWS nao alteram a semantica de ranking, distribuicao ou NTILE.
+    /// PT-br: Verifica se os limites do frame ROWS nao alteram a semantica de ranking, distribuicao ou NTILE.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -419,7 +419,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Tests RANGE CURRENT ROW with DESC ordering keeps peer semantics across ranking/distribution/NTILE.
-    /// PT: Testa se RANGE CURRENT ROW com ordenação DESC preserva semântica de peers em ranking/distribuição/NTILE.
+    /// PT-br: Testa se RANGE CURRENT ROW com ordenação DESC preserva semântica de peers em ranking/distribuição/NTILE.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -445,7 +445,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Tests RANGE offset with DateTime ORDER BY values using tick-based offsets.
-    /// PT: Testa RANGE com offset em ORDER BY DateTime usando offsets baseados em ticks.
+    /// PT-br: Testa RANGE com offset em ORDER BY DateTime usando offsets baseados em ticks.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -464,7 +464,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Tests GROUPS frame with composite mixed-direction ORDER BY preserves peer-group boundaries.
-    /// PT: Testa frame GROUPS com ORDER BY composto e direções mistas preservando limites de grupos de peers.
+    /// PT-br: Testa frame GROUPS com ORDER BY composto e direções mistas preservando limites de grupos de peers.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -483,7 +483,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies RANGE frame boundaries do not change ranking/distribution semantics and LAG/LEAD still follow the order.
-    /// PT: Verifica se os limites do frame RANGE nao alteram a semantica de ranking/distribuicao e se LAG/LEAD seguem a ordem.
+    /// PT-br: Verifica se os limites do frame RANGE nao alteram a semantica de ranking/distribuicao e se LAG/LEAD seguem a ordem.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -514,7 +514,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Tests RANGE offset with non-numeric ORDER BY throws a clear runtime type message.
-    /// PT: Testa se RANGE com offset e ORDER BY não numérico lança mensagem clara com tipo em runtime.
+    /// PT-br: Testa se RANGE com offset e ORDER BY não numérico lança mensagem clara com tipo em runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -534,7 +534,7 @@ ORDER BY id").ToList());
 
     /// <summary>
     /// EN: Verifies correlated subqueries in the select list return the expected totals.
-    /// PT: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
+    /// PT-br: Verifica se subconsultas correlacionadas na lista SELECT retornam os totais esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -551,7 +551,7 @@ ORDER BY u.id").ToList();
 
     /// <summary>
     /// EN: Verifies DATE_ADD with a day interval returns the expected dates.
-    /// PT: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
+    /// PT-br: Verifica se DATE_ADD com intervalo de dia retorna as datas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -572,7 +572,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies TIMESTAMPADD with a day interval returns the expected dates.
-    /// PT: Verifica se TIMESTAMPADD com intervalo de dia retorna as datas esperadas.
+    /// PT-br: Verifica se TIMESTAMPADD com intervalo de dia retorna as datas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -592,7 +592,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies string-to-int casts return the expected integer value.
-    /// PT: Verifica se casts de string para int retornam o valor inteiro esperado.
+    /// PT-br: Verifica se casts de string para int retornam o valor inteiro esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -605,7 +605,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies REGEXP filters rows as expected.
-    /// PT: Verifica se REGEXP filtra as linhas como esperado.
+    /// PT-br: Verifica se REGEXP filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -619,7 +619,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies FIELD can be used to order rows explicitly.
-    /// PT: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
+    /// PT-br: Verifica se FIELD pode ser usado para ordenar linhas explicitamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -632,7 +632,7 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Verifies DB2 default string comparison remains case-sensitive for this column set.
-    /// PT: Verifica se a comparacao padrao de strings do DB2 permanece sensivel a maiusculas e minusculas para este conjunto de colunas.
+    /// PT-br: Verifica se a comparacao padrao de strings do DB2 permanece sensivel a maiusculas e minusculas para este conjunto de colunas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2AdvancedSqlGap")]
@@ -645,9 +645,9 @@ ORDER BY id").ToList();
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

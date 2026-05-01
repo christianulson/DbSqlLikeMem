@@ -2,10 +2,10 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Covers shared aggregation and HAVING ordinal scenarios across providers.
-/// PT: Cobre cenarios compartilhados de agregacao e ordinal em HAVING entre provedores.
+/// PT-br: Cobre cenarios compartilhados de agregacao e ordinal em HAVING entre provedores.
 /// </summary>
-/// <typeparam name="TDbMock">EN: Provider database mock type. PT: Tipo do mock de banco do provedor.</typeparam>
-/// <typeparam name="TConnection">EN: Provider connection type. PT: Tipo de conexão do provedor.</typeparam>
+/// <typeparam name="TDbMock">EN: Provider database mock type. PT-br: Tipo do mock de banco do provedor.</typeparam>
+/// <typeparam name="TConnection">EN: Provider connection type. PT-br: Tipo de conexão do provedor.</typeparam>
 public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : XUnitTestBase
     where TDbMock : DbMock
     where TConnection : DbConnection
@@ -14,15 +14,15 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Gets the provider connection used by derived classes.
-    /// PT: Obtém a conexão do provedor usada pelas classes derivadas.
+    /// PT-br: Obtém a conexão do provedor usada pelas classes derivadas.
     /// </summary>
     protected DbConnection Connection => _connection;
 
     /// <summary>
     /// EN: Creates the shared aggregation and HAVING test fixture.
-    /// PT: Cria a fixture compartilhada de testes de agregacao e HAVING.
+    /// PT-br: Cria a fixture compartilhada de testes de agregacao e HAVING.
     /// </summary>
-    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+    /// <param name="helper">EN: Output helper. PT-br: Helper de saída.</param>
     protected AggregationHavingOrdinalTestsBase(ITestOutputHelper helper) : base(helper)
     {
         var db = CreateDb();
@@ -37,34 +37,34 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Creates the provider-specific database mock used by shared tests.
-    /// PT: Cria o simulado de banco específico do provedor usado pelos testes compartilhados.
+    /// PT-br: Cria o simulado de banco específico do provedor usado pelos testes compartilhados.
     /// </summary>
-    /// <returns>EN: Provider-specific database mock. PT: Mock de banco específico do provedor.</returns>
+    /// <returns>EN: Provider-specific database mock. PT-br: Mock de banco específico do provedor.</returns>
     protected abstract TDbMock CreateDb();
 
     /// <summary>
     /// EN: Creates the provider-specific connection used by shared tests.
-    /// PT: Cria a conexão específica do provedor usada pelos testes compartilhados.
+    /// PT-br: Cria a conexão específica do provedor usada pelos testes compartilhados.
     /// </summary>
-    /// <param name="db">EN: Provider database mock. PT: Mock de banco do provedor.</param>
-    /// <returns>EN: Provider-specific connection. PT: Conexão específica do provedor.</returns>
+    /// <param name="db">EN: Provider database mock. PT-br: Mock de banco do provedor.</param>
+    /// <returns>EN: Provider-specific connection. PT-br: Conexão específica do provedor.</returns>
     protected abstract TConnection CreateConnection(TDbMock db);
 
     /// <summary>
     /// EN: Executes SQL and returns dynamic rows.
-    /// PT: Executa SQL e retorna linhas dinâmicas.
+    /// PT-br: Executa SQL e retorna linhas dinâmicas.
     /// </summary>
-    /// <param name="sql">EN: SQL to execute. PT: SQL para executar.</param>
-    /// <returns>EN: Materialized result rows. PT: Linhas do resultado materializadas.</returns>
+    /// <param name="sql">EN: SQL to execute. PT-br: SQL para executar.</param>
+    /// <returns>EN: Materialized result rows. PT-br: Linhas do resultado materializadas.</returns>
     protected abstract List<dynamic> Query(string sql);
 
     /// <summary>
     /// EN: Gets a row value using a case-insensitive column-name match.
-    /// PT: Obtem um valor de linha usando correspondencia case-insensitive do nome da coluna.
+    /// PT-br: Obtem um valor de linha usando correspondencia case-insensitive do nome da coluna.
     /// </summary>
-    /// <param name="row">EN: Row object returned by the query. PT: Objeto de linha retornado pela consulta.</param>
-    /// <param name="name">EN: Column name to read. PT: Nome da coluna para ler.</param>
-    /// <returns>EN: The matched column value, or null when the column is missing. PT: O valor da coluna encontrada, ou null quando a coluna nao existe.</returns>
+    /// <param name="row">EN: Row object returned by the query. PT-br: Objeto de linha retornado pela consulta.</param>
+    /// <param name="name">EN: Column name to read. PT-br: Nome da coluna para ler.</param>
+    /// <returns>EN: The matched column value, or null when the column is missing. PT-br: O valor da coluna encontrada, ou null quando a coluna nao existe.</returns>
     protected static object? GetValueIgnoreCase(object row, string name)
     {
         if (row is IDictionary<string, object?> values)
@@ -83,9 +83,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates DISTINCT + ORDER BY + provider pagination syntax over grouped seed data.
-    /// PT: Valida sintaxe de DISTINCT + ORDER BY + paginação do provedor sobre os dados semeados.
+    /// PT-br: Valida sintaxe de DISTINCT + ORDER BY + paginação do provedor sobre os dados semeados.
     /// </summary>
-    /// <param name="paginationClause">EN: Provider pagination clause appended after ORDER BY. PT: Cláusula de paginação do provedor anexada após ORDER BY.</param>
+    /// <param name="paginationClause">EN: Provider pagination clause appended after ORDER BY. PT-br: Cláusula de paginação do provedor anexada após ORDER BY.</param>
     protected void AssertDistinctOrderPagination(string paginationClause)
     {
         if (string.IsNullOrWhiteSpace(paginationClause))
@@ -108,9 +108,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates grouped string aggregation with custom separator and stable ordering by user id.
-    /// PT: Valida agregação textual agrupada com separador customizado e ordenação estável por user id.
+    /// PT-br: Valida agregação textual agrupada com separador customizado e ordenação estável por user id.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL using string aggregation. PT: SQL específico do provedor usando agregação textual.</param>
+    /// <param name="sql">EN: Provider-specific SQL using string aggregation. PT-br: SQL específico do provedor usando agregação textual.</param>
     protected void AssertStringAggregationWithCustomSeparator(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -132,9 +132,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates mixed projection with string aggregation and explicit NULL literal remains stable.
-    /// PT: Valida que projeção mista com agregação textual e literal NULL explícito permaneça estável.
+    /// PT-br: Valida que projeção mista com agregação textual e literal NULL explícito permaneça estável.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + NULL literal. PT: SQL específico do provedor que projeta agregação + literal NULL.</param>
+    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + NULL literal. PT-br: SQL específico do provedor que projeta agregação + literal NULL.</param>
     protected void AssertStringAggregationWithNullProjection(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -157,9 +157,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates CASE expression that returns NULL in grouped projection remains consistent with string aggregation.
-    /// PT: Valida que expressão CASE retornando NULL em projeção agrupada permaneça consistente com agregação textual.
+    /// PT-br: Valida que expressão CASE retornando NULL em projeção agrupada permaneça consistente com agregação textual.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + CASE NULL expression. PT: SQL específico do provedor que projeta agregação + expressão CASE NULL.</param>
+    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + CASE NULL expression. PT-br: SQL específico do provedor que projeta agregação + expressão CASE NULL.</param>
     protected void AssertStringAggregationWithCaseNullProjection(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -182,9 +182,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates CASE expression with mixed text/NULL branches in grouped projection stays deterministic.
-    /// PT: Valida que expressão CASE com ramos mistos texto/NULL em projeção agrupada permaneça determinística.
+    /// PT-br: Valida que expressão CASE com ramos mistos texto/NULL em projeção agrupada permaneça determinística.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + CASE mixed branches. PT: SQL específico do provedor com agregação + CASE de ramos mistos.</param>
+    /// <param name="sql">EN: Provider-specific SQL that projects aggregation + CASE mixed branches. PT-br: SQL específico do provedor com agregação + CASE de ramos mistos.</param>
     protected void AssertStringAggregationWithCaseMixedProjection(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -207,9 +207,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates multi-branch CASE projection (text/text) remains stable with grouped string aggregation.
-    /// PT: Valida que projeção CASE de múltiplos ramos (texto/texto) permaneça estável com agregação textual agrupada.
+    /// PT-br: Valida que projeção CASE de múltiplos ramos (texto/texto) permaneça estável com agregação textual agrupada.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL with aggregation + multi-branch CASE projection. PT: SQL específico do provedor com agregação + projeção CASE de múltiplos ramos.</param>
+    /// <param name="sql">EN: Provider-specific SQL with aggregation + multi-branch CASE projection. PT-br: SQL específico do provedor com agregação + projeção CASE de múltiplos ramos.</param>
     protected void AssertStringAggregationWithCaseMultiBranchProjection(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -232,9 +232,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates numeric CASE multi-branch projection remains stable with grouped string aggregation.
-    /// PT: Valida que projeção CASE numérica de múltiplos ramos permaneça estável com agregação textual agrupada.
+    /// PT-br: Valida que projeção CASE numérica de múltiplos ramos permaneça estável com agregação textual agrupada.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL with aggregation + numeric CASE multi-branch projection. PT: SQL específico do provedor com agregação + projeção CASE numérica multibranch.</param>
+    /// <param name="sql">EN: Provider-specific SQL with aggregation + numeric CASE multi-branch projection. PT-br: SQL específico do provedor com agregação + projeção CASE numérica multibranch.</param>
     protected void AssertStringAggregationWithCaseNumericMultiBranchProjection(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -257,10 +257,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates ordered-set aggregate syntax WITHIN GROUP applies ORDER BY semantics to string aggregation.
-    /// PT: Valida que a sintaxe ordered-set WITHIN GROUP aplique semântica de ORDER BY na agregação textual.
+    /// PT-br: Valida que a sintaxe ordered-set WITHIN GROUP aplique semântica de ORDER BY na agregação textual.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL using WITHIN GROUP. PT: SQL específico do provedor usando WITHIN GROUP.</param>
-    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    /// <param name="sql">EN: Provider-specific SQL using WITHIN GROUP. PT-br: SQL específico do provedor usando WITHIN GROUP.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT-br: Texto agregado esperado.</param>
     protected void AssertWithinGroupOrdersAggregation(string sql, string expected)
     {
         AssertStringAggregationWithInternalOrder(sql, expected);
@@ -268,9 +268,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates ordered-set aggregate syntax WITHIN GROUP is rejected with an actionable message.
-    /// PT: Valida que a sintaxe de agregação ordered-set WITHIN GROUP seja rejeitada com mensagem acionável.
+    /// PT-br: Valida que a sintaxe de agregação ordered-set WITHIN GROUP seja rejeitada com mensagem acionável.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL using WITHIN GROUP. PT: SQL específico do provedor usando WITHIN GROUP.</param>
+    /// <param name="sql">EN: Provider-specific SQL using WITHIN GROUP. PT-br: SQL específico do provedor usando WITHIN GROUP.</param>
     protected void AssertWithinGroupNotSupported(string sql)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -283,9 +283,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates DISTINCT string aggregation ignores NULL values and preserves expected tokens.
-    /// PT: Valida que agregação textual com DISTINCT ignore valores NULL e preserve os tokens esperados.
+    /// PT-br: Valida que agregação textual com DISTINCT ignore valores NULL e preserve os tokens esperados.
     /// </summary>
-    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_data. PT: Query agregada específica do provedor sobre textagg_data.</param>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_data. PT-br: Query agregada específica do provedor sobre textagg_data.</param>
     protected void AssertStringAggregationDistinctIgnoresNullValues(string querySql)
     {
         if (string.IsNullOrWhiteSpace(querySql))
@@ -310,10 +310,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates WITHIN GROUP ordering with composite keys (multiple ORDER BY expressions).
-    /// PT: Valida ordenação WITHIN GROUP com chaves compostas (múltiplas expressões em ORDER BY).
+    /// PT-br: Valida ordenação WITHIN GROUP com chaves compostas (múltiplas expressões em ORDER BY).
     /// </summary>
-    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_order. PT: Query agregada específica do provedor sobre textagg_order.</param>
-    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_order. PT-br: Query agregada específica do provedor sobre textagg_order.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT-br: Texto agregado esperado.</param>
     protected void AssertWithinGroupCompositeOrdering(string querySql, string expected)
     {
         if (string.IsNullOrWhiteSpace(querySql))
@@ -333,10 +333,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates DISTINCT + WITHIN GROUP ordering to ensure deduplication follows ORDER BY sequence.
-    /// PT: Valida DISTINCT + WITHIN GROUP para garantir que a deduplicação siga a sequência do ORDER BY.
+    /// PT-br: Valida DISTINCT + WITHIN GROUP para garantir que a deduplicação siga a sequência do ORDER BY.
     /// </summary>
-    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT: Query agregada específica do provedor sobre textagg_distinct_order.</param>
-    /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT: Texto agregado esperado após ordenação e distinct.</param>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT-br: Query agregada específica do provedor sobre textagg_distinct_order.</param>
+    /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT-br: Texto agregado esperado após ordenação e distinct.</param>
     protected void AssertWithinGroupDistinctOrdering(string querySql, string expected)
     {
         AssertStringAggregationDistinctWithInternalOrder(querySql, expected);
@@ -344,10 +344,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates provider-native internal ordering in string aggregation output.
-    /// PT: Valida ordenação interna nativa do provedor na saída da agregação textual.
+    /// PT-br: Valida ordenação interna nativa do provedor na saída da agregação textual.
     /// </summary>
-    /// <param name="sql">EN: Provider-specific SQL with internal aggregate ordering. PT: SQL específico do provedor com ordenação interna na agregação.</param>
-    /// <param name="expected">EN: Expected aggregated text. PT: Texto agregado esperado.</param>
+    /// <param name="sql">EN: Provider-specific SQL with internal aggregate ordering. PT-br: SQL específico do provedor com ordenação interna na agregação.</param>
+    /// <param name="expected">EN: Expected aggregated text. PT-br: Texto agregado esperado.</param>
     protected void AssertStringAggregationWithInternalOrder(string sql, string expected)
     {
         if (string.IsNullOrWhiteSpace(sql))
@@ -362,10 +362,10 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Validates DISTINCT string aggregation with provider-native internal ordering.
-    /// PT: Valida agregação textual com DISTINCT usando ordenação interna nativa do provedor.
+    /// PT-br: Valida agregação textual com DISTINCT usando ordenação interna nativa do provedor.
     /// </summary>
-    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT: Query agregada específica do provedor sobre textagg_distinct_order.</param>
-    /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT: Texto agregado esperado após ordenação e distinct.</param>
+    /// <param name="querySql">EN: Provider-specific aggregate query over textagg_distinct_order. PT-br: Query agregada específica do provedor sobre textagg_distinct_order.</param>
+    /// <param name="expected">EN: Expected aggregated text after ordering and distinct. PT-br: Texto agregado esperado após ordenação e distinct.</param>
     protected void AssertStringAggregationDistinctWithInternalOrder(string querySql, string expected)
     {
         if (string.IsNullOrWhiteSpace(querySql))
@@ -407,7 +407,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Verifies grouped count and sum aggregation return the expected totals.
-    /// PT: Verifica se a contagem agrupada e a soma agregada retornam os totais esperados.
+    /// PT-br: Verifica se a contagem agrupada e a soma agregada retornam os totais esperados.
     /// </summary>
     [Fact]
     public void GroupBy_WithCountAndSum_ShouldWork()
@@ -433,7 +433,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Verifies HAVING filters out grouped rows that do not meet the aggregate threshold.
-    /// PT: Verifica se o HAVING filtra linhas agrupadas que nao atingem o limite da agregacao.
+    /// PT-br: Verifica se o HAVING filtra linhas agrupadas que nao atingem o limite da agregacao.
     /// </summary>
     [Fact]
     public void Having_ShouldFilterAggregates()
@@ -452,7 +452,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures HAVING aggregate alias can be combined with ORDER BY ordinal in grouped execution.
-    /// PT: Garante que alias de agregação no HAVING possa ser combinado com ORDER BY ordinal na execução agrupada.
+    /// PT-br: Garante que alias de agregação no HAVING possa ser combinado com ORDER BY ordinal na execução agrupada.
     /// </summary>
     [Fact]
     public void Having_AggregateAlias_WithOrderByOrdinal_ShouldWork()
@@ -476,7 +476,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures invalid HAVING alias in grouped execution throws a clear validation error.
-    /// PT: Garante que alias inválido no HAVING em execução agrupada lance erro de validação claro.
+    /// PT-br: Garante que alias inválido no HAVING em execução agrupada lance erro de validação claro.
     /// </summary>
     [Fact]
     public void Having_InvalidAlias_ShouldThrow()
@@ -494,7 +494,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures HAVING ordinal expression resolves to the corresponding projected select item.
-    /// PT: Garante que expressão ordinal no HAVING resolva para o item projetado correspondente no SELECT.
+    /// PT-br: Garante que expressão ordinal no HAVING resolva para o item projetado correspondente no SELECT.
     /// </summary>
     [Fact]
     public void Having_OrdinalExpression_ShouldResolveSelectedColumn()
@@ -515,7 +515,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures HAVING mixed with ordinal and aggregate resolves ordinal to the select-item expression.
-    /// PT: Garante que HAVING misto com ordinal e agregação resolva o ordinal para a expressão do item do SELECT.
+    /// PT-br: Garante que HAVING misto com ordinal e agregação resolva o ordinal para a expressão do item do SELECT.
     /// </summary>
     [Fact]
     public void Having_MixedOrdinalAndAggregate_ShouldResolveOrdinal()
@@ -535,7 +535,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures HAVING CASE expression resolves ordinal references correctly.
-    /// PT: Garante que expressão CASE no HAVING resolva corretamente referências ordinais.
+    /// PT-br: Garante que expressão CASE no HAVING resolva corretamente referências ordinais.
     /// </summary>
     [Fact]
     public void Having_CaseWithOrdinal_ShouldResolveOrdinal()
@@ -555,7 +555,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures HAVING BETWEEN expression resolves ordinal references correctly.
-    /// PT: Garante que expressão BETWEEN no HAVING resolva corretamente referências ordinais.
+    /// PT-br: Garante que expressão BETWEEN no HAVING resolva corretamente referências ordinais.
     /// </summary>
     [Fact]
     public void Having_BetweenWithOrdinal_ShouldResolveOrdinal()
@@ -575,7 +575,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures HAVING IN expression resolves ordinal references correctly.
-    /// PT: Garante que expressão IN no HAVING resolva corretamente referências ordinais.
+    /// PT-br: Garante que expressão IN no HAVING resolva corretamente referências ordinais.
     /// </summary>
     [Fact]
     public void Having_InWithOrdinal_ShouldResolveOrdinal()
@@ -595,7 +595,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures numeric thresholds in HAVING aggregate comparisons are treated as constants, not ordinals.
-    /// PT: Garante que limites numéricos em comparações de agregação no HAVING sejam tratados como constantes, não ordinais.
+    /// PT-br: Garante que limites numéricos em comparações de agregação no HAVING sejam tratados como constantes, não ordinais.
     /// </summary>
     [Fact]
     public void Having_AggregateThresholdConstant_ShouldNotBeTreatedAsOrdinal()
@@ -615,7 +615,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures HAVING ordinal out of range throws a clear validation error.
-    /// PT: Garante que ordinal fora do intervalo no HAVING lance um erro de validação claro.
+    /// PT-br: Garante que ordinal fora do intervalo no HAVING lance um erro de validação claro.
     /// </summary>
     [Fact]
     public void Having_OrdinalOutOfRange_ShouldThrow()
@@ -633,7 +633,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures non-positive ordinals in HAVING are rejected even when mixed with aggregate predicates.
-    /// PT: Garante que ordinais não positivos no HAVING sejam rejeitados mesmo quando combinados com predicados de agregação.
+    /// PT-br: Garante que ordinais não positivos no HAVING sejam rejeitados mesmo quando combinados com predicados de agregação.
     /// </summary>
     [Fact]
     public void Having_NonPositiveOrdinal_WithAggregate_ShouldThrow()
@@ -651,7 +651,7 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Ensures out-of-range ordinals in HAVING are rejected even when mixed with aggregate predicates.
-    /// PT: Garante que ordinais fora do intervalo no HAVING sejam rejeitados mesmo quando combinados com predicados de agregação.
+    /// PT-br: Garante que ordinais fora do intervalo no HAVING sejam rejeitados mesmo quando combinados com predicados de agregação.
     /// </summary>
     [Fact]
     public void Having_OrdinalOutOfRange_WithAggregate_ShouldThrow()
@@ -669,9 +669,9 @@ public abstract class AggregationHavingOrdinalTestsBase<TDbMock, TConnection> : 
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();

@@ -16,12 +16,12 @@ public partial class MappingDialog : Window
 
     /// <summary>
     /// EN: Initializes a dialog to configure file naming, output directory, and optional namespace mappings for one object type.
-    /// PT: Inicializa uma janela para configurar padrão de nomes, diretorio de saida e namespace opcional dos mapeamentos para um tipo de objeto.
+    /// PT-br: Inicializa uma janela para configurar padrão de nomes, diretorio de saida e namespace opcional dos mapeamentos para um tipo de objeto.
     /// </summary>
-    /// <param name="objectType">EN: Object type whose mapping is being configured. PT: Tipo de objeto cujo mapeamento esta sendo configurado.</param>
-    /// <param name="fileNamePattern">EN: Current file name pattern. PT: Padrao atual de nome de arquivo.</param>
-    /// <param name="outputDirectory">EN: Current output directory. PT: Diretorio atual de saida.</param>
-    /// <param name="namespace">EN: Current optional namespace. PT: Namespace opcional atual.</param>
+    /// <param name="objectType">EN: Object type whose mapping is being configured. PT-br: Tipo de objeto cujo mapeamento esta sendo configurado.</param>
+    /// <param name="fileNamePattern">EN: Current file name pattern. PT-br: Padrao atual de nome de arquivo.</param>
+    /// <param name="outputDirectory">EN: Current output directory. PT-br: Diretorio atual de saida.</param>
+    /// <param name="namespace">EN: Current optional namespace. PT-br: Namespace opcional atual.</param>
     public MappingDialog(
         DatabaseObjectType objectType,
         string fileNamePattern,

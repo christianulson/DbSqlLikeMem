@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Covers Firebird ALTER SEQUENCE execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de ALTER SEQUENCE no motor simulado Firebird.
+/// PT-br: Cobre cenarios de execucao de ALTER SEQUENCE no motor simulado Firebird.
 /// </summary>
 public sealed class FirebirdAlterSequenceTests : XUnitTestBase
 {
@@ -12,7 +12,7 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the Firebird database objects used by the alter sequence tests.
-    /// PT: Cria os objetos de banco Firebird usados pelos testes de alter sequence.
+    /// PT-br: Cria os objetos de banco Firebird usados pelos testes de alter sequence.
     /// </summary>
     public FirebirdAlterSequenceTests(ITestOutputHelper helper) : base(helper)
     {
@@ -28,7 +28,7 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ALTER SEQUENCE RESTART WITH resets the next generated value.
-    /// PT: Verifica se ALTER SEQUENCE RESTART WITH reinicia o proximo valor gerado.
+    /// PT-br: Verifica se ALTER SEQUENCE RESTART WITH reinicia o proximo valor gerado.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -64,7 +64,7 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ALTER SEQUENCE RESTART WITH is restored by transaction rollback.
-    /// PT: Verifica se ALTER SEQUENCE RESTART WITH e restaurado pelo rollback da transacao.
+    /// PT-br: Verifica se ALTER SEQUENCE RESTART WITH e restaurado pelo rollback da transacao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -108,7 +108,7 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies generator aliases behave like sequence DDL in the Firebird mock.
-    /// PT: Verifica se os aliases de generator se comportam como DDL de sequence no mock Firebird.
+    /// PT-br: Verifica se os aliases de generator se comportam como DDL de sequence no mock Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -143,7 +143,7 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies SET GENERATOR follows Firebird sequence restart semantics.
-    /// PT: Verifica se SET GENERATOR segue a semantica de reinicio de sequence do Firebird.
+    /// PT-br: Verifica se SET GENERATOR segue a semantica de reinicio de sequence do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -174,9 +174,9 @@ public sealed class FirebirdAlterSequenceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Disposes the Firebird connection used by the alter sequence tests.
-    /// PT: Descarta a conexao Firebird usada pelos testes de alter sequence.
+    /// PT-br: Descarta a conexao Firebird usada pelos testes de alter sequence.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         connection.Dispose();

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.Tests.DML;
 
 /// <summary>
 /// EN: Provides shared batch RETURNING fidelity tests across mock and container runs.
-/// PT: Fornece testes de fidelidade de batch RETURNING compartilhados entre execucoes mock e container.
+/// PT-br: Fornece testes de fidelidade de batch RETURNING compartilhados entre execucoes mock e container.
 /// </summary>
 public abstract class BatchReturningTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -17,7 +17,7 @@ public abstract class BatchReturningTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that an INSERT RETURNING batch persists one row and returns one reader row for the current provider.
-    /// PT: Verifica se um batch INSERT RETURNING persiste uma linha e retorna uma linha no reader para o provedor atual.
+    /// PT-br: Verifica se um batch INSERT RETURNING persiste uma linha e retorna uma linha no reader para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task BatchReturningInsertTest()

@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Firebird.Test.Views;
+namespace DbSqlLikeMem.Firebird.Test.Views;
 
 /// <summary>
 /// EN: Covers Firebird CREATE VIEW parsing scenarios in the mock dialect.
-/// PT: Cobre cenarios de parsing de CREATE VIEW no dialeto simulado Firebird.
+/// PT-br: Cobre cenarios de parsing de CREATE VIEW no dialeto simulado Firebird.
 /// </summary>
 public sealed class FirebirdCreateViewParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdCreateViewParserTests(
 {
     /// <summary>
     /// EN: Verifies CREATE VIEW followed by SELECT is parsed as two statements.
-    /// PT: Verifica se CREATE VIEW seguido de SELECT e parsed como duas instrucoes.
+    /// PT-br: Verifica se CREATE VIEW seguido de SELECT e parsed como duas instrucoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -41,7 +41,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies explicit view column names are captured by the parser.
-    /// PT: Verifica se nomes explicitos de colunas da view sao capturados pelo parser.
+    /// PT-br: Verifica se nomes explicitos de colunas da view sao capturados pelo parser.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -59,7 +59,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies CREATE OR ALTER VIEW parses as a replacing view definition.
-    /// PT: Verifica se CREATE OR ALTER VIEW faz parse como uma definicao de view substituivel.
+    /// PT-br: Verifica se CREATE OR ALTER VIEW faz parse como uma definicao de view substituivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -78,7 +78,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies RECREATE VIEW parses as a replacing view definition.
-    /// PT: Verifica se RECREATE VIEW faz parse como uma definicao de view substituivel.
+    /// PT-br: Verifica se RECREATE VIEW faz parse como uma definicao de view substituivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -97,7 +97,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies DROP VIEW IF EXISTS parses successfully.
-    /// PT: Verifica se DROP VIEW IF EXISTS faz parse com sucesso.
+    /// PT-br: Verifica se DROP VIEW IF EXISTS faz parse com sucesso.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]

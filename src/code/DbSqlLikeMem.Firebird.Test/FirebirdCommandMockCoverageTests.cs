@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Adds focused coverage for FirebirdCommandMock surface behavior, transaction handling, and scalar reads.
-/// PT: Adiciona cobertura focada para comportamento de superficie, tratamento de transacao e leituras escalares de FirebirdCommandMock.
+/// PT-br: Adiciona cobertura focada para comportamento de superficie, tratamento de transacao e leituras escalares de FirebirdCommandMock.
 /// </summary>
 public sealed class FirebirdCommandMockCoverageTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdCommandMockCoverageTests(
 {
     /// <summary>
     /// EN: Verifies Cancel rolls back the active transaction and CreateParameter returns a provider-specific parameter.
-    /// PT: Verifica se Cancel faz rollback da transacao ativa e se CreateParameter retorna um parametro especifico do provedor.
+    /// PT-br: Verifica se Cancel faz rollback da transacao ativa e se CreateParameter retorna um parametro especifico do provedor.
     /// </summary>
     [Fact]
     public void Cancel_ShouldRollbackTransaction_AndCreateParameterShouldBeTyped()
@@ -39,7 +39,7 @@ public sealed class FirebirdCommandMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies replacing the connection clears the associated transaction and empty scalar reads return DBNull.
-    /// PT: Verifica se substituir a conexao limpa a transacao associada e se leituras escalares vazias retornam DBNull.
+    /// PT-br: Verifica se substituir a conexao limpa a transacao associada e se leituras escalares vazias retornam DBNull.
     /// </summary>
     [Fact]
     public void ConnectionSwapAndEmptyScalar_ShouldResetTransactionAndReturnDbNull()
@@ -69,7 +69,7 @@ public sealed class FirebirdCommandMockCoverageTests(
 
     /// <summary>
     /// EN: Verifies Prepare and Dispose can be called safely on the mock command surface.
-    /// PT: Verifica se Prepare e Dispose podem ser chamados com seguranca na superficie simulada do comando.
+    /// PT-br: Verifica se Prepare e Dispose podem ser chamados com seguranca na superficie simulada do comando.
     /// </summary>
     [Fact]
     public void PrepareAndDispose_ShouldBeSafeNoOps()

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlAzure.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs SQL Azure fidelity tests for the shared insert workflows.
-/// PT: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de insert.
+/// PT-br: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de insert.
 /// </summary>
 public class InsertTests(
     ITestOutputHelper helper

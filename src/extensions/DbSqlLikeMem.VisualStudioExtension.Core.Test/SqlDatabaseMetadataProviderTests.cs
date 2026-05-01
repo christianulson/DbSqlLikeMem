@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies metadata extraction and query generation for supported database providers.
-/// PT: Verifica a extracao de metadados e a geracao de consultas para provedores de banco suportados.
+/// PT-br: Verifica a extracao de metadados e a geracao de consultas para provedores de banco suportados.
 /// </summary>
 public sealed class SqlDatabaseMetadataProviderTests
 {
     /// <summary>
     /// EN: Verifies table metadata is serialized with columns, keys, indexes, foreign keys, and triggers.
-    /// PT: Verifica se os metadados de tabela sao serializados com colunas, chaves, indices, chaves estrangeiras e triggers.
+    /// PT-br: Verifica se os metadados de tabela sao serializados com colunas, chaves, indices, chaves estrangeiras e triggers.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -53,7 +53,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Ensures routine metadata and parameter metadata are serialized for function objects.
-    /// PT: Garante que os metadados da rotina e dos parametros sejam serializados para objetos do tipo function.
+    /// PT-br: Garante que os metadados da rotina e dos parametros sejam serializados para objetos do tipo function.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -84,7 +84,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Ensures MariaDB routine metadata is serialized with body normalization, return type, and parameters.
-    /// PT: Garante que os metadados de rotina do MariaDB sejam serializados com normalizacao do corpo, tipo de retorno e parametros.
+    /// PT-br: Garante que os metadados de rotina do MariaDB sejam serializados com normalizacao do corpo, tipo de retorno e parametros.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -115,7 +115,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Ensures MariaDB procedure metadata is serialized with procedure parameters and return handling.
-    /// PT: Garante que os metadados de procedure do MariaDB sejam serializados com parametros da procedure e tratamento de retorno.
+    /// PT-br: Garante que os metadados de procedure do MariaDB sejam serializados com parametros da procedure e tratamento de retorno.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -149,7 +149,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Ensures Firebird procedure metadata is serialized with input and output parameters.
-    /// PT: Garante que os metadados de procedure do Firebird sejam serializados com parametros de entrada e saida.
+    /// PT-br: Garante que os metadados de procedure do Firebird sejam serializados com parametros de entrada e saida.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -183,7 +183,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Ensures Firebird function metadata is serialized with normalized body, return type, and parameters.
-    /// PT: Garante que os metadados de function do Firebird sejam serializados com corpo normalizado, tipo de retorno e parametros.
+    /// PT-br: Garante que os metadados de function do Firebird sejam serializados com corpo normalizado, tipo de retorno e parametros.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -215,7 +215,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Ensures function body text is reduced to the executable scalar expression before serialization.
-    /// PT: Garante que o texto do corpo da function seja reduzido a expressao escalar executavel antes da serializacao.
+    /// PT-br: Garante que o texto do corpo da function seja reduzido a expressao escalar executavel antes da serializacao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -269,7 +269,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Verifies MariaDB list query uses the database name parsed from the connection string.
-    /// PT: Verifica se a consulta de listagem do MariaDB usa o nome do banco extraído da connection string.
+    /// PT-br: Verifica se a consulta de listagem do MariaDB usa o nome do banco extraído da connection string.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -293,7 +293,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Verifies provider support stays available for the configured database types.
-    /// PT: Verifica se o suporte do provedor permanece disponivel para os tipos de banco configurados.
+    /// PT-br: Verifica se o suporte do provedor permanece disponivel para os tipos de banco configurados.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -324,7 +324,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Verifies MariaDB exposes a sequence metadata query with sequence columns.
-    /// PT: Verifica se o MariaDB expõe uma consulta de metadata de sequence com as colunas de sequence.
+    /// PT-br: Verifica se o MariaDB expõe uma consulta de metadata de sequence com as colunas de sequence.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -339,7 +339,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Verifies Firebird list queries include tables, views, procedures and functions.
-    /// PT: Verifica se as consultas de listagem do Firebird incluem tabelas, views, procedimentos e funcoes.
+    /// PT-br: Verifica se as consultas de listagem do Firebird incluem tabelas, views, procedimentos e funcoes.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -354,7 +354,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Verifies MariaDB list queries include sequences while MySQL keeps the shared subset.
-    /// PT: Verifica se as consultas de listagem do MariaDB incluem sequences enquanto o MySQL mantem o subconjunto compartilhado.
+    /// PT-br: Verifica se as consultas de listagem do MariaDB incluem sequences enquanto o MySQL mantem o subconjunto compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -393,7 +393,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Verifies MariaDB sequence metadata queries expose the expected columns.
-    /// PT: Verifica se as consultas de metadata de sequence do MariaDB expõem as colunas esperadas.
+    /// PT-br: Verifica se as consultas de metadata de sequence do MariaDB expõem as colunas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -422,7 +422,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
     /// <summary>
     /// EN: Verifies MariaDB sequence metadata is read and serialized with the sequence detail query.
-    /// PT: Verifica se a metadata de sequence do MariaDB e lida e serializada pela query de detalhe da sequence.
+    /// PT-br: Verifica se a metadata de sequence do MariaDB e lida e serializada pela query de detalhe da sequence.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlDatabaseMetadataProvider")]
@@ -459,7 +459,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         /// <summary>
         /// EN: Records a canned response for queries that contain the provided SQL fragment.
-        /// PT: Registra uma resposta preparada para consultas que contenham o fragmento de SQL informado.
+        /// PT-br: Registra uma resposta preparada para consultas que contenham o fragmento de SQL informado.
         /// </summary>
         public void WhenContains(string containsSql, IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
             => _responses.Add((containsSql, rows));
@@ -481,7 +481,7 @@ public sealed class SqlDatabaseMetadataProviderTests
 
         /// <summary>
         /// EN: Returns the most recent parameters for the matching query fragment.
-        /// PT: Retorna os parametros mais recentes para o fragmento de consulta correspondente.
+        /// PT-br: Retorna os parametros mais recentes para o fragmento de consulta correspondente.
         /// </summary>
         public Task<IReadOnlyCollection<IReadOnlyDictionary<string, object?>>> QueryAsync(
             ConnectionDefinition connection,

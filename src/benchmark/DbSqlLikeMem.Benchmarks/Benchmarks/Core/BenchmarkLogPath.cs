@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 
 /// <summary>
 /// EN: Resolves the benchmark log directory and safe file names used by benchmark sessions.
-/// PT: Resolve a pasta de logs do benchmark e nomes de arquivo seguros usados pelas sessoes de benchmark.
+/// PT-br: Resolve a pasta de logs do benchmark e nomes de arquivo seguros usados pelas sessoes de benchmark.
 /// </summary>
 public static class BenchmarkLogPath
 {
@@ -10,9 +10,9 @@ public static class BenchmarkLogPath
 
     /// <summary>
     /// EN: Returns the benchmark log directory inside the benchmark project folder.
-    /// PT: Retorna a pasta de logs do benchmark dentro da pasta do projeto de benchmark.
+    /// PT-br: Retorna a pasta de logs do benchmark dentro da pasta do projeto de benchmark.
     /// </summary>
-    /// <returns>EN: The absolute benchmark log directory. PT: A pasta absoluta de logs do benchmark.</returns>
+    /// <returns>EN: The absolute benchmark log directory. PT-br: A pasta absoluta de logs do benchmark.</returns>
     public static string GetDirectory()
     {
         var projectDirectory = FindProjectDirectory();
@@ -21,19 +21,19 @@ public static class BenchmarkLogPath
 
     /// <summary>
     /// EN: Builds the absolute path for a benchmark log file using a safe file name.
-    /// PT: Monta o caminho absoluto de um arquivo de log do benchmark usando um nome de arquivo seguro.
+    /// PT-br: Monta o caminho absoluto de um arquivo de log do benchmark usando um nome de arquivo seguro.
     /// </summary>
-    /// <param name="fileName">EN: The raw file name to sanitize. PT: O nome bruto do arquivo a ser sanitizado.</param>
-    /// <returns>EN: The absolute benchmark log file path. PT: O caminho absoluto do arquivo de log do benchmark.</returns>
+    /// <param name="fileName">EN: The raw file name to sanitize. PT-br: O nome bruto do arquivo a ser sanitizado.</param>
+    /// <returns>EN: The absolute benchmark log file path. PT-br: O caminho absoluto do arquivo de log do benchmark.</returns>
     internal static string GetFilePath(string fileName)
         => Path.Combine(GetDirectory(), GetSafeFileName(fileName));
 
     /// <summary>
     /// EN: Sanitizes a file name so it can be used safely on Windows file systems.
-    /// PT: Sanitiza um nome de arquivo para que possa ser usado com seguranca em sistemas de arquivos Windows.
+    /// PT-br: Sanitiza um nome de arquivo para que possa ser usado com seguranca em sistemas de arquivos Windows.
     /// </summary>
-    /// <param name="fileName">EN: The raw file name to sanitize. PT: O nome bruto do arquivo a ser sanitizado.</param>
-    /// <returns>EN: The sanitized file name. PT: O nome de arquivo sanitizado.</returns>
+    /// <param name="fileName">EN: The raw file name to sanitize. PT-br: O nome bruto do arquivo a ser sanitizado.</param>
+    /// <returns>EN: The sanitized file name. PT-br: O nome de arquivo sanitizado.</returns>
     internal static string GetSafeFileName(string fileName)
     {
         var invalidChars = Path.GetInvalidFileNameChars();

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Validates transactional reliability additions for Firebird scenarios.
-/// PT: Valida as adicoes de confiabilidade transacional para cenarios Firebird.
+/// PT-br: Valida as adicoes de confiabilidade transacional para cenarios Firebird.
 /// </summary>
 public sealed class FirebirdTransactionReliabilityTests(
         ITestOutputHelper helper
@@ -18,7 +18,7 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint restores the intermediate state.
-    /// PT: Garante que rollback para savepoint restaure o estado intermediario.
+    /// PT-br: Garante que rollback para savepoint restaure o estado intermediario.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransactionReliability")]
@@ -27,7 +27,7 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures nested savepoints roll back to the selected outer snapshot.
-    /// PT: Garante que savepoints aninhados façam rollback para o snapshot externo selecionado.
+    /// PT-br: Garante que savepoints aninhados façam rollback para o snapshot externo selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransactionReliability")]
@@ -36,7 +36,7 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures the simplified isolation model is deterministic and visible.
-    /// PT: Garante que o modelo simplificado de isolamento seja deterministico e visivel.
+    /// PT-br: Garante que o modelo simplificado de isolamento seja deterministico e visivel.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransactionReliability")]
@@ -45,7 +45,7 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures savepoint release support follows provider compatibility rules.
-    /// PT: Garante que o suporte a release de savepoint siga as regras de compatibilidade do provedor.
+    /// PT-br: Garante que o suporte a release de savepoint siga as regras de compatibilidade do provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransactionReliability")]
@@ -54,7 +54,7 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures concurrent writes keep data consistent when thread safety is enabled.
-    /// PT: Garante que escritas concorrentes mantenham dados consistentes com thread safety habilitado.
+    /// PT-br: Garante que escritas concorrentes mantenham dados consistentes com thread safety habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdTransactionReliability")]
@@ -63,9 +63,9 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures concurrent commit and rollback keep only committed writes across provider versions.
-    /// PT: Garante que commit e rollback concorrentes mantenham apenas gravacoes confirmadas entre versoes do provedor.
+    /// PT-br: Garante que commit e rollback concorrentes mantenham apenas gravacoes confirmadas entre versoes do provedor.
     /// </summary>
-    /// <param name="version">EN: Provider version under test. PT: Versao do provedor em teste.</param>
+    /// <param name="version">EN: Provider version under test. PT-br: Versao do provedor em teste.</param>
     [Theory]
     [Trait("Category", "FirebirdTransactionReliability")]
     [MemberData(nameof(FirebirdVersions))]
@@ -74,9 +74,9 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Ensures concurrent commits persist combined writes deterministically across provider versions.
-    /// PT: Garante que commits concorrentes persistam gravacoes combinadas de forma deterministica entre versoes do provedor.
+    /// PT-br: Garante que commits concorrentes persistam gravacoes combinadas de forma deterministica entre versoes do provedor.
     /// </summary>
-    /// <param name="version">EN: Provider version under test. PT: Versao do provedor em teste.</param>
+    /// <param name="version">EN: Provider version under test. PT-br: Versao do provedor em teste.</param>
     [Theory]
     [Trait("Category", "FirebirdTransactionReliability")]
     [MemberData(nameof(FirebirdVersions))]
@@ -85,7 +85,7 @@ public sealed class FirebirdTransactionReliabilityTests(
 
     /// <summary>
     /// EN: Returns the Firebird versions supported by the transaction reliability scenarios.
-    /// PT: Retorna as versoes do Firebird suportadas pelos cenarios de confiabilidade transacional.
+    /// PT-br: Retorna as versoes do Firebird suportadas pelos cenarios de confiabilidade transacional.
     /// </summary>
     public static IEnumerable<object[]> FirebirdVersions()
         => FirebirdDbVersions.Versions().Select(version => new object[] { version });

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.TestTools.Tests.Query;
 
 /// <summary>
 /// EN: Provides shared scalar temporal fidelity tests across mock and container runs.
-/// PT: Fornece testes de fidelidade temporal escalar compartilhados entre execucoes mock e container.
+/// PT-br: Fornece testes de fidelidade temporal escalar compartilhados entre execucoes mock e container.
 /// </summary>
 public abstract class ScalarTemporalTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -18,13 +18,13 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Returns the allowed drift between mock and container temporal results.
-    /// PT: Retorna a variacao permitida entre resultados temporais do mock e do container.
+    /// PT-br: Retorna a variacao permitida entre resultados temporais do mock e do container.
     /// </summary>
     protected virtual TimeSpan TemporalComparisonTolerance => TimeSpan.FromSeconds(10);
 
     /// <summary>
     /// EN: Verifies scalar temporal functions, current-time predicates, and ordered reads for the current provider.
-    /// PT: Verifica funcoes temporais escalares, predicados de tempo atual e leituras ordenadas para o provedor atual.
+    /// PT-br: Verifica funcoes temporais escalares, predicados de tempo atual e leituras ordenadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ScalarTemporalMatrixTest()
@@ -49,7 +49,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies the scalar date benchmark returns a non-default temporal value for the current provider.
-    /// PT: Verifica se o benchmark escalar de data retorna um valor temporal nao padrao para o provedor atual.
+    /// PT-br: Verifica se o benchmark escalar de data retorna um valor temporal nao padrao para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task DateScalarTest()
@@ -63,7 +63,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies the current timestamp benchmark returns a non-default temporal value for the current provider.
-    /// PT: Verifica se o benchmark de timestamp atual retorna um valor temporal nao padrao para o provedor atual.
+    /// PT-br: Verifica se o benchmark de timestamp atual retorna um valor temporal nao padrao para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TemporalCurrentTimestampTest()
@@ -77,7 +77,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies the temporal date-add benchmark returns a non-default temporal value for the current provider.
-    /// PT: Verifica se o benchmark temporal de soma de data retorna um valor temporal nao padrao para o provedor atual.
+    /// PT-br: Verifica se o benchmark temporal de soma de data retorna um valor temporal nao padrao para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TemporalDateAddTest()
@@ -91,7 +91,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies SQL Server DATETRUNC keeps the expected truncation values for supported providers.
-    /// PT: Verifica se o SQL Server DATETRUNC mantem os valores de truncamento esperados para os provedores suportados.
+    /// PT-br: Verifica se o SQL Server DATETRUNC mantem os valores de truncamento esperados para os provedores suportados.
     /// </summary>
     [FidelityFact]
     public async Task TemporalDateTruncTest()
@@ -126,7 +126,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies SQL Server time zone offset functions and TODATETIMEOFFSET keep the expected offset values for supported providers.
-    /// PT: Verifica se as funcoes de offset de fuso horario do SQL Server e TODATETIMEOFFSET mantem os valores de offset esperados para os provedores suportados.
+    /// PT-br: Verifica se as funcoes de offset de fuso horario do SQL Server e TODATETIMEOFFSET mantem os valores de offset esperados para os provedores suportados.
     /// </summary>
     [FidelityFact]
     public async Task TemporalTimeZoneOffsetTest()
@@ -169,7 +169,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies SQL Server FROMPARTS temporal constructors keep the expected values for supported providers.
-    /// PT: Verifica se os construtores temporais FROMPARTS do SQL Server mantem os valores esperados para os provedores suportados.
+    /// PT-br: Verifica se os construtores temporais FROMPARTS do SQL Server mantem os valores esperados para os provedores suportados.
     /// </summary>
     [FidelityFact]
     public async Task TemporalFromPartsTest()
@@ -204,7 +204,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies SQL Server EOMONTH returns the expected month-end date for supported providers.
-    /// PT: Verifica se o SQL Server EOMONTH retorna a data final do mes esperada para os provedores suportados.
+    /// PT-br: Verifica se o SQL Server EOMONTH retorna a data final do mes esperada para os provedores suportados.
     /// </summary>
     [FidelityFact]
     public async Task TemporalEndOfMonthTest()
@@ -226,7 +226,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies SQL Server DATEDIFF_BIG keeps the expected large-span differences for supported providers.
-    /// PT: Verifica se o SQL Server DATEDIFF_BIG mantem as diferencas de intervalo grande esperadas para os provedores suportados.
+    /// PT-br: Verifica se o SQL Server DATEDIFF_BIG mantem as diferencas de intervalo grande esperadas para os provedores suportados.
     /// </summary>
     [FidelityFact]
     public async Task TemporalDateDiffBigTest()
@@ -259,7 +259,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies the current-time predicate benchmark counts the configured rows for the current provider.
-    /// PT: Verifica se o benchmark de predicado de tempo atual conta as linhas configuradas para o provedor atual.
+    /// PT-br: Verifica se o benchmark de predicado de tempo atual conta as linhas configuradas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TemporalNowWhereTest()
@@ -278,7 +278,7 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies the current-time ordering benchmark returns the expected first row for the current provider.
-    /// PT: Verifica se o benchmark de ordenacao por tempo atual retorna a primeira linha esperada para o provedor atual.
+    /// PT-br: Verifica se o benchmark de ordenacao por tempo atual retorna a primeira linha esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TemporalNowOrderByTest()

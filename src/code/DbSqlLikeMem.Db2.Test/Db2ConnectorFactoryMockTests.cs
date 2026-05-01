@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Contains tests for db2 connector factory mock.
-/// PT: Contém testes para db2 fábrica de conectores simulada.
+/// PT-br: Contém testes para db2 fábrica de conectores simulada.
 /// </summary>
 public sealed class Db2ConnectorFactoryMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class Db2ConnectorFactoryMockTests(
 {
     /// <summary>
     /// EN: Creates a new core members_should return provider mocks instance.
-    /// PT: Verifica se os membros principais retornam mocks do provedor.
+    /// PT-br: Verifica se os membros principais retornam mocks do provedor.
     /// </summary>
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
@@ -27,7 +27,7 @@ public sealed class Db2ConnectorFactoryMockTests(
 #if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Creates a new batch members_should return provider mocks instance.
-    /// PT: Verifica se os membros de lote retornam mocks do provedor.
+    /// PT-br: Verifica se os membros de lote retornam mocks do provedor.
     /// </summary>
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
@@ -43,7 +43,7 @@ public sealed class Db2ConnectorFactoryMockTests(
 #if NET7_0_OR_GREATER
     /// <summary>
     /// EN: Creates a new data source_should return provider data source mock instance.
-    /// PT: Verifica se a fonte de dados do provedor retorna um objeto de fonte de dados simulada.
+    /// PT-br: Verifica se a fonte de dados do provedor retorna um objeto de fonte de dados simulada.
     /// </summary>
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()

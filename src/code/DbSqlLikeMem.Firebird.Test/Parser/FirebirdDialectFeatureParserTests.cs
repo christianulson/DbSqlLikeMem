@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test.Parser;
 
 /// <summary>
 /// EN: Covers Firebird-specific parser feature behavior.
-/// PT: Cobre o comportamento de recursos de parser específicos do Firebird.
+/// PT-br: Cobre o comportamento de recursos de parser específicos do Firebird.
 /// </summary>
 public sealed class FirebirdDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 {
     /// <summary>
     /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
-    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// PT-br: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -28,7 +28,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses the supported CREATE FUNCTION and DROP FUNCTION subset.
-    /// PT: Garante que o Firebird interprete o subset suportado de CREATE FUNCTION e DROP FUNCTION.
+    /// PT-br: Garante que o Firebird interprete o subset suportado de CREATE FUNCTION e DROP FUNCTION.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -57,7 +57,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird rejects CREATE OR REPLACE FUNCTION because the mock gate stays disabled.
-    /// PT: Garante que o Firebird rejeite CREATE OR REPLACE FUNCTION porque o gate do mock permanece desabilitado.
+    /// PT-br: Garante que o Firebird rejeite CREATE OR REPLACE FUNCTION porque o gate do mock permanece desabilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -73,7 +73,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses scalar function parameter defaults in the supported DDL subset.
-    /// PT: Garante que o Firebird interprete padroes de parametro de funcao escalar no subset de DDL suportado.
+    /// PT-br: Garante que o Firebird interprete padroes de parametro de funcao escalar no subset de DDL suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -96,7 +96,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird keeps the pipe operator as string concatenation in scalar expressions.
-    /// PT: Garante que o Firebird mantenha o operador pipe como concatenacao de strings em expressoes escalares.
+    /// PT-br: Garante que o Firebird mantenha o operador pipe como concatenacao de strings em expressoes escalares.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -113,7 +113,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird rejects scalar function defaults that are followed by required parameters.
-    /// PT: Garante que o Firebird rejeite defaults de funcao escalar seguidos por parametros obrigatorios.
+    /// PT-br: Garante que o Firebird rejeite defaults de funcao escalar seguidos por parametros obrigatorios.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -131,7 +131,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses CREATE OR ALTER PROCEDURE in the supported provider-real subset.
-    /// PT: Garante que o Firebird interprete CREATE OR ALTER PROCEDURE no subset realista suportado pelo provedor.
+    /// PT-br: Garante que o Firebird interprete CREATE OR ALTER PROCEDURE no subset realista suportado pelo provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -154,7 +154,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses procedure parameter defaults in the supported DDL subset.
-    /// PT: Garante que o Firebird interprete padroes de parametro de procedure no subset de DDL suportado.
+    /// PT-br: Garante que o Firebird interprete padroes de parametro de procedure no subset de DDL suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -179,7 +179,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird rejects procedure defaults that are followed by required input parameters.
-    /// PT: Garante que o Firebird rejeite defaults de procedure seguidos por parametros de entrada obrigatorios.
+    /// PT-br: Garante que o Firebird rejeite defaults de procedure seguidos por parametros de entrada obrigatorios.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -197,7 +197,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses CREATE OR ALTER TRIGGER in the supported provider-real subset.
-    /// PT: Garante que o Firebird interprete CREATE OR ALTER TRIGGER no subset realista suportado pelo provedor.
+    /// PT-br: Garante que o Firebird interprete CREATE OR ALTER TRIGGER no subset realista suportado pelo provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -218,7 +218,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses RECREATE PROCEDURE in the supported provider-real subset.
-    /// PT: Garante que o Firebird interprete RECREATE PROCEDURE no subset realista suportado pelo provedor.
+    /// PT-br: Garante que o Firebird interprete RECREATE PROCEDURE no subset realista suportado pelo provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -244,7 +244,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses RECREATE TRIGGER in the supported provider-real subset.
-    /// PT: Garante que o Firebird interprete RECREATE TRIGGER no subset realista suportado pelo provedor.
+    /// PT-br: Garante que o Firebird interprete RECREATE TRIGGER no subset realista suportado pelo provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -266,7 +266,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses DROP PROCEDURE in the supported provider-real subset.
-    /// PT: Garante que o Firebird interprete DROP PROCEDURE no subset realista suportado pelo provedor.
+    /// PT-br: Garante que o Firebird interprete DROP PROCEDURE no subset realista suportado pelo provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -285,7 +285,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses DROP TRIGGER in the supported provider-real subset.
-    /// PT: Garante que o Firebird interprete DROP TRIGGER no subset realista suportado pelo provedor.
+    /// PT-br: Garante que o Firebird interprete DROP TRIGGER no subset realista suportado pelo provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -304,7 +304,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses ALTER SEQUENCE RESTART in the supported subset.
-    /// PT: Garante que o Firebird interprete ALTER SEQUENCE RESTART no subset suportado.
+    /// PT-br: Garante que o Firebird interprete ALTER SEQUENCE RESTART no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -323,7 +323,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses ALTER SEQUENCE RESTART without WITH in the supported subset.
-    /// PT: Garante que o Firebird interprete ALTER SEQUENCE RESTART sem WITH no subset suportado.
+    /// PT-br: Garante que o Firebird interprete ALTER SEQUENCE RESTART sem WITH no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -342,7 +342,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses CREATE GENERATOR as a sequence creation alias in the supported subset.
-    /// PT: Garante que o Firebird interprete CREATE GENERATOR como alias de criacao de sequence no subset suportado.
+    /// PT-br: Garante que o Firebird interprete CREATE GENERATOR como alias de criacao de sequence no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -362,7 +362,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
-    /// PT: Garante que o Firebird rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// PT-br: Garante que o Firebird rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -380,7 +380,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is available.
-    /// PT: Garante que o Firebird rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
+    /// PT-br: Garante que o Firebird rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -398,7 +398,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses DROP GENERATOR as a sequence drop alias in the supported subset.
-    /// PT: Garante que o Firebird interprete DROP GENERATOR como alias de exclusao de sequence no subset suportado.
+    /// PT-br: Garante que o Firebird interprete DROP GENERATOR como alias de exclusao de sequence no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -417,7 +417,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses ALTER PROCEDURE as a replacing procedure definition.
-    /// PT: Garante que o Firebird interprete ALTER PROCEDURE como definicao de procedure substituivel.
+    /// PT-br: Garante que o Firebird interprete ALTER PROCEDURE como definicao de procedure substituivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -439,7 +439,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses ALTER TRIGGER as a replacing trigger definition.
-    /// PT: Garante que o Firebird interprete ALTER TRIGGER como definicao de trigger substituivel.
+    /// PT-br: Garante que o Firebird interprete ALTER TRIGGER como definicao de trigger substituivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -461,7 +461,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses EXECUTE BLOCK in the supported provider-real subset.
-    /// PT: Garante que o Firebird interprete EXECUTE BLOCK no subset realista suportado pelo provedor.
+    /// PT-br: Garante que o Firebird interprete EXECUTE BLOCK no subset realista suportado pelo provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -485,7 +485,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses EXECUTE BLOCK with parameters and RETURNS clauses in the supported subset.
-    /// PT: Garante que o Firebird interprete EXECUTE BLOCK com parametros e RETURNS no subset suportado.
+    /// PT-br: Garante que o Firebird interprete EXECUTE BLOCK com parametros e RETURNS no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -516,7 +516,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses EXECUTE BLOCK bodies that contain SUSPEND statements in the supported subset.
-    /// PT: Garante que o Firebird interprete corpos de EXECUTE BLOCK que contenham SUSPEND no subset suportado.
+    /// PT-br: Garante que o Firebird interprete corpos de EXECUTE BLOCK que contenham SUSPEND no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -541,7 +541,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses EXECUTE BLOCK bodies that stop at EXIT in the supported subset.
-    /// PT: Garante que o Firebird interprete corpos de EXECUTE BLOCK que param em EXIT no subset suportado.
+    /// PT-br: Garante que o Firebird interprete corpos de EXECUTE BLOCK que param em EXIT no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -567,7 +567,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses EXECUTE STATEMENT inside EXECUTE BLOCK in the supported subset.
-    /// PT: Garante que o Firebird interprete EXECUTE STATEMENT dentro de EXECUTE BLOCK no subset suportado.
+    /// PT-br: Garante que o Firebird interprete EXECUTE STATEMENT dentro de EXECUTE BLOCK no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -590,7 +590,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses FIRST and SKIP row limiting in the supported subset.
-    /// PT: Garante que o Firebird interprete FIRST e SKIP para limite de linhas no subset suportado.
+    /// PT-br: Garante que o Firebird interprete FIRST e SKIP para limite de linhas no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -614,7 +614,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses ROWS range limiting in the supported subset.
-    /// PT: Garante que o Firebird interprete limite de faixa ROWS no subset suportado.
+    /// PT-br: Garante que o Firebird interprete limite de faixa ROWS no subset suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -639,7 +639,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses ORDER BY NULLS FIRST and NULLS LAST in the supported subset.
-    /// PT: Garante que o Firebird interprete ORDER BY NULLS FIRST e NULLS LAST no subset suportado.
+    /// PT-br: Garante que o Firebird interprete ORDER BY NULLS FIRST e NULLS LAST no subset suportado.
     /// </summary>
     [Theory]
     [InlineData("SELECT Id FROM users ORDER BY Name NULLS FIRST", true)]
@@ -658,7 +658,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses the supported OVERLAY string function syntax.
-    /// PT: Garante que o Firebird interprete a sintaxe suportada da funcao de string OVERLAY.
+    /// PT-br: Garante que o Firebird interprete a sintaxe suportada da funcao de string OVERLAY.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -677,7 +677,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses the DATEADD temporal syntax that uses TO and a leading amount.
-    /// PT: Garante que o Firebird interprete a sintaxe temporal DATEADD que usa TO e uma quantidade inicial.
+    /// PT-br: Garante que o Firebird interprete a sintaxe temporal DATEADD que usa TO e uma quantidade inicial.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -699,7 +699,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses the CRYPT_HASH function with the USING hash algorithm syntax.
-    /// PT: Garante que o Firebird interprete a funcao CRYPT_HASH com a sintaxe de algoritmo USING.
+    /// PT-br: Garante que o Firebird interprete a funcao CRYPT_HASH com a sintaxe de algoritmo USING.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -719,7 +719,7 @@ public sealed class FirebirdDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures Firebird parses the HASH function with the supported CRC32 algorithm syntax.
-    /// PT: Garante que o Firebird interprete a funcao HASH com a sintaxe suportada do algoritmo CRC32.
+    /// PT-br: Garante que o Firebird interprete a funcao HASH com a sintaxe suportada do algoritmo CRC32.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]

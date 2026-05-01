@@ -4,13 +4,13 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Helper for parsing SQL table sources (tables, subqueries, table-valued functions).
-/// PT: Helper para o parsing de fontes de tabela SQL (tabelas, subqueries, funções de tabela).
+/// PT-br: Helper para o parsing de fontes de tabela SQL (tabelas, subqueries, funções de tabela).
 /// </summary>
 internal static class SqlTableSourceParserHelper
 {
     /// <summary>
     /// EN: Parses a table source from the current context.
-    /// PT: Faz o parsing de uma fonte de tabela a partir do contexto atual.
+    /// PT-br: Faz o parsing de uma fonte de tabela a partir do contexto atual.
     /// </summary>
     internal static SqlTableSource ParseTableSource(
         this SqlQueryParserContext ctx,
@@ -225,7 +225,7 @@ internal static class SqlTableSourceParserHelper
 
     /// <summary>
     /// EN: Expects an identifier in the table source context.
-    /// PT: Espera um identificador no contexto de fonte de tabela.
+    /// PT-br: Espera um identificador no contexto de fonte de tabela.
     /// </summary>
     private static string ExpectIdentifier(
         SqlQueryParserContext ctx)

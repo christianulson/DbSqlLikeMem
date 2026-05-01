@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Npgsql.TestTools;
 
 /// <summary>
 /// EN: Provides PostgreSQL-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de PostgreSQL usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de PostgreSQL usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class NpgsqlProviderSqlDialect : ProviderSqlDialect
 {

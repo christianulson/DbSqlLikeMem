@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Covers Db2 mock CRUD, transactions, row-count, batch, and procedure behavior.
-/// PT: Cobre comportamento de CRUD, transacoes, contagem de linhas, batch e procedimentos do mock Db2.
+/// PT-br: Cobre comportamento de CRUD, transacoes, contagem de linhas, batch e procedimentos do mock Db2.
 /// </summary>
 public sealed class Db2MockTests
     : XUnitTestBase
@@ -11,7 +11,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Creates the Db2 mock database used by the test suite.
-    /// PT: Cria o banco mock Db2 usado pela suite de testes.
+    /// PT-br: Cria o banco mock Db2 usado pela suite de testes.
     /// </summary>
     public Db2MockTests(
         ITestOutputHelper helper
@@ -35,7 +35,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies INSERT adds a row to the Db2 mock.
-    /// PT: Verifica se INSERT adiciona uma linha no mock Db2.
+    /// PT-br: Verifica se INSERT adiciona uma linha no mock Db2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -52,7 +52,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ExecuteNonQuery applies each INSERT in a multi-statement script and returns the total affected rows.
-    /// PT: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
+    /// PT-br: Verifica se ExecuteNonQuery aplica cada INSERT em um script com multiplas instrucoes e retorna o total de linhas afetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -79,7 +79,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies UPDATE modifies an existing row in the Db2 mock.
-    /// PT: Verifica se UPDATE modifica uma linha existente no mock Db2.
+    /// PT-br: Verifica se UPDATE modifica uma linha existente no mock Db2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -99,7 +99,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies DELETE removes an existing row in the Db2 mock.
-    /// PT: Verifica se DELETE remove uma linha existente no mock Db2.
+    /// PT-br: Verifica se DELETE remove uma linha existente no mock Db2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -119,7 +119,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies routine DDL does not invalidate the select-plan cache when the query shape does not change.
-    /// PT: Verifica se DDL de rotinas nao invalida o cache de plano de select quando o shape da consulta nao muda.
+    /// PT-br: Verifica se DDL de rotinas nao invalida o cache de plano de select quando o shape da consulta nao muda.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -158,7 +158,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies CREATE TABLE with an inline primary key allows inserts.
-    /// PT: Verifica se CREATE TABLE com chave primaria inline permite insercoes.
+    /// PT-br: Verifica se CREATE TABLE com chave primaria inline permite insercoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -177,7 +177,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies committed transactions persist their changes.
-    /// PT: Verifica se transacoes confirmadas persistem suas alteracoes.
+    /// PT-br: Verifica se transacoes confirmadas persistem suas alteracoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -213,7 +213,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies insert and update changes survive a committed transaction.
-    /// PT: Verifica se alteracoes de insert e update sobrevivem a uma transacao confirmada.
+    /// PT-br: Verifica se alteracoes de insert e update sobrevivem a uma transacao confirmada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -236,7 +236,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies positional parameters still resolve when a named parameter appears before them.
-    /// PT: Verifica se parametros posicionais continuam sendo resolvidos quando um parametro nomeado aparece antes deles.
+    /// PT-br: Verifica se parametros posicionais continuam sendo resolvidos quando um parametro nomeado aparece antes deles.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -270,7 +270,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies a simple named parameter lookup returns the matching user name.
-    /// PT: Verifica se uma consulta simples com parametro nomeado retorna o nome de usuario correspondente.
+    /// PT-br: Verifica se uma consulta simples com parametro nomeado retorna o nome de usuario correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -294,7 +294,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies positional Db2 markers can resolve a named parameter when no positional parameters were added.
-    /// PT: Verifica se marcadores posicionais Db2 conseguem resolver um parametro nomeado quando nenhum parametro posicional foi adicionado.
+    /// PT-br: Verifica se marcadores posicionais Db2 conseguem resolver um parametro nomeado quando nenhum parametro posicional foi adicionado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -318,7 +318,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies parameterized Db2 inserts keep their bound values available for a follow-up positional select.
-    /// PT: Verifica se inserts parametrizados Db2 mantêm os valores vinculados disponiveis para um select posicional seguinte.
+    /// PT-br: Verifica se inserts parametrizados Db2 mantêm os valores vinculados disponiveis para um select posicional seguinte.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -355,7 +355,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies a literal string equality filter matches the seeded Bob row.
-    /// PT: Verifica se um filtro literal de igualdade de string encontra a linha Bob semeada.
+    /// PT-br: Verifica se um filtro literal de igualdade de string encontra a linha Bob semeada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -373,7 +373,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies a string equality filter on a non-primary-key column still matches the seeded row.
-    /// PT: Verifica se um filtro de igualdade de string em uma coluna que nao e chave primaria continua encontrando a linha semeada.
+    /// PT-br: Verifica se um filtro de igualdade de string em uma coluna que nao e chave primaria continua encontrando a linha semeada.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -391,7 +391,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies a scalar subquery count on a foreign-key column returns the seeded row total.
-    /// PT: Verifica se uma subconsulta escalar de contagem em uma coluna de chave estrangeira retorna o total de linhas semeadas.
+    /// PT-br: Verifica se uma subconsulta escalar de contagem em uma coluna de chave estrangeira retorna o total de linhas semeadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -413,7 +413,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies rolled back transactions discard their changes.
-    /// PT: Verifica se transacoes revertidas descartam suas alteracoes.
+    /// PT-br: Verifica se transacoes revertidas descartam suas alteracoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -449,9 +449,9 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
@@ -460,7 +460,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies DB2 rejects FOUND_ROWS because the provider exposes ROW_COUNT for row-count inspection.
-    /// PT: Verifica que o DB2 rejeita FOUND_ROWS porque o provider expoe ROW_COUNT para inspecao de contagem de linhas.
+    /// PT-br: Verifica que o DB2 rejeita FOUND_ROWS porque o provider expoe ROW_COUNT para inspecao de contagem de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -483,7 +483,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns the row count from the last SELECT statement.
-    /// PT: Verifica se ROW_COUNT retorna a contagem de linhas do ultimo SELECT.
+    /// PT-br: Verifica se ROW_COUNT retorna a contagem de linhas do ultimo SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -506,7 +506,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after BEGIN TRANSACTION in a batch.
-    /// PT: Verifica se ROW_COUNT retorna zero apos BEGIN TRANSACTION em um batch.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos BEGIN TRANSACTION em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -525,7 +525,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after CALL in a batch.
-    /// PT: Verifica se ROW_COUNT retorna zero apos CALL em um batch.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos CALL em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -546,7 +546,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies CREATE OR REPLACE PROCEDURE registers the procedure and allows CALL.
-    /// PT: Verifica se CREATE OR REPLACE PROCEDURE registra o procedimento e permite CALL.
+    /// PT-br: Verifica se CREATE OR REPLACE PROCEDURE registra o procedimento e permite CALL.
     /// </summary>
     [Theory]
     [Trait("Category", "Db2Mock")]
@@ -579,9 +579,9 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies DB2 registers CREATE OR REPLACE TRIGGER and keeps table DML working.
-    /// PT: Verifica que o DB2 registre CREATE OR REPLACE TRIGGER e mantenha DML da tabela funcionando.
+    /// PT-br: Verifica que o DB2 registre CREATE OR REPLACE TRIGGER e mantenha DML da tabela funcionando.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [Trait("Category", "Db2Mock")]
     [MemberDataDb2Version]
@@ -628,7 +628,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after UPDATE followed by COMMIT.
-    /// PT: Verifica se ROW_COUNT retorna zero apos UPDATE seguido de COMMIT.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos UPDATE seguido de COMMIT.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -648,7 +648,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after ROLLBACK TO SAVEPOINT.
-    /// PT: Verifica se ROW_COUNT retorna zero apos ROLLBACK TO SAVEPOINT.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos ROLLBACK TO SAVEPOINT.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -667,7 +667,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after RELEASE SAVEPOINT.
-    /// PT: Verifica se ROW_COUNT retorna zero apos RELEASE SAVEPOINT.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos RELEASE SAVEPOINT.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -687,7 +687,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT reflects the last DML statement in a mixed batch.
-    /// PT: Verifica se ROW_COUNT reflete a ultima instrucao DML em um batch misto.
+    /// PT-br: Verifica se ROW_COUNT reflete a ultima instrucao DML em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -715,7 +715,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT returns zero after CALL, UPDATE, and COMMIT in a batch.
-    /// PT: Verifica se ROW_COUNT retorna zero apos CALL, UPDATE e COMMIT em um batch.
+    /// PT-br: Verifica se ROW_COUNT retorna zero apos CALL, UPDATE e COMMIT em um batch.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -737,7 +737,7 @@ public sealed class Db2MockTests
 
     /// <summary>
     /// EN: Verifies ROW_COUNT reflects the last SELECT result set in a mixed batch.
-    /// PT: Verifica se ROW_COUNT reflete o ultimo conjunto de resultados SELECT em um batch misto.
+    /// PT-br: Verifica se ROW_COUNT reflete o ultimo conjunto de resultados SELECT em um batch misto.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]

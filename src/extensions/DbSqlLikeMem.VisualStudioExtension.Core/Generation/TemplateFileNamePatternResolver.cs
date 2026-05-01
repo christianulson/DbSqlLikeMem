@@ -4,19 +4,19 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Resolves file names for template-based generation using the supported placeholder contract.
-/// PT: Resolve nomes de arquivo para geracao baseada em templates usando o contrato de placeholders suportados.
+/// PT-br: Resolve nomes de arquivo para geracao baseada em templates usando o contrato de placeholders suportados.
 /// </summary>
 public static class TemplateFileNamePatternResolver
 {
     /// <summary>
     /// EN: Resolves the file name for a template-generated artifact.
-    /// PT: Resolve o nome do arquivo para um artefato gerado por template.
+    /// PT-br: Resolve o nome do arquivo para um artefato gerado por template.
     /// </summary>
-    /// <param name="fileNamePattern">EN: Optional configured file name pattern. PT: Padrao configurado opcional de nome de arquivo.</param>
-    /// <param name="kindSuffix">EN: Default suffix like `Model` or `Repository`. PT: Sufixo padrao como `Model` ou `Repository`.</param>
-    /// <param name="connection">EN: Generation connection metadata. PT: Metadados da conexao de geracao.</param>
-    /// <param name="dbObject">EN: Database object that originated the artifact. PT: Objeto de banco que originou o artefato.</param>
-    /// <param name="namespace">EN: Optional namespace used for `{Namespace}`. PT: Namespace opcional usado em `{Namespace}`.</param>
+    /// <param name="fileNamePattern">EN: Optional configured file name pattern. PT-br: Padrao configurado opcional de nome de arquivo.</param>
+    /// <param name="kindSuffix">EN: Default suffix like `Model` or `Repository`. PT-br: Sufixo padrao como `Model` ou `Repository`.</param>
+    /// <param name="connection">EN: Generation connection metadata. PT-br: Metadados da conexao de geracao.</param>
+    /// <param name="dbObject">EN: Database object that originated the artifact. PT-br: Objeto de banco que originou o artefato.</param>
+    /// <param name="namespace">EN: Optional namespace used for `{Namespace}`. PT-br: Namespace opcional usado em `{Namespace}`.</param>
     public static string Resolve(
         string? fileNamePattern,
         string kindSuffix,

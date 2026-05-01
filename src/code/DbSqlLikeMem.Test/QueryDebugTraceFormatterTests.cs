@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Verifies textual formatting for runtime query debug traces.
-/// PT: Verifica a formatacao textual dos traces de debug de query em runtime.
+/// PT-br: Verifica a formatacao textual dos traces de debug de query em runtime.
 /// </summary>
 public sealed class QueryDebugTraceFormatterTests(
         ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class QueryDebugTraceFormatterTests(
 
     /// <summary>
     /// EN: Ensures the formatter renders statement context and ordered runtime steps.
-    /// PT: Garante que o formatter renderize o contexto do statement e os passos de runtime em ordem.
+    /// PT-br: Garante que o formatter renderize o contexto do statement e os passos de runtime em ordem.
     /// </summary>
     [Fact]
     public void Format_ShouldRenderStatementContext_AndOrderedSteps()
@@ -66,7 +66,7 @@ public sealed class QueryDebugTraceFormatterTests(
 
     /// <summary>
     /// EN: Ensures batch formatting separates traces and preserves per-statement context.
-    /// PT: Garante que a formatacao em lote separe os traces e preserve o contexto por statement.
+    /// PT-br: Garante que a formatacao em lote separe os traces e preserve o contexto por statement.
     /// </summary>
     [Fact]
     public void FormatBatch_ShouldSeparateTraces_AndPreserveStatementContext()
@@ -117,7 +117,7 @@ public sealed class QueryDebugTraceFormatterTests(
 
     /// <summary>
     /// EN: Ensures JSON formatting emits a stable structured payload for one trace.
-    /// PT: Garante que a formatacao JSON emita um payload estruturado estavel para um trace.
+    /// PT-br: Garante que a formatacao JSON emita um payload estruturado estavel para um trace.
     /// </summary>
     [Fact]
     public void FormatJson_ShouldEmitStableStructuredPayload()
@@ -166,7 +166,7 @@ public sealed class QueryDebugTraceFormatterTests(
 
     /// <summary>
     /// EN: Ensures trace aggregates keep the earliest step when elapsed time or volume ties occur.
-    /// PT: Garante que os agregados do trace mantenham o primeiro passo quando houver empate de tempo ou volume.
+    /// PT-br: Garante que os agregados do trace mantenham o primeiro passo quando houver empate de tempo ou volume.
     /// </summary>
     [Fact]
     public void QueryDebugTrace_ShouldKeepEarliestStep_WhenMetricsTie()
@@ -195,7 +195,7 @@ public sealed class QueryDebugTraceFormatterTests(
 
     /// <summary>
     /// EN: Ensures batch JSON formatting preserves order and statement metadata.
-    /// PT: Garante que a formatacao JSON em lote preserve a ordem e os metadados dos statements.
+    /// PT-br: Garante que a formatacao JSON em lote preserve a ordem e os metadados dos statements.
     /// </summary>
     [Fact]
     public void FormatBatchJson_ShouldPreserveOrder_AndStatementMetadata()
@@ -258,7 +258,7 @@ public sealed class QueryDebugTraceFormatterTests(
 
     /// <summary>
     /// EN: Ensures batch summaries keep the earliest statement when batch-level metrics tie.
-    /// PT: Garante que os resumos em lote mantenham o primeiro statement quando houver empate de metricas no batch.
+    /// PT-br: Garante que os resumos em lote mantenham o primeiro statement quando houver empate de metricas no batch.
     /// </summary>
     [Fact]
     public void FormatBatch_ShouldKeepEarliestStatement_WhenMetricsTie()

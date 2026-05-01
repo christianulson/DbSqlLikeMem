@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Provides LINQ query translation and execution for the Oracle mock connection.
-/// PT: Fornece tradução e execução de consultas LINQ para a conexão simulada Oracle.
+/// PT-br: Fornece tradução e execução de consultas LINQ para a conexão simulada Oracle.
 /// </summary>
 public sealed class OracleQueryProvider(
     OracleConnectionMock cnn
@@ -16,7 +16,7 @@ public sealed class OracleQueryProvider(
 
     /// <summary>
     /// EN: Creates a new query instance.
-    /// PT: Cria uma nova instância de consulta.
+    /// PT-br: Cria uma nova instância de consulta.
     /// </summary>
     public IQueryable CreateQuery(Expression expression)
     {
@@ -35,7 +35,7 @@ public sealed class OracleQueryProvider(
 
     /// <summary>
     /// EN: Creates a typed query for the provided expression after null validation.
-    /// PT: Cria uma consulta tipada para a expressão informada após validação de nulo.
+    /// PT-br: Cria uma consulta tipada para a expressão informada após validação de nulo.
     /// </summary>
     public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
     {
@@ -82,7 +82,7 @@ public sealed class OracleQueryProvider(
 
     /// <summary>
     /// EN: Executes the provided expression and returns the translated result.
-    /// PT: Executa a expressão informada e retorna o resultado traduzido.
+    /// PT-br: Executa a expressão informada e retorna o resultado traduzido.
     /// </summary>
     public TResult Execute<TResult>(Expression expression)
     {

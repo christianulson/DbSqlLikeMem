@@ -1,10 +1,10 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
 namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Covers SQL value resolution helpers in the Db2 mock.
-/// PT: Cobre os helpers de resolucao de valores SQL no mock Db2.
+/// PT-br: Cobre os helpers de resolucao de valores SQL no mock Db2.
 /// </summary>
 public sealed class SqlValueHelperTests(
     ITestOutputHelper helper
@@ -12,7 +12,7 @@ public sealed class SqlValueHelperTests(
 {
     /// <summary>
     /// EN: Verifies parameters can be resolved by name.
-    /// PT: Verifica se parametros podem ser resolvidos pelo nome.
+    /// PT-br: Verifica se parametros podem ser resolvidos pelo nome.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -33,7 +33,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies missing parameters raise an exception.
-    /// PT: Verifica se parametros ausentes geram excecao.
+    /// PT-br: Verifica se parametros ausentes geram excecao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -45,7 +45,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies IN lists resolve to a list of values.
-    /// PT: Verifica se listas IN sao resolvidas como uma lista de valores.
+    /// PT-br: Verifica se listas IN sao resolvidas como uma lista de valores.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -59,7 +59,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies NULL is rejected for non-nullable columns.
-    /// PT: Verifica se NULL e rejeitado para colunas nao anulaveis.
+    /// PT-br: Verifica se NULL e rejeitado para colunas nao anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -71,7 +71,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies valid JSON literals resolve to JsonDocument values.
-    /// PT: Verifica se literais JSON validos sao resolvidos como JsonDocument.
+    /// PT-br: Verifica se literais JSON validos sao resolvidos como JsonDocument.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -85,7 +85,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies LIKE follows Db2-style wildcard matching.
-    /// PT: Verifica se LIKE segue a correspondencia de curingas no estilo Db2.
+    /// PT-br: Verifica se LIKE segue a correspondencia de curingas no estilo Db2.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -101,7 +101,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies enum columns accept configured values and reject invalid ones.
-    /// PT: Verifica se colunas enum aceitam valores configurados e rejeitam valores invalidos.
+    /// PT-br: Verifica se colunas enum aceitam valores configurados e rejeitam valores invalidos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -125,7 +125,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies SET columns resolve to a hash set and validate allowed values.
-    /// PT: Verifica se colunas SET sao resolvidas como um hash set e validam os valores permitidos.
+    /// PT-br: Verifica se colunas SET sao resolvidas como um hash set e validam os valores permitidos.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -157,7 +157,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies string values respect the declared size limit.
-    /// PT: Verifica se valores de texto respeitam o limite de tamanho declarado.
+    /// PT-br: Verifica se valores de texto respeitam o limite de tamanho declarado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -183,7 +183,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies decimal values respect the declared scale.
-    /// PT: Verifica se valores decimais respeitam a escala declarada.
+    /// PT-br: Verifica se valores decimais respeitam a escala declarada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]
@@ -209,7 +209,7 @@ public sealed class SqlValueHelperTests(
 
     /// <summary>
     /// EN: Verifies empty text literals resolve to empty strings for Db2 string columns.
-    /// PT: Verifica se literais de texto vazios sao resolvidos como string vazia para colunas string do Db2.
+    /// PT-br: Verifica se literais de texto vazios sao resolvidos como string vazia para colunas string do Db2.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlValueHelperTests ")]

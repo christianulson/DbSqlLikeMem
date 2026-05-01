@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
 /// <summary>
 /// EN: Contains trigger behavior tests for the SQL Server strategy.
-/// PT: Contém testes de comportamento de gatilhos para a estratégia SQL Server.
+/// PT-br: Contém testes de comportamento de gatilhos para a estratégia SQL Server.
 /// </summary>
 public sealed class SqlServerTriggerStrategyTests
 {
     /// <summary>
     /// EN: Ensures that insert, update, and delete triggers are executed for a non-temporary table.
-    /// PT: Garante que os gatilhos de insert, update e delete sejam executados para uma tabela não temporária.
+    /// PT-br: Garante que os gatilhos de insert, update e delete sejam executados para uma tabela não temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -52,7 +52,7 @@ public sealed class SqlServerTriggerStrategyTests
 
     /// <summary>
     /// EN: Ensures that triggers are not executed for a temporary table.
-    /// PT: Garante que os gatilhos não sejam executados para uma tabela temporária.
+    /// PT-br: Garante que os gatilhos não sejam executados para uma tabela temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

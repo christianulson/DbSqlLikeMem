@@ -3,13 +3,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Writes generated class files for the selected database objects.
-/// PT: Grava arquivos de classe gerados para os objetos de banco selecionados.
+/// PT-br: Grava arquivos de classe gerados para os objetos de banco selecionados.
 /// </summary>
 public sealed class ClassGenerator
 {
     /// <summary>
     /// EN: Generates the files for the current request and returns the written paths.
-    /// PT: Gera os arquivos para a requisicao atual e retorna os caminhos gravados.
+    /// PT-br: Gera os arquivos para a requisicao atual e retorna os caminhos gravados.
     /// </summary>
     public async Task<IReadOnlyCollection<string>> GenerateAsync(
         GenerationRequest request,

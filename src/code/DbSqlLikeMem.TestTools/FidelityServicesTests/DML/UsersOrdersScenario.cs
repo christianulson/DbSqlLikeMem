@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Creates and drops the users and orders tables used by the join workflow.
-/// PT: Cria e remove as tabelas de usuarios e pedidos usadas pelo fluxo de junção.
+/// PT-br: Cria e remove as tabelas de usuarios e pedidos usadas pelo fluxo de junção.
 /// </summary>
 public sealed class UsersOrdersScenario : BaseScenario, ITestScenario
 {
@@ -12,7 +12,7 @@ public sealed class UsersOrdersScenario : BaseScenario, ITestScenario
 
     /// <summary>
     /// EN: Creates a users-and-orders scenario with custom users and default empty orders.
-    /// PT: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
+    /// PT-br: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
     /// </summary>
     public UsersOrdersScenario(
         RepoService repo,
@@ -27,7 +27,7 @@ public sealed class UsersOrdersScenario : BaseScenario, ITestScenario
 
     /// <summary>
     /// EN: Creates a users-and-orders scenario with custom users and metric-aware orders.
-    /// PT: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos com metricas.
+    /// PT-br: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos com metricas.
     /// </summary>
     public UsersOrdersScenario(
         RepoService repo,
@@ -42,7 +42,7 @@ public sealed class UsersOrdersScenario : BaseScenario, ITestScenario
 
     /// <summary>
     /// EN: Creates a users-and-orders scenario with custom users and default empty orders.
-    /// PT: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
+    /// PT-br: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
     /// </summary>
     public UsersOrdersScenario(
         RepoService repo,
@@ -54,7 +54,7 @@ public sealed class UsersOrdersScenario : BaseScenario, ITestScenario
 
     /// <summary>
     /// EN: Creates the users and orders tables and seeds the join data.
-    /// PT: Cria as tabelas de usuarios e pedidos e preenche os dados da junção.
+    /// PT-br: Cria as tabelas de usuarios e pedidos e preenche os dados da junção.
     /// </summary>
     public async Task CreateScenarioAsync()
     {
@@ -94,7 +94,7 @@ public sealed class UsersOrdersScenario : BaseScenario, ITestScenario
 
     /// <summary>
     /// EN: Drops the orders table first and then the users table.
-    /// PT: Remove primeiro a tabela de pedidos e depois a tabela de usuarios.
+    /// PT-br: Remove primeiro a tabela de pedidos e depois a tabela de usuarios.
     /// </summary>
     public async Task DropScenarioAsync()
     {

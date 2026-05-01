@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Contains tests for SQL Azure connector factory mock.
-/// PT: Contém testes para a fábrica de conectores simulada do SQL Azure.
+/// PT-br: Contém testes para a fábrica de conectores simulada do SQL Azure.
 /// </summary>
 public sealed class SqlAzureConnectorFactoryMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlAzureConnectorFactoryMockTests(
 {
     /// <summary>
     /// EN: Ensures core factory members return SQL Azure provider mocks.
-    /// PT: Garante que os membros principais da fábrica retornem mocks do provedor SQL Azure.
+    /// PT-br: Garante que os membros principais da fábrica retornem mocks do provedor SQL Azure.
     /// </summary>
     [Fact]
     public void CreateCoreMembers_ShouldReturnProviderMocks()
@@ -27,7 +27,7 @@ public sealed class SqlAzureConnectorFactoryMockTests(
 #if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Ensures batch members return SQL Azure batch mocks.
-    /// PT: Garante que membros de lote retornem mocks de lote SQL Azure.
+    /// PT-br: Garante que membros de lote retornem mocks de lote SQL Azure.
     /// </summary>
     [Fact]
     public void CreateBatchMembers_ShouldReturnProviderMocks()
@@ -43,7 +43,7 @@ public sealed class SqlAzureConnectorFactoryMockTests(
 #if NET7_0_OR_GREATER
     /// <summary>
     /// EN: Ensures CreateDataSource returns SQL Azure data source mock.
-    /// PT: Garante que CreateDataSource retorne o mock de fonte de dados SQL Azure.
+    /// PT-br: Garante que CreateDataSource retorne o mock de fonte de dados SQL Azure.
     /// </summary>
     [Fact]
     public void CreateDataSource_ShouldReturnProviderDataSourceMock()

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Wraps a <see cref="DbTransaction"/> returned by an intercepted connection.
-/// PT: Encapsula uma <see cref="DbTransaction"/> retornada por uma conexao interceptada.
+/// PT-br: Encapsula uma <see cref="DbTransaction"/> retornada por uma conexao interceptada.
 /// </summary>
 public sealed class InterceptingDbTransaction : DbTransaction
 {
@@ -25,7 +25,7 @@ public sealed class InterceptingDbTransaction : DbTransaction
 
     /// <summary>
     /// EN: Gets the inner transaction wrapped by this interception transaction.
-    /// PT: Obtem a transacao interna encapsulada por esta transacao de interceptacao.
+    /// PT-br: Obtem a transacao interna encapsulada por esta transacao de interceptacao.
     /// </summary>
     public DbTransaction InnerTransaction => _innerTransaction;
 
@@ -53,9 +53,9 @@ public sealed class InterceptingDbTransaction : DbTransaction
 #else
     /// <summary>
     /// EN: Creates a savepoint on the wrapped transaction.
-    /// PT: Cria um savepoint na transacao encapsulada.
+    /// PT-br: Cria um savepoint na transacao encapsulada.
     /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    /// <param name="savepointName">EN: Savepoint name. PT-br: Nome do savepoint.</param>
     public void Save(string savepointName)
 #endif
         => InvokeSavepointOperation("Save", savepointName);
@@ -66,9 +66,9 @@ public sealed class InterceptingDbTransaction : DbTransaction
 #else
     /// <summary>
     /// EN: Rolls back the wrapped transaction to a savepoint.
-    /// PT: Executa rollback da transacao encapsulada para um savepoint.
+    /// PT-br: Executa rollback da transacao encapsulada para um savepoint.
     /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    /// <param name="savepointName">EN: Savepoint name. PT-br: Nome do savepoint.</param>
     public void Rollback(string savepointName)
 #endif
         => InvokeSavepointOperation("Rollback", savepointName);
@@ -79,9 +79,9 @@ public sealed class InterceptingDbTransaction : DbTransaction
 #else
     /// <summary>
     /// EN: Releases a savepoint on the wrapped transaction.
-    /// PT: Libera um savepoint na transacao encapsulada.
+    /// PT-br: Libera um savepoint na transacao encapsulada.
     /// </summary>
-    /// <param name="savepointName">EN: Savepoint name. PT: Nome do savepoint.</param>
+    /// <param name="savepointName">EN: Savepoint name. PT-br: Nome do savepoint.</param>
     public void Release(string savepointName)
 #endif
         => InvokeSavepointOperation("Release", savepointName);

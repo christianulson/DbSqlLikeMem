@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// EN: Runs shared aggregation/HAVING scenarios for SQL Server and keeps SQL Server-specific coverage.
-/// PT: Executa cenários compartilhados de agregação/HAVING para SQL Server e mantém cobertura específica de SQL Server.
+/// PT-br: Executa cenários compartilhados de agregação/HAVING para SQL Server e mantém cobertura específica de SQL Server.
 /// </summary>
 /// <remarks>
 /// EN: Creates the SQL Server aggregation test suite helper.
-/// PT: Cria o helper da suite de testes de agregacao do SQL Server.
+/// PT-br: Cria o helper da suite de testes de agregacao do SQL Server.
 /// </remarks>
-/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+/// <param name="helper">EN: Output helper. PT-br: Helper de saída.</param>
 public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<SqlServerDbMock, SqlServerConnectionMock>(helper)
 {
 
@@ -23,7 +23,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
-    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
+    /// PT-br: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -34,7 +34,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Tests provider string aggregation with custom separator ignoring NULL values.
-    /// PT: Testa agregação textual do provedor com separador customizado ignorando valores NULL.
+    /// PT-br: Testa agregação textual do provedor com separador customizado ignorando valores NULL.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -53,7 +53,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures mixed projection with string aggregation and NULL literal works consistently.
-    /// PT: Garante que projeção mista com agregação textual e literal NULL funcione de forma consistente.
+    /// PT-br: Garante que projeção mista com agregação textual e literal NULL funcione de forma consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -72,7 +72,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures CASE projection returning NULL stays stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE retornando NULL permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE retornando NULL permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -92,7 +92,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures CASE projection with mixed text/NULL branches remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE com ramos mistos texto/NULL permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE com ramos mistos texto/NULL permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -112,7 +112,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures multi-branch CASE projection remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE de múltiplos ramos permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE de múltiplos ramos permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -135,7 +135,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures numeric multi-branch CASE projection remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE numérica multibranch permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE numérica multibranch permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -157,7 +157,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures SQL Server rejects DISTINCT directly inside STRING_AGG.
-    /// PT: Garante que o SQL Server rejeite DISTINCT diretamente dentro de STRING_AGG.
+    /// PT-br: Garante que o SQL Server rejeite DISTINCT diretamente dentro de STRING_AGG.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -173,7 +173,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures ordered-set syntax WITHIN GROUP applies ORDER BY to string aggregation output.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP aplique ORDER BY na saída da agregação textual.
+    /// PT-br: Garante que a sintaxe ordered-set WITHIN GROUP aplique ORDER BY na saída da agregação textual.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -184,7 +184,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures WITHIN GROUP ascending order is applied by string aggregation.
-    /// PT: Garante que a ordenação ascendente do WITHIN GROUP seja aplicada na agregação textual.
+    /// PT-br: Garante que a ordenação ascendente do WITHIN GROUP seja aplicada na agregação textual.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -195,7 +195,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures WITHIN GROUP supports composite ORDER BY expressions.
-    /// PT: Garante que WITHIN GROUP suporte expressões compostas no ORDER BY.
+    /// PT-br: Garante que WITHIN GROUP suporte expressões compostas no ORDER BY.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -206,7 +206,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures SQL Server rejects DISTINCT inside STRING_AGG even when WITHIN GROUP is present.
-    /// PT: Garante que o SQL Server rejeite DISTINCT dentro de STRING_AGG mesmo com WITHIN GROUP presente.
+    /// PT-br: Garante que o SQL Server rejeite DISTINCT dentro de STRING_AGG mesmo com WITHIN GROUP presente.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -222,7 +222,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in WHERE filter and projection.
-    /// PT: Garante que função temporal sem argumentos funcione em filtro WHERE e projeção.
+    /// PT-br: Garante que função temporal sem argumentos funcione em filtro WHERE e projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -239,7 +239,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures GETDATE and SYSDATETIME functions work in WHERE filter and projection.
-    /// PT: Garante que funções GETDATE e SYSDATETIME funcionem em filtro WHERE e projeção.
+    /// PT-br: Garante que funções GETDATE e SYSDATETIME funcionem em filtro WHERE e projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -256,7 +256,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures GETDATE and SYSDATETIME functions work in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que funções GETDATE e SYSDATETIME funcionem em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que funções GETDATE e SYSDATETIME funcionem em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -277,7 +277,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in INSERT values and can be read back.
-    /// PT: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
+    /// PT-br: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -295,7 +295,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in UPDATE set expression.
-    /// PT: Garante que função temporal sem argumentos funcione em expressão de UPDATE.
+    /// PT-br: Garante que função temporal sem argumentos funcione em expressão de UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -313,7 +313,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -337,7 +337,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures GETDATE()/SYSDATETIME() call-style temporal functions work in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que funções temporais GETDATE()/SYSDATETIME() (call-style) funcionem em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que funções temporais GETDATE()/SYSDATETIME() (call-style) funcionem em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -360,7 +360,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures GETDATE() call-style temporal function keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que a função temporal GETDATE() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que a função temporal GETDATE() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -400,7 +400,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures SYSDATETIME() call-style temporal function keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que a função temporal SYSDATETIME() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que a função temporal SYSDATETIME() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -438,7 +438,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures unsupported temporal function from another dialect reports a clear error message.
-    /// PT: Garante que função temporal de outro dialeto gere mensagem de erro clara.
+    /// PT-br: Garante que função temporal de outro dialeto gere mensagem de erro clara.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -455,7 +455,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures token-only temporal function called with parentheses reports clear error.
-    /// PT: Garante que função temporal no formato token chamada com parênteses gere erro claro.
+    /// PT-br: Garante que função temporal no formato token chamada com parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -471,7 +471,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures call-only temporal function used without parentheses reports clear error.
-    /// PT: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
+    /// PT-br: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]
@@ -486,7 +486,7 @@ public sealed class SqlServerAggregationTests(ITestOutputHelper helper) : Aggreg
 
     /// <summary>
     /// EN: Ensures SYSDATETIME call-style temporal function used without parentheses reports clear error.
-    /// PT: Garante que a função temporal call-style SYSDATETIME usada sem parênteses gere erro claro.
+    /// PT-br: Garante que a função temporal call-style SYSDATETIME usada sem parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerAggregation")]

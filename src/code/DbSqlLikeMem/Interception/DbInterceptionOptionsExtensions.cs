@@ -2,17 +2,17 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Adds convenience helpers for creating interception pipelines from options.
-/// PT: Adiciona helpers de conveniencia para criar pipelines de interceptacao a partir de opcoes.
+/// PT-br: Adiciona helpers de conveniencia para criar pipelines de interceptacao a partir de opcoes.
 /// </summary>
 public static class DbInterceptionOptionsExtensions
 {
     /// <summary>
     /// EN: Wraps the connection with the interceptors built from the supplied options.
-    /// PT: Encapsula a conexao com os interceptors construidos a partir das opcoes informadas.
+    /// PT-br: Encapsula a conexao com os interceptors construidos a partir das opcoes informadas.
     /// </summary>
-    /// <param name="connection">EN: Connection to wrap. PT: Conexao a encapsular.</param>
-    /// <param name="configure">EN: Options configuration. PT: Configuracao das opcoes.</param>
-    /// <returns>EN: Wrapped connection. PT: Conexao encapsulada.</returns>
+    /// <param name="connection">EN: Connection to wrap. PT-br: Conexao a encapsular.</param>
+    /// <param name="configure">EN: Options configuration. PT-br: Configuracao das opcoes.</param>
+    /// <returns>EN: Wrapped connection. PT-br: Conexao encapsulada.</returns>
     public static DbConnection WithInterception(
         this DbConnection connection,
         Action<DbInterceptionOptions> configure)

@@ -12,17 +12,17 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test.Db2;
 
 /// <summary>
 /// EN: Verifies generator queries against a real Db2 benchmark database.
-/// PT: Verifica as queries do generator contra um banco de benchmark Db2 real.
+/// PT-br: Verifica as queries do generator contra um banco de benchmark Db2 real.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used to record the integration test output.
-/// PT: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
+/// PT-br: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
 /// </param>
 public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies the metadata provider lists and reads benchmark objects created in a real Db2 database.
-    /// PT: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco Db2 real.
+    /// PT-br: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco Db2 real.
     /// </summary>
     [Fact]
     [Trait("Category", "GeneratorQuery")]

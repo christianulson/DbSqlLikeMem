@@ -10,7 +10,7 @@ namespace DbSqlLikeMem.TestTools.Tests.Query;
 
 /// <summary>
 /// EN: Provides shared select fidelity tests across mock and container runs.
-/// PT: Fornece testes compartilhados de fidelidade de select entre execucoes mock e container.
+/// PT-br: Fornece testes compartilhados de fidelidade de select entre execucoes mock e container.
 /// </summary>
 public abstract class SelectTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -24,7 +24,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that primary-key selection returns the expected row for the current provider.
-    /// PT: Verifica se a selecao por chave primaria retorna a linha esperada para o provedor atual.
+    /// PT-br: Verifica se a selecao por chave primaria retorna a linha esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectByPkTest()
@@ -38,7 +38,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that selecting all rows returns the expected row count for the current provider.
-    /// PT: Verifica se o select de todas as linhas retorna a contagem esperada para o provedor atual.
+    /// PT-br: Verifica se o select de todas as linhas retorna a contagem esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectAllRowsCountTest()
@@ -57,7 +57,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that selecting all rows returns the full rowset snapshot for the current provider.
-    /// PT: Verifica se o select de todas as linhas retorna o snapshot completo do conjunto de linhas para o provedor atual.
+    /// PT-br: Verifica se o select de todas as linhas retorna o snapshot completo do conjunto de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectAllRowsSnapshotTest()
@@ -76,7 +76,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a simple CTE query returns the expected rowset for the current provider.
-    /// PT: Verifica se uma consulta CTE simples retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se uma consulta CTE simples retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectCteSimpleTest()
@@ -90,7 +90,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a MATERIALIZED CTE hint preserves the expected rowset for the current provider.
-    /// PT: Verifica se um hint MATERIALIZED em CTE preserva o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um hint MATERIALIZED em CTE preserva o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectCteMaterializedHintTest()
@@ -112,7 +112,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies correlated scalar subqueries with CASE expressions for the current provider.
-    /// PT: Verifica subconsultas escalares correlacionadas com expressoes CASE para o provedor atual.
+    /// PT-br: Verifica subconsultas escalares correlacionadas com expressoes CASE para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectScalarSubqueryCaseMatrixTest()
@@ -130,7 +130,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies the scalar CASE matrix over users and orders matches the current provider behavior.
-    /// PT: Verifica se a matriz de CASE escalar nas tabelas de usuarios e pedidos coincide com o comportamento do provedor atual.
+    /// PT-br: Verifica se a matriz de CASE escalar nas tabelas de usuarios e pedidos coincide com o comportamento do provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectScalarCaseMatrixTest()
@@ -148,7 +148,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a NOT EXISTS predicate returns the expected anti-join rowset for the current provider.
-    /// PT: Verifica se um predicado NOT EXISTS retorna o conjunto de linhas esperado de anti-join para o provedor atual.
+    /// PT-br: Verifica se um predicado NOT EXISTS retorna o conjunto de linhas esperado de anti-join para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectNotExistsPredicateTest()
@@ -163,7 +163,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a LEFT JOIN anti-join returns the expected rowset for the current provider.
-    /// PT: Verifica se um anti-join com LEFT JOIN retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um anti-join com LEFT JOIN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectLeftJoinAntiJoinTest()
@@ -178,7 +178,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a NOT IN subquery returns the expected anti-join rowset for the current provider.
-    /// PT: Verifica se uma subconsulta NOT IN retorna o conjunto de linhas esperado de anti-join para o provedor atual.
+    /// PT-br: Verifica se uma subconsulta NOT IN retorna o conjunto de linhas esperado de anti-join para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectNotInSubqueryTest()
@@ -193,7 +193,7 @@ public abstract class SelectTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that NOT IN with a NULL value inside the subquery returns no rows for the current provider.
-    /// PT: Verifica se NOT IN com um valor NULL dentro da subconsulta retorna nenhuma linha para o provedor atual.
+    /// PT-br: Verifica se NOT IN com um valor NULL dentro da subconsulta retorna nenhuma linha para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectNotInSubqueryNullTest()
@@ -229,7 +229,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that an EXISTS predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado EXISTS retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado EXISTS retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectExistsPredicateTest()
@@ -244,7 +244,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a correlated count predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado de contagem correlacionada retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado de contagem correlacionada retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectCorrelatedCountTest()
@@ -259,7 +259,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that an IN subquery returns the expected rowset for the current provider.
-    /// PT: Verifica se uma subconsulta IN retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se uma subconsulta IN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectInSubqueryTest()
@@ -274,7 +274,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a scalar subquery returns the expected result for the current provider.
-    /// PT: Verifica se uma subconsulta escalar retorna o resultado esperado para o provedor atual.
+    /// PT-br: Verifica se uma subconsulta escalar retorna o resultado esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectScalarSubqueryTest()
@@ -289,7 +289,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a GROUP BY HAVING query returns the expected rowset for the current provider.
-    /// PT: Verifica se uma consulta GROUP BY HAVING retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se uma consulta GROUP BY HAVING retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectGroupByHavingTest()
@@ -304,7 +304,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a UNION ALL projection returns the expected rowset for the current provider.
-    /// PT: Verifica se uma projecao UNION ALL retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se uma projecao UNION ALL retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectUnionAllProjectionTest()
@@ -318,7 +318,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a DISTINCT projection returns the expected rowset for the current provider.
-    /// PT: Verifica se uma projecao DISTINCT retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se uma projecao DISTINCT retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectDistinctProjectionTest()
@@ -332,7 +332,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a DISTINCT ON projection returns the first row per key selected by ORDER BY for the current provider.
-    /// PT: Verifica se uma projecao DISTINCT ON retorna a primeira linha por chave escolhida pelo ORDER BY para o provedor atual.
+    /// PT-br: Verifica se uma projecao DISTINCT ON retorna a primeira linha por chave escolhida pelo ORDER BY para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectDistinctOnProjectionTest()
@@ -357,7 +357,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a multi-join aggregate returns the expected rowset for the current provider.
-    /// PT: Verifica se uma agregacao com multiplos joins retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se uma agregacao com multiplos joins retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectMultiJoinAggregateTest()
@@ -376,7 +376,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies an IN-list predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado IN com lista retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado IN com lista retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectInListPredicateTest()
@@ -392,7 +392,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a BETWEEN predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado BETWEEN retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado BETWEEN retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectBetweenPredicateTest()
@@ -410,7 +410,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a LIKE predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado LIKE retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado LIKE retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectLikePredicateTest()
@@ -425,7 +425,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a combined BETWEEN, LIKE, and ORDER BY query returns the expected row order for the current provider.
-    /// PT: Verifica se uma consulta combinada com BETWEEN, LIKE e ORDER BY retorna a ordem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se uma consulta combinada com BETWEEN, LIKE e ORDER BY retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectBetweenLikeOrderByTest()
@@ -441,7 +441,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies the combined BETWEEN, LIKE, and ORDER BY matrix against the current provider behavior.
-    /// PT: Verifica a matriz combinada de BETWEEN, LIKE e ORDER BY contra o comportamento do provedor atual.
+    /// PT-br: Verifica a matriz combinada de BETWEEN, LIKE e ORDER BY contra o comportamento do provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectBetweenLikeOrderByMatrixTest()
@@ -457,7 +457,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a NOT LIKE predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado NOT LIKE retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado NOT LIKE retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectNotLikePredicateTest()
@@ -475,7 +475,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a not-equal predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado diferente de retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado diferente de retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectNotEqualPredicateTest()
@@ -494,7 +494,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies an equality predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado de igualdade retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado de igualdade retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectEqualPredicateTest()
@@ -509,7 +509,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a parameterized name lookup returns the expected row for the current provider.
-    /// PT: Verifica se uma consulta parametrizada por nome retorna a linha esperada para o provedor atual.
+    /// PT-br: Verifica se uma consulta parametrizada por nome retorna a linha esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectParameterByNameTest()
@@ -524,7 +524,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a parameterized id lookup returns the expected row for the current provider.
-    /// PT: Verifica se uma consulta parametrizada por id retorna a linha esperada para o provedor atual.
+    /// PT-br: Verifica se uma consulta parametrizada por id retorna a linha esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectParameterByIdTest()
@@ -540,7 +540,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies parameter roundtrips over typed user columns for string, numeric, boolean, date, and null values.
-    /// PT: Verifica roundtrips de parametros sobre colunas tipadas de usuario para valores de texto, numericos, booleanos, data e nulos.
+    /// PT-br: Verifica roundtrips de parametros sobre colunas tipadas de usuario para valores de texto, numericos, booleanos, data e nulos.
     /// </summary>
     [FidelityFact]
     public async Task SelectParameterRoundTripMatrixTest()
@@ -565,7 +565,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies typed provider parameters roundtrip correctly for ANSI text, fixed-length text, numeric, boolean, temporal, binary, GUID, and null values.
-    /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, binario, GUID e nulos.
+    /// PT-br: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, binario, GUID e nulos.
     /// </summary>
     [FidelityFact]
     public async Task SelectParameterTypeMatrixTest()
@@ -598,7 +598,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies typed provider parameters roundtrip correctly for date and currency values.
-    /// PT: Verifica se parametros tipados do provedor fazem roundtrip corretamente para valores de data e moeda.
+    /// PT-br: Verifica se parametros tipados do provedor fazem roundtrip corretamente para valores de data e moeda.
     /// </summary>
     [FidelityFact]
     public async Task SelectParameterDateCurrencyMatrixTest()
@@ -618,7 +618,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies the broad parameter projection benchmark returns the expected scalar value, including GUID binding.
-    /// PT: Verifica se o benchmark amplo de projeção de parametros retorna o valor escalar esperado, incluindo o bind de GUID.
+    /// PT-br: Verifica se o benchmark amplo de projeção de parametros retorna o valor escalar esperado, incluindo o bind de GUID.
     /// </summary>
     [FidelityFact]
     public async Task ParameterProjectionTest()
@@ -632,7 +632,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a greater-than predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado maior que retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado maior que retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectGreaterThanPredicateTest()
@@ -648,7 +648,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a less-than predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado menor que retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado menor que retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectLessThanPredicateTest()
@@ -664,7 +664,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a greater-than-or-equal predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado maior ou igual retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado maior ou igual retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectGreaterThanOrEqualPredicateTest()
@@ -681,7 +681,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a less-than-or-equal predicate returns the expected rowset for the current provider.
-    /// PT: Verifica se um predicado menor ou igual retorna o conjunto de linhas esperado para o provedor atual.
+    /// PT-br: Verifica se um predicado menor ou igual retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectLessThanOrEqualPredicateTest()
@@ -698,7 +698,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies ordering by Name returns the expected row order for the current provider.
-    /// PT: Verifica se a ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se a ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectOrderByNameTest()
@@ -715,7 +715,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies ordering by Name matrix returns the expected row order for the current provider.
-    /// PT: Verifica se a matriz de ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se a matriz de ordenacao por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectOrderByNameMatrixTest()
@@ -732,7 +732,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a UNION projection returns the expected distinct rowset for the current provider.
-    /// PT: Verifica se uma projecao UNION retorna o conjunto de linhas distinto esperado para o provedor atual.
+    /// PT-br: Verifica se uma projecao UNION retorna o conjunto de linhas distinto esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectUnionDistinctProjectionTest()
@@ -751,7 +751,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies grouped names by initial with distinct counts and HAVING filtering for the current provider.
-    /// PT: Verifica nomes agrupados por inicial com contagens distintas e filtro HAVING para o provedor atual.
+    /// PT-br: Verifica nomes agrupados por inicial com contagens distintas e filtro HAVING para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectGroupByNameInitialMatrixTest()
@@ -768,7 +768,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies GROUP BY Name with HAVING filtering over the configured users table for the current provider.
-    /// PT: Verifica GROUP BY Name com filtro HAVING na tabela de usuarios configurada para o provedor atual.
+    /// PT-br: Verifica GROUP BY Name com filtro HAVING na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectGroupByNameHavingTest()
@@ -784,7 +784,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies GROUP BY ordinal resolution over the configured users table for the current provider.
-    /// PT: Verifica a resolucao de GROUP BY ordinal na tabela de usuarios configurada para o provedor atual.
+    /// PT-br: Verifica a resolucao de GROUP BY ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectGroupByOrdinalTest()
@@ -811,7 +811,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies ORDER BY ordinal resolution over the configured users table for the current provider.
-    /// PT: Verifica a resolucao de ORDER BY ordinal na tabela de usuarios configurada para o provedor atual.
+    /// PT-br: Verifica a resolucao de ORDER BY ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectOrderByOrdinalTest()
@@ -828,7 +828,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies ordering by ordinal matrix returns the expected row order for the current provider.
-    /// PT: Verifica se a matriz de ordenacao por ordinal retorna a ordem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se a matriz de ordenacao por ordinal retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectOrderByOrdinalMatrixTest()
@@ -845,7 +845,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies DISTINCT ordering by ordinal over the configured users table for the current provider.
-    /// PT: Verifica a ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
+    /// PT-br: Verifica a ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectDistinctOrderByOrdinalTest()
@@ -863,7 +863,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies DISTINCT ordering by ordinal matrix over the configured users table for the current provider.
-    /// PT: Verifica a matriz de ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
+    /// PT-br: Verifica a matriz de ordenacao DISTINCT por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectDistinctOrderByOrdinalMatrixTest()
@@ -881,7 +881,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies DISTINCT with a text filter ordered by ordinal over the configured users table for the current provider.
-    /// PT: Verifica DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
+    /// PT-br: Verifica DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectDistinctLikeOrderByOrdinalTest()
@@ -898,7 +898,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies DISTINCT with a text filter ordered by ordinal matrix over the configured users table for the current provider.
-    /// PT: Verifica a matriz DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
+    /// PT-br: Verifica a matriz DISTINCT com filtro de texto ordenado por ordinal na tabela de usuarios configurada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectDistinctLikeOrderByOrdinalMatrixTest()
@@ -915,7 +915,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies descending ordering by Name returns the expected row order for the current provider.
-    /// PT: Verifica se a ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se a ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectOrderByNameDescendingTest()
@@ -932,7 +932,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies descending ordering by Name matrix returns the expected row order for the current provider.
-    /// PT: Verifica se a matriz de ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se a matriz de ordenacao descendente por Name retorna a ordem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectOrderByNameDescendingMatrixTest()
@@ -949,7 +949,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a paged ordered query built with ROW_NUMBER for the current provider.
-    /// PT: Verifica uma consulta ordenada e paginada construida com ROW_NUMBER para o provedor atual.
+    /// PT-br: Verifica uma consulta ordenada e paginada construida com ROW_NUMBER para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectNamePaginationMatrixTest()
@@ -966,7 +966,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies native pagination syntax over an ordered users table for the current provider.
-    /// PT: Verifica sintaxe nativa de paginação sobre uma tabela de usuarios ordenada para o provedor atual.
+    /// PT-br: Verifica sintaxe nativa de paginação sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectPagedNameProjectionTest()
@@ -982,7 +982,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a relational query bundle across users and orders tables for the current provider.
-    /// PT: Verifica um conjunto de consultas relacionais nas tabelas de usuarios e pedidos para o provedor atual.
+    /// PT-br: Verifica um conjunto de consultas relacionais nas tabelas de usuarios e pedidos para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectRelationalCompositeTest()
@@ -1006,7 +1006,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that common window functions return the expected rowsets for the current provider.
-    /// PT: Verifica se funcoes de janela comuns retornam os conjuntos de linhas esperados para o provedor atual.
+    /// PT-br: Verifica se funcoes de janela comuns retornam os conjuntos de linhas esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectWindowFunctionsTest()
@@ -1044,7 +1044,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies ranking window functions with duplicate names for the current provider.
-    /// PT: Verifica funcoes de janela de ranking com nomes duplicados para o provedor atual.
+    /// PT-br: Verifica funcoes de janela de ranking com nomes duplicados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectWindowRankDenseRankTest()
@@ -1068,7 +1068,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies FIRST_VALUE and LAST_VALUE window projections for the current provider.
-    /// PT: Verifica projeções FIRST_VALUE e LAST_VALUE de janela para o provedor atual.
+    /// PT-br: Verifica projeções FIRST_VALUE e LAST_VALUE de janela para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectWindowFirstLastValueTest()
@@ -1093,7 +1093,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies NTILE distribution over an ordered users table for the current provider.
-    /// PT: Verifica a distribuicao NTILE sobre uma tabela de usuarios ordenada para o provedor atual.
+    /// PT-br: Verifica a distribuicao NTILE sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectWindowNtileTest()
@@ -1117,7 +1117,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies PERCENT_RANK and CUME_DIST window projections for the current provider.
-    /// PT: Verifica projeções de janela PERCENT_RANK e CUME_DIST para o provedor atual.
+    /// PT-br: Verifica projeções de janela PERCENT_RANK e CUME_DIST para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectWindowPercentRankCumeDistTest()
@@ -1141,7 +1141,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies NTH_VALUE over an ordered users table for the current provider.
-    /// PT: Verifica NTH_VALUE sobre uma tabela de usuarios ordenada para o provedor atual.
+    /// PT-br: Verifica NTH_VALUE sobre uma tabela de usuarios ordenada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectWindowNthValueTest()
@@ -1180,7 +1180,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies range filtering and pivot-style aggregation for the current provider.
-    /// PT: Verifica filtragem por faixa e agregacao no estilo pivot para o provedor atual.
+    /// PT-br: Verifica filtragem por faixa e agregacao no estilo pivot para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectRangeAndPivotTest()
@@ -1205,7 +1205,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a partition-pruning style query returns the expected row count for the current provider.
-    /// PT: Verifica se uma consulta no estilo partition pruning retorna a contagem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se uma consulta no estilo partition pruning retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectPartitionPruningTest()
@@ -1228,7 +1228,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a pivot-style count query returns the expected row count for the current provider.
-    /// PT: Verifica se uma consulta de contagem no estilo pivot retorna a contagem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se uma consulta de contagem no estilo pivot retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectPivotCountTest()
@@ -1251,7 +1251,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a grouped join projection that combines typed columns, aggregates, and calculations for the current provider.
-    /// PT: Verifica uma projecao com junção agrupada que combina colunas tipadas, agregacoes e calculos para o provedor atual.
+    /// PT-br: Verifica uma projecao com junção agrupada que combina colunas tipadas, agregacoes e calculos para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinTypedExpressionMatrixTest()
@@ -1271,7 +1271,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a left join aggregate projection that preserves users without orders for the current provider.
-    /// PT: Verifica uma projeção agregada com left join que preserva usuarios sem pedidos para o provedor atual.
+    /// PT-br: Verifica uma projeção agregada com left join que preserva usuarios sem pedidos para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinNullAggregateMatrixTest()
@@ -1292,7 +1292,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a grouped left join projection that blends casts, null handling, and aggregate formatting for the current provider.
-    /// PT: Verifica uma projeção agrupada com left join que mistura casts, tratamento de null e formatacao de agregados para o provedor atual.
+    /// PT-br: Verifica uma projeção agrupada com left join que mistura casts, tratamento de null e formatacao de agregados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinCastNullMatrixTest()
@@ -1313,7 +1313,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a grouped left join projection that casts aggregate values to text and compares them for the current provider.
-    /// PT: Verifica uma projeção agrupada com left join que converte agregados para texto e os compara para o provedor atual.
+    /// PT-br: Verifica uma projeção agrupada com left join que converte agregados para texto e os compara para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinCastTextComparisonMatrixTest()
@@ -1334,7 +1334,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a grouped join query with HAVING filters and casted aggregate outputs for the current provider.
-    /// PT: Verifica uma consulta agrupada com filtros HAVING e saidas agregadas convertidas para o provedor atual.
+    /// PT-br: Verifica uma consulta agrupada com filtros HAVING e saidas agregadas convertidas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinHavingCastMatrixTest()
@@ -1353,7 +1353,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a grouped join projection that mixes string-length expressions with numeric conversions and aggregates for the current provider.
-    /// PT: Verifica uma projeção agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados para o provedor atual.
+    /// PT-br: Verifica uma projeção agrupada que mistura expressoes de comprimento de texto com conversoes numericas e agregados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinLengthNumericMatrixTest()
@@ -1374,7 +1374,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a grouped join projection that blends string case, string length, and aggregate comparisons for the current provider.
-    /// PT: Verifica uma projeção agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas para o provedor atual.
+    /// PT-br: Verifica uma projeção agrupada que mistura caixa de texto, comprimento de texto e comparacoes agregadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinTextCaseLengthMatrixTest()
@@ -1395,7 +1395,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies grouped left-join reporting with distinct counts, repeated values, and CASE expressions for the current provider.
-    /// PT: Verifica um relatorio agrupado com left join, contagens distintas, valores repetidos e expressoes CASE para o provedor atual.
+    /// PT-br: Verifica um relatorio agrupado com left join, contagens distintas, valores repetidos e expressoes CASE para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinDistinctCaseMatrixTest()
@@ -1412,7 +1412,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies grouped left-join filtering with HAVING and distinct note counts for the current provider.
-    /// PT: Verifica filtragem agrupada com left join, HAVING e contagens distintas de notas para o provedor atual.
+    /// PT-br: Verifica filtragem agrupada com left join, HAVING e contagens distintas de notas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinDistinctHavingMatrixTest()
@@ -1428,7 +1428,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies that a user and order join returns the expected row count for the current provider.
-    /// PT: Verifica se a junção entre usuarios e pedidos retorna a contagem esperada de linhas para o provedor atual.
+    /// PT-br: Verifica se a junção entre usuarios e pedidos retorna a contagem esperada de linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinCountTest()
@@ -1442,7 +1442,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies the basic users and orders join against the current provider behavior.
-    /// PT: Verifica o join basico entre usuarios e pedidos contra o comportamento do provedor atual.
+    /// PT-br: Verifica o join basico entre usuarios e pedidos contra o comportamento do provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinTest()
@@ -1497,7 +1497,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a grouped join projection that blends temporal comparisons with aggregate counts for the current provider.
-    /// PT: Verifica uma projeção agrupada que mistura comparacoes temporais com contagens agregadas para o provedor atual.
+    /// PT-br: Verifica uma projeção agrupada que mistura comparacoes temporais com contagens agregadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinTemporalMatrixTest()
@@ -1514,7 +1514,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies a joined window-function projection over the shared users and orders scenario for the current provider.
-    /// PT: Verifica uma projeção com funcoes de janela em join no cenário compartilhado de usuarios e pedidos para o provedor atual.
+    /// PT-br: Verifica uma projeção com funcoes de janela em join no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinWindowMatrixTest()
@@ -1531,7 +1531,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies joined window projections together with temporal comparisons for the shared users and orders scenario.
-    /// PT: Verifica projecoes com janela em join junto com comparacoes temporais no cenário compartilhado de usuarios e pedidos.
+    /// PT-br: Verifica projecoes com janela em join junto com comparacoes temporais no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinWindowTemporalMatrixTest()
@@ -1548,7 +1548,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies joined window projections together with aggregate and temporal comparisons for the shared users and orders scenario.
-    /// PT: Verifica projecoes com janela em join junto com comparacoes agregadas e temporais no cenário compartilhado de usuarios e pedidos.
+    /// PT-br: Verifica projecoes com janela em join junto com comparacoes agregadas e temporais no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [FidelityFact]
     public async Task SelectJoinWindowAggregateTemporalMatrixTest()
@@ -1565,7 +1565,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies CROSS APPLY and OUTER APPLY projections against the shared users and orders scenario for the current provider.
-    /// PT: Verifica projeções CROSS APPLY e OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
+    /// PT-br: Verifica projeções CROSS APPLY e OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectApplyProjectionTest()
@@ -1602,7 +1602,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies CROSS APPLY projection against the shared users and orders scenario for the current provider.
-    /// PT: Verifica projeção CROSS APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
+    /// PT-br: Verifica projeção CROSS APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectCrossApplyProjectionTest()
@@ -1616,7 +1616,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies OUTER APPLY projection against the shared users and orders scenario for the current provider.
-    /// PT: Verifica projeção OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
+    /// PT-br: Verifica projeção OUTER APPLY no cenário compartilhado de usuarios e pedidos para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectOuterApplyProjectionTest()
@@ -1639,7 +1639,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies STRING_SPLIT materializes the expected split rows for the shared users scenario.
-    /// PT: Verifica se STRING_SPLIT materializa as linhas divididas esperadas no cenario compartilhado de usuarios.
+    /// PT-br: Verifica se STRING_SPLIT materializa as linhas divididas esperadas no cenario compartilhado de usuarios.
     /// </summary>
     [FidelityFact]
     public async Task SelectStringSplitFunctionTest()
@@ -1673,7 +1673,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies FOR JSON PATH serializes the shared users projection for the current provider.
-    /// PT: Verifica se FOR JSON PATH serializa a projecao compartilhada de usuarios para o provedor atual.
+    /// PT-br: Verifica se FOR JSON PATH serializa a projecao compartilhada de usuarios para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SelectForJsonPathTest()
@@ -1705,7 +1705,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies APPLY projections together with temporal join comparisons for the shared users and orders scenario.
-    /// PT: Verifica projeções APPLY junto com comparacoes temporais em join no cenário compartilhado de usuarios e pedidos.
+    /// PT-br: Verifica projeções APPLY junto com comparacoes temporais em join no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [FidelityFact]
     public async Task SelectApplyTemporalCompositeTest()
@@ -1752,7 +1752,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Verifies APPLY, window functions, and temporal join comparisons together for the shared users and orders scenario.
-    /// PT: Verifica APPLY, funcoes de janela e comparacoes temporais em join juntas no cenário compartilhado de usuarios e pedidos.
+    /// PT-br: Verifica APPLY, funcoes de janela e comparacoes temporais em join juntas no cenário compartilhado de usuarios e pedidos.
     /// </summary>
     [FidelityFact]
     public async Task SelectApplyWindowTemporalCompositeTest()
@@ -1948,16 +1948,16 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Normalizes DateTime input values used by parameter roundtrip tests for the current provider.
-    /// PT: Normaliza valores de entrada DateTime usados pelos testes de roundtrip de parametros para o provedor atual.
+    /// PT-br: Normaliza valores de entrada DateTime usados pelos testes de roundtrip de parametros para o provedor atual.
     /// </summary>
-    /// <param name="value">EN: The input DateTime value. PT: O valor DateTime de entrada.</param>
-    /// <returns>EN: The normalized DateTime value. PT: O valor DateTime normalizado.</returns>
+    /// <param name="value">EN: The input DateTime value. PT-br: O valor DateTime de entrada.</param>
+    /// <returns>EN: The normalized DateTime value. PT-br: O valor DateTime normalizado.</returns>
     protected virtual DateTime NormalizeParameterDateTimeInput(DateTime value)
         => value;
 
     /// <summary>
     /// EN: Normalizes snapshot column names based on the current provider's behavior to ensure consistent assertions across providers.
-    /// PT: Normaliza os nomes de colunas dos snapshots com base no comportamento do provedor atual para garantir asserções consistentes entre os provedores.
+    /// PT-br: Normaliza os nomes de colunas dos snapshots com base no comportamento do provedor atual para garantir asserções consistentes entre os provedores.
     /// </summary>
     /// <param name="columnNames"></param>
     /// <returns></returns>
@@ -1966,7 +1966,7 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Provides the expected column names for the APPLY projection tests based on the current provider's behavior.
-    /// PT: Fornece os nomes de colunas esperados para os testes de projeção APPLY com base no comportamento do provedor atual.
+    /// PT-br: Fornece os nomes de colunas esperados para os testes de projeção APPLY com base no comportamento do provedor atual.
     /// </summary>
     protected virtual string[] ApplyProjectionColumnNames()
         => ["UserId", "UserName", "Note"];
@@ -1975,13 +1975,13 @@ ORDER BY Id
 
     /// <summary>
     /// EN: Gets the numeric value used when text case comparisons already match for the current provider.
-    /// PT: Obtem o valor numerico usado quando as comparacoes de caixa de texto ja coincidem para o provedor atual.
+    /// PT-br: Obtem o valor numerico usado quando as comparacoes de caixa de texto ja coincidem para o provedor atual.
     /// </summary>
     protected virtual decimal TextMatchAlreadyValue => 1m;
 
     /// <summary>
     /// EN: Formats decimal amounts for snapshot assertions based on the current provider's behavior, ensuring consistent representations across providers.
-    /// PT: Formata valores decimais para asserções de snapshot com base no comportamento do provedor atual, garantindo representações consistentes entre os provedores.
+    /// PT-br: Formata valores decimais para asserções de snapshot com base no comportamento do provedor atual, garantindo representações consistentes entre os provedores.
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>

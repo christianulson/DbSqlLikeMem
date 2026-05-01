@@ -7,6 +7,7 @@ public abstract partial class BenchmarkSessionBase
     /// PT-br: Executa a consulta de agregação de strings específica do provedor sobre nomes de usuários de exemplo.
     /// </summary>
     /// <exception cref="NotSupportedException"></exception>
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregate)]
     protected virtual void RunStringAggregate()
     {
         var state = GetPreparedUsersQueryState(
@@ -16,6 +17,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregateOrdered)]
     protected virtual void RunStringAggregateOrdered()
     {
         var state = GetPreparedUsersQueryState(
@@ -25,6 +27,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregateDistinct)]
     protected virtual void RunStringAggregateDistinct()
     {
         var state = GetPreparedUsersQueryState(
@@ -34,6 +37,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregateCustomSeparator)]
     protected virtual void RunStringAggregateCustomSeparator()
     {
         var state = GetPreparedUsersQueryState(
@@ -43,6 +47,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregateLargeGroup)]
     protected virtual void RunStringAggregateLargeGroup()
     {
         var seedRows = new[]
@@ -58,6 +63,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(value);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregateSummaryMatrix)]
     protected virtual void RunStringAggregateSummaryMatrix()
     {
         if (!Dialect.SupportsStringAggregate)
@@ -72,6 +78,7 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(snapshot);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregateGroupCaseMatrix)]
     protected virtual void RunStringAggregateGroupCaseMatrix()
     {
         if (!Dialect.SupportsStringAggregate)
@@ -86,16 +93,19 @@ public abstract partial class BenchmarkSessionBase
         GC.KeepAlive(snapshot);
     }
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregationSummaryMatrix)]
     protected virtual void RunStringAggregationSummaryMatrix()
         => RunStringAggregateSummaryMatrix();
 
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregationGroupCaseMatrix)]
     protected virtual void RunStringAggregationGroupCaseMatrix()
         => RunStringAggregateGroupCaseMatrix();
 
     /// <summary>
     /// EN: Executes the full string aggregation variants benchmark and keeps the provider results alive.
-    /// PT: Executa o benchmark completo das variantes de agregacao de strings e mantem os resultados do provedor vivos.
+    /// PT-br: Executa o benchmark completo das variantes de agregacao de strings e mantem os resultados do provedor vivos.
     /// </summary>
+    [BenchmarkFeature(BenchmarkFeatureId.StringAggregationVariants)]
     protected virtual void RunStringAggregationVariants()
     {
         RunStringAggregate();

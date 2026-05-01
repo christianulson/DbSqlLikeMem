@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Auto;
 
 /// <summary>
 /// EN: Detects low-cost syntax markers used by the automatic SQL dialect mode in the Auto assembly.
-/// PT: Detecta marcadores de sintaxe de baixo custo usados pelo modo automatico de dialeto SQL no assembly Auto.
+/// PT-br: Detecta marcadores de sintaxe de baixo custo usados pelo modo automatico de dialeto SQL no assembly Auto.
 /// </summary>
 internal sealed class AutoSqlSyntaxDetector : IAutoSqlSyntaxDetector
 {
@@ -34,20 +34,20 @@ internal sealed class AutoSqlSyntaxDetector : IAutoSqlSyntaxDetector
 
     /// <summary>
     /// EN: Scans tokenized SQL once and returns the syntax markers found for Auto mode.
-    /// PT: Faz uma unica varredura no SQL tokenizado e retorna os marcadores de sintaxe encontrados para o modo Auto.
+    /// PT-br: Faz uma unica varredura no SQL tokenizado e retorna os marcadores de sintaxe encontrados para o modo Auto.
     /// </summary>
-    /// <param name="tokens">EN: Tokenized SQL sequence. PT: Sequencia de tokens do SQL.</param>
-    /// <returns>EN: Combined syntax feature flags. PT: Flags combinadas de recursos de sintaxe.</returns>
+    /// <param name="tokens">EN: Tokenized SQL sequence. PT-br: Sequencia de tokens do SQL.</param>
+    /// <returns>EN: Combined syntax feature flags. PT-br: Flags combinadas de recursos de sintaxe.</returns>
     public AutoSqlSyntaxFeatures Detect(IReadOnlyList<SqlToken> tokens)
         => Detect(null, tokens);
 
     /// <summary>
     /// EN: Scans tokenized SQL once and returns the syntax markers found for Auto mode, preserving access to the original text when needed to filter quoted identifiers.
-    /// PT: Faz uma unica varredura no SQL tokenizado e retorna os marcadores de sintaxe encontrados para o modo Auto, preservando acesso ao texto original quando necessario para filtrar identificadores quoted.
+    /// PT-br: Faz uma unica varredura no SQL tokenizado e retorna os marcadores de sintaxe encontrados para o modo Auto, preservando acesso ao texto original quando necessario para filtrar identificadores quoted.
     /// </summary>
-    /// <param name="sql">EN: Optional original SQL text. PT: Texto SQL original opcional.</param>
-    /// <param name="tokens">EN: Tokenized SQL sequence. PT: Sequencia de tokens do SQL.</param>
-    /// <returns>EN: Combined syntax feature flags. PT: Flags combinadas de recursos de sintaxe.</returns>
+    /// <param name="sql">EN: Optional original SQL text. PT-br: Texto SQL original opcional.</param>
+    /// <param name="tokens">EN: Tokenized SQL sequence. PT-br: Sequencia de tokens do SQL.</param>
+    /// <returns>EN: Combined syntax feature flags. PT-br: Flags combinadas de recursos de sintaxe.</returns>
     public AutoSqlSyntaxFeatures Detect(string? sql, IReadOnlyList<SqlToken> tokens)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(tokens, nameof(tokens));

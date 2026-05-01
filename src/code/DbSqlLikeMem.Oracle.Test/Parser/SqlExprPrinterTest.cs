@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Parser;
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the Oracle parser.
-/// PT: Cobre o round-trip de impressao de expressoes SQL no parser Oracle.
+/// PT-br: Cobre o round-trip de impressao de expressoes SQL no parser Oracle.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class SqlExprPrinterTest(
 {
     /// <summary>
     /// EN: Verifies parsed expressions can be printed and parsed again without changing the normalized output.
-    /// PT: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
+    /// PT-br: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -29,7 +29,7 @@ public sealed class SqlExprPrinterTest(
 
     /// <summary>
     /// EN: Provides expression samples used to validate SQL expression printing output.
-    /// PT: Fornece exemplos de expressões usados para validar a saída de impressão de expressões SQL.
+    /// PT-br: Fornece exemplos de expressões usados para validar a saída de impressão de expressões SQL.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {

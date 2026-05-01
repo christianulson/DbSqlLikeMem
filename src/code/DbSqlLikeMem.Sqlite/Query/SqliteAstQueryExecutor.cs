@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Registers the SQLite AST executor with the shared factory.
-/// PT: Registra o executor AST de SQLite na factory compartilhada.
+/// PT-br: Registra o executor AST de SQLite na factory compartilhada.
 /// </summary>
 public static class SqliteAstQueryExecutorRegister
 {
     /// <summary>
     /// EN: Registers the SQLite AST executor for the SQLite dialect.
-    /// PT: Registra o executor AST de SQLite para o dialeto SQLite.
+    /// PT-br: Registra o executor AST de SQLite para o dialeto SQLite.
     /// </summary>
     public static void Register()
         => AstQueryExecutorFactory.RegisterExecutor(

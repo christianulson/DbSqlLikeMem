@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs SQL Server fidelity tests for the shared scalar temporal workflow.
-/// PT: Executa testes de fidelidade SQL Server para o fluxo escalar temporal compartilhado.
+/// PT-br: Executa testes de fidelidade SQL Server para o fluxo escalar temporal compartilhado.
 /// </summary>
 public class ScalarTemporalTests(
     ITestOutputHelper helper

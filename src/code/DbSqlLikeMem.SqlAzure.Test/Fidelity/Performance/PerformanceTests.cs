@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlAzure.Test.Fidelity.Performance;
 
 /// <summary>
 /// EN: Runs SQL Azure fidelity tests for the shared performance workflows.
-/// PT: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de performance.
+/// PT-br: Executa testes de fidelidade SQL Azure para os fluxos compartilhados de performance.
 /// </summary>
 public class PerformanceTests(
     ITestOutputHelper helper

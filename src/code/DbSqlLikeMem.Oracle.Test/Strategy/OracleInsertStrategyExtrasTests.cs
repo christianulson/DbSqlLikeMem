@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 /// <summary>
 /// EN: Covers extra INSERT scenarios in the Oracle mock.
-/// PT: Cobre cenarios extras de INSERT no mock Oracle.
+/// PT-br: Cobre cenarios extras de INSERT no mock Oracle.
 /// </summary>
 public sealed class OracleInsertStrategyExtrasTests(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class OracleInsertStrategyExtrasTests(
 {
     /// <summary>
     /// EN: Verifies that a multi-row INSERT adds every row.
-    /// PT: Verifica se um INSERT com varias linhas adiciona todas as linhas.
+    /// PT-br: Verifica se um INSERT com varias linhas adiciona todas as linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -37,7 +37,7 @@ public sealed class OracleInsertStrategyExtrasTests(
 
     /// <summary>
     /// EN: Verifies that default values and identity columns are applied on INSERT.
-    /// PT: Verifica se valores padrao e colunas identity sao aplicados no INSERT.
+    /// PT-br: Verifica se valores padrao e colunas identity sao aplicados no INSERT.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -69,7 +69,7 @@ public sealed class OracleInsertStrategyExtrasTests(
 
     /// <summary>
     /// EN: Verifies AddItem keeps omitted properties so column defaults are applied.
-    /// PT: Verifica se AddItem preserva propriedades omitidas para aplicar defaults de coluna.
+    /// PT-br: Verifica se AddItem preserva propriedades omitidas para aplicar defaults de coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -94,7 +94,7 @@ public sealed class OracleInsertStrategyExtrasTests(
 
     /// <summary>
     /// EN: Verifies that duplicate primary keys raise an error.
-    /// PT: Verifica se chaves primarias duplicadas geram erro.
+    /// PT-br: Verifica se chaves primarias duplicadas geram erro.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -120,13 +120,13 @@ public sealed class OracleInsertStrategyExtrasTests(
 
 /// <summary>
 /// EN: Covers delete behavior when foreign keys reference the target row.
-/// PT: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
+/// PT-br: Cobre o comportamento de delete quando chaves estrangeiras referenciam a linha alvo.
 /// </summary>
 public class OracleDeleteStrategyForeignKeyTests
 {
     /// <summary>
     /// EN: Verifies that deleting a referenced row raises an error.
-    /// PT: Verifica se apagar uma linha referenciada gera erro.
+    /// PT-br: Verifica se apagar uma linha referenciada gera erro.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -160,13 +160,13 @@ public class OracleDeleteStrategyForeignKeyTests
 
 /// <summary>
 /// EN: Covers extra update scenarios in the Oracle mock.
-/// PT: Cobre cenarios extras de update no mock Oracle.
+/// PT-br: Cobre cenarios extras de update no mock Oracle.
 /// </summary>
 public class OracleUpdateStrategyExtrasTests
 {
     /// <summary>
     /// EN: Verifies that UPDATE only affects rows matching all conditions.
-    /// PT: Verifica se UPDATE afeta apenas linhas que satisfazem todas as condicoes.
+    /// PT-br: Verifica se UPDATE afeta apenas linhas que satisfazem todas as condicoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

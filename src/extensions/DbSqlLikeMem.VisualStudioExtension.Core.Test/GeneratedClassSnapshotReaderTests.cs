@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies generated artifact metadata can be read back from snapshot headers.
-/// PT: Verifica se os metadados dos artefatos gerados podem ser lidos novamente dos headers de snapshot.
+/// PT-br: Verifica se os metadados dos artefatos gerados podem ser lidos novamente dos headers de snapshot.
 /// </summary>
 public sealed class GeneratedClassSnapshotReaderTests
 {
     /// <summary>
     /// EN: Verifies snapshot metadata survives a round trip into the consistency checker.
-    /// PT: Verifica se os metadados do snapshot sobrevivem a um round trip com o verificador de consistencia.
+    /// PT-br: Verifica se os metadados do snapshot sobrevivem a um round trip com o verificador de consistencia.
     /// </summary>
     [Fact]
     [Trait("Category", "GeneratedClassSnapshotReader")]
@@ -30,7 +30,7 @@ public sealed class GeneratedClassSnapshotReaderTests
 // DBSqlLikeMem:BodySql=CustomerId
 /// <summary>
 /// EN: Represents the generated orders table factory used by the snapshot test.
-/// PT: Representa a factory gerada da tabela Orders usada pelo teste de snapshot.
+/// PT-br: Representa a factory gerada da tabela Orders usada pelo teste de snapshot.
 /// </summary>
 public static class OrdersTableFactory {}
 """, TestContext.Current.CancellationToken);
@@ -74,7 +74,7 @@ public static class OrdersTableFactory {}
     {
         /// <summary>
         /// EN: Returns the single in-memory object used by the test snapshot provider.
-        /// PT: Retorna o unico objeto em memoria usado pelo provider de snapshot do teste.
+        /// PT-br: Retorna o unico objeto em memoria usado pelo provider de snapshot do teste.
         /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(ConnectionDefinition connection,
             CancellationToken cancellationToken = default)
@@ -82,7 +82,7 @@ public static class OrdersTableFactory {}
 
         /// <summary>
         /// EN: Returns the in-memory object regardless of the requested reference.
-        /// PT: Retorna o objeto em memoria independentemente da referencia solicitada.
+        /// PT-br: Retorna o objeto em memoria independentemente da referencia solicitada.
         /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)

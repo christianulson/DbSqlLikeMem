@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
 /// EN: Covers Oracle MERGE-based upsert scenarios against the Dapper provider.
-/// PT: Cobre cenarios de upsert baseado em MERGE do Oracle contra o provedor Dapper.
+/// PT-br: Cobre cenarios de upsert baseado em MERGE do Oracle contra o provedor Dapper.
 /// </summary>
 public sealed class OracleMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies MERGE inserts rows when the source row is not matched.
-    /// PT: Verifica se MERGE insere linhas quando a linha de origem nao e correspondida.
+    /// PT-br: Verifica se MERGE insere linhas quando a linha de origem nao e correspondida.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -47,7 +47,7 @@ WHEN NOT MATCHED THEN
 
     /// <summary>
     /// EN: Verifies MERGE updates rows when the source row is matched.
-    /// PT: Verifica se MERGE atualiza linhas quando a linha de origem e correspondida.
+    /// PT-br: Verifica se MERGE atualiza linhas quando a linha de origem e correspondida.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -90,7 +90,7 @@ WHEN NOT MATCHED THEN
 
     /// <summary>
     /// EN: Verifies MERGE resolves source columns when the alias omits AS.
-    /// PT: Verifica se MERGE resolve as colunas de origem quando o alias omite AS.
+    /// PT-br: Verifica se MERGE resolve as colunas de origem quando o alias omite AS.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]

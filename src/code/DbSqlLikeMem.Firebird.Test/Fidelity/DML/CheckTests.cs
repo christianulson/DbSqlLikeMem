@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared check-constraint workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de restricao check.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados de restricao check.
 /// </summary>
 [FidelityNativeClientSkip]
 public class CheckTests(

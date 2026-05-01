@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Wraps a <see cref="DbConnection"/> and dispatches interception callbacks around its lifecycle and commands.
-/// PT: Encapsula uma <see cref="DbConnection"/> e despacha callbacks de interceptacao em torno de seu ciclo de vida e comandos.
+/// PT-br: Encapsula uma <see cref="DbConnection"/> e despacha callbacks de interceptacao em torno de seu ciclo de vida e comandos.
 /// </summary>
 public sealed class InterceptingDbConnection : DbConnection
 {
@@ -13,10 +13,10 @@ public sealed class InterceptingDbConnection : DbConnection
 
     /// <summary>
     /// EN: Creates a wrapped connection that dispatches the supplied interceptors.
-    /// PT: Cria uma conexao encapsulada que despacha os interceptors informados.
+    /// PT-br: Cria uma conexao encapsulada que despacha os interceptors informados.
     /// </summary>
-    /// <param name="innerConnection">EN: Inner connection. PT: Conexao interna.</param>
-    /// <param name="interceptors">EN: Interceptors applied by the wrapper. PT: Interceptors aplicados pelo wrapper.</param>
+    /// <param name="innerConnection">EN: Inner connection. PT-br: Conexao interna.</param>
+    /// <param name="interceptors">EN: Interceptors applied by the wrapper. PT-br: Interceptors aplicados pelo wrapper.</param>
     public InterceptingDbConnection(
         DbConnection innerConnection,
         IReadOnlyList<DbConnectionInterceptor> interceptors)
@@ -29,7 +29,7 @@ public sealed class InterceptingDbConnection : DbConnection
 
     /// <summary>
     /// EN: Gets the inner connection wrapped by this interception pipeline instance.
-    /// PT: Obtem a conexao interna encapsulada por esta instancia do pipeline de interceptacao.
+    /// PT-br: Obtem a conexao interna encapsulada por esta instancia do pipeline de interceptacao.
     /// </summary>
     public DbConnection InnerConnection => _innerConnection;
 

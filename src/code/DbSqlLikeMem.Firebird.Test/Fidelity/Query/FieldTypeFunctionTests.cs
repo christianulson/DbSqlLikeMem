@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared typed-field and SQL function workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de campos tipados e funcoes SQL.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados de campos tipados e funcoes SQL.
 /// </summary>
 [FidelityNativeClientSkip]
 public class FieldTypeFunctionTests(

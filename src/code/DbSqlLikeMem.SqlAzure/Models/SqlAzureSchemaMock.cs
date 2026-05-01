@@ -3,7 +3,7 @@ namespace DbSqlLikeMem.SqlAzure;
 
 /// <summary>
 /// EN: Schema mock for SQL Azure databases.
-/// PT: Esquema simulado para bancos SQL Azure.
+/// PT-br: Esquema simulado para bancos SQL Azure.
 /// </summary>
 public class SqlAzureSchemaMock(
     string schemaName,
@@ -13,7 +13,7 @@ public class SqlAzureSchemaMock(
 {
     /// <summary>
     /// EN: Creates a SQL Azure table mock inside this schema.
-    /// PT: Cria uma tabela simulada do SQL Azure dentro deste esquema.
+    /// PT-br: Cria uma tabela simulada do SQL Azure dentro deste esquema.
     /// </summary>
     protected override TableMock NewTable(
         string tableName,

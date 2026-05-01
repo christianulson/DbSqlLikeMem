@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.TestTools.Tests.Query;
 
 /// <summary>
 /// EN: Provides shared fidelity tests for typed columns and SQL function calculations across mock and container runs.
-/// PT: Fornece testes de fidelidade compartilhados para colunas tipadas e calculos de funcoes entre execucoes mock e container.
+/// PT-br: Fornece testes de fidelidade compartilhados para colunas tipadas e calculos de funcoes entre execucoes mock e container.
 /// </summary>
 public abstract class FieldTypeFunctionTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -19,7 +19,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that typed columns and common SQL functions keep consistent results for the current provider.
-    /// PT: Verifica se colunas tipadas e funcoes SQL comuns mantem resultados consistentes para o provedor atual.
+    /// PT-br: Verifica se colunas tipadas e funcoes SQL comuns mantem resultados consistentes para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TypedFieldAndFunctionBlendTest()
@@ -32,7 +32,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a single large projection query over typed columns and common SQL functions for the current provider.
-    /// PT: Verifica uma unica consulta grande sobre colunas tipadas e funcoes SQL comuns para o provedor atual.
+    /// PT-br: Verifica uma unica consulta grande sobre colunas tipadas e funcoes SQL comuns para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TypedFieldFunctionMatrixTest()
@@ -45,7 +45,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a second large projection query over typed columns with casts, arithmetic, and predicates for the current provider.
-    /// PT: Verifica uma segunda consulta grande sobre colunas tipadas com casts, aritmetica e predicados para o provedor atual.
+    /// PT-br: Verifica uma segunda consulta grande sobre colunas tipadas com casts, aritmetica e predicados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TypedFieldCalculationMatrixTest()
@@ -58,7 +58,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies text, boolean, integer, exact and approximate numeric, fixed-length text, bigint, binary, time, DateTimeOffset, temporal, and GUID columns round-trip consistently.
-    /// PT: Verifica se colunas de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, binario, time, DateTimeOffset, temporais e GUID retornam valores consistentes.
+    /// PT-br: Verifica se colunas de texto, booleano, inteiro, numerico exato e aproximado, texto de tamanho fixo, bigint, binario, time, DateTimeOffset, temporais e GUID retornam valores consistentes.
     /// </summary>
     [FidelityFact]
     public async Task TypedFieldStorageMatrixTest()
@@ -71,7 +71,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large JSON projection query over typed columns for the current provider.
-    /// PT: Verifica uma consulta grande de JSON sobre colunas tipadas para o provedor atual.
+    /// PT-br: Verifica uma consulta grande de JSON sobre colunas tipadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task JsonTypedFieldMatrixTest()
@@ -91,7 +91,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that JSON scalar reads return the expected text for the current provider.
-    /// PT: Verifica se leituras escalares de JSON retornam o texto esperado para o provedor atual.
+    /// PT-br: Verifica se leituras escalares de JSON retornam o texto esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task JsonScalarReadTest()
@@ -113,7 +113,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that nested JSON path reads return the expected text for the current provider.
-    /// PT: Verifica se leituras de caminho JSON aninhado retornam o texto esperado para o provedor atual.
+    /// PT-br: Verifica se leituras de caminho JSON aninhado retornam o texto esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task JsonPathReadTest()
@@ -135,7 +135,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a missing JSON path returns a null value for the current provider.
-    /// PT: Verifica se um caminho JSON ausente retorna um valor nulo para o provedor atual.
+    /// PT-br: Verifica se um caminho JSON ausente retorna um valor nulo para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task JsonMissingPathReturnsNullTest()
@@ -157,7 +157,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that the JSON insert and cast benchmark returns the expected null value for the current provider.
-    /// PT: Verifica se o benchmark de insert e cast de JSON retorna o valor nulo esperado para o provedor atual.
+    /// PT-br: Verifica se o benchmark de insert e cast de JSON retorna o valor nulo esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task JsonInsertCastReturnsNullTest()
@@ -179,7 +179,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that JSON_MODIFY replaces a nested JSON property for the current provider.
-    /// PT: Verifica se JSON_MODIFY substitui uma propriedade JSON aninhada para o provedor atual.
+    /// PT-br: Verifica se JSON_MODIFY substitui uma propriedade JSON aninhada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task JsonModifyReplaceTest()
@@ -201,7 +201,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that JSON_QUERY without a path returns a raw root fragment for the current provider.
-    /// PT: Verifica se JSON_QUERY sem path retorna um fragmento bruto de raiz para o provedor atual.
+    /// PT-br: Verifica se JSON_QUERY sem path retorna um fragmento bruto de raiz para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task JsonQueryRootFragmentTest()
@@ -223,7 +223,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that STRING_ESCAPE returns the expected escaped JSON text for the current provider.
-    /// PT: Verifica se STRING_ESCAPE retorna o texto JSON escapado esperado para o provedor atual.
+    /// PT-br: Verifica se STRING_ESCAPE retorna o texto JSON escapado esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task StringEscapeTest()
@@ -245,7 +245,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that TRANSLATE returns the expected translated text for the current provider.
-    /// PT: Verifica se TRANSLATE retorna o texto traduzido esperado para o provedor atual.
+    /// PT-br: Verifica se TRANSLATE retorna o texto traduzido esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TranslateTest()
@@ -267,7 +267,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that FORMATMESSAGE returns the expected formatted text for the current provider.
-    /// PT: Verifica se FORMATMESSAGE retorna o texto formatado esperado para o provedor atual.
+    /// PT-br: Verifica se FORMATMESSAGE retorna o texto formatado esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task FormatMessageTest()
@@ -289,7 +289,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that ISJSON returns the expected validity flag for the current provider.
-    /// PT: Verifica se ISJSON retorna a flag de validade esperada para o provedor atual.
+    /// PT-br: Verifica se ISJSON retorna a flag de validade esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task IsJsonTest()
@@ -311,7 +311,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that FORMAT returns the expected formatted text for the current provider.
-    /// PT: Verifica se FORMAT retorna o texto formatado esperado para o provedor atual.
+    /// PT-br: Verifica se FORMAT retorna o texto formatado esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task FormatTest()
@@ -333,7 +333,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that ABS, CEIL/CEILING, DEGREES, FLOOR, LN/LOG10, POWER, RADIANS, ROUND, SIGN, SQRT, and SQUARE keep the expected math results for the current provider.
-    /// PT: Verifica se ABS, CEIL/CEILING, DEGREES, FLOOR, LN/LOG10, POWER, RADIANS, ROUND, SIGN, SQRT e SQUARE mantem os resultados matematicos esperados para o provedor atual.
+    /// PT-br: Verifica se ABS, CEIL/CEILING, DEGREES, FLOOR, LN/LOG10, POWER, RADIANS, ROUND, SIGN, SQRT e SQUARE mantem os resultados matematicos esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task MathFunctionsTest()
@@ -366,7 +366,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that LOG with an explicit base keeps the expected math result for providers that expose the two-argument form.
-    /// PT: Verifica se LOG com base explicita mantem o resultado matematico esperado para provedores que expoem a forma com dois argumentos.
+    /// PT-br: Verifica se LOG com base explicita mantem o resultado matematico esperado para provedores que expoem a forma com dois argumentos.
     /// </summary>
     [FidelityFact]
     public async Task MathLogBaseFunctionTest()
@@ -388,7 +388,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that LOG2 keeps the expected base-2 logarithm result for providers that expose the function.
-    /// PT: Verifica se LOG2 mantem o resultado esperado do logaritmo de base 2 para provedores que expoem a funcao.
+    /// PT-br: Verifica se LOG2 mantem o resultado esperado do logaritmo de base 2 para provedores que expoem a funcao.
     /// </summary>
     [FidelityFact]
     public async Task MathLog2FunctionTest()
@@ -410,7 +410,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that PI keeps the expected math result for providers that expose the function.
-    /// PT: Verifica se PI mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// PT-br: Verifica se PI mantem o resultado matematico esperado para provedores que expoem a funcao.
     /// </summary>
     [FidelityFact]
     public async Task MathPiFunctionTest()
@@ -432,7 +432,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that RAND keeps the expected math result for providers that expose the function.
-    /// PT: Verifica se RAND mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// PT-br: Verifica se RAND mantem o resultado matematico esperado para provedores que expoem a funcao.
     /// </summary>
     [FidelityFact]
     public async Task MathRandFunctionTest()
@@ -454,7 +454,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that REMAINDER keeps the expected math result for providers that expose the function.
-    /// PT: Verifica se REMAINDER mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// PT-br: Verifica se REMAINDER mantem o resultado matematico esperado para provedores que expoem a funcao.
     /// </summary>
     [FidelityFact]
     public async Task MathRemainderFunctionTest()
@@ -476,7 +476,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that numeric TRUNC keeps the expected provider result, including scale when supported.
-    /// PT: Verifica se TRUNC numerico mantem o resultado esperado do provedor, incluindo escala quando suportada.
+    /// PT-br: Verifica se TRUNC numerico mantem o resultado esperado do provedor, incluindo escala quando suportada.
     /// </summary>
     [FidelityFact]
     public async Task MathTruncFunctionTest()
@@ -506,7 +506,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that COT keeps the expected math result for providers that expose the function.
-    /// PT: Verifica se COT mantem o resultado matematico esperado para provedores que expoem a funcao.
+    /// PT-br: Verifica se COT mantem o resultado matematico esperado para provedores que expoem a funcao.
     /// </summary>
     [FidelityFact]
     public async Task MathCotFunctionTest()
@@ -528,7 +528,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that BIN, GREATEST, LEAST, LOG2, MOD, POW, and TRUNCATE keep the expected MySQL-family results for providers that expose the functions.
-    /// PT: Verifica se BIN, GREATEST, LEAST, LOG2, MOD, POW e TRUNCATE mantem os resultados esperados da familia MySQL para provedores que expoem as funcoes.
+    /// PT-br: Verifica se BIN, GREATEST, LEAST, LOG2, MOD, POW e TRUNCATE mantem os resultados esperados da familia MySQL para provedores que expoem as funcoes.
     /// </summary>
     [FidelityFact]
     public async Task MySqlUtilityMathFunctionsTest()
@@ -556,7 +556,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that GREATEST, LEAST, and MOD keep the expected shared results for providers that expose the functions.
-    /// PT: Verifica se GREATEST, LEAST e MOD mantem os resultados compartilhados esperados para provedores que expoem as funcoes.
+    /// PT-br: Verifica se GREATEST, LEAST e MOD mantem os resultados compartilhados esperados para provedores que expoem as funcoes.
     /// </summary>
     [FidelityFact]
     public async Task GreatestLeastModFunctionsTest()
@@ -580,7 +580,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that ABSVAL, MOD, TRUNC, and TRUNCATE keep the expected DB2 alias results for providers that expose the functions.
-    /// PT: Verifica se ABSVAL, MOD, TRUNC e TRUNCATE mantem os resultados esperados dos aliases do DB2 para provedores que expoem as funcoes.
+    /// PT-br: Verifica se ABSVAL, MOD, TRUNC e TRUNCATE mantem os resultados esperados dos aliases do DB2 para provedores que expoem as funcoes.
     /// </summary>
     [FidelityFact]
     public async Task Db2AliasMathFunctionsTest()
@@ -605,7 +605,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that ABSVAL, BIN, COSH, SINH, TANH, and TRUNC keep the expected Firebird alias results for providers that expose the functions.
-    /// PT: Verifica se ABSVAL, BIN, COSH, SINH, TANH e TRUNC mantem os resultados esperados dos aliases do Firebird para provedores que expoem as funcoes.
+    /// PT-br: Verifica se ABSVAL, BIN, COSH, SINH, TANH e TRUNC mantem os resultados esperados dos aliases do Firebird para provedores que expoem as funcoes.
     /// </summary>
     [FidelityFact]
     public async Task FirebirdAliasMathFunctionsTest()
@@ -633,7 +633,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that ACOS, ASIN, ATAN, ATAN2, COS, EXP, SIN, and TAN keep the expected transcendental results for the current provider.
-    /// PT: Verifica se ACOS, ASIN, ATAN, ATAN2, COS, EXP, SIN e TAN mantem os resultados transcendentais esperados para o provedor atual.
+    /// PT-br: Verifica se ACOS, ASIN, ATAN, ATAN2, COS, EXP, SIN e TAN mantem os resultados transcendentais esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task MathTranscendentalFunctionsTest()
@@ -662,7 +662,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that ASCII, CHARINDEX, BINARY_CHECKSUM, CHECKSUM, REPLICATE, REVERSE, SPACE, and STUFF keep the expected string results for the current provider.
-    /// PT: Verifica se ASCII, CHARINDEX, BINARY_CHECKSUM, CHECKSUM, REPLICATE, REVERSE, SPACE e STUFF mantem os resultados de string esperados para o provedor atual.
+    /// PT-br: Verifica se ASCII, CHARINDEX, BINARY_CHECKSUM, CHECKSUM, REPLICATE, REVERSE, SPACE e STUFF mantem os resultados de string esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task StringUtilityFunctionsTest()
@@ -698,7 +698,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that PARSENAME, QUOTENAME, and STR keep the expected metadata and formatting results for the current provider.
-    /// PT: Verifica se PARSENAME, QUOTENAME e STR mantem os resultados esperados de metadados e formatacao para o provedor atual.
+    /// PT-br: Verifica se PARSENAME, QUOTENAME e STR mantem os resultados esperados de metadados e formatacao para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task StringMetadataFunctionsTest()
@@ -724,7 +724,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that SQL Server metadata, identifier, and system time helpers keep the expected values for the current provider.
-    /// PT: Verifica se helpers de metadados, identificadores e tempo de sistema do SQL Server mantem os valores esperados para o provedor atual.
+    /// PT-br: Verifica se helpers de metadados, identificadores e tempo de sistema do SQL Server mantem os valores esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerMetadataFunctionsTest()
@@ -790,7 +790,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that SCOPE_IDENTITY returns the last generated identity value for the current provider.
-    /// PT: Verifica se SCOPE_IDENTITY retorna o ultimo valor identity gerado para o provedor atual.
+    /// PT-br: Verifica se SCOPE_IDENTITY retorna o ultimo valor identity gerado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ScopeIdentityTest()
@@ -812,7 +812,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that SQL Server system and identity helpers keep the expected values for the current provider.
-    /// PT: Verifica se helpers de sistema e identidade do SQL Server mantem os valores esperados para o provedor atual.
+    /// PT-br: Verifica se helpers de sistema e identidade do SQL Server mantem os valores esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerSystemFunctionsTest()
@@ -873,7 +873,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies @@TEXTSIZE and NEWSEQUENTIALID keep the expected values for the current provider.
-    /// PT: Verifica se @@TEXTSIZE e NEWSEQUENTIALID mantem os valores esperados para o provedor atual.
+    /// PT-br: Verifica se @@TEXTSIZE e NEWSEQUENTIALID mantem os valores esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerSpecialFunctionsTest()
@@ -897,7 +897,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that SQL Server context-info and session-context helpers keep the expected values for the current provider.
-    /// PT: Verifica se helpers de context-info e session-context do SQL Server mantem os valores esperados para o provedor atual.
+    /// PT-br: Verifica se helpers de context-info e session-context do SQL Server mantem os valores esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerContextFunctionsTest()
@@ -921,7 +921,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that SQL Server transaction-state helpers reflect an active transaction for the current provider.
-    /// PT: Verifica se helpers de estado de transacao do SQL Server refletem uma transacao ativa para o provedor atual.
+    /// PT-br: Verifica se helpers de estado de transacao do SQL Server refletem uma transacao ativa para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerTransactionStateFunctionsTest()
@@ -945,7 +945,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that SQL Server metadata and session-style helpers keep the expected values for the current provider.
-    /// PT: Verifica se helpers de metadados e sessao do SQL Server mantem os valores esperados para o provedor atual.
+    /// PT-br: Verifica se helpers de metadados e sessao do SQL Server mantem os valores esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerSessionFunctionsTest()
@@ -989,7 +989,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that LEN, LTRIM, RTRIM, and UNICODE keep the expected text and code-point results for the current provider.
-    /// PT: Verifica se LEN, LTRIM, RTRIM e UNICODE mantem os resultados de texto e codigo esperado para o provedor atual.
+    /// PT-br: Verifica se LEN, LTRIM, RTRIM e UNICODE mantem os resultados de texto e codigo esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task StringBasicFunctionsTest()
@@ -1017,7 +1017,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that PARSE, TRY_CONVERT, and TRY_PARSE keep the expected conversion results for the current provider.
-    /// PT: Verifica se PARSE, TRY_CONVERT e TRY_PARSE mantem os resultados de conversao esperados para o provedor atual.
+    /// PT-br: Verifica se PARSE, TRY_CONVERT e TRY_PARSE mantem os resultados de conversao esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ParseFamilyTest()
@@ -1045,7 +1045,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that SOUNDEX and DIFFERENCE return the expected phonetic match values for the current provider.
-    /// PT: Verifica se SOUNDEX e DIFFERENCE retornam os valores foneticos esperados para o provedor atual.
+    /// PT-br: Verifica se SOUNDEX e DIFFERENCE retornam os valores foneticos esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SoundexTest()
@@ -1069,7 +1069,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that COMPRESS and DECOMPRESS keep the expected binary payload for the current provider.
-    /// PT: Verifica se COMPRESS e DECOMPRESS mantem o payload binario esperado para o provedor atual.
+    /// PT-br: Verifica se COMPRESS e DECOMPRESS mantem o payload binario esperado para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task CompressionTest()
@@ -1093,7 +1093,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies APPROX_COUNT_DISTINCT returns the expected approximate count for the current provider.
-    /// PT: Verifica se APPROX_COUNT_DISTINCT retorna a contagem aproximada esperada para o provedor atual.
+    /// PT-br: Verifica se APPROX_COUNT_DISTINCT retorna a contagem aproximada esperada para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ApproxCountDistinctTest()
@@ -1116,7 +1116,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies PERCENTILE_CONT and PERCENTILE_DISC return the expected percentile values for the current provider.
-    /// PT: Verifica se PERCENTILE_CONT e PERCENTILE_DISC retornam os valores percentis esperados para o provedor atual.
+    /// PT-br: Verifica se PERCENTILE_CONT e PERCENTILE_DISC retornam os valores percentis esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task PercentileAggregateFunctionsTest()
@@ -1141,7 +1141,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies SQL Server aggregate helpers keep the expected count, checksum, string, and statistical results for the current provider.
-    /// PT: Verifica se agregadores do SQL Server mantem os resultados esperados de contagem, checksum, string e estatistica para o provedor atual.
+    /// PT-br: Verifica se agregadores do SQL Server mantem os resultados esperados de contagem, checksum, string e estatistica para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerAggregateFunctionsTest()
@@ -1171,7 +1171,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large temporal projection query over typed columns for the current provider.
-    /// PT: Verifica uma consulta temporal grande sobre colunas tipadas para o provedor atual.
+    /// PT-br: Verifica uma consulta temporal grande sobre colunas tipadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TemporalFieldMatrixTest()
@@ -1184,7 +1184,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large temporal projection query that blends timestamp comparisons and fallback logic for the current provider.
-    /// PT: Verifica uma consulta temporal grande que mistura comparacoes de timestamp e logica de fallback para o provedor atual.
+    /// PT-br: Verifica uma consulta temporal grande que mistura comparacoes de timestamp e logica de fallback para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TemporalComparisonMatrixTest()
@@ -1197,7 +1197,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a larger temporal arithmetic matrix over typed columns for the current provider.
-    /// PT: Verifica uma matriz maior de aritmetica temporal sobre colunas tipadas para o provedor atual.
+    /// PT-br: Verifica uma matriz maior de aritmetica temporal sobre colunas tipadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TemporalArithmeticMatrixTest()
@@ -1210,7 +1210,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large projection query that blends casts, arithmetic, and text formatting over typed columns for the current provider.
-    /// PT: Verifica uma consulta grande que mistura casts, aritmetica e formatacao textual sobre colunas tipadas para o provedor atual.
+    /// PT-br: Verifica uma consulta grande que mistura casts, aritmetica e formatacao textual sobre colunas tipadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task CastCalculationMatrixTest()
@@ -1223,7 +1223,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large projection query that blends null handling and comparisons over typed columns for the current provider.
-    /// PT: Verifica uma consulta grande que mistura tratamento de null e comparacoes sobre colunas tipadas para o provedor atual.
+    /// PT-br: Verifica uma consulta grande que mistura tratamento de null e comparacoes sobre colunas tipadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task NullComparisonMatrixTest()
@@ -1236,7 +1236,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large typed-field predicate query that blends LIKE, NOT LIKE, BETWEEN, and null checks for the current provider.
-    /// PT: Verifica uma consulta grande de predicados em campos tipados que mistura LIKE, NOT LIKE, BETWEEN e verificacoes de null para o provedor atual.
+    /// PT-br: Verifica uma consulta grande de predicados em campos tipados que mistura LIKE, NOT LIKE, BETWEEN e verificacoes de null para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TypedFieldPredicateMatrixTest()
@@ -1249,7 +1249,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a compound typed-field predicate query that blends OR, AND, LIKE, and null checks for the current provider.
-    /// PT: Verifica uma consulta de predicado composto em campos tipados que mistura OR, AND, LIKE e verificacoes de null para o provedor atual.
+    /// PT-br: Verifica uma consulta de predicado composto em campos tipados que mistura OR, AND, LIKE e verificacoes de null para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TypedFieldCompoundPredicateMatrixTest()
@@ -1262,7 +1262,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large projection query that blends string lengths, trimming, and comparisons over typed columns for the current provider.
-    /// PT: Verifica uma consulta grande que mistura comprimentos de texto, trim e comparacoes sobre colunas tipadas para o provedor atual.
+    /// PT-br: Verifica uma consulta grande que mistura comprimentos de texto, trim e comparacoes sobre colunas tipadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TextLengthMatrixTest()
@@ -1275,7 +1275,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies a large projection query that blends case conversion, trimming, prefix extraction, and text predicates over typed columns for the current provider.
-    /// PT: Verifica uma consulta grande que mistura conversao de caixa, trim, extracao de prefixo e predicados de texto sobre colunas tipadas para o provedor atual.
+    /// PT-br: Verifica uma consulta grande que mistura conversao de caixa, trim, extracao de prefixo e predicados de texto sobre colunas tipadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task TextCaseMatrixTest()

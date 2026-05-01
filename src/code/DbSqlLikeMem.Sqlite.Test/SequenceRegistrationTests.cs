@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Test;
 
 /// <summary>
 /// EN: Verifies schema sequences can be registered and retrieved through the database and connection.
-/// PT: Verifica se sequences de schema podem ser registradas e recuperadas pelo banco e pela conexao.
+/// PT-br: Verifica se sequences de schema podem ser registradas e recuperadas pelo banco e pela conexao.
 /// </summary>
 public sealed class SequenceRegistrationTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SequenceRegistrationTests(
 {
     /// <summary>
     /// EN: Verifies AddSequence stores the sequence inside the target schema and keeps its numeric settings.
-    /// PT: Verifica se AddSequence armazena a sequence no schema alvo e preserva suas configuracoes numericas.
+    /// PT-br: Verifica se AddSequence armazena a sequence no schema alvo e preserva suas configuracoes numericas.
     /// </summary>
     [Fact]
     public void AddSequence_ShouldRegisterSequenceInsideSchema()
@@ -33,7 +33,7 @@ public sealed class SequenceRegistrationTests(
 
     /// <summary>
     /// EN: Verifies the connection forwards sequence registration to its current schema.
-    /// PT: Verifica se a conexao encaminha o registro de sequence para seu schema atual.
+    /// PT-br: Verifica se a conexao encaminha o registro de sequence para seu schema atual.
     /// </summary>
     [Fact]
     public void ConnectionAddSequence_ShouldUseCurrentSchema()

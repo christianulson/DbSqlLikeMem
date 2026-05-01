@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Firebird.Test.Views;
+namespace DbSqlLikeMem.Firebird.Test.Views;
 
 /// <summary>
 /// EN: Covers Firebird CREATE VIEW execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de CREATE VIEW no motor simulado Firebird.
+/// PT-br: Cobre cenarios de execucao de CREATE VIEW no motor simulado Firebird.
 /// </summary>
 public sealed class FirebirdCreateViewEngineTests : XUnitTestBase
 {
@@ -11,7 +11,7 @@ public sealed class FirebirdCreateViewEngineTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the Firebird users table used by the view tests.
-    /// PT: Cria a tabela users do Firebird usada pelos testes de view.
+    /// PT-br: Cria a tabela users do Firebird usada pelos testes de view.
     /// </summary>
     public FirebirdCreateViewEngineTests(ITestOutputHelper helper) : base(helper)
     {
@@ -30,7 +30,7 @@ public sealed class FirebirdCreateViewEngineTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies a view returns rows projected from the base table.
-    /// PT: Verifica se a view retorna linhas projetadas a partir da tabela base.
+    /// PT-br: Verifica se a view retorna linhas projetadas a partir da tabela base.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -65,7 +65,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies view reads reflect later base table changes.
-    /// PT: Verifica se leituras da view refletem alteracoes posteriores na tabela base.
+    /// PT-br: Verifica se leituras da view refletem alteracoes posteriores na tabela base.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -94,7 +94,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies CREATE OR ALTER VIEW replaces the stored definition.
-    /// PT: Verifica se CREATE OR ALTER VIEW substitui a definicao armazenada.
+    /// PT-br: Verifica se CREATE OR ALTER VIEW substitui a definicao armazenada.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -127,7 +127,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies RECREATE VIEW replaces the stored definition.
-    /// PT: Verifica se RECREATE VIEW substitui a definicao armazenada.
+    /// PT-br: Verifica se RECREATE VIEW substitui a definicao armazenada.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -160,7 +160,7 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Verifies dropping a view removes its definition.
-    /// PT: Verifica se remover uma view exclui sua definicao.
+    /// PT-br: Verifica se remover uma view exclui sua definicao.
     /// </summary>
     [Fact]
     [Trait("Category", "Views")]
@@ -192,9 +192,9 @@ SELECT id, name FROM users WHERE tenantid = 10;
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         connection.Dispose();

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.SqlAzure.Test.Parser;
 
 /// <summary>
 /// EN: Covers SQL Azure parser features gated by compatibility levels.
-/// PT: Cobre recursos de parser do SQL Azure controlados por nivel de compatibilidade.
+/// PT-br: Cobre recursos de parser do SQL Azure controlados por nivel de compatibilidade.
 /// </summary>
 public sealed class SqlAzureDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -15,9 +15,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies CREATE SEQUENCE follows SQL Azure compatibility-level rules.
-    /// PT: Verifica se CREATE SEQUENCE segue as regras de nivel de compatibilidade do SQL Azure.
+    /// PT-br: Verifica se CREATE SEQUENCE segue as regras de nivel de compatibilidade do SQL Azure.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -42,9 +42,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parses the first pragmatic scalar FUNCTION DDL subset.
-    /// PT: Garante que o SQL Azure interprete o primeiro subset pragmatico de FUNCTION escalar.
+    /// PT-br: Garante que o SQL Azure interprete o primeiro subset pragmatico de FUNCTION escalar.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -75,9 +75,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure rejects CREATE OR REPLACE FUNCTION outside the supported provider-real subset.
-    /// PT: Garante que o SQL Azure rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
+    /// PT-br: Garante que o SQL Azure rejeite CREATE OR REPLACE FUNCTION fora do subset realista suportado pelo provider.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -94,9 +94,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OFFSET/FETCH without ORDER BY follows SQL Azure compatibility-level rules.
-    /// PT: Garante que OFFSET/FETCH sem ORDER BY siga as regras por nivel de compatibilidade do SQL Azure.
+    /// PT-br: Garante que OFFSET/FETCH sem ORDER BY siga as regras por nivel de compatibilidade do SQL Azure.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -118,9 +118,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OFFSET/FETCH pagination is normalized in SQL Azure parser paths once compatibility allows it.
-    /// PT: Garante que a paginacao OFFSET/FETCH seja normalizada nos caminhos de parser do SQL Azure quando a compatibilidade permitir.
+    /// PT-br: Garante que a paginacao OFFSET/FETCH seja normalizada nos caminhos de parser do SQL Azure quando a compatibilidade permitir.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -148,9 +148,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure keeps the SQL Server pagination hint for unsupported LIMIT syntax.
-    /// PT: Garante que o SQL Azure mantenha a dica de paginacao do SQL Server para sintaxe LIMIT nao suportada.
+    /// PT-br: Garante que o SQL Azure mantenha a dica de paginacao do SQL Server para sintaxe LIMIT nao suportada.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -168,9 +168,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility levels preserve MERGE parser support inherited from SQL Server 2008+.
-    /// PT: Garante que os niveis de compatibilidade do SQL Azure preservem o suporte de parser a MERGE herdado do SQL Server 2008+.
+    /// PT-br: Garante que os niveis de compatibilidade do SQL Azure preservem o suporte de parser a MERGE herdado do SQL Server 2008+.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -186,9 +186,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_VALUE follows SQL Azure compatibility thresholds mapped to SQL Server 2016 semantics.
-    /// PT: Garante que JSON_VALUE siga os limiares de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2016.
+    /// PT-br: Garante que JSON_VALUE siga os limiares de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -211,9 +211,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_QUERY follows SQL Azure compatibility thresholds mapped to SQL Server 2016 semantics.
-    /// PT: Garante que JSON_QUERY siga os limiares de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2016.
+    /// PT-br: Garante que JSON_QUERY siga os limiares de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -236,9 +236,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts schema-qualified table-valued functions in APPLY only when compatibility reaches SQL Server 2016 semantics.
-    /// PT: Garante que o parser SQL Azure aceite funcoes de tabela qualificadas por schema em APPLY apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// PT-br: Garante que o parser SQL Azure aceite funcoes de tabela qualificadas por schema em APPLY apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -268,9 +268,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts schema-qualified OPENJSON WITH explicit schema only when compatibility reaches SQL Server 2016 semantics.
-    /// PT: Garante que o parser SQL Azure aceite OPENJSON qualificado por schema com WITH explicito apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// PT-br: Garante que o parser SQL Azure aceite OPENJSON qualificado por schema com WITH explicito apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -304,9 +304,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts schema-qualified STRING_SPLIT enable_ordinal only when compatibility reaches SQL Server 2022 semantics.
-    /// PT: Garante que o parser SQL Azure aceite STRING_SPLIT qualificado por schema com enable_ordinal apenas quando a compatibilidade atingir a semantica do SQL Server 2022.
+    /// PT-br: Garante que o parser SQL Azure aceite STRING_SPLIT qualificado por schema com enable_ordinal apenas quando a compatibilidade atingir a semantica do SQL Server 2022.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -343,9 +343,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure inherits SQL Server row-count capabilities through the compatibility-mapped dialect.
-    /// PT: Garante que o SQL Azure herde as capabilities de row-count do SQL Server pelo dialeto mapeado por compatibilidade.
+    /// PT-br: Garante que o SQL Azure herde as capabilities de row-count do SQL Server pelo dialeto mapeado por compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -360,9 +360,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure inherits SQL Server join-mutation capabilities through the compatibility-mapped dialect.
-    /// PT: Garante que o SQL Azure herde as capabilities de mutacao com join do SQL Server pelo dialeto mapeado por compatibilidade.
+    /// PT-br: Garante que o SQL Azure herde as capabilities de mutacao com join do SQL Server pelo dialeto mapeado por compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -380,9 +380,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure inherits APPLY support from the compatibility-mapped SQL Server dialect.
-    /// PT: Garante que o SQL Azure herde o suporte a APPLY do dialeto SQL Server mapeado por compatibilidade.
+    /// PT-br: Garante que o SQL Azure herde o suporte a APPLY do dialeto SQL Server mapeado por compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -393,9 +393,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts CROSS APPLY with correlated derived subqueries through the shared SQL Server parser path.
-    /// PT: Garante que o parser SQL Azure aceite CROSS APPLY com subqueries derivadas correlacionadas pelo caminho compartilhado do SQL Server.
+    /// PT-br: Garante que o parser SQL Azure aceite CROSS APPLY com subqueries derivadas correlacionadas pelo caminho compartilhado do SQL Server.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -422,9 +422,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts CROSS APPLY OPENJSON only when compatibility reaches SQL Server 2016 semantics.
-    /// PT: Garante que o parser SQL Azure aceite CROSS APPLY OPENJSON apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// PT-br: Garante que o parser SQL Azure aceite CROSS APPLY OPENJSON apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -453,9 +453,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts OPENJSON WITH explicit schema only when compatibility reaches SQL Server 2016 semantics.
-    /// PT: Garante que o parser SQL Azure aceite OPENJSON WITH com schema explicito apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// PT-br: Garante que o parser SQL Azure aceite OPENJSON WITH com schema explicito apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -489,9 +489,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser preserves OPENJSON strict/lax path modifiers and quoted-key JSON paths in the explicit schema subset.
-    /// PT: Garante que o parser SQL Azure preserve modificadores strict/lax do OPENJSON e paths JSON com chave entre aspas no subset de schema explicito.
+    /// PT-br: Garante que o parser SQL Azure preserve modificadores strict/lax do OPENJSON e paths JSON com chave entre aspas no subset de schema explicito.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -523,9 +523,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts OUTER APPLY STRING_SPLIT only when compatibility reaches SQL Server 2016 semantics.
-    /// PT: Garante que o parser SQL Azure aceite OUTER APPLY STRING_SPLIT apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// PT-br: Garante que o parser SQL Azure aceite OUTER APPLY STRING_SPLIT apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -554,9 +554,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts STRING_SPLIT enable_ordinal only when compatibility reaches SQL Server 2022 semantics.
-    /// PT: Garante que o parser SQL Azure aceite STRING_SPLIT com enable_ordinal apenas quando a compatibilidade atingir a semantica do SQL Server 2022.
+    /// PT-br: Garante que o parser SQL Azure aceite STRING_SPLIT com enable_ordinal apenas quando a compatibilidade atingir a semantica do SQL Server 2022.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -593,9 +593,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts UNPIVOT through the shared SQL Server table-transform path.
-    /// PT: Garante que o parser SQL Azure aceite UNPIVOT pelo caminho compartilhado de transformacao tabular do SQL Server.
+    /// PT-br: Garante que o parser SQL Azure aceite UNPIVOT pelo caminho compartilhado de transformacao tabular do SQL Server.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -621,9 +621,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts FOR JSON PATH only when compatibility reaches SQL Server 2016 semantics.
-    /// PT: Garante que o parser SQL Azure aceite FOR JSON PATH apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
+    /// PT-br: Garante que o parser SQL Azure aceite FOR JSON PATH apenas quando a compatibilidade atingir a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -653,9 +653,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts FOR JSON AUTO options through compatibility-mapped SQL Server semantics.
-    /// PT: Garante que o parser SQL Azure aceite opcoes de FOR JSON AUTO pela semantica do SQL Server mapeada por compatibilidade.
+    /// PT-br: Garante que o parser SQL Azure aceite opcoes de FOR JSON AUTO pela semantica do SQL Server mapeada por compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -686,9 +686,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser inherits SQL Server row-count function gating through compatibility mapping.
-    /// PT: Garante que o parser SQL Azure herde o gate de função row-count do SQL Server pelo mapeamento de compatibilidade.
+    /// PT-br: Garante que o parser SQL Azure herde o gate de função row-count do SQL Server pelo mapeamento de compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -705,9 +705,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser/tokenizer inherits @@ROWCOUNT syntax support from the compatibility-mapped SQL Server dialect.
-    /// PT: Garante que o parser/tokenizer SQL Azure herde o suporte de sintaxe a @@ROWCOUNT do dialeto SQL Server mapeado por compatibilidade.
+    /// PT-br: Garante que o parser/tokenizer SQL Azure herde o suporte de sintaxe a @@ROWCOUNT do dialeto SQL Server mapeado por compatibilidade.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -723,9 +723,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OPENJSON follows SQL Azure compatibility thresholds mapped to SQL Server 2016 semantics.
-    /// PT: Garante que OPENJSON siga os limiares de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2016.
+    /// PT-br: Garante que OPENJSON siga os limiares de compatibilidade do SQL Azure mapeados para a semantica do SQL Server 2016.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -743,9 +743,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures NEXT/PREVIOUS VALUE FOR follow SQL Azure compatibility thresholds mapped to SQL Server sequence-expression semantics.
-    /// PT: Garante que NEXT/PREVIOUS VALUE FOR sigam os limiares de compatibilidade do SQL Azure mapeados para a semantica de expressoes de sequence do SQL Server.
+    /// PT-br: Garante que NEXT/PREVIOUS VALUE FOR sigam os limiares de compatibilidade do SQL Azure mapeados para a semantica de expressoes de sequence do SQL Server.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -776,9 +776,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts ordered-set WITHIN GROUP for STRING_AGG through the shared SQL Server dialect path.
-    /// PT: Garante que o parser SQL Azure aceite ordered-set WITHIN GROUP para STRING_AGG pelo caminho compartilhado do dialeto SQL Server.
+    /// PT-br: Garante que o parser SQL Azure aceite ordered-set WITHIN GROUP para STRING_AGG pelo caminho compartilhado do dialeto SQL Server.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -812,9 +812,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser rejects DISTINCT directly inside STRING_AGG.
-    /// PT: Garante que o parser SQL Azure rejeite DISTINCT diretamente dentro de STRING_AGG.
+    /// PT-br: Garante que o parser SQL Azure rejeite DISTINCT diretamente dentro de STRING_AGG.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nível de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nível de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -833,9 +833,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed WITHIN GROUP in SQL Azure keeps the actionable ORDER BY diagnostic from the shared parser path.
-    /// PT: Garante que WITHIN GROUP malformado no SQL Azure preserve o diagnostico acionavel de ORDER BY do caminho compartilhado do parser.
+    /// PT-br: Garante que WITHIN GROUP malformado no SQL Azure preserve o diagnostico acionavel de ORDER BY do caminho compartilhado do parser.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -865,9 +865,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures full SELECT parsing in SQL Azure accepts STRING_AGG ordered-set syntax inherited from SQL Server semantics.
-    /// PT: Garante que o parsing de SELECT completo no SQL Azure aceite a sintaxe ordered-set de STRING_AGG herdada da semantica do SQL Server.
+    /// PT-br: Garante que o parsing de SELECT completo no SQL Azure aceite a sintaxe ordered-set de STRING_AGG herdada da semantica do SQL Server.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -896,9 +896,9 @@ public sealed class SqlAzureDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure parser accepts tz and tzoffset temporal parts through the shared SQL Server syntax path.
-    /// PT: Garante que o parser SQL Azure aceite partes temporais tz e tzoffset pelo caminho compartilhado de sintaxe do SQL Server.
+    /// PT-br: Garante que o parser SQL Azure aceite partes temporais tz e tzoffset pelo caminho compartilhado de sintaxe do SQL Server.
     /// </summary>
-    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT: Nivel de compatibilidade SQL Azure em teste.</param>
+    /// <param name="compatibilityLevel">EN: SQL Azure compatibility level under test. PT-br: Nivel de compatibilidade SQL Azure em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqlAzureCompatibilityLevel]

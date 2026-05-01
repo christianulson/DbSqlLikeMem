@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Builds database-specific SQL used to read schema objects and routine metadata.
-/// PT: Monta SQL especifico de banco usado para ler objetos de schema e metadados de rotinas.
+/// PT-br: Monta SQL especifico de banco usado para ler objetos de schema e metadados de rotinas.
 /// </summary>
 public static class SqlMetadataQueryFactory
 {

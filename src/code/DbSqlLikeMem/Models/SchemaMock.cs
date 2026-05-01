@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Base for an in-memory schema responsible for tables, procedures, and sequences.
-/// PT: Base de um schema em memória, responsável por tabelas, procedimentos e sequences.
+/// PT-br: Base de um schema em memória, responsável por tabelas, procedimentos e sequences.
 /// </summary>
 public abstract class SchemaMock
     : ISchemaMock
@@ -14,15 +14,15 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Initializes the schema with name, database, and optional collections.
-    /// PT: Inicializa o schema com nome, banco e coleções opcionais.
+    /// PT-br: Inicializa o schema com nome, banco e coleções opcionais.
     /// </summary>
-    /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
-    /// <param name="db">EN: Parent database instance. PT: Instância do banco pai.</param>
-    /// <param name="tables">EN: Initial table configuration. PT: Configuração inicial de tabelas.</param>
-    /// <param name="functions">EN: Initial functions. PT: Funções iniciais.</param>
-    /// <param name="procedures">EN: Initial procedures. PT: Procedimentos iniciais.</param>
-    /// <param name="sequences">EN: Initial sequences. PT: Sequences iniciais.</param>
-    /// <param name="views">EN: Initial sequences. PT: Sequences iniciais.</param>
+    /// <param name="schemaName">EN: Schema name. PT-br: Nome do schema.</param>
+    /// <param name="db">EN: Parent database instance. PT-br: Instância do banco pai.</param>
+    /// <param name="tables">EN: Initial table configuration. PT-br: Configuração inicial de tabelas.</param>
+    /// <param name="functions">EN: Initial functions. PT-br: Funções iniciais.</param>
+    /// <param name="procedures">EN: Initial procedures. PT-br: Procedimentos iniciais.</param>
+    /// <param name="sequences">EN: Initial sequences. PT-br: Sequences iniciais.</param>
+    /// <param name="views">EN: Initial sequences. PT-br: Sequences iniciais.</param>
     protected SchemaMock(
         string schemaName,
         DbMock db,
@@ -54,25 +54,25 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Normalized schema name.
-    /// PT: Nome normalizado do schema.
+    /// PT-br: Nome normalizado do schema.
     /// </summary>
     public string SchemaName { get; }
 
     /// <summary>
     /// EN: Database to which the schema belongs.
-    /// PT: Banco ao qual o schema pertence.
+    /// PT-br: Banco ao qual o schema pertence.
     /// </summary>
     public DbMock Db { get; }
 
     /// <summary>
     /// EN: Internal table map with normalized names on access.
-    /// PT: Mapa interno de tabelas, com nomes normalizados no acesso.
+    /// PT-br: Mapa interno de tabelas, com nomes normalizados no acesso.
     /// </summary>
     private readonly TableDictionary tables = [];
 
     /// <summary>
     /// EN: Exposes schema tables.
-    /// PT: Exposição das tabelas do schema.
+    /// PT-br: Exposição das tabelas do schema.
     /// </summary>
     public ITableDictionary Tables => tables;
 
@@ -80,7 +80,7 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Stored procedure contracts (signature only).
-    /// PT: Contratos de procedimentos armazenados (apenas assinatura).
+    /// PT-br: Contratos de procedimentos armazenados (apenas assinatura).
     /// </summary>
     public IDictionary<string, ProcedureDef> Procedures { get; } =
         new Dictionary<string, ProcedureDef>(StringComparer.OrdinalIgnoreCase);
@@ -198,7 +198,7 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Sequence definitions registered in the schema.
-    /// PT: Definições de sequence registradas no schema.
+    /// PT-br: Definições de sequence registradas no schema.
     /// </summary>
     public IReadOnlyDictionary<string, SequenceDef> Sequences => sequences;
 
@@ -209,19 +209,19 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Non-materialized views (definition only) evaluated on demand.
-    /// PT: Views não materializadas (somente definição) avaliadas sob demanda.
+    /// PT-br: Views não materializadas (somente definição) avaliadas sob demanda.
     /// </summary>
     internal IDictionary<string, SqlSelectQuery> Views { get; } =
         new Dictionary<string, SqlSelectQuery>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Creates a new table instance for this schema.
-    /// PT: Cria uma nova instância de tabela para este schema.
+    /// PT-br: Cria uma nova instância de tabela para este schema.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
-    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
-    /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT-br: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT-br: Linhas iniciais.</param>
+    /// <returns>EN: New table instance. PT-br: Nova instância de tabela.</returns>
     protected abstract TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,
@@ -229,12 +229,12 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Creates a table and registers it in the schema.
-    /// PT: Cria uma tabela e a registra no schema.
+    /// PT-br: Cria uma tabela e a registra no schema.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
-    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
-    /// <returns>EN: Created table. PT: Tabela criada.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT-br: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT-br: Linhas iniciais.</param>
+    /// <returns>EN: Created table. PT-br: Tabela criada.</returns>
     public TableMock CreateTable(
         string tableName,
         IEnumerable<Col> columns,
@@ -247,12 +247,12 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Creates a table instance without registering it in the schema.
-    /// PT: Cria uma instância de tabela sem registrar no schema.
+    /// PT-br: Cria uma instância de tabela sem registrar no schema.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
-    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
-    /// <returns>EN: New table instance. PT: Nova instância de tabela.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT-br: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT-br: Linhas iniciais.</param>
+    /// <returns>EN: New table instance. PT-br: Nova instância de tabela.</returns>
     internal TableMock CreateTableInstance(
         string tableName,
         IEnumerable<Col> columns,
@@ -263,10 +263,10 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Adds a table to the schema.
-    /// PT: Adiciona uma tabela ao schema.
+    /// PT-br: Adiciona uma tabela ao schema.
     /// </summary>
-    /// <param name="key">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="table">EN: Table to add. PT: Tabela a adicionar.</param>
+    /// <param name="key">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="table">EN: Table to add. PT-br: Tabela a adicionar.</param>
     public void Add(string key, ITableMock table)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(key, nameof(key));
@@ -296,17 +296,17 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Tries to get a table by name.
-    /// PT: Tenta obter uma tabela pelo nome.
+    /// PT-br: Tenta obter uma tabela pelo nome.
     /// </summary>
-    /// <param name="key">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="value">EN: Found table, if any. PT: Tabela encontrada, se houver.</param>
-    /// <returns>EN: True if the table exists. PT: True se a tabela existir.</returns>
+    /// <param name="key">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="value">EN: Found table, if any. PT-br: Tabela encontrada, se houver.</param>
+    /// <returns>EN: True if the table exists. PT-br: True se a tabela existir.</returns>
     public bool TryGetTable(string key, out ITableMock? value)
         => tables.TryGetValue(key.NormalizeName(), out value);
 
     /// <summary>
     /// EN: Gets or sets a table by name.
-    /// PT: Obtém ou define uma tabela pelo nome.
+    /// PT-br: Obtém ou define uma tabela pelo nome.
     /// </summary>
     public ITableMock this[string key]
     {
@@ -316,19 +316,19 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Returns table names in the schema.
-    /// PT: Retorna os nomes das tabelas do schema.
+    /// PT-br: Retorna os nomes das tabelas do schema.
     /// </summary>
     public IEnumerable<string> Keys => tables.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// EN: Returns tables in the schema.
-    /// PT: Retorna as tabelas do schema.
+    /// PT-br: Retorna as tabelas do schema.
     /// </summary>
     public IEnumerable<ITableMock> Values => tables.Values;
 
     /// <summary>
     /// EN: Returns an enumerator of schema tables.
-    /// PT: Retorna enumerador das tabelas do schema.
+    /// PT-br: Retorna enumerador das tabelas do schema.
     /// </summary>
     public IEnumerator<KeyValuePair<string, ITableMock>> GetEnumerator()
         => tables.GetEnumerator();
@@ -340,7 +340,7 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Backs up all tables in the schema.
-    /// PT: Faz backup de todas as tabelas do schema.
+    /// PT-br: Faz backup de todas as tabelas do schema.
     /// </summary>
     public virtual void BackupAllTablesBestEffort()
     {
@@ -357,7 +357,7 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Restores backups of all tables in the schema.
-    /// PT: Restaura backup de todas as tabelas do schema.
+    /// PT-br: Restaura backup de todas as tabelas do schema.
     /// </summary>
     public virtual void RestoreAllTablesBestEffort()
     {
@@ -374,7 +374,7 @@ public abstract class SchemaMock
 
     /// <summary>
     /// EN: Clears backups of all tables in the schema.
-    /// PT: Limpa backup de todas as tabelas do schema.
+    /// PT-br: Limpa backup de todas as tabelas do schema.
     /// </summary>
     public virtual void ClearBackupAllTablesBestEffort()
     {

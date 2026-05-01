@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers temporary table execution in the SqlServer mock.
-/// PT: Cobre a execucao de tabelas temporarias no mock SqlServer.
+/// PT-br: Cobre a execucao de tabelas temporarias no mock SqlServer.
 /// </summary>
 public sealed class SqlServerTemporaryTableEngineTests
 {
@@ -10,7 +10,7 @@ public sealed class SqlServerTemporaryTableEngineTests
 
     /// <summary>
     /// EN: Verifies a temporary table created from SELECT can be queried in the same batch.
-    /// PT: Verifica se uma tabela temporaria criada a partir de SELECT pode ser consultada no mesmo lote.
+    /// PT-br: Verifica se uma tabela temporaria criada a partir de SELECT pode ser consultada no mesmo lote.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]
@@ -48,7 +48,7 @@ SELECT id FROM tmp_users ORDER BY id;";
 
     /// <summary>
     /// EN: Verifies a global temporary table remains visible across connections.
-    /// PT: Verifica se uma tabela temporaria global permanece visivel entre conexoes.
+    /// PT-br: Verifica se uma tabela temporaria global permanece visivel entre conexoes.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

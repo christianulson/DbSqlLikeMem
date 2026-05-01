@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Schema;
 
 /// <summary>
 /// EN: Runs Db2 fidelity tests for the shared schema-snapshot workflows.
-/// PT: Executa testes de fidelidade Db2 para os fluxos compartilhados de snapshot de schema.
+/// PT-br: Executa testes de fidelidade Db2 para os fluxos compartilhados de snapshot de schema.
 /// </summary>
 [FidelityNativeClientSkip]
 public class SchemaSnapshotTests(

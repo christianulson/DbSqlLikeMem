@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MariaDb.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs MariaDB fidelity tests for the shared sequence workflows.
-/// PT: Executa testes de fidelidade MariaDB para os fluxos compartilhados de sequence.
+/// PT-br: Executa testes de fidelidade MariaDB para os fluxos compartilhados de sequence.
 /// </summary>
 public class SequenceTests(
     ITestOutputHelper helper

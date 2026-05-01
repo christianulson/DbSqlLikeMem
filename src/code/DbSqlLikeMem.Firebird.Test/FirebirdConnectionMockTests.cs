@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for Firebird connection mock surface behavior.
-/// PT: Contem testes para o comportamento de superficie do mock de conexao Firebird.
+/// PT-br: Contem testes para o comportamento de superficie do mock de conexao Firebird.
 /// </summary>
 public sealed class FirebirdConnectionMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdConnectionMockTests(
 {
     /// <summary>
     /// EN: Verifies the connection opens and closes safely, creates provider-specific commands, and starts provider-specific transactions.
-    /// PT: Verifica se a conexao abre e fecha com seguranca, cria comandos especificos do provedor e inicia transacoes especificas do provedor.
+    /// PT-br: Verifica se a conexao abre e fecha com seguranca, cria comandos especificos do provedor e inicia transacoes especificas do provedor.
     /// </summary>
     [Fact]
     public void OpenCloseAndFactoryMembers_ShouldUseProviderSpecificTypes()

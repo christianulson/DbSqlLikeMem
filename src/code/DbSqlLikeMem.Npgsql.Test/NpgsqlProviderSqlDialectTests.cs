@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Contains tests for the PostgreSQL provider SQL dialect helper.
-/// PT: Contem testes para o helper de dialeto SQL do provedor PostgreSQL.
+/// PT-br: Contem testes para o helper de dialeto SQL do provedor PostgreSQL.
 /// </summary>
 public sealed class NpgsqlProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the PostgreSQL helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper PostgreSQL.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper PostgreSQL.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchNpgsql()
@@ -28,7 +28,7 @@ public sealed class NpgsqlProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits PostgreSQL-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compativel com PostgreSQL para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compativel com PostgreSQL para savepoint.
     /// </summary>
     [Fact]
     public void SavepointSql_ShouldUsePostgreSqlSyntax()

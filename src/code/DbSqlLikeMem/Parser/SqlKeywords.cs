@@ -21,13 +21,13 @@ internal static class SqlKeywords
 
     /// <summary>
     /// EN: Implements IsKeyword.
-    /// PT: Implementa IsKeyword.
+    /// PT-br: Implementa IsKeyword.
     /// </summary>
     public static bool IsKeyword(string text) => _keywords.Contains(text);
 
     /// <summary>
     /// EN: Checks whether the span matches a SQL keyword without allocating a string.
-    /// PT: Verifica se o span corresponde a uma palavra-chave SQL sem alocar string.
+    /// PT-br: Verifica se o span corresponde a uma palavra-chave SQL sem alocar string.
     /// </summary>
     public static bool IsKeyword(ReadOnlySpan<char> text)
     {

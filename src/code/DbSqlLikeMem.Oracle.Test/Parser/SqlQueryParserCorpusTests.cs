@@ -3,32 +3,32 @@ namespace DbSqlLikeMem.Oracle.Test.Parser;
 
 /// <summary>
 /// EN: Expected casing results for SQL parser corpus tests.
-/// PT: Resultados esperados de capitalização nos testes de corpus do parser SQL.
+/// PT-br: Resultados esperados de capitalização nos testes de corpus do parser SQL.
 /// </summary>
 public enum SqlCaseExpectation
 {
     /// <summary>
     /// EN: Marks a statement that should parse successfully.
-    /// PT: Marca uma instrucao que deve ser analisada com sucesso.
+    /// PT-br: Marca uma instrucao que deve ser analisada com sucesso.
     /// </summary>
     ParseOk,
 
     /// <summary>
     /// EN: Marks a statement that should fail as an invalid SQL input.
-    /// PT: Marca uma instrucao que deve falhar como entrada SQL invalida.
+    /// PT-br: Marca uma instrucao que deve falhar como entrada SQL invalida.
     /// </summary>
     ThrowInvalid,
 
     /// <summary>
     /// EN: Marks a statement that should fail because the dialect does not support it.
-    /// PT: Marca uma instrucao que deve falhar porque o dialeto nao a suporta.
+    /// PT-br: Marca uma instrucao que deve falhar porque o dialeto nao a suporta.
     /// </summary>
     ThrowNotSupported
 }
 
 /// <summary>
 /// EN: Covers parser corpus cases for the Oracle dialect.
-/// PT: Cobre casos de corpus do parser para o dialeto Oracle.
+/// PT-br: Cobre casos de corpus do parser para o dialeto Oracle.
 /// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
@@ -39,7 +39,7 @@ public sealed class SqlQueryParserCorpusTests(
 
     /// <summary>
     /// EN: Provides SQL statements accepted by the parser corpus for Oracle.
-    /// PT: Fornece instruções SQL aceitas pelo corpus do parser para Oracle.
+    /// PT-br: Fornece instruções SQL aceitas pelo corpus do parser para Oracle.
     /// </summary>
     public static IEnumerable<object[]> Statements()
     {
@@ -117,7 +117,7 @@ public sealed class SqlQueryParserCorpusTests(
     // -----------------------------------------------------------------
     /// <summary>
     /// EN: Provides SELECT statements that should be parsed successfully for Oracle.
-    /// PT: Fornece instruções SELECT que devem ser analisadas com sucesso em Oracle.
+    /// PT-br: Fornece instruções SELECT que devem ser analisadas com sucesso em Oracle.
     /// </summary>
     public static IEnumerable<object[]> SelectStatements()
     {
@@ -525,7 +525,7 @@ WHEN NOT MATCHED THEN INSERT (grp, total) VALUES (src.grp, src.total)",
     // -----------------------------------------------------------------
     /// <summary>
     /// EN: Provides invalid SELECT statements that should fail parsing for Oracle.
-    /// PT: Fornece instruções SELECT inválidas que devem falhar na análise em Oracle.
+    /// PT-br: Fornece instruções SELECT inválidas que devem falhar na análise em Oracle.
     /// </summary>
     public static IEnumerable<object[]> InvalidSelectStatements()
     {
@@ -604,7 +604,7 @@ select id
     // -----------------------------------------------------------------
     /// <summary>
     /// EN: Provides non-SELECT SQL statements covered by parser corpus scenarios.
-    /// PT: Fornece instruções SQL sem SELECT cobertas pelos cenários do corpus do parser.
+    /// PT-br: Fornece instruções SQL sem SELECT cobertas pelos cenários do corpus do parser.
     /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {
@@ -637,7 +637,7 @@ select id
 
     /// <summary>
     /// EN: Verifies multi-statement strings are split before parsing.
-    /// PT: Verifica se strings com multiplas instrucoes sao separadas antes do parsing.
+    /// PT-br: Verifica se strings com multiplas instrucoes sao separadas antes do parsing.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -662,7 +662,7 @@ select id
 
     /// <summary>
     /// EN: Verifies the parser handles the recorded corpus cases.
-    /// PT: Verifica se o parser trata os casos registrados no corpus.
+    /// PT-br: Verifica se o parser trata os casos registrados no corpus.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -724,7 +724,7 @@ select id
 
     /// <summary>
     /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
-    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// PT-br: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
