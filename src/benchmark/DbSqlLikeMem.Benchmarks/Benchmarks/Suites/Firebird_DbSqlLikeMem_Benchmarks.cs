@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the DbSqlLikeMem benchmark suite for Firebird.
 /// PT: Define a suite de benchmark DbSqlLikeMem para Firebird.
 /// </summary>
-public class Firebird_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
+public class Firebird_DbSqlLikeMem_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <inheritdoc />
     protected override IBenchmarkSession CreateSession() => new FirebirdDbSqlLikeMemSession();
@@ -25,5 +25,5 @@ public class Firebird_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }

@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the Oracle benchmark suite backed by Testcontainers.
 /// PT: Define a suite de benchmark de Oracle apoiada por Testcontainers.
 /// </summary>
-public class Oracle_Testcontainers_Benchmarks : BenchmarkSuiteBase
+public class Oracle_Testcontainers_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the benchmark session used by the Oracle Testcontainers suite.
@@ -20,6 +20,6 @@ public class Oracle_Testcontainers_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }
 

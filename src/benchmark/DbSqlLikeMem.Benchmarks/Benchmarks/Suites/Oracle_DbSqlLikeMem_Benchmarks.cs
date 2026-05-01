@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the DbSqlLikeMem benchmark suite for Oracle.
 /// PT: Define a suite de benchmark DbSqlLikeMem para Oracle.
 /// </summary>
-public class Oracle_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
+public class Oracle_DbSqlLikeMem_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the benchmark session used by the Oracle DbSqlLikeMem suite.
@@ -20,6 +20,6 @@ public class Oracle_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }
 

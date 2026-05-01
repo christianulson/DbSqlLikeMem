@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Runs DbSqlLikeMem benchmarks against the MariaDB in-memory mock session.
 /// PT-br: Executa benchmarks do DbSqlLikeMem contra a sessao mock em memoria de MariaDB.
 /// </summary>
-public class MariaDb_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
+public class MariaDb_DbSqlLikeMem_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the MariaDB in-memory benchmark session.
@@ -21,5 +21,5 @@ public class MariaDb_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }

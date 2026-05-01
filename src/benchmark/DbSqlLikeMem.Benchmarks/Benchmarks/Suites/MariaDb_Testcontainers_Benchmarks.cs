@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Runs benchmark scenarios against a MariaDB container managed by Testcontainers.
 /// PT-br: Executa cenarios de benchmark contra um contêiner de MariaDB gerenciado pelo Testcontainers.
 /// </summary>
-public class MariaDb_Testcontainers_Benchmarks : BenchmarkSuiteBase
+public class MariaDb_Testcontainers_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the MariaDB Testcontainers benchmark session.
@@ -21,5 +21,5 @@ public class MariaDb_Testcontainers_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }

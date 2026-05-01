@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the Firebird benchmark suite backed by Testcontainers.
 /// PT: Define a suite de benchmark de Firebird apoiada por Testcontainers.
 /// </summary>
-public class Firebird_Testcontainers_Benchmarks : BenchmarkSuiteBase
+public class Firebird_Testcontainers_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the benchmark session used by the Firebird Testcontainers suite.
@@ -28,5 +28,5 @@ public class Firebird_Testcontainers_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }

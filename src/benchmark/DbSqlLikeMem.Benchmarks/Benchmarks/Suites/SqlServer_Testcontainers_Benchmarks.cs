@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the SQL Server benchmark suite backed by Testcontainers.
 /// PT: Define a suite de benchmark de SQL Server apoiada por Testcontainers.
 /// </summary>
-public class SqlServer_Testcontainers_Benchmarks : BenchmarkSuiteBase
+public class SqlServer_Testcontainers_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the benchmark session used by the SQL Server Testcontainers suite.
@@ -20,6 +20,6 @@ public class SqlServer_Testcontainers_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }
 

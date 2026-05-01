@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the Npgsql benchmark suite backed by Testcontainers.
 /// PT: Define a suite de benchmark de Npgsql apoiada por Testcontainers.
 /// </summary>
-public class Npgsql_Testcontainers_Benchmarks : BenchmarkSuiteBase
+public class Npgsql_Testcontainers_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the benchmark session used by the Npgsql Testcontainers suite.
@@ -20,6 +20,6 @@ public class Npgsql_Testcontainers_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }
 

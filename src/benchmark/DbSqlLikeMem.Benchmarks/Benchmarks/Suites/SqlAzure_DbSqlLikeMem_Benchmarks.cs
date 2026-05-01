@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the DbSqlLikeMem benchmark suite for SQL Azure.
 /// PT: Define a suite de benchmark DbSqlLikeMem para SQL Azure.
 /// </summary>
-public class SqlAzure_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
+public class SqlAzure_DbSqlLikeMem_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the benchmark session used by the SQL Azure DbSqlLikeMem suite.
@@ -20,6 +20,6 @@ public class SqlAzure_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }
 

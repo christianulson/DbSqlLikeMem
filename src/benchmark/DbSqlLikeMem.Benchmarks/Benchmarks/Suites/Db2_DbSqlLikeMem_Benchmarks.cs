@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Benchmarks.Suites;
 /// EN: Defines the DbSqlLikeMem benchmark suite for DB2.
 /// PT: Define a suite de benchmark DbSqlLikeMem para DB2.
 /// </summary>
-public class Db2_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
+public class Db2_DbSqlLikeMem_Benchmarks : SequenceBenchmarkSuiteBase
 {
     /// <summary>
     /// EN: Creates the benchmark session used by the DB2 DbSqlLikeMem suite.
@@ -20,6 +20,6 @@ public class Db2_DbSqlLikeMem_Benchmarks : BenchmarkSuiteBase
     /// </summary>
     [Benchmark]
     [BenchmarkCategory("dialect")]
-    public void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
+    public new void SequenceNextValue() => Run(BenchmarkFeatureId.SequenceNextValue);
 }
 
