@@ -246,7 +246,10 @@ public sealed class SqlAzureFunctionTests
         Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATALENGTH('AB') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING_ID(1, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(new byte[] { 0x0A, 0x0B }, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
+        var expectedContextInfo = new byte[128];
+        expectedContextInfo[0] = 0x0A;
+        expectedContextInfo[1] = 0x0B;
+        Assert.Equal(expectedContextInfo, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("localhost", ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -397,7 +400,7 @@ public sealed class SqlAzureFunctionTests
         Assert.True(exp > 2.7d && exp < 2.8d);
 
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT FLOOR(1.9) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(2d, Convert.ToDouble(ExecuteScalar("SELECT LOG(10, 100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar("SELECT LOG(10, 100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(2d, Convert.ToDouble(ExecuteScalar("SELECT LOG10(100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(8d, Convert.ToDouble(ExecuteScalar("SELECT POWER(2, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(Math.PI, Convert.ToDouble(ExecuteScalar("SELECT RADIANS(180) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);

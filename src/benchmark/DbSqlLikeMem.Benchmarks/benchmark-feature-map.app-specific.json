@@ -244,8 +244,8 @@
       "id": "Firebird",
       "displayName": "Firebird",
       "latestSimulatedVersion": "5.0",
-      "externalEngine": "NotAvailable",
-      "externalImage": null,
+      "externalEngine": "Testcontainers",
+      "externalImage": "firebirdsql/firebird:5.0.3-noble",
       "supportsAppFeatures": [
         "ExecutionPlan",
         "ExecutionPlanSelect",

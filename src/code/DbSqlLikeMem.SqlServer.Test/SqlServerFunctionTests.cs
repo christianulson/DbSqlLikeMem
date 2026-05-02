@@ -76,7 +76,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal("2022", ExecuteScalar("SELECT SERVERPROPERTY('ProductVersion') FROM Users WHERE Id = 1"));
         Assert.Equal("sa", ExecuteScalar("SELECT ORIGINAL_LOGIN() FROM Users WHERE Id = 1"));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT CURRENT_REQUEST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT SESSION_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT @@SPID FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(56, Convert.ToInt32(ExecuteScalar("SELECT TYPE_ID('int') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("int", ExecuteScalar("SELECT TYPE_NAME(56) FROM Users WHERE Id = 1"));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT TYPEPROPERTY('int', 'OwnerId') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -125,10 +125,18 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
     public void NewSequentialId_ShouldReturnGuid(int version)
     {
         using var connection = CreateOpenConnection(version);
+        ExecuteNonQuery(connection, "CREATE TABLE SequentialGuidUsers (Id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID())");
+        try
+        {
+            ExecuteNonQuery(connection, "INSERT INTO SequentialGuidUsers (Id) VALUES (DEFAULT)");
 
-        var value = ExecuteScalar(connection, "SELECT NEWSEQUENTIALID() FROM Users WHERE Id = 1");
-
-        Assert.True(Guid.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out _));
+            var value = ExecuteScalar(connection, "SELECT Id FROM SequentialGuidUsers");
+            Assert.True(Guid.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out _));
+        }
+        finally
+        {
+            ExecuteNonQuery(connection, "DROP TABLE IF EXISTS SequentialGuidUsers");
+        }
     }
 
     /// <summary>
@@ -371,10 +379,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         else
         {
             Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEFROMPARTS(2020, 2, 29) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12, 0) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 7) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
 
-            var offset = (DateTimeOffset)ExecuteScalar(connection, "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 60) FROM Users WHERE Id = 1")!;
+            var offset = (DateTimeOffset)ExecuteScalar(connection, "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 1, 0, 7) FROM Users WHERE Id = 1")!;
             Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), TimeSpan.FromMinutes(60)), offset);
             Assert.Equal(new TimeSpan(10, 11, 12).Add(TimeSpan.FromTicks(1234567 * 10L)), Assert.IsType<TimeSpan>(ExecuteScalar(connection, "SELECT TIMEFROMPARTS(10, 11, 12, 1234567, 7) FROM Users WHERE Id = 1")));
             Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 0), Convert.ToDateTime(ExecuteScalar(connection, "SELECT SMALLDATETIMEFROMPARTS(2020, 2, 29, 10, 11) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -437,7 +445,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATALENGTH('AB') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING_ID(1, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(new byte[] { 0x0A, 0x0B }, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
+        var expectedContextInfo = new byte[128];
+        expectedContextInfo[0] = 0x0A;
+        expectedContextInfo[1] = 0x0B;
+        Assert.Equal(expectedContextInfo, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("localhost", ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -686,7 +697,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.True(exp > 2.7d && exp < 2.8d);
 
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT FLOOR(1.9) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(2d, Convert.ToDouble(ExecuteScalar("SELECT LOG(10, 100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar("SELECT LOG(10, 100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(2d, Convert.ToDouble(ExecuteScalar("SELECT LOG10(100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(8d, Convert.ToDouble(ExecuteScalar("SELECT POWER(2, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(Math.PI, Convert.ToDouble(ExecuteScalar("SELECT RADIANS(180) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);

@@ -144,14 +144,18 @@ internal sealed class DbConnectionSessionStateManager
     /// </summary>
     /// <param name="value">EN: Context-info payload to store. PT-br: Payload de context-info a armazenar.</param>
     public void SetContextInfo(byte[]? value)
-        => _contextInfo = value;
+        => _contextInfo = value is null
+            ? null
+            : NormalizeContextInfo(value);
 
     /// <summary>
     /// EN: Gets the stored connection context-info payload.
     /// PT-br: Obtém o payload de context-info armazenado da conexao.
     /// </summary>
     public byte[]? GetContextInfo()
-        => _contextInfo;
+        => _contextInfo is null
+            ? null
+            : (byte[])_contextInfo.Clone();
 
     /// <summary>
     /// EN: Clears a stored session sequence value for the given schema and sequence name.
@@ -173,4 +177,11 @@ internal sealed class DbConnectionSessionStateManager
         string sequenceName,
         string schemaName)
         => $"{schemaName}:{sequenceName.NormalizeName()}";
+
+    private static byte[] NormalizeContextInfo(byte[] value)
+    {
+        var normalized = new byte[128];
+        Array.Copy(value, normalized, Math.Min(value.Length, normalized.Length));
+        return normalized;
+    }
 }

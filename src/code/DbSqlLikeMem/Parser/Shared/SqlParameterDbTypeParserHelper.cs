@@ -50,7 +50,8 @@ internal static class SqlParameterDbTypeParserHelper
             var t when t.Equals("TIMESTAMP", StringComparison.OrdinalIgnoreCase)
                 || t.Equals("DATETIME", StringComparison.OrdinalIgnoreCase) => DbType.DateTime,
             var t when t.Equals("GUID", StringComparison.OrdinalIgnoreCase)
-                || t.Equals("UUID", StringComparison.OrdinalIgnoreCase) => DbType.Guid,
+                || t.Equals("UUID", StringComparison.OrdinalIgnoreCase)
+                || t.Equals("UNIQUEIDENTIFIER", StringComparison.OrdinalIgnoreCase) => DbType.Guid,
             var t when t.Equals("BLOB", StringComparison.OrdinalIgnoreCase)
                 || t.Equals("BINARY", StringComparison.OrdinalIgnoreCase)
                 || t.Equals("VARBINARY", StringComparison.OrdinalIgnoreCase)

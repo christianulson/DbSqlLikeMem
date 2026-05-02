@@ -26,6 +26,18 @@ public class NotFidelityTestService<TCnn1>(
     where TCnn1 : DbConnection
 {
     /// <summary>
+    /// EN: Gets the last execution plan snapshot captured before scenario teardown.
+    /// PT-br: Obtem o ultimo snapshot do plano de execucao capturado antes da limpeza do cenario.
+    /// </summary>
+    protected string? LastExecutionPlanSnapshot { get; private set; }
+
+    /// <summary>
+    /// EN: Gets the last debug trace snapshot captured before scenario teardown.
+    /// PT-br: Obtem o ultimo snapshot do trace de debug capturado antes da limpeza do cenario.
+    /// </summary>
+    protected global::DbSqlLikeMem.QueryDebugTrace? LastDebugTraceSnapshot { get; private set; }
+
+    /// <summary>
     /// EN: Gets the repository service instance used for executing database operations in the test scenarios. This property is initialized in the constructor with a connection factory and SQL dialect, and it provides the necessary methods for interacting with the database during tests.
     /// PT-br: Obtém a instância do serviço de repositório usado para executar operações de banco de dados nos cenários de teste. Esta propriedade é inicializada no construtor com uma fábrica de conexões e um dialeto SQL, e fornece os métodos necessários para interagir com o banco de dados durante os testes.
     /// </summary>
@@ -129,7 +141,7 @@ public class NotFidelityTestService<TCnn1>(
     /// <param name="initialData"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    protected static async Task<object?> Execute<TScenario, TServiceTest>(
+    protected async Task<object?> Execute<TScenario, TServiceTest>(
         object[] args,
         RepoService repo,
         object?[][] initialData,
@@ -138,6 +150,9 @@ public class NotFidelityTestService<TCnn1>(
     where TScenario : BaseScenario, ITestScenario
     where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
+        using var debugTraceCapture = repo.Cnn is DbConnectionMockBase cnn
+            ? cnn.BeginDebugTraceCapture()
+            : null;
         var scenarioData = CloneInitialData(initialData);
         object? objResult = null;
         var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
@@ -151,6 +166,7 @@ public class NotFidelityTestService<TCnn1>(
         }
         finally
         {
+            CaptureDiagnostics(repo);
             await testScenario!.DropScenarioAsync();
         }
 
@@ -161,7 +177,7 @@ public class NotFidelityTestService<TCnn1>(
     /// EN: Executes the specified test scenario and returns the typed result produced by the service test.
     /// PT-br: Executa o cenario de teste especificado e retorna o resultado tipado produzido pelo teste de servico.
     /// </summary>
-    protected static async Task<TResult> Execute<TScenario, TServiceTest, TResult>(
+    protected async Task<TResult> Execute<TScenario, TServiceTest, TResult>(
         Func<TServiceTest, object[], Task<TResult>> fnRunTest,
         object[] args,
         RepoService repo,
@@ -171,6 +187,9 @@ public class NotFidelityTestService<TCnn1>(
         where TScenario : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest
     {
+        using var debugTraceCapture = repo.Cnn is DbConnectionMockBase cnn
+            ? cnn.BeginDebugTraceCapture()
+            : null;
         var scenarioData = CloneInitialData(initialData);
         var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
@@ -183,6 +202,7 @@ public class NotFidelityTestService<TCnn1>(
         }
         finally
         {
+            CaptureDiagnostics(repo);
             await testScenario!.DropScenarioAsync();
         }
     }
@@ -200,7 +220,7 @@ public class NotFidelityTestService<TCnn1>(
     /// <param name="initialData"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    protected static async Task<object?> Execute<TScenario, TScenario2, TServiceTest>(
+    protected async Task<object?> Execute<TScenario, TScenario2, TServiceTest>(
         object[] args,
         RepoService repo,
         object?[][] initialData,
@@ -210,6 +230,9 @@ public class NotFidelityTestService<TCnn1>(
     where TScenario2 : BaseScenario, ITestScenario
     where TServiceTest : BaseServiceTest, IBaseServiceTest
     {
+        using var debugTraceCapture = repo.Cnn is DbConnectionMockBase cnn
+            ? cnn.BeginDebugTraceCapture()
+            : null;
         var scenarioData = CloneInitialData(initialData);
         object? objResult = null;
         var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
@@ -226,6 +249,7 @@ public class NotFidelityTestService<TCnn1>(
         }
         finally
         {
+            CaptureDiagnostics(repo);
             await testScenario2!.DropScenarioAsync();
             await testScenario!.DropScenarioAsync();
         }
@@ -237,7 +261,7 @@ public class NotFidelityTestService<TCnn1>(
     /// EN: Executes the specified test scenarios on the mock connection and returns a typed service result.
     /// PT-br: Executa os cenarios de teste na conexao mock e retorna um resultado tipado do service.
     /// </summary>
-    protected static async Task<TResult> Execute<TScenario, TScenario2, TServiceTest, TResult>(
+    protected async Task<TResult> Execute<TScenario, TScenario2, TServiceTest, TResult>(
         Func<TServiceTest, object[], Task<TResult>> fnRunTest,
         object[] args,
         RepoService repo,
@@ -248,6 +272,9 @@ public class NotFidelityTestService<TCnn1>(
         where TScenario2 : BaseScenario, ITestScenario
         where TServiceTest : BaseServiceTest
     {
+        using var debugTraceCapture = repo.Cnn is DbConnectionMockBase cnn
+            ? cnn.BeginDebugTraceCapture()
+            : null;
         var scenarioData = CloneInitialData(initialData);
         var testScenario = CreateScenarioInstance<TScenario>(repo, context, scenarioData);
         ArgumentNullExceptionCompatible.ThrowIfNull(testScenario, nameof(testScenario));
@@ -263,9 +290,33 @@ public class NotFidelityTestService<TCnn1>(
         }
         finally
         {
+            CaptureDiagnostics(repo);
             await testScenario2!.DropScenarioAsync();
             await testScenario!.DropScenarioAsync();
         }
+    }
+
+    /// <summary>
+    /// EN: Captures the diagnostics that should survive scenario teardown.
+    /// PT-br: Captura os diagnostics que devem sobreviver a limpeza do cenario.
+    /// </summary>
+    /// <param name="repo">EN: Repository used by the completed test run. PT-br: Repositorio usado pela execucao concluida do teste.</param>
+    protected virtual void CaptureDiagnostics(RepoService repo)
+    {
+        _ = repo;
+        SetDiagnosticsSnapshot(null, null);
+    }
+
+    /// <summary>
+    /// EN: Stores the diagnostics snapshot captured before scenario teardown.
+    /// PT-br: Armazena o snapshot de diagnostics capturado antes da limpeza do cenario.
+    /// </summary>
+    /// <param name="executionPlan">EN: Last execution plan snapshot. PT-br: Ultimo snapshot do plano de execucao.</param>
+    /// <param name="debugTrace">EN: Last debug trace snapshot. PT-br: Ultimo snapshot do trace de debug.</param>
+    protected void SetDiagnosticsSnapshot(string? executionPlan, QueryDebugTrace? debugTrace)
+    {
+        LastExecutionPlanSnapshot = executionPlan;
+        LastDebugTraceSnapshot = debugTrace;
     }
 
     /// <summary>

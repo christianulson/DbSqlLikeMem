@@ -238,6 +238,10 @@ public class SqlServerProviderSqlDialect : ProviderSqlDialect
         $"LOG({expression})";
 
     /// <inheritdoc />
+    public override string MathLogBaseExpression(string baseExpression, string valueExpression) =>
+        $"LOG({valueExpression}, {baseExpression})";
+
+    /// <inheritdoc />
     public override string MathAtan2Expression(string yExpression, string xExpression) =>
         $"ATN2({yExpression}, {xExpression})";
 

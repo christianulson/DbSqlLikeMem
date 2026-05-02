@@ -470,13 +470,13 @@ public sealed class SqlServerMockTests
         };
         Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
-        command.CommandText = "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12)";
+        command.CommandText = "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12, 0)";
         Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
-        command.CommandText = "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567)";
+        command.CommandText = "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 7)";
         Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), Convert.ToDateTime(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
-        command.CommandText = "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 60)";
+        command.CommandText = "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 1, 0, 7)";
         var offset = (DateTimeOffset)command.ExecuteScalar()!;
         Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), TimeSpan.FromMinutes(60)), offset);
 

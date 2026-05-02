@@ -16,7 +16,7 @@ internal sealed class FirebirdDbSqlLikeMemSession()
     /// EN: Executes the Firebird EXECUTE BLOCK benchmark that traps SQLSTATE 23000.
     /// PT-br: Executa o benchmark Firebird de EXECUTE BLOCK que trata SQLSTATE 23000.
     /// </summary>
-    private void RunExecuteBlockSqlState23000()
+    protected override void RunExecuteBlockSqlState23000()
     {
         using var runner = new NotFidelityTestService<DbConnection>(CreateConnection, Dialect);
         _ = runner.RunTestAsync<NoopScenario, FirebirdExecuteBlockSqlState23000ServiceTest>().GetAwaiter().GetResult();

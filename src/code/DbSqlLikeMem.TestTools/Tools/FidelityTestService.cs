@@ -188,6 +188,18 @@ public class FidelityTestService<TCnn1, TCnn2>
         return objResultMock;
     }
 
+    /// <inheritdoc />
+    protected override void CaptureDiagnostics(RepoService repo)
+    {
+        if (repo.Cnn is DbConnectionMockBase cnn)
+        {
+            SetDiagnosticsSnapshot(cnn.LastExecutionPlan, cnn.GetLastDebugTraceSnapshot());
+            return;
+        }
+
+        SetDiagnosticsSnapshot(null, null);
+    }
+
     /// <summary>
     /// EN: Executes the specified test scenarios and returns the typed result after comparing mock and container runs.
     /// PT-br: Executa os cenarios de teste especificados e retorna o resultado tipado apos comparar as execucoes mock e container.
@@ -320,8 +332,20 @@ public class FidelityTestService<TCnn1, TCnn2>
     private void Trace()
     {
         var cnn = (DbConnectionMockBase)RepoMock.Cnn;
-        Console.WriteLine($"LastExecutionPlan: {cnn.LastExecutionPlan}");
-        Console.WriteLine($"LastDebugTrace: {JsonSerializer.Serialize(cnn.LastDebugTrace)}");
+        var lastExecutionPlan = LastExecutionPlanSnapshot ?? cnn.LastExecutionPlan;
+        var lastDebugTrace = LastDebugTraceSnapshot ?? cnn.LastDebugTrace;
+
+        Console.WriteLine($"Provider: {RepoMock.Dialect.Provider}");
+        Console.WriteLine($"Dialect: {RepoMock.Dialect.DisplayName}");
+        Console.WriteLine($"MockConnectionType: {RepoMock.Cnn.GetType().FullName}");
+        Console.WriteLine($"ConnectionState: {RepoMock.Cnn.State}");
+        Console.WriteLine($"CaptureExecutionPlans: {cnn.CaptureExecutionPlans}");
+        Console.WriteLine($"DebugTraceCaptureEnabled: {cnn.IsDebugTraceCaptureEnabled}");
+        Console.WriteLine($"LastExecutionPlansCount: {cnn.LastExecutionPlans.Count}");
+        Console.WriteLine($"LastDebugTracesCount: {cnn.LastDebugTraces.Count}");
+        Console.WriteLine($"LastExecutionPlan: {lastExecutionPlan ?? "<not captured>"}");
+        Console.WriteLine($"LastDebugTrace: {(lastDebugTrace is null ? "<not captured>" : global::DbSqlLikeMem.QueryDebugTraceFormatter.Format(lastDebugTrace))}");
+        Console.WriteLine($"LastDebugTraceJson: {(lastDebugTrace is null ? "<not captured>" : JsonSerializer.Serialize(lastDebugTrace))}");
     }
 
     private async Task EnsureContainerConnectionAvailableAsync()

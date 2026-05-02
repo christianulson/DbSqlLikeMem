@@ -997,7 +997,7 @@ internal static class AstQueryAggregateEvaluator
 
     private static object? AggregateChecksumValues(IReadOnlyList<object?> values, bool binary)
     {
-        var hash = new HashCode();
+        long total = 0;
         var hasValue = false;
         for (var i = 0; i < values.Count; i++)
         {
@@ -1006,28 +1006,13 @@ internal static class AstQueryAggregateEvaluator
                 continue;
 
             hasValue = true;
-            if (value is byte[] bytes)
-            {
-                foreach (var b in bytes)
-                    hash.Add(b);
-                continue;
-            }
-
-            if (value is string text)
-            {
-                var normalized = binary ? text : text.ToUpperInvariant();
-                foreach (var ch in normalized)
-                    hash.Add(ch);
-                continue;
-            }
-
-            hash.Add(value);
+            total = unchecked(total + AstQuerySqlServerUtilityFunctionEvaluator.ComputeSqlServerChecksumComponent(value, binary));
         }
 
         if (!hasValue)
             return null;
 
-        return hash.ToHashCode();
+        return unchecked((int)total);
     }
 
     private static string? EvalStringAggregate(

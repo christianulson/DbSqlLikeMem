@@ -79,42 +79,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (fn.Args.Count < 6)
-            throw new InvalidOperationException("DATETIMEFROMPARTS() espera ao menos 6 argumentos.");
-
-        var values = ReadValues(evalArg, 6);
-        if (ContainsNullish(values))
-        {
-            result = null;
-            return true;
-        }
-
-        try
-        {
-            var year = Convert.ToInt32(values[0]!.ToDec());
-            var month = Convert.ToInt32(values[1]!.ToDec());
-            var day = Convert.ToInt32(values[2]!.ToDec());
-            var hour = Convert.ToInt32(values[3]!.ToDec());
-            var minute = Convert.ToInt32(values[4]!.ToDec());
-            var second = Convert.ToInt32(values[5]!.ToDec());
-            result = new DateTime(year, month, day, hour, minute, second);
-            return true;
-        }
-        catch
-        {
-            result = null;
-            return true;
-        }
-    }
-
-    private static bool TryEvalDateTime2FromPartsFunction(
-        QueryExecutionContext context,
-        FunctionCallExpr fn,
-        Func<int, object?> evalArg,
-        out object? result)
-    {
         if (fn.Args.Count < 7)
-            throw new InvalidOperationException("DATETIME2FROMPARTS() espera ao menos 7 argumentos.");
+            throw new InvalidOperationException("DATETIMEFROMPARTS() espera 7 argumentos.");
 
         var values = ReadValues(evalArg, 7);
         if (ContainsNullish(values))
@@ -131,9 +97,8 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
             var hour = Convert.ToInt32(values[3]!.ToDec());
             var minute = Convert.ToInt32(values[4]!.ToDec());
             var second = Convert.ToInt32(values[5]!.ToDec());
-            var fraction = Convert.ToInt32(values[6]!.ToDec());
-            result = new DateTime(year, month, day, hour, minute, second)
-                .AddTicks(fraction * 10L);
+            var millisecond = Convert.ToInt32(values[6]!.ToDec());
+            result = new DateTime(year, month, day, hour, minute, second, millisecond);
             return true;
         }
         catch
@@ -143,14 +108,14 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
         }
     }
 
-    private static bool TryEvalDateTimeOffsetFromPartsFunction(
+    private static bool TryEvalDateTime2FromPartsFunction(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
         if (fn.Args.Count < 8)
-            throw new InvalidOperationException("DATETIMEOFFSETFROMPARTS() espera ao menos 8 argumentos.");
+            throw new InvalidOperationException("DATETIME2FROMPARTS() espera 8 argumentos.");
 
         var values = ReadValues(evalArg, 8);
         if (ContainsNullish(values))
@@ -168,7 +133,47 @@ internal static class AstQuerySqlServerDateConstructionFunctionEvaluator
             var minute = Convert.ToInt32(values[4]!.ToDec());
             var second = Convert.ToInt32(values[5]!.ToDec());
             var fraction = Convert.ToInt32(values[6]!.ToDec());
-            var offsetMinutes = Convert.ToInt32(values[7]!.ToDec());
+            _ = Convert.ToInt32(values[7]!.ToDec());
+            result = new DateTime(year, month, day, hour, minute, second)
+                .AddTicks(fraction * 10L);
+            return true;
+        }
+        catch
+        {
+            result = null;
+            return true;
+        }
+    }
+
+    private static bool TryEvalDateTimeOffsetFromPartsFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (fn.Args.Count < 10)
+            throw new InvalidOperationException("DATETIMEOFFSETFROMPARTS() espera 10 argumentos.");
+
+        var values = ReadValues(evalArg, 10);
+        if (ContainsNullish(values))
+        {
+            result = null;
+            return true;
+        }
+
+        try
+        {
+            var year = Convert.ToInt32(values[0]!.ToDec());
+            var month = Convert.ToInt32(values[1]!.ToDec());
+            var day = Convert.ToInt32(values[2]!.ToDec());
+            var hour = Convert.ToInt32(values[3]!.ToDec());
+            var minute = Convert.ToInt32(values[4]!.ToDec());
+            var second = Convert.ToInt32(values[5]!.ToDec());
+            var fraction = Convert.ToInt32(values[6]!.ToDec());
+            var hourOffset = Convert.ToInt32(values[7]!.ToDec());
+            var minuteOffset = Convert.ToInt32(values[8]!.ToDec());
+            _ = Convert.ToInt32(values[9]!.ToDec());
+            var offsetMinutes = (hourOffset * 60) + minuteOffset;
             var offset = TimeSpan.FromMinutes(offsetMinutes);
             result = new DateTimeOffset(
                 new DateTime(year, month, day, hour, minute, second).AddTicks(fraction * 10L),

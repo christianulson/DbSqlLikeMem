@@ -85,8 +85,8 @@ public sealed class BenchmarkObservabilityTests
             });
 
         Assert.Equal(
-            SnapshotTestHelper.NormalizeLineEndings(SnapshotTestHelper.ReadRepoFile("src/benchmark/DbSqlLikeMem.Benchmarks.Test/Fixtures/benchmark-run.environment.snapshot.json")),
-            SnapshotTestHelper.NormalizeLineEndings(json));
+            SnapshotTestHelper.NormalizeLineEndings(SnapshotTestHelper.ReadRepoFile("src/benchmark/DbSqlLikeMem.Benchmarks.Test/Fixtures/benchmark-run.environment.snapshot.json")).TrimEnd(),
+            SnapshotTestHelper.NormalizeLineEndings(json).TrimEnd());
     }
 
     /// <summary>

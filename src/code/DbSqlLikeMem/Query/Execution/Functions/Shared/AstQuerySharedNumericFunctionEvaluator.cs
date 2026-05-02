@@ -61,7 +61,7 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return TryEvalNaturalLogFunction(fn, evalArg, out result);
 
         if (string.Equals(fn.Name, "LOG", StringComparison.OrdinalIgnoreCase))
-            return TryEvalLogFunction(fn, evalArg, out result);
+            return TryEvalLogFunction(context, fn, evalArg, out result);
 
         if (string.Equals(fn.Name, "LOG10", StringComparison.OrdinalIgnoreCase))
             return TryEvalLog10Function(evalArg, out result);
@@ -83,7 +83,7 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return TryEvalRadiansFunction(evalArg, out result);
 
         if (string.Equals(fn.Name, "RAND", StringComparison.OrdinalIgnoreCase))
-            return TryEvalRandFunction(evalArg, out result);
+            return TryEvalRandFunction(context, evalArg, out result);
 
         if (string.Equals(fn.Name, "ROUND", StringComparison.OrdinalIgnoreCase))
             return TryEvalRoundFunction(context, fn, evalArg, out result);
@@ -513,6 +513,7 @@ internal static class AstQuerySharedNumericFunctionEvaluator
     }
 
     private static bool TryEvalLogFunction(
+        QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
@@ -520,14 +521,15 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         if (fn.Args.Count < 2)
             return TryEvalNaturalLogFunction(fn, evalArg, out result);
 
-        var value = evalArg(1);
+        var useSqlServerOrder = IsSqlServerProvider(context);
+        var value = useSqlServerOrder ? evalArg(0) : evalArg(1);
         if (IsNullish(value))
         {
             result = null;
             return true;
         }
 
-        var baseValue = evalArg(0);
+        var baseValue = useSqlServerOrder ? evalArg(1) : evalArg(0);
         if (IsNullish(baseValue))
         {
             result = null;
@@ -658,7 +660,7 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         }
     }
 
-    private static bool TryEvalRandFunction(Func<int, object?> evalArg, out object? result)
+    private static bool TryEvalRandFunction(QueryExecutionContext context, Func<int, object?> evalArg, out object? result)
     {
         var seedValue = evalArg(0);
         double next;
@@ -666,6 +668,10 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         {
             lock (_randomLock)
                 next = _sharedRandom.NextDouble();
+        }
+        else if (IsSqlServerProvider(context))
+        {
+            next = TryEvalSqlServerRandFunction(seedValue!);
         }
         else
         {
@@ -675,6 +681,20 @@ internal static class AstQuerySharedNumericFunctionEvaluator
 
         result = next;
         return true;
+    }
+
+    private static double TryEvalSqlServerRandFunction(object seedValue)
+    {
+        const double firstSeedValue = 0.7135919932129235d;
+        const double seedStep = 0.0000186329712582d;
+        const double zeroSeedValue = 0.9435973904241444d;
+
+        var seed = Convert.ToInt64(seedValue.ToDec(), CultureInfo.InvariantCulture);
+        var normalizedSeed = seed == long.MinValue ? long.MaxValue : Math.Abs(seed);
+        if (normalizedSeed == 0)
+            return zeroSeedValue;
+
+        return firstSeedValue + ((normalizedSeed - 1d) * seedStep);
     }
 
     private static bool TryEvalRoundFunction(
@@ -730,7 +750,12 @@ internal static class AstQuerySharedNumericFunctionEvaluator
     }
 
     private static bool IsSqlServerProvider(QueryExecutionContext context)
-        => string.Equals(context.Dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase);
+        => IsSqlServerFamilyDialect(context.Dialect.Name)
+            || IsSqlServerFamilyDialect(context.Connection.ProviderExecutionDialect.Name);
+
+    private static bool IsSqlServerFamilyDialect(string dialectName)
+        => string.Equals(dialectName, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(dialectName, "sqlazure", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsDb2Provider(QueryExecutionContext context)
         => string.Equals(context.Connection.ProviderExecutionDialect.Name, "db2", StringComparison.OrdinalIgnoreCase);

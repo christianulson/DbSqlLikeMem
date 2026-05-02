@@ -106,7 +106,7 @@ public static class FeatureCatalog
         new(BenchmarkFeatureId.TypedFieldStorageMatrix, "Typed field storage matrix", "Core", true, [], "Insert and read back a wide typed column matrix with boundary values."),
         new(BenchmarkFeatureId.TypedFieldFunctionMatrix, "Typed field function matrix", "Core", true, [], "Large projection query over typed columns with common SQL functions."),
         new(BenchmarkFeatureId.TypedFieldCalculationMatrix, "Typed field calculation matrix", "Core", true, [], "Large projection query over typed columns with casts, arithmetic, and predicates."),
-        new(BenchmarkFeatureId.StoredProcedureCall, "Stored procedure call", "Core", false, [], "Benchmark for calling a registered stored procedure in the mock runtime."),
+        new(BenchmarkFeatureId.StoredProcedureCall, "Stored procedure call", "Core", true, [], "Benchmark for calling a registered stored procedure in the mock runtime."),
         new(BenchmarkFeatureId.SequenceNextValue, "Sequence next value", "Core", true, ["1.1.1", "1.2.2", "3.2.2", "3.3.2", "3.4.2", "3.6.2"]),
         new(BenchmarkFeatureId.SequenceCurrentValue, "Sequence current value", "Core", true, [], "Read the current value from a database sequence after consumption."),
         new(BenchmarkFeatureId.SequenceInsertRoundTrip, "Sequence insert round-trip", "Core", true, [], "Insert rows using sequence-generated keys and read them back."),

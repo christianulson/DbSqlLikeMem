@@ -439,14 +439,15 @@ public abstract class TableMock
 
         foreach (var row in _items)
         {
-            object? value = column.DefaultValue;
-
+            object? value;
             if (column.Identity)
-                row[column.Index] = NextIdentity++;
+                value = NextIdentity++;
             else if (column.DefaultValue is SequenceDef sequenceDefault)
-                row[column.Index] = ResolveSequenceDefault(sequenceDefault);
+                value = ResolveSequenceDefault(sequenceDefault);
+            else if (column.DefaultValue is GuidDefaultValue)
+                value = Guid.NewGuid();
             else
-                row[column.Index] = column.DefaultValue;
+                value = column.DefaultValue;
 
             row[column.Index] = value;
 
@@ -883,6 +884,8 @@ public abstract class TableMock
                 {
                     if (col.DefaultValue is SequenceDef sequenceDefault)
                         value[col.Index] = ResolveSequenceDefault(sequenceDefault);
+                    else if (col.DefaultValue is GuidDefaultValue)
+                        value[col.Index] = Guid.NewGuid();
                     else if (col.DefaultValue != null)
                         value[col.Index] = col.DefaultValue;
                     else

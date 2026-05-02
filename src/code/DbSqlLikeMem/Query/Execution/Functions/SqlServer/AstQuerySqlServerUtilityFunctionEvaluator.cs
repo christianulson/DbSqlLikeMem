@@ -707,7 +707,15 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
             gzip.Write(input, 0, input.Length);
 
-        result = output.ToArray();
+        var compressed = output.ToArray();
+        if (compressed.Length >= 10)
+        {
+            // SQL Server uses a stable gzip header that differs from the runtime default.
+            compressed[8] = 0x04;
+            compressed[9] = 0x00;
+        }
+
+        result = compressed;
         return true;
     }
 
@@ -746,36 +754,84 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
     {
         var isChecksum = fn.ResolvedScalarFunction?.Name.Equals("CHECKSUM", StringComparison.OrdinalIgnoreCase) == true
             || string.Equals(fn.Name, "CHECKSUM", StringComparison.OrdinalIgnoreCase);
-        var hash = new HashCode();
+        var hash = 17;
         for (var i = 0; i < fn.Args.Count; i++)
         {
             var value = evalArg(i);
-            if (value is null or DBNull)
-            {
-                hash.Add(0);
-                continue;
-            }
-
-            if (value is byte[] bytes)
-            {
-                foreach (var b in bytes)
-                    hash.Add(b);
-                continue;
-            }
-
-            if (value is string text)
-            {
-                var normalized = isChecksum ? text.ToUpperInvariant() : text;
-                foreach (var ch in normalized)
-                    hash.Add(ch);
-                continue;
-            }
-
-            hash.Add(value);
+            hash = unchecked((hash * 31) + ComputeSqlServerChecksumComponent(value, binary: !isChecksum));
         }
 
-        result = hash.ToHashCode();
+        result = fn.Args.Count == 0 ? 0 : hash;
         return true;
+    }
+
+    internal static int ComputeSqlServerChecksumComponent(object? value, bool binary)
+    {
+        if (value is null or DBNull)
+            return 0;
+
+        return value switch
+        {
+            byte[] bytes => ComputeSqlServerBytesChecksum(bytes),
+            string text => ComputeSqlServerTextChecksum(text, binary),
+            char ch => ComputeSqlServerTextChecksum(ch.ToString(), binary),
+            bool b => b ? 1 : 0,
+            sbyte sb => sb,
+            byte b => b,
+            short s => s,
+            ushort us => us,
+            int i => i,
+            uint ui => unchecked((int)ui),
+            long l => unchecked((int)l),
+            ulong ul => unchecked((int)ul),
+            float f => unchecked((int)BitConverterCompatibility.SingleToInt32Bits(f)),
+            double d => unchecked((int)BitConverterCompatibility.DoubleToInt64Bits(d)),
+            decimal dec => ComputeSqlServerDecimalChecksum(dec),
+            DateTime dt => unchecked((int)dt.Ticks),
+            DateTimeOffset dto => unchecked((int)dto.UtcTicks),
+            TimeSpan ts => unchecked((int)ts.Ticks),
+            _ => ComputeSqlServerTextChecksum(value.ToString() ?? string.Empty, binary)
+        };
+    }
+
+    private static int ComputeSqlServerDecimalChecksum(decimal value)
+    {
+        var bits = decimal.GetBits(value);
+        unchecked
+        {
+            var hash = 17;
+            for (var i = 0; i < bits.Length; i++)
+                hash = (hash * 31) + bits[i];
+
+            return hash;
+        }
+    }
+
+    private static int ComputeSqlServerTextChecksum(string text, bool binary)
+    {
+        unchecked
+        {
+            var hash = 17;
+            foreach (var ch in text)
+            {
+                var normalized = binary ? ch : char.ToUpperInvariant(ch);
+                hash = (hash * 31) + normalized;
+            }
+
+            return hash;
+        }
+    }
+
+    private static int ComputeSqlServerBytesChecksum(ReadOnlySpan<byte> bytes)
+    {
+        unchecked
+        {
+            var hash = 17;
+            foreach (var b in bytes)
+                hash = (hash * 31) + b;
+
+            return hash;
+        }
     }
 
     internal static bool TryEvalErrorFunctions(

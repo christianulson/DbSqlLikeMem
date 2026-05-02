@@ -474,6 +474,14 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             return DateTime.Now;
         }
 
+        if (string.Equals(value, "NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "NEWSEQUENTIALID()", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "NEWID", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "NEWID()", StringComparison.OrdinalIgnoreCase))
+        {
+            return new GuidDefaultValue();
+        }
+
         if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
             return value[1..^1].Replace("''", "'");
 
@@ -566,7 +574,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,
-            "GUID" or "UUID" => DbType.Guid,
+            "GUID" or "UUID" or "UNIQUEIDENTIFIER" => DbType.Guid,
             "BLOB" or "BINARY" or "VARBINARY" or "RAW" => DbType.Binary,
             _ => DbType.String,
         };
@@ -903,6 +911,12 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
                     schemaName: targetSchema);
 
             value = sequence.NextValue();
+            return true;
+        }
+
+        if (column.DefaultValue is GuidDefaultValue)
+        {
+            value = Guid.NewGuid();
             return true;
         }
 

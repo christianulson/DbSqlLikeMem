@@ -39,7 +39,7 @@ This includes:
 Always document in this order:
 
 1. `EN`
-2. `PT`
+2. `PT-br`
 
 ### Mandatory content
 
@@ -144,6 +144,6 @@ When a new `CS1591` batch appears:
 The user explicitly wants:
 
 - summaries filled consistently
-- `EN` first, then `PT`
+- `EN` first, then `PT-br`
 - every summary to explain what the method, property, or class does
 - `inheritdoc` used on overrides when appropriate

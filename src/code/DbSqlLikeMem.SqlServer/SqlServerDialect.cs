@@ -296,6 +296,7 @@ internal sealed class SqlServerDialect : SqlDialectBase
         "@@DATEFIRST",
         "@@IDENTITY",
         "@@MAX_PRECISION",
+        "@@SPID",
         "@@ROWCOUNT",
         "@@TEXTSIZE"
     ];

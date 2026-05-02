@@ -20,7 +20,7 @@ This file defines the minimum operating rules for any agent working in this repo
 
 When adding or updating XML comments, follow these rules exactly:
 
-1. Use `EN` first, then `PT`.
+1. Use `EN` first, then `PT-br`.
 2. Always explain what the member does.
 3. Prefer concise and direct wording.
 4. For `override` members, use `/// <inheritdoc />` when the base member already documents the contract.
@@ -120,6 +120,6 @@ This project is used to validate application behavior before production, so the 
 If the user asks to "preencher os summarys", the expected behavior is:
 
 - fill missing XML docs
-- use `EN` first and `PT` second
+- use `EN` first and `PT-br` second
 - explain what the member does
 - use `inheritdoc` on overrides whenever appropriate

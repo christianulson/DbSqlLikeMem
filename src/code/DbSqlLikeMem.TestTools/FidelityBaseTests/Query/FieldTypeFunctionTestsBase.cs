@@ -682,18 +682,18 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
             || !dialect.SupportsSqlServerScalarFunction("SPACE")
             || !dialect.SupportsSqlServerScalarFunction("STUFF"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int ascii, int charIndex, int binaryChecksumLower, int binaryChecksumUpper, int checksumLower, int checksumUpper, string replicate, string reverse, string space, string stuff)>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int ascii, int charIndex, bool binaryChecksumDifferent, bool checksumEqual, string replicate, string reverse, string space, string stuff)>(
                 async (QueryServiceTest s, object[] _) => await s.RunStringUtilityFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int ascii, int charIndex, int binaryChecksumLower, int binaryChecksumUpper, int checksumLower, int checksumUpper, string replicate, string reverse, string space, string stuff)>(
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int ascii, int charIndex, bool binaryChecksumDifferent, bool checksumEqual, string replicate, string reverse, string space, string stuff)>(
             async (QueryServiceTest s, object[] _) => await s.RunStringUtilityFunctionsAsync());
 
         result.ascii.Should().Be(65);
         result.charIndex.Should().Be(4);
-        result.binaryChecksumLower.Should().NotBe(result.binaryChecksumUpper);
-        result.checksumLower.Should().Be(result.checksumUpper);
+        result.binaryChecksumDifferent.Should().BeTrue();
+        result.checksumEqual.Should().BeTrue();
         result.replicate.Should().Be("NaNa");
         result.reverse.Should().Be("anA");
         result.space.Should().Be("   ");
@@ -829,7 +829,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
             || !dialect.SupportsSqlServerMetadataFunction("SERVERPROPERTY")
             || !dialect.SupportsSqlServerMetadataFunction("ORIGINAL_LOGIN")
             || !dialect.SupportsSqlServerMetadataFunction("CURRENT_REQUEST_ID")
-            || !dialect.SupportsSqlServerMetadataFunction("SESSION_ID")
+            || !dialect.SupportsSqlServerMetadataIdentifier("@@SPID")
             || !dialect.SupportsSqlServerMetadataFunction("TYPE_ID")
             || !dialect.SupportsSqlServerMetadataFunction("TYPE_NAME")
             || !dialect.SupportsSqlServerMetadataFunction("TYPEPROPERTY")
@@ -918,7 +918,10 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
         var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (byte[] contextInfo, int sessionContextTenant, string? sessionContextMissing)>(
             async (QueryServiceTest s, object[] _) => await s.RunSqlServerContextFunctionsAsync());
 
-        result.contextInfo.Should().Equal(new byte[] { 0x0A, 0x0B });
+        var expectedContextInfo = new byte[128];
+        expectedContextInfo[0] = 0x0A;
+        expectedContextInfo[1] = 0x0B;
+        result.contextInfo.Should().Equal(expectedContextInfo);
         result.sessionContextTenant.Should().Be(42);
         result.sessionContextMissing.Should().BeNull();
     }

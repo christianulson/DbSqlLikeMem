@@ -40,6 +40,12 @@ internal static class AstQuerySqlServerIdentifierEvaluator
             return true;
         }
 
+        if (identifier.Name.Equals("@@SPID", StringComparison.OrdinalIgnoreCase))
+        {
+            result = 1;
+            return true;
+        }
+
         if (identifier.Name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase))
         {
             result = 4096;

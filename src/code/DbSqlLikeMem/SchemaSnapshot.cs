@@ -648,6 +648,9 @@ public sealed record SchemaSnapshot
         if (value is null)
             return null;
 
+        if (value is GuidDefaultValue)
+            return JsonSerializer.SerializeToElement(new { kind = "guid-default" }, JsonOptions);
+
         return JsonSerializer.SerializeToElement(value, value.GetType(), JsonOptions);
     }
 
@@ -667,6 +670,7 @@ public sealed record SchemaSnapshot
             JsonValueKind.Number when value.Value.TryGetDecimal(out var d) => d,
             JsonValueKind.Number => value.Value.GetDouble(),
             JsonValueKind.Object when IsSequenceDef(value.Value) => value.Value.Deserialize<SequenceDef>(JsonOptions),
+            JsonValueKind.Object when IsGuidDefaultValue(value.Value) => new GuidDefaultValue(),
             _ => value.Value.GetRawText()
         };
     }
@@ -677,6 +681,10 @@ public sealed record SchemaSnapshot
                 || value.TryGetProperty("startValue", out _)
                 || value.TryGetProperty("incrementBy", out _)
                 || value.TryGetProperty("currentValue", out _));
+
+    private static bool IsGuidDefaultValue(JsonElement value)
+        => value.TryGetProperty("kind", out var kind)
+            && string.Equals(kind.GetString(), "guid-default", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>

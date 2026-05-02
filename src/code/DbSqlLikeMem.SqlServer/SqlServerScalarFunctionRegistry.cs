@@ -732,7 +732,8 @@ internal static partial class SqlServerScalarFunctionRegistry
             DbFunctionDef.CreateIdentifier("@@DATEFIRST", "INT"),
             "@@DATEFIRST",
             "@@MAX_PRECISION",
-            "@@TEXTSIZE");
+            "@@TEXTSIZE",
+            "@@SPID");
 
         dialect.AddScalarFunction(DbFunctionDef.CreateIdentifier("@@IDENTITY", "BIGINT"));
 

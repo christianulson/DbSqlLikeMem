@@ -730,6 +730,7 @@ public sealed class SqlServerDialectFeatureParserTests(
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("@@DATEFIRST"));
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("@@IDENTITY"));
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("@@MAX_PRECISION"));
+        Assert.True(dialect.SupportsSqlServerMetadataIdentifier("@@SPID"));
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("SESSION_USER"));
         Assert.True(dialect.SupportsSqlServerMetadataIdentifier("SYSTEM_USER"));
         Assert.False(dialect.SupportsSqlServerMetadataIdentifier("CURRENT_ROLE"));
@@ -874,6 +875,7 @@ public sealed class SqlServerDialectFeatureParserTests(
         Assert.Equal("@@DATEFIRST", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@DATEFIRST", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("@@IDENTITY", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@IDENTITY", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("@@MAX_PRECISION", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@MAX_PRECISION", db, d)).Name, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("@@SPID", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("@@SPID", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("SESSION_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SESSION_USER", db, d)).Name, StringComparer.OrdinalIgnoreCase);
         Assert.Equal("SYSTEM_USER", Assert.IsType<IdentifierExpr>(SqlExpressionParser.ParseScalar("SYSTEM_USER", db, d)).Name, StringComparer.OrdinalIgnoreCase);
     }
