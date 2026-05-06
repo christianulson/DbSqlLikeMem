@@ -109,6 +109,7 @@ static partial class Program
                         destiny.Namespace,
                         destiny.ClassAccessibility,
                         tableName: clean,
+                        tableComment: meta.TableComment,
                         columns: meta.Columns,
                         primaryKey: meta.PrimaryKey,
                         indexes: meta.Indexes,
@@ -136,6 +137,7 @@ ORDER BY TABLE_NAME;", new { schema })];
 
     private sealed record ColumnMeta(
         string ColumnName,
+        string? Comment,
         string DataType,
         string ColumnType, // ex: enum('A','B') / varchar(50) / decimal(10,2)
         bool IsNullable,
@@ -149,6 +151,7 @@ ORDER BY TABLE_NAME;", new { schema })];
 
     private sealed record TableMeta(
         List<ColumnMeta> Columns,
+        string? TableComment,
         List<string> PrimaryKey,
         Dictionary<string, (bool Unique, List<string> Cols)> Indexes,
         Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)> ForeignKeys);
@@ -158,11 +161,18 @@ ORDER BY TABLE_NAME;", new { schema })];
         string schema,
         string table)
     {
+        var tableComment = cn.QueryFirstOrDefault<string>(@"
+SELECT TABLE_COMMENT
+    FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_SCHEMA = @schema
+        AND TABLE_NAME = @table;", new { schema, table });
+
         var cols = new List<ColumnMeta>();
 
         // COLUMNS
         const string qCols = @"
 SELECT COLUMN_NAME
+     , COLUMN_COMMENT
      , DATA_TYPE
      , COLUMN_TYPE
      , IS_NULLABLE
@@ -186,6 +196,7 @@ SELECT COLUMN_NAME
             {
                 var col = new ColumnMeta(
                     ColumnName: rd.GetString("COLUMN_NAME"),
+                    Comment: rd["COLUMN_COMMENT"] is DBNull ? null : rd["COLUMN_COMMENT"]?.ToString(),
                     DataType: rd.GetString("DATA_TYPE"),
                     ColumnType: rd.GetString("COLUMN_TYPE"),
                     IsNullable: string.Equals(rd.GetString("IS_NULLABLE"), "YES", StringComparison.OrdinalIgnoreCase),
@@ -281,7 +292,7 @@ SELECT KCU.CONSTRAINT_NAME
             }
         }
 
-        return new TableMeta(cols, pk, idx, fks);
+        return new TableMeta(cols, tableComment, pk, idx, fks);
     }
 
     // ---------- Geração ----------
@@ -289,6 +300,7 @@ SELECT KCU.CONSTRAINT_NAME
         string ns,
         string? classAccessibility,
         string tableName,
+        string? tableComment,
         List<ColumnMeta> columns,
         List<string> primaryKey,
         Dictionary<string, (bool Unique, List<string> Cols)> indexes,
@@ -309,16 +321,26 @@ SELECT KCU.CONSTRAINT_NAME
 
         w.WriteLine($"{normalizedAccessibility} static class {className}");
         w.WriteLine("{");
-        w.WriteLine($"    {normalizedAccessibility} static ITableMock {methodName}(this DbMock db{(foreignKeys.Count != 0 ? ", bool addForeignKeys = true" : string.Empty)})");
+        w.WriteLine($"   ///<summary>{tableComment}</summary>");
+        w.WriteLine($"   public const string TableName = \"{tableName}\";");
+        w.WriteLine();
+        foreach (var c in columns.OrderBy(c => c.Ordinal))
+        {
+            w.WriteLine($"   ///<summary>{c.Comment}</summary>");
+            w.WriteLine($"   public const string Col{GenerationRuleSet.ToPascalCase(c.ColumnName)} = \"{c.ColumnName}\";");
+            w.WriteLine();
+        }
+        w.WriteLine($"   public static ITableMock {methodName}(this DbMock db{(foreignKeys.Count != 0 ? ", bool addForeignKeys = true" : string.Empty)})");
         w.WriteLine("    {");
         if (normalizedAccessibility == "public")
             w.WriteLine("        ArgumentNullException.ThrowIfNull(db);");
 
-        w.WriteLine($"        var table = db.AddTable(\"{tableName}\");");
+        w.WriteLine($"        var table = db.AddTable(TableName);");
 
         // map: nome → ordinal (de fato já vem na meta)
         foreach (var c in columns.OrderBy(c => c.Ordinal))
         {
+            var colName = $"Col{GenerationRuleSet.ToPascalCase(c.ColumnName)}";
             var dbType = GenerationRuleSet.MapDbType(
                 c.DataType,
                 c.CharMaxLen,
@@ -343,7 +365,7 @@ SELECT KCU.CONSTRAINT_NAME
                 ctor += $", enumValues: [{string.Join(", ", enums.Select(GenerationRuleSet.Literal))}]";
 
 
-            var col = $"        table.AddColumn(\"{c.ColumnName}\", {ctor})";
+            var col = $"        table.AddColumn({colName}, {ctor})";
             if (!string.IsNullOrWhiteSpace(c.Generated))
             {
                 if (!GenerationRuleSet.TryConvertIfIsNull(c.Generated, out var genCode))
@@ -358,15 +380,15 @@ SELECT KCU.CONSTRAINT_NAME
         // PK
         if (primaryKey.Count > 0)
         {
-            w.WriteLine($"        table.AddPrimaryKeyIndexes({string.Join(",", primaryKey.Select(_ => $"\"{_}\""))});");
-            var cols = string.Join(", ", primaryKey.Select(GenerationRuleSet.Literal));
+            w.WriteLine($"        table.AddPrimaryKeyIndexes({string.Join(", ", primaryKey.Select(_ => $"Col{GenerationRuleSet.ToPascalCase(_)}"))});");
+            var cols = string.Join(", ", primaryKey.Select(_ => $"Col{GenerationRuleSet.ToPascalCase(_)}"));
             w.WriteLine($"        table.CreateIndex(\"PRIMARY\", [{cols}], unique: true);");
         }
 
         // Índices (unique e não-unique)
         foreach (var (name, (Unique, Cols)) in indexes.OrderBy(p => p.Key))
         {
-            var cols = string.Join(", ", Cols.Select(GenerationRuleSet.Literal));
+            var cols = string.Join(", ", Cols.Select(_ => $"Col{GenerationRuleSet.ToPascalCase(_)}"));
             var uniq = Unique ? "true" : "false";
             w.WriteLine($"        table.CreateIndex({GenerationRuleSet.Literal(name)}, [{cols}], unique: {uniq});");
         }
@@ -377,8 +399,8 @@ SELECT KCU.CONSTRAINT_NAME
         {
             w.WriteLine($@"            table.CreateForeignKey(
                 {GenerationRuleSet.Literal(key)},
-                {GenerationRuleSet.Literal(value.RefTable)},
-                [{string.Join(",", value.Cols.Select(_ => $"({GenerationRuleSet.Literal(_.Col)}, {GenerationRuleSet.Literal(_.RefCol)})"))}]);");
+                {GenerationRuleSet.ToPascalCase(value.RefTable)}TableFactory.TableName,
+                [{string.Join(",", value.Cols.Select(_ => $"(Col{GenerationRuleSet.ToPascalCase(_.Col)}, {GenerationRuleSet.ToPascalCase(value.RefTable)}TableFactory.Col{GenerationRuleSet.ToPascalCase(_.RefCol)})"))}]);");
         }
         if (foreignKeys.Count != 0) w.WriteLine("        }");
 
