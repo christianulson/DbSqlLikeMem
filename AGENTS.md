@@ -37,7 +37,7 @@ Use this structure:
 ```csharp
 /// <summary>
 /// EN: Explains what the method, property, or class does.
-/// PT: Explica o que o metodo, propriedade ou classe faz.
+/// PT-br: Explica o que o metodo, propriedade ou classe faz.
 /// </summary>
 ```
 
@@ -46,7 +46,7 @@ Example for a concrete method:
 ```csharp
 /// <summary>
 /// EN: Creates and opens the mock connection used by this test suite.
-/// PT: Cria e abre a conexao simulada usada por esta suite de testes.
+/// PT-br: Cria e abre a conexao simulada usada por esta suite de testes.
 /// </summary>
 ```
 
@@ -70,7 +70,7 @@ Example:
 ```csharp
 /// <summary>
 /// EN: Verifies left joins keep all rows from the left table.
-/// PT: Verifica se left joins mantem todas as linhas da tabela da esquerda.
+/// PT-br: Verifica se left joins mantem todas as linhas da tabela da esquerda.
 /// </summary>
 ```
 
