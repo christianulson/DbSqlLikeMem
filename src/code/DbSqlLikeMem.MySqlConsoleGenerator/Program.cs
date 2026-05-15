@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.SqlTypes;
 using System.Globalization;
 using System.Text;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
@@ -103,7 +104,17 @@ static partial class Program
                     var clean = tableName.Trim();
                     if (string.IsNullOrEmpty(clean)) continue;
 
-                    var meta = LoadTableMetadata(connection, destiny.Schema, clean);
+                    TableMeta meta;
+                    try
+                    {
+                        meta = LoadTableMetadata(connection, destiny.Schema, clean);
+                    }
+                    catch (Exception ex) when (ex is InvalidOperationException or SqlNullValueException)
+                    {
+                        Console.WriteLine($"Error: Failed to load metadata for table `{clean}` in schema `{destiny.Schema}` on connection `{connInfo.Name}`.");
+                        Console.WriteLine($"Cause: {ex.GetType().Name}: {ex.Message}");
+                        throw;
+                    }
 
                     GenerateTableFile(
                         destiny.Namespace,
@@ -206,7 +217,7 @@ SELECT COLUMN_NAME
                     CharMaxLen: rd["CHARACTER_MAXIMUM_LENGTH"] is DBNull ? null : Convert.ToInt64(rd["CHARACTER_MAXIMUM_LENGTH"], CultureInfo.InvariantCulture),
                     NumPrecision: rd["NUMERIC_PRECISION"] is DBNull ? null : Convert.ToInt32(rd["NUMERIC_PRECISION"], CultureInfo.InvariantCulture),
                     NumScale: rd["NUMERIC_SCALE"] is DBNull ? null : Convert.ToInt32(rd["NUMERIC_SCALE"], CultureInfo.InvariantCulture),
-                    Generated: rd["GENERATION_EXPRESSION"] is DBNull ? null : rd.GetString("GENERATION_EXPRESSION")
+                    Generated: rd["GENERATION_EXPRESSION"] is DBNull ? null : (string)rd["GENERATION_EXPRESSION"]
                 );
                 cols.Add(col);
             }
