@@ -84,11 +84,11 @@ internal enum SqlBinaryOp
     And, Or,
 
     // arithmetic
-    Add, Subtract, Multiply, Divide,
+    Add, Subtract, Multiply, Divide, Modulo,
     Concat,
 
     // comparisons
-    Eq, Neq, Greater, GreaterOrEqual, Less, LessOrEqual,
+    Eq, Neq, Greater, GreaterOrEqual, Less, LessOrEqual, Is,
     NullSafeEq, // ✅ <=> (MySQL)
 
     // pattern / misc

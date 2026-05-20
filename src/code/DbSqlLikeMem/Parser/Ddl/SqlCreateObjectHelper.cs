@@ -230,23 +230,83 @@ internal static class SqlCreateObjectHelper
             throw new InvalidOperationException("CREATE INDEX requires a column list.");
 
         ctx.Consume(); // (
-        if (ctx.IsSymbol(")"))
-            throw new InvalidOperationException("CREATE INDEX column list requires at least one column name.");
 
-        var keyColumns = ctx.ParseIdentifierList("CREATE INDEX column list");
+        var keyColumns = new List<string>();
+        var keyExpressions = new List<string?>();
+
+        while (!ctx.IsSymbol(")"))
+        {
+            if (keyColumns.Count > 0)
+            {
+                if (!ctx.IsSymbol(","))
+                    throw new InvalidOperationException("CREATE INDEX column list requires ',' between columns.");
+                ctx.Consume(); // ,
+            }
+
+            if (ctx.IsSymbol("("))
+            {
+                // Functional index expression: ((expression))
+                ctx.Consume(); // consume inner (
+                var exprTokens = new List<SqlToken>();
+                var depth = 1;
+                while (depth > 0)
+                {
+                    var token = ctx.Peek();
+                    if (SqlQueryParserContext.IsEnd(token))
+                        throw new InvalidOperationException("CREATE INDEX functional expression was not closed.");
+                    if (token.Kind == SqlTokenKind.Symbol && token.Text == "(")
+                        depth++;
+                    else if (token.Kind == SqlTokenKind.Symbol && token.Text == ")")
+                        depth--;
+                    if (depth > 0)
+                        exprTokens.Add(ctx.Consume());
+                    else
+                        ctx.Consume(); // consume closing )
+                }
+                var exprSql = ctx.TokensToSql(exprTokens).Trim();
+                if (string.IsNullOrWhiteSpace(exprSql))
+                    throw new InvalidOperationException("CREATE INDEX functional expression cannot be empty.");
+
+                var artificialName = $"__func_idx_{keyColumns.Count}__";
+                keyColumns.Add(artificialName);
+                keyExpressions.Add(exprSql);
+            }
+            else if (ctx.IsSymbol(","))
+            {
+                throw new InvalidOperationException("CREATE INDEX column list cannot start with or contain consecutive commas.");
+            }
+            else
+            {
+                // Regular column name
+                var token = ctx.Peek();
+                if (SqlQueryParserContext.IsEnd(token) || SqlQueryParserContext.IsSymbol(token, ";"))
+                    throw new InvalidOperationException(
+                        "CREATE INDEX requires at least one column name.");
+                if (token.Kind != SqlTokenKind.Identifier)
+                    throw new InvalidOperationException(
+                        $"CREATE INDEX expects a column name, found '{token.Text}'.");
+                keyColumns.Add(ctx.Consume().Text);
+                keyExpressions.Add(null);
+            }
+        }
+
+        if (keyColumns.Count == 0)
+            throw new InvalidOperationException("CREATE INDEX column list requires at least one column or expression.");
+
+        ctx.ExpectSymbol(")"); // consume outer )
+        ctx.EnsureStatementEnd("CREATE INDEX");
+
         var normalizedKeyColumns = keyColumns
             .ConvertAll(static col => col.NormalizeName());
         if (normalizedKeyColumns.Count != normalizedKeyColumns.Distinct(StringComparer.OrdinalIgnoreCase).Count())
             throw new InvalidOperationException("CREATE INDEX column list cannot contain duplicate columns.");
-
-        ctx.ExpectSymbol(")");
-        ctx.EnsureStatementEnd("CREATE INDEX");
 
         return new SqlCreateIndexQuery
         {
             IndexName = indexName,
             Unique = unique,
             KeyColumns = normalizedKeyColumns,
+            KeyExpressions = keyExpressions,
             Table = table
         };
     }

@@ -27,6 +27,28 @@ internal static class DbDdlIndexStrategy
     {
         var tableName = query.Table?.Name;
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(tableName, nameof(tableName));
+
+        // Cria colunas computadas ocultas para índices funcionais (expression-based)
+        if (query.KeyExpressions is { } expressions
+            && expressions.Any(static e => e is not null))
+        {
+            var schemaName = query.Table?.DbName;
+            var table = connection.Db.GetTable(tableName!, schemaName);
+
+            for (var i = 0; i < query.KeyColumns.Count; i++)
+            {
+                var expr = expressions[i];
+                if (expr is null)
+                    continue;
+
+                var colName = query.KeyColumns[i];
+                var col = table.AddColumn(colName, DbType.Object, nullable: true);
+                col.GetGenValue = FunctionalIndexExpressionEvaluator.CreateGetGenValue(
+                    expr, connection.Db, connection.ExecutionDialect, table);
+                col.PersistComputedValue = false;
+            }
+        }
+
         connection.CreateIndex(query.IndexName, tableName!, query.KeyColumns, query.Unique, query.Table?.DbName);
         return new DmlExecutionResult();
     }

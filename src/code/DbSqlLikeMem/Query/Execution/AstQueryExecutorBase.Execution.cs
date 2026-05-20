@@ -105,17 +105,7 @@ internal abstract partial class AstQueryExecutorBase
         foreach (var cte in selectQuery.Ctes)
         {
             var cteStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
-            var res = cte.Query switch
-            {
-                SqlSelectQuery cteSelect => ExecuteSelect(cteSelect, ctes, outerRow),
-                SqlUnionQuery cteUnion => ExecuteUnion(
-                    cteUnion.Parts,
-                    cteUnion.AllFlags,
-                    cteUnion.OrderBy,
-                    cteUnion.RowLimit,
-                    cteUnion.RawSql),
-                _ => throw new NotSupportedException($"CTE query type '{cte.Query.GetType().Name}' is not supported.")
-            };
+            var res = ExecuteCte(cte, ctes, outerRow);
             ctes[cte.Name] = Source.FromResult(cte.Name, res);
             debugTrace?.AddStep(
                 "CteMaterialize",

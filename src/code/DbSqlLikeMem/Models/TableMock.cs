@@ -454,6 +454,9 @@ public abstract class TableMock
             if (column.GetGenValue != null && column.PersistComputedValue)
                 row[column.Index] = column.GetGenValue(row, this);
 
+            if (column.GetGenValue != null && !column.PersistComputedValue)
+                continue;
+
             if (!column.Nullable && row[column.Index] == null)
                 throw ColumnCannotBeNull(column.Name);
         }
@@ -899,6 +902,9 @@ public abstract class TableMock
 
             if (col.GetGenValue != null && col.PersistComputedValue)
                 value[col.Index] = col.GetGenValue(value, this);
+
+            if (col.GetGenValue != null && !col.PersistComputedValue)
+                continue;
 
             if (!col.Nullable && AstQueryExecutorBase.IsNullish(value[col.Index]))
                 throw ColumnCannotBeNull(col.Name);

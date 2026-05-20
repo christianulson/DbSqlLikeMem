@@ -182,6 +182,12 @@ internal sealed record SqlCreateIndexQuery : SqlQueryBase
     internal string IndexName { get; init; } = "";
     internal bool Unique { get; init; }
     internal IReadOnlyList<string> KeyColumns { get; init; } = [];
+
+    /// <summary>
+    /// EN: Expression text for each key column; null when the key is a plain column name.
+    /// PT-br: Texto da expressao para cada coluna chave; null quando a chave for um nome de coluna simples.
+    /// </summary>
+    internal IReadOnlyList<string?>? KeyExpressions { get; init; }
 }
 
 internal sealed record SqlDropIndexQuery : SqlQueryBase
@@ -423,7 +429,7 @@ internal sealed record SqlLimitOffset(SqlExpr Count, SqlExpr? Offset) : SqlRowLi
 internal sealed record SqlTop(SqlExpr Count) : SqlRowLimit;
 internal sealed record SqlFetch(SqlExpr Count, SqlExpr? Offset) : SqlRowLimit;
 
-internal sealed record SqlCte(string Name, SqlQueryBase Query);
+internal sealed record SqlCte(string Name, SqlQueryBase Query, bool IsRecursive = false);
 
 internal sealed record SqlOnDuplicateKeyUpdate(
     IReadOnlyList<SqlAssignment> Assignments,

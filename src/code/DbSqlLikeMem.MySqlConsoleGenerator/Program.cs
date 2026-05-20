@@ -124,6 +124,7 @@ static partial class Program
                         columns: meta.Columns,
                         primaryKey: meta.PrimaryKey,
                         indexes: meta.Indexes,
+                        indexExpressions: meta.IndexExpressions,
                         foreignKeys: meta.ForeignKeys,
                         outputPath: outputPath);
 
@@ -165,6 +166,7 @@ ORDER BY TABLE_NAME;", new { schema })];
         string? TableComment,
         List<string> PrimaryKey,
         Dictionary<string, (bool Unique, List<string> Cols)> Indexes,
+        Dictionary<string, string>? IndexExpressions,
         Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)> ForeignKeys);
 
     private static TableMeta LoadTableMetadata(
@@ -242,11 +244,13 @@ SELECT COLUMN_NAME
 
         // Índices (inclui PRIMARY também; filtramos já lido)
         var idx = new Dictionary<string, (bool Unique, List<string> Cols)>(StringComparer.OrdinalIgnoreCase);
+        var idxExpr = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         const string qIdx = @"
 SELECT INDEX_NAME
      , NON_UNIQUE
      , SEQ_IN_INDEX
      , COLUMN_NAME
+     , EXPRESSION
   FROM INFORMATION_SCHEMA.STATISTICS
  WHERE TABLE_SCHEMA=@schema 
    AND TABLE_NAME=@table
@@ -260,6 +264,19 @@ SELECT INDEX_NAME
             {
                 var name = rd.GetString("INDEX_NAME");
                 var unique = rd.GetInt32("NON_UNIQUE") == 0;
+
+                // Índice funcional (expression-based): COLUMN_NAME = NULL, EXPRESSION preenchida
+                if (rd["COLUMN_NAME"] is DBNull)
+                {
+                    var expr = rd["EXPRESSION"] is DBNull ? null : (string)rd["EXPRESSION"];
+                    if (!string.IsNullOrWhiteSpace(expr))
+                    {
+                        idxExpr[name] = expr;
+                        Console.WriteLine($"   Info: índice funcional `{name}` (expressão: {expr}).");
+                    }
+                    continue;
+                }
+
                 var col = rd.GetString("COLUMN_NAME");
 
                 if (!idx.TryGetValue(name, out var tuple))
@@ -272,6 +289,7 @@ SELECT INDEX_NAME
         }
         // Remove PRIMARY daqui; trataremos separado
         idx.Remove(SqlConst.PRIMARY);
+        idxExpr.Remove(SqlConst.PRIMARY);
 
         // FKs
         var fks = new Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)>();
@@ -303,7 +321,7 @@ SELECT KCU.CONSTRAINT_NAME
             }
         }
 
-        return new TableMeta(cols, tableComment, pk, idx, fks);
+        return new TableMeta(cols, tableComment, pk, idx, idxExpr, fks);
     }
 
     // ---------- Geração ----------
@@ -315,6 +333,7 @@ SELECT KCU.CONSTRAINT_NAME
         List<ColumnMeta> columns,
         List<string> primaryKey,
         Dictionary<string, (bool Unique, List<string> Cols)> indexes,
+        Dictionary<string, string>? indexExpressions,
         Dictionary<string, (string RefTable, List<(string Col, string RefCol)> Cols)> foreignKeys,
         string outputPath)
     {
@@ -402,6 +421,26 @@ SELECT KCU.CONSTRAINT_NAME
             var cols = string.Join(", ", Cols.Select(_ => $"Col{GenerationRuleSet.ToPascalCase(_)}"));
             var uniq = Unique ? "true" : "false";
             w.WriteLine($"        table.CreateIndex({GenerationRuleSet.Literal(name)}, [{cols}], unique: {uniq});");
+        }
+
+        // Índices funcionais (expression-based)
+        if (indexExpressions is { Count: > 0 })
+        {
+            var funcIdxNum = 0;
+            foreach (var (name, expr) in indexExpressions.OrderBy(p => p.Key))
+            {
+                var uniq = indexes.TryGetValue(name, out var existing) && existing.Unique;
+                var funcColName = $"__func_idx_{funcIdxNum++}__";
+
+                w.WriteLine();
+                w.WriteLine($"        // Functional index `{name}`");
+                w.WriteLine($"        // Expression: {expr}");
+                w.WriteLine($"        var {funcColName} = table.AddFunctionalIndexColumn(");
+                w.WriteLine($"            \"{funcColName}\",");
+                w.WriteLine($"            {GenerationRuleSet.Literal(expr)},");
+                w.WriteLine($"            db);");
+                w.WriteLine($"        table.CreateIndex({GenerationRuleSet.Literal(name)}, [{funcColName}], unique: {(uniq ? "true" : "false")});");
+            }
         }
 
         // FKs

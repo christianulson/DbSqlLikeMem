@@ -1200,6 +1200,12 @@ internal static class DbInsertStrategy
         Dictionary<int, object?> row)
     {
         object? resolved;
+        if (string.Equals(rawValue, SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase))
+        {
+            // Skip value resolution; ApplyDefaultValues will use the column's default
+            return;
+        }
+
         if (parsedExpr is LiteralExpr literalExpr)
         {
             resolved = literalExpr.Value;

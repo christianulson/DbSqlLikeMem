@@ -48,6 +48,20 @@ internal sealed class SqlTokenizer
                 continue;
             }
 
+            if (ch == '_')
+            {
+                var savePos = _pos;
+                Read();
+                var identStart = _pos;
+                while (!Eof && IsIdentChar(Peek())) Read();
+                if (identStart < _pos && !Eof && _dialect.IsStringQuote(Peek()))
+                {
+                    tokens.Add(ReadString());
+                    continue;
+                }
+                _pos = savePos;
+            }
+
             if (_dialect.IsStringQuote(ch))
             {
                 tokens.Add(ReadString());

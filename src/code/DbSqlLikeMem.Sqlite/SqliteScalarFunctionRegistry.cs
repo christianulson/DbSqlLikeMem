@@ -201,6 +201,9 @@ internal static partial class SqliteScalarFunctionRegistry
             return true;
         }
 
+        if (fn.Args.Count > 1)
+            throw SqlUnsupported.NotSupported(context.Dialect, "TRUNC with scale argument is not supported in SQLite");
+
         var value = evalArg(0);
         if (AstQueryExecutorBase.IsNullish(value))
         {
