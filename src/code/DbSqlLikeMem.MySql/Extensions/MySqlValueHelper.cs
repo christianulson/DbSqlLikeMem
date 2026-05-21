@@ -63,9 +63,15 @@ internal static class MySqlValueHelper
         if (TryParseEnumOrSet(token, colDict, out var value))
             return ValidateColumnValue(value, colDict);
 
-        // ---------- JSON ----------------------------------------------
+        // ---------- JSON (DbType.Object) --------------------------------
         if (dbType == DbType.Object && (token.StartsWith("{") || token.StartsWith("[")))
             return ParseJson(token);
+
+        // ---------- MySQL JSON string normalization ---------------------
+        // MySQL normalizes JSON on storage with spaces after colons/commas.
+        // JSON columns map to DbType.String, so detect JSON by content.
+        if (dbType == DbType.String && (token.StartsWith("{") || token.StartsWith("[")))
+            return NormalizeJsonToMySqlFormat(token);
 
         // ---------- tipos padrões -------------------------------------
         return ValidateColumnValue(dbType.Parse(token), colDict);
@@ -162,6 +168,71 @@ internal static class MySqlValueHelper
         try { return JsonDocument.Parse(txt); }
         catch { return txt; }                 // se der erro, fica string crua
 #pragma warning restore CA1031 // Do not catch general exception types
+    }
+
+    internal static string NormalizeJsonToMySqlFormat(string json)
+    {
+#pragma warning disable CA1031 // Do not catch general exception types
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return SerializeMySqlJson(doc.RootElement);
+        }
+        catch { return json; }
+#pragma warning restore CA1031 // Do not catch general exception types
+    }
+
+    private static string SerializeMySqlJson(JsonElement element)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+            {
+                var sb = new StringBuilder("{");
+                var first = true;
+                foreach (var prop in element.EnumerateObject())
+                {
+                    if (!first) sb.Append(", ");
+                    first = false;
+                    sb.Append('"');
+                    sb.Append(prop.Name);
+                    sb.Append("\": ");
+                    sb.Append(SerializeMySqlJson(prop.Value));
+                }
+                sb.Append('}');
+                return sb.ToString();
+            }
+            case JsonValueKind.Array:
+            {
+                var sb = new StringBuilder("[");
+                var first = true;
+                foreach (var item in element.EnumerateArray())
+                {
+                    if (!first) sb.Append(", ");
+                    first = false;
+                    sb.Append(SerializeMySqlJson(item));
+                }
+                sb.Append(']');
+                return sb.ToString();
+            }
+            case JsonValueKind.String:
+                return JsonSerializer.Serialize(element.GetString());
+
+            case JsonValueKind.Number:
+                return element.GetRawText();
+
+            case JsonValueKind.True:
+                return "true";
+
+            case JsonValueKind.False:
+                return "false";
+
+            case JsonValueKind.Null:
+                return "null";
+
+            default:
+                return element.GetRawText();
+        }
     }
 
     // LIKE simples %xxx% → usa Contains

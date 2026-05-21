@@ -1300,6 +1300,22 @@ internal static class DbInsertStrategy
             DbType.Decimal or DbType.Currency => value is decimal ? value : Convert.ToDecimal(value, CultureInfo.InvariantCulture),
             DbType.Double => value is double ? value : Convert.ToDouble(value, CultureInfo.InvariantCulture),
             DbType.Single => value is float ? value : Convert.ToSingle(value, CultureInfo.InvariantCulture),
+            DbType.DateTime or DbType.DateTime2 or DbType.Date
+                => value switch
+                {
+                    DateTime dt => dt,
+                    TimeSpan ts => DateTime.Today.Add(ts),
+                    string s => DateTime.Parse(s, CultureInfo.InvariantCulture),
+                    _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
+                },
+            DbType.DateTimeOffset
+                => value switch
+                {
+                    DateTimeOffset dto => dto,
+                    DateTime dt => new DateTimeOffset(dt, TimeSpan.Zero),
+                    string s => DateTimeOffset.Parse(s, CultureInfo.InvariantCulture),
+                    _ => new DateTimeOffset(Convert.ToDateTime(value, CultureInfo.InvariantCulture), TimeSpan.Zero)
+                },
             _ => value
         };
     }

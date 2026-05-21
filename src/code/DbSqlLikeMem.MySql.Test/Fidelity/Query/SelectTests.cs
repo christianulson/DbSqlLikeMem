@@ -43,8 +43,8 @@ public class SelectTests(
             "CreatedAt",
             "Summary");
         result.Rows.Should().HaveCount(3);
-        result.Rows[0].Values.Should().Equal("leaf", "cycle-1", "Answer", "Thought", "Current", "hash-leaf", "{\"rank\":3}", "2024-01-02T03:04:05.0000000", "Leaf summary");
-        result.Rows[1].Values.Should().Equal("middle", "cycle-1", "Reason", "Thought", "Past", "hash-middle", "{\"rank\":2}", "2024-01-02T03:04:05.0000000", "Middle summary");
-        result.Rows[2].Values.Should().Equal("root", "cycle-1", "Plan", "Thought", "Past", "hash-root", "{\"rank\":1}", "2024-01-02T03:04:05.0000000", "Root summary");
+        result.Rows[0].Values.Should().Equal("leaf", "cycle-1", "Answer", "Thought", "Current", "hash-leaf", "{\"rank\": 3}", "2024-01-02T03:04:05.0000000+00:00", "Leaf summary");
+        result.Rows[1].Values.Should().Equal("middle", "cycle-1", "Reason", "Thought", "Past", "hash-middle", "{\"rank\": 2}", "2024-01-02T03:04:05.0000000+00:00", "Middle summary");
+        result.Rows[2].Values.Should().Equal("root", "cycle-1", "Plan", "Thought", "Past", "hash-root", "{\"rank\": 1}", "2024-01-02T03:04:05.0000000+00:00", "Root summary");
     }
 }

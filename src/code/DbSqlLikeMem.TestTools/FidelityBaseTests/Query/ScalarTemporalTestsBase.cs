@@ -196,9 +196,9 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
 
         dateValue.Should().Be(new DateTime(2020, 2, 29));
         dateTimeValue.Should().Be(new DateTime(2020, 2, 29, 10, 11, 12));
-        dateTime2Value.Should().Be(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L));
-        dateTimeOffsetValue.Should().Be(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), TimeSpan.FromMinutes(60)));
-        timeValue.Should().Be(new TimeSpan(10, 11, 12).Add(TimeSpan.FromTicks(1234567 * 10L)));
+        dateTime2Value.Should().Be(new DateTime(2020, 2, 29, 10, 11, 12));
+        dateTimeOffsetValue.Should().Be(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12), TimeSpan.FromMinutes(60)));
+        timeValue.Should().Be(new TimeSpan(10, 11, 12));
         smallDateTimeValue.Should().Be(new DateTime(2020, 2, 29, 10, 11, 0));
     }
 

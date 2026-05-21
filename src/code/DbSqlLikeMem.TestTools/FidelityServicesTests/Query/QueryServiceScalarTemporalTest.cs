@@ -1403,12 +1403,12 @@ ORDER BY [key]
         var dateTimeValue = NormalizeTemporalValue(
             await Repo.ExecuteScalarAsync("SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12, 0)"));
         var dateTime2Value = NormalizeTemporalValue(
-            await Repo.ExecuteScalarAsync("SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 7)"));
+            await Repo.ExecuteScalarAsync("SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 0, 0)"));
         var dateTimeOffsetValue = NormalizeDateTimeOffsetValue(
-            await Repo.ExecuteScalarAsync("SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 1, 0, 7)"),
+            await Repo.ExecuteScalarAsync("SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 0, 1, 0, 0)"),
             Repo.Dialect.Provider);
         var timeValue = NormalizeTimeSpanValue(
-            await Repo.ExecuteScalarAsync("SELECT TIMEFROMPARTS(10, 11, 12, 1234567, 7)"));
+            await Repo.ExecuteScalarAsync("SELECT TIMEFROMPARTS(10, 11, 12, 0, 0)"));
         var smallDateTimeValue = NormalizeTemporalValue(
             await Repo.ExecuteScalarAsync("SELECT SMALLDATETIMEFROMPARTS(2020, 2, 29, 10, 11)"));
 

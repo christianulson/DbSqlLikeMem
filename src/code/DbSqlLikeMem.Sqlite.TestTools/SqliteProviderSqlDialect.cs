@@ -21,22 +21,26 @@ public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsMathFunctions => true;
 
     /// <inheritdoc />
-    public override bool SupportsMathLog2Function => true;
+    public override bool SupportsMathLog2Function => false;
 
     /// <inheritdoc />
-    public override bool SupportsMathLogBaseFunction => true;
+    public override bool SupportsMathLogBaseFunction => false;
 
     /// <inheritdoc />
-    public override bool SupportsMathPiFunction => true;
+    public override bool SupportsMathPiFunction => false;
 
     /// <inheritdoc />
-    public override bool SupportsMathTruncFunction => true;
+    public override bool SupportsMathTruncFunction => false;
 
     /// <inheritdoc />
     public override bool SupportsMathTruncScaleFunction => false;
 
     /// <inheritdoc />
-    public override bool SupportsMathTranscendentalFunctions => true;
+    public override bool SupportsMathTranscendentalFunctions => false;
+
+    /// <inheritdoc />
+    public override string MathCeilingExpression(string expression) =>
+        $"CEIL({expression})";
 
     /// <inheritdoc />
     public override string CreateTemporaryUsersTable(FidelityTestContext context) => $@"

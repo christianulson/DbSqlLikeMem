@@ -40,7 +40,7 @@ internal abstract partial class AstQueryExecutorBase
         var currentDelta = anchor;
         for (var iteration = 0; iteration < RecursiveCteMaxIterations; iteration++)
         {
-            ctes[cte.Name] = Source.FromResult(cte.Name, currentDelta);
+            ctes[cte.Name] = Source.FromResult(cte.Name, WrapDeltaWithAnchorColumns(anchor, currentDelta));
             var nextDelta = ExecuteRecursiveCteStep(union, ctes, outerRow);
             if (nextDelta.Count == 0)
             {
@@ -79,6 +79,17 @@ internal abstract partial class AstQueryExecutorBase
             Columns = new List<TableResultColMock>(source.Columns),
             JoinFields = new List<Dictionary<string, object?>>()
         };
+
+    private static TableResultMock WrapDeltaWithAnchorColumns(TableResultMock anchor, TableResultMock delta)
+    {
+        var wrapped = new TableResultMock
+        {
+            Columns = new List<TableResultColMock>(anchor.Columns),
+            JoinFields = new List<Dictionary<string, object?>>()
+        };
+        AppendRecursiveCteRows(delta, wrapped);
+        return wrapped;
+    }
 
     private static void AppendRecursiveCteRows(TableResultMock source, TableResultMock target)
     {

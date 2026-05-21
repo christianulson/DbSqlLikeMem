@@ -2869,7 +2869,7 @@ public sealed class MySqlMockTests
         Assert.DoesNotContain("CAST(", evidenceSignalIds, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("CAST(", hypothesisIds, StringComparison.OrdinalIgnoreCase);
 
-        Assert.Contains("\"k\":\"v2\"", paramsJson, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("\"k\": \"v2\"", paramsJson, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("1", evidenceFactIds, StringComparison.OrdinalIgnoreCase);
     }
 

@@ -430,7 +430,7 @@ SELECT KCU.CONSTRAINT_NAME
             foreach (var (name, expr) in indexExpressions.OrderBy(p => p.Key))
             {
                 var uniq = indexes.TryGetValue(name, out var existing) && existing.Unique;
-                var funcColName = $"__func_idx_{funcIdxNum++}__";
+                var funcColName = $"fnc_idx_{funcIdxNum++}__";
 
                 w.WriteLine();
                 w.WriteLine($"        // Functional index `{name}`");
@@ -439,7 +439,7 @@ SELECT KCU.CONSTRAINT_NAME
                 w.WriteLine($"            \"{funcColName}\",");
                 w.WriteLine($"            {GenerationRuleSet.Literal(expr)},");
                 w.WriteLine($"            db);");
-                w.WriteLine($"        table.CreateIndex({GenerationRuleSet.Literal(name)}, [{funcColName}], unique: {(uniq ? "true" : "false")});");
+                w.WriteLine($"        table.CreateIndex({GenerationRuleSet.Literal(name)}, [{funcColName}.Name], unique: {(uniq ? "true" : "false")});");
             }
         }
 
