@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.EfCore.TestTools;
 
 /// <summary>
 /// EN: Defines shared EF Core-oriented provider contract tests for mock connections.
-/// PT: Define testes de contrato compartilhados orientados a EF Core para conexões simulado.
+/// PT-br: Define testes de contrato compartilhados orientados a EF Core para conexões simulado.
 /// </summary>
 public abstract class EfCoreSupportTestsBase(
     ITestOutputHelper helper
@@ -10,24 +10,24 @@ public abstract class EfCoreSupportTestsBase(
 {
     /// <summary>
     /// EN: Creates and opens the provider mock connection factory under test.
-    /// PT: Cria e abre a fábrica de conexão simulada do provedor sob teste.
+    /// PT-br: Cria e abre a fábrica de conexão simulada do provedor sob teste.
     /// </summary>
     protected abstract IDbSqlLikeMemEfCoreConnectionFactory CreateFactory();
 
     /// <summary>
     /// EN: Provides the provider-specific SQL dialect used by pagination helpers.
-    /// PT: Fornece o dialeto SQL especifico do provedor usado pelos helpers de paginacao.
+    /// PT-br: Fornece o dialeto SQL especifico do provedor usado pelos helpers de paginacao.
     /// </summary>
     protected abstract ProviderSqlDialect Dialect { get; }
 
     /// <summary>
     /// EN: Builds the pagination query used by the shared EF Core smoke tests.
-    /// PT: Monta a query de paginação usada nos testes smoke compartilhados de EF Core.
+    /// PT-br: Monta a query de paginação usada nos testes smoke compartilhados de EF Core.
     /// </summary>
-    /// <param name="tableName">EN: Name of the table being paginated. PT: Nome da tabela paginada.</param>
-    /// <param name="orderByClause">EN: ORDER BY clause used to keep the page deterministic. PT: Clausula ORDER BY usada para manter a pagina deterministica.</param>
-    /// <param name="offset">EN: Number of rows to skip before the page starts. PT: Numero de linhas a ignorar antes do inicio da pagina.</param>
-    /// <param name="fetch">EN: Number of rows to return. PT: Numero de linhas a retornar.</param>
+    /// <param name="tableName">EN: Name of the table being paginated. PT-br: Nome da tabela paginada.</param>
+    /// <param name="orderByClause">EN: ORDER BY clause used to keep the page deterministic. PT-br: Clausula ORDER BY usada para manter a pagina deterministica.</param>
+    /// <param name="offset">EN: Number of rows to skip before the page starts. PT-br: Numero de linhas a ignorar antes do inicio da pagina.</param>
+    /// <param name="fetch">EN: Number of rows to return. PT-br: Numero de linhas a retornar.</param>
     protected virtual string BuildPaginationQuery(string tableName, string orderByClause, int offset, int fetch)
     {
         if (Dialect.Provider == ProviderId.Sqlite)
@@ -42,7 +42,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies the factory returns an opened connection.
-    /// PT: Verifica se a fábrica retorna uma conexão aberta.
+    /// PT-br: Verifica se a fábrica retorna uma conexão aberta.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -54,7 +54,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies basic command flow used by EF Core relational stacks works on provider mocks.
-    /// PT: Verifica se o fluxo básico de comandos usado por stacks relacionais de EF Core funciona nos mocks de provedor.
+    /// PT-br: Verifica se o fluxo básico de comandos usado por stacks relacionais de EF Core funciona nos mocks de provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -100,7 +100,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies transaction rollback keeps data unchanged after an INSERT statement.
-    /// PT: Verifica se o rollback da transação mantém os dados inalterados após um comando INSERT.
+    /// PT-br: Verifica se o rollback da transação mantém os dados inalterados após um comando INSERT.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -148,7 +148,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies null parameter values are accepted in inserts and can be queried back.
-    /// PT: Verifica se valores de parâmetro nulos são aceitos em inserts e podem ser consultados depois.
+    /// PT-br: Verifica se valores de parâmetro nulos são aceitos em inserts e podem ser consultados depois.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -196,7 +196,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies transaction commit persists inserted data.
-    /// PT: Verifica se o commit da transação persiste os dados inseridos.
+    /// PT-br: Verifica se o commit da transação persiste os dados inseridos.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -244,7 +244,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies update and delete command flows work with provider factories.
-    /// PT: Verifica se fluxos de comando de update e delete funcionam com as fábricas por provedor.
+    /// PT-br: Verifica se fluxos de comando de update e delete funcionam com as fábricas por provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -303,7 +303,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies decimal and datetime parameter bindings can be persisted and queried.
-    /// PT: Verifica se bindings de parâmetros decimal e datetime podem ser persistidos e consultados.
+    /// PT-br: Verifica se bindings de parâmetros decimal e datetime podem ser persistidos e consultados.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -357,7 +357,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies aggregate scalar queries over inserted rows return expected values.
-    /// PT: Verifica se consultas escalares agregadas sobre linhas inseridas retornam valores esperados.
+    /// PT-br: Verifica se consultas escalares agregadas sobre linhas inseridas retornam valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -391,7 +391,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies `IN` filtering with parameterized values and ordered results.
-    /// PT: Verifica filtro com `IN` usando valores parametrizados e resultados ordenados.
+    /// PT-br: Verifica filtro com `IN` usando valores parametrizados e resultados ordenados.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -428,7 +428,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies inner join queries can be executed through provider mock connections.
-    /// PT: Verifica se consultas com inner join podem ser executadas através das conexões simulado de provedor.
+    /// PT-br: Verifica se consultas com inner join podem ser executadas através das conexões simulado de provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -464,7 +464,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies grouped queries with HAVING return expected aggregate windows.
-    /// PT: Verifica se consultas agrupadas com HAVING retornam janelas agregadas esperadas.
+    /// PT-br: Verifica se consultas agrupadas com HAVING retornam janelas agregadas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -503,7 +503,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies OFFSET/FETCH-style pagination returns deterministic windows.
-    /// PT: Verifica se paginação estilo OFFSET/FETCH retorna janelas determinísticas.
+    /// PT-br: Verifica se paginação estilo OFFSET/FETCH retorna janelas determinísticas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -538,7 +538,7 @@ public abstract class EfCoreSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies correlated EXISTS subqueries can be executed with parameterized predicates.
-    /// PT: Verifica se subqueries correlacionadas com EXISTS podem ser executadas com predicados parametrizados.
+    /// PT-br: Verifica se subqueries correlacionadas com EXISTS podem ser executadas com predicados parametrizados.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -566,7 +566,7 @@ WHERE EXISTS (
 
     /// <summary>
     /// EN: Verifies LEFT JOIN with IS NULL can detect rows without related matches.
-    /// PT: Verifica se LEFT JOIN com IS NULL detecta linhas sem correspondências relacionadas.
+    /// PT-br: Verifica se LEFT JOIN com IS NULL detecta linhas sem correspondências relacionadas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -591,7 +591,7 @@ WHERE p.id IS NULL";
 
     /// <summary>
     /// EN: Verifies CASE WHEN projections and CASE-based HAVING filters are evaluated correctly.
-    /// PT: Verifica se projeções com CASE WHEN e filtros HAVING baseados em CASE são avaliados corretamente.
+    /// PT-br: Verifica se projeções com CASE WHEN e filtros HAVING baseados em CASE são avaliados corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -639,7 +639,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies parameterized LIKE predicates with wildcard values are applied correctly.
-    /// PT: Verifica se predicados LIKE parametrizados com curingas são aplicados corretamente.
+    /// PT-br: Verifica se predicados LIKE parametrizados com curingas são aplicados corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -675,7 +675,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies composite filters mixing IS NULL and parameterized alternatives are honored.
-    /// PT: Verifica se filtros compostos combinando IS NULL e alternativas parametrizadas são respeitados.
+    /// PT-br: Verifica se filtros compostos combinando IS NULL e alternativas parametrizadas são respeitados.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -705,7 +705,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies scalar subqueries can be projected in the SELECT list.
-    /// PT: Verifica se subqueries escalares podem ser projetadas na lista SELECT.
+    /// PT-br: Verifica se subqueries escalares podem ser projetadas na lista SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -734,7 +734,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies multiple commands executed within the same transaction scope remain consistent after commit.
-    /// PT: Verifica se múltiplos comandos executados no mesmo escopo transacional permanecem consistentes após commit.
+    /// PT-br: Verifica se múltiplos comandos executados no mesmo escopo transacional permanecem consistentes após commit.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -780,7 +780,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies pagination ordering remains stable when using a deterministic tie-breaker.
-    /// PT: Verifica se a ordenação da paginação permanece estável ao usar um critério de desempate determinístico.
+    /// PT-br: Verifica se a ordenação da paginação permanece estável ao usar um critério de desempate determinístico.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -819,7 +819,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies a multi-command transaction rollback restores the state before all changes in the scope.
-    /// PT: Verifica se o rollback de transação com múltiplos comandos restaura o estado anterior a todas as mudanças do escopo.
+    /// PT-br: Verifica se o rollback de transação com múltiplos comandos restaura o estado anterior a todas as mudanças do escopo.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -867,7 +867,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies deterministic pagination returns the same window across repeated executions.
-    /// PT: Verifica se a paginação determinística retorna a mesma janela em execuções repetidas.
+    /// PT-br: Verifica se a paginação determinística retorna a mesma janela em execuções repetidas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -912,7 +912,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies scalar subquery projection returns null when no matching rows are found.
-    /// PT: Verifica se a projeção com subquery escalar retorna nulo quando não existem linhas correspondentes.
+    /// PT-br: Verifica se a projeção com subquery escalar retorna nulo quando não existem linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -939,7 +939,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies transaction-scoped reads observe intermediate writes before commit.
-    /// PT: Verifica se leituras no escopo transacional observam escritas intermediárias antes do commit.
+    /// PT-br: Verifica se leituras no escopo transacional observam escritas intermediárias antes do commit.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -980,7 +980,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies composite null filters remain correct when the comparison parameter is null.
-    /// PT: Verifica se filtros compostos com nulo permanecem corretos quando o parâmetro de comparação é nulo.
+    /// PT-br: Verifica se filtros compostos com nulo permanecem corretos quando o parâmetro de comparação é nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1009,7 +1009,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies deterministic ordering keeps pagination windows disjoint across consecutive pages.
-    /// PT: Verifica se a ordenação determinística mantém janelas de paginação sem sobreposição entre páginas consecutivas.
+    /// PT-br: Verifica se a ordenação determinística mantém janelas de paginação sem sobreposição entre páginas consecutivas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1054,7 +1054,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies CASE WHEN with multiple conditions and ELSE branches behaves consistently in aggregate projections.
-    /// PT: Verifica se CASE WHEN com múltiplas condições e ramificações ELSE se comporta de forma consistente em projeções agregadas.
+    /// PT-br: Verifica se CASE WHEN com múltiplas condições e ramificações ELSE se comporta de forma consistente em projeções agregadas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1096,7 +1096,7 @@ FROM ef_case_multi";
 
     /// <summary>
     /// EN: Verifies parameterized LIKE supports contains, single-character, prefix and suffix patterns.
-    /// PT: Verifica se LIKE parametrizado suporta padrões de contém, caractere único, prefixo e sufixo.
+    /// PT-br: Verifica se LIKE parametrizado suporta padrões de contém, caractere único, prefixo e sufixo.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1138,7 +1138,7 @@ FROM ef_case_multi";
 
     /// <summary>
     /// EN: Verifies mixed NULL plus IN plus OR predicates keep expected precedence and deterministic results.
-    /// PT: Verifica se predicados mistos com NULL, IN e OR mantêm a precedência esperada e resultados determinísticos.
+    /// PT-br: Verifica se predicados mistos com NULL, IN e OR mantêm a precedência esperada e resultados determinísticos.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1169,7 +1169,7 @@ FROM ef_case_multi";
 
     /// <summary>
     /// EN: Verifies scalar subquery projection with multiple inner rows keeps the current mock behavior.
-    /// PT: Verifica se a projeção com subquery escalar com múltiplas linhas internas mantém o comportamento atual do mock.
+    /// PT-br: Verifica se a projeção com subquery escalar com múltiplas linhas internas mantém o comportamento atual do mock.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1198,7 +1198,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies one transaction scope can rollback and a subsequent scope can commit while preserving expected state transitions.
-    /// PT: Verifica se um escopo transacional pode fazer rollback e um escopo subsequente pode fazer commit preservando as transições de estado esperadas.
+    /// PT-br: Verifica se um escopo transacional pode fazer rollback e um escopo subsequente pode fazer commit preservando as transições de estado esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1268,7 +1268,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies deterministic pagination over pages 1, 2 and 3 returns disjoint windows without missing expected rows.
-    /// PT: Verifica se paginação determinística nas páginas 1, 2 e 3 retorna janelas disjuntas sem perder linhas esperadas.
+    /// PT-br: Verifica se paginação determinística nas páginas 1, 2 e 3 retorna janelas disjuntas sem perder linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1317,7 +1317,7 @@ WHERE u.id = 1";
 
     /// <summary>
     /// EN: Verifies grouped CASE WHEN with multiple branches and ELSE keeps category totals consistent.
-    /// PT: Verifica se CASE WHEN agrupado com múltiplas ramificações e ELSE mantém os totais por categoria consistentes.
+    /// PT-br: Verifica se CASE WHEN agrupado com múltiplas ramificações e ELSE mantém os totais por categoria consistentes.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1364,7 +1364,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies OR-combined parameterized LIKE predicates preserve expected wildcard semantics.
-    /// PT: Verifica se predicados LIKE parametrizados combinados por OR preservam a semântica esperada de curingas.
+    /// PT-br: Verifica se predicados LIKE parametrizados combinados por OR preservam a semântica esperada de curingas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1398,7 +1398,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies scalar subquery behavior remains consistent per outer row when inner result has multiple rows.
-    /// PT: Verifica se o comportamento de subquery escalar permanece consistente por linha externa quando o resultado interno tem múltiplas linhas.
+    /// PT-br: Verifica se o comportamento de subquery escalar permanece consistente por linha externa quando o resultado interno tem múltiplas linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1435,7 +1435,7 @@ ORDER BY u.id";
 
     /// <summary>
     /// EN: Verifies operator precedence between OR and AND is preserved in mixed NULL and IN filters.
-    /// PT: Verifica se a precedência de operadores entre OR e AND é preservada em filtros mistos com NULL e IN.
+    /// PT-br: Verifica se a precedência de operadores entre OR e AND é preservada em filtros mistos com NULL e IN.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1468,7 +1468,7 @@ ORDER BY u.id";
 
     /// <summary>
     /// EN: Verifies CASE WHEN with multiple conditions and ELSE can be reused in grouped projections and HAVING predicates.
-    /// PT: Verifica se CASE WHEN com múltiplas condições e ELSE pode ser reutilizado em projeções agrupadas e predicados HAVING.
+    /// PT-br: Verifica se CASE WHEN com múltiplas condições e ELSE pode ser reutilizado em projeções agrupadas e predicados HAVING.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1514,7 +1514,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies composite NULL plus IN plus OR filters remain consistent when IN parameter values are swapped.
-    /// PT: Verifica se filtros compostos com NULL, IN e OR permanecem consistentes quando os valores parametrizados de IN são invertidos.
+    /// PT-br: Verifica se filtros compostos com NULL, IN e OR permanecem consistentes quando os valores parametrizados de IN são invertidos.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1549,7 +1549,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies deterministic pagination with three pages and a remaining tail row keeps continuity without overlaps.
-    /// PT: Verifica se paginação determinística com três páginas e uma linha remanescente mantém continuidade sem sobreposição.
+    /// PT-br: Verifica se paginação determinística com três páginas e uma linha remanescente mantém continuidade sem sobreposição.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1598,7 +1598,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies transaction sequence visibility checks before rollback and persisted state after a later commit scope.
-    /// PT: Verifica checagens de visibilidade da sequência transacional antes do rollback e estado persistido após escopo posterior com commit.
+    /// PT-br: Verifica checagens de visibilidade da sequência transacional antes do rollback e estado persistido após escopo posterior com commit.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1678,7 +1678,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies grouped CASE WHEN supports combined conditional aggregates with ELSE branches in the same projection.
-    /// PT: Verifica se CASE WHEN agrupado suporta agregações condicionais combinadas com ramificações ELSE na mesma projeção.
+    /// PT-br: Verifica se CASE WHEN agrupado suporta agregações condicionais combinadas com ramificações ELSE na mesma projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1727,7 +1727,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies scalar subquery projections can return non-null and null values within the same outer result set.
-    /// PT: Verifica se projeções com subquery escalar podem retornar valores não nulos e nulos no mesmo conjunto externo.
+    /// PT-br: Verifica se projeções com subquery escalar podem retornar valores não nulos e nulos no mesmo conjunto externo.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1761,7 +1761,7 @@ ORDER BY u.id";
 
     /// <summary>
     /// EN: Verifies deterministic pagination remains repeatable across pages 1, 2 and 3 over multiple executions.
-    /// PT: Verifica se paginação determinística permanece repetível nas páginas 1, 2 e 3 em múltiplas execuções.
+    /// PT-br: Verifica se paginação determinística permanece repetível nas páginas 1, 2 e 3 em múltiplas execuções.
     /// </summary>
     [Fact]
     [Trait("Category", "EfCore")]
@@ -1813,7 +1813,7 @@ ORDER BY u.id";
 
 /// <summary>
 /// EN: Reusable smoke test wrapper for EF Core provider factories.
-/// PT: Wrapper reutilizável de smoke tests para fábricas de provedor EF Core.
+/// PT-br: Wrapper reutilizável de smoke tests para fábricas de provedor EF Core.
 /// </summary>
 public abstract class EfCoreSmokeTestsBase(
     ITestOutputHelper helper,
@@ -1824,7 +1824,7 @@ public abstract class EfCoreSmokeTestsBase(
 
     /// <summary>
     /// EN: Creates the provider-specific EF Core connection factory used by the smoke contract.
-    /// PT: Cria a factory de conexão EF Core específica do provider usada pelo contrato smoke.
+    /// PT-br: Cria a factory de conexão EF Core específica do provider usada pelo contrato smoke.
     /// </summary>
     protected override IDbSqlLikeMemEfCoreConnectionFactory CreateFactory()
         => _factoryFactory();

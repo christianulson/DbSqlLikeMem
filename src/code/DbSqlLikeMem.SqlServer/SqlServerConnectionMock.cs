@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Represents Sql Server Connection Mock.
-/// PT: Representa Sql Server conexão simulada.
+/// PT-br: Representa Sql Server conexão simulada.
 /// </summary>
 public class SqlServerConnectionMock
     : DbConnectionMockBase
@@ -14,7 +14,7 @@ public class SqlServerConnectionMock
 
     /// <summary>
     /// EN: Represents Sql Server Connection Mock.
-    /// PT: Representa Sql Server conexão simulada.
+    /// PT-br: Representa Sql Server conexão simulada.
     /// </summary>
     public SqlServerConnectionMock(
        SqlServerDbMock? db = null,
@@ -26,27 +26,27 @@ public class SqlServerConnectionMock
 
     /// <summary>
     /// EN: Creates a new transaction instance.
-    /// PT: Cria uma nova instância de transaction.
+    /// PT-br: Cria uma nova instância de transaction.
     /// </summary>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new SqlServerTransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates a new db command core instance.
-    /// PT: Cria uma nova instância de comando de banco principal.
+    /// PT-br: Cria uma nova instância de comando de banco principal.
     /// </summary>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlServerCommandMock(this, transaction as SqlServerTransactionMock);
 
     /// <summary>
     /// EN: Executes new exception.
-    /// PT: Executa new exception.
+    /// PT-br: Executa new exception.
     /// </summary>
     protected override bool SupportsReleaseSavepoint => false;
 
     /// <summary>
     /// EN: Creates the SQL Server-specific mock exception used by this connection.
-    /// PT: Cria a excecao simulada especifica do SQL Server usada por esta conexao.
+    /// PT-br: Cria a excecao simulada especifica do SQL Server usada por esta conexao.
     /// </summary>
     protected internal override Exception NewException(string message, int code)
         => new SqlServerMockException(message, code);

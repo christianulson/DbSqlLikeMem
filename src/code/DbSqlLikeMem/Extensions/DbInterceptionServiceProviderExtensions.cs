@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Applies dependency-injection registered interceptors to ADO.NET connections.
-/// PT: Aplica interceptors registrados em injecao de dependencia a conexoes ADO.NET.
+/// PT-br: Aplica interceptors registrados em injecao de dependencia a conexoes ADO.NET.
 /// </summary>
 public static class DbInterceptionServiceProviderExtensions
 {
@@ -31,11 +31,11 @@ public static class DbInterceptionServiceProviderExtensions
 
     /// <summary>
     /// EN: Wraps the connection with all interceptors registered in the service provider.
-    /// PT: Encapsula a conexao com todos os interceptors registrados no service provider.
+    /// PT-br: Encapsula a conexao com todos os interceptors registrados no service provider.
     /// </summary>
-    /// <param name="connection">EN: Connection to wrap. PT: Conexao a encapsular.</param>
-    /// <param name="serviceProvider">EN: Service provider used to resolve interceptors. PT: Service provider usado para resolver interceptors.</param>
-    /// <returns>EN: Wrapped connection when interceptors exist; otherwise the original connection. PT: Conexao encapsulada quando houver interceptors; caso contrario, a conexao original.</returns>
+    /// <param name="connection">EN: Connection to wrap. PT-br: Conexao a encapsular.</param>
+    /// <param name="serviceProvider">EN: Service provider used to resolve interceptors. PT-br: Service provider usado para resolver interceptors.</param>
+    /// <returns>EN: Wrapped connection when interceptors exist; otherwise the original connection. PT-br: Conexao encapsulada quando houver interceptors; caso contrario, a conexao original.</returns>
     public static DbConnection WithRegisteredInterceptors(
         this DbConnection connection,
         IServiceProvider serviceProvider)

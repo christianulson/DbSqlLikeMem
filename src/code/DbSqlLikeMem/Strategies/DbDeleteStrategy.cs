@@ -6,7 +6,7 @@ internal static class DbDeleteStrategy
 
     /// <summary>
     /// EN: Implements ExecuteDelete.
-    /// PT: Implementa ExecuteDelete.
+    /// PT-br: Implementa ExecuteDelete.
     /// </summary>
     public static DmlExecutionResult ExecuteDelete(
         this DbConnectionMockBase connection,
@@ -16,7 +16,7 @@ internal static class DbDeleteStrategy
 
     /// <summary>
     /// EN: Implements ExecuteDelete using a pre-built execution context.
-    /// PT: Implementa ExecuteDelete usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteDelete usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteDelete(
         this DbConnectionMockBase connection,

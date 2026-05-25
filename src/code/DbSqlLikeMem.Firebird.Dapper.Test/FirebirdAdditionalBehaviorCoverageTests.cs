@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers additional Firebird behavior scenarios over the Firebird Dapper mock.
-/// PT: Cobre cenarios adicionais de comportamento do Firebird sobre o mock Dapper do Firebird.
+/// PT-br: Cobre cenarios adicionais de comportamento do Firebird sobre o mock Dapper do Firebird.
 /// </summary>
 public sealed class FirebirdAdditionalBehaviorCoverageTests(
     ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies IS NULL and IS NOT NULL predicates filter rows correctly.
-    /// PT: Verifica se os predicados IS NULL e IS NOT NULL filtram as linhas corretamente.
+    /// PT-br: Verifica se os predicados IS NULL e IS NOT NULL filtram as linhas corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -21,7 +21,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies comparisons with equals null do not return rows.
-    /// PT: Verifica se comparacoes com igual a null nao retornam linhas.
+    /// PT-br: Verifica se comparacoes com igual a null nao retornam linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -29,7 +29,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies left joins preserve left-side rows when there is no match.
-    /// PT: Verifica se left joins preservam as linhas do lado esquerdo quando nao ha correspondencia.
+    /// PT-br: Verifica se left joins preservam as linhas do lado esquerdo quando nao ha correspondencia.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -37,7 +37,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies mixed descending and ascending ordering stays deterministic.
-    /// PT: Verifica se a ordenacao mista descendente e ascendente permanece deterministica.
+    /// PT-br: Verifica se a ordenacao mista descendente e ascendente permanece deterministica.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -45,7 +45,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies COUNT(*) and COUNT(column) handle null values with the expected semantics.
-    /// PT: Verifica se COUNT(*) e COUNT(coluna) tratam valores nulos com a semantica esperada.
+    /// PT-br: Verifica se COUNT(*) e COUNT(coluna) tratam valores nulos com a semantica esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -53,7 +53,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies HAVING filters the grouped result set correctly.
-    /// PT: Verifica se HAVING filtra corretamente o conjunto de resultados agrupado.
+    /// PT-br: Verifica se HAVING filtra corretamente o conjunto de resultados agrupado.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -61,7 +61,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies IN predicates with parameter lists match the expected rows.
-    /// PT: Verifica se predicados IN com listas de parametros correspondem as linhas esperadas.
+    /// PT-br: Verifica se predicados IN com listas de parametros correspondem as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -69,7 +69,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies inserts with columns declared out of order map values correctly.
-    /// PT: Verifica se insercoes com colunas declaradas fora de ordem mapeiam os valores corretamente.
+    /// PT-br: Verifica se insercoes com colunas declaradas fora de ordem mapeiam os valores corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -77,7 +77,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies deletes using IN parameter lists remove only the matching rows.
-    /// PT: Verifica se exclusoes usando listas de parametros IN removem apenas as linhas correspondentes.
+    /// PT-br: Verifica se exclusoes usando listas de parametros IN removem apenas as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]
@@ -85,7 +85,7 @@ public sealed class FirebirdAdditionalBehaviorCoverageTests(
 
     /// <summary>
     /// EN: Verifies update set expressions modify the targeted rows correctly.
-    /// PT: Verifica se expressoes SET em updates modificam corretamente as linhas alvo.
+    /// PT-br: Verifica se expressoes SET em updates modificam corretamente as linhas alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAdditionalBehaviorCoverage")]

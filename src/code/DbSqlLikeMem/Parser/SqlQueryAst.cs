@@ -4,13 +4,13 @@ internal abstract record SqlQueryBase
 {
     /// <summary>
     /// EN: Gets or sets RawSql.
-    /// PT: Obtém ou define RawSql.
+    /// PT-br: Obtém ou define RawSql.
     /// </summary>
     public string RawSql { get; init; } = "";
 
     /// <summary>
     /// EN: Gets or sets Table.
-    /// PT: Obtém ou define Table.
+    /// PT-br: Obtém ou define Table.
     /// </summary>
     public SqlTableSource? Table { get; init; }
 }
@@ -18,6 +18,7 @@ internal abstract record SqlQueryBase
 internal sealed record SqlSelectQuery(
     IReadOnlyList<SqlCte> Ctes,
     bool Distinct,
+    IReadOnlyList<string> DistinctOn,
     IReadOnlyList<SqlSelectItem> SelectItems,
     IReadOnlyList<SqlJoin> Joins,
     SqlExpr? Where,
@@ -26,7 +27,43 @@ internal sealed record SqlSelectQuery(
     IReadOnlyList<string> GroupBy,
     SqlExpr? Having,
     SqlForJsonClause? ForJson = null
-) : SqlQueryBase;
+) : SqlQueryBase
+{
+    internal SqlSelectQuery(
+        IReadOnlyList<SqlCte> Ctes,
+        bool Distinct,
+        IReadOnlyList<SqlSelectItem> SelectItems,
+        IReadOnlyList<SqlJoin> Joins,
+        SqlExpr? Where,
+        IReadOnlyList<SqlOrderByItem> OrderBy,
+        SqlRowLimit? RowLimit,
+        IReadOnlyList<string> GroupBy,
+        SqlExpr? Having,
+        SqlForJsonClause? ForJson = null)
+        : this(Ctes, Distinct, [], SelectItems, Joins, Where, OrderBy, RowLimit, GroupBy, Having, ForJson)
+    {
+    }
+
+    internal SqlSelectQuery(
+        IReadOnlyList<SqlCte> Ctes,
+        bool Distinct,
+        IReadOnlyList<string> DistinctOn,
+        IReadOnlyList<SqlSelectItem> SelectItems,
+        IReadOnlyList<SqlJoin> Joins,
+        SqlExpr? Where,
+        IReadOnlyList<SqlOrderByItem> OrderBy,
+        SqlRowLimit? RowLimit,
+        IReadOnlyList<string> GroupBy)
+        : this(Ctes, Distinct, DistinctOn, SelectItems, Joins, Where, OrderBy, RowLimit, GroupBy, null, null)
+    {
+    }
+}
+
+internal static class SqlSelectQueryExtensions
+{
+    internal static bool HasDistinctClause(this SqlSelectQuery query)
+        => query.Distinct || query.DistinctOn.Count > 0;
+}
 
 internal sealed record SqlUnionQuery(
     IReadOnlyList<SqlSelectQuery> Parts,
@@ -46,17 +83,17 @@ internal sealed record SqlInsertQuery : SqlQueryBase
     internal bool HasOnDuplicateKeyUpdate { get; init; }
     /// <summary>
     /// EN: Gets the ON DUPLICATE KEY assignments preserved by the parser.
-    /// PT: Obtem as atribuicoes de ON DUPLICATE KEY preservadas pelo parser.
+    /// PT-br: Obtem as atribuicoes de ON DUPLICATE KEY preservadas pelo parser.
     /// </summary>
     public IReadOnlyList<(string Col, string ExprRaw)> OnDupAssigns { get; init; } = [];
     /// <summary>
     /// EN: Gets or sets OnDupAssignsParsed.
-    /// PT: Obtém ou define OnDupAssignsParsed.
+    /// PT-br: Obtém ou define OnDupAssignsParsed.
     /// </summary>
     public IReadOnlyList<SqlAssignment> OnDupAssignsParsed { get; init; } = [];
     /// <summary>
     /// EN: Gets or sets whether ON CONFLICT uses DO NOTHING semantics.
-    /// PT: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
+    /// PT-br: Obtém ou define se ON CONFLICT usa semântica de DO NOTHING.
     /// </summary>
     internal bool IsOnConflictDoNothing { get; init; }
     internal string? OnConflictUpdateWhereRaw { get; init; }
@@ -145,6 +182,12 @@ internal sealed record SqlCreateIndexQuery : SqlQueryBase
     internal string IndexName { get; init; } = "";
     internal bool Unique { get; init; }
     internal IReadOnlyList<string> KeyColumns { get; init; } = [];
+
+    /// <summary>
+    /// EN: Expression text for each key column; null when the key is a plain column name.
+    /// PT-br: Texto da expressao para cada coluna chave; null quando a chave for um nome de coluna simples.
+    /// </summary>
+    internal IReadOnlyList<string?>? KeyExpressions { get; init; }
 }
 
 internal sealed record SqlDropIndexQuery : SqlQueryBase
@@ -364,7 +407,7 @@ internal enum SqlForJsonMode
 
 /// <summary>
 /// EN: Join types represented in the SQL AST.
-/// PT: Tipos de join representados na AST SQL.
+/// PT-br: Tipos de join representados na AST SQL.
 /// </summary>
 internal enum SqlJoinType
 {
@@ -386,7 +429,7 @@ internal sealed record SqlLimitOffset(SqlExpr Count, SqlExpr? Offset) : SqlRowLi
 internal sealed record SqlTop(SqlExpr Count) : SqlRowLimit;
 internal sealed record SqlFetch(SqlExpr Count, SqlExpr? Offset) : SqlRowLimit;
 
-internal sealed record SqlCte(string Name, SqlQueryBase Query);
+internal sealed record SqlCte(string Name, SqlQueryBase Query, bool IsRecursive = false);
 
 internal sealed record SqlOnDuplicateKeyUpdate(
     IReadOnlyList<SqlAssignment> Assignments,

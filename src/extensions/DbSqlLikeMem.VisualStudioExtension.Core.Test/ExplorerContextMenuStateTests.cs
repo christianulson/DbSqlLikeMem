@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies explorer context menu visibility rules in the Visual Studio extension core.
-/// PT: Verifica as regras de visibilidade do menu de contexto do explorador no core da extensao do Visual Studio.
+/// PT-br: Verifica as regras de visibilidade do menu de contexto do explorador no core da extensao do Visual Studio.
 /// </summary>
 public sealed class ExplorerContextMenuStateTests
 {
     /// <summary>
     /// EN: Verifies connection and schema selections expose connection actions and scenario extraction.
-    /// PT: Verifica se selecoes de conexao e schema exibem as acoes de conexao e a extracao de scenario.
+    /// PT-br: Verifica se selecoes de conexao e schema exibem as acoes de conexao e a extracao de scenario.
     /// </summary>
     [Theory]
     [Trait("Category", "ExplorerContextMenuState")]
@@ -38,7 +38,7 @@ public sealed class ExplorerContextMenuStateTests
 
     /// <summary>
     /// EN: Verifies object type selections expose mapping and filter actions, including filter clearing.
-    /// PT: Verifica se selecoes de tipo de objeto exibem as acoes de mapeamento e filtro, inclusive a limpeza do filtro.
+    /// PT-br: Verifica se selecoes de tipo de objeto exibem as acoes de mapeamento e filtro, inclusive a limpeza do filtro.
     /// </summary>
     [Fact]
     [Trait("Category", "ExplorerContextMenuState")]
@@ -64,7 +64,7 @@ public sealed class ExplorerContextMenuStateTests
 
     /// <summary>
     /// EN: Verifies object type selections without a filter keep the filter action visible and the clear action hidden.
-    /// PT: Verifica se selecoes de tipo de objeto sem filtro mantem a acao de filtro visivel e ocultam a acao de limpar.
+    /// PT-br: Verifica se selecoes de tipo de objeto sem filtro mantem a acao de filtro visivel e ocultam a acao de limpar.
     /// </summary>
     [Fact]
     [Trait("Category", "ExplorerContextMenuState")]
@@ -86,7 +86,7 @@ public sealed class ExplorerContextMenuStateTests
 
     /// <summary>
     /// EN: Verifies table selections expose generation actions and scenario extraction.
-    /// PT: Verifica se selecoes de tabela exibem as acoes de geracao e a extracao de scenario.
+    /// PT-br: Verifica se selecoes de tabela exibem as acoes de geracao e a extracao de scenario.
     /// </summary>
     [Fact]
     [Trait("Category", "ExplorerContextMenuState")]
@@ -115,7 +115,7 @@ public sealed class ExplorerContextMenuStateTests
 
     /// <summary>
     /// EN: Verifies function object selections expose generation actions without table-specific scenario actions.
-    /// PT: Verifica se selecoes de objeto function exibem acoes de geracao sem as acoes de scenario especificas de tabela.
+    /// PT-br: Verifica se selecoes de objeto function exibem acoes de geracao sem as acoes de scenario especificas de tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "ExplorerContextMenuState")]
@@ -144,7 +144,7 @@ public sealed class ExplorerContextMenuStateTests
 
     /// <summary>
     /// EN: Verifies empty selections hide every context menu action.
-    /// PT: Verifica se selecoes vazias ocultam todas as acoes do menu de contexto.
+    /// PT-br: Verifica se selecoes vazias ocultam todas as acoes do menu de contexto.
     /// </summary>
     [Fact]
     [Trait("Category", "ExplorerContextMenuState")]

@@ -2,10 +2,10 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes the Firebird EXECUTE BLOCK benchmark that traps SQLSTATE 23000.
-/// PT: Executa o benchmark Firebird de EXECUTE BLOCK que trata SQLSTATE 23000.
+/// PT-br: Executa o benchmark Firebird de EXECUTE BLOCK que trata SQLSTATE 23000.
 /// </summary>
-/// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-/// <param name="context">EN: Scenario context for the current benchmark run. PT: Contexto do cenario para a execucao atual do benchmark.</param>
+/// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+/// <param name="context">EN: Scenario context for the current benchmark run. PT-br: Contexto do cenario para a execucao atual do benchmark.</param>
 public class FirebirdExecuteBlockSqlState23000ServiceTest(
         RepoService repo,
         FidelityTestContext context
@@ -16,7 +16,7 @@ public class FirebirdExecuteBlockSqlState23000ServiceTest(
 
     /// <summary>
     /// EN: Creates the table, seeds one row, and executes an EXECUTE BLOCK that handles SQLSTATE 23000.
-    /// PT: Cria a tabela, insere uma linha inicial e executa um EXECUTE BLOCK que trata SQLSTATE 23000.
+    /// PT-br: Cria a tabela, insere uma linha inicial e executa um EXECUTE BLOCK que trata SQLSTATE 23000.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {

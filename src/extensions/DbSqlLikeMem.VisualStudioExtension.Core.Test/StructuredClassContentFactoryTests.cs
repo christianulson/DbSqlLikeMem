@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies structured class generation for tables, views, sequences, and routines.
-/// PT: Verifica a geracao estruturada de classes para tabelas, views, sequences e rotinas.
+/// PT-br: Verifica a geracao estruturada de classes para tabelas, views, sequences e rotinas.
 /// </summary>
 public sealed class StructuredClassContentFactoryTests
 {
     /// <summary>
     /// EN: Verifies table generation keeps columns, primary keys, indexes, and foreign keys aligned with the console generator.
-    /// PT: Verifica se a geracao de tabela mantem colunas, chaves primarias, indices e chaves estrangeiras alinhados com o gerador de console.
+    /// PT-br: Verifica se a geracao de tabela mantem colunas, chaves primarias, indices e chaves estrangeiras alinhados com o gerador de console.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -37,7 +37,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies view generation follows the same table-like column and key emission path.
-    /// PT: Verifica se a geracao de view segue o mesmo caminho de emissao de colunas e chaves da tabela.
+    /// PT-br: Verifica se a geracao de view segue o mesmo caminho de emissao de colunas e chaves da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -66,7 +66,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies composite primary keys are emitted as a single primary index that contains every key field.
-    /// PT: Verifica se chaves primarias compostas sao emitidas como um unico indice primario contendo todos os campos da chave.
+    /// PT-br: Verifica se chaves primarias compostas sao emitidas como um unico indice primario contendo todos os campos da chave.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -93,7 +93,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies the SQL Server strategy keeps tinyint mapped as a byte and bit mapped as a boolean.
-    /// PT: Verifica se a estrategia de SQL Server mantem tinyint mapeado como byte e bit mapeado como boolean.
+    /// PT-br: Verifica se a estrategia de SQL Server mantem tinyint mapeado como byte e bit mapeado como boolean.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -120,7 +120,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies the default type rules match the console generator for tinyint and bit columns.
-    /// PT: Verifica se as regras de tipo padrao coincidem com o gerador de console para colunas tinyint e bit.
+    /// PT-br: Verifica se as regras de tipo padrao coincidem com o gerador de console para colunas tinyint e bit.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -148,7 +148,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies sequence generation emits the sequence factory and schema registration call.
-    /// PT: Verifica se a geracao de sequence emite a factory da sequence e a chamada de registro do schema.
+    /// PT-br: Verifica se a geracao de sequence emite a factory da sequence e a chamada de registro do schema.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -175,7 +175,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies Oracle sequence defaults are emitted as DbMock sequence lookups.
-    /// PT: Verifica se defaults de sequence do Oracle sao emitidos como consultas de sequence do DbMock.
+    /// PT-br: Verifica se defaults de sequence do Oracle sao emitidos como consultas de sequence do DbMock.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -201,7 +201,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies Oracle numeric columns with scale are generated as Decimal columns with matching decimal places.
-    /// PT: Verifica se colunas numericas Oracle com escala sao geradas como Decimal com a mesma quantidade de casas decimais.
+    /// PT-br: Verifica se colunas numericas Oracle com escala sao geradas como Decimal com a mesma quantidade de casas decimais.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -227,7 +227,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies procedure generation emits routine metadata and adds the procedure to the database snapshot.
-    /// PT: Verifica se a geracao de procedure emite os metadados da rotina e adiciona a procedure ao snapshot do banco.
+    /// PT-br: Verifica se a geracao de procedure emite os metadados da rotina e adiciona a procedure ao snapshot do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]
@@ -255,7 +255,7 @@ public sealed class StructuredClassContentFactoryTests
 
     /// <summary>
     /// EN: Verifies function generation emits routine metadata and adds the function to the database snapshot.
-    /// PT: Verifica se a geracao de function emite os metadados da rotina e adiciona a function ao snapshot do banco.
+    /// PT-br: Verifica se a geracao de function emite os metadados da rotina e adiciona a function ao snapshot do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "StructuredClassContentFactory")]

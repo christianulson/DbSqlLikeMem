@@ -2,16 +2,16 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Formats runtime query debug traces into readable text output.
-/// PT: Formata traces de debug de query em runtime em uma saida textual legivel.
+/// PT-br: Formata traces de debug de query em runtime em uma saida textual legivel.
 /// </summary>
 public static class QueryDebugTraceFormatter
 {
     /// <summary>
     /// EN: Formats one runtime query debug trace as readable text.
-    /// PT: Formata um trace de debug de query em runtime como texto legivel.
+    /// PT-br: Formata um trace de debug de query em runtime como texto legivel.
     /// </summary>
-    /// <param name="trace">EN: Trace to format. PT: Trace a formatar.</param>
-    /// <returns>EN: Formatted text. PT: Texto formatado.</returns>
+    /// <param name="trace">EN: Trace to format. PT-br: Trace a formatar.</param>
+    /// <returns>EN: Formatted text. PT-br: Texto formatado.</returns>
     public static string Format(QueryDebugTrace trace)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(trace, nameof(trace));
@@ -49,10 +49,10 @@ public static class QueryDebugTraceFormatter
 
     /// <summary>
     /// EN: Formats a batch of runtime query debug traces as readable text.
-    /// PT: Formata um lote de traces de debug de query em runtime como texto legivel.
+    /// PT-br: Formata um lote de traces de debug de query em runtime como texto legivel.
     /// </summary>
-    /// <param name="traces">EN: Traces to format. PT: Traces a formatar.</param>
-    /// <returns>EN: Formatted text for the trace batch. PT: Texto formatado para o lote de traces.</returns>
+    /// <param name="traces">EN: Traces to format. PT-br: Traces a formatar.</param>
+    /// <returns>EN: Formatted text for the trace batch. PT-br: Texto formatado para o lote de traces.</returns>
     public static string FormatBatch(IReadOnlyList<QueryDebugTrace> traces)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(traces, nameof(traces));
@@ -132,10 +132,10 @@ public static class QueryDebugTraceFormatter
 
     /// <summary>
     /// EN: Formats one runtime query debug trace as structured JSON.
-    /// PT: Formata um trace de debug de query em runtime como JSON estruturado.
+    /// PT-br: Formata um trace de debug de query em runtime como JSON estruturado.
     /// </summary>
-    /// <param name="trace">EN: Trace to format. PT: Trace a formatar.</param>
-    /// <returns>EN: JSON payload. PT: Payload JSON.</returns>
+    /// <param name="trace">EN: Trace to format. PT-br: Trace a formatar.</param>
+    /// <returns>EN: JSON payload. PT-br: Payload JSON.</returns>
     public static string FormatJson(QueryDebugTrace trace)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(trace, nameof(trace));
@@ -174,10 +174,10 @@ public static class QueryDebugTraceFormatter
 
     /// <summary>
     /// EN: Formats a batch of runtime query debug traces as structured JSON.
-    /// PT: Formata um lote de traces de debug de query em runtime como JSON estruturado.
+    /// PT-br: Formata um lote de traces de debug de query em runtime como JSON estruturado.
     /// </summary>
-    /// <param name="traces">EN: Traces to format. PT: Traces a formatar.</param>
-    /// <returns>EN: JSON payload for the trace batch. PT: Payload JSON para o lote de traces.</returns>
+    /// <param name="traces">EN: Traces to format. PT-br: Traces a formatar.</param>
+    /// <returns>EN: JSON payload for the trace batch. PT-br: Payload JSON para o lote de traces.</returns>
     public static string FormatBatchJson(IReadOnlyList<QueryDebugTrace> traces)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(traces, nameof(traces));

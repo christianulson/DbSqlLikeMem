@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Executes a non-query batch workflow and validates the final row count.
-/// PT: Executa um fluxo de lote sem resultado e valida a contagem final de linhas.
+/// PT-br: Executa um fluxo de lote sem resultado e valida a contagem final de linhas.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,9 +14,9 @@ public class BatchNonQueryServiceTest(
 {
     /// <summary>
     /// EN: Executes a non-query batch workflow and validates the final row count.
-    /// PT: Executa um fluxo de lote sem resultado e valida a contagem final de linhas.
+    /// PT-br: Executa um fluxo de lote sem resultado e valida a contagem final de linhas.
     /// </summary>
-    /// <param name="args">EN: Optional user ids for the insert, update, and delete rows. PT: Ids opcionais de usuario para as linhas de insert, update e delete.</param>
+    /// <param name="args">EN: Optional user ids for the insert, update, and delete rows. PT-br: Ids opcionais de usuario para as linhas de insert, update e delete.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var firstUserId = args.Length > 0 ? (int)args[0] : 1;

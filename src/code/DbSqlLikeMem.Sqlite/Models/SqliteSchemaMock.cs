@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Sqlite;
+namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Schema mock for SQLite databases.
-/// PT: Esquema simulado para bancos SQLite.
+/// PT-br: Esquema simulado para bancos SQLite.
 /// </summary>
 public class SqliteSchemaMock(
     string schemaName,
@@ -12,12 +12,12 @@ public class SqliteSchemaMock(
 {
     /// <summary>
     /// EN: Creates a SQLite table mock for this schema.
-    /// PT: Cria um simulado de tabela SQLite para este schema.
+    /// PT-br: Cria um simulado de tabela SQLite para este schema.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
-    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
-    /// <returns>EN: Table mock. PT: Mock de tabela.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT-br: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT-br: Linhas iniciais.</param>
+    /// <returns>EN: Table mock. PT-br: Mock de tabela.</returns>
     protected override TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,

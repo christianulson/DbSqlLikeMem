@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MariaDb.Test.Strategy;
 
 /// <summary>
 /// EN: Covers transaction commit, rollback, and savepoint scenarios in the MariaDB mock.
-/// PT: Cobre cenarios de commit, rollback e savepoint na mock MariaDB.
+/// PT-br: Cobre cenarios de commit, rollback e savepoint na mock MariaDB.
 /// </summary>
 public sealed class MariaDbTransactionTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MariaDbTransactionTests(
 {
     /// <summary>
     /// EN: Verifies that committing a transaction persists the pending changes.
-    /// PT: Verifica se o commit de uma transacao persiste as alteracoes pendentes.
+    /// PT-br: Verifica se o commit de uma transacao persiste as alteracoes pendentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -40,7 +40,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Verifies that rolling back a transaction discards the pending changes.
-    /// PT: Verifica se o rollback de uma transacao descarta as alteracoes pendentes.
+    /// PT-br: Verifica se o rollback de uma transacao descarta as alteracoes pendentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -68,7 +68,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback to savepoint restores connection temporary-table snapshot.
-    /// PT: Garante que rollback para savepoint restaure snapshot de tabela temporária da conexão.
+    /// PT-br: Garante que rollback para savepoint restaure snapshot de tabela temporária da conexão.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -107,7 +107,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures nested savepoints restore the transaction snapshot from the selected outer point.
-    /// PT: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
+    /// PT-br: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -154,7 +154,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures releasing a savepoint without an active transaction keeps the actionable runtime message in MariaDB.
-    /// PT: Garante que liberar um savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MariaDB.
+    /// PT-br: Garante que liberar um savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -173,7 +173,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures releasing an unknown savepoint keeps the actionable runtime message in MariaDB.
-    /// PT: Garante que liberar um savepoint desconhecido mantenha a mensagem acionavel em runtime no MariaDB.
+    /// PT-br: Garante que liberar um savepoint desconhecido mantenha a mensagem acionavel em runtime no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -196,7 +196,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures creating a savepoint with an empty name keeps the existing parameter validation message.
-    /// PT: Garante que criar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// PT-br: Garante que criar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -216,7 +216,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures releasing a savepoint with an empty name keeps the existing parameter validation message.
-    /// PT: Garante que liberar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// PT-br: Garante que liberar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -236,7 +236,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures creating a savepoint without an active transaction keeps the actionable runtime message in MariaDB.
-    /// PT: Garante que criar um savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MariaDB.
+    /// PT-br: Garante que criar um savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -255,7 +255,7 @@ public sealed class MariaDbTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback to savepoint without an active transaction keeps the actionable runtime message in MariaDB.
-    /// PT: Garante que rollback para savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MariaDB.
+    /// PT-br: Garante que rollback para savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

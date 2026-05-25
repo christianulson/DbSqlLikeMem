@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird;
 
 /// <summary>
 /// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
-/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
+/// PT-br: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
 /// </summary>
 public class FirebirdCommandMock(
     FirebirdConnectionMock? connection,
@@ -11,7 +11,7 @@ public class FirebirdCommandMock(
 {
     /// <summary>
     /// EN: Initializes a new command instance without an attached connection or transaction.
-    /// PT: Inicializa uma nova instância de comando sem conexão ou transação associada.
+    /// PT-br: Inicializa uma nova instância de comando sem conexão ou transação associada.
     /// </summary>
     public FirebirdCommandMock()
         : this(null, null)
@@ -24,26 +24,26 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
-    /// PT: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
+    /// PT-br: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
     /// </summary>
     [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
     /// EN: Gets or sets the time, in seconds, to wait for command execution before timing out.
-    /// PT: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
+    /// PT-br: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
     /// </summary>
     public override int CommandTimeout { get; set; }
 
     /// <summary>
     /// EN: Gets or sets whether the command text is raw SQL text or a stored procedure name.
-    /// PT: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
+    /// PT-br: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
     /// EN: Gets or sets the connection associated with this command.
-    /// PT: Obtém ou define a conexão associada a este comando.
+    /// PT-br: Obtém ou define a conexão associada a este comando.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -62,13 +62,13 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Gets the parameter collection associated with this command.
-    /// PT: Obtém a coleção de parâmetros associada a este comando.
+    /// PT-br: Obtém a coleção de parâmetros associada a este comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
     /// EN: Gets or sets the transaction associated with this command.
-    /// PT: Obtém ou define a transação associada a este comando.
+    /// PT-br: Obtém ou define a transação associada a este comando.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -78,32 +78,32 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Gets or sets updated row source.
-    /// PT: Obtém ou define como os resultados do comando são aplicados ao DataRow.
+    /// PT-br: Obtém ou define como os resultados do comando são aplicados ao DataRow.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
 
     /// <summary>
     /// EN: Gets or sets design time visible.
-    /// PT: Obtém ou define visível em tempo de design.
+    /// PT-br: Obtém ou define visível em tempo de design.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
     /// EN: Cancels the current command execution.
-    /// PT: Cancela a execução atual do comando.
+    /// PT-br: Cancela a execução atual do comando.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
     /// EN: Creates a new db parameter instance.
-    /// PT: Cria uma nova instância de parâmetro de banco.
+    /// PT-br: Cria uma nova instância de parâmetro de banco.
     /// </summary>
     protected override DbParameter CreateDbParameter()
         => new FbParameter();
 
     /// <summary>
     /// EN: Executes non-query and returns affected rows.
-    /// PT: Executa non-consulta e retorna as linhas afetadas.
+    /// PT-br: Executa non-consulta e retorna as linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -133,7 +133,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um leitor de dados.
+    /// PT-br: Executa o comando e retorna um leitor de dados.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
@@ -196,7 +196,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Executes INSERT and materializes RETURNING result rows when requested.
-    /// PT: Executa INSERT e materializa linhas de resultado de RETURNING quando solicitado.
+    /// PT-br: Executa INSERT e materializa linhas de resultado de RETURNING quando solicitado.
     /// </summary>
     private TableResultMock? ExecuteInsertReturning(SqlInsertQuery query)
     {
@@ -225,7 +225,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Executes UPDATE and materializes RETURNING result rows when requested.
-    /// PT: Executa UPDATE e materializa linhas de resultado de RETURNING quando solicitado.
+    /// PT-br: Executa UPDATE e materializa linhas de resultado de RETURNING quando solicitado.
     /// </summary>
     private TableResultMock? ExecuteUpdateReturning(SqlUpdateQuery query)
     {
@@ -254,7 +254,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Executes DELETE and materializes RETURNING result rows when requested.
-    /// PT: Executa DELETE e materializa linhas de resultado de RETURNING quando solicitado.
+    /// PT-br: Executa DELETE e materializa linhas de resultado de RETURNING quando solicitado.
     /// </summary>
     private TableResultMock? ExecuteDeleteReturning(SqlDeleteQuery query)
     {
@@ -286,7 +286,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Rejects GUID parameters to match the Firebird provider behavior used by stored procedure execution paths.
-    /// PT: Rejeita parametros GUID para corresponder ao comportamento do provedor Firebird usado nos caminhos de execucao de stored procedure.
+    /// PT-br: Rejeita parametros GUID para corresponder ao comportamento do provedor Firebird usado nos caminhos de execucao de stored procedure.
     /// </summary>
     private void ThrowIfUnsupportedGuidParameter()
     {
@@ -303,7 +303,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Builds a RETURNING result set from affected row indexes without cloning full source rows.
-    /// PT: Monta um conjunto de resultado RETURNING a partir dos índices afetados sem clonar linhas completas.
+    /// PT-br: Monta um conjunto de resultado RETURNING a partir dos índices afetados sem clonar linhas completas.
     /// </summary>
     private static TableResultMock BuildReturningResultFromIndexes(
         IReadOnlyList<ReturningProjection> projections,
@@ -337,7 +337,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Creates projection metadata and resolvers for RETURNING items.
-    /// PT: Cria metadados de projeção e resolvedores para itens de RETURNING.
+    /// PT-br: Cria metadados de projeção e resolvedores para itens de RETURNING.
     /// </summary>
     private List<ReturningProjection> BuildReturningProjection(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -390,7 +390,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Gets cached RETURNING projection templates for the current table shape and projection list.
-    /// PT: Obtém templates cacheados de projeção RETURNING para o formato atual da tabela e da lista de projeções.
+    /// PT-br: Obtém templates cacheados de projeção RETURNING para o formato atual da tabela e da lista de projeções.
     /// </summary>
     private IReadOnlyList<ReturningProjectionTemplate> GetReturningProjectionTemplates(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -408,7 +408,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Builds cached RETURNING projection templates from parsed expressions.
-    /// PT: Monta templates cacheáveis de projeção RETURNING a partir das expressões parseadas.
+    /// PT-br: Monta templates cacheáveis de projeção RETURNING a partir das expressões parseadas.
     /// </summary>
     private IReadOnlyList<ReturningProjectionTemplate> BuildReturningProjectionTemplates(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -482,7 +482,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Appends cached templates for all table columns in ordinal order.
-    /// PT: Adiciona templates cacheáveis para todas as colunas da tabela na ordem ordinal.
+    /// PT-br: Adiciona templates cacheáveis para todas as colunas da tabela na ordem ordinal.
     /// </summary>
     private static void AppendAllColumnTemplates(
         ICollection<ReturningProjectionTemplate> templates,
@@ -495,7 +495,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Appends a cached template for a single column projection.
-    /// PT: Adiciona um template cacheável para a projeção de uma única coluna.
+    /// PT-br: Adiciona um template cacheável para a projeção de uma única coluna.
     /// </summary>
     private static void AppendColumnTemplate(
         ICollection<ReturningProjectionTemplate> templates,
@@ -510,7 +510,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Appends a cached template for a resolved table column.
-    /// PT: Adiciona um template cacheável para uma coluna da tabela já resolvida.
+    /// PT-br: Adiciona um template cacheável para uma coluna da tabela já resolvida.
     /// </summary>
     private static void AppendColumnTemplate(
         ICollection<ReturningProjectionTemplate> templates,
@@ -532,7 +532,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Finds row indexes matched by simple WHERE conditions used by DML strategies.
-    /// PT: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
+    /// PT-br: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
     /// </summary>
     private List<int> MatchRowIndexes(
         ITableMock table,
@@ -553,7 +553,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Normalizes a qualified column reference to a table-local column name.
-    /// PT: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
+    /// PT-br: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
     /// </summary>
     private static string NormalizeColumnReference(string rawColumnName)
     {
@@ -566,7 +566,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Builds a cache key for RETURNING projection templates from table identity, schema and projection text.
-    /// PT: Monta uma chave de cache para templates de projeção RETURNING a partir da identidade da tabela, esquema e texto da projeção.
+    /// PT-br: Monta uma chave de cache para templates de projeção RETURNING a partir da identidade da tabela, esquema e texto da projeção.
     /// </summary>
     private static string BuildReturningProjectionCacheKey(
         IReadOnlyList<SqlSelectItem> returningItems,
@@ -581,7 +581,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Builds a normalized lookup for current parameter values used by cached RETURNING plans.
-    /// PT: Monta um lookup normalizado para os valores atuais dos parâmetros usados por planos cacheados de RETURNING.
+    /// PT-br: Monta um lookup normalizado para os valores atuais dos parâmetros usados por planos cacheados de RETURNING.
     /// </summary>
     private Dictionary<string, object?> BuildParameterValueLookup()
     {
@@ -593,7 +593,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Normalizes a SQL parameter placeholder name for cache and lookup operations.
-    /// PT: Normaliza o nome de um placeholder de parâmetro SQL para operações de cache e lookup.
+    /// PT-br: Normaliza o nome de um placeholder de parâmetro SQL para operações de cache e lookup.
     /// </summary>
     private static string NormalizeParameterName(string? rawName)
     {
@@ -605,7 +605,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Tries to resolve the target table from an AST table source.
-    /// PT: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
+    /// PT-br: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
@@ -638,7 +638,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a scalar value.
-    /// PT: Executa o comando e retorna um valor escalar.
+    /// PT-br: Executa o comando e retorna um valor escalar.
     /// </summary>
     public override object? ExecuteScalar()
     {
@@ -665,7 +665,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Represents Prepare.
-    /// PT: Representa Prepare.
+    /// PT-br: Representa Prepare.
     /// </summary>
     public override void Prepare() { }
 
@@ -680,7 +680,7 @@ public class FirebirdCommandMock(
 
     /// <summary>
     /// EN: Releases resources used by this instance.
-    /// PT: Libera os recursos usados por esta instância.
+    /// PT-br: Libera os recursos usados por esta instância.
     /// </summary>
     protected override void Dispose(bool disposing)
     {

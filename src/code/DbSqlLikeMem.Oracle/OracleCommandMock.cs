@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
-/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
+/// PT-br: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
 /// </summary>
 public class OracleCommandMock(
     OracleConnectionMock? connection,
@@ -15,7 +15,7 @@ public class OracleCommandMock(
 {
     /// <summary>
     /// EN: Initializes a new command instance without an attached connection or transaction.
-    /// PT: Inicializa uma nova instância de comando sem conexão ou transação associada.
+    /// PT-br: Inicializa uma nova instância de comando sem conexão ou transação associada.
     /// </summary>
     public OracleCommandMock() : this(null, null)
     {
@@ -25,25 +25,25 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
-    /// PT: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
+    /// PT-br: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
     /// </summary>
     [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
     /// EN: Gets or sets the time, in seconds, to wait for command execution before timing out.
-    /// PT: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
+    /// PT-br: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
     /// </summary>
     public override int CommandTimeout { get; set; }
     /// <summary>
     /// EN: Gets or sets whether the command text is raw SQL text or a stored procedure name.
-    /// PT: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
+    /// PT-br: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
     /// EN: Gets or sets the connection associated with this command.
-    /// PT: Obtém ou define a conexão associada a este comando.
+    /// PT-br: Obtém ou define a conexão associada a este comando.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -54,13 +54,13 @@ public class OracleCommandMock(
     private readonly OracleDataParameterCollectionMock collectionMock = [];
     /// <summary>
     /// EN: Gets the parameter collection associated with this command.
-    /// PT: Obtém a coleção de parâmetros associada a este comando.
+    /// PT-br: Obtém a coleção de parâmetros associada a este comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
     /// EN: Gets or sets the transaction associated with this command.
-    /// PT: Obtém ou define a transação associada a este comando.
+    /// PT-br: Obtém ou define a transação associada a este comando.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -70,32 +70,32 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Gets or sets updated row source.
-    /// PT: Obtém ou define como os resultados do comando são aplicados ao DataRow.
+    /// PT-br: Obtém ou define como os resultados do comando são aplicados ao DataRow.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
 
     /// <summary>
     /// EN: Gets or sets design time visible.
-    /// PT: Obtém ou define visível em tempo de design.
+    /// PT-br: Obtém ou define visível em tempo de design.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
     /// EN: Cancels the current command execution.
-    /// PT: Cancela a execução atual do comando.
+    /// PT-br: Cancela a execução atual do comando.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
     /// EN: Creates a new db parameter instance.
-    /// PT: Cria uma nova instância de parâmetro de banco.
+    /// PT-br: Cria uma nova instância de parâmetro de banco.
     /// </summary>
     protected override DbParameter CreateDbParameter()
         => new OracleParameter();
 
     /// <summary>
     /// EN: Executes non-query and returns affected rows.
-    /// PT: Executa non-consulta e retorna as linhas afetadas.
+    /// PT-br: Executa non-consulta e retorna as linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -165,7 +165,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um leitor de dados.
+    /// PT-br: Executa o comando e retorna um leitor de dados.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
@@ -243,7 +243,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Executes DML and populates Oracle RETURNING INTO output parameters.
-    /// PT: Executa DML e preenche parâmetros de saída de RETURNING INTO no Oracle.
+    /// PT-br: Executa DML e preenche parâmetros de saída de RETURNING INTO no Oracle.
     /// </summary>
     private DmlExecutionResult ExecuteNonQueryWithReturningInto(
         SqlQueryBase query,
@@ -262,7 +262,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Executes INSERT for RETURNING INTO and reads only the first inserted row needed by output parameters.
-    /// PT: Executa INSERT para RETURNING INTO e lê apenas a primeira linha inserida necessária aos parâmetros de saída.
+    /// PT-br: Executa INSERT para RETURNING INTO e lê apenas a primeira linha inserida necessária aos parâmetros de saída.
     /// </summary>
     private DmlExecutionResult ExecuteInsertWithReturningInto(
         SqlInsertQuery query,
@@ -280,7 +280,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Executes UPDATE for RETURNING INTO and reads only the first updated row needed by output parameters.
-    /// PT: Executa UPDATE para RETURNING INTO e lê apenas a primeira linha atualizada necessária aos parâmetros de saída.
+    /// PT-br: Executa UPDATE para RETURNING INTO e lê apenas a primeira linha atualizada necessária aos parâmetros de saída.
     /// </summary>
     private DmlExecutionResult ExecuteUpdateWithReturningInto(
         SqlUpdateQuery query,
@@ -298,7 +298,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Executes DELETE for RETURNING INTO and snapshots only the first deleted row needed by output parameters.
-    /// PT: Executa DELETE para RETURNING INTO e gera snapshot apenas da primeira linha excluída necessária aos parâmetros de saída.
+    /// PT-br: Executa DELETE para RETURNING INTO e gera snapshot apenas da primeira linha excluída necessária aos parâmetros de saída.
     /// </summary>
     private DmlExecutionResult ExecuteDeleteWithReturningInto(
         SqlDeleteQuery query,
@@ -316,7 +316,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Populates Oracle output parameters from first affected row according to RETURNING INTO mapping.
-    /// PT: Preenche parâmetros de saída do Oracle a partir da primeira linha afetada conforme mapeamento RETURNING INTO.
+    /// PT-br: Preenche parâmetros de saída do Oracle a partir da primeira linha afetada conforme mapeamento RETURNING INTO.
     /// </summary>
     private void PopulateReturningIntoParameters(
         OracleReturningIntoClause clause,
@@ -346,7 +346,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Resolves parameter by name accepting Oracle prefixes.
-    /// PT: ResolveRowsFrameRange parâmetro por nome aceitando prefixes do Oracle.
+    /// PT-br: ResolveRowsFrameRange parâmetro por nome aceitando prefixes do Oracle.
     /// </summary>
     private DbParameter? ResolveParameter(string rawName)
     {
@@ -363,7 +363,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Parses Oracle RETURNING ... INTO ... suffix and rewrites SQL for core parser.
-    /// PT: Faz parse do sufixo Oracle RETURNING ... INTO ... e reescreve SQL para o parser core.
+    /// PT-br: Faz parse do sufixo Oracle RETURNING ... INTO ... e reescreve SQL para o parser core.
     /// </summary>
     private static bool TryExtractOracleReturningIntoClause(
         string sql,
@@ -405,7 +405,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Finds the first top-level keyword occurrence outside quoted literals and identifiers.
-    /// PT: Encontra a primeira ocorrência de palavra-chave em nível de topo fora de literais e identificadores entre aspas.
+    /// PT-br: Encontra a primeira ocorrência de palavra-chave em nível de topo fora de literais e identificadores entre aspas.
     /// </summary>
     private static int FindFirstTopLevelKeyword(string text, string keyword, int startIndex)
     {
@@ -488,7 +488,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Finds the last top-level keyword occurrence outside quoted literals and identifiers.
-    /// PT: Encontra a última ocorrência de palavra-chave em nível de topo fora de literais e identificadores entre aspas.
+    /// PT-br: Encontra a última ocorrência de palavra-chave em nível de topo fora de literais e identificadores entre aspas.
     /// </summary>
     private static int FindLastTopLevelKeyword(string text, string keyword)
     {
@@ -509,14 +509,14 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Checks whether character can be part of an unquoted identifier for keyword boundary checks.
-    /// PT: Verifica se o caractere pode compor um identificador sem aspas para validação de fronteira de palavra-chave.
+    /// PT-br: Verifica se o caractere pode compor um identificador sem aspas para validação de fronteira de palavra-chave.
     /// </summary>
     private static bool IsIdentifierChar(char ch)
         => ch == '_' || char.IsLetterOrDigit(ch);
 
     /// <summary>
     /// EN: Splits comma-separated text honoring simple quote and parenthesis nesting.
-    /// PT: Divide texto separado por vírgula respeitando aspas simples e aninhamento de parênteses.
+    /// PT-br: Divide texto separado por vírgula respeitando aspas simples e aninhamento de parênteses.
     /// </summary>
     private static List<string> SplitTopLevelComma(string text)
     {
@@ -554,7 +554,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Finds row indexes matched by simple WHERE conditions used by DML strategies.
-    /// PT: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
+    /// PT-br: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
     /// </summary>
     private List<int> MatchRowIndexes(
         ITableMock table,
@@ -575,7 +575,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Normalizes a qualified column reference to a table-local column name.
-    /// PT: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
+    /// PT-br: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
     /// </summary>
     private static string NormalizeColumnReference(string rawColumnName)
     {
@@ -588,14 +588,14 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Creates an immutable snapshot of a row dictionary.
-    /// PT: Cria um snapshot imutável de um dicionário de linha.
+    /// PT-br: Cria um snapshot imutável de um dicionário de linha.
     /// </summary>
     private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
         => row.ToDictionary(_ => _.Key, _ => _.Value);
 
     /// <summary>
     /// EN: Tries to get the first valid matched row by index without cloning.
-    /// PT: Tenta obter a primeira linha válida encontrada pelo índice sem clonar.
+    /// PT-br: Tenta obter a primeira linha válida encontrada pelo índice sem clonar.
     /// </summary>
     private static IReadOnlyDictionary<int, object?>? TryGetFirstMatchedRow(
         ITableMock table,
@@ -612,7 +612,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Tries to get an immutable snapshot of the first valid matched row.
-    /// PT: Tenta obter um snapshot imutável da primeira linha válida encontrada.
+    /// PT-br: Tenta obter um snapshot imutável da primeira linha válida encontrada.
     /// </summary>
     private static IReadOnlyDictionary<int, object?>? TryGetFirstMatchedRowSnapshot(
         ITableMock table,
@@ -624,7 +624,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Tries to resolve the target table from an AST table source.
-    /// PT: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
+    /// PT-br: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
@@ -643,7 +643,7 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a scalar value.
-    /// PT: Executa o comando e retorna um valor escalar.
+    /// PT-br: Executa o comando e retorna um valor escalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -670,13 +670,13 @@ public class OracleCommandMock(
 
     /// <summary>
     /// EN: Represents Prepare.
-    /// PT: Representa Prepare.
+    /// PT-br: Representa Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
     /// EN: Releases resources used by this instance.
-    /// PT: Libera os recursos usados por esta instância.
+    /// PT-br: Libera os recursos usados por esta instância.
     /// </summary>
     protected override void Dispose(bool disposing)
     {

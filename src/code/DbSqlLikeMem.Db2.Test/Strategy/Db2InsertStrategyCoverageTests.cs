@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Test.Strategy;
+namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
 /// EN: Covers multi-row and select-based INSERT scenarios in the Db2 mock.
-/// PT: Cobre cenarios de INSERT com multiplas linhas e baseado em SELECT no mock Db2.
+/// PT-br: Cobre cenarios de INSERT com multiplas linhas e baseado em SELECT no mock Db2.
 /// </summary>
 public sealed class Db2InsertStrategyCoverageTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class Db2InsertStrategyCoverageTests(
 {
     /// <summary>
     /// EN: Verifies that a multi-row VALUES insert adds every row.
-    /// PT: Verifica se um INSERT VALUES com varias linhas adiciona todas as linhas.
+    /// PT-br: Verifica se um INSERT VALUES com varias linhas adiciona todas as linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -39,7 +39,7 @@ public sealed class Db2InsertStrategyCoverageTests(
 
     /// <summary>
     /// EN: Verifies that omitting an identity column lets Db2 generate the value.
-    /// PT: Verifica se omitir a coluna identity permite ao Db2 gerar o valor.
+    /// PT-br: Verifica se omitir a coluna identity permite ao Db2 gerar o valor.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -70,7 +70,7 @@ public sealed class Db2InsertStrategyCoverageTests(
 
     /// <summary>
     /// EN: Verifies that INSERT ... SELECT copies rows from the source query.
-    /// PT: Verifica se INSERT ... SELECT copia linhas da consulta de origem.
+    /// PT-br: Verifica se INSERT ... SELECT copia linhas da consulta de origem.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

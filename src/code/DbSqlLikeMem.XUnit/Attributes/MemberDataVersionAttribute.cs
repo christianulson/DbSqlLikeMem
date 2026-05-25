@@ -10,27 +10,28 @@ public abstract class MemberDataVersionAttribute
 {
     /// <summary>
     /// EN: Gets or sets SpecificVersions.
-    /// PT: Obtém ou define SpecificVersions.
+    /// PT-br: Obtem ou define SpecificVersions.
     /// </summary>
     public int[]? SpecificVersions { get; set; }
     /// <summary>
     /// EN: Gets or sets VersionGraterOrEqual.
-    /// PT: Obtém ou define VersionGraterOrEqual.
+    /// PT-br: Obtem ou define VersionGraterOrEqual.
     /// </summary>
     public int VersionGraterOrEqual { get; set; } = int.MinValue;
     /// <summary>
     /// EN: Gets or sets VersionLessOrEqual.
-    /// PT: Obtém ou define VersionLessOrEqual.
+    /// PT-br: Obtem ou define VersionLessOrEqual.
     /// </summary>
     public int VersionLessOrEqual { get; set; } = int.MinValue;
     /// <summary>
     /// EN: Gets or sets VersionLowerThan.
-    /// PT: Obtém ou define VersionLowerThan.
+    /// PT-br: Obtem ou define VersionLowerThan.
     /// </summary>
     public int VersionLowerThan { get; set; } = int.MinValue;
 
     /// <summary>
-    /// DbVersions to be used in the test when SpecificVersions is null.
+    /// EN: Gets the default database versions used when SpecificVersions is null.
+    /// PT-br: Obtem as versoes padrao de banco usadas quando SpecificVersions e null.
     /// </summary>
     protected abstract IEnumerable<int> Versions { get; }
 

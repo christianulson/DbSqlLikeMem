@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// EN: Covers MySQL stored procedure execution scenarios against the Dapper provider.
-/// PT: Cobre cenarios de execucao de stored procedures MySQL contra o provedor Dapper.
+/// PT-br: Cobre cenarios de execucao de stored procedures MySQL contra o provedor Dapper.
 /// </summary>
 public sealed class StoredProcedureExecutionTests(
     ITestOutputHelper helper

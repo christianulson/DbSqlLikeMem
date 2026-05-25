@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// EN: Covers MySQL WHERE parser and executor scenarios over a direct mock connection.
-/// PT: Cobre cenarios do parser e executor de WHERE MySQL sobre uma conexao mock direta.
+/// PT-br: Cobre cenarios do parser e executor de WHERE MySQL sobre uma conexao mock direta.
 /// </summary>
 public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory MySQL database used by the WHERE parser and executor coverage tests.
-    /// PT: Cria o banco MySQL em memoria usado pelos testes de cobertura do parser e executor de WHERE.
+    /// PT-br: Cria o banco MySQL em memoria usado pelos testes de cobertura do parser e executor de WHERE.
     /// </summary>
     public MySqlWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {
@@ -35,7 +35,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies indexed equality predicates update index lookup metrics.
-    /// PT: Verifica se predicados de igualdade indexada atualizam as metricas de busca por indice.
+    /// PT-br: Verifica se predicados de igualdade indexada atualizam as metricas de busca por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -56,7 +56,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies parameterized indexed equality predicates update composite index lookup metrics.
-    /// PT: Verifica se predicados de igualdade indexada parametrizados atualizam as metricas de busca por indice composto.
+    /// PT-br: Verifica se predicados de igualdade indexada parametrizados atualizam as metricas de busca por indice composto.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -85,7 +85,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies covering indexes expose the requested columns.
-    /// PT: Verifica se indices de cobertura expõem as colunas solicitadas.
+    /// PT-br: Verifica se indices de cobertura expõem as colunas solicitadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -110,7 +110,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies missing indexed columns fall back to the table row.
-    /// PT: Verifica se colunas ausentes no indice voltam para a linha da tabela.
+    /// PT-br: Verifica se colunas ausentes no indice voltam para a linha da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -132,7 +132,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies non-indexed predicates do not increase index lookup metrics.
-    /// PT: Verifica se predicados nao indexados nao aumentam as metricas de busca por indice.
+    /// PT-br: Verifica se predicados nao indexados nao aumentam as metricas de busca por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -152,7 +152,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR JOIN validates missing indexes on joined tables.
-    /// PT: Garante que FORCE INDEX FOR JOIN valide índices inexistentes em tabelas de JOIN.
+    /// PT-br: Garante que FORCE INDEX FOR JOIN valide índices inexistentes em tabelas de JOIN.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -168,7 +168,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR JOIN with existing index keeps join execution working.
-    /// PT: Garante que FORCE INDEX FOR JOIN com índice existente mantenha a execução do join.
+    /// PT-br: Garante que FORCE INDEX FOR JOIN com índice existente mantenha a execução do join.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -184,7 +184,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures USE INDEX prioritizes the hinted index when available.
-    /// PT: Garante que USE INDEX priorize o índice indicado quando disponível.
+    /// PT-br: Garante que USE INDEX priorize o índice indicado quando disponível.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -205,7 +205,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures IGNORE INDEX prevents using the ignored index.
-    /// PT: Garante que IGNORE INDEX evite o uso do índice ignorado.
+    /// PT-br: Garante que IGNORE INDEX evite o uso do índice ignorado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -226,7 +226,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX with a missing index fails fast.
-    /// PT: Garante que FORCE INDEX com índice inexistente falhe rapidamente.
+    /// PT-br: Garante que FORCE INDEX com índice inexistente falhe rapidamente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -240,7 +240,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR ORDER BY validates referenced indexes even with minimal runtime scope handling.
-    /// PT: Garante que FORCE INDEX FOR ORDER BY valide índices referenciados mesmo com tratamento mínimo de escopo em runtime.
+    /// PT-br: Garante que FORCE INDEX FOR ORDER BY valide índices referenciados mesmo com tratamento mínimo de escopo em runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -255,7 +255,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR GROUP BY validates referenced indexes even with minimal runtime scope handling.
-    /// PT: Garante que FORCE INDEX FOR GROUP BY valide índices referenciados mesmo com tratamento mínimo de escopo em runtime.
+    /// PT-br: Garante que FORCE INDEX FOR GROUP BY valide índices referenciados mesmo com tratamento mínimo de escopo em runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -269,7 +269,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR ORDER BY missing index is ignored when query has no ORDER BY clause.
-    /// PT: Garante que FORCE INDEX FOR ORDER BY com índice inexistente seja ignorado quando a consulta não tem ORDER BY.
+    /// PT-br: Garante que FORCE INDEX FOR ORDER BY com índice inexistente seja ignorado quando a consulta não tem ORDER BY.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -285,7 +285,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR GROUP BY missing index is ignored when query has no GROUP BY clause.
-    /// PT: Garante que FORCE INDEX FOR GROUP BY com índice inexistente seja ignorado quando a consulta não tem GROUP BY.
+    /// PT-br: Garante que FORCE INDEX FOR GROUP BY com índice inexistente seja ignorado quando a consulta não tem GROUP BY.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -301,7 +301,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR GROUP BY keeps default row-access planning when hinted index exists.
-    /// PT: Garante que FORCE INDEX FOR GROUP BY mantenha o planejamento padrão de acesso a linhas quando o índice existe.
+    /// PT-br: Garante que FORCE INDEX FOR GROUP BY mantenha o planejamento padrão de acesso a linhas quando o índice existe.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -321,7 +321,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures FORCE INDEX FOR ORDER BY keeps default row-access planning when hinted index exists.
-    /// PT: Garante que FORCE INDEX FOR ORDER BY mantenha o planejamento padrão de acesso a linhas quando o índice existe.
+    /// PT-br: Garante que FORCE INDEX FOR ORDER BY mantenha o planejamento padrão de acesso a linhas quando o índice existe.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -340,7 +340,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures PRIMARY hint resolves to a primary-key-equivalent index in execution.
-    /// PT: Garante que hint PRIMARY resolva para um índice equivalente à chave primária na execução.
+    /// PT-br: Garante que hint PRIMARY resolva para um índice equivalente à chave primária na execução.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -368,7 +368,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures ORDER BY ordinal position works for projected columns.
-    /// PT: Garante que ORDER BY por posição ordinal funcione para colunas projetadas.
+    /// PT-br: Garante que ORDER BY por posição ordinal funcione para colunas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -383,7 +383,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures ORDER BY alias works for expression projections.
-    /// PT: Garante que ORDER BY por alias funcione para projeções com expressão.
+    /// PT-br: Garante que ORDER BY por alias funcione para projeções com expressão.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -398,7 +398,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures ORDER BY alias works when alias differs from base column name.
-    /// PT: Garante que ORDER BY por alias funcione quando o alias difere do nome da coluna base.
+    /// PT-br: Garante que ORDER BY por alias funcione quando o alias difere do nome da coluna base.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -413,7 +413,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures ORDER BY function expression works in execution.
-    /// PT: Garante que ORDER BY com expressão de função funcione na execução.
+    /// PT-br: Garante que ORDER BY com expressão de função funcione na execução.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -428,7 +428,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures ORDER BY qualified column name works against projected rows.
-    /// PT: Garante que ORDER BY com nome de coluna qualificado funcione contra linhas projetadas.
+    /// PT-br: Garante que ORDER BY com nome de coluna qualificado funcione contra linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -443,7 +443,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures GROUP BY ordinal position groups by the projected column.
-    /// PT: Garante que GROUP BY por posição ordinal agrupe pela coluna projetada.
+    /// PT-br: Garante que GROUP BY por posição ordinal agrupe pela coluna projetada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -460,7 +460,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures GROUP BY ordinal out of range throws invalid operation.
-    /// PT: Garante que GROUP BY ordinal fora do intervalo lance invalid operation.
+    /// PT-br: Garante que GROUP BY ordinal fora do intervalo lance invalid operation.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -474,7 +474,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures HAVING can filter grouped rows by aggregate alias.
-    /// PT: Garante que HAVING filtre linhas agrupadas por alias de agregação.
+    /// PT-br: Garante que HAVING filtre linhas agrupadas por alias de agregação.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -493,7 +493,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures GROUP BY + HAVING + ORDER BY supports alias filtering and ordinal ordering together.
-    /// PT: Garante que GROUP BY + HAVING + ORDER BY suporte filtro por alias e ordenação ordinal em conjunto.
+    /// PT-br: Garante que GROUP BY + HAVING + ORDER BY suporte filtro por alias e ordenação ordinal em conjunto.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -508,7 +508,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures invalid HAVING alias references fail with a clear validation error.
-    /// PT: Garante que referências inválidas de alias no HAVING falhem com erro de validação claro.
+    /// PT-br: Garante que referências inválidas de alias no HAVING falhem com erro de validação claro.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -522,7 +522,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures invalid ORDER BY ordinal remains validated in grouped queries with HAVING.
-    /// PT: Garante que ordinal inválido em ORDER BY continue validado em queries agrupadas com HAVING.
+    /// PT-br: Garante que ordinal inválido em ORDER BY continue validado em queries agrupadas com HAVING.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -536,7 +536,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IN filters rows as expected.
-    /// PT: Verifica se IN filtra as linhas como esperado.
+    /// PT-br: Verifica se IN filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -550,7 +550,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IS NOT NULL filters rows as expected.
-    /// PT: Verifica se IS NOT NULL filtra as linhas como esperado.
+    /// PT-br: Verifica se IS NOT NULL filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -562,7 +562,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies comparison operators return the expected rows.
-    /// PT: Verifica se operadores de comparacao retornam as linhas esperadas.
+    /// PT-br: Verifica se operadores de comparacao retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -577,7 +577,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies LIKE filters rows as expected.
-    /// PT: Verifica se LIKE filtra as linhas como esperado.
+    /// PT-br: Verifica se LIKE filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -590,7 +590,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies FIND_IN_SET filters rows as expected.
-    /// PT: Verifica se FIND_IN_SET filtra as linhas como esperado.
+    /// PT-br: Verifica se FIND_IN_SET filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -603,7 +603,7 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies mixed-case AND is parsed as a logical conjunction.
-    /// PT: Verifica se AND em maiusculas e minusculas mistas e interpretado como conjuncao logica.
+    /// PT-br: Verifica se AND em maiusculas e minusculas mistas e interpretado como conjuncao logica.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlWhereParserAndExecutor")]
@@ -618,9 +618,9 @@ public sealed class MySqlWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

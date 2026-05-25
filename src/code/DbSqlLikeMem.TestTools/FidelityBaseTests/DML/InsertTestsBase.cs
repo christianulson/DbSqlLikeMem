@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.Tests.DML;
 
 /// <summary>
 /// EN: Provides shared DML fidelity tests for insert workflows across mock and container runs.
-/// PT: Fornece testes de fidelidade DML compartilhados para fluxos de insert entre mock e container.
+/// PT-br: Fornece testes de fidelidade DML compartilhados para fluxos de insert entre mock e container.
 /// </summary>
 public abstract class InsertTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -17,7 +17,7 @@ public abstract class InsertTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that a single insert persists one row for the current provider.
-    /// PT: Verifica se um insert unico persiste uma linha para o provedor atual.
+    /// PT-br: Verifica se um insert unico persiste uma linha para o provedor atual.
     /// </summary>
     [FidelityFact]
     public Task InsertSingleTest()
@@ -25,7 +25,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies the parameter insert benchmark persists one row for the current provider.
-    /// PT: Verifica se o benchmark de insert parametrizado persiste uma linha para o provedor atual.
+    /// PT-br: Verifica se o benchmark de insert parametrizado persiste uma linha para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task ParameterInsertSingleTest()
@@ -37,7 +37,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that ten sequential inserts persist ten rows for the current provider.
-    /// PT: Verifica se dez inserts sequenciais persistem dez linhas para o provedor atual.
+    /// PT-br: Verifica se dez inserts sequenciais persistem dez linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public Task InsertBatch10Test()
@@ -45,7 +45,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that one hundred sequential inserts persist one hundred rows for the current provider.
-    /// PT: Verifica se cem inserts sequenciais persistem cem linhas para o provedor atual.
+    /// PT-br: Verifica se cem inserts sequenciais persistem cem linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public Task InsertBatch100Test()
@@ -53,7 +53,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that one hundred parallel inserts persist one hundred rows for the current provider.
-    /// PT: Verifica se cem inserts paralelos persistem cem linhas para o provedor atual.
+    /// PT-br: Verifica se cem inserts paralelos persistem cem linhas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task InsertBatch100ParallelTest()
@@ -65,7 +65,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that a single insert reports a valid affected-row count for the current provider.
-    /// PT: Verifica se um insert unico retorna uma contagem valida de linhas afetadas para o provedor atual.
+    /// PT-br: Verifica se um insert unico retorna uma contagem valida de linhas afetadas para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task RowCountAfterInsertTest()
@@ -77,7 +77,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that inserting a row while omitting NOT NULL columns with defaults persists the provider defaults.
-    /// PT: Verifica se inserir uma linha omitindo colunas NOT NULL com default persiste os valores padrao do provedor.
+    /// PT-br: Verifica se inserir uma linha omitindo colunas NOT NULL com default persiste os valores padrao do provedor.
     /// </summary>
     [FidelityFact]
     public async Task InsertDefaultColumnsTest()
@@ -97,7 +97,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that nullable columns with defaults are filled while nullable columns without defaults remain null.
-    /// PT: Verifica se colunas anulaveis com default sao preenchidas enquanto colunas anulaveis sem default permanecem nulas.
+    /// PT-br: Verifica se colunas anulaveis com default sao preenchidas enquanto colunas anulaveis sem default permanecem nulas.
     /// </summary>
     [FidelityFact]
     public async Task InsertNullableColumnsTest()
@@ -116,7 +116,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that omitting a required NOT NULL column without a default causes the provider to reject the insert.
-    /// PT: Verifica se omitir uma coluna NOT NULL obrigatoria sem default faz o provedor rejeitar o insert.
+    /// PT-br: Verifica se omitir uma coluna NOT NULL obrigatoria sem default faz o provedor rejeitar o insert.
     /// </summary>
     [FidelityFact]
     public async Task InsertNotNullWithoutDefaultTest()
@@ -130,7 +130,7 @@ public abstract class InsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that inserts starting from a custom id persist the expected key range and row names for the current provider.
-    /// PT: Verifica se inserts iniciando em um id customizado persistem a faixa de chaves e os nomes esperados para o provedor atual.
+    /// PT-br: Verifica se inserts iniciando em um id customizado persistem a faixa de chaves e os nomes esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task InsertCustomStartIdTest()

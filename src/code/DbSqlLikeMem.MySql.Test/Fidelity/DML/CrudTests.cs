@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MySql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs MySQL fidelity tests for the shared CRUD workflows.
-/// PT: Executa testes de fidelidade MySQL para os fluxos compartilhados de CRUD.
+/// PT-br: Executa testes de fidelidade MySQL para os fluxos compartilhados de CRUD.
 /// </summary>
 public class CrudTests(
     ITestOutputHelper helper

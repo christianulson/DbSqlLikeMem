@@ -2,10 +2,10 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Executes the update that matches rows through an IN subquery with a table alias and returns the persisted rowset.
-/// PT: Executa o update que casa linhas por meio de uma subquery IN com alias de tabela e retorna o conjunto persistido de linhas.
+/// PT-br: Executa o update que casa linhas por meio de uma subquery IN com alias de tabela e retorna o conjunto persistido de linhas.
 /// </summary>
-/// <param name="repo">EN: The repository used to execute SQL. PT: O repositório usado para executar SQL.</param>
-/// <param name="context">EN: The active fidelity-test context. PT: O contexto ativo do teste de fidelidade.</param>
+/// <param name="repo">EN: The repository used to execute SQL. PT-br: O repositório usado para executar SQL.</param>
+/// <param name="context">EN: The active fidelity-test context. PT-br: O contexto ativo do teste de fidelidade.</param>
 public sealed class UpdateWithInSubqueryServiceTest(
     RepoService repo,
     FidelityTestContext context
@@ -13,7 +13,7 @@ public sealed class UpdateWithInSubqueryServiceTest(
 {
     /// <summary>
     /// EN: Updates the matching row through an IN subquery with a table alias and returns the affected row count and final rowset.
-    /// PT: Atualiza a linha correspondente por meio de uma subquery IN com alias de tabela e retorna a contagem afetada e o conjunto final de linhas.
+    /// PT-br: Atualiza a linha correspondente por meio de uma subquery IN com alias de tabela e retorna a contagem afetada e o conjunto final de linhas.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {

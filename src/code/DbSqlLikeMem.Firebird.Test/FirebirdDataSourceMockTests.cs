@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for the Firebird data source mock surface.
-/// PT: Contem testes para a superficie do mock de fonte de dados Firebird.
+/// PT-br: Contem testes para a superficie do mock de fonte de dados Firebird.
 /// </summary>
 public sealed class FirebirdDataSourceMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdDataSourceMockTests(
 {
     /// <summary>
     /// EN: Verifies the mock data source exposes an empty connection string and creates connections bound to the supplied database.
-    /// PT: Verifica se a fonte de dados simulada expõe string de conexão vazia e cria conexões vinculadas ao banco informado.
+    /// PT-br: Verifica se a fonte de dados simulada expõe string de conexão vazia e cria conexões vinculadas ao banco informado.
     /// </summary>
     [Fact]
     public void DataSource_ShouldExposeEmptyConnectionString_AndCreateBoundConnections()

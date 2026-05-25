@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2;
 
 /// <summary>
 /// EN: Represents Db2 Transaction Mock.
-/// PT: Representa a transacao simulada do Db2.
+/// PT-br: Representa a transacao simulada do Db2.
 /// </summary>
 public class Db2TransactionMock(
         Db2ConnectionMock cnn,

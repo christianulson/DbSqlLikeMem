@@ -76,7 +76,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     /// <summary>
     /// EN: Initializes the view model, optionally loads persisted state from the requested workspace scope, and builds the initial tree.
-    /// PT: Inicializa o view model, carrega o estado persistido do escopo de workspace solicitado quando informado e monta a arvore inicial.
+    /// PT-br: Inicializa o view model, carrega o estado persistido do escopo de workspace solicitado quando informado e monta a arvore inicial.
     /// </summary>
     public DbSqlLikeMemToolWindowViewModel(bool loadPersistedState = true, string? storageScopeKey = null)
     {
@@ -459,7 +459,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
     /// <summary>
     /// EN: Replaces the current state with the harness connections and refreshes the database objects.
-    /// PT: Substitui o estado atual pelas conexoes do harness e atualiza os objetos de banco.
+    /// PT-br: Substitui o estado atual pelas conexoes do harness e atualiza os objetos de banco.
     /// </summary>
     public async Task LoadHarnessConnectionsAsync(IReadOnlyCollection<ConnectionDefinition> harnessConnections)
     {

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Validates SqlServer service collection registration helpers.
-/// PT: Valida os helpers de registro de SqlServer na coleção de serviços.
+/// PT-br: Valida os helpers de registro de SqlServer na coleção de serviços.
 /// </summary>
 public sealed class SqlServerServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -21,7 +21,7 @@ public sealed class SqlServerServiceCollectionExtensionsTests(
 
     /// <summary>
     /// EN: Verifies AddSqlServerDbMockTransient registers a transient factory that creates new configured SqlServerDbMock instances on each resolution.
-    /// PT: Verifica se AddSqlServerDbMockTransient registra uma factory transient que cria novas instancias configuradas de SqlServerDbMock em cada resolucao.
+    /// PT-br: Verifica se AddSqlServerDbMockTransient registra uma factory transient que cria novas instancias configuradas de SqlServerDbMock em cada resolucao.
     /// </summary>
     [Fact]
     public void AddSqlServerDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()

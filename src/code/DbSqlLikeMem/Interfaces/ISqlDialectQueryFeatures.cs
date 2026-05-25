@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Exposes query, pagination, DML, and window-function capabilities for a SQL dialect.
-/// PT: Expõe capacidades de query, paginacao, DML e funcoes de janela para um dialeto SQL.
+/// PT-br: Expõe capacidades de query, paginacao, DML e funcoes de janela para um dialeto SQL.
 /// </summary>
 internal interface ISqlDialectQueryFeatures
 {
@@ -34,6 +34,7 @@ internal interface ISqlDialectQueryFeatures
     bool SupportsJsonValueReturningClause { get; }
     bool SupportsMatchAgainstPredicate { get; }
     bool SupportsForJsonClause { get; }
+    bool SupportsDistinctOnClause { get; }
     bool SupportsPivotClause { get; }
     bool SupportsUnpivotClause { get; }
     bool PivotAvgReturnsDecimalForIntegralInputs { get; }

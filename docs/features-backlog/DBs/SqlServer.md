@@ -18,6 +18,9 @@
 - P8 consolidado: paginação por versão (`OFFSET/FETCH`, `TOP`) com gates explícitos de dialeto.
 - Funções-chave do banco: `STRING_AGG`, `STRING_SPLIT`, `ISNULL`, `DATEADD`, `JSON_VALUE`/`OPENJSON` (subset escalar/tabular com schema default/explicito, `strict/lax` e path avançado inicial no mock), `PIVOT`/`UNPIVOT` e `FOR JSON` (`PATH`/`AUTO` em subset inicial) no caminho compartilhado.
 - `DbSqlLikeMem.SqlAzure` compartilha a base do dialeto SQL Server no ciclo atual, com níveis de compatibilidade 100/110/120/130/140/150/160/170 agora mapeados explicitamente para a semântica correspondente de parser por versão (`2008`..`2025`).
+- `RAND` já está coberta como função numérica aleatória do SQL Server e do SQL Azure nas surfaces de mock e Dapper.
+- `COT` já está coberta como função numérica auxiliar do SQL Server e do SQL Azure nas surfaces de mock e Dapper.
+- `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` já estão cobertas como funções transcendentais do SQL Server e do SQL Azure nas surfaces de mock e Dapper.
 - Incremento desta sessão: a suíte dedicada de parser do `SqlAzure` também passou a cobrir `STRING_AGG ... WITHIN GROUP` (positivo, `SELECT` completo e cláusula malformada), reforçando que o caminho shared do SQL Server ficou corretamente projetado para níveis de compatibilidade Azure.
 - Incremento desta sessão: a camada Strategy do `SqlAzure` agora também possui regressões explícitas para semântica transacional herdada do SQL Server (`commit`, `rollback`, isolamento, savepoint e limpeza de sessão), reduzindo risco de drift comportamental no provider Azure.
 - Incremento desta sessão: o executor de `PIVOT` passou a cobrir também `MIN`, `MAX` e `AVG` no caminho compartilhado de `SQL Server/SqlAzure`, além de alinhar `COUNT(expr)`/`SUM(expr)` à semântica agregadora comum do core.

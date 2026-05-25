@@ -6,7 +6,7 @@ namespace DbSqlLikeMem.Oracle.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs Oracle fidelity tests for the shared CRUD workflows.
-/// PT: Executa testes de fidelidade Oracle para os fluxos compartilhados de CRUD.
+/// PT-br: Executa testes de fidelidade Oracle para os fluxos compartilhados de CRUD.
 /// </summary>
 public class CrudTests(
     ITestOutputHelper helper
@@ -19,7 +19,7 @@ public class CrudTests(
 {
     /// <summary>
     /// EN: Verifies UPDATE statements can match and soft-delete rows through an IN subquery that uses a table alias.
-    /// PT: Verifica se UPDATEs podem casar e fazer soft delete de linhas por meio de uma subquery IN que usa alias de tabela.
+    /// PT-br: Verifica se UPDATEs podem casar e fazer soft delete de linhas por meio de uma subquery IN que usa alias de tabela.
     /// </summary>
     [FidelityFact]
     public Task UpdateWithInSubqueryAlias_ShouldRoundTripAcrossMockAndOracle()

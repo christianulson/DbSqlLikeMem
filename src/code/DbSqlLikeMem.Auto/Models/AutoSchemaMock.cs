@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Auto;
 
 /// <summary>
 /// EN: Schema mock for Auto databases.
-/// PT: Esquema simulado para bancos Auto.
+/// PT-br: Esquema simulado para bancos Auto.
 /// </summary>
 public class AutoSchemaMock(
     string schemaName,
@@ -12,12 +12,12 @@ public class AutoSchemaMock(
 {
     /// <summary>
     /// EN: Creates a Auto table mock for this schema.
-    /// PT: Cria um simulado de tabela Auto para este schema.
+    /// PT-br: Cria um simulado de tabela Auto para este schema.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="columns">EN: Table columns. PT: Colunas da tabela.</param>
-    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
-    /// <returns>EN: Table mock. PT: Mock de tabela.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="columns">EN: Table columns. PT-br: Colunas da tabela.</param>
+    /// <param name="rows">EN: Initial rows. PT-br: Linhas iniciais.</param>
+    /// <returns>EN: Table mock. PT-br: Mock de tabela.</returns>
     protected override TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,

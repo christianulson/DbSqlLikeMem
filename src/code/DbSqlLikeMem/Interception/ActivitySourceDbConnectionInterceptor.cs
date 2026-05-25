@@ -6,7 +6,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Publishes interception spans through <see cref="ActivitySource"/>.
-/// PT: Publica spans de interceptacao por meio de <see cref="ActivitySource"/>.
+/// PT-br: Publica spans de interceptacao por meio de <see cref="ActivitySource"/>.
 /// </summary>
 public sealed class ActivitySourceDbConnectionInterceptor : DbConnectionInterceptor
 {
@@ -15,7 +15,7 @@ public sealed class ActivitySourceDbConnectionInterceptor : DbConnectionIntercep
 
     /// <summary>
     /// EN: Creates an interceptor that writes to the default interception activity source.
-    /// PT: Cria um interceptor que escreve no activity source padrao da interceptacao.
+    /// PT-br: Cria um interceptor que escreve no activity source padrao da interceptacao.
     /// </summary>
     public ActivitySourceDbConnectionInterceptor()
         : this(new ActivitySource(DbInterceptionActivityNames.SourceName))
@@ -24,9 +24,9 @@ public sealed class ActivitySourceDbConnectionInterceptor : DbConnectionIntercep
 
     /// <summary>
     /// EN: Creates an interceptor that writes to the supplied activity source.
-    /// PT: Cria um interceptor que escreve no activity source informado.
+    /// PT-br: Cria um interceptor que escreve no activity source informado.
     /// </summary>
-    /// <param name="activitySource">EN: Activity source used to publish spans. PT: Activity source usado para publicar spans.</param>
+    /// <param name="activitySource">EN: Activity source used to publish spans. PT-br: Activity source usado para publicar spans.</param>
     public ActivitySourceDbConnectionInterceptor(ActivitySource activitySource)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(activitySource, nameof(activitySource));
@@ -35,7 +35,7 @@ public sealed class ActivitySourceDbConnectionInterceptor : DbConnectionIntercep
 
     /// <summary>
     /// EN: Gets the underlying activity source.
-    /// PT: Obtem o activity source subjacente.
+    /// PT-br: Obtem o activity source subjacente.
     /// </summary>
     public ActivitySource ActivitySource => _activitySource;
 
@@ -172,7 +172,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: No-op activity interceptor used on target frameworks without <c>ActivitySource</c>.
-/// PT: Interceptor de activity sem operacao usado em target frameworks sem <c>ActivitySource</c>.
+/// PT-br: Interceptor de activity sem operacao usado em target frameworks sem <c>ActivitySource</c>.
 /// </summary>
 public sealed class ActivitySourceDbConnectionInterceptor : DbConnectionInterceptor
 {

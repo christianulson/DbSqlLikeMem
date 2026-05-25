@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Covers Oracle SQL compatibility gap scenarios that intentionally document current divergence from real Oracle.
-/// PT: Cobre cenarios de gap de compatibilidade SQL do Oracle que documentam intencionalmente as divergencias atuais em relacao ao Oracle real.
+/// PT-br: Cobre cenarios de gap de compatibilidade SQL do Oracle que documentam intencionalmente as divergencias atuais em relacao ao Oracle real.
 /// </summary>
 public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory Oracle connection used by the SQL compatibility gap tests.
-    /// PT: Cria a conexao Oracle em memoria usada pelos testes de gap de compatibilidade SQL.
+    /// PT-br: Cria a conexao Oracle em memoria usada pelos testes de gap de compatibilidade SQL.
     /// </summary>
     public OracleSqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -42,7 +42,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies AND binds stronger than OR in WHERE predicates.
-    /// PT: Verifica se AND tem precedencia maior que OR em predicados WHERE.
+    /// PT-br: Verifica se AND tem precedencia maior que OR em predicados WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -56,7 +56,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies OR predicates return the expected rows.
-    /// PT: Verifica se predicados OR retornam as linhas esperadas.
+    /// PT-br: Verifica se predicados OR retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -68,7 +68,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies parentheses group WHERE predicates correctly.
-    /// PT: Verifica se parenteses agrupam corretamente os predicados WHERE.
+    /// PT-br: Verifica se parenteses agrupam corretamente os predicados WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -82,7 +82,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies arithmetic expressions in SELECT return the expected values.
-    /// PT: Verifica se expressoes aritmeticas no SELECT retornam os valores esperados.
+    /// PT-br: Verifica se expressoes aritmeticas no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -94,7 +94,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies CASE WHEN expressions in SELECT return the expected values.
-    /// PT: Verifica se expressoes CASE WHEN no SELECT retornam os valores esperados.
+    /// PT-br: Verifica se expressoes CASE WHEN no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -106,7 +106,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IF expressions in SELECT return the expected values.
-    /// PT: Verifica se expressoes IF no SELECT retornam os valores esperados.
+    /// PT-br: Verifica se expressoes IF no SELECT retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -120,7 +120,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IIF behaves as an alias for IF in SELECT expressions.
-    /// PT: Verifica se IIF funciona como alias de IF em expressoes SELECT.
+    /// PT-br: Verifica se IIF funciona como alias de IF em expressoes SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -134,7 +134,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies COALESCE returns the expected fallback values.
-    /// PT: Verifica se COALESCE retorna os valores de fallback esperados.
+    /// PT-br: Verifica se COALESCE retorna os valores de fallback esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -146,7 +146,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IFNULL returns the expected fallback values.
-    /// PT: Verifica se IFNULL retorna os valores de fallback esperados.
+    /// PT-br: Verifica se IFNULL retorna os valores de fallback esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -158,7 +158,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies CONCAT returns the expected combined strings.
-    /// PT: Verifica se CONCAT retorna as strings combinadas esperadas.
+    /// PT-br: Verifica se CONCAT retorna as strings combinadas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -170,7 +170,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies DISTINCT removes duplicate rows consistently.
-    /// PT: Verifica se DISTINCT remove linhas duplicadas de forma consistente.
+    /// PT-br: Verifica se DISTINCT remove linhas duplicadas de forma consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -184,7 +184,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies joins with OR in the ON clause return the expected rows.
-    /// PT: Verifica se joins com OR na clausula ON retornam as linhas esperadas.
+    /// PT-br: Verifica se joins com OR na clausula ON retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -205,7 +205,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies GROUP BY and HAVING handle aggregates as expected.
-    /// PT: Verifica se GROUP BY e HAVING tratam agregados conforme esperado.
+    /// PT-br: Verifica se GROUP BY e HAVING tratam agregados conforme esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -223,7 +223,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ORDER BY supports aliases and ordinal positions.
-    /// PT: Verifica se ORDER BY suporta aliases e posicoes ordinais.
+    /// PT-br: Verifica se ORDER BY suporta aliases e posicoes ordinais.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -239,7 +239,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies UNION returns the expected distinct rows.
-    /// PT: Verifica se UNION retorna as linhas distintas esperadas.
+    /// PT-br: Verifica se UNION retorna as linhas distintas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -255,7 +255,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies UNION ALL keeps duplicate rows.
-    /// PT: Verifica se UNION ALL mantem linhas duplicadas.
+    /// PT-br: Verifica se UNION ALL mantem linhas duplicadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -273,7 +273,7 @@ public sealed class OracleSqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies UNION works inside a subselect.
-    /// PT: Verifica se UNION funciona dentro de um subselect.
+    /// PT-br: Verifica se UNION funciona dentro de um subselect.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -292,7 +292,7 @@ ORDER BY id
 
     /// <summary>
     /// EN: Verifies UNION ALL works inside a subselect.
-    /// PT: Verifica se UNION ALL funciona dentro de um subselect.
+    /// PT-br: Verifica se UNION ALL funciona dentro de um subselect.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -312,7 +312,7 @@ ORDER BY id
 
     /// <summary>
     /// EN: Verifies CTE queries respect the configured Oracle version.
-    /// PT: Verifica se queries com CTE respeitam a versao Oracle configurada.
+    /// PT-br: Verifica se queries com CTE respeitam a versao Oracle configurada.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -326,7 +326,7 @@ ORDER BY id
 
     /// <summary>
     /// EN: Verifies implicit casts and string comparison follow Oracle defaults.
-    /// PT: Verifica se casts implicitos e comparacao de strings seguem os padroes do Oracle.
+    /// PT-br: Verifica se casts implicitos e comparacao de strings seguem os padroes do Oracle.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleSqlCompatibilityGap")]
@@ -344,9 +344,9 @@ ORDER BY id
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

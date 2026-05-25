@@ -106,7 +106,7 @@ internal static class AutoSqlServerScalarFunctionRegistry
 
         dialect.AddScalarFunction("DATEFROMPARTS", "DATE", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
         dialect.AddScalarFunction("DATETIMEFROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
-        dialect.AddScalarFunction("DATETIME2FROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+        dialect.AddScalarFunction("DATETIME2FROMPARTS", "DATETIME2", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
         dialect.AddScalarFunction("DATETIMEOFFSETFROMPARTS", "DATETIMEOFFSET", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
         dialect.AddScalarFunction("TIMEFROMPARTS", "TIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
         dialect.AddScalarFunction("SMALLDATETIMEFROMPARTS", "DATETIME", AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);

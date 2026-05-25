@@ -1,35 +1,29 @@
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace DbSqlLikeMem.TestTools;
 
 internal static class CrossProcessProviderGate
 {
-    private static readonly ConcurrentDictionary<string, Mutex> Mutexes = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, Semaphore> Semaphores = new(StringComparer.Ordinal);
 
     public static IDisposable? Acquire(ProviderSqlDialect dialect)
     {
         if (!ShouldSerialize(dialect.Provider))
             return null;
 
-        var mutexName = $"DbSqlLikeMem.TestTools.{dialect.Provider}.ContainerGate";
-        var mutex = Mutexes.GetOrAdd(mutexName, static name => new Mutex(false, name));
+        var gateName = $"DbSqlLikeMem.TestTools.{dialect.Provider}.ContainerGate";
+        var semaphore = Semaphores.GetOrAdd(gateName, static name => new Semaphore(1, 1, name));
 
-        try
-        {
-            mutex.WaitOne();
-        }
-        catch (AbandonedMutexException)
-        {
-            // The previous owner exited without releasing the gate. We still own it now.
-        }
+        semaphore.WaitOne();
 
-        return new Releaser(mutex);
+        return new Releaser(semaphore);
     }
 
     private static bool ShouldSerialize(ProviderId provider)
-        => provider is ProviderId.MariaDb or ProviderId.Oracle;
+        => provider is ProviderId.Firebird or ProviderId.MariaDb or ProviderId.Oracle;
 
-    private sealed class Releaser(Mutex mutex) : IDisposable
+    private sealed class Releaser(Semaphore semaphore) : IDisposable
     {
         private bool disposed;
 
@@ -39,7 +33,7 @@ internal static class CrossProcessProviderGate
                 return;
 
             disposed = true;
-            mutex.ReleaseMutex();
+            semaphore.Release();
         }
     }
 }

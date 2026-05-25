@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Firebird.Test;
+namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Verifies Firebird command parameter collections accept provider-specific parameters and keep their indexes consistent.
-/// PT: Verifica se colecoes de parametros de comando Firebird aceitam parametros especificos do provedor e mantem seus indices consistentes.
+/// PT-br: Verifica se colecoes de parametros de comando Firebird aceitam parametros especificos do provedor e mantem seus indices consistentes.
 /// </summary>
 public sealed class FirebirdDataParameterCollectionMockTest(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdDataParameterCollectionMockTest(
 {
     /// <summary>
     /// EN: Verifies a Firebird command parameter collection stores and resolves added parameters.
-    /// PT: Verifica se a colecao de parametros de comando Firebird armazena e resolve parametros adicionados.
+    /// PT-br: Verifica se a colecao de parametros de comando Firebird armazena e resolve parametros adicionados.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDataParameterCollectionMockTest")]
@@ -35,7 +35,7 @@ public sealed class FirebirdDataParameterCollectionMockTest(
 
     /// <summary>
     /// EN: Verifies removing a parameter by index keeps the command collection empty again.
-    /// PT: Verifica se remover um parametro por indice faz a colecao de comando voltar a ficar vazia.
+    /// PT-br: Verifica se remover um parametro por indice faz a colecao de comando voltar a ficar vazia.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDataParameterCollectionMockTest")]
@@ -64,7 +64,7 @@ public sealed class FirebirdDataParameterCollectionMockTest(
 
     /// <summary>
     /// EN: Verifies duplicate Firebird parameter names are rejected by the collection.
-    /// PT: Verifica se nomes duplicados de parametros Firebird sao rejeitados pela colecao.
+    /// PT-br: Verifica se nomes duplicados de parametros Firebird sao rejeitados pela colecao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDataParameterCollectionMockTest")]

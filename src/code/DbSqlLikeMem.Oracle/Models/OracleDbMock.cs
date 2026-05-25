@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: In-memory database mock configured for Oracle.
-/// PT: simulado de banco em memória configurado para Oracle.
+/// PT-br: simulado de banco em memória configurado para Oracle.
 /// </summary>
 public class OracleDbMock : DbMock
 {
@@ -16,7 +16,7 @@ public class OracleDbMock : DbMock
 
     /// <summary>
     /// EN: Implements OracleDbMock.
-    /// PT: Implementa OracleDbMock.
+    /// PT-br: Implementa OracleDbMock.
     /// </summary>
     public OracleDbMock(
         int? version = null
@@ -27,11 +27,11 @@ public class OracleDbMock : DbMock
 
     /// <summary>
     /// EN: Creates an Oracle schema mock instance.
-    /// PT: Cria uma instância de simulado de schema Oracle.
+    /// PT-br: Cria uma instância de simulado de schema Oracle.
     /// </summary>
-    /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
-    /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>
-    /// <returns>EN: Schema mock. PT: Mock de schema.</returns>
+    /// <param name="schemaName">EN: Schema name. PT-br: Nome do schema.</param>
+    /// <param name="tables">EN: Initial tables. PT-br: Tabelas iniciais.</param>
+    /// <returns>EN: Schema mock. PT-br: Mock de schema.</returns>
     protected override SchemaMock NewSchema(
         string schemaName,
         IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null

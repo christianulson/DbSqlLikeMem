@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Reads SQL Server sequence current_value before and after generated values for fidelity coverage.
-/// PT: Le o current_value da sequence SQL Server antes e depois de valores gerados para cobertura de fidelidade.
+/// PT-br: Le o current_value da sequence SQL Server antes e depois de valores gerados para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceCurrentValueServiceTest(
     RepoService repo,
@@ -12,7 +12,7 @@ public sealed class SequenceCurrentValueServiceTest(
 {
     /// <summary>
     /// EN: Returns the current sequence value before consumption and after each generated value.
-    /// PT: Retorna o valor atual da sequence antes do consumo e depois de cada valor gerado.
+    /// PT-br: Retorna o valor atual da sequence antes do consumo e depois de cada valor gerado.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
     {

@@ -58,7 +58,7 @@ public enum ExplorerNodeKind
 /// </summary>
 /// <remarks>
 /// EN: Initializes a new explorer node with a label and kind.
-/// PT: Inicializa um novo nó do explorador com rótulo e tipo.
+/// PT-br: Inicializa um novo nó do explorador com rótulo e tipo.
 /// </remarks>
 public sealed class ExplorerNode(string label, ExplorerNodeKind kind)
 {

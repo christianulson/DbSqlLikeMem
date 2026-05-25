@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.TemporaryTable;
 
 /// <summary>
 /// EN: Creates and drops the temporary users table used by rollback and isolation workflows.
-/// PT: Cria e remove a tabela temporaria de usuarios usada pelos fluxos de rollback e isolamento.
+/// PT-br: Cria e remove a tabela temporaria de usuarios usada pelos fluxos de rollback e isolamento.
 /// </summary>
 public class TemporaryUsersScenario(
         RepoService repo,
@@ -12,7 +12,7 @@ public class TemporaryUsersScenario(
 {
     /// <summary>
     /// EN: Creates the temporary users table required by the workflow.
-    /// PT: Cria a tabela temporaria de usuarios exigida pelo fluxo.
+    /// PT-br: Cria a tabela temporaria de usuarios exigida pelo fluxo.
     /// </summary>
     public virtual Task CreateScenarioAsync()
     {
@@ -27,7 +27,7 @@ public class TemporaryUsersScenario(
 
     /// <summary>
     /// EN: Drops the temporary users table created for the workflow.
-    /// PT: Remove a tabela temporaria de usuarios criada para o fluxo.
+    /// PT-br: Remove a tabela temporaria de usuarios criada para o fluxo.
     /// </summary>
     public async Task DropScenarioAsync()
     {

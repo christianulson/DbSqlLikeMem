@@ -2,18 +2,18 @@ namespace DbSqlLikeMem.MariaDb.Test;
 
 /// <summary>
 /// EN: Covers MariaDB runtime behavior built on top of the shared MySQL provider family.
-/// PT: Cobre o comportamento de runtime do MariaDB construido sobre a familia compartilhada do provider MySQL.
+/// PT-br: Cobre o comportamento de runtime do MariaDB construido sobre a familia compartilhada do provider MySQL.
 /// </summary>
 /// <remarks>
 /// EN: Initializes the MariaDB runtime test fixture.
-/// PT: Inicializa a fixture de testes de runtime do MariaDB.
+/// PT-br: Inicializa a fixture de testes de runtime do MariaDB.
 /// </remarks>
 public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
 
     /// <summary>
     /// EN: Ensures INSERT ... RETURNING returns the inserted projection once the MariaDB version gate is enabled.
-    /// PT: Garante que INSERT ... RETURNING retorne a projecao inserida quando o gate de versao do MariaDB estiver habilitado.
+    /// PT-br: Garante que INSERT ... RETURNING retorne a projecao inserida quando o gate de versao do MariaDB estiver habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -35,7 +35,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures INSERT ... SET with ON DUPLICATE KEY UPDATE returns the updated row projection in MariaDB.
-    /// PT: Garante que INSERT ... SET com ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada no MariaDB.
+    /// PT-br: Garante que INSERT ... SET com ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -76,7 +76,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures INSERT ... SET with LOW_PRIORITY and ON DUPLICATE KEY UPDATE returns the updated row projection in MariaDB.
-    /// PT: Garante que INSERT ... SET com LOW_PRIORITY e ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada no MariaDB.
+    /// PT-br: Garante que INSERT ... SET com LOW_PRIORITY e ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -115,7 +115,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures INSERT ... ON DUPLICATE KEY UPDATE returns the updated row projection when MariaDB resolves a duplicate key.
-    /// PT: Garante que INSERT ... ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada quando o MariaDB resolver uma chave duplicada.
+    /// PT-br: Garante que INSERT ... ON DUPLICATE KEY UPDATE retorne a projecao da linha atualizada quando o MariaDB resolver uma chave duplicada.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -150,7 +150,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures multi-row INSERT ... ON DUPLICATE KEY UPDATE returns one projection per affected row and keeps batch updates consistent.
-    /// PT: Garante que INSERT ... ON DUPLICATE KEY UPDATE com multiplas linhas retorne uma projecao por linha afetada e mantenha as atualizacoes em lote consistentes.
+    /// PT-br: Garante que INSERT ... ON DUPLICATE KEY UPDATE com multiplas linhas retorne uma projecao por linha afetada e mantenha as atualizacoes em lote consistentes.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -198,7 +198,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures INSERT ... SELECT returns the inserted projection when MariaDB enables RETURNING.
-    /// PT: Garante que INSERT ... SELECT retorne a projecao inserida quando o MariaDB habilita RETURNING.
+    /// PT-br: Garante que INSERT ... SELECT retorne a projecao inserida quando o MariaDB habilita RETURNING.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -259,7 +259,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures INSERT ... SELECT with IGNORE skips conflicting rows and returns only inserted projections in MariaDB.
-    /// PT: Garante que INSERT ... SELECT com IGNORE ignore linhas conflitantes e retorne apenas as projecoes inseridas no MariaDB.
+    /// PT-br: Garante que INSERT ... SELECT com IGNORE ignore linhas conflitantes e retorne apenas as projecoes inseridas no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -316,7 +316,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures INSERT ... SELECT with ON DUPLICATE KEY UPDATE returns one projection per affected row in MariaDB.
-    /// PT: Garante que INSERT ... SELECT com ON DUPLICATE KEY UPDATE retorne uma projecao por linha afetada no MariaDB.
+    /// PT-br: Garante que INSERT ... SELECT com ON DUPLICATE KEY UPDATE retorne uma projecao por linha afetada no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -381,7 +381,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures REPLACE ... SELECT returns one projection per affected row in MariaDB.
-    /// PT: Garante que REPLACE ... SELECT retorne uma projecao por linha afetada no MariaDB.
+    /// PT-br: Garante que REPLACE ... SELECT retorne uma projecao por linha afetada no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -443,7 +443,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures DELETE ... RETURNING returns the deleted row snapshot once the MariaDB version gate is enabled.
-    /// PT: Garante que DELETE ... RETURNING retorne o snapshot da linha excluida quando o gate de versao do MariaDB estiver habilitado.
+    /// PT-br: Garante que DELETE ... RETURNING retorne o snapshot da linha excluida quando o gate de versao do MariaDB estiver habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -474,7 +474,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures REPLACE ... RETURNING replaces an existing MariaDB row and returns the inserted projection.
-    /// PT: Garante que REPLACE ... RETURNING substitua uma linha existente do MariaDB e retorne a projecao inserida.
+    /// PT-br: Garante que REPLACE ... RETURNING substitua uma linha existente do MariaDB e retorne a projecao inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -506,7 +506,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures REPLACE ... SET with RETURNING replaces an existing MariaDB row and returns the inserted projection.
-    /// PT: Garante que REPLACE ... SET com RETURNING substitua uma linha existente do MariaDB e retorne a projecao inserida.
+    /// PT-br: Garante que REPLACE ... SET com RETURNING substitua uma linha existente do MariaDB e retorne a projecao inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -541,7 +541,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures multi-row REPLACE returns one projection per affected row while keeping the final table state consistent.
-    /// PT: Garante que REPLACE com multiplas linhas retorne uma projecao por linha afetada e mantenha o estado final da tabela consistente.
+    /// PT-br: Garante que REPLACE com multiplas linhas retorne uma projecao por linha afetada e mantenha o estado final da tabela consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -586,7 +586,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB executes INSERT with VALUE and LOW_PRIORITY syntax through the shared runtime path.
-    /// PT: Garante que o MariaDB execute INSERT com sintaxe VALUE e LOW_PRIORITY pelo caminho compartilhado de runtime.
+    /// PT-br: Garante que o MariaDB execute INSERT com sintaxe VALUE e LOW_PRIORITY pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -609,7 +609,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB executes INSERT and REPLACE statements with the DELAYED modifier through the shared runtime path.
-    /// PT: Garante que o MariaDB execute statements INSERT e REPLACE com o modificador DELAYED pelo caminho compartilhado de runtime.
+    /// PT-br: Garante que o MariaDB execute statements INSERT e REPLACE com o modificador DELAYED pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -653,7 +653,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB INSERT IGNORE skips duplicate rows and returns only the inserted projections.
-    /// PT: Garante que INSERT IGNORE do MariaDB ignore linhas duplicadas e retorne apenas as projecoes inseridas.
+    /// PT-br: Garante que INSERT IGNORE do MariaDB ignore linhas duplicadas e retorne apenas as projecoes inseridas.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -693,7 +693,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB executes INSERT ... SET through the shared runtime path and returns the inserted projection.
-    /// PT: Garante que o MariaDB execute INSERT ... SET pelo caminho compartilhado de runtime e retorne a projecao inserida.
+    /// PT-br: Garante que o MariaDB execute INSERT ... SET pelo caminho compartilhado de runtime e retorne a projecao inserida.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -716,7 +716,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB executes REPLACE with VALUE and LOW_PRIORITY syntax through the shared runtime path.
-    /// PT: Garante que o MariaDB execute REPLACE com sintaxe VALUE e LOW_PRIORITY pelo caminho compartilhado de runtime.
+    /// PT-br: Garante que o MariaDB execute REPLACE com sintaxe VALUE e LOW_PRIORITY pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -748,7 +748,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB rejects aggregate functions inside RETURNING at execution time.
-    /// PT: Garante que o MariaDB rejeite funcoes de agregacao dentro de RETURNING no tempo de execucao.
+    /// PT-br: Garante que o MariaDB rejeite funcoes de agregacao dentro de RETURNING no tempo de execucao.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -767,7 +767,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB still rejects RETURNING before the version gate is enabled.
-    /// PT: Garante que o MariaDB ainda rejeite RETURNING antes de o gate de versao estar habilitado.
+    /// PT-br: Garante que o MariaDB ainda rejeite RETURNING antes de o gate de versao estar habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -786,7 +786,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB executes sequence DDL plus NEXT/PREVIOUS VALUE FOR through the shared runtime path.
-    /// PT: Garante que o MariaDB execute DDL de sequence e NEXT/PREVIOUS VALUE FOR pelo caminho compartilhado de runtime.
+    /// PT-br: Garante que o MariaDB execute DDL de sequence e NEXT/PREVIOUS VALUE FOR pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -808,7 +808,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB can consume sequence expressions inside INSERT statements through the shared runtime path.
-    /// PT: Garante que o MariaDB consiga consumir expressoes de sequence dentro de INSERTs pelo caminho compartilhado de runtime.
+    /// PT-br: Garante que o MariaDB consiga consumir expressoes de sequence dentro de INSERTs pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -834,7 +834,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB evaluates SOUNDS LIKE through the shared runtime path.
-    /// PT: Garante que o MariaDB avalie SOUNDS LIKE pelo caminho compartilhado de runtime.
+    /// PT-br: Garante que o MariaDB avalie SOUNDS LIKE pelo caminho compartilhado de runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -851,7 +851,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB exposes _ROWID as the single-column primary key in the shared runtime.
-    /// PT: Garante que o MariaDB exponha _ROWID como a chave primaria de coluna unica no runtime compartilhado.
+    /// PT-br: Garante que o MariaDB exponha _ROWID como a chave primaria de coluna unica no runtime compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -876,7 +876,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB can materialize JSON_TABLE rows with ordinality and typed PATH columns in the shared runtime.
-    /// PT: Garante que o MariaDB consiga materializar linhas de JSON_TABLE com ordinality e colunas PATH tipadas no runtime compartilhado.
+    /// PT-br: Garante que o MariaDB consiga materializar linhas de JSON_TABLE com ordinality e colunas PATH tipadas no runtime compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -915,7 +915,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB can correlate JSON_TABLE with an outer row source and expand one JSON row per matching parent row.
-    /// PT: Garante que o MariaDB consiga correlacionar JSON_TABLE com uma fonte de linha externa e expandir uma linha JSON por linha pai correspondente.
+    /// PT-br: Garante que o MariaDB consiga correlacionar JSON_TABLE com uma fonte de linha externa e expandir uma linha JSON por linha pai correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -969,7 +969,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB skips correlated JSON_TABLE expansion when the outer JSON document is NULL.
-    /// PT: Garante que o MariaDB omita a expansao correlacionada de JSON_TABLE quando o documento JSON externo for NULL.
+    /// PT-br: Garante que o MariaDB omita a expansao correlacionada de JSON_TABLE quando o documento JSON externo for NULL.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1014,7 +1014,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE still expands nested branches when the outer document is populated.
-    /// PT: Garante que o JSON_TABLE correlacionado do MariaDB ainda expanda ramos nested quando o documento externo estiver preenchido.
+    /// PT-br: Garante que o JSON_TABLE correlacionado do MariaDB ainda expanda ramos nested quando o documento externo estiver preenchido.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1084,7 +1084,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE nested branches can apply ON EMPTY fallbacks while expanding outer rows.
-    /// PT: Garante que ramos nested de JSON_TABLE correlacionado consigam aplicar fallbacks ON EMPTY enquanto expandem linhas externas.
+    /// PT-br: Garante que ramos nested de JSON_TABLE correlacionado consigam aplicar fallbacks ON EMPTY enquanto expandem linhas externas.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1146,7 +1146,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE applies ON EMPTY defaults on the root path while expanding nested rows.
-    /// PT: Garante que JSON_TABLE correlacionado do MariaDB aplique defaults de ON EMPTY no caminho raiz enquanto expande linhas nested.
+    /// PT-br: Garante que JSON_TABLE correlacionado do MariaDB aplique defaults de ON EMPTY no caminho raiz enquanto expande linhas nested.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1209,7 +1209,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE can combine root ordinality and EXISTS PATH while expanding outer rows.
-    /// PT: Garante que JSON_TABLE correlacionado do MariaDB consiga combinar ordinality raiz e EXISTS PATH enquanto expande linhas externas.
+    /// PT-br: Garante que JSON_TABLE correlacionado do MariaDB consiga combinar ordinality raiz e EXISTS PATH enquanto expande linhas externas.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1263,7 +1263,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE can combine a strict root path with multiple nested fallback branches.
-    /// PT: Garante que JSON_TABLE correlacionado do MariaDB consiga combinar um caminho raiz strict com multiplos ramos nested de fallback.
+    /// PT-br: Garante que JSON_TABLE correlacionado do MariaDB consiga combinar um caminho raiz strict com multiplos ramos nested de fallback.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1359,7 +1359,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE skips outer NULL documents even when nested branches are present.
-    /// PT: Garante que JSON_TABLE correlacionado do MariaDB omita documentos externos NULL mesmo quando ramos nested existirem.
+    /// PT-br: Garante que JSON_TABLE correlacionado do MariaDB omita documentos externos NULL mesmo quando ramos nested existirem.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1410,7 +1410,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE nested branches raise an error when ERROR ON EMPTY is configured for a missing value.
-    /// PT: Garante que ramos nested de JSON_TABLE correlacionado lancem erro quando ERROR ON EMPTY estiver configurado para um valor ausente.
+    /// PT-br: Garante que ramos nested de JSON_TABLE correlacionado lancem erro quando ERROR ON EMPTY estiver configurado para um valor ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1454,7 +1454,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE nested branches can apply ON ERROR fallbacks when a nested value is not scalar.
-    /// PT: Garante que ramos nested de JSON_TABLE correlacionado consigam aplicar fallbacks ON ERROR quando um valor nested nao for escalar.
+    /// PT-br: Garante que ramos nested de JSON_TABLE correlacionado consigam aplicar fallbacks ON ERROR quando um valor nested nao for escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1510,7 +1510,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE nested strict paths return null when the nested value is non-scalar or the nested array is missing.
-    /// PT: Garante que caminhos nested strict de JSON_TABLE correlacionado retornem null quando o valor nested for nao escalar ou o array nested estiver ausente.
+    /// PT-br: Garante que caminhos nested strict de JSON_TABLE correlacionado retornem null quando o valor nested for nao escalar ou o array nested estiver ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1563,7 +1563,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE root strict paths fail when the JSON array path does not exist.
-    /// PT: Garante que caminhos strict na raiz de JSON_TABLE correlacionado falhem quando o caminho do array JSON nao existir.
+    /// PT-br: Garante que caminhos strict na raiz de JSON_TABLE correlacionado falhem quando o caminho do array JSON nao existir.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1605,7 +1605,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE keeps sibling nested branches independent while expanding outer rows.
-    /// PT: Garante que JSON_TABLE correlacionado do MariaDB mantenha ramos nested irmaos independentes enquanto expande linhas externas.
+    /// PT-br: Garante que JSON_TABLE correlacionado do MariaDB mantenha ramos nested irmaos independentes enquanto expande linhas externas.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1670,7 +1670,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE keeps sibling nested branches independent while preserving ordinality on each branch.
-    /// PT: Garante que JSON_TABLE correlacionado do MariaDB mantenha ramos nested irmaos independentes preservando ordinality em cada ramo.
+    /// PT-br: Garante que JSON_TABLE correlacionado do MariaDB mantenha ramos nested irmaos independentes preservando ordinality em cada ramo.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1745,7 +1745,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE keeps sibling nested branches independent while mixing EXISTS PATH and ordinality on each branch.
-    /// PT: Garante que JSON_TABLE correlacionado do MariaDB mantenha ramos nested irmaos independentes misturando EXISTS PATH e ordinality em cada ramo.
+    /// PT-br: Garante que JSON_TABLE correlacionado do MariaDB mantenha ramos nested irmaos independentes misturando EXISTS PATH e ordinality em cada ramo.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1820,7 +1820,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures correlated MariaDB JSON_TABLE nested EXISTS PATH columns return 1/0 flags for each nested row.
-    /// PT: Garante que colunas nested EXISTS PATH de JSON_TABLE correlacionado no MariaDB retornem flags 1/0 para cada linha nested.
+    /// PT-br: Garante que colunas nested EXISTS PATH de JSON_TABLE correlacionado no MariaDB retornem flags 1/0 para cada linha nested.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1878,7 +1878,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures strict JSON_TABLE row paths fail when the root array path does not exist in MariaDB.
-    /// PT: Garante que caminhos strict em JSON_TABLE falhem quando o caminho raiz do array nao existir no MariaDB.
+    /// PT-br: Garante que caminhos strict em JSON_TABLE falhem quando o caminho raiz do array nao existir no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1905,7 +1905,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE supports EXISTS PATH columns with 1/0 semantics in the shared runtime.
-    /// PT: Garante que JSON_TABLE do MariaDB suporte colunas EXISTS PATH com semantica 1/0 no runtime compartilhado.
+    /// PT-br: Garante que JSON_TABLE do MariaDB suporte colunas EXISTS PATH com semantica 1/0 no runtime compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1941,7 +1941,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE applies ON EMPTY defaults for missing PATH values in the shared runtime.
-    /// PT: Garante que JSON_TABLE do MariaDB aplique defaults de ON EMPTY para valores PATH ausentes no runtime compartilhado.
+    /// PT-br: Garante que JSON_TABLE do MariaDB aplique defaults de ON EMPTY para valores PATH ausentes no runtime compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -1977,7 +1977,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE applies ON ERROR defaults when a PATH resolves to a non-scalar JSON value.
-    /// PT: Garante que JSON_TABLE do MariaDB aplique defaults de ON ERROR quando um PATH resolve para um valor JSON nao escalar.
+    /// PT-br: Garante que JSON_TABLE do MariaDB aplique defaults de ON ERROR quando um PATH resolve para um valor JSON nao escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2013,7 +2013,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE raises an error when ON EMPTY is configured to fail on a missing PATH.
-    /// PT: Garante que JSON_TABLE do MariaDB lance erro quando ON EMPTY estiver configurado para falhar em PATH ausente.
+    /// PT-br: Garante que JSON_TABLE do MariaDB lance erro quando ON EMPTY estiver configurado para falhar em PATH ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2042,7 +2042,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE can expand NESTED PATH rows while preserving parent columns in the shared runtime.
-    /// PT: Garante que JSON_TABLE do MariaDB consiga expandir linhas de NESTED PATH preservando as colunas pai no runtime compartilhado.
+    /// PT-br: Garante que JSON_TABLE do MariaDB consiga expandir linhas de NESTED PATH preservando as colunas pai no runtime compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2088,7 +2088,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE returns null-complemented rows when a nested path has no matches.
-    /// PT: Garante que JSON_TABLE do MariaDB retorne linhas com complemento nulo quando um nested path nao encontra correspondencias.
+    /// PT-br: Garante que JSON_TABLE do MariaDB retorne linhas com complemento nulo quando um nested path nao encontra correspondencias.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2126,7 +2126,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures strict nested JSON_TABLE paths still emit a null-complemented row when the nested array is missing in MariaDB.
-    /// PT: Garante que caminhos nested strict em JSON_TABLE ainda emitam uma linha com complemento nulo quando o array aninhado estiver ausente no MariaDB.
+    /// PT-br: Garante que caminhos nested strict em JSON_TABLE ainda emitam uma linha com complemento nulo quando o array aninhado estiver ausente no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2159,7 +2159,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns can apply ON EMPTY fallbacks in MariaDB.
-    /// PT: Garante que colunas nested de JSON_TABLE consigam aplicar fallbacks ON EMPTY no MariaDB.
+    /// PT-br: Garante que colunas nested de JSON_TABLE consigam aplicar fallbacks ON EMPTY no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2200,7 +2200,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns can apply ON ERROR fallbacks in MariaDB when a nested value is not scalar.
-    /// PT: Garante que colunas nested de JSON_TABLE consigam aplicar fallbacks ON ERROR no MariaDB quando um valor aninhado nao for escalar.
+    /// PT-br: Garante que colunas nested de JSON_TABLE consigam aplicar fallbacks ON ERROR no MariaDB quando um valor aninhado nao for escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2241,7 +2241,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns raise an error when ERROR ON ERROR is configured for a non-scalar value.
-    /// PT: Garante que colunas nested de JSON_TABLE lancem erro quando ERROR ON ERROR estiver configurado para um valor nao escalar.
+    /// PT-br: Garante que colunas nested de JSON_TABLE lancem erro quando ERROR ON ERROR estiver configurado para um valor nao escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2271,7 +2271,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns raise an error when ERROR ON EMPTY is configured for a missing child value.
-    /// PT: Garante que colunas nested de JSON_TABLE lancem erro quando ERROR ON EMPTY estiver configurado para valor filho ausente.
+    /// PT-br: Garante que colunas nested de JSON_TABLE lancem erro quando ERROR ON EMPTY estiver configurado para valor filho ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2301,7 +2301,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE keeps sibling nested paths independent and emits nulls for the missing sibling side.
-    /// PT: Garante que JSON_TABLE do MariaDB mantenha nested paths irmaos independentes e emita nulos no lado irmao ausente.
+    /// PT-br: Garante que JSON_TABLE do MariaDB mantenha nested paths irmaos independentes e emita nulos no lado irmao ausente.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]
@@ -2351,7 +2351,7 @@ public sealed class MariaDbMockTests(ITestOutputHelper helper) : XUnitTestBase(h
 
     /// <summary>
     /// EN: Ensures MariaDB JSON_TABLE evaluates EXISTS PATH columns inside nested branches with 1/0 semantics.
-    /// PT: Garante que JSON_TABLE do MariaDB avalie colunas EXISTS PATH dentro de ramos nested com semantica 1/0.
+    /// PT-br: Garante que JSON_TABLE do MariaDB avalie colunas EXISTS PATH dentro de ramos nested com semantica 1/0.
     /// </summary>
     [Fact]
     [Trait("Category", "MariaDbMock")]

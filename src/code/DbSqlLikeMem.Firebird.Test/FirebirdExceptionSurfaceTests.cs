@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for Firebird exception surface behavior.
-/// PT: Contem testes para o comportamento da superficie de excecoes Firebird.
+/// PT-br: Contem testes para o comportamento da superficie de excecoes Firebird.
 /// </summary>
 public sealed class FirebirdExceptionSurfaceTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdExceptionSurfaceTests(
 {
     /// <summary>
     /// EN: Verifies duplicate primary key violations use the Firebird-specific mock exception type.
-    /// PT: Verifica se violacoes de chave primaria duplicada usam o tipo de excecao especifico do Firebird.
+    /// PT-br: Verifica se violacoes de chave primaria duplicada usam o tipo de excecao especifico do Firebird.
     /// </summary>
     [Fact]
     public void Add_DuplicatePrimaryKey_ShouldThrowFirebirdMockException()
@@ -27,7 +27,7 @@ public sealed class FirebirdExceptionSurfaceTests(
 
     /// <summary>
     /// EN: Verifies nullability violations use the Firebird-specific mock exception type.
-    /// PT: Verifica se violacoes de nulabilidade usam o tipo de excecao especifico do Firebird.
+    /// PT-br: Verifica se violacoes de nulabilidade usam o tipo de excecao especifico do Firebird.
     /// </summary>
     [Fact]
     public void Add_NullIntoNotNullableColumn_ShouldThrowFirebirdMockException()
@@ -42,7 +42,7 @@ public sealed class FirebirdExceptionSurfaceTests(
 
     /// <summary>
     /// EN: Verifies foreign key violations use the Firebird-specific mock exception type.
-    /// PT: Verifica se violacoes de chave estrangeira usam o tipo de excecao especifico do Firebird.
+    /// PT-br: Verifica se violacoes de chave estrangeira usam o tipo de excecao especifico do Firebird.
     /// </summary>
     [Fact]
     public void Add_ForeignKeyViolation_ShouldThrowFirebirdMockException()
@@ -65,7 +65,7 @@ public sealed class FirebirdExceptionSurfaceTests(
 
     /// <summary>
     /// EN: Verifies deleting a referenced parent row uses the Firebird-specific mock exception type.
-    /// PT: Verifica se excluir uma linha pai referenciada usa o tipo de excecao especifico do Firebird.
+    /// PT-br: Verifica se excluir uma linha pai referenciada usa o tipo de excecao especifico do Firebird.
     /// </summary>
     [Fact]
     public void Delete_ReferencedParentRow_ShouldThrowFirebirdMockException()

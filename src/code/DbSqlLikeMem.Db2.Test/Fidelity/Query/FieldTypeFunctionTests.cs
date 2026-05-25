@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Db2 fidelity tests for the shared typed-field and function workflows.
-/// PT: Executa testes de fidelidade Db2 para os fluxos compartilhados de campos tipados e funcoes.
+/// PT-br: Executa testes de fidelidade Db2 para os fluxos compartilhados de campos tipados e funcoes.
 /// </summary>
 [FidelityNativeClientSkip]
 public class FieldTypeFunctionTests(

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Detaches a PostgreSQL sequence from a table column and verifies it survives the table drop.
-/// PT: Desvincula uma sequence PostgreSQL de uma coluna de tabela e verifica se ela sobrevive a queda da tabela.
+/// PT-br: Desvincula uma sequence PostgreSQL de uma coluna de tabela e verifica se ela sobrevive a queda da tabela.
 /// </summary>
 public sealed class SequenceOwnedByNoneServiceTest(
     RepoService repo,
@@ -12,12 +12,17 @@ public sealed class SequenceOwnedByNoneServiceTest(
 {
     /// <summary>
     /// EN: Returns the sequence values before and after the owning table is dropped.
-    /// PT: Retorna os valores da sequence antes e depois de a tabela proprietaria ser removida.
+    /// PT-br: Retorna os valores da sequence antes e depois de a tabela proprietaria ser removida.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceOwnedByNoneAsync();
 
+    /// <summary>
+    /// EN: Returns the sequence values before and after the owning table is dropped.
+    /// PT-br: Retorna os valores da sequence antes e depois de a tabela proprietaria ser removida.
+    /// </summary>
+    public async Task<long[]> RunSequenceOwnedByNoneAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE TABLE {Context.TbUsersFullName} (Id BIGINT NOT NULL PRIMARY KEY)");
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 1 INCREMENT BY 1");
         await ExecuteNonQueryAsync($"ALTER SEQUENCE {Context.Seq} OWNED BY {Context.TbUsersFullName}.Id");

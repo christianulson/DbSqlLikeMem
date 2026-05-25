@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Marks a fidelity theory that should skip when the shared fidelity infrastructure is unavailable.
-/// PT: Marca uma theory de fidelidade que deve ser ignorada quando a infraestrutura compartilhada de fidelidade estiver indisponivel.
+/// PT-br: Marca uma theory de fidelidade que deve ser ignorada quando a infraestrutura compartilhada de fidelidade estiver indisponivel.
 /// </summary>
 public sealed class FidelityTheoryAttribute : TheoryAttribute
 {
     /// <summary>
     /// EN: Creates a fidelity theory for the current xUnit target.
-    /// PT: Cria uma theory de fidelidade para o alvo atual do xUnit.
+    /// PT-br: Cria uma theory de fidelidade para o alvo atual do xUnit.
     /// </summary>
     public FidelityTheoryAttribute()
     {
@@ -19,10 +19,10 @@ public sealed class FidelityTheoryAttribute : TheoryAttribute
 #if NET8_0_OR_GREATER
     /// <summary>
     /// EN: Creates a fidelity theory with source information for xUnit analyzers.
-    /// PT: Cria uma theory de fidelidade com informacoes de origem para os analisadores do xUnit.
+    /// PT-br: Cria uma theory de fidelidade com informacoes de origem para os analisadores do xUnit.
     /// </summary>
-    /// <param name="filePath">EN: The source file path for the test attribute. PT: O caminho do arquivo fonte do atributo de teste.</param>
-    /// <param name="lineNumber">EN: The source line number for the test attribute. PT: O numero da linha fonte do atributo de teste.</param>
+    /// <param name="filePath">EN: The source file path for the test attribute. PT-br: O caminho do arquivo fonte do atributo de teste.</param>
+    /// <param name="lineNumber">EN: The source line number for the test attribute. PT-br: O numero da linha fonte do atributo de teste.</param>
     public FidelityTheoryAttribute(
         [CallerFilePath] string? filePath = null,
         [CallerLineNumber] int lineNumber = -1)

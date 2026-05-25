@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies template token rendering used by the Visual Studio extension generation flow.
-/// PT: Verifica a renderização de tokens de template usada pelo fluxo de geração da extensão do Visual Studio.
+/// PT-br: Verifica a renderização de tokens de template usada pelo fluxo de geração da extensão do Visual Studio.
 /// </summary>
 public sealed class TemplateContentRendererTests
 {
     /// <summary>
     /// EN: Ensures all documented generation tokens, including namespace, are replaced in rendered content.
-    /// PT: Garante que todos os tokens documentados de geração, incluindo namespace, sejam substituídos no conteúdo renderizado.
+    /// PT-br: Garante que todos os tokens documentados de geração, incluindo namespace, sejam substituídos no conteúdo renderizado.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateContentRenderer")]
@@ -45,7 +45,7 @@ public sealed class TemplateContentRendererTests
 
     /// <summary>
     /// EN: Ensures the namespace token falls back to an empty string when no namespace is configured.
-    /// PT: Garante que o token de namespace use string vazia quando nenhum namespace estiver configurado.
+    /// PT-br: Garante que o token de namespace use string vazia quando nenhum namespace estiver configurado.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateContentRenderer")]
@@ -63,7 +63,7 @@ public sealed class TemplateContentRendererTests
 
     /// <summary>
     /// EN: Ensures an existing standardized snapshot header is not duplicated when a custom template already provides it.
-    /// PT: Garante que um cabecalho padronizado de snapshot existente nao seja duplicado quando um template customizado ja o fornece.
+    /// PT-br: Garante que um cabecalho padronizado de snapshot existente nao seja duplicado quando um template customizado ja o fornece.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateContentRenderer")]

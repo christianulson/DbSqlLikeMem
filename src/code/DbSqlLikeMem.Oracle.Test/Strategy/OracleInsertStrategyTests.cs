@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test.Strategy;
 /// <summary>
 /// EN: Covers single-row INSERT execution in the Oracle mock.
-/// PT: Cobre execucao de INSERT de uma linha no mock Oracle.
+/// PT-br: Cobre execucao de INSERT de uma linha no mock Oracle.
 /// </summary>
 public sealed class OracleInsertStrategyTests(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class OracleInsertStrategyTests(
 {
     /// <summary>
     /// EN: Verifies that a single INSERT adds one row to the target table.
-    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
+    /// PT-br: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

@@ -4,14 +4,14 @@ namespace DbSqlLikeMem.Npgsql;
 #pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Npgsql Mock Exception.
-/// PT: Representa uma exceção simulada do Npgsql.
+/// PT-br: Representa uma exceção simulada do Npgsql.
 /// </summary>
 public sealed class NpgsqlMockException : SqlMockException
 #pragma warning restore CA1032 // Implement standard exception constructors
 {
     /// <summary>
     /// EN: Represents Npgsql Mock Exception.
-    /// PT: Representa uma exceção simulada do Npgsql.
+    /// PT-br: Representa uma exceção simulada do Npgsql.
     /// </summary>
     public NpgsqlMockException(string message, int code)
         : base(message, code)
@@ -19,7 +19,7 @@ public sealed class NpgsqlMockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Npgsql Mock Exception.
-    /// PT: Representa uma exceção simulada do Npgsql.
+    /// PT-br: Representa uma exceção simulada do Npgsql.
     /// </summary>
     public NpgsqlMockException() : base()
     {
@@ -27,7 +27,7 @@ public sealed class NpgsqlMockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Npgsql Mock Exception.
-    /// PT: Representa uma exceção simulada do Npgsql.
+    /// PT-br: Representa uma exceção simulada do Npgsql.
     /// </summary>
     public NpgsqlMockException(string? message) : base(message)
     {
@@ -35,7 +35,7 @@ public sealed class NpgsqlMockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Npgsql Mock Exception.
-    /// PT: Representa uma exceção simulada do Npgsql.
+    /// PT-br: Representa uma exceção simulada do Npgsql.
     /// </summary>
     public NpgsqlMockException(string? message, Exception? innerException) : base(message, innerException)
     {

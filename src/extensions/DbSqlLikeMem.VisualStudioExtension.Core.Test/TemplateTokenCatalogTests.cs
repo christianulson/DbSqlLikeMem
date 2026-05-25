@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies the supported token catalog used by template-based generation.
-/// PT: Verifica o catalogo de tokens suportados usado pela geracao baseada em templates.
+/// PT-br: Verifica o catalogo de tokens suportados usado pela geracao baseada em templates.
 /// </summary>
 public sealed class TemplateTokenCatalogTests
 {
     /// <summary>
     /// EN: Ensures the catalog exposes all documented tokens used by generation templates.
-    /// PT: Garante que o catalogo exponha todos os tokens documentados usados pelos templates de geracao.
+    /// PT-br: Garante que o catalogo exponha todos os tokens documentados usados pelos templates de geracao.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateTokenCatalog")]
@@ -27,7 +27,7 @@ public sealed class TemplateTokenCatalogTests
 
     /// <summary>
     /// EN: Ensures unsupported placeholders are detected without flagging documented tokens.
-    /// PT: Garante que placeholders nao suportados sejam detectados sem marcar tokens documentados.
+    /// PT-br: Garante que placeholders nao suportados sejam detectados sem marcar tokens documentados.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateTokenCatalog")]
@@ -47,7 +47,7 @@ public sealed class TemplateTokenCatalogTests
 
     /// <summary>
     /// EN: Ensures the shipped baseline templates only use supported placeholders.
-    /// PT: Garante que os templates de baseline entregues usem apenas placeholders suportados.
+    /// PT-br: Garante que os templates de baseline entregues usem apenas placeholders suportados.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateTokenCatalog")]

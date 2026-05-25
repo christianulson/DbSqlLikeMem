@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers SQL Azure LINQ provider smoke scenarios.
-/// PT: Cobre cenarios smoke do provider LINQ de SQL Azure.
+/// PT-br: Cobre cenarios smoke do provider LINQ de SQL Azure.
 /// </summary>
 public sealed class SqlAzureLinqProviderTests(
         ITestOutputHelper helper
@@ -18,7 +18,7 @@ public sealed class SqlAzureLinqProviderTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure LINQ query with explicit table name returns expected rows.
-    /// PT: Garante que consulta LINQ SQL Azure com nome de tabela explícito retorne as linhas esperadas.
+    /// PT-br: Garante que consulta LINQ SQL Azure com nome de tabela explícito retorne as linhas esperadas.
     /// </summary>
     [Fact]
     public void LinqProvider_ShouldQueryWhereAndReturnRows()
@@ -42,7 +42,7 @@ public sealed class SqlAzureLinqProviderTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure LINQ extension uses CLR type name as default table name.
-    /// PT: Garante que a extensão LINQ SQL Azure use o nome do tipo CLR como nome de tabela padrão.
+    /// PT-br: Garante que a extensão LINQ SQL Azure use o nome do tipo CLR como nome de tabela padrão.
     /// </summary>
     [Fact]
     public void LinqProvider_DefaultTableName_ShouldUseEntityTypeName()

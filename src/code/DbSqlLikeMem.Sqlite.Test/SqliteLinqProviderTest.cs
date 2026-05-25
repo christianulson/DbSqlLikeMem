@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Sqlite.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for SQLite connections.
-/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes SQLite.
+/// PT-br: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes SQLite.
 /// </summary>
 public sealed class SqliteLinqProviderTest(
         ITestOutputHelper helper
@@ -12,12 +12,12 @@ public sealed class SqliteLinqProviderTest(
     {
         /// <summary>
         /// EN: Gets or sets Id.
-        /// PT: Obtém ou define Id.
+        /// PT-br: Obtém ou define Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
         /// EN: Gets or sets Name.
-        /// PT: Obtém ou define Name.
+        /// PT-br: Obtém ou define Name.
         /// </summary>
         public string Name { get; set; } = "";
     }
@@ -25,7 +25,7 @@ public sealed class SqliteLinqProviderTest(
 
     /// <summary>
     /// EN: Verifies LINQ queries filter rows and project the expected SQLite results.
-    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no SQLite.
+    /// PT-br: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no SQLite.
     /// </summary>
     [Fact]
     [Trait("Category", "SqliteLinqProviderTest")]

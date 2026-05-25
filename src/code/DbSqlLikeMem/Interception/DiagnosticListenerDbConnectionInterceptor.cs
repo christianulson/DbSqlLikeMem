@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Publishes interception events through <see cref="DiagnosticListener"/>.
-/// PT: Publica eventos de interceptacao por meio de <see cref="DiagnosticListener"/>.
+/// PT-br: Publica eventos de interceptacao por meio de <see cref="DiagnosticListener"/>.
 /// </summary>
 public sealed class DiagnosticListenerDbConnectionInterceptor : DbConnectionInterceptor
 {
@@ -10,7 +10,7 @@ public sealed class DiagnosticListenerDbConnectionInterceptor : DbConnectionInte
 
     /// <summary>
     /// EN: Creates an interceptor that writes to the default interception diagnostic listener.
-    /// PT: Cria um interceptor que escreve no diagnostic listener padrao da interceptacao.
+    /// PT-br: Cria um interceptor que escreve no diagnostic listener padrao da interceptacao.
     /// </summary>
     public DiagnosticListenerDbConnectionInterceptor()
         : this(new DiagnosticListener(DbInterceptionDiagnosticNames.ListenerName))
@@ -19,9 +19,9 @@ public sealed class DiagnosticListenerDbConnectionInterceptor : DbConnectionInte
 
     /// <summary>
     /// EN: Creates an interceptor that writes to the supplied diagnostic listener.
-    /// PT: Cria um interceptor que escreve no diagnostic listener informado.
+    /// PT-br: Cria um interceptor que escreve no diagnostic listener informado.
     /// </summary>
-    /// <param name="listener">EN: Diagnostic listener used to publish events. PT: Diagnostic listener usado para publicar eventos.</param>
+    /// <param name="listener">EN: Diagnostic listener used to publish events. PT-br: Diagnostic listener usado para publicar eventos.</param>
     public DiagnosticListenerDbConnectionInterceptor(DiagnosticListener listener)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(listener, nameof(listener));
@@ -30,7 +30,7 @@ public sealed class DiagnosticListenerDbConnectionInterceptor : DbConnectionInte
 
     /// <summary>
     /// EN: Gets the underlying diagnostic listener.
-    /// PT: Obtem o diagnostic listener subjacente.
+    /// PT-br: Obtem o diagnostic listener subjacente.
     /// </summary>
     public DiagnosticListener Listener => _listener;
 

@@ -4,7 +4,7 @@ internal static class DbMergeStrategy
 {
     /// <summary>
     /// EN: Implements ExecuteMerge.
-    /// PT: Implementa ExecuteMerge.
+    /// PT-br: Implementa ExecuteMerge.
     /// </summary>
     public static DmlExecutionResult ExecuteMerge(
         this DbConnectionMockBase connection,

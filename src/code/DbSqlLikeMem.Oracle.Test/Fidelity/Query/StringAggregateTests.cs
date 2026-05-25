@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Oracle.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Oracle fidelity tests for the shared string-aggregation workflows.
-/// PT: Executa testes de fidelidade Oracle para os fluxos compartilhados de agregacao de strings.
+/// PT-br: Executa testes de fidelidade Oracle para os fluxos compartilhados de agregacao de strings.
 /// </summary>
 public class StringAggregateTests(
     ITestOutputHelper helper

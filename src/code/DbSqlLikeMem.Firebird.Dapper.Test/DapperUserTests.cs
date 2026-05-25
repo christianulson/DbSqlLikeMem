@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird Dapper user-query scenarios against the mock provider.
-/// PT: Cobre cenarios de consulta de usuarios do Dapper para Firebird contra o provedor simulado.
+/// PT-br: Cobre cenarios de consulta de usuarios do Dapper para Firebird contra o provedor simulado.
 /// </summary>
 public sealed class DapperUserTests(
     ITestOutputHelper helper

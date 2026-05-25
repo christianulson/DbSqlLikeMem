@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Test.Strategy;
 
 /// <summary>
 /// EN: Covers transaction and savepoint behavior in the Firebird mock.
-/// PT: Cobre o comportamento de transacao e savepoint no mock Firebird.
+/// PT-br: Cobre o comportamento de transacao e savepoint no mock Firebird.
 /// </summary>
 public sealed class FirebirdTransactionTests
 {
     /// <summary>
     /// EN: Ensures creating a savepoint without an active transaction keeps the actionable runtime message in Firebird.
-    /// PT: Garante que criar um savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no Firebird.
+    /// PT-br: Garante que criar um savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -27,7 +27,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Ensures rollback to savepoint without an active transaction keeps the actionable runtime message in Firebird.
-    /// PT: Garante que rollback para savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no Firebird.
+    /// PT-br: Garante que rollback para savepoint sem uma transacao ativa mantenha a mensagem acionavel em runtime no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -46,7 +46,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Ensures releasing an unknown savepoint keeps the actionable runtime message in Firebird.
-    /// PT: Garante que liberar um savepoint desconhecido mantenha a mensagem acionavel em runtime no Firebird.
+    /// PT-br: Garante que liberar um savepoint desconhecido mantenha a mensagem acionavel em runtime no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -69,7 +69,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Ensures creating a savepoint with a blank name keeps the parameter validation message in Firebird.
-    /// PT: Garante que criar um savepoint com nome em branco mantenha a mensagem de validacao de parametro no Firebird.
+    /// PT-br: Garante que criar um savepoint com nome em branco mantenha a mensagem de validacao de parametro no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -89,7 +89,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint with a blank name keeps the parameter validation message in Firebird.
-    /// PT: Garante que executar rollback para um savepoint com nome em branco mantenha a mensagem de validacao de parametro no Firebird.
+    /// PT-br: Garante que executar rollback para um savepoint com nome em branco mantenha a mensagem de validacao de parametro no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -109,7 +109,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Ensures releasing a savepoint with a blank name keeps the parameter validation message in Firebird.
-    /// PT: Garante que liberar um savepoint com nome em branco mantenha a mensagem de validacao de parametro no Firebird.
+    /// PT-br: Garante que liberar um savepoint com nome em branco mantenha a mensagem de validacao de parametro no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -129,7 +129,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Verifies that rolling back to a savepoint restores the temporary-table snapshot in Firebird.
-    /// PT: Verifica se o rollback para um savepoint restaura o snapshot da tabela temporaria no Firebird.
+    /// PT-br: Verifica se o rollback para um savepoint restaura o snapshot da tabela temporaria no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -168,7 +168,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Ensures nested savepoints restore the transaction snapshot from the selected outer point.
-    /// PT: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
+    /// PT-br: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -215,7 +215,7 @@ public sealed class FirebirdTransactionTests
 
     /// <summary>
     /// EN: Verifies that releasing a savepoint without an active transaction keeps the actionable runtime message in Firebird.
-    /// PT: Verifica se liberar um savepoint sem uma transacao ativa mantem a mensagem acionavel em runtime no Firebird.
+    /// PT-br: Verifica se liberar um savepoint sem uma transacao ativa mantem a mensagem acionavel em runtime no Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

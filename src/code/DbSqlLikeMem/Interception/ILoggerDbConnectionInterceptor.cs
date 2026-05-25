@@ -5,7 +5,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Writes interception events to <see cref="ILogger"/>.
-/// PT: Escreve eventos de interceptacao em <see cref="ILogger"/>.
+/// PT-br: Escreve eventos de interceptacao em <see cref="ILogger"/>.
 /// </summary>
 public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
 {
@@ -15,9 +15,9 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Creates an interceptor that writes interception events to the supplied logger.
-    /// PT: Cria um interceptor que escreve eventos de interceptacao no logger informado.
+    /// PT-br: Cria um interceptor que escreve eventos de interceptacao no logger informado.
     /// </summary>
-    /// <param name="logger">EN: Logger receiving interception messages. PT: Logger que recebe as mensagens de interceptacao.</param>
+    /// <param name="logger">EN: Logger receiving interception messages. PT-br: Logger que recebe as mensagens de interceptacao.</param>
     public ILoggerDbConnectionInterceptor(ILogger logger)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(logger, nameof(logger));
@@ -26,7 +26,7 @@ public sealed class ILoggerDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Gets the logger used by this interceptor.
-    /// PT: Obtem o logger usado por este interceptor.
+    /// PT-br: Obtem o logger usado por este interceptor.
     /// </summary>
     public ILogger Logger => _logger;
 

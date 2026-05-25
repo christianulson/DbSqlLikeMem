@@ -4,7 +4,7 @@ using Microsoft.Data.SqlClient;
 namespace DbSqlLikeMem.SqlServer;
 /// <summary>
 /// EN: Represents Sql Server Data Parameter Collection Mock.
-/// PT: Representa Sql Server Data Parameter Collection simulado.
+/// PT-br: Representa Sql Server Data Parameter Collection simulado.
 /// </summary>
 public class SqlServerDataParameterCollectionMock
     : DbParameterCollection, IList<SqlParameter>
@@ -48,13 +48,13 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets parameter.
-    /// PT: Obtém parâmetro.
+    /// PT-br: Obtém parâmetro.
     /// </summary>
     protected override DbParameter GetParameter(int index) => Items[index];
 
     /// <summary>
     /// EN: Gets parameter.
-    /// PT: Obtém parâmetro.
+    /// PT-br: Obtém parâmetro.
     /// </summary>
     protected override DbParameter GetParameter(string parameterName)
     {
@@ -66,7 +66,7 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Sets parameter.
-    /// PT: Define parâmetro.
+    /// PT-br: Define parâmetro.
     /// </summary>
     protected override void SetParameter(int index, DbParameter value)
     {
@@ -84,14 +84,14 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Sets parameter.
-    /// PT: Define parâmetro.
+    /// PT-br: Define parâmetro.
     /// </summary>
     protected override void SetParameter(string parameterName, DbParameter value)
         => SetParameter(IndexOf(parameterName), value);
 
     /// <summary>
     /// EN: Sets parameter.
-    /// PT: Define parâmetro.
+    /// PT-br: Define parâmetro.
     /// </summary>
     public new SqlParameter this[int index]
     {
@@ -101,7 +101,7 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets parameter.
-    /// PT: Obtém parâmetro.
+    /// PT-br: Obtém parâmetro.
     /// </summary>
     public new SqlParameter this[string name]
     {
@@ -111,19 +111,19 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets or sets count.
-    /// PT: Obtém ou define count.
+    /// PT-br: Obtém ou define count.
     /// </summary>
     public override int Count => Items.Count;
 
     /// <summary>
     /// EN: Gets or sets sync root.
-    /// PT: Obtém ou define sync root.
+    /// PT-br: Obtém ou define sync root.
     /// </summary>
     public override object SyncRoot => true;
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public SqlParameter Add(string parameterName, DbType dbType)
     {
@@ -138,7 +138,7 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public override int Add(object value)
     {
@@ -149,7 +149,7 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public SqlParameter Add(SqlParameter parameter)
     {
@@ -160,18 +160,18 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public SqlParameter Add(string parameterName, SqlDbType sqlDbType) => Add(new(parameterName, sqlDbType));
     /// <summary>
     /// EN: Performs the add operation.
-    /// PT: Executa a operação de add.
+    /// PT-br: Executa a operação de add.
     /// </summary>
     public SqlParameter Add(string parameterName, SqlDbType sqlDbType, int size) => Add(new(parameterName, sqlDbType, size));
 
     /// <summary>
     /// EN: Represents Add Range.
-    /// PT: Representa Add Range.
+    /// PT-br: Representa Add Range.
     /// </summary>
     public override void AddRange(Array values)
     {
@@ -182,7 +182,7 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Represents Add With Value.
-    /// PT: Representa Add With Value.
+    /// PT-br: Representa Add With Value.
     /// </summary>
     public SqlParameter AddWithValue(string parameterName, object? value)
     {
@@ -197,28 +197,28 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the contains operation.
-    /// PT: Executa a operação de contains.
+    /// PT-br: Executa a operação de contains.
     /// </summary>
     public override bool Contains(object value)
         => value is SqlParameter parameter && Items.Contains(parameter);
 
     /// <summary>
     /// EN: Performs the contains operation.
-    /// PT: Executa a operação de contains.
+    /// PT-br: Executa a operação de contains.
     /// </summary>
     public override bool Contains(string value)
         => IndexOf(value) != -1;
 
     /// <summary>
     /// EN: Performs the copy to operation.
-    /// PT: Executa a operação de copy to.
+    /// PT-br: Executa a operação de copy to.
     /// </summary>
     public override void CopyTo(Array array, int index)
         => ((ICollection)Items).CopyTo(array, index);
 
     /// <summary>
     /// EN: Performs the clear operation.
-    /// PT: Executa a operação de clear.
+    /// PT-br: Executa a operação de clear.
     /// </summary>
     public override void Clear()
     {
@@ -228,7 +228,7 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Gets enumerator.
-    /// PT: Obtém enumerador.
+    /// PT-br: Obtém enumerador.
     /// </summary>
     public override IEnumerator GetEnumerator()
         => Items.GetEnumerator();
@@ -237,48 +237,48 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the index of operation.
-    /// PT: Executa a operação de index of.
+    /// PT-br: Executa a operação de index of.
     /// </summary>
     public override int IndexOf(object value)
         => value is SqlParameter parameter ? Items.IndexOf(parameter) : -1;
 
     /// <summary>
     /// EN: Performs the index of operation.
-    /// PT: Executa a operação de index of.
+    /// PT-br: Executa a operação de index of.
     /// </summary>
     public override int IndexOf(string parameterName) => NormalizedIndexOf(parameterName);
 
     /// <summary>
     /// EN: Performs the insert operation.
-    /// PT: Executa a operação de insert.
+    /// PT-br: Executa a operação de insert.
     /// </summary>
     public override void Insert(int index, object? value)
         => AddParameter((SqlParameter)(value ?? throw new ArgumentNullException(nameof(value))), index);
 
     /// <summary>
     /// EN: Performs the insert operation.
-    /// PT: Executa a operação de insert.
+    /// PT-br: Executa a operação de insert.
     /// </summary>
     public void Insert(int index, SqlParameter item)
         => Items[index] = item;
 
     /// <summary>
     /// EN: Performs the remove operation.
-    /// PT: Executa a operação de remove.
+    /// PT-br: Executa a operação de remove.
     /// </summary>
     public override void Remove(object? value)
         => RemoveAt(IndexOf(value ?? throw new ArgumentNullException(nameof(value))));
 
     /// <summary>
     /// EN: Performs the remove at operation.
-    /// PT: Executa a operação de remove at.
+    /// PT-br: Executa a operação de remove at.
     /// </summary>
     public override void RemoveAt(string parameterName)
     => RemoveAt(IndexOf(parameterName));
 
     /// <summary>
     /// EN: Performs the remove at operation.
-    /// PT: Executa a operação de remove at.
+    /// PT-br: Executa a operação de remove at.
     /// </summary>
     public override void RemoveAt(int index)
     {
@@ -297,7 +297,7 @@ public class SqlServerDataParameterCollectionMock
 
     /// <summary>
     /// EN: Performs the index of operation.
-    /// PT: Executa a operação de index of.
+    /// PT-br: Executa a operação de index of.
     /// </summary>
     public int IndexOf(SqlParameter item)
         => Items.IndexOf(item);
@@ -305,19 +305,19 @@ public class SqlServerDataParameterCollectionMock
         => AddParameter(item, Items.Count);
     /// <summary>
     /// EN: Performs the contains operation.
-    /// PT: Executa a operação de contains.
+    /// PT-br: Executa a operação de contains.
     /// </summary>
     public bool Contains(SqlParameter item)
         => Items.Contains(item);
     /// <summary>
     /// EN: Performs the copy to operation.
-    /// PT: Executa a operação de copy to.
+    /// PT-br: Executa a operação de copy to.
     /// </summary>
     public void CopyTo(SqlParameter[] array, int arrayIndex)
         => Items.CopyTo(array, arrayIndex);
     /// <summary>
     /// EN: Performs the remove operation.
-    /// PT: Executa a operação de remove.
+    /// PT-br: Executa a operação de remove.
     /// </summary>
     public bool Remove(SqlParameter item)
     {

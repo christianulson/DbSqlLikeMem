@@ -4,11 +4,11 @@ namespace DbSqlLikeMem.Sqlite.Test.Performance;
 
 /// <summary>
 /// EN: Covers SQLite CRUD performance scenarios against the mock provider.
-/// PT: Cobre cenarios de performance CRUD do SQLite contra o provedor mock.
+/// PT-br: Cobre cenarios de performance CRUD do SQLite contra o provedor mock.
 /// </summary>
 /// <remarks>
 /// EN: The suite measures insert, read, update, and delete throughput in a controlled test environment.
-/// PT: A suite mede o throughput de insert, read, update e delete em um ambiente de teste controlado.
+/// PT-br: A suite mede o throughput de insert, read, update e delete em um ambiente de teste controlado.
 /// </remarks>
 public sealed class SqlitePerformanceTests : XUnitTestBase
 {
@@ -16,9 +16,9 @@ public sealed class SqlitePerformanceTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the SQLite performance test fixture with a seeded Users table.
-    /// PT: Cria a fixture de testes de performance do SQLite com a tabela Users semeada.
+    /// PT-br: Cria a fixture de testes de performance do SQLite com a tabela Users semeada.
     /// </summary>
-    /// <param name="helper">EN: The xUnit output helper. PT: O helper de saida do xUnit.</param>
+    /// <param name="helper">EN: The xUnit output helper. PT-br: O helper de saida do xUnit.</param>
     public SqlitePerformanceTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new SqliteDbMock();

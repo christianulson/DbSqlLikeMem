@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.MariaDb.Test.Strategy;
 
 /// <summary>
 /// EN: Covers multi-table rollback behavior when MariaDB runs in thread-safe mode.
-/// PT: Cobre o comportamento de rollback com multiplas tabelas quando o MariaDB executa em modo thread-safe.
+/// PT-br: Cobre o comportamento de rollback com multiplas tabelas quando o MariaDB executa em modo thread-safe.
 /// </summary>
 public sealed class MariaDbTransactionParallelizationTests
 {
     /// <summary>
     /// EN: Ensures rollback restores multiple tables correctly when the database runs in thread-safe mode.
-    /// PT: Garante que rollback restaure varias tabelas corretamente quando o banco executa em modo thread-safe.
+    /// PT-br: Garante que rollback restaure varias tabelas corretamente quando o banco executa em modo thread-safe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

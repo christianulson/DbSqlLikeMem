@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Validates generation and persistence of execution plans for MySql command execution.
-/// PT: Valida a geração e a persistência de planos de execução para a execução de comandos MySql.
+/// PT-br: Valida a geração e a persistência de planos de execução para a execução de comandos MySql.
 /// </summary>
 public sealed class ExecutionPlanTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class ExecutionPlanTests(
 {
     /// <summary>
     /// EN: Ensures ExecuteReader generates an execution plan with core metrics and prints it in test output.
-    /// PT: Garante que o ExecuteReader gere um plano de execução com métricas principais e o imprima na saída do teste.
+    /// PT-br: Garante que o ExecuteReader gere um plano de execução com métricas principais e o imprima na saída do teste.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -58,7 +58,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures execution plan suggests missing index for filter/sort columns.
-    /// PT: Garante que o plano de execução sugira índice ausente para colunas de filtro/ordenação.
+    /// PT-br: Garante que o plano de execução sugira índice ausente para colunas de filtro/ordenação.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -89,7 +89,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures execution plan does not suggest index when a matching index already exists.
-    /// PT: Garante que o plano não sugira índice quando já existe índice aderente.
+    /// PT-br: Garante que o plano não sugira índice quando já existe índice aderente.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -121,7 +121,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures execution plan does not suggest index when PK prefix already covers query columns.
-    /// PT: Garante que o plano não sugira índice quando o prefixo da PK já cobre as colunas da consulta.
+    /// PT-br: Garante que o plano não sugira índice quando o prefixo da PK já cobre as colunas da consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -153,7 +153,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures index recommendations include estimated before/after and gain metrics.
-    /// PT: Garante que recomendações de índice incluam métricas estimadas de antes/depois e ganho.
+    /// PT-br: Garante que recomendações de índice incluam métricas estimadas de antes/depois e ganho.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -184,7 +184,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures suggested index keeps filter column order from predicate traversal.
-    /// PT: Garante que o índice sugerido preserve a ordem das colunas de filtro na varredura do predicado.
+    /// PT-br: Garante que o índice sugerido preserve a ordem das colunas de filtro na varredura do predicado.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -215,7 +215,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures advisor skips recommendation for tiny scans to reduce noise.
-    /// PT: Garante que o advisor não recomende índice para scans muito pequenos, reduzindo ruído.
+    /// PT-br: Garante que o advisor não recomende índice para scans muito pequenos, reduzindo ruído.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -243,7 +243,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures recommendation reason includes filter/order-by column context.
-    /// PT: Garante que o motivo da recomendação inclua contexto de colunas de filtro/ordenação.
+    /// PT-br: Garante que o motivo da recomendação inclua contexto de colunas de filtro/ordenação.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]
@@ -272,7 +272,7 @@ public sealed class ExecutionPlanTests(
 
     /// <summary>
     /// EN: Ensures multi-select execution stores an execution plan entry for each result set.
-    /// PT: Garante que a execução com múltiplos selects armazene um plano de execução para cada conjunto de resultados.
+    /// PT-br: Garante que a execução com múltiplos selects armazene um plano de execução para cada conjunto de resultados.
     /// </summary>
     [Fact]
     [Trait("Category", "ExecutionPlan")]

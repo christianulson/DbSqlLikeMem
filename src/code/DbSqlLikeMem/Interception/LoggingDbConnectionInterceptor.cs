@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Emits structured text messages for intercepted connection, command, and transaction events.
-/// PT: Emite mensagens de texto estruturadas para eventos interceptados de conexao, comando e transacao.
+/// PT-br: Emite mensagens de texto estruturadas para eventos interceptados de conexao, comando e transacao.
 /// </summary>
 public sealed class LoggingDbConnectionInterceptor : DbConnectionInterceptor
 {
@@ -14,9 +14,9 @@ public sealed class LoggingDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Creates a logging interceptor that writes messages through the supplied delegate.
-    /// PT: Cria um interceptor de logging que escreve mensagens pelo delegate informado.
+    /// PT-br: Cria um interceptor de logging que escreve mensagens pelo delegate informado.
     /// </summary>
-    /// <param name="writeLine">EN: Output delegate. PT: Delegate de saida.</param>
+    /// <param name="writeLine">EN: Output delegate. PT-br: Delegate de saida.</param>
     public LoggingDbConnectionInterceptor(Action<string> writeLine)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(writeLine, nameof(writeLine));

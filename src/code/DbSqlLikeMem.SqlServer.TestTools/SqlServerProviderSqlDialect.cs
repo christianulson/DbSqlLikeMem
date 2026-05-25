@@ -2,10 +2,204 @@ namespace DbSqlLikeMem.SqlServer.TestTools;
 
 /// <summary>
 /// EN: Provides SQL Server-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de SQL Server usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de SQL Server usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public class SqlServerProviderSqlDialect : ProviderSqlDialect
 {
+    private static readonly string[] SqlServerMetadataFunctionNames =
+    [
+        "APP_NAME",
+        "CONNECTIONPROPERTY",
+        "DATABASE_PRINCIPAL_ID",
+        "DATABASEPROPERTYEX",
+        "COLUMNPROPERTY",
+        "COL_LENGTH",
+        "COL_NAME",
+        "DB_ID",
+        "DB_NAME",
+        "OBJECT_ID",
+        "OBJECTPROPERTY",
+        "OBJECTPROPERTYEX",
+        "OBJECT_NAME",
+        "OBJECT_SCHEMA_NAME",
+        "ORIGINAL_DB_NAME",
+        "ORIGINAL_LOGIN",
+        "SERVERPROPERTY",
+        "SCHEMA_ID",
+        "SCHEMA_NAME",
+        "SCOPE_IDENTITY",
+        "CURRENT_REQUEST_ID",
+        "SESSION_ID",
+        "TYPE_ID",
+        "TYPE_NAME",
+        "TYPEPROPERTY",
+        "SUSER_ID",
+        "SUSER_NAME",
+        "SUSER_SID",
+        "SUSER_SNAME",
+        "USER_ID",
+        "USER_NAME",
+        "XACT_STATE",
+        "GETANSINULL",
+        "HOST_ID",
+        "HOST_NAME",
+        "IS_MEMBER",
+        "IS_ROLEMEMBER",
+        "IS_SRVROLEMEMBER",
+        "SESSION_CONTEXT",
+        "CURRENT_TRANSACTION_ID",
+        "CONTEXT_INFO",
+        "ERROR_LINE",
+        "ERROR_MESSAGE",
+        "ERROR_NUMBER",
+        "ERROR_PROCEDURE",
+        "ERROR_SEVERITY",
+        "ERROR_STATE"
+    ];
+
+    private static readonly string[] SqlServerMetadataIdentifierNames =
+    [
+        "CURRENT_USER",
+        "SESSION_USER",
+        "SYSTEM_USER",
+        "@@DATEFIRST",
+        "@@IDENTITY",
+        "@@MAX_PRECISION",
+        "@@ROWCOUNT",
+        "@@TEXTSIZE"
+    ];
+
+    private static readonly string[] SqlServerScalarFunctionNames =
+    [
+        "ABS",
+        "ACOS",
+        "ASIN",
+        "ATAN",
+        "ATN2",
+        "CEILING",
+        "COS",
+        "COT",
+        "DEGREES",
+        "EXP",
+        "FLOOR",
+        "FORMAT",
+        "LOG",
+        "LOG10",
+        "PI",
+        "POWER",
+        "RADIANS",
+        "RAND",
+        "ROUND",
+        "SIGN",
+        "SIN",
+        "SQUARE",
+        "TAN",
+        "SQRT",
+        "ASCII",
+        "CHARINDEX",
+        "CHECKSUM",
+        "BINARY_CHECKSUM",
+        "DATALENGTH",
+        "DIFFERENCE",
+        "GROUPING",
+        "GROUPING_ID",
+        "ISDATE",
+        "ISJSON",
+        "ISNUMERIC",
+        "LEN",
+        "PATINDEX",
+        "UNICODE",
+        "ROWCOUNT",
+        "ROWCOUNT_BIG",
+        "CHAR",
+        "CONCAT",
+        "CONCAT_WS",
+        "FORMATMESSAGE",
+        "LEFT",
+        "LOWER",
+        "NCHAR",
+        "NEWID",
+        "NEWSEQUENTIALID",
+        "PARSENAME",
+        "QUOTENAME",
+        "REPLICATE",
+        "REVERSE",
+        "REPLACE",
+        "RIGHT",
+        "SOUNDEX",
+        "SPACE",
+        "STR",
+        "STUFF",
+        "SUBSTRING",
+        "TRIM",
+        "TRANSLATE",
+        "UPPER",
+        "LTRIM",
+        "RTRIM",
+        "IF",
+        "IIF",
+        "JSON_MODIFY",
+        "COMPRESS",
+        "DECOMPRESS",
+        "STRING_ESCAPE",
+        "TODATETIMEOFFSET",
+        "SWITCHOFFSET",
+        "DATETRUNC",
+        "DATEADD",
+        "DATEDIFF",
+        "DATENAME",
+        "DATEPART",
+        "DAY",
+        "MONTH",
+        "YEAR",
+        "DATEDIFF_BIG",
+        "CAST",
+        "PARSE",
+        "TRY_PARSE",
+        "TRY_CAST",
+        "TRY_CONVERT",
+        "DATEFROMPARTS",
+        "DATETIMEFROMPARTS",
+        "DATETIME2FROMPARTS",
+        "DATETIMEOFFSETFROMPARTS",
+        "TIMEFROMPARTS",
+        "SMALLDATETIMEFROMPARTS"
+    ];
+
+    private static readonly string[] SqlServerDateFunctionNames =
+    [
+        "CURRENT_TIMESTAMP",
+        "GETDATE",
+        "GETUTCDATE",
+        "SYSTEMDATE",
+        "SYSDATETIME",
+        "SYSUTCDATETIME",
+        "SYSDATETIMEOFFSET",
+        "EOMONTH",
+        "DATEADD",
+        "DATEDIFF",
+        "DATENAME",
+        "DATEPART",
+        "DAY",
+        "MONTH",
+        "YEAR",
+        "DATEDIFF_BIG",
+        "TODATETIMEOFFSET",
+        "SWITCHOFFSET",
+        "DATETRUNC"
+    ];
+
+    private static readonly string[] SqlServerAggregateFunctionNames =
+    [
+        "CHECKSUM_AGG",
+        "STRING_AGG",
+        "APPROX_COUNT_DISTINCT",
+        "MEDIAN",
+        "PERCENTILE",
+        "PERCENTILE_CONT",
+        "PERCENTILE_DISC"
+    ];
+
     /// <inheritdoc />
     public override ProviderId Provider => ProviderId.SqlServer;
 
@@ -20,6 +214,36 @@ public class SqlServerProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsReleaseSavepoints => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRandFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
+    public override string MathNaturalLogExpression(string expression) =>
+        $"LOG({expression})";
+
+    /// <inheritdoc />
+    public override string MathLogBaseExpression(string baseExpression, string valueExpression) =>
+        $"LOG({valueExpression}, {baseExpression})";
+
+    /// <inheritdoc />
+    public override string MathAtan2Expression(string yExpression, string xExpression) =>
+        $"ATN2({yExpression}, {xExpression})";
 
     /// <inheritdoc />
     public override bool SupportsUpdateDeleteJoinRuntime => true;
@@ -158,6 +382,10 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
         $"CONVERT(VARCHAR(50), CAST({expression} AS DECIMAL(38, {scale})))";
 
     /// <inheritdoc />
+    public override string MathSquareExpression(string expression) =>
+        $"SQUARE({expression})";
+
+    /// <inheritdoc />
     public override string StringAggregate(FidelityTestContext context) =>
         $"SELECT STRING_AGG(Name, ',') FROM {context.TbUsersFullName}";
 
@@ -205,12 +433,59 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name);";
 
     /// <summary>
     /// EN: Returns the SQL Server no-op command used when release-savepoint handling is exercised.
-    /// PT: Retorna o comando sem efeito do SQL Server usado quando o tratamento de release-savepoint eh exercitado.
+    /// PT-br: Retorna o comando sem efeito do SQL Server usado quando o tratamento de release-savepoint eh exercitado.
     /// </summary>
     public override string ReleaseSavepoint(string savepointName) => "SELECT 1";
 
     /// <inheritdoc />
     public override bool SupportsJsonScalarRead => true;
+
+    /// <inheritdoc />
+    public override bool SupportsJsonQueryFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsOpenJsonFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsForJsonClause => true;
+
+    /// <inheritdoc />
+    public override bool SupportsApplyClause => true;
+
+    /// <inheritdoc />
+    public override bool SupportsStringSplitFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsStringSplitOrdinalArgument => true;
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerMetadataFunction(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && SqlServerMetadataFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerMetadataIdentifier(string identifier)
+        => !string.IsNullOrWhiteSpace(identifier)
+            && SqlServerMetadataIdentifierNames.Contains(identifier, StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerScalarFunction(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && SqlServerScalarFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerDateFunction(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && SqlServerDateFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsSqlServerAggregateFunction(string functionName)
+        => !string.IsNullOrWhiteSpace(functionName)
+            && SqlServerAggregateFunctionNames.Contains(functionName, StringComparer.OrdinalIgnoreCase);
+
+    /// <inheritdoc />
+    public override bool SupportsApproximateAggregateFunction(string functionName)
+        => string.Equals(functionName, "APPROX_COUNT_DISTINCT", StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>

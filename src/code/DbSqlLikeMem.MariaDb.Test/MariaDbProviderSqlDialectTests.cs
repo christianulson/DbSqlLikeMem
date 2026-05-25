@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.MariaDb.Test;
 
 /// <summary>
 /// EN: Contains tests for the MariaDB provider SQL dialect helper.
-/// PT: Contém testes para o helper de dialeto SQL do provedor MariaDB.
+/// PT-br: Contém testes para o helper de dialeto SQL do provedor MariaDB.
 /// </summary>
 public sealed class MariaDbProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the MariaDB helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper MariaDB.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper MariaDB.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchMariaDb()
@@ -28,7 +28,7 @@ public sealed class MariaDbProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits MariaDB-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compatível com MariaDB para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compatível com MariaDB para savepoint.
     /// </summary>
     [Fact]
     public void SavepointSql_ShouldUseMariaDbSyntax()

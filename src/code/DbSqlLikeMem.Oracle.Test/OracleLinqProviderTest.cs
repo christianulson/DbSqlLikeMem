@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Oracle.Test;
 /// <summary>
 /// EN: Verifies LINQ query translation and provider metadata behavior for Oracle connections.
-/// PT: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes Oracle.
+/// PT-br: Verifica a traducao de consultas LINQ e o comportamento de metadados do provedor para conexoes Oracle.
 /// </summary>
 public sealed class OracleLinqProviderTest(
         ITestOutputHelper helper
@@ -12,12 +12,12 @@ public sealed class OracleLinqProviderTest(
     {
         /// <summary>
         /// EN: Provides details for Id.
-        /// PT: Fornece detalhes de Id.
+        /// PT-br: Fornece detalhes de Id.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
         /// EN: Provides details for Name.
-        /// PT: Fornece detalhes de Name.
+        /// PT-br: Fornece detalhes de Name.
         /// </summary>
         public string Name { get; set; } = "";
     }
@@ -25,7 +25,7 @@ public sealed class OracleLinqProviderTest(
 
     /// <summary>
     /// EN: Verifies LINQ queries filter rows and project the expected Oracle results.
-    /// PT: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no Oracle.
+    /// PT-br: Verifica se consultas LINQ filtram linhas e projetam os resultados esperados no Oracle.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleLinqProviderTest")]

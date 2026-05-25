@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Validates Firebird function execution for the supported scalar FUNCTION DDL subset.
-/// PT: Valida a execucao de funcoes Firebird para o subset suportado de DDL de FUNCTION escalar.
+/// PT-br: Valida a execucao de funcoes Firebird para o subset suportado de DDL de FUNCTION escalar.
 /// </summary>
 public sealed class FirebirdFunctionTests(
         ITestOutputHelper helper
@@ -10,9 +10,9 @@ public sealed class FirebirdFunctionTests(
 {
     /// <summary>
     /// EN: Ensures Firebird executes the supported scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o Firebird execute end-to-end o subset suportado de DDL de FUNCTION escalar.
+    /// PT-br: Garante que o Firebird execute end-to-end o subset suportado de DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: Firebird dialect version under test. PT: Versao do dialeto Firebird em teste.</param>
+    /// <param name="version">EN: Firebird dialect version under test. PT-br: Versao do dialeto Firebird em teste.</param>
     [Theory]
     [MemberDataByFirebirdVersion(nameof(FirebirdVersions))]
     [Trait("Category", "FirebirdMock")]
@@ -40,9 +40,9 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird uses a default scalar function parameter when the caller omits the trailing argument.
-    /// PT: Garante que o Firebird use um parametro padrao de funcao escalar quando o chamador omite o argumento final.
+    /// PT-br: Garante que o Firebird use um parametro padrao de funcao escalar quando o chamador omite o argumento final.
     /// </summary>
-    /// <param name="version">EN: Firebird dialect version under test. PT: Versao do dialeto Firebird em teste.</param>
+    /// <param name="version">EN: Firebird dialect version under test. PT-br: Versao do dialeto Firebird em teste.</param>
     [Theory]
     [MemberDataByFirebirdVersion(nameof(FirebirdVersions))]
     [Trait("Category", "FirebirdMock")]
@@ -65,9 +65,9 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird replaces an existing scalar function body through CREATE OR REPLACE FUNCTION only when supported.
-    /// PT: Garante que o Firebird substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION somente quando suportado.
+    /// PT-br: Garante que o Firebird substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION somente quando suportado.
     /// </summary>
-    /// <param name="version">EN: Firebird dialect version under test. PT: Versao do dialeto Firebird em teste.</param>
+    /// <param name="version">EN: Firebird dialect version under test. PT-br: Versao do dialeto Firebird em teste.</param>
     [Theory]
     [MemberDataByFirebirdVersion(nameof(FirebirdVersions))]
     [Trait("Category", "FirebirdMock")]
@@ -91,7 +91,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Verifies GEN_ID follows the Firebird sequence alias semantics through the scalar surface.
-    /// PT: Verifica se GEN_ID segue a semantica de alias de sequence do Firebird pela surface escalar.
+    /// PT-br: Verifica se GEN_ID segue a semantica de alias de sequence do Firebird pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -108,7 +108,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird returns expected values for the supported temporal system functions.
-    /// PT: Garante que o Firebird retorne valores esperados para as funcoes temporais de sistema suportadas.
+    /// PT-br: Garante que o Firebird retorne valores esperados para as funcoes temporais de sistema suportadas.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -127,7 +127,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates EXTRACT against the supported date and timestamp fields.
-    /// PT: Garante que o Firebird avalie EXTRACT sobre os campos suportados de data e timestamp.
+    /// PT-br: Garante que o Firebird avalie EXTRACT sobre os campos suportados de data e timestamp.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -150,7 +150,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates supported conditional functions through the scalar surface.
-    /// PT: Garante que o Firebird avalie as funcoes condicionais suportadas pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie as funcoes condicionais suportadas pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -167,7 +167,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates MAXVALUE and MINVALUE through the scalar surface.
-    /// PT: Garante que o Firebird avalie MAXVALUE e MINVALUE pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie MAXVALUE e MINVALUE pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -181,7 +181,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates ASCII_CHAR and ASCII_VAL through the scalar surface.
-    /// PT: Garante que o Firebird avalie ASCII_CHAR e ASCII_VAL pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie ASCII_CHAR e ASCII_VAL pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -199,7 +199,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird converts between ASCII UUID text and binary UUID values.
-    /// PT: Garante que o Firebird converta entre texto ASCII de UUID e valores binarios de UUID.
+    /// PT-br: Garante que o Firebird converta entre texto ASCII de UUID e valores binarios de UUID.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -215,7 +215,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates MD5, CRYPT_HASH, HEX, UNHEX, HEX_ENCODE, HEX_DECODE, BASE64_ENCODE, and BASE64_DECODE through the scalar surface.
-    /// PT: Garante que o Firebird avalie MD5, CRYPT_HASH, HEX, UNHEX, HEX_ENCODE, HEX_DECODE, BASE64_ENCODE e BASE64_DECODE pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie MD5, CRYPT_HASH, HEX, UNHEX, HEX_ENCODE, HEX_DECODE, BASE64_ENCODE e BASE64_DECODE pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -242,7 +242,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird generates a 16-byte UUID value through GEN_UUID.
-    /// PT: Garante que o Firebird gere um valor UUID de 16 bytes via GEN_UUID.
+    /// PT-br: Garante que o Firebird gere um valor UUID de 16 bytes via GEN_UUID.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -257,7 +257,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates HASH through the scalar surface, including the CRC32 variant, and keeps the result stable.
-    /// PT: Garante que o Firebird avalie HASH pela surface escalar, incluindo a variante CRC32, e mantenha o resultado estavel.
+    /// PT-br: Garante que o Firebird avalie HASH pela surface escalar, incluindo a variante CRC32, e mantenha o resultado estavel.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -276,7 +276,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates RAND through the scalar surface.
-    /// PT: Garante que o Firebird avalie RAND pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie RAND pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -290,7 +290,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates POSITION, REPLACE, and REVERSE through the scalar surface.
-    /// PT: Garante que o Firebird avalie POSITION, REPLACE e REVERSE pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie POSITION, REPLACE e REVERSE pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -307,7 +307,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates bitwise binary helper functions through the scalar surface.
-    /// PT: Garante que o Firebird avalie as funcoes auxiliares binarias bitwise pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie as funcoes auxiliares binarias bitwise pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -325,7 +325,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates BIT_LENGTH and OCTET_LENGTH through the scalar surface.
-    /// PT: Garante que o Firebird avalie BIT_LENGTH e OCTET_LENGTH pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie BIT_LENGTH e OCTET_LENGTH pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -341,7 +341,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates OVERLAY through the scalar surface using the supported syntax.
-    /// PT: Garante que o Firebird avalie OVERLAY pela surface escalar usando a sintaxe suportada.
+    /// PT-br: Garante que o Firebird avalie OVERLAY pela surface escalar usando a sintaxe suportada.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -355,7 +355,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates common string transform functions through the scalar surface.
-    /// PT: Garante que o Firebird avalie funcoes comuns de transformacao de string pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie funcoes comuns de transformacao de string pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -373,7 +373,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates REPEAT and TRANSLATE through the scalar surface.
-    /// PT: Garante que o Firebird avalie REPEAT e TRANSLATE pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie REPEAT e TRANSLATE pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -387,7 +387,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates SPACE, LEFT, RIGHT, LPAD, and RPAD through the scalar surface.
-    /// PT: Garante que o Firebird avalie SPACE, LEFT, RIGHT, LPAD e RPAD pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie SPACE, LEFT, RIGHT, LPAD e RPAD pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -404,7 +404,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates common numeric helper functions through the scalar surface.
-    /// PT: Garante que o Firebird avalie funcoes auxiliares numericas comuns pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie funcoes auxiliares numericas comuns pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -432,7 +432,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates TRUNC through the scalar surface.
-    /// PT: Garante que o Firebird avalie TRUNC pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie TRUNC pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -446,7 +446,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates ROUND through the scalar surface using the Firebird rounding rule.
-    /// PT: Garante que o Firebird avalie ROUND pela surface escalar usando a regra de arredondamento do Firebird.
+    /// PT-br: Garante que o Firebird avalie ROUND pela surface escalar usando a regra de arredondamento do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -461,7 +461,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates common transcendental numeric helpers through the scalar surface.
-    /// PT: Garante que o Firebird avalie funcoes numericas transcendentes comuns pela surface escalar.
+    /// PT-br: Garante que o Firebird avalie funcoes numericas transcendentes comuns pela surface escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -491,7 +491,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird evaluates DATEADD against the current timestamp expression.
-    /// PT: Garante que o Firebird avalie DATEADD sobre a expressao de timestamp atual.
+    /// PT-br: Garante que o Firebird avalie DATEADD sobre a expressao de timestamp atual.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -507,7 +507,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird accepts the spaced keyword forms for the supported temporal system functions.
-    /// PT: Garante que o Firebird aceite as formas com espaco das funcoes temporais de sistema suportadas.
+    /// PT-br: Garante que o Firebird aceite as formas com espaco das funcoes temporais de sistema suportadas.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -522,7 +522,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird resolves the supported context variables for user, role, database, and connection.
-    /// PT: Garante que o Firebird resolva as variaveis de contexto suportadas para usuario, role, banco e conexao.
+    /// PT-br: Garante que o Firebird resolva as variaveis de contexto suportadas para usuario, role, banco e conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -568,7 +568,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird trigger context variables reflect the active trigger event.
-    /// PT: Garante que as variáveis de contexto de trigger do Firebird reflitam o evento de trigger ativo.
+    /// PT-br: Garante que as variáveis de contexto de trigger do Firebird reflitam o evento de trigger ativo.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -596,7 +596,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird resolves RDB$GET_CONTEXT for the SYSTEM namespace using the supported context variables.
-    /// PT: Garante que o Firebird resolva RDB$GET_CONTEXT para o namespace SYSTEM usando as variaveis de contexto suportadas.
+    /// PT-br: Garante que o Firebird resolva RDB$GET_CONTEXT para o namespace SYSTEM usando as variaveis de contexto suportadas.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -639,7 +639,7 @@ public sealed class FirebirdFunctionTests(
 
     /// <summary>
     /// EN: Ensures Firebird supports RDB$SET_CONTEXT and RDB$GET_CONTEXT for user-session and user-transaction namespaces.
-    /// PT: Garante que o Firebird suporte RDB$SET_CONTEXT e RDB$GET_CONTEXT para os namespaces user-session e user-transaction.
+    /// PT-br: Garante que o Firebird suporte RDB$SET_CONTEXT e RDB$GET_CONTEXT para os namespaces user-session e user-transaction.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]

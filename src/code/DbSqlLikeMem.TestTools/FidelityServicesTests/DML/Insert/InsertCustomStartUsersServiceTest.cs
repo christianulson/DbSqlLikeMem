@@ -4,10 +4,10 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Inserts user rows starting from a custom id and validates the persisted key range and names.
-/// PT: Insere linhas de usuario a partir de um id customizado e valida a faixa de chaves e os nomes persistidos.
+/// PT-br: Insere linhas de usuario a partir de um id customizado e valida a faixa de chaves e os nomes persistidos.
 /// </summary>
-/// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-/// <param name="context">EN: Scenario context with the current table names. PT: Contexto do cenario com os nomes atuais das tabelas.</param>
+/// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+/// <param name="context">EN: Scenario context with the current table names. PT-br: Contexto do cenario com os nomes atuais das tabelas.</param>
 public class InsertCustomStartUsersServiceTest(
         RepoService repo,
         FidelityTestContext context
@@ -16,9 +16,9 @@ public class InsertCustomStartUsersServiceTest(
 {
     /// <summary>
     /// EN: Inserts three user rows starting at id 10 and validates the first and last persisted names.
-    /// PT: Insere tres linhas de usuario a partir do id 10 e valida os primeiros e ultimos nomes persistidos.
+    /// PT-br: Insere tres linhas de usuario a partir do id 10 e valida os primeiros e ultimos nomes persistidos.
     /// </summary>
-    /// <param name="args">EN: Optional starting user id for the insert sequence. PT: Id inicial opcional do usuario para a sequencia de insert.</param>
+    /// <param name="args">EN: Optional starting user id for the insert sequence. PT-br: Id inicial opcional do usuario para a sequencia de insert.</param>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var startId = args.Length > 0 ? (int)args[0] : 10;

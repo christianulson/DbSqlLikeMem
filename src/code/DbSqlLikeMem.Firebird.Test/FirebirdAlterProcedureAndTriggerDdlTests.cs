@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Covers Firebird ALTER PROCEDURE and ALTER TRIGGER execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de ALTER PROCEDURE e ALTER TRIGGER no motor simulado Firebird.
+/// PT-br: Cobre cenarios de execucao de ALTER PROCEDURE e ALTER TRIGGER no motor simulado Firebird.
 /// </summary>
 public sealed class FirebirdAlterProcedureAndTriggerDdlTests : XUnitTestBase
 {
@@ -12,7 +12,7 @@ public sealed class FirebirdAlterProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the Firebird database objects used by the alter tests.
-    /// PT: Cria os objetos de banco Firebird usados pelos testes de alter.
+    /// PT-br: Cria os objetos de banco Firebird usados pelos testes de alter.
     /// </summary>
     public FirebirdAlterProcedureAndTriggerDdlTests(ITestOutputHelper helper) : base(helper)
     {
@@ -27,7 +27,7 @@ public sealed class FirebirdAlterProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ALTER PROCEDURE replaces the stored signature and allows CALL execution.
-    /// PT: Verifica se ALTER PROCEDURE substitui a assinatura armazenada e permite execucao via CALL.
+    /// PT-br: Verifica se ALTER PROCEDURE substitui a assinatura armazenada e permite execucao via CALL.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -56,7 +56,7 @@ public sealed class FirebirdAlterProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ALTER TRIGGER replaces the trigger event and keeps table DML working.
-    /// PT: Verifica se ALTER TRIGGER substitui o evento do trigger e mantém o DML da tabela funcionando.
+    /// PT-br: Verifica se ALTER TRIGGER substitui o evento do trigger e mantém o DML da tabela funcionando.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -91,9 +91,9 @@ public sealed class FirebirdAlterProcedureAndTriggerDdlTests : XUnitTestBase
 
     /// <summary>
     /// EN: Disposes the Firebird connection used by the alter tests.
-    /// PT: Descarta a conexao Firebird usada pelos testes de alter.
+    /// PT-br: Descarta a conexao Firebird usada pelos testes de alter.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         connection.Dispose();

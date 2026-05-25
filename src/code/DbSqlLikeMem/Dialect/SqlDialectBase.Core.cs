@@ -9,7 +9,7 @@ internal abstract partial class SqlDialectBase
 
     /// <summary>
     /// EN: Stores the shared state for concrete SQL dialect implementations.
-    /// PT: Armazena o estado compartilhado das implementacoes concretas de dialeto SQL.
+    /// PT-br: Armazena o estado compartilhado das implementacoes concretas de dialeto SQL.
     /// </summary>
     protected SqlDialectBase(
         string name,
@@ -36,35 +36,35 @@ internal abstract partial class SqlDialectBase
 
     /// <summary>
     /// EN: Gets the canonical dialect name.
-    /// PT: Obtém o nome canonico do dialeto.
+    /// PT-br: Obtém o nome canonico do dialeto.
     /// </summary>
     public string Name { get; }
 
     /// <summary>
     /// EN: Gets the compatibility version used by the dialect.
-    /// PT: Obtém a versao de compatibilidade usada pelo dialeto.
+    /// PT-br: Obtém a versao de compatibilidade usada pelo dialeto.
     /// </summary>
     public int Version { get; }
 
     /// <summary>
     /// EN: Gets the function registry populated by this dialect.
-    /// PT: Obtém o registry de funcoes populado por este dialeto.
+    /// PT-br: Obtém o registry de funcoes populado por este dialeto.
     /// </summary>
     public Dialect.FunctionDictionaryProcess Functions
         => _functionRegistry ?? _functions.Value;
 
     /// <summary>
     /// EN: Gets the stored procedure registry populated by this dialect.
-    /// PT: Obtém o registry de procedimentos armazenados populado por este dialeto.
+    /// PT-br: Obtém o registry de procedimentos armazenados populado por este dialeto.
     /// </summary>
     public IDictionaryProcess<ProcedureDef> Procedures
         { get; } = new Dialect.DictionaryProcess<ProcedureDef>();
 
     /// <summary>
     /// EN: Builds the lazy function registry for the dialect instance.
-    /// PT: Constrói o registry de funcoes lazy para a instancia do dialeto.
+    /// PT-br: Constrói o registry de funcoes lazy para a instancia do dialeto.
     /// </summary>
-    /// <returns>EN: Populated function registry. PT: Registry de funcoes populado.</returns>
+    /// <returns>EN: Populated function registry. PT-br: Registry de funcoes populado.</returns>
     protected virtual Dialect.FunctionDictionaryProcess CreateFunctionRegistry()
     {
         var functions = new Dialect.FunctionDictionaryProcess();
@@ -83,7 +83,7 @@ internal abstract partial class SqlDialectBase
 
     /// <summary>
     /// EN: Populates the function registry when it is first created.
-    /// PT: Popula o registry de funcoes quando ele e criado pela primeira vez.
+    /// PT-br: Popula o registry de funcoes quando ele e criado pela primeira vez.
     /// </summary>
     protected virtual void InitializeFunctionRegistry()
     {

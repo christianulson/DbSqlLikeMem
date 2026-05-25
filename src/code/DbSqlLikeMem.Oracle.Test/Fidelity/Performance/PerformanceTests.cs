@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Oracle.Test.Fidelity.Performance;
 
 /// <summary>
 /// EN: Runs Oracle fidelity tests for the shared performance workflows.
-/// PT: Executa testes de fidelidade Oracle para os fluxos compartilhados de performance.
+/// PT-br: Executa testes de fidelidade Oracle para os fluxos compartilhados de performance.
 /// </summary>
 public class PerformanceTests(
     ITestOutputHelper helper

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Validates MySql-specific DbMock connection factory contract behavior.
-/// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de MySql.
+/// PT-br: Valida o comportamento do contrato da factory de conexao DbMock especifica de MySql.
 /// </summary>
 public sealed class DbMockConnectionFactoryMySqlTests(
         ITestOutputHelper helper

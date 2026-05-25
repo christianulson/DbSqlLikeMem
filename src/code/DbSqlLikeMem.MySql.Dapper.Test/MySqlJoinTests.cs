@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// EN: Covers MySQL join scenarios against the Dapper provider.
-/// PT: Cobre cenarios de join MySQL contra o provedor Dapper.
+/// PT-br: Cobre cenarios de join MySQL contra o provedor Dapper.
 /// </summary>
 public sealed class MySqlJoinTests(
     ITestOutputHelper helper
@@ -14,7 +14,7 @@ public sealed class MySqlJoinTests(
 
     /// <summary>
     /// EN: Verifies left joins keep all rows from the left table.
-    /// PT: Verifica se left joins mantem todas as linhas da tabela da esquerda.
+    /// PT-br: Verifica se left joins mantem todas as linhas da tabela da esquerda.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlJoin")]
@@ -23,7 +23,7 @@ public sealed class MySqlJoinTests(
 
     /// <summary>
     /// EN: Verifies right joins keep all rows from the right table.
-    /// PT: Verifica se right joins mantem todas as linhas da tabela da direita.
+    /// PT-br: Verifica se right joins mantem todas as linhas da tabela da direita.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlJoin")]
@@ -32,7 +32,7 @@ public sealed class MySqlJoinTests(
 
     /// <summary>
     /// EN: Verifies join predicates with multiple AND conditions work correctly.
-    /// PT: Verifica se predicados de join com multiplas condicoes AND funcionam corretamente.
+    /// PT-br: Verifica se predicados de join com multiplas condicoes AND funcionam corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlJoin")]

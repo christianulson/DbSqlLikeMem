@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test.Tools;
 
 /// <summary>
 /// EN: Executes metadata queries against a real ADO.NET connection created for a benchmark provider.
-/// PT: Executa consultas de metadados contra uma conexao ADO.NET real criada para um provedor de benchmark.
+/// PT-br: Executa consultas de metadados contra uma conexao ADO.NET real criada para um provedor de benchmark.
 /// </summary>
 public sealed class DbConnectionMetadataQueryExecutor : ISqlQueryExecutor
 {
@@ -13,12 +13,12 @@ public sealed class DbConnectionMetadataQueryExecutor : ISqlQueryExecutor
 
     /// <summary>
     /// EN: Creates a metadata query executor that opens one connection per query using the supplied factory.
-    /// PT: Cria um executor de consultas de metadados que abre uma conexao por consulta usando a factory informada.
+    /// PT-br: Cria um executor de consultas de metadados que abre uma conexao por consulta usando a factory informada.
     /// </summary>
-    /// <param name="connectionFactory">EN: Factory used to create an unopened connection for each query. PT: Factory usada para criar uma conexao nao aberta para cada consulta.</param>
-    /// <param name="configureCommand">EN: Optional command configurator applied before parameters are added. PT: Configurador opcional de comando aplicado antes de adicionar parametros.</param>
-    /// <param name="parameterNameFormatter">EN: Optional formatter used to adapt parameter names for the provider. PT: Formatador opcional usado para adaptar nomes de parametro ao provedor.</param>
-    /// <param name="log">EN: Optional logger that receives the Oracle metadata SQL, parameters, and returned rows for targeted diagnostics. PT: Logger opcional que recebe a SQL de metadados do Oracle, os parametros e as linhas retornadas para diagnostico direcionado.</param>
+    /// <param name="connectionFactory">EN: Factory used to create an unopened connection for each query. PT-br: Factory usada para criar uma conexao nao aberta para cada consulta.</param>
+    /// <param name="configureCommand">EN: Optional command configurator applied before parameters are added. PT-br: Configurador opcional de comando aplicado antes de adicionar parametros.</param>
+    /// <param name="parameterNameFormatter">EN: Optional formatter used to adapt parameter names for the provider. PT-br: Formatador opcional usado para adaptar nomes de parametro ao provedor.</param>
+    /// <param name="log">EN: Optional logger that receives the Oracle metadata SQL, parameters, and returned rows for targeted diagnostics. PT-br: Logger opcional que recebe a SQL de metadados do Oracle, os parametros e as linhas retornadas para diagnostico direcionado.</param>
     public DbConnectionMetadataQueryExecutor(
         Func<string, DbConnection> connectionFactory,
         Action<DbCommand>? configureCommand = null,

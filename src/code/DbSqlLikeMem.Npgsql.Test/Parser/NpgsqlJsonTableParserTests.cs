@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Parser;
 
 /// <summary>
 /// EN: Covers PostgreSQL parser acceptance for JSON table-valued sources.
-/// PT: Cobre a aceitacao do parser PostgreSQL para fontes JSON tabulares.
+/// PT-br: Cobre a aceitacao do parser PostgreSQL para fontes JSON tabulares.
 /// </summary>
 public sealed class NpgsqlJsonTableParserTests(
     ITestOutputHelper helper
@@ -10,9 +10,9 @@ public sealed class NpgsqlJsonTableParserTests(
 {
     /// <summary>
     /// EN: Verifies that json_each can be parsed as a table source in PostgreSQL.
-    /// PT: Verifica se json_each pode ser interpretada como fonte de tabela no PostgreSQL.
+    /// PT-br: Verifica se json_each pode ser interpretada como fonte de tabela no PostgreSQL.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataNpgsqlVersion]

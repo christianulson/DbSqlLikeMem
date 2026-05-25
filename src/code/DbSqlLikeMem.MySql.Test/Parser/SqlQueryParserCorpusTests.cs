@@ -3,7 +3,7 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 
 /// <summary>
 /// EN: Expected casing results for SQL parser corpus tests.
-/// PT: Resultados esperados de capitalização nos testes de corpus do parser SQL.
+/// PT-br: Resultados esperados de capitalização nos testes de corpus do parser SQL.
 /// </summary>
 public enum SqlCaseExpectation
 {
@@ -25,7 +25,7 @@ public enum SqlCaseExpectation
 
 /// <summary>
 /// EN: Covers parser corpus cases for the MySql dialect.
-/// PT: Cobre casos de corpus do parser para o dialeto MySql.
+/// PT-br: Cobre casos de corpus do parser para o dialeto MySql.
 /// </summary>
 public sealed class SqlQueryParserCorpusTests(
     ITestOutputHelper helper
@@ -37,7 +37,7 @@ public sealed class SqlQueryParserCorpusTests(
 
     /// <summary>
     /// EN: Provides test data for Statements.
-    /// PT: Fornece dados de teste para Statements.
+    /// PT-br: Fornece dados de teste para Statements.
     /// </summary>
     public static IEnumerable<object[]> Statements()
     {
@@ -138,7 +138,7 @@ public sealed class SqlQueryParserCorpusTests(
     // -----------------------------------------------------------------
     /// <summary>
     /// EN: Provides test data for SelectStatements.
-    /// PT: Fornece dados de teste para SelectStatements.
+    /// PT-br: Fornece dados de teste para SelectStatements.
     /// </summary>
     public static IEnumerable<object[]> SelectStatements()
     {
@@ -558,7 +558,7 @@ WHERE dt.total >= 10;
     // -----------------------------------------------------------------
     /// <summary>
     /// EN: Provides test data for InvalidSelectStatements.
-    /// PT: Fornece dados de teste para InvalidSelectStatements.
+    /// PT-br: Fornece dados de teste para InvalidSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> InvalidSelectStatements()
     {
@@ -633,7 +633,7 @@ select id
     // -----------------------------------------------------------------
     /// <summary>
     /// EN: Provides test data for NonSelectStatements.
-    /// PT: Fornece dados de teste para NonSelectStatements.
+    /// PT-br: Fornece dados de teste para NonSelectStatements.
     /// </summary>
     public static IEnumerable<object[]> NonSelectStatements()
     {
@@ -663,7 +663,7 @@ select id
 
     /// <summary>
     /// EN: Verifies multi-statement strings are split before parsing.
-    /// PT: Verifica se strings com multiplas instrucoes sao separadas antes do parsing.
+    /// PT-br: Verifica se strings com multiplas instrucoes sao separadas antes do parsing.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -688,7 +688,7 @@ select id
 
     /// <summary>
     /// EN: Verifies the parser handles the recorded corpus cases.
-    /// PT: Verifica se o parser trata os casos registrados no corpus.
+    /// PT-br: Verifica se o parser trata os casos registrados no corpus.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -738,7 +738,7 @@ select id
 
     /// <summary>
     /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
-    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// PT-br: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

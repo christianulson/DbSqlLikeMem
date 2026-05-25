@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Creates a cycling PostgreSQL sequence and reads the wrapped values for fidelity coverage.
-/// PT: Cria uma sequence PostgreSQL com ciclo e le os valores reiniciados para cobertura de fidelidade.
+/// PT-br: Cria uma sequence PostgreSQL com ciclo e le os valores reiniciados para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceCycleServiceTest(
     RepoService repo,
@@ -12,12 +12,17 @@ public sealed class SequenceCycleServiceTest(
 {
     /// <summary>
     /// EN: Returns the sequence values observed before and after the cycle wraps.
-    /// PT: Retorna os valores da sequence observados antes e depois da retomada do ciclo.
+    /// PT-br: Retorna os valores da sequence observados antes e depois da retomada do ciclo.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceCycleAsync();
 
+    /// <summary>
+    /// EN: Returns the sequence values observed before and after the cycle wraps.
+    /// PT-br: Retorna os valores da sequence observados antes e depois da retomada do ciclo.
+    /// </summary>
+    public async Task<long[]> RunSequenceCycleAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 2 CYCLE");
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
         var second = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");

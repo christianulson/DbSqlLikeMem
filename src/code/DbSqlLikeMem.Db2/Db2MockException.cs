@@ -1,17 +1,17 @@
-﻿namespace DbSqlLikeMem.Db2;
+namespace DbSqlLikeMem.Db2;
 
 #pragma warning disable CA1032 // Implement standard exception constructors
 #pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Db2 Mock Exception.
-/// PT: Representa Db2 simulada Exceção.
+/// PT-br: Representa Db2 simulada Exceção.
 /// </summary>
 public sealed class Db2MockException : SqlMockException
 #pragma warning restore CA1032 // Implement standard exception constructors
 {
     /// <summary>
     /// EN: Represents Db2 Mock Exception.
-    /// PT: Representa Db2 simulada Exceção.
+    /// PT-br: Representa Db2 simulada Exceção.
     /// </summary>
     public Db2MockException(string message, int code)
         : base(message, code)
@@ -19,7 +19,7 @@ public sealed class Db2MockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Db2 Mock Exception.
-    /// PT: Representa Db2 simulada Exceção.
+    /// PT-br: Representa Db2 simulada Exceção.
     /// </summary>
     public Db2MockException() : base()
     {
@@ -27,7 +27,7 @@ public sealed class Db2MockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Db2 Mock Exception.
-    /// PT: Representa Db2 simulada Exceção.
+    /// PT-br: Representa Db2 simulada Exceção.
     /// </summary>
     public Db2MockException(string? message) : base(message)
     {
@@ -35,7 +35,7 @@ public sealed class Db2MockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Db2 Mock Exception.
-    /// PT: Representa Db2 simulada Exceção.
+    /// PT-br: Representa Db2 simulada Exceção.
     /// </summary>
     public Db2MockException(string? message, Exception? innerException) : base(message, innerException)
     {

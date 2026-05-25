@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.EfCore.Test;
 
 /// <summary>
 /// EN: Validates interception-capable Npgsql EF Core connection factories.
-/// PT: Valida factories de conexao Npgsql para EF Core com suporte a interceptacao.
+/// PT-br: Valida factories de conexao Npgsql para EF Core com suporte a interceptacao.
 /// </summary>
 public sealed class NpgsqlEfCoreInterceptionConnectionFactoryTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class NpgsqlEfCoreInterceptionConnectionFactoryTests(
 {
     /// <summary>
     /// EN: Verifies the interceptor-aware constructor returns an opened wrapped connection.
-    /// PT: Verifica se o construtor com interceptacao retorna uma conexao encapsulada ja aberta.
+    /// PT-br: Verifica se o construtor com interceptacao retorna uma conexao encapsulada ja aberta.
     /// </summary>
     [Fact]
     public void ConstructorWithInterceptors_ShouldReturnOpenedWrappedConnection()

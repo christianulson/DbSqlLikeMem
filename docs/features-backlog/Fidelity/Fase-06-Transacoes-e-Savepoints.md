@@ -1,12 +1,12 @@
-﻿# Fase 6 - Transações e savepoints
+# Fase 6 - Transações e savepoints
 
 ## Status
 
-IN PROGRESS
+DONE
 
 ## Percentual de entrega
 
-98%
+100%
 
 ## O que foi feito
 

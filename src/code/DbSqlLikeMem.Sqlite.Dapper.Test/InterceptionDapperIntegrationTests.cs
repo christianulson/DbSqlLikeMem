@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Dapper.Test;
 
 /// <summary>
 /// EN: Validates Dapper usage over intercepted SQLite mock connections.
-/// PT: Valida o uso de Dapper sobre conexoes SQLite simuladas e interceptadas.
+/// PT-br: Valida o uso de Dapper sobre conexoes SQLite simuladas e interceptadas.
 /// </summary>
 public sealed class InterceptionDapperIntegrationTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class InterceptionDapperIntegrationTests(
 {
     /// <summary>
     /// EN: Verifies Dapper queries keep working when the connection is wrapped by the interception pipeline.
-    /// PT: Verifica se consultas Dapper continuam funcionando quando a conexao e encapsulada pelo pipeline de interceptacao.
+    /// PT-br: Verifica se consultas Dapper continuam funcionando quando a conexao e encapsulada pelo pipeline de interceptacao.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]
@@ -42,7 +42,7 @@ public sealed class InterceptionDapperIntegrationTests(
 
     /// <summary>
     /// EN: Verifies Dapper transaction flows still notify begin and commit callbacks on intercepted connections.
-    /// PT: Verifica se fluxos transacionais do Dapper ainda notificam callbacks de inicio e commit em conexoes interceptadas.
+    /// PT-br: Verifica se fluxos transacionais do Dapper ainda notificam callbacks de inicio e commit em conexoes interceptadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]

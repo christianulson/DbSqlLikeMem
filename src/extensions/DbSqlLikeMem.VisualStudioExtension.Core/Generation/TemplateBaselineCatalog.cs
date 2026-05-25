@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Exposes the versioned template baseline profiles shipped with the repository.
-/// PT: Expoe os perfis versionados de baseline de templates entregues com o repositorio.
+/// PT-br: Expoe os perfis versionados de baseline de templates entregues com o repositorio.
 /// </summary>
 public static class TemplateBaselineCatalog
 {
@@ -50,24 +50,24 @@ public static class TemplateBaselineCatalog
 
     /// <summary>
     /// EN: Gets the versioned baseline profiles known by the generation tooling.
-    /// PT: Obtem os perfis versionados de baseline conhecidos pelas ferramentas de geracao.
+    /// PT-br: Obtem os perfis versionados de baseline conhecidos pelas ferramentas de geracao.
     /// </summary>
     public static IReadOnlyCollection<TemplateBaselineProfile> GetProfiles() => Profiles;
 
     /// <summary>
     /// EN: Returns the profile that matches the informed identifier.
-    /// PT: Retorna o perfil que corresponde ao identificador informado.
+    /// PT-br: Retorna o perfil que corresponde ao identificador informado.
     /// </summary>
-    /// <param name="profileId">EN: Profile identifier like `api` or `worker`. PT: Identificador do perfil como `api` ou `worker`.</param>
+    /// <param name="profileId">EN: Profile identifier like `api` or `worker`. PT-br: Identificador do perfil como `api` ou `worker`.</param>
     public static TemplateBaselineProfile? GetProfile(string profileId)
         => Profiles.FirstOrDefault(profile => string.Equals(profile.Id, profileId, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// EN: Gets the recommended object-type mapping defaults for the informed profile and object type.
-    /// PT: Obtem os defaults recomendados de mapeamento por tipo de objeto para o perfil e tipo informados.
+    /// PT-br: Obtem os defaults recomendados de mapeamento por tipo de objeto para o perfil e tipo informados.
     /// </summary>
-    /// <param name="profileId">EN: Profile identifier like `api` or `worker`. PT: Identificador do perfil como `api` ou `worker`.</param>
-    /// <param name="objectType">EN: Object type whose mapping should be resolved. PT: Tipo de objeto cujo mapeamento deve ser resolvido.</param>
+    /// <param name="profileId">EN: Profile identifier like `api` or `worker`. PT-br: Identificador do perfil como `api` ou `worker`.</param>
+    /// <param name="objectType">EN: Object type whose mapping should be resolved. PT-br: Tipo de objeto cujo mapeamento deve ser resolvido.</param>
     public static ObjectTypeMapping CreateRecommendedMapping(string profileId, DatabaseObjectType objectType)
     {
         var profile = GetProfile(profileId)
@@ -83,10 +83,10 @@ public static class TemplateBaselineCatalog
 
     /// <summary>
     /// EN: Creates a template configuration pointing to the current baseline files under a repository root.
-    /// PT: Cria uma configuracao de templates apontando para os arquivos da baseline atual sob uma raiz de repositorio.
+    /// PT-br: Cria uma configuracao de templates apontando para os arquivos da baseline atual sob uma raiz de repositorio.
     /// </summary>
-    /// <param name="repositoryRoot">EN: Absolute repository root path. PT: Caminho absoluto da raiz do repositorio.</param>
-    /// <param name="profileId">EN: Baseline profile identifier. PT: Identificador do perfil de baseline.</param>
+    /// <param name="repositoryRoot">EN: Absolute repository root path. PT-br: Caminho absoluto da raiz do repositorio.</param>
+    /// <param name="profileId">EN: Baseline profile identifier. PT-br: Identificador do perfil de baseline.</param>
     public static TemplateConfiguration CreateTemplateConfiguration(string repositoryRoot, string profileId)
     {
         if (string.IsNullOrWhiteSpace(repositoryRoot))
@@ -106,9 +106,9 @@ public static class TemplateBaselineCatalog
 
     /// <summary>
     /// EN: Locates the nearest parent directory that contains the versioned template baseline catalog.
-    /// PT: Localiza o diretorio pai mais proximo que contem o catalogo versionado de baseline de templates.
+    /// PT-br: Localiza o diretorio pai mais proximo que contem o catalogo versionado de baseline de templates.
     /// </summary>
-    /// <param name="startPath">EN: File system path used as the search starting point. PT: Caminho de sistema de arquivos usado como ponto inicial da busca.</param>
+    /// <param name="startPath">EN: File system path used as the search starting point. PT-br: Caminho de sistema de arquivos usado como ponto inicial da busca.</param>
     public static string? FindRepositoryRoot(string startPath)
     {
         if (string.IsNullOrWhiteSpace(startPath))

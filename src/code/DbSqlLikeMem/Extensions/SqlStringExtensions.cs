@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: String normalization helpers used internally by the SQL engine.
-/// PT: Helpers de normalizacao de string usados internamente pelo motor SQL.
+/// PT-br: Helpers de normalizacao de string usados internamente pelo motor SQL.
 /// </summary>
 // Note: the file name retains the legacy "Extencions" spelling to avoid disrupting build artefacts.
 // The class is intentionally renamed to the correct "Extensions" spelling.
@@ -10,7 +10,7 @@ internal static class SqlStringExtensions
 {
     /// <summary>
     /// EN: Collapses whitespace outside quoted strings while preserving escaped single quotes.
-    /// PT: Reduz espacos em branco fora de strings entre aspas e preserva aspas simples escapadas.
+    /// PT-br: Reduz espacos em branco fora de strings entre aspas e preserva aspas simples escapadas.
     /// </summary>
     public static string NormalizeString(this string str)
     {
@@ -83,7 +83,7 @@ internal static class SqlStringExtensions
 
     /// <summary>
     /// EN: Trims and normalizes a dotted identifier by removing wrapper characters from each segment.
-    /// PT: Remove espacos e normaliza um identificador pontuado removendo os caracteres de envoltorio de cada segmento.
+    /// PT-br: Remove espacos e normaliza um identificador pontuado removendo os caracteres de envoltorio de cada segmento.
     /// </summary>
     public static string NormalizeName(this string name)
     {

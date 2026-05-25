@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers CREATE TEMPORARY TABLE execution scenarios in the Oracle mock.
-/// PT: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock Oracle.
+/// PT-br: Cobre cenarios de execucao de CREATE TEMPORARY TABLE no mock Oracle.
 /// </summary>
 public sealed class OracleTemporaryTableEngineTests
 {
@@ -10,7 +10,7 @@ public sealed class OracleTemporaryTableEngineTests
 
     /// <summary>
     /// EN: Verifies that CREATE TEMPORARY TABLE AS SELECT returns the projected rows.
-    /// PT: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
+    /// PT-br: Verifica se CREATE TEMPORARY TABLE AS SELECT retorna as linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]
@@ -37,7 +37,7 @@ SELECT id FROM tmp_users ORDER BY id;";
         // TDD contract: engine must execute both statements in order.
         using var cmd = new OracleCommandMock(cnn) { CommandText = sql };
 
-        // When implemented, ExecuteReader should return the last SELECT results.
+        // TDD contract: ExecuteReader should return the last SELECT results.
         using var r = cmd.ExecuteReader();
 
         var ids = new List<int>();

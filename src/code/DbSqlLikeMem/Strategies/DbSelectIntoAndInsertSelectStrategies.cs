@@ -18,7 +18,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Dispatches parsed AST commands to ExecuteNonQuery handlers.
-    /// PT: Despacha comandos AST parseados para handlers de ExecuteNonQuery.
+    /// PT-br: Despacha comandos AST parseados para handlers de ExecuteNonQuery.
     /// </summary>
     public static DmlExecutionResult ExecuteParsedNonQuery(
         this DbConnectionMockBase connection,
@@ -69,7 +69,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateSchema.
-    /// PT: Implementa ExecuteCreateSchema.
+    /// PT-br: Implementa ExecuteCreateSchema.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateSchema(
         this DbConnectionMockBase connection,
@@ -83,7 +83,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDropTable.
-    /// PT: Implementa ExecuteDropTable.
+    /// PT-br: Implementa ExecuteDropTable.
     /// </summary>
     public static DmlExecutionResult ExecuteDropTable(
         this DbConnectionMockBase connection,
@@ -118,7 +118,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteAlterTableAddColumn.
-    /// PT: Implementa ExecuteAlterTableAddColumn.
+    /// PT-br: Implementa ExecuteAlterTableAddColumn.
     /// </summary>
     public static DmlExecutionResult ExecuteAlterTableAddColumn(
         this DbConnectionMockBase connection,
@@ -172,7 +172,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateTableAsSelect.
-    /// PT: Implementa ExecuteCreateTableAsSelect.
+    /// PT-br: Implementa ExecuteCreateTableAsSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateTableAsSelect(
         this DbConnectionMockBase connection,
@@ -271,6 +271,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
                 nullable: col.Value.Nullable,
                 size: col.Value.Size,
                 decimalPlaces: col.Value.DecimalPlaces,
+                identity: col.Value.Identity,
                 defaultValue: col.Value.DefaultValue,
                 computedExpression: col.Value.ComputedExpression);
             if (col.Value.PrimaryKey)
@@ -376,7 +377,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             yield return last;
     }
 
-    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, int? Size, int? DecimalPlaces, object? DefaultValue, string? ComputedExpression)? ParseColumnDefinition(string columnSql)
+    private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, bool Identity, int? Size, int? DecimalPlaces, object? DefaultValue, string? ComputedExpression)? ParseColumnDefinition(string columnSql)
     {
         var m = Regex.Match(
             columnSql,
@@ -394,9 +395,10 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
         var (size, decimalPlaces) = ParseTypeArgs(m.Groups["args"].Value, type);
         var nullable = !Regex.IsMatch(rest, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
         var primaryKey = Regex.IsMatch(rest, @"\bPRIMARY\s+KEY\b", RegexOptions.IgnoreCase);
+        var identity = Regex.IsMatch(rest, @"\bIDENTITY\s*(\(\s*\d+\s*,\s*\d+\s*\))?", RegexOptions.IgnoreCase);
         var defaultValue = ParseColumnDefaultValue(rest);
         var computedExpression = ParseComputedExpression(rest);
-        return (name, type, nullable, primaryKey, size, decimalPlaces, defaultValue, computedExpression);
+        return (name, type, nullable, primaryKey, identity, size, decimalPlaces, defaultValue, computedExpression);
     }
 
     private static SchemaSnapshotCheckConstraint? ParseTableCheckConstraint(string columnSql)
@@ -470,6 +472,14 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             || string.Equals(value, "SYSDATETIME()", StringComparison.OrdinalIgnoreCase))
         {
             return DateTime.Now;
+        }
+
+        if (string.Equals(value, "NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "NEWSEQUENTIALID()", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "NEWID", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "NEWID()", StringComparison.OrdinalIgnoreCase))
+        {
+            return new GuidDefaultValue();
         }
 
         if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
@@ -564,7 +574,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             "BOOLEAN" or "BOOL" => DbType.Boolean,
             "DATE" => DbType.Date,
             "TIMESTAMP" or "DATETIME" => DbType.DateTime,
-            "GUID" or "UUID" => DbType.Guid,
+            "GUID" or "UUID" or "UNIQUEIDENTIFIER" => DbType.Guid,
             "BLOB" or "BINARY" or "VARBINARY" or "RAW" => DbType.Binary,
             _ => DbType.String,
         };
@@ -572,7 +582,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateTemporaryTableAsSelect.
-    /// PT: Implementa ExecuteCreateTemporaryTableAsSelect.
+    /// PT-br: Implementa ExecuteCreateTemporaryTableAsSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
@@ -583,7 +593,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateTemporaryTableAsSelect using a pre-built execution context.
-    /// PT: Implementa ExecuteCreateTemporaryTableAsSelect usando um contexto de execucao pre-construido.
+    /// PT-br: Implementa ExecuteCreateTemporaryTableAsSelect usando um contexto de execucao pre-construido.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateTemporaryTableAsSelect(
         this DbConnectionMockBase connection,
@@ -719,7 +729,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteInsertSmart.
-    /// PT: Implementa ExecuteInsertSmart.
+    /// PT-br: Implementa ExecuteInsertSmart.
     /// </summary>
     public static DmlExecutionResult ExecuteInsertSmart(
             this DbConnectionMockBase connection,
@@ -737,7 +747,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteInsertSelect.
-    /// PT: Implementa ExecuteInsertSelect.
+    /// PT-br: Implementa ExecuteInsertSelect.
     /// </summary>
     public static DmlExecutionResult ExecuteInsertSelect(
         this DbConnectionMockBase connection,
@@ -901,6 +911,12 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
                     schemaName: targetSchema);
 
             value = sequence.NextValue();
+            return true;
+        }
+
+        if (column.DefaultValue is GuidDefaultValue)
+        {
+            value = Guid.NewGuid();
             return true;
         }
 

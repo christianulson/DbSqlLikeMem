@@ -4,7 +4,7 @@ using DB2Parameter = iDB2Parameter;
 #endif
 /// <summary>
 /// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
-/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
+/// PT-br: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
 /// </summary>
 public class Db2CommandMock(
     Db2ConnectionMock? connection,
@@ -13,7 +13,7 @@ public class Db2CommandMock(
 {
     /// <summary>
     /// EN: Initializes a new command instance without an attached connection or transaction.
-    /// PT: Inicializa uma nova instância de comando sem conexão ou transação associada.
+    /// PT-br: Inicializa uma nova instância de comando sem conexão ou transação associada.
     /// </summary>
     public Db2CommandMock() : this(null, null)
     {
@@ -23,25 +23,25 @@ public class Db2CommandMock(
 
     /// <summary>
     /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
-    /// PT: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
+    /// PT-br: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
     /// </summary>
     [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
     /// EN: Gets or sets the time, in seconds, to wait for command execution before timing out.
-    /// PT: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
+    /// PT-br: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
     /// </summary>
     public override int CommandTimeout { get; set; }
     /// <summary>
     /// EN: Gets or sets whether the command text is raw SQL text or a stored procedure name.
-    /// PT: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
+    /// PT-br: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
     /// EN: Gets or sets the connection associated with this command.
-    /// PT: Obtém ou define a conexão associada a este comando.
+    /// PT-br: Obtém ou define a conexão associada a este comando.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -53,13 +53,13 @@ public class Db2CommandMock(
 
     /// <summary>
     /// EN: Gets the parameter collection associated with this command.
-    /// PT: Obtém a coleção de parâmetros associada a este comando.
+    /// PT-br: Obtém a coleção de parâmetros associada a este comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
     /// EN: Gets or sets the transaction associated with this command.
-    /// PT: Obtém ou define a transação associada a este comando.
+    /// PT-br: Obtém ou define a transação associada a este comando.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -69,31 +69,31 @@ public class Db2CommandMock(
 
     /// <summary>
     /// EN: Gets or sets updated row source.
-    /// PT: Obtém ou define como os resultados do comando são aplicados ao DataRow.
+    /// PT-br: Obtém ou define como os resultados do comando são aplicados ao DataRow.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     /// <summary>
     /// EN: Gets or sets design time visible.
-    /// PT: Obtém ou define visível em tempo de design.
+    /// PT-br: Obtém ou define visível em tempo de design.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
     /// EN: Cancels the current command execution.
-    /// PT: Cancela a execução atual do comando.
+    /// PT-br: Cancela a execução atual do comando.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
     /// EN: Creates a new db parameter instance.
-    /// PT: Cria uma nova instância de parâmetro de banco.
+    /// PT-br: Cria uma nova instância de parâmetro de banco.
     /// </summary>
     protected override DbParameter CreateDbParameter()
         => new DB2Parameter();
 
     /// <summary>
     /// EN: Executes non-query and returns affected rows.
-    /// PT: Executa non-consulta e retorna as linhas afetadas.
+    /// PT-br: Executa non-consulta e retorna as linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -123,14 +123,14 @@ public class Db2CommandMock(
 
     /// <summary>
     /// EN: Executes the command asynchronously and returns affected rows.
-    /// PT: Executa o comando assincronamente e retorna as linhas afetadas.
+    /// PT-br: Executa o comando assincronamente e retorna as linhas afetadas.
     /// </summary>
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
         => Task.FromResult(ExecuteNonQuery());
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um leitor de dados.
+    /// PT-br: Executa o comando e retorna um leitor de dados.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
@@ -202,7 +202,7 @@ public class Db2CommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a scalar value.
-    /// PT: Executa o comando e retorna um valor escalar.
+    /// PT-br: Executa o comando e retorna um valor escalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -299,13 +299,13 @@ public class Db2CommandMock(
 
     /// <summary>
     /// EN: Represents Prepare.
-    /// PT: Representa Prepare.
+    /// PT-br: Representa Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
     /// EN: Releases resources used by this instance.
-    /// PT: Libera os recursos usados por esta instância.
+    /// PT-br: Libera os recursos usados por esta instância.
     /// </summary>
     protected override void Dispose(bool disposing)
     {

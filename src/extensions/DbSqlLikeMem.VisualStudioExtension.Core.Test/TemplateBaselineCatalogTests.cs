@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies the versioned template baseline catalog used by generation tooling.
-/// PT: Verifica o catalogo versionado de baseline de templates usado pelas ferramentas de geracao.
+/// PT-br: Verifica o catalogo versionado de baseline de templates usado pelas ferramentas de geracao.
 /// </summary>
 public sealed class TemplateBaselineCatalogTests
 {
     /// <summary>
     /// EN: Ensures the catalog exposes the API and Worker profiles from the current baseline.
-    /// PT: Garante que o catalogo exponha os perfis API e Worker da baseline atual.
+    /// PT-br: Garante que o catalogo exponha os perfis API e Worker da baseline atual.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineCatalog")]
@@ -48,7 +48,7 @@ public sealed class TemplateBaselineCatalogTests
 
     /// <summary>
     /// EN: Ensures mapping defaults can be resolved from the same baseline catalog used by the VSIX dialogs.
-    /// PT: Garante que defaults de mapeamento possam ser resolvidos a partir do mesmo catalogo de baseline usado pelos dialogos da VSIX.
+    /// PT-br: Garante que defaults de mapeamento possam ser resolvidos a partir do mesmo catalogo de baseline usado pelos dialogos da VSIX.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineCatalog")]
@@ -65,7 +65,7 @@ public sealed class TemplateBaselineCatalogTests
 
     /// <summary>
     /// EN: Ensures template configuration resolves the current baseline file paths under the repository root.
-    /// PT: Garante que a configuracao de templates resolva os caminhos da baseline atual sob a raiz do repositorio.
+    /// PT-br: Garante que a configuracao de templates resolva os caminhos da baseline atual sob a raiz do repositorio.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineCatalog")]
@@ -89,7 +89,7 @@ public sealed class TemplateBaselineCatalogTests
 
     /// <summary>
     /// EN: Ensures the repository ships the baseline files required by the catalog contract.
-    /// PT: Garante que o repositorio entregue os arquivos de baseline exigidos pelo contrato do catalogo.
+    /// PT-br: Garante que o repositorio entregue os arquivos de baseline exigidos pelo contrato do catalogo.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineCatalog")]
@@ -109,7 +109,7 @@ public sealed class TemplateBaselineCatalogTests
 
     /// <summary>
     /// EN: Ensures the catalog can locate the nearest repository root that contains the versioned template baseline.
-    /// PT: Garante que o catalogo consiga localizar a raiz mais proxima do repositorio que contem a baseline versionada de templates.
+    /// PT-br: Garante que o catalogo consiga localizar a raiz mais proxima do repositorio que contem a baseline versionada de templates.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselineCatalog")]

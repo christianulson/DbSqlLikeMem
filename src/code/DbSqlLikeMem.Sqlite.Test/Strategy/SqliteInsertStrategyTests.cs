@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 /// <summary>
 /// EN: Covers single-row INSERT execution in the Sqlite mock.
-/// PT: Cobre execucao de INSERT de uma linha no mock Sqlite.
+/// PT-br: Cobre execucao de INSERT de uma linha no mock Sqlite.
 /// </summary>
 public sealed class SqliteInsertStrategyTests(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class SqliteInsertStrategyTests(
 {
     /// <summary>
     /// EN: Verifies that a single INSERT adds one row to the target table.
-    /// PT: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
+    /// PT-br: Verifica se um INSERT simples adiciona uma linha na tabela alvo.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

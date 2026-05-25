@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Benchmarks.Core;
 
 /// <summary>
 /// EN: Defines the contract implemented by benchmark sessions that initialize resources and execute provider features.
-/// PT-br: Define o contrato implementado pelas sessões de benchmark que inicializam recursos e executam recursos do provedor.
+/// PT-br: Define o contrato implementado pelas sessoes de benchmark que inicializam recursos e executam recursos do provedor.
 /// </summary>
 public interface IBenchmarkSession : IDisposable
 {
     /// <summary>
     /// EN: Gets the provider-specific SQL dialect used to generate benchmark commands.
-    /// PT: Obtém o dialeto SQL específico do provedor usado para gerar os comandos de benchmark.
+    /// PT-br: Obtem o dialeto SQL especifico do provedor usado para gerar os comandos de benchmark.
     /// </summary>
     ProviderSqlDialect Dialect { get; }
 

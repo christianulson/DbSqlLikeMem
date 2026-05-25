@@ -16,6 +16,10 @@
 - Parser/executor para DDL/DML comuns.
 - Suporte a `INSERT ... ON DUPLICATE KEY UPDATE`.
 - Cobertura de `GROUP_CONCAT` ampliada com regressão para `DISTINCT`, tratamento de `NULL` e ordenação interna pela sintaxe nativa `ORDER BY ... SEPARATOR ...` dentro da função.
+- `RAND` já está coberta como função numérica aleatória do MySQL nas surfaces de mock e Dapper.
+- `COT` já está coberta como função numérica auxiliar do MySQL nas surfaces de mock e Dapper.
+- `ACOS`, `ASIN`, `ATAN`, `ATAN2`, `COS`, `EXP`, `SIN` e `TAN` já estão cobertas como funções transcendentais do MySQL nas surfaces de mock e Dapper.
+- `BIN`, `GREATEST`, `LEAST`, `LOG2`, `MOD`, `POW` e `TRUNCATE` já estão cobertas como funções matematicas e utilitarias do MySQL nas surfaces de mock e Dapper.
 - P7 consolidado: UPSERT por família (`ON DUPLICATE`/`ON CONFLICT`/`MERGE subset`) e mutações avançadas com contracts por strategy tests.
 - Funções-chave do banco: `GROUP_CONCAT`, `IFNULL`, `DATE_ADD` e `JSON_EXTRACT` (subset no mock).
 - Status por versão já explicitado nesta trilha:

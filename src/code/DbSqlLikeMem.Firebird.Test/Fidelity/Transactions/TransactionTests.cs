@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.Transactions;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared transaction workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de transacao.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados de transacao.
 /// </summary>
 [FidelityNativeClientSkip]
 public class TransactionTests(

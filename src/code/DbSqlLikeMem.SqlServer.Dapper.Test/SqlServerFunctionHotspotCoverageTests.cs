@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// EN: Covers hotspot SQL Server function scenarios that exercise fallback and evaluation compatibility.
-/// PT: Cobre cenarios de funcoes SQL Server que exercitam compatibilidade de fallback e avaliacao.
+/// PT-br: Cobre cenarios de funcoes SQL Server que exercitam compatibilidade de fallback e avaliacao.
 /// </summary>
 public sealed class SqlServerFunctionHotspotCoverageTests : XUnitTestBase
 {
@@ -10,9 +10,9 @@ public sealed class SqlServerFunctionHotspotCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory SQL Server schema and seeds test data for function-coverage scenarios.
-    /// PT: Cria o esquema SQL Server em memoria e popula dados de teste para cenarios de cobertura de funcoes.
+    /// PT-br: Cria o esquema SQL Server em memoria e popula dados de teste para cenarios de cobertura de funcoes.
     /// </summary>
-    /// <param name="helper">EN: xUnit output helper. PT: Helper de saida do xUnit.</param>
+    /// <param name="helper">EN: xUnit output helper. PT-br: Helper de saida do xUnit.</param>
     public SqlServerFunctionHotspotCoverageTests(ITestOutputHelper helper) : base(helper)
     {
         var db = new SqlServerDbMock();
@@ -38,7 +38,7 @@ public sealed class SqlServerFunctionHotspotCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies that invalid <c>CAST</c> throws while <c>TRY_CAST</c> returns <see langword="null"/> on invalid conversion.
-    /// PT: Verifica que <c>CAST</c> inválido lança exceção enquanto <c>TRY_CAST</c> retorna <see langword="null"/> em conversões inválidas.
+    /// PT-br: Verifica que <c>CAST</c> inválido lança exceção enquanto <c>TRY_CAST</c> retorna <see langword="null"/> em conversões inválidas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
@@ -53,7 +53,7 @@ public sealed class SqlServerFunctionHotspotCoverageTests : XUnitTestBase
 
     /// <summary>
     /// EN: Ensures <c>OPENJSON</c> with explicit schema, <c>CONCAT_WS</c>, and <c>DATEADD</c> are evaluated correctly in a single query projection.
-    /// PT: Garante que <c>OPENJSON</c> com schema explicito, <c>CONCAT_WS</c> e <c>DATEADD</c> sejam avaliadas corretamente em uma única projeção de consulta.
+    /// PT-br: Garante que <c>OPENJSON</c> com schema explicito, <c>CONCAT_WS</c> e <c>DATEADD</c> sejam avaliadas corretamente em uma única projeção de consulta.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
@@ -79,7 +79,7 @@ WHERE id = 1");
 
     /// <summary>
     /// EN: Verifies JSON_VALUE and CAST convert string inputs to normalized scalar values.
-    /// PT: Verifica que JSON_VALUE e CAST convertem entradas de texto em valores escalares normalizados.
+    /// PT-br: Verifica que JSON_VALUE e CAST convertem entradas de texto em valores escalares normalizados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
@@ -93,7 +93,7 @@ WHERE id = 1");
 
     /// <summary>
     /// EN: Verifies DATEADD returns the original date when an unsupported unit token is provided.
-    /// PT: Verifica que DATEADD retorna a data original quando um token de unidade não suportado é informado.
+    /// PT-br: Verifica que DATEADD retorna a data original quando um token de unidade não suportado é informado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]
@@ -110,7 +110,7 @@ WHERE id = 1");
 
     /// <summary>
     /// EN: Verifies temporal functions work consistently in SELECT and WHERE clauses.
-    /// PT: Verifica se funcoes temporais funcionam de forma consistente em clausulas SELECT e WHERE.
+    /// PT-br: Verifica se funcoes temporais funcionam de forma consistente em clausulas SELECT e WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerFunctionCoverage")]

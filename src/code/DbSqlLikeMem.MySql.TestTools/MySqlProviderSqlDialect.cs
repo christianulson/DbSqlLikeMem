@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.TestTools;
 
 /// <summary>
 /// EN: Provides MySQL-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de MySQL usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de MySQL usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class MySqlProviderSqlDialect : ProviderSqlDialect
 {
@@ -17,6 +17,34 @@ public sealed class MySqlProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsUpdateDeleteJoinRuntime => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLog2Function => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override string MathPiExpression() =>
+        "ROUND(PI(), 6)";
+
+    /// <inheritdoc />
+    public override bool SupportsMathRandFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMySqlUtilityMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
 
     /// <inheritdoc />
     public override string CreateUsersTable(FidelityTestContext context) =>
@@ -152,6 +180,9 @@ CREATE TABLE {context.TbOrdersFullName} (
 
     /// <inheritdoc />
     public override bool SupportsJsonScalarRead => true;
+
+    /// <inheritdoc />
+    public override bool SupportsJsonQueryFunction => false;
 
     /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>

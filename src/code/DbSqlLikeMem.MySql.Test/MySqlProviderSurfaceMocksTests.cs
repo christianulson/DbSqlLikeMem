@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Contains tests for my sql provider surface mocks.
-/// PT: Contém testes para my sql provedor surface mocks.
+/// PT-br: Contém testes para my sql provedor surface mocks.
 /// </summary>
 public sealed class MySqlProviderSurfaceMocksTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 {
     /// <summary>
     /// EN: Ensures the typed SelectCommand property stays synchronized with the base SelectCommand.
-    /// PT: Garante que a propriedade tipada SelectCommand permaneça sincronizada com a SelectCommand da classe base.
+    /// PT-br: Garante que a propriedade tipada SelectCommand permaneça sincronizada com a SelectCommand da classe base.
     /// </summary>
     [Fact]
     public void DataAdapter_ShouldKeepTypedSelectCommand()
@@ -24,7 +24,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures the data source mock creates a provider-specific connection bound to the same in-memory database.
-    /// PT: Garante que o simulado de fonte de dados crie uma conexão específica do provedor vinculada ao mesmo banco em memória.
+    /// PT-br: Garante que o simulado de fonte de dados crie uma conexão específica do provedor vinculada ao mesmo banco em memória.
     /// </summary>
     [Fact]
     public void DataSource_ShouldCreateMySqlConnection()
@@ -40,7 +40,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures default adapter state matches the provider contract surface.
-    /// PT: Garante que o estado padrão do adapter corresponda à superfície contratual do provedor.
+    /// PT-br: Garante que o estado padrão do adapter corresponda à superfície contratual do provedor.
     /// </summary>
     [Fact]
     public void DataAdapter_DefaultCtor_ShouldExposeExpectedDefaults()
@@ -53,7 +53,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures async fill overload honors a pre-canceled token and returns a canceled task.
-    /// PT: Garante que a sobrecarga assíncrona de fill respeite um token já cancelado e retorne task cancelada.
+    /// PT-br: Garante que a sobrecarga assíncrona de fill respeite um token já cancelado e retorne task cancelada.
     /// </summary>
     [Fact]
     public async Task FillAsync_DataSet_WithCanceledToken_ShouldReturnCanceledTask()
@@ -68,7 +68,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures DataTable async overload also respects pre-canceled tokens.
-    /// PT: Garante que a sobrecarga assíncrona de DataTable também respeite token previamente cancelado.
+    /// PT-br: Garante que a sobrecarga assíncrona de DataTable também respeite token previamente cancelado.
     /// </summary>
     [Fact]
     public async Task FillAsync_DataTable_WithCanceledToken_ShouldReturnCanceledTask()
@@ -83,7 +83,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures additional fill overloads also honor a pre-canceled token without touching the underlying operation.
-    /// PT: Garante que sobrecargas adicionais de fill também respeitem um token previamente cancelado sem tocar na operacao subjacente.
+    /// PT-br: Garante que sobrecargas adicionais de fill também respeitem um token previamente cancelado sem tocar na operacao subjacente.
     /// </summary>
     [Fact]
     public async Task FillAsync_AdditionalOverloads_WithCanceledToken_ShouldReturnCanceledTask()
@@ -102,7 +102,7 @@ public sealed class MySqlProviderSurfaceMocksTests(
 
     /// <summary>
     /// EN: Ensures fill-schema and update async overloads also honor pre-canceled tokens.
-    /// PT: Garante que as sobrecargas assincronas de fill-schema e update também respeitem tokens previamente cancelados.
+    /// PT-br: Garante que as sobrecargas assincronas de fill-schema e update também respeitem tokens previamente cancelados.
     /// </summary>
     [Fact]
     public async Task FillSchemaAndUpdateAsync_WithCanceledToken_ShouldReturnCanceledTask()

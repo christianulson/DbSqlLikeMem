@@ -6,7 +6,7 @@ internal static partial class CommandScalarExecutionPrelude
 {
     /// <summary>
     /// EN: Temporal evaluation entry point for date construction and date arithmetic functions.
-    /// PT: Ponto de entrada de avaliacao temporal para funcoes de construcao de data e aritmetica de datas.
+    /// PT-br: Ponto de entrada de avaliacao temporal para funcoes de construcao de data e aritmetica de datas.
     /// </summary>
     internal static class Temporal
     {
@@ -381,7 +381,7 @@ internal static partial class CommandScalarExecutionPrelude
 
     /// <summary>
     /// EN: JSON evaluation entry point for JSON_EXTRACT, JSON_VALUE, JSON_QUERY, and JSON_MERGE functions.
-    /// PT: Ponto de entrada de avaliacao JSON para funcoes JSON_EXTRACT, JSON_VALUE, JSON_QUERY e JSON_MERGE.
+    /// PT-br: Ponto de entrada de avaliacao JSON para funcoes JSON_EXTRACT, JSON_VALUE, JSON_QUERY e JSON_MERGE.
     /// </summary>
     internal static class Json
     {

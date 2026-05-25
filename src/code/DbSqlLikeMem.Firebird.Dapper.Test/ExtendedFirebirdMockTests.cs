@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers extended Firebird mock scenarios shared across Dapper provider tests.
-/// PT: Cobre cenarios estendidos do mock Firebird compartilhados entre testes de provedor Dapper.
+/// PT-br: Cobre cenarios estendidos do mock Firebird compartilhados entre testes de provedor Dapper.
 /// </summary>
 public sealed class ExtendedFirebirdMockTests(
         ITestOutputHelper helper
@@ -17,7 +17,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies inserts without explicit identity values receive a generated identifier.
-    /// PT: Verifica se insercoes sem valor explicito de identidade recebem um identificador gerado.
+    /// PT-br: Verifica se insercoes sem valor explicito de identidade recebem um identificador gerado.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -26,7 +26,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies explicit identity values are respected when identity override is enabled.
-    /// PT: Verifica se valores explicitos de identidade sao respeitados quando a sobrescrita esta habilitada.
+    /// PT-br: Verifica se valores explicitos de identidade sao respeitados quando a sobrescrita esta habilitada.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -35,7 +35,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies nullable columns accept null values.
-    /// PT: Verifica se colunas anulaveis aceitam valores nulos.
+    /// PT-br: Verifica se colunas anulaveis aceitam valores nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -44,7 +44,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies non-nullable columns reject null values.
-    /// PT: Verifica se colunas nao anulaveis rejeitam valores nulos.
+    /// PT-br: Verifica se colunas nao anulaveis rejeitam valores nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -53,7 +53,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies filtering on a composite index returns the expected matching rows.
-    /// PT: Verifica se o filtro em um indice composto retorna as linhas correspondentes esperadas.
+    /// PT-br: Verifica se o filtro em um indice composto retorna as linhas correspondentes esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -62,7 +62,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies LIKE filters return the expected matching rows.
-    /// PT: Verifica se filtros LIKE retornam as linhas correspondentes esperadas.
+    /// PT-br: Verifica se filtros LIKE retornam as linhas correspondentes esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -71,7 +71,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies IN filters return the expected matching rows.
-    /// PT: Verifica se filtros IN retornam as linhas correspondentes esperadas.
+    /// PT-br: Verifica se filtros IN retornam as linhas correspondentes esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -80,7 +80,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies distinct pagination with ordering returns the expected rows.
-    /// PT: Verifica se a paginacao com distinct e ordenacao retorna as linhas esperadas.
+    /// PT-br: Verifica se a paginacao com distinct e ordenacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -89,7 +89,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies HAVING filters are applied after aggregation results are produced.
-    /// PT: Verifica se filtros HAVING sao aplicados apos a producao dos resultados agregados.
+    /// PT-br: Verifica se filtros HAVING sao aplicados apos a producao dos resultados agregados.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -98,7 +98,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies deleting a referenced parent row throws the expected foreign-key exception.
-    /// PT: Verifica se excluir uma linha pai referenciada lanca a excecao esperada de chave estrangeira.
+    /// PT-br: Verifica se excluir uma linha pai referenciada lanca a excecao esperada de chave estrangeira.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -107,7 +107,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies deleting a referenced parent row without an explicit primary key still throws the expected exception.
-    /// PT: Verifica se excluir uma linha pai referenciada sem chave primaria explicita ainda lanca a excecao esperada.
+    /// PT-br: Verifica se excluir uma linha pai referenciada sem chave primaria explicita ainda lanca a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]
@@ -116,7 +116,7 @@ public sealed class ExtendedFirebirdMockTests(
 
     /// <summary>
     /// EN: Verifies Dapper inserts all rows when multiple parameter sets are supplied.
-    /// PT: Verifica se o Dapper insere todas as linhas quando multiplos conjuntos de parametros sao informados.
+    /// PT-br: Verifica se o Dapper insere todas as linhas quando multiplos conjuntos de parametros sao informados.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedFirebirdMock")]

@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Dapper.Test;
+namespace DbSqlLikeMem.Db2.Dapper.Test;
 
 /// <summary>
 /// EN: Covers DB2 SQL compatibility gap scenarios that intentionally document current divergence from real DB2.
-/// PT: Cobre cenarios de gap de compatibilidade SQL do DB2 que documentam intencionalmente as divergencias atuais em relacao ao DB2 real.
+/// PT-br: Cobre cenarios de gap de compatibilidade SQL do DB2 que documentam intencionalmente as divergencias atuais em relacao ao DB2 real.
 /// </summary>
 public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory DB2 connection used by the SQL compatibility gap tests.
-    /// PT: Cria a conexao DB2 em memoria usada pelos testes de gap de compatibilidade SQL.
+    /// PT-br: Cria a conexao DB2 em memoria usada pelos testes de gap de compatibilidade SQL.
     /// </summary>
     public Db2SqlCompatibilityGapTests(ITestOutputHelper helper) : base(helper)
     {
@@ -42,7 +42,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies AND binds stronger than OR in DB2 WHERE coverage.
-    /// PT: Verifica se AND tem maior precedencia que OR na cobertura de WHERE do DB2.
+    /// PT-br: Verifica se AND tem maior precedencia que OR na cobertura de WHERE do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -56,7 +56,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies OR filters rows correctly in DB2 WHERE coverage.
-    /// PT: Verifica se OR filtra linhas corretamente na cobertura de WHERE do DB2.
+    /// PT-br: Verifica se OR filtra linhas corretamente na cobertura de WHERE do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -68,7 +68,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies parentheses grouping works in DB2 WHERE coverage.
-    /// PT: Verifica se o agrupamento com parenteses funciona na cobertura de WHERE do DB2.
+    /// PT-br: Verifica se o agrupamento com parenteses funciona na cobertura de WHERE do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -82,7 +82,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies arithmetic expressions are evaluated in DB2 SELECT projections.
-    /// PT: Verifica se expressoes aritmeticas sao avaliadas em projeções SELECT do DB2.
+    /// PT-br: Verifica se expressoes aritmeticas sao avaliadas em projeções SELECT do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -94,7 +94,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies CASE WHEN expressions return the expected values.
-    /// PT: Verifica se expressoes CASE WHEN retornam os valores esperados.
+    /// PT-br: Verifica se expressoes CASE WHEN retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -106,7 +106,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IF expressions return the expected values.
-    /// PT: Verifica se expressoes IF retornam os valores esperados.
+    /// PT-br: Verifica se expressoes IF retornam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -120,7 +120,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IIF works as an alias for IF in DB2 compatibility coverage.
-    /// PT: Verifica se IIF funciona como alias de IF na cobertura de compatibilidade do DB2.
+    /// PT-br: Verifica se IIF funciona como alias de IF na cobertura de compatibilidade do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -134,7 +134,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies COALESCE returns the first non-null value.
-    /// PT: Verifica se COALESCE retorna o primeiro valor nao nulo.
+    /// PT-br: Verifica se COALESCE retorna o primeiro valor nao nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -146,7 +146,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IFNULL falls back to the first non-null value.
-    /// PT: Verifica se IFNULL faz fallback para o primeiro valor nao nulo.
+    /// PT-br: Verifica se IFNULL faz fallback para o primeiro valor nao nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -158,7 +158,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies CONCAT joins string parts in DB2 coverage.
-    /// PT: Verifica se CONCAT concatena partes de string na cobertura do DB2.
+    /// PT-br: Verifica se CONCAT concatena partes de string na cobertura do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -170,7 +170,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies DISTINCT returns the expected unique rows.
-    /// PT: Verifica se DISTINCT retorna as linhas unicas esperadas.
+    /// PT-br: Verifica se DISTINCT retorna as linhas unicas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -184,7 +184,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies JOIN ON clauses with OR predicates work correctly.
-    /// PT: Verifica se clausulas JOIN ON com predicados OR funcionam corretamente.
+    /// PT-br: Verifica se clausulas JOIN ON com predicados OR funcionam corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -205,7 +205,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies GROUP BY and HAVING work with aggregate filters.
-    /// PT: Verifica se GROUP BY e HAVING funcionam com filtros agregados.
+    /// PT-br: Verifica se GROUP BY e HAVING funcionam com filtros agregados.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -223,7 +223,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies ORDER BY supports aliases and ordinal positions.
-    /// PT: Verifica se ORDER BY aceita aliases e posicoes ordinais.
+    /// PT-br: Verifica se ORDER BY aceita aliases e posicoes ordinais.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -239,7 +239,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies UNION removes duplicates across SELECT parts.
-    /// PT: Verifica se UNION remove duplicatas entre partes do SELECT.
+    /// PT-br: Verifica se UNION remove duplicatas entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -255,7 +255,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies UNION ALL keeps duplicates across SELECT parts.
-    /// PT: Verifica se UNION ALL mantem duplicatas entre partes do SELECT.
+    /// PT-br: Verifica se UNION ALL mantem duplicatas entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -273,7 +273,7 @@ public sealed class Db2SqlCompatibilityGapTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies UNION works inside subselects.
-    /// PT: Verifica se UNION funciona dentro de subselects.
+    /// PT-br: Verifica se UNION funciona dentro de subselects.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -292,7 +292,7 @@ ORDER BY id
 
     /// <summary>
     /// EN: Verifies UNION ALL works inside subselects.
-    /// PT: Verifica se UNION ALL funciona dentro de subselects.
+    /// PT-br: Verifica se UNION ALL funciona dentro de subselects.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -312,7 +312,7 @@ ORDER BY id
 
     /// <summary>
     /// EN: Verifies WITH common table expressions work in DB2 coverage.
-    /// PT: Verifica se expressoes de tabela comum WITH funcionam na cobertura do DB2.
+    /// PT-br: Verifica se expressoes de tabela comum WITH funcionam na cobertura do DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -326,7 +326,7 @@ ORDER BY id
 
     /// <summary>
     /// EN: Verifies implicit casts and default DB2 string comparison rules follow the expected behavior.
-    /// PT: Verifica se casts implicitos e as regras padrao de comparacao de strings do DB2 seguem o comportamento esperado.
+    /// PT-br: Verifica se casts implicitos e as regras padrao de comparacao de strings do DB2 seguem o comportamento esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2SqlCompatibilityGap")]
@@ -344,9 +344,9 @@ ORDER BY id
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

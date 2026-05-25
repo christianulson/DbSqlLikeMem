@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Sqlite.Test.Strategy;
 
 /// <summary>
 /// EN: Contains trigger behavior tests for the SQLite strategy.
-/// PT: Contém testes de comportamento de gatilhos para a estratégia SQLite.
+/// PT-br: Contém testes de comportamento de gatilhos para a estratégia SQLite.
 /// </summary>
 public sealed class SqliteTriggerStrategyTests
 {
     /// <summary>
     /// EN: Ensures that an AFTER INSERT trigger is executed for a non-temporary table.
-    /// PT: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
+    /// PT-br: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -31,7 +31,7 @@ public sealed class SqliteTriggerStrategyTests
 
     /// <summary>
     /// EN: Ensures that triggers are not executed for a temporary table.
-    /// PT: Garante que os gatilhos não sejam executados para uma tabela temporária.
+    /// PT-br: Garante que os gatilhos não sejam executados para uma tabela temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

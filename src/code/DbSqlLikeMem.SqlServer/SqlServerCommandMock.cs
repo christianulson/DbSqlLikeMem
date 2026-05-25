@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Represents a mock database command used to execute SQL text and stored procedures in memory.
-/// PT: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
+/// PT-br: Representa um comando de banco de dados simulado usado para executar SQL e procedures em memória.
 /// </summary>
 public class SqlServerCommandMock(
     SqlServerConnectionMock? connection,
@@ -17,7 +17,7 @@ public class SqlServerCommandMock(
 {
     /// <summary>
     /// EN: Initializes a new command instance without an attached connection or transaction.
-    /// PT: Inicializa uma nova instância de comando sem conexão ou transação associada.
+    /// PT-br: Inicializa uma nova instância de comando sem conexão ou transação associada.
     /// </summary>
     public SqlServerCommandMock() : this(null, null)
     {
@@ -33,25 +33,25 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Gets or sets the SQL statement or stored procedure name that will be executed by this command.
-    /// PT: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
+    /// PT-br: Obtém ou define a instrução SQL ou o nome da procedure que será executada por este comando.
     /// </summary>
     [AllowNull]
     public override string CommandText { get; set; } = string.Empty;
 
     /// <summary>
     /// EN: Gets or sets the time, in seconds, to wait for command execution before timing out.
-    /// PT: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
+    /// PT-br: Obtém ou define o tempo, em segundos, para aguardar a execução do comando antes de expirar.
     /// </summary>
     public override int CommandTimeout { get; set; }
     /// <summary>
     /// EN: Gets or sets whether the command text is raw SQL text or a stored procedure name.
-    /// PT: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
+    /// PT-br: Obtém ou define se o texto do comando é SQL puro ou o nome de uma procedure.
     /// </summary>
     public override CommandType CommandType { get; set; } = CommandType.Text;
 
     /// <summary>
     /// EN: Gets or sets the connection associated with this command.
-    /// PT: Obtém ou define a conexão associada a este comando.
+    /// PT-br: Obtém ou define a conexão associada a este comando.
     /// </summary>
     protected override DbConnection? DbConnection
     {
@@ -62,13 +62,13 @@ public class SqlServerCommandMock(
     private readonly SqlServerDataParameterCollectionMock collectionMock = [];
     /// <summary>
     /// EN: Gets the parameter collection associated with this command.
-    /// PT: Obtém a coleção de parâmetros associada a este comando.
+    /// PT-br: Obtém a coleção de parâmetros associada a este comando.
     /// </summary>
     protected override DbParameterCollection DbParameterCollection => collectionMock;
 
     /// <summary>
     /// EN: Gets or sets the transaction associated with this command.
-    /// PT: Obtém ou define a transação associada a este comando.
+    /// PT-br: Obtém ou define a transação associada a este comando.
     /// </summary>
     protected override DbTransaction? DbTransaction
     {
@@ -78,31 +78,31 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Gets or sets updated row source.
-    /// PT: Obtém ou define como os resultados do comando são aplicados ao DataRow.
+    /// PT-br: Obtém ou define como os resultados do comando são aplicados ao DataRow.
     /// </summary>
     public override UpdateRowSource UpdatedRowSource { get; set; }
     /// <summary>
     /// EN: Gets or sets design time visible.
-    /// PT: Obtém ou define visível em tempo de design.
+    /// PT-br: Obtém ou define visível em tempo de design.
     /// </summary>
     public override bool DesignTimeVisible { get; set; }
 
     /// <summary>
     /// EN: Cancels the current command execution.
-    /// PT: Cancela a execução atual do comando.
+    /// PT-br: Cancela a execução atual do comando.
     /// </summary>
     public override void Cancel() => DbTransaction?.Rollback();
 
     /// <summary>
     /// EN: Creates a new db parameter instance.
-    /// PT: Cria uma nova instância de parâmetro de banco.
+    /// PT-br: Cria uma nova instância de parâmetro de banco.
     /// </summary>
     protected override DbParameter CreateDbParameter()
         => new SqlParameter();
 
     /// <summary>
     /// EN: Executes non-query and returns affected rows.
-    /// PT: Executa non-consulta e retorna as linhas afetadas.
+    /// PT-br: Executa non-consulta e retorna as linhas afetadas.
     /// </summary>
     public override int ExecuteNonQuery()
     {
@@ -134,7 +134,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a data reader.
-    /// PT: Executa o comando e retorna um leitor de dados.
+    /// PT-br: Executa o comando e retorna um leitor de dados.
     /// </summary>
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
     {
@@ -227,7 +227,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Executes INSERT and materializes SQL Server OUTPUT rows when requested.
-    /// PT: Executa INSERT e materializa linhas de OUTPUT do SQL Server quando solicitado.
+    /// PT-br: Executa INSERT e materializa linhas de OUTPUT do SQL Server quando solicitado.
     /// </summary>
     private TableResultMock ExecuteInsertOutput(SqlInsertQuery query, SqlServerOutputClause outputClause)
     {
@@ -247,7 +247,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Executes UPDATE and materializes SQL Server OUTPUT rows when requested.
-    /// PT: Executa UPDATE e materializa linhas de OUTPUT do SQL Server quando solicitado.
+    /// PT-br: Executa UPDATE e materializa linhas de OUTPUT do SQL Server quando solicitado.
     /// </summary>
     private TableResultMock ExecuteUpdateOutput(SqlUpdateQuery query, SqlServerOutputClause outputClause)
     {
@@ -273,7 +273,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Executes DELETE and materializes SQL Server OUTPUT rows when requested.
-    /// PT: Executa DELETE e materializa linhas de OUTPUT do SQL Server quando solicitado.
+    /// PT-br: Executa DELETE e materializa linhas de OUTPUT do SQL Server quando solicitado.
     /// </summary>
     private TableResultMock ExecuteDeleteOutput(SqlDeleteQuery query, SqlServerOutputClause outputClause)
     {
@@ -294,7 +294,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Builds output result set from old/new row pairs.
-    /// PT: Monta o conjunto de resultado de output a partir de pares de linhas antigas/novas.
+    /// PT-br: Monta o conjunto de resultado de output a partir de pares de linhas antigas/novas.
     /// </summary>
     private TableResultMock BuildOutputResult(
         SqlServerOutputClause outputClause,
@@ -328,7 +328,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Builds projection metadata and resolvers for SQL Server OUTPUT items.
-    /// PT: Monta metadados de projeção e resolvedores para itens de OUTPUT do SQL Server.
+    /// PT-br: Monta metadados de projeção e resolvedores para itens de OUTPUT do SQL Server.
     /// </summary>
     private List<SqlServerOutputProjection> BuildOutputProjection(
         SqlServerOutputClause outputClause,
@@ -358,7 +358,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Gets cached OUTPUT projection templates for the current table shape and OUTPUT list.
-    /// PT: Obtém templates cacheados de projeção OUTPUT para o formato atual da tabela e da lista OUTPUT.
+    /// PT-br: Obtém templates cacheados de projeção OUTPUT para o formato atual da tabela e da lista OUTPUT.
     /// </summary>
     private IReadOnlyList<SqlServerOutputProjectionTemplate> GetOutputProjectionTemplates(
         SqlServerOutputClause outputClause,
@@ -377,7 +377,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Builds cached projection templates for SQL Server OUTPUT items.
-    /// PT: Monta templates cacheáveis de projeção para itens de OUTPUT do SQL Server.
+    /// PT-br: Monta templates cacheáveis de projeção para itens de OUTPUT do SQL Server.
     /// </summary>
     private static IReadOnlyList<SqlServerOutputProjectionTemplate> BuildOutputProjectionTemplates(
         SqlServerOutputClause outputClause,
@@ -412,7 +412,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Appends wildcard OUTPUT templates using requested pseudo-table source.
-    /// PT: Adiciona templates OUTPUT wildcard usando a pseudo-tabela solicitada.
+    /// PT-br: Adiciona templates OUTPUT wildcard usando a pseudo-tabela solicitada.
     /// </summary>
     private static void AppendOutputWildcardTemplates(
         ICollection<SqlServerOutputProjectionTemplate> templates,
@@ -437,7 +437,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Resolves pseudo-table source for OUTPUT item.
-    /// PT: ResolveRowsFrameRange a fonte de pseudo-tabela para item de OUTPUT.
+    /// PT-br: ResolveRowsFrameRange a fonte de pseudo-tabela para item de OUTPUT.
     /// </summary>
     private static IReadOnlyDictionary<int, object?>? ResolveOutputSourceRow(
         SqlServerOutputQualifier qualifier,
@@ -455,7 +455,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Parses SQL Server OUTPUT clause and rewrites statement without OUTPUT for AST parser.
-    /// PT: Faz parse da cláusula OUTPUT do SQL Server e reescreve o comando sem OUTPUT para o parser AST.
+    /// PT-br: Faz parse da cláusula OUTPUT do SQL Server e reescreve o comando sem OUTPUT para o parser AST.
     /// </summary>
     private static bool TryExtractOutputClause(
         string sql,
@@ -539,7 +539,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Parses comma-separated OUTPUT item list.
-    /// PT: Faz parse da lista de itens OUTPUT separados por vírgula.
+    /// PT-br: Faz parse da lista de itens OUTPUT separados por vírgula.
     /// </summary>
     private static IReadOnlyList<SqlServerOutputItem> ParseOutputItems(string outputText)
     {
@@ -597,7 +597,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Splits comma-separated text honoring simple quote and parenthesis nesting.
-    /// PT: Divide texto separado por vírgula respeitando aspas simples e aninhamento de parênteses.
+    /// PT-br: Divide texto separado por vírgula respeitando aspas simples e aninhamento de parênteses.
     /// </summary>
     private static List<string> SplitTopLevelComma(string text)
     {
@@ -635,7 +635,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Finds row indexes matched by simple WHERE conditions used by DML strategies.
-    /// PT: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
+    /// PT-br: Encontra índices de linhas que atendem às condições simples de WHERE usadas pelas estratégias DML.
     /// </summary>
     private List<int> MatchRowIndexes(
         ITableMock table,
@@ -656,7 +656,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Normalizes a qualified column reference to a table-local column name.
-    /// PT: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
+    /// PT-br: Normaliza uma referência de coluna qualificada para o nome local da coluna na tabela.
     /// </summary>
     private static string NormalizeColumnReference(string rawColumnName)
     {
@@ -669,7 +669,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Builds a cache key for SQL Server OUTPUT projection templates from table identity, schema and item list.
-    /// PT: Monta uma chave de cache para templates de projeção OUTPUT do SQL Server a partir da identidade da tabela, esquema e lista de itens.
+    /// PT-br: Monta uma chave de cache para templates de projeção OUTPUT do SQL Server a partir da identidade da tabela, esquema e lista de itens.
     /// </summary>
     private static string BuildOutputProjectionCacheKey(
         SqlServerOutputClause outputClause,
@@ -685,14 +685,14 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Creates an immutable snapshot of a row dictionary.
-    /// PT: Cria um snapshot imutável de um dicionário de linha.
+    /// PT-br: Cria um snapshot imutável de um dicionário de linha.
     /// </summary>
     private static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?> row)
         => row.ToDictionary(_ => _.Key, _ => _.Value);
 
     /// <summary>
     /// EN: Tries to resolve the target table from an AST table source.
-    /// PT: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
+    /// PT-br: Tenta resolver a tabela alvo a partir de uma fonte de tabela da AST.
     /// </summary>
     private bool TryResolveTargetTable(
         SqlTableSource? tableSource,
@@ -749,7 +749,7 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Executes the command and returns a scalar value.
-    /// PT: Executa o comando e retorna um valor escalar.
+    /// PT-br: Executa o comando e retorna um valor escalar.
     /// </summary>
     public override object ExecuteScalar()
     {
@@ -805,13 +805,13 @@ public class SqlServerCommandMock(
 
     /// <summary>
     /// EN: Represents Prepare.
-    /// PT: Representa Prepare.
+    /// PT-br: Representa Prepare.
     /// </summary>
     public override void Prepare() { }
 
     /// <summary>
     /// EN: Releases resources used by this instance.
-    /// PT: Libera os recursos usados por esta instância.
+    /// PT-br: Libera os recursos usados por esta instância.
     /// </summary>
     protected override void Dispose(bool disposing)
     {

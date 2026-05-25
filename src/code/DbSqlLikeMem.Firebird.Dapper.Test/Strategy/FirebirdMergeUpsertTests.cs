@@ -2,15 +2,15 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test.Strategy;
 
 /// <summary>
 /// EN: Covers Firebird MERGE upsert behavior in the command mock pipeline.
-/// PT: Cobre o comportamento de upsert com MERGE no pipeline do comando simulado Firebird.
+/// PT-br: Cobre o comportamento de upsert com MERGE no pipeline do comando simulado Firebird.
 /// </summary>
 public sealed class FirebirdMergeUpsertTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Ensures MERGE parsing follows Firebird dialect version support.
-    /// PT: Garante que o parse de MERGE siga o suporte por versao do dialeto Firebird.
+    /// PT-br: Garante que o parse de MERGE siga o suporte por versao do dialeto Firebird.
     /// </summary>
-    /// <param name="version">EN: Firebird dialect version under test. PT: Versao do dialeto Firebird em teste.</param>
+    /// <param name="version">EN: Firebird dialect version under test. PT-br: Versao do dialeto Firebird em teste.</param>
     [Theory]
     [Trait("Category", "Strategy")]
     [MemberData(nameof(FirebirdVersions))]
@@ -39,9 +39,9 @@ WHEN MATCHED THEN
 
     /// <summary>
     /// EN: Ensures MERGE updates an existing row when the ON condition matches.
-    /// PT: Garante que MERGE atualize uma linha existente quando a condicao ON e satisfeita.
+    /// PT-br: Garante que MERGE atualize uma linha existente quando a condicao ON e satisfeita.
     /// </summary>
-    /// <param name="version">EN: Firebird dialect version under test. PT: Versao do dialeto Firebird em teste.</param>
+    /// <param name="version">EN: Firebird dialect version under test. PT-br: Versao do dialeto Firebird em teste.</param>
     [Theory]
     [Trait("Category", "Strategy")]
     [MemberData(nameof(FirebirdVersions))]
@@ -92,9 +92,9 @@ WHEN NOT MATCHED THEN
 
     /// <summary>
     /// EN: Ensures MERGE inserts a row when the ON condition does not match.
-    /// PT: Garante que MERGE insira uma linha quando a condicao ON nao e satisfeita.
+    /// PT-br: Garante que MERGE insira uma linha quando a condicao ON nao e satisfeita.
     /// </summary>
-    /// <param name="version">EN: Firebird dialect version under test. PT: Versao do dialeto Firebird em teste.</param>
+    /// <param name="version">EN: Firebird dialect version under test. PT-br: Versao do dialeto Firebird em teste.</param>
     [Theory]
     [Trait("Category", "Strategy")]
     [MemberData(nameof(FirebirdVersions))]
@@ -141,7 +141,7 @@ WHEN NOT MATCHED THEN
 
     /// <summary>
     /// EN: Returns the Firebird versions supported by the MERGE scenarios.
-    /// PT: Retorna as versoes do Firebird suportadas pelos cenarios de MERGE.
+    /// PT-br: Retorna as versoes do Firebird suportadas pelos cenarios de MERGE.
     /// </summary>
     public static IEnumerable<object[]> FirebirdVersions()
         => FirebirdDbVersions.Versions().Select(version => new object[] { version });

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Creates and drops the contract table used to verify default and null insert behavior.
-/// PT: Cria e remove a tabela de contrato usada para verificar o comportamento de defaults e nulos no insert.
+/// PT-br: Cria e remove a tabela de contrato usada para verificar o comportamento de defaults e nulos no insert.
 /// </summary>
 public class InsertNullabilityScenario(
     RepoService repo,
@@ -12,7 +12,7 @@ public class InsertNullabilityScenario(
 {
     /// <summary>
     /// EN: Creates the contract table used to validate nullable and non-nullable insert behavior.
-    /// PT: Cria a tabela de contrato usada para validar o comportamento de insert com colunas anulaveis e nao anulaveis.
+    /// PT-br: Cria a tabela de contrato usada para validar o comportamento de insert com colunas anulaveis e nao anulaveis.
     /// </summary>
     public Task CreateScenarioAsync()
         => Repo.ExecuteNonQueryAsync($"""
@@ -26,7 +26,7 @@ CREATE TABLE {Context.TbUsersFullName} (
 
     /// <summary>
     /// EN: Drops the contract table created for the insert fidelity checks.
-    /// PT: Remove a tabela de contrato criada para as verificacoes de fidelidade do insert.
+    /// PT-br: Remove a tabela de contrato criada para as verificacoes de fidelidade do insert.
     /// </summary>
     public async Task DropScenarioAsync()
     {

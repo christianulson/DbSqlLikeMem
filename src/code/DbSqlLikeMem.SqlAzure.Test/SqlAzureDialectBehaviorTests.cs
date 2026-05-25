@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers SQL Azure dialect behaviors inherited from SQL Server semantics.
-/// PT: Cobre comportamentos de dialeto do SQL Azure herdados da semantica do SQL Server.
+/// PT-br: Cobre comportamentos de dialeto do SQL Azure herdados da semantica do SQL Server.
 /// </summary>
 public sealed class SqlAzureDialectBehaviorTests(
         ITestOutputHelper helper
@@ -29,7 +29,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Server-style table hints remain accepted through SQL Azure provider mocks.
-    /// PT: Garante que table hints no estilo SQL Server continuem aceitos pelos mocks do provedor SQL Azure.
+    /// PT-br: Garante que table hints no estilo SQL Server continuem aceitos pelos mocks do provedor SQL Azure.
     /// </summary>
     [Fact]
     public void Select_WithSqlServerTableHints_ShouldExecute()
@@ -52,7 +52,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures TOP and @@ROWCOUNT semantics behave consistently for SQL Azure compatibility tests.
-    /// PT: Garante que a semântica de TOP e @@ROWCOUNT se comporte de forma consistente para testes de compatibilidade SQL Azure.
+    /// PT-br: Garante que a semântica de TOP e @@ROWCOUNT se comporte de forma consistente para testes de compatibilidade SQL Azure.
     /// </summary>
     [Fact]
     public void Select_TopThenRowCount_ShouldReturnLastSelectCount()
@@ -84,7 +84,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures INSERT OUTPUT returns inserted projection through SQL Azure mocks.
-    /// PT: Garante que INSERT OUTPUT retorne a projeção inserida nos mocks SQL Azure.
+    /// PT-br: Garante que INSERT OUTPUT retorne a projeção inserida nos mocks SQL Azure.
     /// </summary>
     [Fact]
     public void ExecuteReader_InsertOutput_ShouldReturnInsertedProjection()
@@ -104,7 +104,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode executes an Azure SQL reference query with CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST and ROW_NUMBER.
-    /// PT: Garante que o modo de compatibilidade SQL Azure execute uma query de referencia do Azure SQL com CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure execute uma query de referencia do Azure SQL com CTE, JOIN, LEFT JOIN, CROSS APPLY, OUTER APPLY, EXISTS, STRING_AGG, DATEADD, DATEDIFF, CASE, CAST e ROW_NUMBER.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -255,7 +255,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures UPDATE OUTPUT exposes deleted/inserted values for SQL Azure compatibility.
-    /// PT: Garante que UPDATE OUTPUT exponha valores deleted/inserted para compatibilidade SQL Azure.
+    /// PT-br: Garante que UPDATE OUTPUT exponha valores deleted/inserted para compatibilidade SQL Azure.
     /// </summary>
     [Fact]
     public void ExecuteReader_UpdateOutput_ShouldReturnDeletedAndInsertedValues()
@@ -283,7 +283,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures DELETE OUTPUT returns deleted snapshot through SQL Azure mocks.
-    /// PT: Garante que DELETE OUTPUT retorne o snapshot excluído nos mocks SQL Azure.
+    /// PT-br: Garante que DELETE OUTPUT retorne o snapshot excluído nos mocks SQL Azure.
     /// </summary>
     [Fact]
     public void ExecuteReader_DeleteOutput_ShouldReturnDeletedSnapshot()
@@ -312,7 +312,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode executes CROSS APPLY with correlated derived subqueries through the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure execute CROSS APPLY com subqueries derivadas correlacionadas pelo caminho compartilhado do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure execute CROSS APPLY com subqueries derivadas correlacionadas pelo caminho compartilhado do SQL Server.
     /// </summary>
     [Fact]
     public void ExecuteReader_CrossApply_WithCorrelatedDerivedSubquery_ShouldReturnMatchingRows()
@@ -358,7 +358,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode expands OPENJSON rows through CROSS APPLY on the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure expanda linhas de OPENJSON via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure expanda linhas de OPENJSON via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -403,7 +403,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode projects OPENJSON WITH explicit schema through the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure projete OPENJSON WITH com schema explicito pelo caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure projete OPENJSON WITH com schema explicito pelo caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -454,7 +454,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode supports quoted-key paths and array indexes in OPENJSON.
-    /// PT: Garante que o modo de compatibilidade SQL Azure suporte paths com chave entre aspas e indices de array em OPENJSON.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure suporte paths com chave entre aspas e indices de array em OPENJSON.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -496,7 +496,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode expands UNPIVOT rows and skips NULL source values through the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure expanda linhas de UNPIVOT e ignore valores NULL da fonte pelo caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure expanda linhas de UNPIVOT e ignore valores NULL da fonte pelo caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     public void ExecuteReader_WithUnpivot_ShouldExpandRowsAndSkipNulls()
@@ -543,7 +543,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode preserves source column metadata for copied PIVOT and UNPIVOT columns on the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure preserve o metadata das colunas de origem para colunas copiadas de PIVOT e UNPIVOT no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure preserve o metadata das colunas de origem para colunas copiadas de PIVOT e UNPIVOT no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     public void ExecuteReader_WithPivotAndUnpivotCopiedColumns_ShouldExposeSourceFieldTypes()
@@ -622,7 +622,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode computes STDEV, STDEVP, VAR, and VARP in PIVOT through the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure calcule STDEV, STDEVP, VAR e VARP em PIVOT pelo caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure calcule STDEV, STDEVP, VAR e VARP em PIVOT pelo caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     public void ExecuteReader_WithPivotVarianceAggregates_ShouldReturnExpectedNumbers()
@@ -669,7 +669,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode computes COUNT_BIG in PIVOT with bigint-shaped results on the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure calcule COUNT_BIG em PIVOT com resultado no shape bigint no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure calcule COUNT_BIG em PIVOT com resultado no shape bigint no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     public void ExecuteReader_WithPivotCountBig_ShouldReturnInt64Counts()
@@ -701,7 +701,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode exposes PIVOT aggregate metadata aligned with COUNT_BIG and statistical return types on the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure exponha metadados de agregacao do PIVOT alinhados aos tipos de retorno de COUNT_BIG e agregadores estatisticos no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure exponha metadados de agregacao do PIVOT alinhados aos tipos de retorno de COUNT_BIG e agregadores estatisticos no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Fact]
     public void ExecuteReader_WithPivotAggregateMetadata_ShouldExposeExpectedFieldTypes()
@@ -1081,7 +1081,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode serializes FOR JSON AUTO with INCLUDE_NULL_VALUES and WITHOUT_ARRAY_WRAPPER on the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure serialize FOR JSON AUTO com INCLUDE_NULL_VALUES e WITHOUT_ARRAY_WRAPPER no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure serialize FOR JSON AUTO com INCLUDE_NULL_VALUES e WITHOUT_ARRAY_WRAPPER no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1123,7 +1123,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode preserves OPENJSON AS JSON fragments when FOR JSON PATH serializes the final rowset.
-    /// PT: Garante que o modo de compatibilidade SQL Azure preserve fragmentos de OPENJSON AS JSON quando FOR JSON PATH serializa o rowset final.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure preserve fragmentos de OPENJSON AS JSON quando FOR JSON PATH serializa o rowset final.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1168,7 +1168,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode rejects conflicting nested alias order in FOR JSON PATH instead of silently merging incompatible object paths.
-    /// PT: Garante que o modo de compatibilidade SQL Azure rejeite ordem conflitante de aliases aninhados em FOR JSON PATH em vez de mesclar silenciosamente caminhos de objeto incompativeis.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure rejeite ordem conflitante de aliases aninhados em FOR JSON PATH em vez de mesclar silenciosamente caminhos de objeto incompativeis.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1199,7 +1199,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode preserves JSON_QUERY fragments when FOR JSON PATH serializes the final rowset.
-    /// PT: Garante que o modo de compatibilidade SQL Azure preserve fragmentos de JSON_QUERY quando FOR JSON PATH serializa o rowset final.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure preserve fragmentos de JSON_QUERY quando FOR JSON PATH serializa o rowset final.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1241,7 +1241,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode preserves a root JSON object when JSON_QUERY is called without an explicit path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure preserve um objeto JSON de raiz quando JSON_QUERY e chamado sem path explicito.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure preserve um objeto JSON de raiz quando JSON_QUERY e chamado sem path explicito.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1298,7 +1298,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode skips nested FOR JSON AUTO aliases for LEFT JOIN rows without child matches.
-    /// PT: Garante que o modo de compatibilidade SQL Azure ignore aliases aninhados de FOR JSON AUTO para linhas de LEFT JOIN sem correspondência filha.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure ignore aliases aninhados de FOR JSON AUTO para linhas de LEFT JOIN sem correspondência filha.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1345,7 +1345,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode executes schema-qualified OPENJSON through CROSS APPLY on the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure execute OPENJSON qualificado por schema via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure execute OPENJSON qualificado por schema via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1386,7 +1386,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode executes schema-qualified OPENJSON WITH explicit schema through CROSS APPLY on the shared SQL Server runtime path.
-    /// PT: Garante que o modo de compatibilidade SQL Azure execute OPENJSON qualificado por schema com WITH explicito via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure execute OPENJSON qualificado por schema com WITH explicito via CROSS APPLY no caminho compartilhado de runtime do SQL Server.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1430,7 +1430,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode exposes schema-qualified STRING_SPLIT enable_ordinal through the shared SQL Server 2022 runtime semantics.
-    /// PT: Garante que o modo de compatibilidade SQL Azure exponha STRING_SPLIT qualificado por schema com enable_ordinal pela semantica compartilhada de runtime do SQL Server 2022.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure exponha STRING_SPLIT qualificado por schema com enable_ordinal pela semantica compartilhada de runtime do SQL Server 2022.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1475,7 +1475,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode rejects schema-qualified STRING_SPLIT enable_ordinal numeric text.
-    /// PT: Garante que o modo de compatibilidade SQL Azure rejeite texto numerico em STRING_SPLIT qualificado por schema com enable_ordinal.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure rejeite texto numerico em STRING_SPLIT qualificado por schema com enable_ordinal.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1512,7 +1512,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode rejects schema-qualified STRING_SPLIT enable_ordinal numeric text outside the 0 or 1 subset.
-    /// PT: Garante que o modo de compatibilidade SQL Azure rejeite texto numerico em STRING_SPLIT qualificado por schema com enable_ordinal fora do subset 0 ou 1.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure rejeite texto numerico em STRING_SPLIT qualificado por schema com enable_ordinal fora do subset 0 ou 1.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1547,7 +1547,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode exposes STRING_SPLIT enable_ordinal through the shared SQL Server 2022 runtime semantics.
-    /// PT: Garante que o modo de compatibilidade SQL Azure exponha STRING_SPLIT com enable_ordinal pela semantica compartilhada de runtime do SQL Server 2022.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure exponha STRING_SPLIT com enable_ordinal pela semantica compartilhada de runtime do SQL Server 2022.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1594,7 +1594,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode accepts decimal enable_ordinal values that evaluate to 0 or 1.
-    /// PT: Garante que o modo de compatibilidade SQL Azure aceite valores decimais de enable_ordinal que avaliam para 0 ou 1.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure aceite valores decimais de enable_ordinal que avaliam para 0 ou 1.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1639,7 +1639,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode rejects numeric text enable_ordinal values.
-    /// PT: Garante que o modo de compatibilidade SQL Azure rejeite valores textuais numericos em enable_ordinal.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure rejeite valores textuais numericos em enable_ordinal.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1678,7 +1678,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode rejects numeric text enable_ordinal values.
-    /// PT: Garante que o modo de compatibilidade SQL Azure rejeite valores textuais numericos em enable_ordinal.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure rejeite valores textuais numericos em enable_ordinal.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1717,7 +1717,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure compatibility mode rejects invalid numeric text enable_ordinal values outside the 0 or 1 subset.
-    /// PT: Garante que o modo de compatibilidade SQL Azure rejeite valores textuais numericos invalidos em enable_ordinal fora do subset 0 ou 1.
+    /// PT-br: Garante que o modo de compatibilidade SQL Azure rejeite valores textuais numericos invalidos em enable_ordinal fora do subset 0 ou 1.
     /// </summary>
     [Theory]
     [MemberDataSqlAzureCompatibilityLevel]
@@ -1754,7 +1754,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures ROWCOUNT function tracks the last select row count for SQL Azure compatibility.
-    /// PT: Garante que a função ROWCOUNT acompanhe a contagem da última consulta para compatibilidade SQL Azure.
+    /// PT-br: Garante que a função ROWCOUNT acompanhe a contagem da última consulta para compatibilidade SQL Azure.
     /// </summary>
     [Fact]
     public void Select_RowCountFunction_ShouldReturnLastSelectRowCount()
@@ -1784,7 +1784,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures SQL Azure rejects FOUND_ROWS because compatibility mode exposes ROWCOUNT and @@ROWCOUNT instead.
-    /// PT: Garante que o SQL Azure rejeite FOUND_ROWS porque o modo de compatibilidade expoe ROWCOUNT e @@ROWCOUNT no lugar.
+    /// PT-br: Garante que o SQL Azure rejeite FOUND_ROWS porque o modo de compatibilidade expoe ROWCOUNT e @@ROWCOUNT no lugar.
     /// </summary>
     [Fact]
     public void Select_FoundRows_ShouldThrowNotSupportedException()
@@ -1810,7 +1810,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures @@ROWCOUNT is reset to zero after BEGIN TRANSACTION in SQL Azure compatibility mode.
-    /// PT: Garante que @@ROWCOUNT seja resetado para zero após BEGIN TRANSACTION no modo de compatibilidade SQL Azure.
+    /// PT-br: Garante que @@ROWCOUNT seja resetado para zero após BEGIN TRANSACTION no modo de compatibilidade SQL Azure.
     /// </summary>
     [Fact]
     public void Batch_BeginTransactionThenRowCount_ShouldReturnZero()
@@ -1828,7 +1828,7 @@ public sealed class SqlAzureDialectBehaviorTests(
 
     /// <summary>
     /// EN: Ensures @@ROWCOUNT remains zero after SAVEPOINT/RELEASE SAVEPOINT batch statements.
-    /// PT: Garante que @@ROWCOUNT permaneça zero após instruções de lote SAVEPOINT/RELEASE SAVEPOINT.
+    /// PT-br: Garante que @@ROWCOUNT permaneça zero após instruções de lote SAVEPOINT/RELEASE SAVEPOINT.
     /// </summary>
     [Fact]
     public void Batch_SavepointAndReleaseThenRowCount_ShouldReturnZero()

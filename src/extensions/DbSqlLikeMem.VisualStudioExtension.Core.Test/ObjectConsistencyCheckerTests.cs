@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies local and remote object consistency checks.
-/// PT: Verifica as checagens de consistencia entre o objeto local e o remoto.
+/// PT-br: Verifica as checagens de consistencia entre o objeto local e o remoto.
 /// </summary>
 public class ObjectConsistencyCheckerTests
 {
     /// <summary>
     /// EN: Verifies missing database objects are reported as missing in the database.
-    /// PT: Verifica se objetos ausentes no banco sao reportados como ausentes no banco.
+    /// PT-br: Verifica se objetos ausentes no banco sao reportados como ausentes no banco.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -28,7 +28,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Verifies property mismatches are reported as different from the database.
-    /// PT: Verifica se divergencias de propriedades sao reportadas como diferentes do banco.
+    /// PT-br: Verifica se divergencias de propriedades sao reportadas como diferentes do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -52,7 +52,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Ensures missing local artifacts are classified as missing when none of the expected files exist.
-    /// PT: Garante que artefatos locais ausentes sejam classificados como ausentes quando nenhum dos arquivos esperados existe.
+    /// PT-br: Garante que artefatos locais ausentes sejam classificados como ausentes quando nenhum dos arquivos esperados existe.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -69,7 +69,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Ensures partially generated local artifacts are classified separately from metadata divergence.
-    /// PT: Garante que artefatos locais gerados parcialmente sejam classificados separadamente da divergencia de metadados.
+    /// PT-br: Garante que artefatos locais gerados parcialmente sejam classificados separadamente da divergencia de metadados.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -86,7 +86,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Ensures missing artifact kinds are exposed in deterministic class-model-repository order for UI diagnostics.
-    /// PT: Garante que os tipos de artefato ausentes sejam expostos na ordem deterministica classe-modelo-repositorio para diagnosticos da UI.
+    /// PT-br: Garante que os tipos de artefato ausentes sejam expostos na ordem deterministica classe-modelo-repositorio para diagnosticos da UI.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -101,7 +101,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Ensures drifted artifact kinds are exposed in deterministic class-model-repository order for UI diagnostics.
-    /// PT: Garante que os tipos de artefato divergentes sejam expostos na ordem deterministica classe-modelo-repositorio para diagnosticos da UI.
+    /// PT-br: Garante que os tipos de artefato divergentes sejam expostos na ordem deterministica classe-modelo-repositorio para diagnosticos da UI.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -126,7 +126,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Ensures companion artifacts are flagged as drifted when their stored structural snapshot differs from the primary generated class.
-    /// PT: Garante que artefatos complementares sejam marcados como divergentes quando o snapshot estrutural salvo difere da classe gerada principal.
+    /// PT-br: Garante que artefatos complementares sejam marcados como divergentes quando o snapshot estrutural salvo difere da classe gerada principal.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -193,7 +193,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Ensures snapshot drift is classified as metadata divergence once the local artifact trio exists.
-    /// PT: Garante que drift de snapshot seja classificado como divergencia de metadados quando o trio local de artefatos existe.
+    /// PT-br: Garante que drift de snapshot seja classificado como divergencia de metadados quando o trio local de artefatos existe.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -211,7 +211,7 @@ public class ObjectConsistencyCheckerTests
 
     /// <summary>
     /// EN: Ensures metadata comparison continues only after the expected local artifact trio exists.
-    /// PT: Garante que a comparacao de metadados continue apenas depois que o trio esperado de artefatos locais existir.
+    /// PT-br: Garante que a comparacao de metadados continue apenas depois que o trio esperado de artefatos locais existir.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectConsistencyChecker")]
@@ -229,7 +229,7 @@ public class ObjectConsistencyCheckerTests
     {
         /// <summary>
         /// EN: Returns the configured in-memory object for consistency checks.
-        /// PT: Retorna o objeto em memoria configurado para as checagens de consistencia.
+        /// PT-br: Retorna o objeto em memoria configurado para as checagens de consistencia.
         /// </summary>
         public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)
@@ -237,7 +237,7 @@ public class ObjectConsistencyCheckerTests
 
         /// <summary>
         /// EN: Returns the configured in-memory object list for consistency checks.
-        /// PT: Retorna a lista de objetos em memoria configurada para as checagens de consistencia.
+        /// PT-br: Retorna a lista de objetos em memoria configurada para as checagens de consistencia.
         /// </summary>
         public Task<IReadOnlyCollection<DatabaseObjectReference>> ListObjectsAsync(ConnectionDefinition connection,
             CancellationToken cancellationToken = default)

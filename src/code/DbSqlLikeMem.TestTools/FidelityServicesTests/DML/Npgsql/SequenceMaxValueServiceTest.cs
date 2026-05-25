@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Creates a bounded PostgreSQL sequence and verifies the maximum value is enforced.
-/// PT: Cria uma sequence PostgreSQL limitada e verifica se o valor maximo e imposto.
+/// PT-br: Cria uma sequence PostgreSQL limitada e verifica se o valor maximo e imposto.
 /// </summary>
 public sealed class SequenceMaxValueServiceTest(
     RepoService repo,
@@ -12,12 +12,17 @@ public sealed class SequenceMaxValueServiceTest(
 {
     /// <summary>
     /// EN: Returns the generated values and whether the sequence stopped at the configured maximum.
-    /// PT: Retorna os valores gerados e se a sequence parou no maximo configurado.
+    /// PT-br: Retorna os valores gerados e se a sequence parou no maximo configurado.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceMaxValueAsync();
 
+    /// <summary>
+    /// EN: Returns the generated values and whether the sequence stopped at the configured maximum.
+    /// PT-br: Retorna os valores gerados e se a sequence parou no maximo configurado.
+    /// </summary>
+    public async Task<long[]> RunSequenceMaxValueAsync()
+    {
         await ExecuteNonQueryAsync($"CREATE SEQUENCE {Context.Seq} START WITH 5 INCREMENT BY 1 MINVALUE 5 MAXVALUE 7 NO CYCLE");
 
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");

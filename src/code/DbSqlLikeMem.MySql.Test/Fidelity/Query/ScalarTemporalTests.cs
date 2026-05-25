@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MySql.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs MySQL fidelity tests for the shared scalar temporal workflow.
-/// PT: Executa testes de fidelidade MySQL para o fluxo escalar temporal compartilhado.
+/// PT-br: Executa testes de fidelidade MySQL para o fluxo escalar temporal compartilhado.
 /// </summary>
 public class ScalarTemporalTests(
     ITestOutputHelper helper

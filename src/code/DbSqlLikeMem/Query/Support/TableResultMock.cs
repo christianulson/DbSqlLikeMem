@@ -4,35 +4,35 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Represents a query result as a list of column-indexed rows returned by in-memory SQL execution.
-/// PT: Representa o resultado de uma consulta como uma lista de linhas indexadas por coluna retornadas pela execucao SQL em memoria.
+/// PT-br: Representa o resultado de uma consulta como uma lista de linhas indexadas por coluna retornadas pela execucao SQL em memoria.
 /// </summary>
 public class TableResultMock : List<Dictionary<int, object?>>
 {
     /// <summary>
     /// EN: Textual execution plan generated for the query that produced this result.
-    /// PT: Plano de execução textual gerado para a consulta que produziu este resultado.
+    /// PT-br: Plano de execução textual gerado para a consulta que produziu este resultado.
     /// </summary>
     public string? ExecutionPlan { get; internal set; }
 
     /// <summary>
     /// EN: Defines the list of columns present in the result, with metadata.
-    /// PT: Define a lista de colunas presentes no resultado, com seus metadados.
+    /// PT-br: Define a lista de colunas presentes no resultado, com seus metadados.
     /// </summary>
     public IList<TableResultColMock> Columns
     { get; internal set; } = [];
 
     /// <summary>
     /// EN: Holds auxiliary fields used in joins to compose combined results.
-    /// PT: Mantém os campos auxiliares usados em joins para compor resultados combinados.
+    /// PT-br: Mantém os campos auxiliares usados em joins para compor resultados combinados.
     /// </summary>
     public IList<Dictionary<string, object?>> JoinFields { get; internal set; } = [];
 
     /// <summary>
     /// EN: Gets the column index by alias or name and throws if not found.
-    /// PT: Obtém o índice da coluna pelo alias ou nome e lança exceção se não encontrar.
+    /// PT-br: Obtém o índice da coluna pelo alias ou nome e lança exceção se não encontrar.
     /// </summary>
-    /// <param name="col">EN: Column name or alias to locate. PT: Nome ou alias da coluna a localizar.</param>
-    /// <returns>EN: Column index in the result. PT: Índice da coluna no resultado.</returns>
+    /// <param name="col">EN: Column name or alias to locate. PT-br: Nome ou alias da coluna a localizar.</param>
+    /// <returns>EN: Column index in the result. PT-br: Índice da coluna no resultado.</returns>
     public int GetColumnIndexOrThrow(string col)
     {
         for (var i = 0; i < Columns.Count; i++)
@@ -52,19 +52,19 @@ public class TableResultMock : List<Dictionary<int, object?>>
 
 /// <summary>
 /// EN: Describes metadata for a column in a query result.
-/// PT: Descreve os metadados de uma coluna em um resultado de consulta.
+/// PT-br: Descreve os metadados de uma coluna em um resultado de consulta.
 /// </summary>
 /// <remarks>
 /// EN: Initializes column metadata with alias, name, index, type, nullability, and JSON fragment behavior.
-/// PT: Inicializa os metadados da coluna com alias, nome, indice, tipo, nulabilidade e comportamento de fragmento JSON.
+/// PT-br: Inicializa os metadados da coluna com alias, nome, indice, tipo, nulabilidade e comportamento de fragmento JSON.
 /// </remarks>
-/// <param name="tableAlias">EN: Table alias in the result. PT: Alias da tabela no resultado.</param>
-/// <param name="columnAlias">EN: Column alias in the result. PT: Alias da coluna no resultado.</param>
-/// <param name="columnName">EN: Real column name. PT: Nome real da coluna.</param>
-/// <param name="columIndex">EN: Column position in the result. PT: Posição da coluna no resultado.</param>
-/// <param name="dbType">EN: Data type in the result. PT: Tipo do dado no resultado.</param>
-/// <param name="isNullable">EN: Whether the column accepts nulls. PT: Indica se a coluna aceita valores nulos.</param>
-/// <param name="isJsonFragment">EN: Whether the column carries a JSON fragment that should remain raw during JSON serialization. PT: Indica se a coluna carrega um fragmento JSON que deve permanecer bruto durante a serializacao JSON.</param>
+/// <param name="tableAlias">EN: Table alias in the result. PT-br: Alias da tabela no resultado.</param>
+/// <param name="columnAlias">EN: Column alias in the result. PT-br: Alias da coluna no resultado.</param>
+/// <param name="columnName">EN: Real column name. PT-br: Nome real da coluna.</param>
+/// <param name="columIndex">EN: Column position in the result. PT-br: Posição da coluna no resultado.</param>
+/// <param name="dbType">EN: Data type in the result. PT-br: Tipo do dado no resultado.</param>
+/// <param name="isNullable">EN: Whether the column accepts nulls. PT-br: Indica se a coluna aceita valores nulos.</param>
+/// <param name="isJsonFragment">EN: Whether the column carries a JSON fragment that should remain raw during JSON serialization. PT-br: Indica se a coluna carrega um fragmento JSON que deve permanecer bruto durante a serializacao JSON.</param>
 [method: SetsRequiredMembers]
 public class TableResultColMock(
     string tableAlias,
@@ -79,37 +79,37 @@ public class TableResultColMock(
 
     /// <summary>
     /// EN: Table alias associated with the column.
-    /// PT: Alias da tabela associado à coluna.
+    /// PT-br: Alias da tabela associado à coluna.
     /// </summary>
     public required string TableAlias { get; set; } = tableAlias;
     /// <summary>
     /// EN: Column alias in the result.
-    /// PT: Alias da coluna no resultado.
+    /// PT-br: Alias da coluna no resultado.
     /// </summary>
     public required string ColumnAlias { get; set; } = columnAlias;
     /// <summary>
     /// EN: Real column name in the source table.
-    /// PT: Nome real da coluna na tabela de origem.
+    /// PT-br: Nome real da coluna na tabela de origem.
     /// </summary>
     public required string ColumnName { get; set; } = columnName;
     /// <summary>
     /// EN: Column index in the result set.
-    /// PT: Índice da coluna no conjunto de resultados.
+    /// PT-br: Índice da coluna no conjunto de resultados.
     /// </summary>
     public int ColumIndex { get; set; } = columIndex;
     /// <summary>
     /// EN: Data type returned by the column.
-    /// PT: Tipo do dado retornado pela coluna.
+    /// PT-br: Tipo do dado retornado pela coluna.
     /// </summary>
     public DbType DbType { get; set; } = dbType;
     /// <summary>
     /// EN: Indicates whether the column value can be null.
-    /// PT: Indica se o valor da coluna pode ser nulo.
+    /// PT-br: Indica se o valor da coluna pode ser nulo.
     /// </summary>
     public bool IsNullable { get; set; } = isNullable;
     /// <summary>
     /// EN: Indicates whether the column carries a JSON fragment that should remain unescaped in JSON serialization flows.
-    /// PT: Indica se a coluna carrega um fragmento JSON que deve permanecer sem escape em fluxos de serializacao JSON.
+    /// PT-br: Indica se a coluna carrega um fragmento JSON que deve permanecer sem escape em fluxos de serializacao JSON.
     /// </summary>
     public bool IsJsonFragment { get; set; } = isJsonFragment;
 }

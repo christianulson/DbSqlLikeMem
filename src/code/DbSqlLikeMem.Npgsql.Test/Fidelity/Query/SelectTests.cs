@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs PostgreSQL fidelity tests for the shared primary-key select scenario.
-/// PT: Executa testes de fidelidade do PostgreSQL para o cenario compartilhado de selecao por chave primaria.
+/// PT-br: Executa testes de fidelidade do PostgreSQL para o cenario compartilhado de selecao por chave primaria.
 /// </summary>
 public class SelectTests(
     ITestOutputHelper helper
@@ -18,7 +18,7 @@ public class SelectTests(
 {
     /// <summary>
     /// EN: Gets the column names to be used in the projection of the select query.
-    /// PT: Obtém os nomes das colunas a serem usadas na projeção da consulta de seleção.
+    /// PT-br: Obtém os nomes das colunas a serem usadas na projeção da consulta de seleção.
     /// </summary>
     /// <returns></returns>
     protected override string[] ApplyProjectionColumnNames()
@@ -26,7 +26,7 @@ public class SelectTests(
 
     /// <summary>
     /// EN: Normalizes the column names in the snapshot to match the expected format for PostgreSQL.
-    /// PT: Normaliza os nomes das colunas no snapshot para corresponder ao formato esperado para o PostgreSQL.
+    /// PT-br: Normaliza os nomes das colunas no snapshot para corresponder ao formato esperado para o PostgreSQL.
     /// </summary>
     /// <param name="columnNames"></param>
     /// <returns></returns>

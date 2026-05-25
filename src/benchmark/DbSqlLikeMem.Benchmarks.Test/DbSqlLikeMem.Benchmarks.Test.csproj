@@ -29,6 +29,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Using Include="DbSqlLikeMem.Benchmarks.Core" />
+		<Using Include="DbSqlLikeMem.TestTools" />
 		<Using Include="System.Text.Json" />
+		<Using Include="Xunit" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 </Project>

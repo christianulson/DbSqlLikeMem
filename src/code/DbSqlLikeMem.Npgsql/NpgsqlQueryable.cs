@@ -4,23 +4,23 @@ using System.Linq.Expressions;
 namespace DbSqlLikeMem.Npgsql;
 /// <summary>
 /// EN: Represents Npgsql Queryable.
-/// PT: Representa Npgsql Queryable.
+/// PT-br: Representa Npgsql Queryable.
 /// </summary>
 public class NpgsqlQueryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
     /// EN: Gets or sets table name.
-    /// PT: Obtém ou define table name.
+    /// PT-br: Obtém ou define table name.
     /// </summary>
     public string TableName { get; }
     /// <summary>
     /// EN: Gets or sets expression.
-    /// PT: Obtém ou define expression.
+    /// PT-br: Obtém ou define expression.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
     /// EN: Executes npgsql queryable.
-    /// PT: Executa npgsql queryable.
+    /// PT-br: Executa npgsql queryable.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -48,14 +48,14 @@ public class NpgsqlQueryable<T> : IOrderedQueryable<T>
 
     /// <summary>
     /// EN: Executes typeof.
-    /// PT: Executa typeof.
+    /// PT-br: Executa typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
     /// EN: Gets enumerator.
-    /// PT: Obtém enumerador.
+    /// PT-br: Obtém enumerador.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();

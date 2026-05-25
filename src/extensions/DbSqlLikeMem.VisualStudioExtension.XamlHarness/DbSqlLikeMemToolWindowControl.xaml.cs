@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -13,7 +13,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.XamlHarness;
 
 /// <summary>
 /// EN: Hosts the harness control that mirrors the Visual Studio tool window UI.
-/// PT: Hospeda o controle do harness que espelha a interface da janela de ferramentas do Visual Studio.
+/// PT-br: Hospeda o controle do harness que espelha a interface da janela de ferramentas do Visual Studio.
 /// </summary>
 public partial class DbSqlLikeMemToolWindowControl : UserControl
 {
@@ -30,7 +30,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     /// <summary>
     /// EN: Initializes the harness control and loads either persisted state or a clean harness state.
-    /// PT: Inicializa o controle do harness e carrega o estado persistido ou um estado limpo do harness.
+    /// PT-br: Inicializa o controle do harness e carrega o estado persistido ou um estado limpo do harness.
     /// </summary>
     public DbSqlLikeMemToolWindowControl()
     {
@@ -42,7 +42,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     /// <summary>
     /// EN: Replaces the current explorer state with the benchmark connections created by the harness profile.
-    /// PT: Substitui o estado atual do explorador pelas conexões de benchmark criadas pelo profile do harness.
+    /// PT-br: Substitui o estado atual do explorador pelas conexões de benchmark criadas pelo profile do harness.
     /// </summary>
     public Task LoadHarnessConnectionsAsync(IReadOnlyCollection<ConnectionDefinition> connections)
         => viewModel.LoadHarnessConnectionsAsync(connections);

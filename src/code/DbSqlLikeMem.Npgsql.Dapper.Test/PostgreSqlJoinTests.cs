@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers PostgreSQL join scenarios against the Npgsql mock provider.
-/// PT: Cobre cenarios de join do PostgreSQL contra o provedor mock Npgsql.
+/// PT-br: Cobre cenarios de join do PostgreSQL contra o provedor mock Npgsql.
 /// </summary>
 public sealed class PostgreSqlJoinTests(
     ITestOutputHelper helper
@@ -14,7 +14,7 @@ public sealed class PostgreSqlJoinTests(
 
     /// <summary>
     /// EN: Verifies left joins keep all rows from the left table.
-    /// PT: Verifica se left joins mantem todas as linhas da tabela da esquerda.
+    /// PT-br: Verifica se left joins mantem todas as linhas da tabela da esquerda.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlJoin")]
@@ -23,7 +23,7 @@ public sealed class PostgreSqlJoinTests(
 
     /// <summary>
     /// EN: Verifies right joins keep all rows from the right table.
-    /// PT: Verifica se right joins mantem todas as linhas da tabela da direita.
+    /// PT-br: Verifica se right joins mantem todas as linhas da tabela da direita.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlJoin")]
@@ -32,7 +32,7 @@ public sealed class PostgreSqlJoinTests(
 
     /// <summary>
     /// EN: Verifies join conditions with multiple AND predicates are evaluated correctly.
-    /// PT: Verifica se condicoes de join com multiplos predicados AND sao avaliadas corretamente.
+    /// PT-br: Verifica se condicoes de join com multiplos predicados AND sao avaliadas corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlJoin")]

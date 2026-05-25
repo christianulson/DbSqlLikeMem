@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Represents Oracle Connection Mock.
-/// PT: Representa Oracle conexão simulada.
+/// PT-br: Representa Oracle conexão simulada.
 /// </summary>
 public class OracleConnectionMock
     : DbConnectionMockBase
@@ -17,7 +17,7 @@ public class OracleConnectionMock
 
     /// <summary>
     /// EN: Represents Oracle Connection Mock.
-    /// PT: Representa Oracle conexão simulada.
+    /// PT-br: Representa Oracle conexão simulada.
     /// </summary>
     public OracleConnectionMock(
        OracleDbMock? db = null,
@@ -29,28 +29,28 @@ public class OracleConnectionMock
 
     /// <summary>
     /// EN: Creates a new transaction instance.
-    /// PT: Cria uma nova instância de transaction.
+    /// PT-br: Cria uma nova instância de transaction.
     /// </summary>
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new OracleTransactionMock(this, isolationLevel);
 
     /// <summary>
     /// EN: Creates a new db command core instance.
-    /// PT: Cria uma nova instância de comando de banco principal.
+    /// PT-br: Cria uma nova instância de comando de banco principal.
     /// </summary>
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new OracleCommandMock(this, transaction as OracleTransactionMock);
 
     /// <summary>
     /// EN: Creates the Oracle-specific mock exception used by this connection.
-    /// PT: Cria a excecao simulada especifica do Oracle usada por esta conexao.
+    /// PT-br: Cria a excecao simulada especifica do Oracle usada por esta conexao.
     /// </summary>
     protected internal override Exception NewException(string message, int code)
         => new OracleMockException(message, code);
 
     /// <summary>
     /// EN: Indicates whether Oracle supports releasing savepoints in this mock.
-    /// PT: Indica se o Oracle suporta liberar savepoints neste mock.
+    /// PT-br: Indica se o Oracle suporta liberar savepoints neste mock.
     /// </summary>
     protected override bool SupportsReleaseSavepoint => false;
 }

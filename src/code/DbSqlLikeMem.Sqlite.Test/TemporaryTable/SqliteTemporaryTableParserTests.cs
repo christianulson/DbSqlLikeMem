@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers CREATE TEMPORARY TABLE parsing scenarios in the Sqlite dialect.
-/// PT: Cobre cenarios de parsing de CREATE TEMPORARY TABLE no dialeto Sqlite.
+/// PT-br: Cobre cenarios de parsing de CREATE TEMPORARY TABLE no dialeto Sqlite.
 /// </summary>
 public sealed class SqliteTemporaryTableParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqliteTemporaryTableParserTests(
 {
     /// <summary>
     /// EN: Verifies that CREATE TEMPORARY TABLE followed by SELECT is parsed as two statements.
-    /// PT: Verifica se CREATE TEMPORARY TABLE seguido de SELECT e parsed como duas instrucoes.
+    /// PT-br: Verifica se CREATE TEMPORARY TABLE seguido de SELECT e parsed como duas instrucoes.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -40,7 +40,7 @@ SELECT * FROM tmp_users;
 
     /// <summary>
     /// EN: Provides test data for CreateTempTableStatements.
-    /// PT: Fornece dados de teste para CreateTempTableStatements.
+    /// PT-br: Fornece dados de teste para CreateTempTableStatements.
     /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
@@ -68,7 +68,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that supported CREATE TEMPORARY TABLE variants parse successfully.
-    /// PT: Verifica se variantes suportadas de CREATE TEMPORARY TABLE sao parsed com sucesso.
+    /// PT-br: Verifica se variantes suportadas de CREATE TEMPORARY TABLE sao parsed com sucesso.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -86,7 +86,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that CREATE GLOBAL TEMPORARY TABLE is parsed with global scope.
-    /// PT: Verifica se CREATE GLOBAL TEMPORARY TABLE e parsed com escopo global.
+    /// PT-br: Verifica se CREATE GLOBAL TEMPORARY TABLE e parsed com escopo global.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -103,7 +103,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that CREATE OR REPLACE TABLE is rejected for temporary tables.
-    /// PT: Verifica se CREATE OR REPLACE TABLE e rejeitado para tabelas temporarias.
+    /// PT-br: Verifica se CREATE OR REPLACE TABLE e rejeitado para tabelas temporarias.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -119,7 +119,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that extra statements after a temporary table body raise an error.
-    /// PT: Verifica se instrucoes extras apos o corpo da tabela temporaria geram erro.
+    /// PT-br: Verifica se instrucoes extras apos o corpo da tabela temporaria geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -135,7 +135,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that a missing SELECT body after AS raises an error.
-    /// PT: Verifica se um corpo SELECT ausente apos AS gera erro.
+    /// PT-br: Verifica se um corpo SELECT ausente apos AS gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -151,7 +151,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that an empty temporary table column list raises an error.
-    /// PT: Verifica se uma lista vazia de colunas da tabela temporaria gera erro.
+    /// PT-br: Verifica se uma lista vazia de colunas da tabela temporaria gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -167,7 +167,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that a trailing comma in the temporary table column list raises an error.
-    /// PT: Verifica se uma virgula final na lista de colunas da tabela temporaria gera erro.
+    /// PT-br: Verifica se uma virgula final na lista de colunas da tabela temporaria gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -183,7 +183,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that a leading comma in the temporary table column list raises an error.
-    /// PT: Verifica se uma virgula inicial na lista de colunas da tabela temporaria gera erro.
+    /// PT-br: Verifica se uma virgula inicial na lista de colunas da tabela temporaria gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -199,7 +199,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that an unclosed temporary table column list raises an error.
-    /// PT: Verifica se uma lista de colunas da tabela temporaria nao fechada gera erro.
+    /// PT-br: Verifica se uma lista de colunas da tabela temporaria nao fechada gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -215,7 +215,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that missing commas between temporary table columns raise an error.
-    /// PT: Verifica se virgulas ausentes entre colunas da tabela temporaria geram erro.
+    /// PT-br: Verifica se virgulas ausentes entre colunas da tabela temporaria geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -231,7 +231,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that a missing comma after a typed column raises an error.
-    /// PT: Verifica se uma virgula ausente apos uma coluna tipada gera erro.
+    /// PT-br: Verifica se uma virgula ausente apos uma coluna tipada gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -247,7 +247,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that a double comma in the temporary table column list raises an error.
-    /// PT: Verifica se uma virgula dupla na lista de colunas da tabela temporaria gera erro.
+    /// PT-br: Verifica se uma virgula dupla na lista de colunas da tabela temporaria gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -263,7 +263,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that IF EXISTS is rejected for CREATE TEMPORARY TABLE.
-    /// PT: Verifica se IF EXISTS e rejeitado em CREATE TEMPORARY TABLE.
+    /// PT-br: Verifica se IF EXISTS e rejeitado em CREATE TEMPORARY TABLE.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -279,7 +279,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that DROP TABLE IF EXISTS parses the table name.
-    /// PT: Verifica se DROP TABLE IF EXISTS faz o parse do nome da tabela.
+    /// PT-br: Verifica se DROP TABLE IF EXISTS faz o parse do nome da tabela.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -298,7 +298,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that DROP GLOBAL TEMPORARY TABLE IF EXISTS parses as a global temporary drop.
-    /// PT: Verifica se DROP GLOBAL TEMPORARY TABLE IF EXISTS e parsed como uma remocao temporaria global.
+    /// PT-br: Verifica se DROP GLOBAL TEMPORARY TABLE IF EXISTS e parsed como uma remocao temporaria global.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -317,7 +317,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that DROP GLOBAL TABLE without TEMPORARY is rejected.
-    /// PT: Verifica se DROP GLOBAL TABLE sem TEMPORARY e rejeitado.
+    /// PT-br: Verifica se DROP GLOBAL TABLE sem TEMPORARY e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -334,7 +334,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that DROP TABLE without a name raises an error.
-    /// PT: Verifica se DROP TABLE sem nome gera erro.
+    /// PT-br: Verifica se DROP TABLE sem nome gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -350,7 +350,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that extra statements after DROP TABLE raise an error.
-    /// PT: Verifica se instrucoes extras apos DROP TABLE geram erro.
+    /// PT-br: Verifica se instrucoes extras apos DROP TABLE geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -366,7 +366,7 @@ WHERE `tenantid` = 10",
 
     /// <summary>
     /// EN: Verifies that CREATE GLOBAL TABLE without TEMPORARY is rejected.
-    /// PT: Verifica se CREATE GLOBAL TABLE sem TEMPORARY e rejeitado.
+    /// PT-br: Verifica se CREATE GLOBAL TABLE sem TEMPORARY e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Wraps a <see cref="DbCommand"/> and dispatches interception callbacks around command execution.
-/// PT: Encapsula um <see cref="DbCommand"/> e despacha callbacks de interceptacao em torno da execucao do comando.
+/// PT-br: Encapsula um <see cref="DbCommand"/> e despacha callbacks de interceptacao em torno da execucao do comando.
 /// </summary>
 public sealed class InterceptingDbCommand : DbCommand
 {
@@ -28,7 +28,7 @@ public sealed class InterceptingDbCommand : DbCommand
 
     /// <summary>
     /// EN: Gets the inner command wrapped by this interception command.
-    /// PT: Obtem o comando interno encapsulado por este comando de interceptacao.
+    /// PT-br: Obtem o comando interno encapsulado por este comando de interceptacao.
     /// </summary>
     public DbCommand InnerCommand => _innerCommand;
 

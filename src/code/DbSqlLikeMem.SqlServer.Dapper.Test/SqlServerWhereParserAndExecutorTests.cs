@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// EN: Covers SQL Server WHERE parser and executor scenarios over a direct mock connection.
-/// PT: Cobre cenarios do parser e executor de WHERE SQL Server sobre uma conexao mock direta.
+/// PT-br: Cobre cenarios do parser e executor de WHERE SQL Server sobre uma conexao mock direta.
 /// </summary>
 public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 {
@@ -10,7 +10,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Creates the in-memory SQL Server database used by the WHERE parser and executor coverage tests.
-    /// PT: Cria o banco SQL Server em memoria usado pelos testes de cobertura do parser e executor de WHERE.
+    /// PT-br: Cria o banco SQL Server em memoria usado pelos testes de cobertura do parser e executor de WHERE.
     /// </summary>
     public SqlServerWhereParserAndExecutorTests(ITestOutputHelper helper) : base(helper)
     {
@@ -35,7 +35,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies indexed equality predicates update index lookup metrics.
-    /// PT: Verifica se predicados de igualdade indexada atualizam as metricas de busca por indice.
+    /// PT-br: Verifica se predicados de igualdade indexada atualizam as metricas de busca por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -56,7 +56,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies parameterized indexed equality predicates update composite index lookup metrics.
-    /// PT: Verifica se predicados de igualdade indexada parametrizados atualizam as metricas de busca por indice composto.
+    /// PT-br: Verifica se predicados de igualdade indexada parametrizados atualizam as metricas de busca por indice composto.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -84,7 +84,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies covering indexes expose the requested columns.
-    /// PT: Verifica se indices de cobertura expõem as colunas solicitadas.
+    /// PT-br: Verifica se indices de cobertura expõem as colunas solicitadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -109,7 +109,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies missing indexed columns fall back to the table row.
-    /// PT: Verifica se colunas ausentes no indice voltam para a linha da tabela.
+    /// PT-br: Verifica se colunas ausentes no indice voltam para a linha da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -131,7 +131,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies non-indexed predicates do not increase index lookup metrics.
-    /// PT: Verifica se predicados nao indexados nao aumentam as metricas de busca por indice.
+    /// PT-br: Verifica se predicados nao indexados nao aumentam as metricas de busca por indice.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -150,7 +150,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IN filters rows as expected.
-    /// PT: Verifica se IN filtra as linhas como esperado.
+    /// PT-br: Verifica se IN filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -164,7 +164,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies IS NOT NULL filters rows as expected.
-    /// PT: Verifica se IS NOT NULL filtra as linhas como esperado.
+    /// PT-br: Verifica se IS NOT NULL filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -176,7 +176,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies comparison operators return the expected rows.
-    /// PT: Verifica se operadores de comparacao retornam as linhas esperadas.
+    /// PT-br: Verifica se operadores de comparacao retornam as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -191,7 +191,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies LIKE filters rows as expected.
-    /// PT: Verifica se LIKE filtra as linhas como esperado.
+    /// PT-br: Verifica se LIKE filtra as linhas como esperado.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -204,7 +204,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies SQL Server rejects the MySQL-only <c>FIND_IN_SET</c> function.
-    /// PT: Verifica se o SQL Server rejeita a funcao <c>FIND_IN_SET</c>, que eh especifica do MySQL.
+    /// PT-br: Verifica se o SQL Server rejeita a funcao <c>FIND_IN_SET</c>, que eh especifica do MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -216,7 +216,7 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Verifies mixed-case AND is parsed as a logical conjunction.
-    /// PT: Verifica se AND em maiusculas e minusculas mistas e interpretado como conjuncao logica.
+    /// PT-br: Verifica se AND em maiusculas e minusculas mistas e interpretado como conjuncao logica.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerWhereParserAndExecutor")]
@@ -231,9 +231,9 @@ public sealed class SqlServerWhereParserAndExecutorTests : XUnitTestBase
 
     /// <summary>
     /// EN: Disposes test resources.
-    /// PT: Descarta os recursos do teste.
+    /// PT-br: Descarta os recursos do teste.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _cnn?.Dispose();

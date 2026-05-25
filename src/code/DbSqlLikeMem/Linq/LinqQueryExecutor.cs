@@ -5,7 +5,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Executes LINQ-translated SQL queries without depending on Dapper.
-/// PT: Executa consultas LINQ traduzidas para SQL sem depender de Dapper.
+/// PT-br: Executa consultas LINQ traduzidas para SQL sem depender de Dapper.
 /// </summary>
 public static class LinqQueryExecutor
 {
@@ -15,7 +15,7 @@ public static class LinqQueryExecutor
 
     /// <summary>
     /// EN: Executes SQL and materializes the result into the expected type.
-    /// PT: Executa SQL e materializa o resultado no tipo esperado.
+    /// PT-br: Executa SQL e materializa o resultado no tipo esperado.
     /// </summary>
     public static TResult Execute<TResult>(IDbConnection connection, string sql, object? parameters)
     {

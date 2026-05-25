@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Benchmarks.Sessions.DbSqlLikeMem;
 
 /// <summary>
 /// EN: Runs the benchmark session against the SQLite mock provider.
-/// PT: Executa a sessão de benchmark contra o provider mock de SQLite.
+/// PT-br: Executa a sessão de benchmark contra o provider mock de SQLite.
 /// </summary>
 internal sealed class SqliteDbSqlLikeMemSession()
     : DbSqlLikeMemBenchmarkSessionBase(new SqliteProviderSqlDialect())
@@ -26,7 +26,7 @@ internal sealed class SqliteDbSqlLikeMemSession()
 
     /// <summary>
     /// EN: Dispatches the requested benchmark feature for the current SQLite session.
-    /// PT: Encaminha o recurso de benchmark solicitado para a sessão SQLite atual.
+    /// PT-br: Encaminha o recurso de benchmark solicitado para a sessão SQLite atual.
     /// </summary>
     public override void Execute(BenchmarkFeatureId feature)
     {
@@ -36,7 +36,7 @@ internal sealed class SqliteDbSqlLikeMemSession()
 
     /// <summary>
     /// EN: Creates the SQLite mock connection used by the benchmark session.
-    /// PT: Cria a conexão mock de SQLite usada pela sessão de benchmark.
+    /// PT-br: Cria a conexão mock de SQLite usada pela sessão de benchmark.
     /// </summary>
     protected override DbConnection CreateConnection()
     {

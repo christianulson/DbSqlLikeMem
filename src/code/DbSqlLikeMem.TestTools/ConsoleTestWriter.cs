@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Redirects Console output to xUnit test output.
-/// PT: Redireciona a saída do Console para o output do xUnit.
+/// PT-br: Redireciona a saída do Console para o output do xUnit.
 /// </summary>
 public class ConsoleTestWriter(
     ITestOutputHelper helper
@@ -14,7 +14,7 @@ public class ConsoleTestWriter(
 
     /// <summary>
     /// EN: Writes a line to xUnit output when the helper is available and falls back to Debug output otherwise.
-    /// PT: Escreve uma linha no output do xUnit quando o helper esta disponivel e usa Debug como fallback.
+    /// PT-br: Escreve uma linha no output do xUnit quando o helper esta disponivel e usa Debug como fallback.
     /// </summary>
     public override void WriteLine(string? value)
     {

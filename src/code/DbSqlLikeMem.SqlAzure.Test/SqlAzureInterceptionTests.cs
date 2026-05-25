@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Covers interception pipeline usage on SQL Azure provider entry points.
-/// PT: Cobre o uso do pipeline de interceptacao nos pontos de entrada do provider SQL Azure.
+/// PT-br: Cobre o uso do pipeline de interceptacao nos pontos de entrada do provider SQL Azure.
 /// </summary>
 public sealed class SqlAzureInterceptionTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlAzureInterceptionTests(
 {
     /// <summary>
     /// EN: Verifies direct interception over SqlAzureConnectionMock keeps command execution working and records events.
-    /// PT: Verifica se a interceptacao direta sobre SqlAzureConnectionMock mantem a execucao de comandos funcionando e registra eventos.
+    /// PT-br: Verifica se a interceptacao direta sobre SqlAzureConnectionMock mantem a execucao de comandos funcionando e registra eventos.
     /// </summary>
     [Fact]
     public void Intercept_OnSqlAzureConnectionMock_ShouldExecuteCommandsAndRecordEvents()
@@ -38,7 +38,7 @@ public sealed class SqlAzureInterceptionTests(
 
     /// <summary>
     /// EN: Verifies the SQL Azure factory shortcut can also return an intercepted connection.
-    /// PT: Verifica se o atalho de factory do SQL Azure tambem consegue retornar uma conexao interceptada.
+    /// PT-br: Verifica se o atalho de factory do SQL Azure tambem consegue retornar uma conexao interceptada.
     /// </summary>
     [Fact]
     public void CreateSqlAzureWithTablesIntercepted_ShouldReturnWrappedConnection()

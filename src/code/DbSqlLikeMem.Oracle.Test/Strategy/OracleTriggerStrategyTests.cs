@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Oracle.Test.Strategy;
 
 /// <summary>
 /// EN: Contains trigger behavior tests for the Oracle strategy.
-/// PT: Contém testes de comportamento de gatilhos para a estratégia Oracle.
+/// PT-br: Contém testes de comportamento de gatilhos para a estratégia Oracle.
 /// </summary>
 public sealed class OracleTriggerStrategyTests
 {
     /// <summary>
     /// EN: Ensures that an AFTER INSERT trigger is executed for a non-temporary table.
-    /// PT: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
+    /// PT-br: Garante que um gatilho AFTER INSERT seja executado para uma tabela não temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -31,7 +31,7 @@ public sealed class OracleTriggerStrategyTests
 
     /// <summary>
     /// EN: Ensures that triggers are not executed for a temporary table.
-    /// PT: Garante que os gatilhos não sejam executados para uma tabela temporária.
+    /// PT-br: Garante que os gatilhos não sejam executados para uma tabela temporária.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

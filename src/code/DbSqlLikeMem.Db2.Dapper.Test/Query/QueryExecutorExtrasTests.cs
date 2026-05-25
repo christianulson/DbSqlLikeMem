@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Dapper.Test.Query;
 
 /// <summary>
 /// EN: Covers DB2 query-executor extras against the Dapper provider.
-/// PT: Cobre extras do executor de consultas DB2 contra o provedor Dapper.
+/// PT-br: Cobre extras do executor de consultas DB2 contra o provedor Dapper.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
     ITestOutputHelper helper

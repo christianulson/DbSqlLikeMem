@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Db2 fidelity tests for the shared primary-key select scenario.
-/// PT: Executa testes de fidelidade do Db2 para o cenario compartilhado de selecao por chave primaria.
+/// PT-br: Executa testes de fidelidade do Db2 para o cenario compartilhado de selecao por chave primaria.
 /// </summary>
 [FidelityNativeClientSkip]
 public class SelectTests(
@@ -22,7 +22,7 @@ public class SelectTests(
 {
     /// <summary>
     /// EN: Gets the column names to be used in the projection of the select query.
-    /// PT: Obtém os nomes das colunas a serem usadas na projeção da consulta de seleção.
+    /// PT-br: Obtém os nomes das colunas a serem usadas na projeção da consulta de seleção.
     /// </summary>
     /// <returns></returns>
     protected override string[] ApplyProjectionColumnNames()
@@ -31,7 +31,7 @@ public class SelectTests(
 
     /// <summary>
     /// EN: Normalizes the column names in the snapshot to match the expected format for Db2.
-    /// PT: Normaliza os nomes das colunas no snapshot para corresponder ao formato esperado para o Db2.
+    /// PT-br: Normaliza os nomes das colunas no snapshot para corresponder ao formato esperado para o Db2.
     /// </summary>
     protected override string[] NormalizeSnapshotColumnNames(string[] columnNames)
     {

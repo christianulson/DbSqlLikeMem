@@ -4,22 +4,22 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Provides shared helpers for XUnit-based test classes.
-/// PT: Fornece helpers compartilhados para classes de teste baseadas em XUnit.
+/// PT-br: Fornece helpers compartilhados para classes de teste baseadas em XUnit.
 /// </summary>
 public abstract class XUnitTestBase : IDisposable
 {
     /// <summary>
     /// EN: Test output writer used to redirect console output.
-    /// PT: Escritor de saída de teste usado para redirecionar a saída do console.
+    /// PT-br: Escritor de saída de teste usado para redirecionar a saída do console.
     /// </summary>
     protected ConsoleTestWriter ConsoleWriter { get; }
     private bool disposedValue;
 
     /// <summary>
     /// EN: Creates the base test with the output helper.
-    /// PT: Cria o teste base com o helper de saida.
+    /// PT-br: Cria o teste base com o helper de saida.
     /// </summary>
-    /// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+    /// <param name="helper">EN: Output helper. PT-br: Helper de saída.</param>
     protected XUnitTestBase(
         ITestOutputHelper helper)
     {
@@ -29,11 +29,11 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Copies writable public instance properties from one object to another.
-    /// PT: Copia propriedades públicas graváveis de instância de um objeto para outro.
+    /// PT-br: Copia propriedades públicas graváveis de instância de um objeto para outro.
     /// </summary>
-    /// <param name="src">EN: Source instance. PT: Instância de origem.</param>
-    /// <param name="dst">EN: Destination instance. PT: Instância de destino.</param>
-    /// <typeparam name="T">EN: Instance type. PT: Tipo da instância.</typeparam>
+    /// <param name="src">EN: Source instance. PT-br: Instância de origem.</param>
+    /// <param name="dst">EN: Destination instance. PT-br: Instância de destino.</param>
+    /// <typeparam name="T">EN: Instance type. PT-br: Tipo da instância.</typeparam>
     protected static void CopyWritableProps<T>(
         T src,
         T dst)
@@ -51,9 +51,9 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Resolves the current test method name.
-    /// PT: ResolveRowsFrameRange o nome do método de teste atual.
+    /// PT-br: ResolveRowsFrameRange o nome do método de teste atual.
     /// </summary>
-    /// <returns>EN: Test name. PT: Nome do teste.</returns>
+    /// <returns>EN: Test name. PT-br: Nome do teste.</returns>
     protected static string GetTestName()
     {
         var stack = new StackTrace();
@@ -65,12 +65,12 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Creates a dialect or helper instance for the requested version.
-    /// PT: Cria um dialeto ou helper para a versão solicitada.
+    /// PT-br: Cria um dialeto ou helper para a versão solicitada.
     /// </summary>
-    /// <typeparam name="T">EN: Instance type. PT: Tipo da instância.</typeparam>
-    /// <param name="version">EN: Version number used to build the instance. PT: Número da versão usado para construir a instância.</param>
-    /// <param name="fnCreate">EN: Factory that creates the instance for the requested version. PT: Factory que cria a instância para a versão solicitada.</param>
-    /// <returns>EN: Created instance of type T. PT: Instância criada do tipo T.</returns>
+    /// <typeparam name="T">EN: Instance type. PT-br: Tipo da instância.</typeparam>
+    /// <param name="version">EN: Version number used to build the instance. PT-br: Número da versão usado para construir a instância.</param>
+    /// <param name="fnCreate">EN: Factory that creates the instance for the requested version. PT-br: Factory que cria a instância para a versão solicitada.</param>
+    /// <returns>EN: Created instance of type T. PT-br: Instância criada do tipo T.</returns>
     protected static T Get<T>(int version, Func<int, T> fnCreate)
         => fnCreate(version)!;
 
@@ -78,9 +78,9 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Disposes managed resources when requested.
-    /// PT: Descarta recursos gerenciados quando solicitado.
+    /// PT-br: Descarta recursos gerenciados quando solicitado.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected virtual void Dispose(bool disposing)
     {
         ConsoleWriter?.Flush();
@@ -109,7 +109,7 @@ public abstract class XUnitTestBase : IDisposable
 
     /// <summary>
     /// EN: Disposes the test base and suppresses finalization.
-    /// PT: Descarta a base de teste e suprime a finalizacao.
+    /// PT-br: Descarta a base de teste e suprime a finalizacao.
     /// </summary>
     public void Dispose()
     {

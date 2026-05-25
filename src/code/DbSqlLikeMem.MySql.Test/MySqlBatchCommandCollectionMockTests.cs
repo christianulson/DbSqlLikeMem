@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Validates collection operations exposed by MySqlBatchCommandCollectionMock.
-/// PT: Valida as operacoes de colecao expostas por MySqlBatchCommandCollectionMock.
+/// PT-br: Valida as operacoes de colecao expostas por MySqlBatchCommandCollectionMock.
 /// </summary>
 public sealed class MySqlBatchCommandCollectionMockTests(
         ITestOutputHelper helper
@@ -17,7 +17,7 @@ public sealed class MySqlBatchCommandCollectionMockTests(
 
     /// <summary>
     /// EN: Verifies add, insert, remove, clear, and lookup operations preserve the expected command order.
-    /// PT: Verifica se as operacoes de adicionar, inserir, remover, limpar e consultar preservam a ordem esperada dos comandos.
+    /// PT-br: Verifica se as operacoes de adicionar, inserir, remover, limpar e consultar preservam a ordem esperada dos comandos.
     /// </summary>
     [Fact]
     public void CollectionOperations_ShouldTrackCommandsByOrderAndText()
@@ -53,7 +53,7 @@ public sealed class MySqlBatchCommandCollectionMockTests(
 
     /// <summary>
     /// EN: Verifies enumeration and array copy expose the stored commands.
-    /// PT: Verifica se a enumeracao e a copia para array expõem os comandos armazenados.
+    /// PT-br: Verifica se a enumeracao e a copia para array expõem os comandos armazenados.
     /// </summary>
     [Fact]
     public void EnumerationAndCopyTo_ShouldExposeStoredCommands()

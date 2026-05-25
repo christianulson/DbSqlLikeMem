@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Parser;
 
 /// <summary>
 /// EN: Verifies SQLite parser behavior across the supported feature subset.
-/// PT: Verifica o comportamento do parser SQLite no subconjunto de recursos suportado.
+/// PT-br: Verifica o comportamento do parser SQLite no subconjunto de recursos suportado.
 /// </summary>
 public sealed class SqliteDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqliteDialectFeatureParserTests(
 {
     /// <summary>
     /// EN: Ensures SQLite preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o SQLite preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o SQLite preserve o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -30,7 +30,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD subset.
-    /// PT: Garante que o SQLite preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
+    /// PT-br: Garante que o SQLite preserve os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -52,7 +52,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite rejects ALTER TABLE ... ADD when NOT NULL is paired with DEFAULT NULL outside the pragmatic subset.
-    /// PT: Garante que o SQLite rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
+    /// PT-br: Garante que o SQLite rejeite ALTER TABLE ... ADD quando NOT NULL e combinado com DEFAULT NULL fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -70,7 +70,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite rejects ALTER TABLE ... ADD when the table reference uses an alias outside the pragmatic subset.
-    /// PT: Garante que o SQLite rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
+    /// PT-br: Garante que o SQLite rejeite ALTER TABLE ... ADD quando a referencia da tabela usa alias fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -88,7 +88,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite rejects ALTER TABLE ... ADD when the table reference is a derived source outside the pragmatic subset.
-    /// PT: Garante que o SQLite rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
+    /// PT-br: Garante que o SQLite rejeite ALTER TABLE ... ADD quando a referencia da tabela e uma fonte derivada fora do subset pragmatico.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -106,7 +106,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite keeps scalar FUNCTION DDL blocked because the real provider does not expose SQL-defined function DDL.
-    /// PT: Garante que o SQLite mantenha DDL de FUNCTION escalar bloqueado porque o provider real nao expoe DDL SQL para funcao.
+    /// PT-br: Garante que o SQLite mantenha DDL de FUNCTION escalar bloqueado porque o provider real nao expoe DDL SQL para funcao.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -131,7 +131,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite exposes CHANGES() through the dialect capability used by the executor.
-    /// PT: Garante que o SQLite exponha CHANGES() pela capability de dialeto usada pelo executor.
+    /// PT-br: Garante que o SQLite exponha CHANGES() pela capability de dialeto usada pelo executor.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -147,7 +147,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite parser accepts CHANGES() and rejects foreign row-count helper aliases.
-    /// PT: Garante que o parser SQLite aceite CHANGES() e rejeite aliases de row-count de outros bancos.
+    /// PT-br: Garante que o parser SQLite aceite CHANGES() e rejeite aliases de row-count de outros bancos.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -165,7 +165,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies SQLite ON CONFLICT DO UPDATE parses correctly.
-    /// PT: Verifica se SQLite ON CONFLICT DO UPDATE e analisado corretamente.
+    /// PT-br: Verifica se SQLite ON CONFLICT DO UPDATE e analisado corretamente.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -184,7 +184,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... RETURNING captures projection payload in AST for SQLite dialect.
-    /// PT: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// PT-br: Garante que INSERT ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -212,7 +212,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE ... RETURNING captures projection payload in AST for SQLite dialect.
-    /// PT: Garante que UPDATE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// PT-br: Garante que UPDATE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -240,7 +240,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE ... RETURNING with qualified wildcard preserves projection item in AST.
-    /// PT: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
+    /// PT-br: Garante que UPDATE ... RETURNING com wildcard qualificado preserve o item de projeção na AST.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -266,7 +266,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DELETE ... RETURNING captures projection payload in AST for SQLite dialect.
-    /// PT: Garante que DELETE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
+    /// PT-br: Garante que DELETE ... RETURNING capture o payload de projeção na AST para o dialeto SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -293,7 +293,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite CTE MATERIALIZED/NOT MATERIALIZED hints follow the version gate.
-    /// PT: Garante que hints MATERIALIZED/NOT MATERIALIZED em CTE no SQLite sigam o gate de versão.
+    /// PT-br: Garante que hints MATERIALIZED/NOT MATERIALIZED em CTE no SQLite sigam o gate de versão.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -317,7 +317,7 @@ public sealed class SqliteDialectFeatureParserTests(
     }
     /// <summary>
     /// EN: Verifies MySQL index hints are rejected by the SQLite parser.
-    /// PT: Verifica se dicas de indice do MySQL sao rejeitadas pelo parser SQLite.
+    /// PT-br: Verifica se dicas de indice do MySQL sao rejeitadas pelo parser SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -332,9 +332,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQL Server OPTION(...) query hints are rejected for SQLite.
-    /// PT: Garante que hints SQL Server OPTION(...) sejam rejeitados para SQLite.
+    /// PT-br: Garante que hints SQL Server OPTION(...) sejam rejeitados para SQLite.
     /// </summary>
-    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    /// <param name="version">EN: SQLite dialect version under test. PT-br: Versão do dialeto SQLite em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -351,7 +351,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies unsupported SQL uses the standard not supported message.
-    /// PT: Verifica se SQL nao suportado usa a mensagem padrao de nao suportado.
+    /// PT-br: Verifica se SQL nao suportado usa a mensagem padrao de nao suportado.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -368,7 +368,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies UNION queries with ORDER BY parse as a union query.
-    /// PT: Verifica se consultas UNION com ORDER BY sao analisadas como uma union query.
+    /// PT-br: Verifica se consultas UNION com ORDER BY sao analisadas como uma union query.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -388,9 +388,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite parses ORDER BY NULLS FIRST/LAST only when the version gate allows the modifier.
-    /// PT: Garante que o SQLite interprete ORDER BY NULLS FIRST/LAST apenas quando o gate de versao permitir o modifier.
+    /// PT-br: Garante que o SQLite interprete ORDER BY NULLS FIRST/LAST apenas quando o gate de versao permitir o modifier.
     /// </summary>
-    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    /// <param name="version">EN: SQLite dialect version under test. PT-br: Versão do dialeto SQLite em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -429,7 +429,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures OFFSET/FETCH pagination syntax is rejected for SQLite.
-    /// PT: Garante que a sintaxe de paginação OFFSET/FETCH seja rejeitada para SQLite.
+    /// PT-br: Garante que a sintaxe de paginação OFFSET/FETCH seja rejeitada para SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -446,9 +446,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures pagination syntaxes normalize to the same row-limit AST shape for this dialect.
-    /// PT: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
+    /// PT-br: Garante que as sintaxes de paginação sejam normalizadas para o mesmo formato de AST de limite de linhas neste dialeto.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -479,9 +479,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PIVOT clause is rejected when the dialect capability flag is disabled.
-    /// PT: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
+    /// PT-br: Garante que a cláusula pivot seja rejeitada quando a flag de capacidade do dialeto está desabilitada.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -500,9 +500,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies DELETE without FROM returns an actionable error message.
-    /// PT: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
+    /// PT-br: Verifica que DELETE sem FROM retorna mensagem de erro acionável.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -517,9 +517,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies DELETE target alias before FROM returns an actionable error message.
-    /// PT: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
+    /// PT-br: Verifica que alias alvo de DELETE antes de FROM retorna mensagem de erro acionável.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -536,9 +536,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite accepts bracket-quoted aliases and preserves the normalized alias text in AST.
-    /// PT: Garante que o SQLite aceite aliases com colchetes e preserve o texto normalizado do alias na AST.
+    /// PT-br: Garante que o SQLite aceite aliases com colchetes e preserve o texto normalizado do alias na AST.
     /// </summary>
-    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    /// <param name="version">EN: SQLite dialect version under test. PT-br: Versão do dialeto SQLite em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -556,9 +556,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies unsupported top-level statements return guidance-focused errors.
-    /// PT: Verifica que comandos de topo não suportados retornam erros com orientação.
+    /// PT-br: Verifica que comandos de topo não suportados retornam erros com orientação.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -574,9 +574,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite accepts backtick-quoted aliases and preserves the normalized alias text in AST.
-    /// PT: Garante que o SQLite aceite aliases com crase e preserve o texto normalizado do alias na AST.
+    /// PT-br: Garante que o SQLite aceite aliases com crase e preserve o texto normalizado do alias na AST.
     /// </summary>
-    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    /// <param name="version">EN: SQLite dialect version under test. PT-br: Versão do dialeto SQLite em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -594,9 +594,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite unescapes doubled backticks inside backtick-quoted aliases when normalizing AST alias text.
-    /// PT: Garante que o SQLite faça unescape de crases duplicadas dentro de aliases com crase ao normalizar o texto do alias na AST.
+    /// PT-br: Garante que o SQLite faça unescape de crases duplicadas dentro de aliases com crase ao normalizar o texto do alias na AST.
     /// </summary>
-    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    /// <param name="version">EN: SQLite dialect version under test. PT-br: Versão do dialeto SQLite em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -614,9 +614,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures runtime dialect hooks used by executor remain stable across supported versions.
-    /// PT: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
+    /// PT-br: Garante que os hooks de runtime do dialeto usados pelo executor permaneçam estáveis nas versões suportadas.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -639,9 +639,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies MERGE in unsupported dialect returns actionable migration guidance.
-    /// PT: Verifica que MERGE em dialeto não suportado retorna orientação acionável de migração.
+    /// PT-br: Verifica que MERGE em dialeto não suportado retorna orientação acionável de migração.
     /// </summary>
-    /// <param name="version">EN: Dialect version under test. PT: Versão do dialeto em teste.</param>
+    /// <param name="version">EN: Dialect version under test. PT-br: Versão do dialeto em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -657,7 +657,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Validates known and unknown window function capability for SQLite dialect versions.
-    /// PT: Valida a capacidade de funções de janela conhecidas e desconhecidas nas versões do dialeto SQLite.
+    /// PT-br: Valida a capacidade de funções de janela conhecidas e desconhecidas nas versões do dialeto SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -684,7 +684,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser accepts known window functions and rejects unknown names for SQLite dialect versions.
-    /// PT: Garante que o parser aceite funções de janela conhecidas e rejeite nomes desconhecidos nas versões do SQLite.
+    /// PT-br: Garante que o parser aceite funções de janela conhecidas e rejeite nomes desconhecidos nas versões do SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -709,7 +709,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window functions that require ordering reject OVER clauses without ORDER BY.
-    /// PT: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
+    /// PT-br: Garante que funções de janela que exigem ordenação rejeitem cláusulas OVER sem ORDER BY.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -736,7 +736,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates window function argument arity for supported functions.
-    /// PT: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
+    /// PT-br: Garante que o parser valide a aridade dos argumentos de funções de janela suportadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -770,7 +770,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures parser validates literal semantic ranges for window function arguments.
-    /// PT: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
+    /// PT-br: Garante que o parser valide intervalos semânticos literais para argumentos de funções de janela.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -803,7 +803,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures ORDER BY requirement for window functions is exposed through dialect runtime hook.
-    /// PT: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
+    /// PT-br: Garante que o requisito de ORDER BY para funções de janela seja exposto pelo hook de runtime do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -831,7 +831,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window function argument arity metadata is exposed through dialect hook.
-    /// PT: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
+    /// PT-br: Garante que os metadados de aridade de argumentos de função de janela sejam expostos pelo hook do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -865,7 +865,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures window frame clause tokens are gated by dialect capability.
-    /// PT: Garante que tokens de cláusula de frame de janela sejam controlados pela capability do dialeto.
+    /// PT-br: Garante que tokens de cláusula de frame de janela sejam controlados pela capability do dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -889,7 +889,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite parser accepts native ORDER BY inside GROUP_CONCAT.
-    /// PT: Garante que o parser SQLite aceite ORDER BY nativo dentro de GROUP_CONCAT.
+    /// PT-br: Garante que o parser SQLite aceite ORDER BY nativo dentro de GROUP_CONCAT.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -918,7 +918,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite parser preserves DISTINCT when native ORDER BY is used inside GROUP_CONCAT.
-    /// PT: Garante que o parser SQLite preserve DISTINCT quando ORDER BY nativo e usado dentro de GROUP_CONCAT.
+    /// PT-br: Garante que o parser SQLite preserve DISTINCT quando ORDER BY nativo e usado dentro de GROUP_CONCAT.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -946,9 +946,9 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SQLite parser rejects DISTINCT when GROUP_CONCAT uses a separate separator argument.
-    /// PT: Garante que o parser SQLite rejeite DISTINCT quando GROUP_CONCAT usa um argumento separado de separador.
+    /// PT-br: Garante que o parser SQLite rejeite DISTINCT quando GROUP_CONCAT usa um argumento separado de separador.
     /// </summary>
-    /// <param name="version">EN: SQLite dialect version under test. PT: Versão do dialeto SQLite em teste.</param>
+    /// <param name="version">EN: SQLite dialect version under test. PT-br: Versão do dialeto SQLite em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataSqliteVersion]
@@ -966,7 +966,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed native aggregate ORDER BY in SQLite fails with actionable message.
-    /// PT: Garante que ORDER BY nativo malformado em agregacao SQLite falhe com mensagem acionavel.
+    /// PT-br: Garante que ORDER BY nativo malformado em agregacao SQLite falhe com mensagem acionavel.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -991,7 +991,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures SELECT parsing accepts SQLite native GROUP_CONCAT ordering syntax.
-    /// PT: Garante que o parsing de SELECT aceite a sintaxe nativa de ordenacao do GROUP_CONCAT no SQLite.
+    /// PT-br: Garante que o parsing de SELECT aceite a sintaxe nativa de ordenacao do GROUP_CONCAT no SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1017,7 +1017,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures WITHIN GROUP ordered-set syntax remains unsupported for SQLite aggregates.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações SQLite.
+    /// PT-br: Garante que a sintaxe ordered-set WITHIN GROUP continue não suportada para agregações SQLite.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1035,7 +1035,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed WITHIN GROUP syntax in SQLite still fails as not-supported (dialect gate precedence).
-    /// PT: Garante que sintaxe malformada de WITHIN GROUP no SQLite continue falhando como não suportada (precedência do gate de dialeto).
+    /// PT-br: Garante que sintaxe malformada de WITHIN GROUP no SQLite continue falhando como não suportada (precedência do gate de dialeto).
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1054,7 +1054,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures malformed trailing comma in WITHIN GROUP remains blocked by dialect gate.
-    /// PT: Garante que vírgula final malformada no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que vírgula final malformada no WITHIN GROUP continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1072,7 +1072,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures empty ORDER BY list in WITHIN GROUP remains blocked by dialect gate.
-    /// PT: Garante que lista ORDER BY vazia em WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que lista ORDER BY vazia em WITHIN GROUP continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1090,7 +1090,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures leading commas in WITHIN GROUP ORDER BY remain blocked by dialect gate.
-    /// PT: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP continuem bloqueadas pelo gate de dialeto.
+    /// PT-br: Garante que vírgulas iniciais no ORDER BY do WITHIN GROUP continuem bloqueadas pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -1109,7 +1109,7 @@ public sealed class SqliteDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures missing commas in malformed WITHIN GROUP ORDER BY remain blocked by dialect gate.
-    /// PT: Garante que ausência de vírgula em ORDER BY malformado no WITHIN GROUP continue bloqueada pelo gate de dialeto.
+    /// PT-br: Garante que ausência de vírgula em ORDER BY malformado no WITHIN GROUP continue bloqueada pelo gate de dialeto.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird;
 
 /// <summary>
 /// EN: Represents the Firebird data adapter mock type used by provider mocks.
-/// PT: Representa o adaptador de dados simulado do Firebird usado pelos mocks do provedor.
+/// PT-br: Representa o adaptador de dados simulado do Firebird usado pelos mocks do provedor.
 /// </summary>
 public sealed class FirebirdDataAdapterMock : DbDataAdapter
 {
@@ -14,7 +14,7 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Gets or sets the command used to delete rows during data adapter updates.
-    /// PT: Obtém ou define o comando usado para excluir linhas durante atualizações do adaptador.
+    /// PT-br: Obtém ou define o comando usado para excluir linhas durante atualizações do adaptador.
     /// </summary>
     public new FirebirdCommandMock? DeleteCommand
     {
@@ -24,7 +24,7 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Gets or sets the command used to insert rows during data adapter updates.
-    /// PT: Obtém ou define o comando usado para inserir linhas durante atualizações do adaptador.
+    /// PT-br: Obtém ou define o comando usado para inserir linhas durante atualizações do adaptador.
     /// </summary>
     public new FirebirdCommandMock? InsertCommand
     {
@@ -34,7 +34,7 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Gets or sets the command used to retrieve rows for this data adapter.
-    /// PT: Obtém ou define o comando usado para consultar linhas neste adaptador.
+    /// PT-br: Obtém ou define o comando usado para consultar linhas neste adaptador.
     /// </summary>
     public new FirebirdCommandMock? SelectCommand
     {
@@ -44,7 +44,7 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Gets or sets the command used to update rows during data adapter updates.
-    /// PT: Obtém ou define o comando usado para atualizar linhas durante atualizações do adaptador.
+    /// PT-br: Obtém ou define o comando usado para atualizar linhas durante atualizações do adaptador.
     /// </summary>
     public new FirebirdCommandMock? UpdateCommand
     {
@@ -54,7 +54,7 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Gets or sets whether the adapter should use its default load settings.
-    /// PT: Obtém ou define se o adaptador deve usar suas configurações padrão de carga.
+    /// PT-br: Obtém ou define se o adaptador deve usar suas configurações padrão de carga.
     /// </summary>
     internal bool LoadDefaults
     {
@@ -64,7 +64,7 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Gets or sets the number of rows processed per update batch.
-    /// PT: Obtém ou define o número de linhas processadas por lote de atualização.
+    /// PT-br: Obtém ou define o número de linhas processadas por lote de atualização.
     /// </summary>
     public override int UpdateBatchSize
     {
@@ -74,7 +74,7 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Represents a provider-specific data adapter mock with typed command accessors.
-    /// PT: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
+    /// PT-br: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
     /// </summary>
     public FirebirdDataAdapterMock()
     {
@@ -84,13 +84,13 @@ public sealed class FirebirdDataAdapterMock : DbDataAdapter
 
     /// <summary>
     /// EN: Represents a provider-specific data adapter mock with typed command accessors.
-    /// PT: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
+    /// PT-br: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
     /// </summary>
     public FirebirdDataAdapterMock(FirebirdCommandMock selectCommand) => SelectCommand = selectCommand;
 
     /// <summary>
     /// EN: Represents a provider-specific data adapter mock with typed command accessors.
-    /// PT: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
+    /// PT-br: Representa um simulado de adaptador de dados específico do provedor com acessores tipados de comando.
     /// </summary>
     public FirebirdDataAdapterMock(string selectCommandText, FirebirdConnectionMock connection)
         => SelectCommand = new FirebirdCommandMock(connection) { CommandText = selectCommandText };

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.Tests.DML;
 
 /// <summary>
 /// EN: Provides shared upsert fidelity tests across mock and container runs.
-/// PT: Fornece testes de fidelidade de upsert compartilhados entre execucoes mock e container.
+/// PT-br: Fornece testes de fidelidade de upsert compartilhados entre execucoes mock e container.
 /// </summary>
 public abstract class UpsertTestsBase<T, T2>(
     ITestOutputHelper helper,
@@ -17,7 +17,7 @@ public abstract class UpsertTestsBase<T, T2>(
 {
     /// <summary>
     /// EN: Verifies that an initial upsert inserts a row and a second upsert updates the same row.
-    /// PT: Verifica se um upsert inicial insere uma linha e um segundo upsert atualiza a mesma linha.
+    /// PT-br: Verifica se um upsert inicial insere uma linha e um segundo upsert atualiza a mesma linha.
     /// </summary>
     [FidelityFact]
     public async Task UpsertInsertThenUpdateTest()
@@ -29,7 +29,7 @@ public abstract class UpsertTestsBase<T, T2>(
 
     /// <summary>
     /// EN: Verifies that the provider-specific upsert benchmark updates the existing row for the current provider.
-    /// PT: Verifica se o benchmark de upsert especifico do provedor atualiza a linha existente para o provedor atual.
+    /// PT-br: Verifica se o benchmark de upsert especifico do provedor atualiza a linha existente para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task UpsertTest()

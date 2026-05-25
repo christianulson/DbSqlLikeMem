@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
 /// EN: Covers INSERT ... ON DUPLICATE scenarios in the MySql mock.
-/// PT: Cobre cenarios de INSERT ... ON DUPLICATE no mock MySql.
+/// PT-br: Cobre cenarios de INSERT ... ON DUPLICATE no mock MySql.
 /// </summary>
 public class MySqlInsertOnDuplicateTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public class MySqlInsertOnDuplicateTests(
 {
     /// <summary>
     /// EN: Verifies that INSERT ... ON DUPLICATE inserts when there is no conflict.
-    /// PT: Verifica se INSERT ... ON DUPLICATE insere quando nao ha conflito.
+    /// PT-br: Verifica se INSERT ... ON DUPLICATE insere quando nao ha conflito.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -36,7 +36,7 @@ public class MySqlInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies that INSERT ... ON DUPLICATE updates an existing row by primary key.
-    /// PT: Verifica se INSERT ... ON DUPLICATE atualiza uma linha existente pela chave primaria.
+    /// PT-br: Verifica se INSERT ... ON DUPLICATE atualiza uma linha existente pela chave primaria.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -64,7 +64,7 @@ public class MySqlInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies that a conflict update reports two affected rows.
-    /// PT: Verifica se um update por conflito reporta duas linhas afetadas.
+    /// PT-br: Verifica se um update por conflito reporta duas linhas afetadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -91,7 +91,7 @@ public class MySqlInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies that INSERT ... ON DUPLICATE updates rows matched by a unique index.
-    /// PT: Verifica se INSERT ... ON DUPLICATE atualiza linhas batidas por indice unico.
+    /// PT-br: Verifica se INSERT ... ON DUPLICATE atualiza linhas batidas por indice unico.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -122,7 +122,7 @@ public class MySqlInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies that INSERT ... ON DUPLICATE accepts literal and parameter values.
-    /// PT: Verifica se INSERT ... ON DUPLICATE aceita valores literais e parametros.
+    /// PT-br: Verifica se INSERT ... ON DUPLICATE aceita valores literais e parametros.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -155,7 +155,7 @@ public class MySqlInsertOnDuplicateTests(
 
     /// <summary>
     /// EN: Verifies that INSERT ... ON DUPLICATE can update with aggregating expressions.
-    /// PT: Verifica se INSERT ... ON DUPLICATE pode atualizar com expressoes agregadas.
+    /// PT-br: Verifica se INSERT ... ON DUPLICATE pode atualizar com expressoes agregadas.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]

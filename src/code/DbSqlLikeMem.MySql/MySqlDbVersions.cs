@@ -2,19 +2,19 @@ namespace DbSqlLikeMem.MySql;
 
 /// <summary>
 /// EN: Extension for verions MySQL versions supported by this provider mock.
-/// PT: Extesão para versões do MySQL suportadas por este mock de provedor.
+/// PT-br: Extesão para versões do MySQL suportadas por este mock de provedor.
 /// </summary>
 public static class MySqlDbVersions
 {
     /// <summary>
     /// EN: Default MySql version used by the mock when none is specified.
-    /// PT: Versao padrao do MySql usada pelo mock quando nenhuma e informada.
+    /// PT-br: Versao padrao do MySql usada pelo mock quando nenhuma e informada.
     /// </summary>
     public const int Default = 84;
 
     /// <summary>
     /// EN: Returns MySQL versions supported by this provider mock.
-    /// PT: Retorna as versões do MySQL suportadas por este mock de provedor.
+    /// PT-br: Retorna as versões do MySQL suportadas por este mock de provedor.
     /// </summary>
     public static IEnumerable<int> Versions()
     {

@@ -2,10 +2,10 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Executes the benchmark stored-procedure workflow against the current provider.
-/// PT: Executa o fluxo de benchmark de procedimento armazenado contra o provedor atual.
+/// PT-br: Executa o fluxo de benchmark de procedimento armazenado contra o provedor atual.
 /// </summary>
-/// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-/// <param name="context">EN: Scenario context for the current benchmark run. PT: Contexto do cenario para a execucao atual do benchmark.</param>
+/// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+/// <param name="context">EN: Scenario context for the current benchmark run. PT-br: Contexto do cenario para a execucao atual do benchmark.</param>
 public class StoredProcedureBenchmarkServiceTest(
         RepoService repo,
         FidelityTestContext context
@@ -14,9 +14,9 @@ public class StoredProcedureBenchmarkServiceTest(
 {
     /// <summary>
     /// EN: Registers a benchmark procedure on mock connections and executes it with input and output parameters.
-    /// PT: Registra um procedimento de benchmark em conexoes mock e o executa com parametros de entrada e saida.
+    /// PT-br: Registra um procedimento de benchmark em conexoes mock e o executa com parametros de entrada e saida.
     /// </summary>
-    /// <param name="args">EN: Optional tenant id and note for the benchmark call. PT: Id do tenant e nota opcionais para a chamada do benchmark.</param>
+    /// <param name="args">EN: Optional tenant id and note for the benchmark call. PT-br: Id do tenant e nota opcionais para a chamada do benchmark.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var tenantId = args.Length > 0 ? (int)args[0] : 10;

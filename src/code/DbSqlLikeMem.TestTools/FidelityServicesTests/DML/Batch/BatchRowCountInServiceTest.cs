@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Reads the provider row count after a batch insert workflow.
-/// PT: Lê a contagem de linhas do provedor após um fluxo de insert em lote.
+/// PT-br: Lê a contagem de linhas do provedor após um fluxo de insert em lote.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,9 +14,9 @@ public class BatchRowCountInServiceTest(
 {
     /// <summary>
     /// EN: Reads the provider row count after a batch insert workflow.
-    /// PT: Lê a contagem de linhas do provedor após um fluxo de insert em lote.
+    /// PT-br: Lê a contagem de linhas do provedor após um fluxo de insert em lote.
     /// </summary>
-    /// <param name="args">EN: Optional user ids for the inserted rows. PT: Ids opcionais de usuario para as linhas inseridas.</param>
+    /// <param name="args">EN: Optional user ids for the inserted rows. PT-br: Ids opcionais de usuario para as linhas inseridas.</param>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var firstUserId = args.Length > 0 ? (int)args[0] : 1;

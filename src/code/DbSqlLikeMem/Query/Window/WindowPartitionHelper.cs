@@ -72,7 +72,7 @@ internal static class WindowPartitionHelper
 
         // EN: Ensure deterministic ordering for peers (equal ORDER BY values) so window functions like NTILE/LAG/LEAD
         // preserve the original row sequence when the ORDER BY does not provide a tie-breaker.
-        // PT: Garante ordenacao deterministica para peers (valores iguais no ORDER BY) para que funcoes de janela como
+        // PT-br: Garante ordenacao deterministica para peers (valores iguais no ORDER BY) para que funcoes de janela como
         // NTILE/LAG/LEAD preservem a sequencia original das linhas quando o ORDER BY nao define desempate.
         var orderValuesByIndex = WindowOrderValueHelper.BuildWindowOrderValuesByIndex(
             partition,

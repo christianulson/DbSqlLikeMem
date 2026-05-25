@@ -3,13 +3,13 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Provides helper extensions for querying and executing commands against mock connections in tests.
-/// PT: Fornece extensoes auxiliares para consultar e executar comandos em conexoes mock nos testes.
+/// PT-br: Fornece extensoes auxiliares para consultar e executar comandos em conexoes mock nos testes.
 /// </summary>
 public static class DbTestHelpers
 {
     /// <summary>
     /// EN: Reads all rows from the supplied SQL query into a list of dictionaries.
-    /// PT: Le todas as linhas da consulta informada para uma lista de dicionarios.
+    /// PT-br: Le todas as linhas da consulta informada para uma lista de dicionarios.
     /// </summary>
     public static List<Dictionary<string, object?>> QueryRows<T>(
         this T cnn,
@@ -34,7 +34,7 @@ public static class DbTestHelpers
 
     /// <summary>
     /// EN: Executes a non-query SQL command against the mock connection.
-    /// PT: Executa um comando SQL non-query contra a conexao mock.
+    /// PT-br: Executa um comando SQL non-query contra a conexao mock.
     /// </summary>
     public static void ExecNonQuery<T>(
         this T cnn,

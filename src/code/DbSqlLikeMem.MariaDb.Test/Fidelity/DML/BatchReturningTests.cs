@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.MariaDb.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs MariaDB fidelity tests for the shared batch RETURNING workflow.
-/// PT: Executa testes de fidelidade MariaDB para o fluxo compartilhado de batch RETURNING.
+/// PT-br: Executa testes de fidelidade MariaDB para o fluxo compartilhado de batch RETURNING.
 /// </summary>
 public class BatchReturningTests(
     ITestOutputHelper helper

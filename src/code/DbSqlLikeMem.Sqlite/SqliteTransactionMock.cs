@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Sqlite;
 
 /// <summary>
 /// EN: Represents Sqlite Transaction Mock.
-/// PT: Representa a transacao simulada do SQLite.
+/// PT-br: Representa a transacao simulada do SQLite.
 /// </summary>
 public class SqliteTransactionMock(
         SqliteConnectionMock cnn,

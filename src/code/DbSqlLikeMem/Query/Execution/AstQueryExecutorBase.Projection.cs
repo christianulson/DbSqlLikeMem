@@ -100,7 +100,32 @@ internal abstract partial class AstQueryExecutorBase
             res.JoinFields.Add(first.Fields);
         }
 
-        if (q.Distinct)
+        if (q.DistinctOn.Count > 0)
+        {
+            var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var inputRows = res.Count;
+
+            if (q.OrderBy.Count > 0)
+                _context.TryApplyOrder(
+                    res,
+                    q.OrderBy,
+                    ParseExpr,
+                    (expr, row) => Eval(expr, row, group: null, ctes));
+
+            res = _context.ApplyDistinctOn(res, q.DistinctOn, ParseExpr, (expr, row) =>
+            {
+                using var positionalScope = _context.BeginPositionalParameterScope();
+                return Eval(expr, row, group: null, ctes);
+            });
+
+            debugTrace?.AddStep(
+                "Distinct On",
+                inputRows,
+                res.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
+                QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(q.DistinctOn.Count));
+        }
+        else if (q.Distinct)
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var inputRows = res.Count;

@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies generated class files are written using the configured mapping rules.
-/// PT: Verifica se os arquivos de classe gerados sao gravados usando as regras de mapeamento configuradas.
+/// PT-br: Verifica se os arquivos de classe gerados sao gravados usando as regras de mapeamento configuradas.
 /// </summary>
 public class ClassGeneratorTests
 {
     /// <summary>
     /// EN: Verifies the default file name pattern across the supported database types.
-    /// PT: Verifica o padrao padrao de nome de arquivo entre os tipos de banco suportados.
+    /// PT-br: Verifica o padrao padrao de nome de arquivo entre os tipos de banco suportados.
     /// </summary>
     [Theory]
     [Trait("Category", "ClassGenerator")]
@@ -53,7 +53,7 @@ public class ClassGeneratorTests
 
     /// <summary>
     /// EN: Verifies file name tokens include namespace, database, and object metadata.
-    /// PT: Verifica se os tokens do nome de arquivo incluem namespace, banco e metadados do objeto.
+    /// PT-br: Verifica se os tokens do nome de arquivo incluem namespace, banco e metadados do objeto.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerator")]
@@ -98,7 +98,7 @@ public class ClassGeneratorTests
 
     /// <summary>
     /// EN: Verifies procedure and function objects are written in the same generation run using their routine-specific factories.
-    /// PT: Verifica se objetos procedure e function sao gravados na mesma execucao de geracao usando suas factories especificas de rotina.
+    /// PT-br: Verifica se objetos procedure e function sao gravados na mesma execucao de geracao usando suas factories especificas de rotina.
     /// </summary>
     [Fact]
     [Trait("Category", "ClassGenerator")]

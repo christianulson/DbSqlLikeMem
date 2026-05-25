@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.MySql.Dapper.Test;
 
 /// <summary>
 /// EN: Runs shared aggregation/HAVING scenarios for MySQL and keeps MySQL-specific coverage.
-/// PT: Executa cenários compartilhados de agregação/HAVING para MySQL e mantém cobertura específica de MySQL.
+/// PT-br: Executa cenários compartilhados de agregação/HAVING para MySQL e mantém cobertura específica de MySQL.
 /// </summary>
 /// <remarks>
 /// EN: Creates the MySQL aggregation test suite helper.
-/// PT: Cria o helper da suite de testes de agregacao do MySQL.
+/// PT-br: Cria o helper da suite de testes de agregacao do MySQL.
 /// </remarks>
-/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+/// <param name="helper">EN: Output helper. PT-br: Helper de saída.</param>
 public sealed class MySqlAggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<MySqlDbMock, MySqlConnectionMock>(helper)
 {
 
@@ -23,7 +23,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
-    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
+    /// PT-br: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -34,7 +34,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Tests provider string aggregation with custom separator ignoring NULL values.
-    /// PT: Testa agregação textual do provedor com separador customizado ignorando valores NULL.
+    /// PT-br: Testa agregação textual do provedor com separador customizado ignorando valores NULL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -53,7 +53,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures mixed projection with string aggregation and NULL literal works consistently.
-    /// PT: Garante que projeção mista com agregação textual e literal NULL funcione de forma consistente.
+    /// PT-br: Garante que projeção mista com agregação textual e literal NULL funcione de forma consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -72,7 +72,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CASE projection returning NULL stays stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE retornando NULL permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE retornando NULL permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -92,7 +92,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CASE projection with mixed text/NULL branches remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE com ramos mistos texto/NULL permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE com ramos mistos texto/NULL permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -112,7 +112,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures multi-branch CASE projection remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE de múltiplos ramos permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE de múltiplos ramos permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -135,7 +135,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures numeric multi-branch CASE projection remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE numérica multibranch permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE numérica multibranch permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -157,7 +157,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures string aggregation with DISTINCT ignores NULL values and deduplicates text.
-    /// PT: Garante que agregação textual com DISTINCT ignore NULL e remova duplicidade de texto.
+    /// PT-br: Garante que agregação textual com DISTINCT ignore NULL e remova duplicidade de texto.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -168,7 +168,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures MySQL native ORDER BY and SEPARATOR inside GROUP_CONCAT control aggregation order.
-    /// PT: Garante que ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT no MySQL controlem a ordem da agregacao.
+    /// PT-br: Garante que ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT no MySQL controlem a ordem da agregacao.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -181,7 +181,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures DISTINCT respects MySQL native ORDER BY and SEPARATOR inside GROUP_CONCAT.
-    /// PT: Garante que DISTINCT respeite ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT no MySQL.
+    /// PT-br: Garante que DISTINCT respeite ORDER BY e SEPARATOR nativos dentro de GROUP_CONCAT no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -194,7 +194,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures ordered-set syntax WITHIN GROUP remains blocked for MySQL string aggregation.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP continue bloqueada para agregação textual no MySQL.
+    /// PT-br: Garante que a sintaxe ordered-set WITHIN GROUP continue bloqueada para agregação textual no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -206,7 +206,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in WHERE filter and projection.
-    /// PT: Garante que função temporal sem argumentos funcione em filtro WHERE e projeção.
+    /// PT-br: Garante que função temporal sem argumentos funcione em filtro WHERE e projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -223,7 +223,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_TIMESTAMP token (without parentheses) works in WHERE filter and projection for MySQL.
-    /// PT: Garante que token CURRENT_TIMESTAMP (sem parênteses) funcione em filtro WHERE e projeção no MySQL.
+    /// PT-br: Garante que token CURRENT_TIMESTAMP (sem parênteses) funcione em filtro WHERE e projeção no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -239,7 +239,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE and CURRENT_TIME tokens work in WHERE filter and projection.
-    /// PT: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em filtro WHERE e projeção.
+    /// PT-br: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em filtro WHERE e projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -256,7 +256,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE and CURRENT_TIME tokens work in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -277,7 +277,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in INSERT values and can be read back.
-    /// PT: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
+    /// PT-br: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -295,7 +295,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in UPDATE set expression.
-    /// PT: Garante que função temporal sem argumentos funcione em expressão de UPDATE.
+    /// PT-br: Garante que função temporal sem argumentos funcione em expressão de UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -313,7 +313,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -337,7 +337,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures NOW() call-style temporal function works in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que função temporal NOW() (call-style) funcione em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que função temporal NOW() (call-style) funcione em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -358,7 +358,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures NOW() call-style temporal function keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que a função temporal NOW() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que a função temporal NOW() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -396,7 +396,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que o token CURRENT_DATE mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que o token CURRENT_DATE mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -434,7 +434,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_TIME token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que o token CURRENT_TIME mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que o token CURRENT_TIME mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -472,7 +472,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_TIMESTAMP token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que o token CURRENT_TIMESTAMP mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que o token CURRENT_TIMESTAMP mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -510,7 +510,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures unsupported temporal function from another dialect reports a clear error message.
-    /// PT: Garante que função temporal de outro dialeto gere mensagem de erro clara.
+    /// PT-br: Garante que função temporal de outro dialeto gere mensagem de erro clara.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -527,7 +527,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures token-only temporal function called with parentheses reports clear error.
-    /// PT: Garante que função temporal no formato token chamada com parênteses gere erro claro.
+    /// PT-br: Garante que função temporal no formato token chamada com parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -542,7 +542,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE token called with parentheses reports clear error.
-    /// PT: Garante que o token CURRENT_DATE chamado com parênteses gere erro claro.
+    /// PT-br: Garante que o token CURRENT_DATE chamado com parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -557,7 +557,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures CURRENT_TIME token called with parentheses reports clear error.
-    /// PT: Garante que o token CURRENT_TIME chamado com parênteses gere erro claro.
+    /// PT-br: Garante que o token CURRENT_TIME chamado com parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]
@@ -573,7 +573,7 @@ public sealed class MySqlAggregationTests(ITestOutputHelper helper) : Aggregatio
 
     /// <summary>
     /// EN: Ensures call-only temporal function used without parentheses reports clear error.
-    /// PT: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
+    /// PT-br: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "MySqlAggregation")]

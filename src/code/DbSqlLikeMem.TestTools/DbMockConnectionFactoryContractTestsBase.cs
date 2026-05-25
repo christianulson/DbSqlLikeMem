@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: Provides a shared readability-focused contract for provider-specific DbMockConnectionFactory tests.
-/// PT: Fornece um contrato compartilhado, focado em legibilidade, para testes por provedor da DbMockConnectionFactory.
+/// PT-br: Fornece um contrato compartilhado, focado em legibilidade, para testes por provedor da DbMockConnectionFactory.
 /// </summary>
 public abstract class DbMockConnectionFactoryContractTestsBase(
         ITestOutputHelper helper
@@ -10,38 +10,38 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 {
     /// <summary>
     /// EN: Gets the canonical provider hint used to resolve the provider in factory calls.
-    /// PT: Obtem a dica canonica de provedor usada para resolver o provedor nas chamadas da factory.
+    /// PT-br: Obtem a dica canonica de provedor usada para resolver o provedor nas chamadas da factory.
     /// </summary>
     protected abstract string ProviderHint { get; }
     /// <summary>
     /// EN: Gets the expected DbMock runtime type for this provider contract.
-    /// PT: Obtem o tipo de runtime DbMock esperado para este contrato de provedor.
+    /// PT-br: Obtem o tipo de runtime DbMock esperado para este contrato de provedor.
     /// </summary>
     protected abstract Type ExpectedDbType { get; }
     /// <summary>
     /// EN: Gets the expected connection runtime type for this provider contract.
-    /// PT: Obtem o tipo de runtime de conexao esperado para este contrato de provedor.
+    /// PT-br: Obtem o tipo de runtime de conexao esperado para este contrato de provedor.
     /// </summary>
     protected abstract Type ExpectedConnectionType { get; }
     /// <summary>
     /// EN: Gets the expected parameter runtime type for this provider contract.
-    /// PT: Obtem o tipo de runtime de parametro esperado para este contrato de provedor.
+    /// PT-br: Obtem o tipo de runtime de parametro esperado para este contrato de provedor.
     /// </summary>
     protected abstract Type ExpectedParameterType { get; }
     /// <summary>
     /// EN: Gets the provider aliases that must resolve to the same provider implementation.
-    /// PT: Obtem os aliases de provedor que devem resolver para a mesma implementacao de provedor.
+    /// PT-br: Obtem os aliases de provedor que devem resolver para a mesma implementacao de provedor.
     /// </summary>
     protected abstract IReadOnlyList<string> ProviderAliases { get; }
     /// <summary>
     /// EN: Creates a DbMock and connection pair through the provider shortcut for contract validation.
-    /// PT: Cria um par DbMock e conexao pelo atalho de provedor para validacao do contrato.
+    /// PT-br: Cria um par DbMock e conexao pelo atalho de provedor para validacao do contrato.
     /// </summary>
     protected abstract (DbMock Db, IDbConnection Connection) CreateViaProviderShortcut(params Action<DbMock>[] tableMappers);
 
     /// <summary>
     /// EN: Verifies that the provider shortcut creates the expected DbMock and connection types.
-    /// PT: Verifica se o atalho de provedor cria os tipos esperados de DbMock e conexao.
+    /// PT-br: Verifica se o atalho de provedor cria os tipos esperados de DbMock e conexao.
     /// </summary>
     [Fact]
     public void CreateViaProviderShortcut_ShouldCreateExpectedDbAndConnection()
@@ -54,7 +54,7 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 
     /// <summary>
     /// EN: Verifies that provider commands create the expected runtime parameter type.
-    /// PT: Verifica se os comandos do provedor criam o tipo de runtime esperado de parametro.
+    /// PT-br: Verifica se os comandos do provedor criam o tipo de runtime esperado de parametro.
     /// </summary>
     [Fact]
     public void CreateParameter_ShouldCreateExpectedParameterType()
@@ -70,7 +70,7 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 
     /// <summary>
     /// EN: Verifies that CreateWithTables applies table mapper actions to the created DbMock.
-    /// PT: Verifica se CreateWithTables aplica as acoes de mapeamento de tabela ao DbMock criado.
+    /// PT-br: Verifica se CreateWithTables aplica as acoes de mapeamento de tabela ao DbMock criado.
     /// </summary>
     [Fact]
     public void CreateWithTables_ShouldApplyTableMappers()
@@ -92,7 +92,7 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 
     /// <summary>
     /// EN: Verifies that successive CreateWithTables calls create isolated DbMock instances.
-    /// PT: Verifica se chamadas sucessivas de CreateWithTables criam instancias isoladas de DbMock.
+    /// PT-br: Verifica se chamadas sucessivas de CreateWithTables criam instancias isoladas de DbMock.
     /// </summary>
     [Fact]
     public void CreateWithTables_ShouldCreateIsolatedInstancesBetweenCalls()
@@ -114,7 +114,7 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 
     /// <summary>
     /// EN: Verifies that provider aliases resolve to the expected DbMock and connection types.
-    /// PT: Verifica se os aliases de provedor resolvem para os tipos esperados de DbMock e conexao.
+    /// PT-br: Verifica se os aliases de provedor resolvem para os tipos esperados de DbMock e conexao.
     /// </summary>
     [Fact]
     public void CreateWithTables_ForAliases_ShouldResolveExpectedTypes()
@@ -129,7 +129,7 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 
     /// <summary>
     /// EN: Verifies that the intercepted factory path wraps the expected provider connection type and still applies table mappings.
-    /// PT: Verifica se o caminho interceptado da factory encapsula o tipo esperado de conexao do provedor e ainda aplica os mapeamentos de tabela.
+    /// PT-br: Verifica se o caminho interceptado da factory encapsula o tipo esperado de conexao do provedor e ainda aplica os mapeamentos de tabela.
     /// </summary>
     [Fact]
     public void CreateWithTablesIntercepted_ShouldWrapExpectedProviderConnectionAndApplyMappings()
@@ -155,7 +155,7 @@ public abstract class DbMockConnectionFactoryContractTestsBase(
 
     /// <summary>
     /// EN: Verifies that the options-based intercepted factory path builds interceptors and wraps the expected provider connection type.
-    /// PT: Verifica se o caminho interceptado baseado em opcoes constroi interceptors e encapsula o tipo esperado de conexao do provedor.
+    /// PT-br: Verifica se o caminho interceptado baseado em opcoes constroi interceptors e encapsula o tipo esperado de conexao do provedor.
     /// </summary>
     [Fact]
     public void CreateWithTablesIntercepted_WithOptions_ShouldWrapExpectedProviderConnection()

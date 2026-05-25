@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Contains tests for the Oracle provider SQL dialect helper.
-/// PT: Contém testes para o helper de dialeto SQL do provedor Oracle.
+/// PT-br: Contém testes para o helper de dialeto SQL do provedor Oracle.
 /// </summary>
 public sealed class OracleProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the Oracle helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper Oracle.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper Oracle.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchOracle()
@@ -28,7 +28,7 @@ public sealed class OracleProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits Oracle-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compatível com Oracle para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compatível com Oracle para savepoint.
     /// </summary>
     [Fact]
     public void ReleaseSavepoint_ShouldUseOracleSyntax()

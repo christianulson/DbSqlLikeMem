@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Verifies MySqlExceptionFactory creates provider-specific exceptions with the expected error codes.
-/// PT: Verifica se MySqlExceptionFactory cria excecoes especificas do provedor com os codigos esperados.
+/// PT-br: Verifica se MySqlExceptionFactory cria excecoes especificas do provedor com os codigos esperados.
 /// </summary>
 public sealed class MySqlExceptionFactoryTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MySqlExceptionFactoryTests(
 {
     /// <summary>
     /// EN: Verifies duplicate key, unknown column, and nullability exceptions preserve their MySQL-style codes.
-    /// PT: Verifica se excecoes de chave duplicada, coluna desconhecida e nulabilidade preservam seus codigos no estilo MySQL.
+    /// PT-br: Verifica se excecoes de chave duplicada, coluna desconhecida e nulabilidade preservam seus codigos no estilo MySQL.
     /// </summary>
     [Fact]
     public void CoreFactoryMethods_ShouldReturnExpectedCodes()
@@ -30,7 +30,7 @@ public sealed class MySqlExceptionFactoryTests(
 
     /// <summary>
     /// EN: Verifies foreign key related helpers return the expected MySQL-style error codes.
-    /// PT: Verifica se os helpers relacionados a chave estrangeira retornam os codigos esperados no estilo MySQL.
+    /// PT-br: Verifica se os helpers relacionados a chave estrangeira retornam os codigos esperados no estilo MySQL.
     /// </summary>
     [Fact]
     public void ForeignKeyFactoryMethods_ShouldReturnExpectedCodes()

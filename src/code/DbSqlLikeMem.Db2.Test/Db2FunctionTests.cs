@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Validates DB2 function execution for provider-specific scalar and sequence features.
-/// PT: Valida a execucao de funcoes DB2 para recursos escalares e de sequence especificos do provedor.
+/// PT-br: Valida a execucao de funcoes DB2 para recursos escalares e de sequence especificos do provedor.
 /// </summary>
 /// <remarks>
 /// EN: Creates DB2 function fixtures with sample tables and sequences.
-/// PT: Cria fixtures de funcoes DB2 com tabelas e sequences de exemplo.
+/// PT-br: Cria fixtures de funcoes DB2 com tabelas e sequences de exemplo.
 /// </remarks>
 public sealed class Db2FunctionTests(ITestOutputHelper helper)
         : XUnitTestBase(helper)
@@ -15,9 +15,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 executes the pragmatic scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o DB2 execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// PT-br: Garante que o DB2 execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -41,7 +41,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 temporal identifiers return provider-compatible values.
-    /// PT: Garante que identificadores temporais do DB2 retornem valores compativeis com o provedor.
+    /// PT-br: Garante que identificadores temporais do DB2 retornem valores compativeis com o provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -54,7 +54,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 scalar helpers return expected values.
-    /// PT: Garante que helpers escalares do DB2 retornem valores esperados.
+    /// PT-br: Garante que helpers escalares do DB2 retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -142,7 +142,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 aggregate functions return expected values for the sample data set.
-    /// PT: Garante que funcoes de agregacao do DB2 retornem valores esperados para o conjunto de dados de exemplo.
+    /// PT-br: Garante que funcoes de agregacao do DB2 retornem valores esperados para o conjunto de dados de exemplo.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -159,7 +159,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 window functions return expected values for ordered rows.
-    /// PT: Garante que funcoes de janela do DB2 retornem valores esperados para linhas ordenadas.
+    /// PT-br: Garante que funcoes de janela do DB2 retornem valores esperados para linhas ordenadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -198,7 +198,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 JSON scalar extraction helpers return expected values when supported by the dialect version.
-    /// PT: Garante que helpers escalares de extracao JSON do DB2 retornem valores esperados quando suportados pela versao do dialeto.
+    /// PT-br: Garante que helpers escalares de extracao JSON do DB2 retornem valores esperados quando suportados pela versao do dialeto.
     /// </summary>
     [Theory]
     [MemberDataDb2Version]
@@ -220,9 +220,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 JSON_TABLE materializes rows when the dialect version enables SQL/JSON table functions.
-    /// PT: Garante que o JSON_TABLE do DB2 materialize linhas quando a versao do dialeto habilita funcoes de tabela SQL/JSON.
+    /// PT-br: Garante que o JSON_TABLE do DB2 materialize linhas quando a versao do dialeto habilita funcoes de tabela SQL/JSON.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -269,9 +269,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 date-add alias functions return expected values across versions.
-    /// PT: Garante que as funcoes de alias de data do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que as funcoes de alias de data do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -289,9 +289,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 ABSVAL, CHR, and CURDATE return expected values across versions.
-    /// PT: Garante que ABSVAL, CHR e CURDATE do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que ABSVAL, CHR e CURDATE do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -308,9 +308,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 bitwise helpers return expected values across versions.
-    /// PT: Garante que helpers bitwise do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que helpers bitwise do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -327,9 +327,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 hyperbolic helpers return expected values across versions.
-    /// PT: Garante que helpers hiperbolicos do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que helpers hiperbolicos do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -344,9 +344,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 DECODE and DEC functions return expected values across versions.
-    /// PT: Garante que DECODE e DEC do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que DECODE e DEC do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -361,9 +361,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 empty LOB helpers return provider-compatible values across versions.
-    /// PT: Garante que helpers de LOB vazios do DB2 retornem valores compativeis com o provedor em todas as versoes.
+    /// PT-br: Garante que helpers de LOB vazios do DB2 retornem valores compativeis com o provedor em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -380,9 +380,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 LOB, cast alias, and end-of-month helpers return expected values across versions.
-    /// PT: Garante que helpers de LOB, alias de cast e fim de mes do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que helpers de LOB, alias de cast e fim de mes do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -407,9 +407,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 monthly, next-day, NVL2, and RAND helpers return expected values across versions.
-    /// PT: Garante que helpers mensais, next-day, NVL2 e RAND do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que helpers mensais, next-day, NVL2 e RAND do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -430,9 +430,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 conversion, log, and timestamp diff helpers return expected values across versions.
-    /// PT: Garante que helpers de conversao, log e diferenca de timestamps do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que helpers de conversao, log e diferenca de timestamps do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -453,9 +453,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 CARDINALITY, TRANSLATE, GROUPING, and RATIO_TO_REPORT helpers return expected values across versions.
-    /// PT: Garante que CARDINALITY, TRANSLATE, GROUPING e RATIO_TO_REPORT do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que CARDINALITY, TRANSLATE, GROUPING e RATIO_TO_REPORT do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -481,9 +481,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 DIV performs integer-style division across versions.
-    /// PT: Garante que DIV do DB2 executa divisao no estilo inteiro em todas as versoes.
+    /// PT-br: Garante que DIV do DB2 executa divisao no estilo inteiro em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -498,9 +498,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 MIDNIGHT_SECONDS returns expected seconds since midnight across versions.
-    /// PT: Garante que MIDNIGHT_SECONDS do DB2 retorna os segundos desde meia-noite em todas as versoes.
+    /// PT-br: Garante que MIDNIGHT_SECONDS do DB2 retorna os segundos desde meia-noite em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -513,9 +513,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 DATE_TRUNC truncates dates to the requested unit across versions.
-    /// PT: Garante que DATE_TRUNC do DB2 trunca datas para a unidade solicitada em todas as versoes.
+    /// PT-br: Garante que DATE_TRUNC do DB2 trunca datas para a unidade solicitada em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -529,9 +529,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 statistical aggregates return expected values across versions.
-    /// PT: Garante que agregados estatisticos do DB2 retornem valores esperados em todas as versoes.
+    /// PT-br: Garante que agregados estatisticos do DB2 retornem valores esperados em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -571,9 +571,9 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 SESSION_USER returns a provider-compatible identifier across versions.
-    /// PT: Garante que SESSION_USER do DB2 retorna um identificador compativel com o provedor em todas as versoes.
+    /// PT-br: Garante que SESSION_USER do DB2 retorna um identificador compativel com o provedor em todas as versoes.
     /// </summary>
-    /// <param name="version">EN: DB2 dialect version under test. PT: Versao do dialeto DB2 em teste.</param>
+    /// <param name="version">EN: DB2 dialect version under test. PT-br: Versao do dialeto DB2 em teste.</param>
     [Theory]
     [MemberDataDb2Version]
     [Trait("Category", "Db2Mock")]
@@ -586,7 +586,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures DB2 sequence expressions expose both next and previous values in the session.
-    /// PT: Garante que expressoes de sequence do DB2 exponham valores next e previous na sessao.
+    /// PT-br: Garante que expressoes de sequence do DB2 exponham valores next e previous na sessao.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]
@@ -599,7 +599,7 @@ public sealed class Db2FunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Verifies changing to the current database keeps the select-plan cache generation unchanged on DB2.
-    /// PT: Verifica se mudar para o database atual mantem inalterada a geracao do cache de plano de select no DB2.
+    /// PT-br: Verifica se mudar para o database atual mantem inalterada a geracao do cache de plano de select no DB2.
     /// </summary>
     [Fact]
     [Trait("Category", "Db2Mock")]

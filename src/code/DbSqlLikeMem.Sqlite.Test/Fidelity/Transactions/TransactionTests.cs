@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.Transactions;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared transaction workflows.
-/// PT: Executa testes de fidelidade SQLite para os fluxos compartilhados de transacao.
+/// PT-br: Executa testes de fidelidade SQLite para os fluxos compartilhados de transacao.
 /// </summary>
 public class TransactionTests(
     ITestOutputHelper helper

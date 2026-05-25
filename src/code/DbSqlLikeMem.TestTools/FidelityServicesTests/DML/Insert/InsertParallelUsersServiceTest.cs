@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Executes shared insert workflows and validates row counts for the current provider.
-/// PT: Executa fluxos compartilhados de insert e valida contagens de linhas para o provedor atual.
+/// PT-br: Executa fluxos compartilhados de insert e valida contagens de linhas para o provedor atual.
 /// </summary>
 public class InsertParallelUsersServiceTest(
         RepoService repo,
@@ -14,10 +14,10 @@ public class InsertParallelUsersServiceTest(
 {
     /// <summary>
     /// EN: Inserts the requested number of user rows in parallel and validates the final count.
-    /// PT: Insere a quantidade solicitada de linhas de usuario em paralelo e valida a contagem final.
+    /// PT-br: Insere a quantidade solicitada de linhas de usuario em paralelo e valida a contagem final.
     /// </summary>
-    /// <param name="args">EN: The row count and optional start id. PT: A contagem de linhas e o id inicial opcional.</param>
-    /// <returns>EN: The final row count. PT: A contagem final de linhas.</returns>
+    /// <param name="args">EN: The row count and optional start id. PT-br: A contagem de linhas e o id inicial opcional.</param>
+    /// <returns>EN: The final row count. PT-br: A contagem final de linhas.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var rowCount = (int)args[0];

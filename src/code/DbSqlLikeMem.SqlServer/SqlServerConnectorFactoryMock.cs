@@ -13,7 +13,7 @@ namespace DbSqlLikeMem.SqlServer;
 
 /// <summary>
 /// EN: Represents the Sql Server Connector Factory Mock type used by provider mocks.
-/// PT: Representa o tipo Sql Server Connector Factory simulado usado pelos mocks do provedor.
+/// PT-br: Representa o tipo Sql Server Connector Factory simulado usado pelos mocks do provedor.
 /// </summary>
 public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
 {
@@ -21,7 +21,7 @@ public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
 
     /// <summary>
     /// EN: Creates a factory instance for this provider mock.
-    /// PT: Cria uma instancia de fabrica para este simulado de provedor.
+    /// PT-br: Cria uma instancia de fabrica para este simulado de provedor.
     /// </summary>
     public static SqlServerConnectorFactoryMock GetInstance(SqlServerDbMock? db = null)
         => new(db);
@@ -33,71 +33,71 @@ public sealed class SqlServerConnectorFactoryMock : DbProviderFactory
 
     /// <summary>
     /// EN: Creates a new command instance.
-    /// PT: Cria uma nova instância de comando.
+    /// PT-br: Cria uma nova instância de comando.
     /// </summary>
     public override DbCommand CreateCommand() => new SqlServerCommandMock();
 
     /// <summary>
     /// EN: Creates a new connection instance.
-    /// PT: Cria uma nova instância de conexão.
+    /// PT-br: Cria uma nova instância de conexão.
     /// </summary>
     public override DbConnection CreateConnection() => new SqlServerConnectionMock(db);
 
     /// <summary>
     /// EN: Creates a new connection string builder instance.
-    /// PT: Cria uma nova instância de construtor de string de conexão.
+    /// PT-br: Cria uma nova instância de construtor de string de conexão.
     /// </summary>
     public override DbConnectionStringBuilder CreateConnectionStringBuilder() => [];
 
     /// <summary>
     /// EN: Creates a new parameter instance.
-    /// PT: Cria uma nova instância de parâmetro.
+    /// PT-br: Cria uma nova instância de parâmetro.
     /// </summary>
     public override DbParameter CreateParameter() => new SqlParameter();
 
 #if NETCOREAPP3_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether data adapter creation is supported.
-    /// PT: Obtém se a criação de adaptador de dados é suportada.
+    /// PT-br: Obtém se a criação de adaptador de dados é suportada.
     /// </summary>
     public override bool CanCreateDataAdapter => true;
 #endif
 
     /// <summary>
     /// EN: Creates a new data adapter instance.
-    /// PT: Cria uma nova instância de adaptador de dados.
+    /// PT-br: Cria uma nova instância de adaptador de dados.
     /// </summary>
     public override DbDataAdapter CreateDataAdapter() => new SqlServerDataAdapterMock();
 
     /// <summary>
     /// EN: Gets whether data source enumerator creation is supported.
-    /// PT: Obtém se a criação de enumerador de fonte de dados é suportada.
+    /// PT-br: Obtém se a criação de enumerador de fonte de dados é suportada.
     /// </summary>
     public override bool CanCreateDataSourceEnumerator => false;
 
 #if NET6_0_OR_GREATER
     /// <summary>
     /// EN: Gets whether batch creation is supported.
-    /// PT: Obtém se a criação de lote é suportada.
+    /// PT-br: Obtém se a criação de lote é suportada.
     /// </summary>
     public override bool CanCreateBatch => true;
 
     /// <summary>
     /// EN: Creates a new batch instance.
-    /// PT: Cria uma nova instância de lote.
+    /// PT-br: Cria uma nova instância de lote.
     /// </summary>
     public override DbBatch CreateBatch() => new SqlServerBatchMock();
 
     /// <summary>
     /// EN: Creates a new batch command instance.
-    /// PT: Cria uma nova instância de comando em lote.
+    /// PT-br: Cria uma nova instância de comando em lote.
     /// </summary>
     public override DbBatchCommand CreateBatchCommand() => new SqlServerBatchCommandMock();
 #endif
 
     /// <summary>
     /// EN: Creates a new data source instance.
-    /// PT: Cria uma nova instância de fonte de dados.
+    /// PT-br: Cria uma nova instância de fonte de dados.
     /// </summary>
 #if NET7_0_OR_GREATER
     public override DbDataSource CreateDataSource(string connectionString) => new SqlServerDataSourceMock(db);

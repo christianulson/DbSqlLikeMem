@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Validates Npgsql-specific DbMock connection factory contract behavior.
-/// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de Npgsql.
+/// PT-br: Valida o comportamento do contrato da factory de conexao DbMock especifica de Npgsql.
 /// </summary>
 public sealed class DbMockConnectionFactoryNpgsqlTests(
         ITestOutputHelper helper

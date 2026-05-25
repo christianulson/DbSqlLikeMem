@@ -3,7 +3,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 /// <summary>
 /// EN: Covers ExpressionReferencesInnerColumns and ExpressionUsesOnlyInnerColumnsOrConstants
 ///     via correlated subquery execution paths that exercise AstQueryInnerColumnAnalysisHelper.
-/// PT: Cobre ExpressionReferencesInnerColumns e ExpressionUsesOnlyInnerColumnsOrConstants
+/// PT-br: Cobre ExpressionReferencesInnerColumns e ExpressionUsesOnlyInnerColumnsOrConstants
 ///     via caminhos de subquery correlacionada que exercitam AstQueryInnerColumnAnalysisHelper.
 /// </summary>
 public sealed class AstQueryInnerColumnAnalysisHelperTests(
@@ -35,7 +35,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
     /// <summary>
     /// EN: Verifies that a correlated EXISTS with a simple column predicate resolves correctly
     ///     through the inner-column analysis path.
-    /// PT: Verifica que um EXISTS correlacionado com predicado de coluna simples resolve corretamente
+    /// PT-br: Verifica que um EXISTS correlacionado com predicado de coluna simples resolve corretamente
     ///     pelo caminho de análise de coluna interna.
     /// </summary>
     [Fact]
@@ -57,7 +57,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
 
     /// <summary>
     /// EN: Verifies that a NOT EXISTS correlated subquery correctly excludes rows that have no inner match.
-    /// PT: Verifica que NOT EXISTS correlacionado exclui corretamente linhas sem correspondência interna.
+    /// PT-br: Verifica que NOT EXISTS correlacionado exclui corretamente linhas sem correspondência interna.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -78,7 +78,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
 
     /// <summary>
     /// EN: Verifies that a correlated EXISTS with a qualified table alias resolves correctly.
-    /// PT: Verifica que EXISTS correlacionado com alias de tabela qualificado resolve corretamente.
+    /// PT-br: Verifica que EXISTS correlacionado com alias de tabela qualificado resolve corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -100,7 +100,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
 
     /// <summary>
     /// EN: Verifies that a correlated subquery with multiple inner predicates (AND) resolves correctly.
-    /// PT: Verifica que subquery correlacionada com múltiplos predicados internos (AND) resolve corretamente.
+    /// PT-br: Verifica que subquery correlacionada com múltiplos predicados internos (AND) resolve corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -123,7 +123,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
 
     /// <summary>
     /// EN: Verifies correlated EXISTS with a column-only expression (non-compound) correctly identifies inner columns.
-    /// PT: Verifica que EXISTS correlacionado com expressão apenas de coluna (não composta) identifica corretamente colunas internas.
+    /// PT-br: Verifica que EXISTS correlacionado com expressão apenas de coluna (não composta) identifica corretamente colunas internas.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -145,7 +145,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
 
     /// <summary>
     /// EN: Verifies correlated subquery with BETWEEN on inner column resolves correctly.
-    /// PT: Verifica que subquery correlacionada com BETWEEN na coluna interna resolve corretamente.
+    /// PT-br: Verifica que subquery correlacionada com BETWEEN na coluna interna resolve corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -168,7 +168,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
 
     /// <summary>
     /// EN: Verifies correlated subquery where the outer column is on the right side of the equality also resolves correctly.
-    /// PT: Verifica que subquery correlacionada com coluna externa no lado direito da igualdade também resolve corretamente.
+    /// PT-br: Verifica que subquery correlacionada com coluna externa no lado direito da igualdade também resolve corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -191,7 +191,7 @@ public sealed class AstQueryInnerColumnAnalysisHelperTests(
 
     /// <summary>
     /// EN: Verifies correlated subquery with IN list on inner column resolves correctly.
-    /// PT: Verifica que subquery correlacionada com lista IN na coluna interna resolve corretamente.
+    /// PT-br: Verifica que subquery correlacionada com lista IN na coluna interna resolve corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]

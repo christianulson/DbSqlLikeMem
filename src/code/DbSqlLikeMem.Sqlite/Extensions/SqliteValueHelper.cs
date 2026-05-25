@@ -24,7 +24,7 @@ internal static class SqliteValueHelper
 
     /// <summary>
     /// EN: Implements ResolveRowsFrameRange.
-    /// PT: Implementa ResolveRowsFrameRange.
+    /// PT-br: Implementa ResolveRowsFrameRange.
     /// </summary>
     public static object? Resolve(
         string token,
@@ -169,7 +169,7 @@ internal static class SqliteValueHelper
     // LIKE simples %xxx% → usa Contains
     /// <summary>
     /// EN: Implements Like.
-    /// PT: Implementa Like.
+    /// PT-br: Implementa Like.
     /// </summary>
     public static bool Like(string value, string pattern)
     {

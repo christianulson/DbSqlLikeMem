@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies persistence behavior for the Visual Studio extension state model.
-/// PT: Verifica o comportamento de persistência do modelo de estado da extensão do Visual Studio.
+/// PT-br: Verifica o comportamento de persistência do modelo de estado da extensão do Visual Studio.
 /// </summary>
 public sealed class StatePersistenceServiceTests
 {
     /// <summary>
     /// EN: Ensures mapping namespaces survive save/load roundtrips in the persisted extension state.
-    /// PT: Garante que namespaces de mapeamento sobrevivam ao ciclo de salvar/carregar no estado persistido da extensão.
+    /// PT-br: Garante que namespaces de mapeamento sobrevivam ao ciclo de salvar/carregar no estado persistido da extensão.
     /// </summary>
     [Fact]
     [Trait("Category", "StatePersistenceService")]
@@ -59,7 +59,7 @@ public sealed class StatePersistenceServiceTests
 
     /// <summary>
     /// EN: Ensures legacy database type aliases are normalized when persisted state is loaded.
-    /// PT: Garante que aliases legados de tipo de banco sejam normalizados quando o estado persistido e carregado.
+    /// PT-br: Garante que aliases legados de tipo de banco sejam normalizados quando o estado persistido e carregado.
     /// </summary>
     [Theory]
     [Trait("Category", "StatePersistenceService")]
@@ -108,7 +108,7 @@ public sealed class StatePersistenceServiceTests
 
     /// <summary>
     /// EN: Ensures legacy mapping payloads get the missing Function entry backfilled when state is loaded.
-    /// PT: Garante que payloads legados de mapeamento recebam novamente a entrada Function ausente quando o estado e carregado.
+    /// PT-br: Garante que payloads legados de mapeamento recebam novamente a entrada Function ausente quando o estado e carregado.
     /// </summary>
     [Fact]
     [Trait("Category", "StatePersistenceService")]
@@ -167,7 +167,7 @@ public sealed class StatePersistenceServiceTests
 
     /// <summary>
     /// EN: Ensures workspace-scoped state paths stay isolated per workspace identifier.
-    /// PT: Garante que os caminhos de estado por workspace fiquem isolados por identificador de workspace.
+    /// PT-br: Garante que os caminhos de estado por workspace fiquem isolados por identificador de workspace.
     /// </summary>
     [Fact]
     [Trait("Category", "StatePersistenceService")]

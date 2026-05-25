@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.SqlAzure.Test.Strategy;
 
 /// <summary>
 /// EN: Contains trigger behavior tests for the SQL Azure strategy.
-/// PT: Contem testes de comportamento de gatilhos para a estrategia SQL Azure.
+/// PT-br: Contem testes de comportamento de gatilhos para a estrategia SQL Azure.
 /// </summary>
 public sealed class SqlAzureTriggerStrategyTests
 {
     /// <summary>
     /// EN: Ensures that insert, update, and delete triggers are executed for a non-temporary SQL Azure table.
-    /// PT: Garante que os gatilhos de insert, update e delete sejam executados para uma tabela SQL Azure nao temporaria.
+    /// PT-br: Garante que os gatilhos de insert, update e delete sejam executados para uma tabela SQL Azure nao temporaria.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -52,7 +52,7 @@ public sealed class SqlAzureTriggerStrategyTests
 
     /// <summary>
     /// EN: Ensures that triggers are not executed for a temporary SQL Azure table.
-    /// PT: Garante que os gatilhos nao sejam executados para uma tabela SQL Azure temporaria.
+    /// PT-br: Garante que os gatilhos nao sejam executados para uma tabela SQL Azure temporaria.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

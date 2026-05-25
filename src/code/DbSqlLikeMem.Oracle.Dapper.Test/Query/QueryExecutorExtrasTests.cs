@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test.Query;
 
 /// <summary>
 /// EN: Covers Oracle query-executor extras against the Dapper provider.
-/// PT: Cobre extras do executor de consultas Oracle contra o provedor Dapper.
+/// PT-br: Cobre extras do executor de consultas Oracle contra o provedor Dapper.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
     ITestOutputHelper helper

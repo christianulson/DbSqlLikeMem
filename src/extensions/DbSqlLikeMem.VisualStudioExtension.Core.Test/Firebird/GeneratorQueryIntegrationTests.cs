@@ -12,17 +12,17 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test.Firebird;
 
 /// <summary>
 /// EN: Verifies generator queries against a real Firebird benchmark database.
-/// PT: Verifica as queries do generator contra um banco de benchmark Firebird real.
+/// PT-br: Verifica as queries do generator contra um banco de benchmark Firebird real.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used to record the integration test output.
-/// PT: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
+/// PT-br: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
 /// </param>
 public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies the metadata provider lists and reads benchmark objects created in a real Firebird database.
-    /// PT: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco Firebird real.
+    /// PT-br: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco Firebird real.
     /// </summary>
     [Fact]
     [Trait("Category", "GeneratorQuery")]

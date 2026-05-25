@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle;
 
 /// <summary>
 /// EN: Table mock specialized for Oracle schema operations.
-/// PT: simulado de tabela especializado para operações de esquema Oracle.
+/// PT-br: simulado de tabela especializado para operações de esquema Oracle.
 /// </summary>
 internal class OracleTableMock(
         string tableName,
@@ -19,7 +19,7 @@ internal class OracleTableMock(
 
     /// <summary>
     /// EN: Implements ResolveRowsFrameRange.
-    /// PT: Implementa ResolveRowsFrameRange.
+    /// PT-br: Implementa ResolveRowsFrameRange.
     /// </summary>
     public override object? Resolve(
         string token,
@@ -34,35 +34,35 @@ internal class OracleTableMock(
 
     /// <summary>
     /// EN: Implements UnknownColumn.
-    /// PT: Implementa UnknownColumn.
+    /// PT-br: Implementa UnknownColumn.
     /// </summary>
     public override Exception UnknownColumn(string columnName)
         => OracleExceptionFactory.UnknownColumn(columnName);
 
     /// <summary>
     /// EN: Implements DuplicateKey.
-    /// PT: Implementa DuplicateKey.
+    /// PT-br: Implementa DuplicateKey.
     /// </summary>
     public override Exception DuplicateKey(string tbl, string key, object? val)
         => OracleExceptionFactory.DuplicateKey(tbl, key, val);
 
     /// <summary>
     /// EN: Implements ColumnCannotBeNull.
-    /// PT: Implementa ColumnCannotBeNull.
+    /// PT-br: Implementa ColumnCannotBeNull.
     /// </summary>
     public override Exception ColumnCannotBeNull(string col)
         => OracleExceptionFactory.ColumnCannotBeNull(col);
 
     /// <summary>
     /// EN: Implements ForeignKeyFails.
-    /// PT: Implementa ForeignKeyFails.
+    /// PT-br: Implementa ForeignKeyFails.
     /// </summary>
     public override Exception ForeignKeyFails(string col, string refTbl)
         => OracleExceptionFactory.ForeignKeyFails(col, refTbl);
 
     /// <summary>
     /// EN: Implements ReferencedRow.
-    /// PT: Implementa ReferencedRow.
+    /// PT-br: Implementa ReferencedRow.
     /// </summary>
     public override Exception ReferencedRow(string tbl)
         => OracleExceptionFactory.ReferencedRow(tbl);

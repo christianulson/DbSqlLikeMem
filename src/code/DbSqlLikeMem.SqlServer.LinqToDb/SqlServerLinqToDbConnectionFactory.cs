@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlServer.LinqToDb;
 
 /// <summary>
 /// EN: Creates opened SqlServer mock connections for LinqToDB integration entry points.
-/// PT: Cria conexões simulado SqlServer abertas para pontos de integração com LinqToDB.
+/// PT-br: Cria conexões simulado SqlServer abertas para pontos de integração com LinqToDB.
 /// </summary>
 public sealed class SqlServerLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbConnectionFactory
 {
@@ -13,7 +13,7 @@ public sealed class SqlServerLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbCo
 
     /// <summary>
     /// EN: Creates a SqlServer LinqToDB connection factory without additional interception.
-    /// PT: Cria uma factory de conexao SqlServer para LinqToDB sem interceptacao adicional.
+    /// PT-br: Cria uma factory de conexao SqlServer para LinqToDB sem interceptacao adicional.
     /// </summary>
     public SqlServerLinqToDbConnectionFactory()
     {
@@ -21,18 +21,18 @@ public sealed class SqlServerLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbCo
 
     /// <summary>
     /// EN: Creates a SqlServer LinqToDB connection factory that wraps each created connection with explicit interceptors.
-    /// PT: Cria uma factory de conexao SqlServer para LinqToDB que encapsula cada conexao criada com interceptors explicitos.
+    /// PT-br: Cria uma factory de conexao SqlServer para LinqToDB que encapsula cada conexao criada com interceptors explicitos.
     /// </summary>
-    /// <param name="interceptors">EN: Interceptors applied to each created connection. PT: Interceptors aplicados a cada conexao criada.</param>
+    /// <param name="interceptors">EN: Interceptors applied to each created connection. PT-br: Interceptors aplicados a cada conexao criada.</param>
     public SqlServerLinqToDbConnectionFactory(params DbConnectionInterceptor[] interceptors)
         => _interceptionFactory = new Func<DbConnection>(() => new SqlServerConnectionMock([]))
             .WithInterceptionFactory(interceptors);
 
     /// <summary>
     /// EN: Creates a SqlServer LinqToDB connection factory that wraps each created connection using interception options.
-    /// PT: Cria uma factory de conexao SqlServer para LinqToDB que encapsula cada conexao criada usando opcoes de interceptacao.
+    /// PT-br: Cria uma factory de conexao SqlServer para LinqToDB que encapsula cada conexao criada usando opcoes de interceptacao.
     /// </summary>
-    /// <param name="options">EN: Interception options. PT: Opcoes de interceptacao.</param>
+    /// <param name="options">EN: Interception options. PT-br: Opcoes de interceptacao.</param>
     public SqlServerLinqToDbConnectionFactory(DbInterceptionOptions options)
         => _interceptionFactory = new DbInterceptionConnectionFactory(
             () => new SqlServerConnectionMock([]),
@@ -40,7 +40,7 @@ public sealed class SqlServerLinqToDbConnectionFactory : IDbSqlLikeMemLinqToDbCo
 
     /// <summary>
     /// EN: Creates and opens a SqlServer mock connection backed by an in-memory DbSqlLikeMem database.
-    /// PT: Cria e abre uma conexão simulada SqlServer apoiada por um banco em memória do DbSqlLikeMem.
+    /// PT-br: Cria e abre uma conexão simulada SqlServer apoiada por um banco em memória do DbSqlLikeMem.
     /// </summary>
     public DbConnection CreateOpenConnection()
     {

@@ -5,17 +5,17 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test.SqlServer;
 
 /// <summary>
 /// EN: Verifies generator queries against a real SQL Server benchmark database.
-/// PT: Verifica as queries do generator contra um banco de benchmark SQL Server real.
+/// PT-br: Verifica as queries do generator contra um banco de benchmark SQL Server real.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used to record the integration test output.
-/// PT: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
+/// PT-br: Helper de saida do xUnit usado para registrar a saida do teste de integracao.
 /// </param>
 public sealed class GeneratorQueryIntegrationTests(ITestOutputHelper helper) : XUnitTestBase(helper)
 {
     /// <summary>
     /// EN: Verifies the metadata provider lists and reads benchmark objects created in a real SQL Server database.
-    /// PT: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco SQL Server real.
+    /// PT-br: Verifica se o provedor de metadados lista e le objetos de benchmark criados em um banco SQL Server real.
     /// </summary>
     [Fact]
     [Trait("Category", "GeneratorQuery")]

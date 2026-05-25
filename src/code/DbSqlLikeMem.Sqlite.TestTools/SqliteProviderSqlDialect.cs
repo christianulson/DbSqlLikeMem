@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Sqlite.TestTools;
 
 /// <summary>
 /// EN: Provides SQLite-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de SQLite usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de SQLite usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
 {
@@ -16,6 +16,31 @@ public sealed class SqliteProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsUpsert => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLog2Function => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTruncFunction => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTruncScaleFunction => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => false;
+
+    /// <inheritdoc />
+    public override string MathCeilingExpression(string expression) =>
+        $"CEIL({expression})";
 
     /// <inheritdoc />
     public override string CreateTemporaryUsersTable(FidelityTestContext context) => $@"
@@ -161,6 +186,9 @@ CREATE UNIQUE INDEX UX_{context.TbOrdersFullName}_OrderNumber ON {context.TbOrde
 
     /// <inheritdoc />
     public override bool SupportsJsonTableFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsWithMaterializedHint => true;
 
     /// <inheritdoc />
     public override string JsonEachFunction(string jsonColumn) =>

@@ -4,7 +4,7 @@ internal static class DbInsertStrategy
 {
     /// <summary>
     /// EN: Implements ExecuteInsert.
-    /// PT: Implementa ExecuteInsert.
+    /// PT-br: Implementa ExecuteInsert.
     /// </summary>
     public static DmlExecutionResult ExecuteInsert(
         this DbConnectionMockBase connection,
@@ -18,7 +18,7 @@ internal static class DbInsertStrategy
 
     /// <summary>
     /// EN: Implements ExecuteInsert using a pre-built execution context.
-    /// PT: Implementa ExecuteInsert usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteInsert usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteInsert(
         this DbConnectionMockBase connection,
@@ -30,7 +30,7 @@ internal static class DbInsertStrategy
 
     /// <summary>
     /// EN: Implements ExecuteReplace.
-    /// PT: Implementa ExecuteReplace.
+    /// PT-br: Implementa ExecuteReplace.
     /// </summary>
     public static DmlExecutionResult ExecuteReplace(
         this DbConnectionMockBase connection,
@@ -44,7 +44,7 @@ internal static class DbInsertStrategy
 
     /// <summary>
     /// EN: Implements ExecuteReplace using a pre-built execution context.
-    /// PT: Implementa ExecuteReplace usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteReplace usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteReplace(
         this DbConnectionMockBase connection,
@@ -1200,6 +1200,12 @@ internal static class DbInsertStrategy
         Dictionary<int, object?> row)
     {
         object? resolved;
+        if (string.Equals(rawValue, SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase))
+        {
+            // Skip value resolution; ApplyDefaultValues will use the column's default
+            return;
+        }
+
         if (parsedExpr is LiteralExpr literalExpr)
         {
             resolved = literalExpr.Value;
@@ -1294,6 +1300,22 @@ internal static class DbInsertStrategy
             DbType.Decimal or DbType.Currency => value is decimal ? value : Convert.ToDecimal(value, CultureInfo.InvariantCulture),
             DbType.Double => value is double ? value : Convert.ToDouble(value, CultureInfo.InvariantCulture),
             DbType.Single => value is float ? value : Convert.ToSingle(value, CultureInfo.InvariantCulture),
+            DbType.DateTime or DbType.DateTime2 or DbType.Date
+                => value switch
+                {
+                    DateTime dt => dt,
+                    TimeSpan ts => DateTime.Today.Add(ts),
+                    string s => DateTime.Parse(s, CultureInfo.InvariantCulture),
+                    _ => Convert.ToDateTime(value, CultureInfo.InvariantCulture)
+                },
+            DbType.DateTimeOffset
+                => value switch
+                {
+                    DateTimeOffset dto => dto,
+                    DateTime dt => new DateTimeOffset(dt, TimeSpan.Zero),
+                    string s => DateTimeOffset.Parse(s, CultureInfo.InvariantCulture),
+                    _ => new DateTimeOffset(Convert.ToDateTime(value, CultureInfo.InvariantCulture), TimeSpan.Zero)
+                },
             _ => value
         };
     }

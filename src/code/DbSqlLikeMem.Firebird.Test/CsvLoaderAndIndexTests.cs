@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Provides Firebird-specific coverage for CSV loading and index behaviors.
-/// PT: Fornece cobertura específica de Firebird para comportamentos de carregamento de CSV e índices.
+/// PT-br: Fornece cobertura específica de Firebird para comportamentos de carregamento de CSV e índices.
 /// </summary>
 /// <param name="helper">
 /// EN: xUnit output helper used by the shared base test class.
-/// PT: Helper de saída do xUnit usado pela classe base de testes compartilhada.
+/// PT-br: Helper de saída do xUnit usado pela classe base de testes compartilhada.
 /// </param>
 public sealed class CsvLoaderAndIndexTests(
     ITestOutputHelper helper
@@ -14,7 +14,7 @@ public sealed class CsvLoaderAndIndexTests(
 {
     /// <summary>
     /// EN: Creates a new Firebird mock database for each scenario.
-    /// PT: Cria um novo banco simulado Firebird para cada cenário.
+    /// PT-br: Cria um novo banco simulado Firebird para cada cenário.
     /// </summary>
     protected override FirebirdDbMock CreateDb() => [];
 }

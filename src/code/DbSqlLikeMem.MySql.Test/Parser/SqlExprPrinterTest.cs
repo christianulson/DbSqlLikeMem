@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test.Parser;
 
 /// <summary>
 /// EN: Covers round-trip SQL expression printing in the MySql parser.
-/// PT: Cobre o round-trip de impressao de expressoes SQL no parser MySql.
+/// PT-br: Cobre o round-trip de impressao de expressoes SQL no parser MySql.
 /// </summary>
 public sealed class SqlExprPrinterTest(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlExprPrinterTest(
 {
     /// <summary>
     /// EN: Verifies parsed expressions can be printed and parsed again without changing the normalized output.
-    /// PT: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
+    /// PT-br: Verifica se expressoes parseadas podem ser impressas e parseadas novamente sem alterar a saida normalizada.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -33,7 +33,7 @@ public sealed class SqlExprPrinterTest(
 
     /// <summary>
     /// EN: Provides test data for Expressions.
-    /// PT: Fornece dados de teste para Expressions.
+    /// PT-br: Fornece dados de teste para Expressions.
     /// </summary>
     public static IEnumerable<object[]> Expressions()
     {

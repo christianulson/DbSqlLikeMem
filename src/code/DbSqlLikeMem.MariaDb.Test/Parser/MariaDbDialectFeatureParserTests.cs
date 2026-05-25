@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MariaDb.Test.Parser;
 
 /// <summary>
 /// EN: Covers MariaDB-specific dialect gates layered on top of the shared MySQL family parser.
-/// PT: Cobre os gates de dialeto especificos do MariaDB sobre o parser compartilhado da familia MySQL.
+/// PT-br: Cobre os gates de dialeto especificos do MariaDB sobre o parser compartilhado da familia MySQL.
 /// </summary>
 public sealed class MariaDbDialectFeatureParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 {
     /// <summary>
     /// EN: Ensures MariaDB exposes the expected provider name and version gates for the planned family expansion.
-    /// PT: Garante que o MariaDB exponha o nome de provedor e os gates de versao esperados para a expansao planejada da familia.
+    /// PT-br: Garante que o MariaDB exponha o nome de provedor e os gates de versao esperados para a expansao planejada da familia.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -30,7 +30,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB rejects ORDER BY NULLS FIRST and NULLS LAST modifiers in SELECT queries.
-    /// PT: Garante que o MariaDB rejeite os modificadores ORDER BY NULLS FIRST e NULLS LAST em consultas SELECT.
+    /// PT-br: Garante que o MariaDB rejeite os modificadores ORDER BY NULLS FIRST e NULLS LAST em consultas SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -56,7 +56,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB rejects MATERIALIZED and NOT MATERIALIZED CTE hints.
-    /// PT: Garante que o MariaDB rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
+    /// PT-br: Garante que o MariaDB rejeite hints MATERIALIZED e NOT MATERIALIZED em CTE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -82,9 +82,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... RETURNING follows the MariaDB version gate and captures the projection payload when enabled.
-    /// PT: Garante que INSERT ... RETURNING siga o gate de versao do MariaDB e capture a projecao quando habilitado.
+    /// PT-br: Garante que INSERT ... RETURNING siga o gate de versao do MariaDB e capture a projecao quando habilitado.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -110,7 +110,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB RETURNING rejects aggregate functions even when the version gate is enabled.
-    /// PT: Garante que RETURNING no MariaDB rejeite funcoes de agregacao mesmo com o gate de versao habilitado.
+    /// PT-br: Garante que RETURNING no MariaDB rejeite funcoes de agregacao mesmo com o gate de versao habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -126,7 +126,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB INSERT syntax accepts the VALUE keyword, LOW_PRIORITY modifier, and PARTITION clause.
-    /// PT: Garante que a sintaxe INSERT do MariaDB aceite a palavra-chave VALUE, o modificador LOW_PRIORITY e a clausula PARTITION.
+    /// PT-br: Garante que a sintaxe INSERT do MariaDB aceite a palavra-chave VALUE, o modificador LOW_PRIORITY e a clausula PARTITION.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -148,7 +148,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB INSERT and REPLACE syntax accept the DELAYED modifier together with RETURNING.
-    /// PT: Garante que a sintaxe INSERT e REPLACE do MariaDB aceite o modificador DELAYED junto com RETURNING.
+    /// PT-br: Garante que a sintaxe INSERT e REPLACE do MariaDB aceite o modificador DELAYED junto com RETURNING.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -170,7 +170,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB INSERT IGNORE maps duplicate conflicts to do-nothing semantics while keeping RETURNING available.
-    /// PT: Garante que INSERT IGNORE do MariaDB converta conflitos duplicados em semantica de nao fazer nada mantendo RETURNING disponivel.
+    /// PT-br: Garante que INSERT IGNORE do MariaDB converta conflitos duplicados em semantica de nao fazer nada mantendo RETURNING disponivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -190,7 +190,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB INSERT ... SET syntax is accepted together with RETURNING.
-    /// PT: Garante que a sintaxe INSERT ... SET do MariaDB seja aceita junto com RETURNING.
+    /// PT-br: Garante que a sintaxe INSERT ... SET do MariaDB seja aceita junto com RETURNING.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -214,7 +214,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... SET with LOW_PRIORITY, PARTITION, and ON DUPLICATE KEY UPDATE keeps RETURNING available.
-    /// PT: Garante que INSERT ... SET com LOW_PRIORITY, PARTITION e ON DUPLICATE KEY UPDATE mantenha RETURNING disponivel.
+    /// PT-br: Garante que INSERT ... SET com LOW_PRIORITY, PARTITION e ON DUPLICATE KEY UPDATE mantenha RETURNING disponivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -244,7 +244,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... SET with ON DUPLICATE KEY UPDATE keeps RETURNING available when the MariaDB version gate is enabled.
-    /// PT: Garante que INSERT ... SET com ON DUPLICATE KEY UPDATE mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
+    /// PT-br: Garante que INSERT ... SET com ON DUPLICATE KEY UPDATE mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -272,7 +272,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... SELECT keeps RETURNING available once the MariaDB version gate is enabled.
-    /// PT: Garante que INSERT ... SELECT mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
+    /// PT-br: Garante que INSERT ... SELECT mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -298,7 +298,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Verifies that blank SQL input keeps the existing parser parameter-validation message.
-    /// PT: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
+    /// PT-br: Verifica se SQL em branco mantém a mensagem existente de validacao de parametro do parser.
     /// </summary>
     [Theory]
     [Trait("Category", "Parser")]
@@ -316,7 +316,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... SELECT with IGNORE maps duplicate conflicts to do-nothing semantics while keeping RETURNING available.
-    /// PT: Garante que INSERT ... SELECT com IGNORE converta conflitos duplicados em semantica de nao fazer nada mantendo RETURNING disponivel.
+    /// PT-br: Garante que INSERT ... SELECT com IGNORE converta conflitos duplicados em semantica de nao fazer nada mantendo RETURNING disponivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -343,7 +343,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... SELECT with ON DUPLICATE KEY UPDATE keeps RETURNING available when the MariaDB version gate is enabled.
-    /// PT: Garante que INSERT ... SELECT com ON DUPLICATE KEY UPDATE mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
+    /// PT-br: Garante que INSERT ... SELECT com ON DUPLICATE KEY UPDATE mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -374,7 +374,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures REPLACE ... SELECT keeps RETURNING available when the MariaDB version gate is enabled.
-    /// PT: Garante que REPLACE ... SELECT mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
+    /// PT-br: Garante que REPLACE ... SELECT mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -401,9 +401,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures INSERT ... ON DUPLICATE KEY UPDATE follows the MariaDB version gate and keeps RETURNING available once enabled.
-    /// PT: Garante que INSERT ... ON DUPLICATE KEY UPDATE siga o gate de versao do MariaDB e mantenha RETURNING disponivel quando habilitado.
+    /// PT-br: Garante que INSERT ... ON DUPLICATE KEY UPDATE siga o gate de versao do MariaDB e mantenha RETURNING disponivel quando habilitado.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -429,7 +429,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures multi-row INSERT ... ON DUPLICATE KEY UPDATE keeps RETURNING available and preserves the parsed projection list.
-    /// PT: Garante que INSERT ... ON DUPLICATE KEY UPDATE com multiplas linhas mantenha RETURNING disponivel e preserve a lista de projecao parseada.
+    /// PT-br: Garante que INSERT ... ON DUPLICATE KEY UPDATE com multiplas linhas mantenha RETURNING disponivel e preserve a lista de projecao parseada.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -448,9 +448,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DELETE ... RETURNING follows the MariaDB version gate and captures the projection payload when enabled.
-    /// PT: Garante que DELETE ... RETURNING siga o gate de versao do MariaDB e capture a projecao quando habilitado.
+    /// PT-br: Garante que DELETE ... RETURNING siga o gate de versao do MariaDB e capture a projecao quando habilitado.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -474,7 +474,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB rejects RETURNING on multi-table DELETE statements.
-    /// PT: Garante que o MariaDB rejeite RETURNING em instrucoes DELETE multi-tabela.
+    /// PT-br: Garante que o MariaDB rejeite RETURNING em instrucoes DELETE multi-tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -490,9 +490,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures REPLACE ... RETURNING follows the MariaDB version gate and is parsed as an insert-like statement.
-    /// PT: Garante que REPLACE ... RETURNING siga o gate de versao do MariaDB e seja parseado como um statement semelhante a INSERT.
+    /// PT-br: Garante que REPLACE ... RETURNING siga o gate de versao do MariaDB e seja parseado como um statement semelhante a INSERT.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -517,7 +517,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures REPLACE ... SET keeps RETURNING available when the MariaDB version gate is enabled.
-    /// PT: Garante que REPLACE ... SET mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
+    /// PT-br: Garante que REPLACE ... SET mantenha RETURNING disponivel quando o gate de versao do MariaDB estiver habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -542,7 +542,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures multi-row REPLACE keeps RETURNING available and preserves the parsed projection list.
-    /// PT: Garante que REPLACE com multiplas linhas mantenha RETURNING disponivel e preserve a lista de projecao parseada.
+    /// PT-br: Garante que REPLACE com multiplas linhas mantenha RETURNING disponivel e preserve a lista de projecao parseada.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -561,9 +561,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures UPDATE ... RETURNING remains blocked for MariaDB in this first family increment.
-    /// PT: Garante que UPDATE ... RETURNING continue bloqueado para MariaDB neste primeiro incremento da familia.
+    /// PT-br: Garante que UPDATE ... RETURNING continue bloqueado para MariaDB neste primeiro incremento da familia.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -579,7 +579,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB parses SOUNDS LIKE as a binary predicate in the expression tree.
-    /// PT: Garante que o MariaDB faça o parsing de SOUNDS LIKE como predicado binario na arvore de expressao.
+    /// PT-br: Garante que o MariaDB faça o parsing de SOUNDS LIKE como predicado binario na arvore de expressao.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -595,9 +595,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures CREATE SEQUENCE follows the MariaDB version gate and keeps the statement available once supported.
-    /// PT: Garante que CREATE SEQUENCE siga o gate de versao do MariaDB e mantenha o statement disponivel quando suportado.
+    /// PT-br: Garante que CREATE SEQUENCE siga o gate de versao do MariaDB e mantenha o statement disponivel quando suportado.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -620,7 +620,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures MariaDB rejects OWNED BY for sequence DDL even when CREATE SEQUENCE is available.
-    /// PT: Garante que o MariaDB rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
+    /// PT-br: Garante que o MariaDB rejeite OWNED BY em DDL de sequence mesmo quando CREATE SEQUENCE estiver disponivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -638,9 +638,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures NEXT VALUE FOR follows the MariaDB sequence gate.
-    /// PT: Garante que NEXT VALUE FOR siga o gate de sequence do MariaDB.
+    /// PT-br: Garante que NEXT VALUE FOR siga o gate de sequence do MariaDB.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -663,9 +663,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures PREVIOUS VALUE FOR follows the MariaDB sequence gate.
-    /// PT: Garante que PREVIOUS VALUE FOR siga o gate de sequence do MariaDB.
+    /// PT-br: Garante que PREVIOUS VALUE FOR siga o gate de sequence do MariaDB.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -688,9 +688,9 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE stays unsupported as a scalar expression in MariaDB.
-    /// PT: Garante que JSON_TABLE continue sem suporte como expressao escalar no MariaDB.
+    /// PT-br: Garante que JSON_TABLE continue sem suporte como expressao escalar no MariaDB.
     /// </summary>
-    /// <param name="version">EN: MariaDB dialect version under test. PT: Versao do dialeto MariaDB em teste.</param>
+    /// <param name="version">EN: MariaDB dialect version under test. PT-br: Versao do dialeto MariaDB em teste.</param>
     [Theory]
     [Trait("Category", "Parser")]
     [MemberDataMariaDbVersion]
@@ -706,7 +706,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE becomes a valid FROM source for MariaDB and captures the projected columns metadata.
-    /// PT: Garante que JSON_TABLE vire uma fonte valida de FROM no MariaDB e capture a metadata das colunas projetadas.
+    /// PT-br: Garante que JSON_TABLE vire uma fonte valida de FROM no MariaDB e capture a metadata das colunas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -738,7 +738,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE can be correlated with an outer MariaDB row source and keeps the outer column reference in the parse tree.
-    /// PT: Garante que JSON_TABLE possa ser correlacionado com uma fonte de linha externa do MariaDB e mantenha a referencia da coluna externa na arvore de parsing.
+    /// PT-br: Garante que JSON_TABLE possa ser correlacionado com uma fonte de linha externa do MariaDB e mantenha a referencia da coluna externa na arvore de parsing.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -769,7 +769,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also carry nested path metadata in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem possam carregar metadata de nested path no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem possam carregar metadata de nested path no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -804,7 +804,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture EXISTS PATH metadata inside a nested branch in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de EXISTS PATH dentro de um ramo nested no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de EXISTS PATH dentro de um ramo nested no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -838,7 +838,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture ON EMPTY fallback metadata inside a nested branch in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de fallback ON EMPTY dentro de um ramo nested no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de fallback ON EMPTY dentro de um ramo nested no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -876,7 +876,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture ON EMPTY fallback metadata on the root path while expanding nested branches in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de fallback ON EMPTY no caminho raiz enquanto expandem ramos nested no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de fallback ON EMPTY no caminho raiz enquanto expandem ramos nested no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -913,7 +913,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture root ordinality and EXISTS PATH metadata in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de ordinality raiz e EXISTS PATH no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de ordinality raiz e EXISTS PATH no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -945,7 +945,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can combine strict root paths with multiple nested fallback branches in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE consigam combinar caminhos raiz strict com multiplos ramos nested de fallback no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE consigam combinar caminhos raiz strict com multiplos ramos nested de fallback no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -986,7 +986,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture ERROR ON EMPTY metadata inside a nested branch in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de ERROR ON EMPTY dentro de um ramo nested no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de ERROR ON EMPTY dentro de um ramo nested no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1021,7 +1021,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture ON ERROR fallback metadata inside a nested branch in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de fallback ON ERROR dentro de um ramo nested no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de fallback ON ERROR dentro de um ramo nested no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1059,7 +1059,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture strict JSON path metadata inside a nested branch in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de strict JSON path dentro de um ramo nested no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de strict JSON path dentro de um ramo nested no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1091,7 +1091,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also capture strict root path metadata in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de strict no caminho raiz no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem capturem metadata de strict no caminho raiz no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1121,7 +1121,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also keep sibling nested branches independent in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem mantenham ramos nested irmaos independentes no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem mantenham ramos nested irmaos independentes no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1157,7 +1157,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also keep sibling nested branches independent while preserving ordinality in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem mantenham ramos nested irmaos independentes preservando ordinality no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem mantenham ramos nested irmaos independentes preservando ordinality no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1195,7 +1195,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures correlated JSON_TABLE sources can also keep sibling nested branches independent while mixing EXISTS PATH and ordinality in MariaDB.
-    /// PT: Garante que fontes correlacionadas de JSON_TABLE tambem mantenham ramos nested irmaos independentes misturando EXISTS PATH e ordinality no MariaDB.
+    /// PT-br: Garante que fontes correlacionadas de JSON_TABLE tambem mantenham ramos nested irmaos independentes misturando EXISTS PATH e ordinality no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1234,7 +1234,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE captures EXISTS PATH metadata for MariaDB projected columns.
-    /// PT: Garante que JSON_TABLE capture a metadata de EXISTS PATH nas colunas projetadas do MariaDB.
+    /// PT-br: Garante que JSON_TABLE capture a metadata de EXISTS PATH nas colunas projetadas do MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1262,7 +1262,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE captures NESTED PATH metadata for MariaDB projected columns.
-    /// PT: Garante que JSON_TABLE capture a metadata de NESTED PATH nas colunas projetadas do MariaDB.
+    /// PT-br: Garante que JSON_TABLE capture a metadata de NESTED PATH nas colunas projetadas do MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1298,7 +1298,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE captures EXISTS PATH metadata inside a MariaDB nested path branch.
-    /// PT: Garante que JSON_TABLE capture a metadata de EXISTS PATH dentro de um ramo nested path do MariaDB.
+    /// PT-br: Garante que JSON_TABLE capture a metadata de EXISTS PATH dentro de um ramo nested path do MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1328,7 +1328,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE row paths can be parsed with strict JSON path semantics in MariaDB.
-    /// PT: Garante que caminhos de linha em JSON_TABLE possam ser parseados com semantica strict de JSON path no MariaDB.
+    /// PT-br: Garante que caminhos de linha em JSON_TABLE possam ser parseados com semantica strict de JSON path no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1353,7 +1353,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE paths can be parsed with strict JSON path semantics in MariaDB.
-    /// PT: Garante que caminhos nested em JSON_TABLE possam ser parseados com semantica strict de JSON path no MariaDB.
+    /// PT-br: Garante que caminhos nested em JSON_TABLE possam ser parseados com semantica strict de JSON path no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1378,7 +1378,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns can capture fallback clauses in MariaDB.
-    /// PT: Garante que colunas nested de JSON_TABLE capturem clausulas de fallback no MariaDB.
+    /// PT-br: Garante que colunas nested de JSON_TABLE capturem clausulas de fallback no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1405,7 +1405,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns can capture ON ERROR fallback clauses in MariaDB.
-    /// PT: Garante que colunas nested de JSON_TABLE capturem clausulas ON ERROR no MariaDB.
+    /// PT-br: Garante que colunas nested de JSON_TABLE capturem clausulas ON ERROR no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1432,7 +1432,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns can capture ERROR ON ERROR clauses in MariaDB.
-    /// PT: Garante que colunas nested de JSON_TABLE capturem clausulas ERROR ON ERROR no MariaDB.
+    /// PT-br: Garante que colunas nested de JSON_TABLE capturem clausulas ERROR ON ERROR no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1459,7 +1459,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures nested JSON_TABLE columns can capture ERROR ON EMPTY clauses in MariaDB.
-    /// PT: Garante que colunas nested de JSON_TABLE capturem clausulas ERROR ON EMPTY no MariaDB.
+    /// PT-br: Garante que colunas nested de JSON_TABLE capturem clausulas ERROR ON EMPTY no MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1486,7 +1486,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE captures ON EMPTY and ON ERROR fallback metadata for MariaDB path columns.
-    /// PT: Garante que JSON_TABLE capture a metadata de fallback ON EMPTY e ON ERROR nas colunas PATH do MariaDB.
+    /// PT-br: Garante que JSON_TABLE capture a metadata de fallback ON EMPTY e ON ERROR nas colunas PATH do MariaDB.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1519,7 +1519,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures JSON_TABLE remains blocked as a FROM source before the MariaDB 10.6 gate.
-    /// PT: Garante que JSON_TABLE continue bloqueado como fonte de FROM antes do gate MariaDB 10.6.
+    /// PT-br: Garante que JSON_TABLE continue bloqueado como fonte de FROM antes do gate MariaDB 10.6.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1535,7 +1535,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures the MariaDB connection surface uses the MariaDB server identity and the MariaDB mock database by default.
-    /// PT: Garante que a superficie de conexao do MariaDB use a identidade de servidor MariaDB e o mock MariaDB por padrao.
+    /// PT-br: Garante que a superficie de conexao do MariaDB use a identidade de servidor MariaDB e o mock MariaDB por padrao.
     /// </summary>
     [Fact]
     [Trait("Category", "Provider")]
@@ -1549,7 +1549,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures DbMockConnectionFactory resolves the MariaDB provider without falling back to the generic MySQL alias.
-    /// PT: Garante que o DbMockConnectionFactory resolva o provedor MariaDB sem cair no alias generico de MySQL.
+    /// PT-br: Garante que o DbMockConnectionFactory resolva o provedor MariaDB sem cair no alias generico de MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "Provider")]
@@ -1563,7 +1563,7 @@ public sealed class MariaDbDialectFeatureParserTests(
 
     /// <summary>
     /// EN: Ensures the lowercase mariadb alias resolves the dedicated MariaDB provider instead of falling back to MySQL.
-    /// PT: Garante que o alias minusculo mariadb resolva o provider dedicado MariaDB em vez de cair no MySQL.
+    /// PT-br: Garante que o alias minusculo mariadb resolva o provider dedicado MariaDB em vez de cair no MySQL.
     /// </summary>
     [Fact]
     [Trait("Category", "Provider")]

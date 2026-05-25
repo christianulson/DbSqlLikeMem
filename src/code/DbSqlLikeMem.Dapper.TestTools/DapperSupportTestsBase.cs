@@ -60,7 +60,7 @@ internal static class DbMockFactory
 
 /// <summary>
 /// EN: Covers shared Dapper-oriented provider contract tests for mock connections.
-/// PT: Cobre testes de contrato compartilhados orientados a Dapper para conexoes mock.
+/// PT-br: Cobre testes de contrato compartilhados orientados a Dapper para conexoes mock.
 /// </summary>
 public abstract class DapperSupportTestsBase(
     ITestOutputHelper helper
@@ -68,19 +68,19 @@ public abstract class DapperSupportTestsBase(
 {
     /// <summary>
     /// EN: Creates and opens the provider-specific connection under test.
-    /// PT: Cria e abre a conexão específica do provedor sob teste.
+    /// PT-br: Cria e abre a conexão específica do provedor sob teste.
     /// </summary>
     protected abstract DbConnection CreateOpenConnection();
 
     /// <summary>
     /// EN: Provides the provider-specific SQL dialect used by pagination helpers.
-    /// PT: Fornece o dialeto SQL especifico do provedor usado pelos helpers de paginacao.
+    /// PT-br: Fornece o dialeto SQL especifico do provedor usado pelos helpers de paginacao.
     /// </summary>
     protected abstract ProviderSqlDialect Dialect { get; }
 
     /// <summary>
     /// EN: Indicates whether the current provider shares global temporary-table definitions across connections.
-    /// PT: Indica se o provedor atual compartilha definicoes de tabelas temporarias globais entre conexoes.
+    /// PT-br: Indica se o provedor atual compartilha definicoes de tabelas temporarias globais entre conexoes.
     /// </summary>
     protected virtual bool GlobalTemporaryTablesShareDefinitionAcrossConnections => Dialect.Provider switch
     {
@@ -90,7 +90,7 @@ public abstract class DapperSupportTestsBase(
 
     /// <summary>
     /// EN: Indicates whether the current provider shares global temporary-table rows across connections.
-    /// PT: Indica se o provedor atual compartilha linhas de tabelas temporarias globais entre conexoes.
+    /// PT-br: Indica se o provedor atual compartilha linhas de tabelas temporarias globais entre conexoes.
     /// </summary>
     protected virtual bool GlobalTemporaryTablesShareRowsAcrossConnections => Dialect.Provider switch
     {
@@ -100,12 +100,12 @@ public abstract class DapperSupportTestsBase(
 
     /// <summary>
     /// EN: Builds the pagination query using provider-specific syntax derived from the dialect hook.
-    /// PT: Monta a query de paginacao usando a sintaxe especifica do provedor derivada do hook do dialeto.
+    /// PT-br: Monta a query de paginacao usando a sintaxe especifica do provedor derivada do hook do dialeto.
     /// </summary>
-    /// <param name="tableName">EN: Name of the table being paginated. PT: Nome da tabela paginada.</param>
-    /// <param name="orderByClause">EN: ORDER BY clause used to keep the page deterministic. PT: Clausula ORDER BY usada para manter a pagina deterministica.</param>
-    /// <param name="offset">EN: Number of rows to skip before the page starts. PT: Numero de linhas a ignorar antes do inicio da pagina.</param>
-    /// <param name="fetch">EN: Number of rows to return. PT: Numero de linhas a retornar.</param>
+    /// <param name="tableName">EN: Name of the table being paginated. PT-br: Nome da tabela paginada.</param>
+    /// <param name="orderByClause">EN: ORDER BY clause used to keep the page deterministic. PT-br: Clausula ORDER BY usada para manter a pagina deterministica.</param>
+    /// <param name="offset">EN: Number of rows to skip before the page starts. PT-br: Numero de linhas a ignorar antes do inicio da pagina.</param>
+    /// <param name="fetch">EN: Number of rows to return. PT-br: Numero de linhas a retornar.</param>
     protected virtual string BuildPaginationQuery(string tableName, string orderByClause, int offset, int fetch)
     {
         var sample = Dialect.PagedNameProjection(tableName, offset, fetch);
@@ -117,7 +117,7 @@ public abstract class DapperSupportTestsBase(
 
     /// <summary>
     /// EN: Verifies Dapper can execute parameterized CASE WHEN aggregates with grouped ordering.
-    /// PT: Verifica se o Dapper executa agregações CASE WHEN parametrizadas com ordenação agrupada.
+    /// PT-br: Verifica se o Dapper executa agregações CASE WHEN parametrizadas com ordenação agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -155,7 +155,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies Dapper supports parameterized LIKE composition with OR and wildcard variants.
-    /// PT: Verifica se o Dapper suporta composição de LIKE parametrizado com OR e variações de curingas.
+    /// PT-br: Verifica se o Dapper suporta composição de LIKE parametrizado com OR e variações de curingas.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -180,7 +180,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies Dapper keeps deterministic pagination windows disjoint across pages 1, 2 and 3.
-    /// PT: Verifica se o Dapper mantém janelas de paginação determinísticas e disjuntas entre as páginas 1, 2 e 3.
+    /// PT-br: Verifica se o Dapper mantém janelas de paginação determinísticas e disjuntas entre as páginas 1, 2 e 3.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -209,7 +209,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies Dapper preserves precedence for composite IS NULL, IN and OR filters with explicit grouping.
-    /// PT: Verifica se o Dapper preserva a precedência para filtros compostos com IS NULL, IN e OR com agrupamento explícito.
+    /// PT-br: Verifica se o Dapper preserva a precedência para filtros compostos com IS NULL, IN e OR com agrupamento explícito.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -234,7 +234,7 @@ ORDER BY category";
 
     /// <summary>
     /// EN: Verifies scalar subquery projections keep current mock behavior when inner query returns multiple rows.
-    /// PT: Verifica se projeções de subquery escalar mantêm o comportamento atual do mock quando a consulta interna retorna múltiplas linhas.
+    /// PT-br: Verifica se projeções de subquery escalar mantêm o comportamento atual do mock quando a consulta interna retorna múltiplas linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -260,7 +260,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies Dapper transaction scope restores rollback state and persists a later committed sequence.
-    /// PT: Verifica se o escopo transacional do Dapper restaura o estado após rollback e persiste uma sequência posterior com commit.
+    /// PT-br: Verifica se o escopo transacional do Dapper restaura o estado após rollback e persiste uma sequência posterior com commit.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -295,7 +295,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies Dapper supports grouped CASE WHEN with HAVING thresholds using shared parameterized conditions.
-    /// PT: Verifica se o Dapper suporta CASE WHEN agrupado com limiares em HAVING usando condições parametrizadas compartilhadas.
+    /// PT-br: Verifica se o Dapper suporta CASE WHEN agrupado com limiares em HAVING usando condições parametrizadas compartilhadas.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -324,7 +324,7 @@ ORDER BY category", new { high = 100, mid = 50, minScore = 2 }).ToList();
 
     /// <summary>
     /// EN: Verifies Dapper parameterized LIKE supports contains, fixed-length and suffix patterns in one scenario.
-    /// PT: Verifica se LIKE parametrizado no Dapper suporta padrões de contém, tamanho fixo e sufixo em um único cenário.
+    /// PT-br: Verifica se LIKE parametrizado no Dapper suporta padrões de contém, tamanho fixo e sufixo em um único cenário.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -351,7 +351,7 @@ ORDER BY category", new { high = 100, mid = 50, minScore = 2 }).ToList();
 
     /// <summary>
     /// EN: Verifies scalar subquery projections return null when no inner rows exist for an outer row.
-    /// PT: Verifica se projeções com subquery escalar retornam nulo quando não existem linhas internas para uma linha externa.
+    /// PT-br: Verifica se projeções com subquery escalar retornam nulo quando não existem linhas internas para uma linha externa.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -374,7 +374,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies deterministic pagination pages are repeatable across consecutive executions.
-    /// PT: Verifica se páginas de paginação determinística são repetíveis em execuções consecutivas.
+    /// PT-br: Verifica se páginas de paginação determinística são repetíveis em execuções consecutivas.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -399,7 +399,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies a Dapper transaction observes intermediate write state before rollback.
-    /// PT: Verifica se uma transação Dapper observa estado intermediário de escrita antes do rollback.
+    /// PT-br: Verifica se uma transação Dapper observa estado intermediário de escrita antes do rollback.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -421,7 +421,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies NULL-comparison parameter handling in composite OR filter returns only null rows when parameter is null.
-    /// PT: Verifica se o tratamento de parâmetro de comparação nulo em filtro OR composto retorna apenas linhas nulas quando o parâmetro é nulo.
+    /// PT-br: Verifica se o tratamento de parâmetro de comparação nulo em filtro OR composto retorna apenas linhas nulas quando o parâmetro é nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -441,7 +441,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies Dapper transactions persist inserted rows after commit.
-    /// PT: Verifica se transações Dapper persistem linhas inseridas após commit.
+    /// PT-br: Verifica se transações Dapper persistem linhas inseridas após commit.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -465,7 +465,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies Dapper supports typed decimal and datetime parameters in filtering and projection.
-    /// PT: Verifica se Dapper suporta parâmetros tipados de decimal e datetime em filtros e projeções.
+    /// PT-br: Verifica se Dapper suporta parâmetros tipados de decimal e datetime em filtros e projeções.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -491,7 +491,7 @@ WHERE u.id = 1");
 
     /// <summary>
     /// EN: Verifies Dapper executes INNER JOIN with ORDER BY and preserves deterministic ordering.
-    /// PT: Verifica se Dapper executa INNER JOIN com ORDER BY e preserva ordenação determinística.
+    /// PT-br: Verifica se Dapper executa INNER JOIN com ORDER BY e preserva ordenação determinística.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -523,7 +523,7 @@ ORDER BY d.name, u.name").ToList();
 
     /// <summary>
     /// EN: Verifies Dapper handles LEFT JOIN ... IS NULL anti-join filters.
-    /// PT: Verifica se Dapper lida com filtros anti-join de LEFT JOIN ... IS NULL.
+    /// PT-br: Verifica se Dapper lida com filtros anti-join de LEFT JOIN ... IS NULL.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -548,7 +548,7 @@ ORDER BY u.id").ToList();
 
     /// <summary>
     /// EN: Verifies Dapper supports EXISTS subqueries combined with IN and ORDER BY filters.
-    /// PT: Verifica se Dapper suporta subqueries EXISTS combinadas com filtros IN e ORDER BY.
+    /// PT-br: Verifica se Dapper suporta subqueries EXISTS combinadas com filtros IN e ORDER BY.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -575,7 +575,7 @@ ORDER BY u.id", new { a = 1, b = 2, c = 3 }).ToList();
 
     /// <summary>
     /// EN: Verifies Dapper QueryMultiple returns independent ordered result sets from a single command.
-    /// PT: Verifica se o Dapper QueryMultiple retorna conjuntos de resultados ordenados e independentes a partir de um único comando.
+    /// PT-br: Verifica se o Dapper QueryMultiple retorna conjuntos de resultados ordenados e independentes a partir de um único comando.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -604,7 +604,7 @@ SELECT user_id userId, amount FROM dapper_qm_orders WHERE amount >= @minAmount O
 
     /// <summary>
     /// EN: Verifies Dapper multi-mapping with splitOn composes joined values into a single aggregate object.
-    /// PT: Verifica se multi-mapping do Dapper com splitOn compõe valores de join em um único objeto agregado.
+    /// PT-br: Verifica se multi-mapping do Dapper com splitOn compõe valores de join em um único objeto agregado.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperContract")]
@@ -649,9 +649,9 @@ WHERE u.id = @id",
 
 /// <summary>
 /// EN: Covers a provider-agnostic Dapper smoke test base that opens a connection using a parameterless constructor.
-/// PT: Cobre uma base de testes smoke Dapper agnóstica de provedor que abre conexao usando construtor sem parametros.
+/// PT-br: Cobre uma base de testes smoke Dapper agnóstica de provedor que abre conexao usando construtor sem parametros.
 /// </summary>
-/// <typeparam name="TConnection">EN: Provider connection type. PT: Tipo de conexão do provedor.</typeparam>
+/// <typeparam name="TConnection">EN: Provider connection type. PT-br: Tipo de conexão do provedor.</typeparam>
 public abstract class DapperSmokeTestsBase<TConnection>(
     ITestOutputHelper helper,
     Func<TConnection> connectionFactory
@@ -660,7 +660,7 @@ public abstract class DapperSmokeTestsBase<TConnection>(
 {
     /// <summary>
     /// EN: Creates and opens a provider connection instance using the parameterless constructor.
-    /// PT: Cria e abre uma instancia de conexao do provedor usando o construtor sem parametros.
+    /// PT-br: Cria e abre uma instancia de conexao do provedor usando o construtor sem parametros.
     /// </summary>
     protected sealed override DbConnection CreateOpenConnection()
     {
@@ -672,50 +672,50 @@ public abstract class DapperSmokeTestsBase<TConnection>(
 
 /// <summary>
 /// EN: Shared DTO used by Dapper CRUD support tests.
-/// PT: DTO compartilhado usado pelos testes de suporte CRUD do Dapper.
+/// PT-br: DTO compartilhado usado pelos testes de suporte CRUD do Dapper.
 /// </summary>
 public sealed class UserObjectTest
 {
     /// <summary>
     /// EN: Gets or sets the user identifier used in CRUD test projections.
-    /// PT: Obtem ou define o identificador do usuario usado nas projecoes de teste de CRUD.
+    /// PT-br: Obtem ou define o identificador do usuario usado nas projecoes de teste de CRUD.
     /// </summary>
     public int Id { get; set; }
     /// <summary>
     /// EN: Gets or sets the user name used in CRUD test projections.
-    /// PT: Obtem ou define o nome do usuario usado nas projecoes de teste de CRUD.
+    /// PT-br: Obtem ou define o nome do usuario usado nas projecoes de teste de CRUD.
     /// </summary>
     public string Name { get; set; } = string.Empty;
     /// <summary>
     /// EN: Gets or sets the user email used in CRUD test projections.
-    /// PT: Obtem ou define o email do usuario usado nas projecoes de teste de CRUD.
+    /// PT-br: Obtem ou define o email do usuario usado nas projecoes de teste de CRUD.
     /// </summary>
     public string Email { get; set; } = string.Empty;
     /// <summary>
     /// EN: Gets or sets the creation timestamp used in CRUD test projections.
-    /// PT: Obtem ou define o timestamp de criacao usado nas projecoes de teste de CRUD.
+    /// PT-br: Obtem ou define o timestamp de criacao usado nas projecoes de teste de CRUD.
     /// </summary>
     public DateTime CreatedDate { get; set; }
     /// <summary>
     /// EN: Gets or sets the optional update timestamp used in CRUD test projections.
-    /// PT: Obtem ou define o timestamp opcional de atualizacao usado nas projecoes de teste de CRUD.
+    /// PT-br: Obtem ou define o timestamp opcional de atualizacao usado nas projecoes de teste de CRUD.
     /// </summary>
     public DateTime? UpdatedData { get; set; }
     /// <summary>
     /// EN: Gets or sets the non-null GUID value used in CRUD test projections.
-    /// PT: Obtem ou define o valor GUID nao nulo usado nas projecoes de teste de CRUD.
+    /// PT-br: Obtem ou define o valor GUID nao nulo usado nas projecoes de teste de CRUD.
     /// </summary>
     public Guid TestGuid { get; set; }
     /// <summary>
     /// EN: Gets or sets the optional GUID value used in CRUD test projections.
-    /// PT: Obtem ou define o valor GUID opcional usado nas projecoes de teste de CRUD.
+    /// PT-br: Obtem ou define o valor GUID opcional usado nas projecoes de teste de CRUD.
     /// </summary>
     public Guid? TestGuidNull { get; set; }
 }
 
 /// <summary>
 /// EN: Shared CRUD and multi-result Dapper tests for provider mocks.
-/// PT: Testes compartilhados de CRUD e múltiplos resultados com Dapper para mocks de provedor.
+/// PT-br: Testes compartilhados de CRUD e múltiplos resultados com Dapper para mocks de provedor.
 /// </summary>
 public abstract class DapperCrudTestsBase(
     ITestOutputHelper helper,
@@ -731,7 +731,7 @@ public abstract class DapperCrudTestsBase(
 
     /// <summary>
     /// EN: Verifies a basic Dapper select query returns a non-null result sequence.
-    /// PT: Verifica se uma consulta select basica via Dapper retorna uma sequencia de resultados nao nula.
+    /// PT-br: Verifica se uma consulta select basica via Dapper retorna uma sequencia de resultados nao nula.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]
@@ -743,7 +743,7 @@ public abstract class DapperCrudTestsBase(
 
     /// <summary>
     /// EN: Verifies query execution returns the expected row values from the mocked table.
-    /// PT: Verifica se a execucao da consulta retorna os valores de linha esperados da tabela simulada.
+    /// PT-br: Verifica se a execucao da consulta retorna os valores de linha esperados da tabela simulada.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]
@@ -780,7 +780,7 @@ public abstract class DapperCrudTestsBase(
 
     /// <summary>
     /// EN: Verifies Execute inserts a row and persists the expected column values.
-    /// PT: Verifica se Execute insere uma linha e persiste os valores de coluna esperados.
+    /// PT-br: Verifica se Execute insere uma linha e persiste os valores de coluna esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]
@@ -810,7 +810,7 @@ public abstract class DapperCrudTestsBase(
 
     /// <summary>
     /// EN: Verifies Execute updates an existing row with the expected values.
-    /// PT: Verifica se Execute atualiza uma linha existente com os valores esperados.
+    /// PT-br: Verifica se Execute atualiza uma linha existente com os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]
@@ -851,7 +851,7 @@ UPDATE users
 
     /// <summary>
     /// EN: Verifies Execute deletes the targeted row from the mocked table.
-    /// PT: Verifica se Execute exclui a linha alvo da tabela simulada.
+    /// PT-br: Verifica se Execute exclui a linha alvo da tabela simulada.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]
@@ -875,7 +875,7 @@ UPDATE users
 
     /// <summary>
     /// EN: Verifies QueryMultiple returns each result set in the expected order and shape.
-    /// PT: Verifica se QueryMultiple retorna cada conjunto de resultados na ordem e formato esperados.
+    /// PT-br: Verifica se QueryMultiple retorna cada conjunto de resultados na ordem e formato esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Dapper")]
@@ -943,7 +943,7 @@ UPDATE users
 
     /// <summary>
     /// EN: Gets a Dapper row value using a case-insensitive column-name match.
-    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// PT-br: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
     /// </summary>
     protected static object? GetValueIgnoreCase(object row, string name)
     {
@@ -992,63 +992,63 @@ UPDATE users
 
 /// <summary>
 /// EN: Shared user contract model for Dapper consumer tests.
-/// PT: Modelo contratual compartilhado de usuário para testes consumidores com Dapper.
+/// PT-br: Modelo contratual compartilhado de usuário para testes consumidores com Dapper.
 /// </summary>
 public class DapperUserContractModel
 {
     /// <summary>
     /// EN: Gets or sets the user identifier mapped from Dapper queries.
-    /// PT: Obtem ou define o identificador do usuario mapeado a partir das consultas Dapper.
+    /// PT-br: Obtem ou define o identificador do usuario mapeado a partir das consultas Dapper.
     /// </summary>
     public int Id { get; set; }
     /// <summary>
     /// EN: Gets or sets the user name mapped from Dapper queries.
-    /// PT: Obtem ou define o nome do usuario mapeado a partir das consultas Dapper.
+    /// PT-br: Obtem ou define o nome do usuario mapeado a partir das consultas Dapper.
     /// </summary>
     public required string Name { get; set; }
     /// <summary>
     /// EN: Gets or sets the optional user email mapped from Dapper queries.
-    /// PT: Obtem ou define o email opcional do usuario mapeado a partir das consultas Dapper.
+    /// PT-br: Obtem ou define o email opcional do usuario mapeado a partir das consultas Dapper.
     /// </summary>
     public string? Email { get; set; }
     /// <summary>
     /// EN: Gets or sets the user creation timestamp mapped from Dapper queries.
-    /// PT: Obtem ou define o timestamp de criacao do usuario mapeado a partir das consultas Dapper.
+    /// PT-br: Obtem ou define o timestamp de criacao do usuario mapeado a partir das consultas Dapper.
     /// </summary>
     public DateTime CreatedDate { get; set; }
     /// <summary>
     /// EN: Gets or sets the optional user update timestamp mapped from Dapper queries.
-    /// PT: Obtem ou define o timestamp opcional de atualizacao do usuario mapeado a partir das consultas Dapper.
+    /// PT-br: Obtem ou define o timestamp opcional de atualizacao do usuario mapeado a partir das consultas Dapper.
     /// </summary>
     public DateTime? UpdatedData { get; set; }
     /// <summary>
     /// EN: Gets or sets the non-null GUID value mapped from Dapper queries.
-    /// PT: Obtem ou define o valor GUID nao nulo mapeado a partir das consultas Dapper.
+    /// PT-br: Obtem ou define o valor GUID nao nulo mapeado a partir das consultas Dapper.
     /// </summary>
     public Guid TestGuid { get; set; }
     /// <summary>
     /// EN: Gets or sets the optional GUID value mapped from Dapper queries.
-    /// PT: Obtem ou define o valor GUID opcional mapeado a partir das consultas Dapper.
+    /// PT-br: Obtem ou define o valor GUID opcional mapeado a partir das consultas Dapper.
     /// </summary>
     public Guid? TestGuidNull { get; set; }
 }
 
 /// <summary>
 /// EN: Shared user contract model for Dapper multi-mapping tests.
-/// PT: Modelo contratual compartilhado de usuário para testes de multi-mapping com Dapper.
+/// PT-br: Modelo contratual compartilhado de usuário para testes de multi-mapping com Dapper.
 /// </summary>
 public sealed class DapperUserJoinContractModel : DapperUserContractModel
 {
     /// <summary>
     /// EN: Gets or sets the tenant identifiers collected during Dapper multi-mapping joins.
-    /// PT: Obtem ou define os identificadores de tenant coletados durante joins com multi-mapping do Dapper.
+    /// PT-br: Obtem ou define os identificadores de tenant coletados durante joins com multi-mapping do Dapper.
     /// </summary>
     public List<int> Tenants { get; set; } = [];
 }
 
 /// <summary>
 /// EN: Shared Dapper user CRUD/query contract tests for provider mocks.
-/// PT: Testes compartilhados de contrato Dapper para CRUD/consulta de usuário em mocks de provedor.
+/// PT-br: Testes compartilhados de contrato Dapper para CRUD/consulta de usuário em mocks de provedor.
 /// </summary>
 public abstract class DapperUserTestsBase(
     ITestOutputHelper helper,
@@ -1072,7 +1072,7 @@ public abstract class DapperUserTestsBase(
 
     /// <summary>
     /// EN: Verifies inserting a user writes the expected row into the target table.
-    /// PT: Verifica se a insercao de um usuario grava a linha esperada na tabela de destino.
+    /// PT-br: Verifica se a insercao de um usuario grava a linha esperada na tabela de destino.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperUser")]
@@ -1096,7 +1096,7 @@ public abstract class DapperUserTestsBase(
 
     /// <summary>
     /// EN: Verifies querying a user returns the expected mapped contract values.
-    /// PT: Verifica se consultar um usuario retorna os valores contratuais mapeados esperados.
+    /// PT-br: Verifica se consultar um usuario retorna os valores contratuais mapeados esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperUser")]
@@ -1124,7 +1124,7 @@ public abstract class DapperUserTestsBase(
 
     /// <summary>
     /// EN: Verifies updating a user modifies the stored row with the new values.
-    /// PT: Verifica se atualizar um usuario modifica a linha armazenada com os novos valores.
+    /// PT-br: Verifica se atualizar um usuario modifica a linha armazenada com os novos valores.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperUser")]
@@ -1160,7 +1160,7 @@ public abstract class DapperUserTestsBase(
 
     /// <summary>
     /// EN: Verifies deleting a user removes the corresponding row from the table.
-    /// PT: Verifica se excluir um usuario remove a linha correspondente da tabela.
+    /// PT-br: Verifica se excluir um usuario remove a linha correspondente da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperUser")]
@@ -1182,7 +1182,7 @@ public abstract class DapperUserTestsBase(
 
     /// <summary>
     /// EN: Verifies multi-result user queries return both expected user result sets.
-    /// PT: Verifica se consultas de usuario com multiplos resultados retornam os dois conjuntos esperados.
+    /// PT-br: Verifica se consultas de usuario com multiplos resultados retornam os dois conjuntos esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperUser")]
@@ -1235,7 +1235,7 @@ public abstract class DapperUserTestsBase(
 
     /// <summary>
     /// EN: Verifies joined user queries populate the related tenant data correctly.
-    /// PT: Verifica se consultas de usuario com join preenchem corretamente os dados relacionados de tenant.
+    /// PT-br: Verifica se consultas de usuario com join preenchem corretamente os dados relacionados de tenant.
     /// </summary>
     [Fact]
     [Trait("Category", "DapperUserTests2")]
@@ -1324,7 +1324,7 @@ public abstract class DapperUserTestsBase(
 
 /// <summary>
 /// EN: Shared stored procedure execution contract tests for Dapper-facing provider mocks.
-/// PT: Testes compartilhados de contrato para execução de stored procedure em mocks voltados ao Dapper.
+/// PT-br: Testes compartilhados de contrato para execução de stored procedure em mocks voltados ao Dapper.
 /// </summary>
 public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, TParameter, TException>(
     ITestOutputHelper helper
@@ -1336,37 +1336,37 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 {
     /// <summary>
     /// EN: Creates and opens the provider-specific connection used by stored procedure tests.
-    /// PT: Cria e abre a conexao especifica do provedor usada pelos testes de stored procedure.
+    /// PT-br: Cria e abre a conexao especifica do provedor usada pelos testes de stored procedure.
     /// </summary>
     protected abstract TConnection CreateOpenConnection();
 
     /// <summary>
     /// EN: Creates a command configured to execute the specified stored procedure.
-    /// PT: Cria um comando configurado para executar a stored procedure especificada.
+    /// PT-br: Cria um comando configurado para executar a stored procedure especificada.
     /// </summary>
     protected abstract TCommand CreateStoredProcedureCommand(TConnection connection, string procedureName);
 
     /// <summary>
     /// EN: Creates a text command for the supplied SQL text against the provided connection.
-    /// PT: Cria um comando de texto para o SQL informado na conexao fornecida.
+    /// PT-br: Cria um comando de texto para o SQL informado na conexao fornecida.
     /// </summary>
     protected abstract TCommand CreateTextCommand(TConnection connection, string commandText);
 
     /// <summary>
     /// EN: Creates a provider-specific parameter with the supplied name, value, type, and direction.
-    /// PT: Cria um parametro especifico do provedor com nome, valor, tipo e direcao informados.
+    /// PT-br: Cria um parametro especifico do provedor com nome, valor, tipo e direcao informados.
     /// </summary>
     protected abstract TParameter CreateParameter(string name, object? value, DbType dbType, ParameterDirection direction = ParameterDirection.Input);
 
     /// <summary>
     /// EN: Extracts the provider-specific error code from the thrown exception.
-    /// PT: Extrai o codigo de erro especifico do provedor da excecao lancada.
+    /// PT-br: Extrai o codigo de erro especifico do provedor da excecao lancada.
     /// </summary>
     protected abstract int GetErrorCode(TException exception);
 
     /// <summary>
     /// EN: Verifies stored procedure execution succeeds when all required inputs are supplied.
-    /// PT: Verifica se a execucao da stored procedure tem sucesso quando todos os parametros obrigatorios sao informados.
+    /// PT-br: Verifica se a execucao da stored procedure tem sucesso quando todos os parametros obrigatorios sao informados.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1394,7 +1394,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies stored procedure execution throws when a required input parameter is missing.
-    /// PT: Verifica se a execucao da stored procedure lanca erro quando falta um parametro de entrada obrigatorio.
+    /// PT-br: Verifica se a execucao da stored procedure lanca erro quando falta um parametro de entrada obrigatorio.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1420,7 +1420,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies stored procedure execution throws when a required input parameter is null.
-    /// PT: Verifica se a execucao da stored procedure lanca erro quando um parametro obrigatorio e nulo.
+    /// PT-br: Verifica se a execucao da stored procedure lanca erro quando um parametro obrigatorio e nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1447,7 +1447,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies stored procedure execution populates output parameters with default values.
-    /// PT: Verifica se a execucao da stored procedure preenche parametros de saida com valores padrao.
+    /// PT-br: Verifica se a execucao da stored procedure preenche parametros de saida com valores padrao.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1480,7 +1480,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies CALL syntax validates inputs and returns an empty result set when appropriate.
-    /// PT: Verifica se a sintaxe CALL valida entradas e retorna um conjunto de resultados vazio quando apropriado.
+    /// PT-br: Verifica se a sintaxe CALL valida entradas e retorna um conjunto de resultados vazio quando apropriado.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1504,7 +1504,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies stored procedure execution populates a return value parameter with the default zero value.
-    /// PT: Verifica se a execucao da stored procedure preenche um parametro de retorno com o valor padrao zero.
+    /// PT-br: Verifica se a execucao da stored procedure preenche um parametro de retorno com o valor padrao zero.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1528,7 +1528,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies stored procedure execution throws when a required input parameter is incorrectly marked as output.
-    /// PT: Verifica se a execucao da stored procedure lanca erro quando um parametro obrigatorio e marcado incorretamente como saida.
+    /// PT-br: Verifica se a execucao da stored procedure lanca erro quando um parametro obrigatorio e marcado incorretamente como saida.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1550,7 +1550,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies Dapper Execute works when the command type is StoredProcedure.
-    /// PT: Verifica se o Dapper Execute funciona quando o tipo de comando e StoredProcedure.
+    /// PT-br: Verifica se o Dapper Execute funciona quando o tipo de comando e StoredProcedure.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1577,7 +1577,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
     /// <summary>
     /// EN: Verifies Dapper Execute throws for StoredProcedure calls when a required parameter is missing.
-    /// PT: Verifica se o Dapper Execute lanca erro em chamadas StoredProcedure quando falta um parametro obrigatorio.
+    /// PT-br: Verifica se o Dapper Execute lanca erro em chamadas StoredProcedure quando falta um parametro obrigatorio.
     /// </summary>
     [Fact]
     [Trait("Category", "StoredProcedureExecution")]
@@ -1607,7 +1607,7 @@ public abstract class StoredProcedureExecutionTestsBase<TConnection, TCommand, T
 
 /// <summary>
 /// EN: Shared query-executor extras contract for Dapper providers with LINQ translation hooks.
-/// PT: Contrato compartilhado de extras do executor de query para provedores Dapper com hooks de tradução LINQ.
+/// PT-br: Contrato compartilhado de extras do executor de query para provedores Dapper com hooks de tradução LINQ.
 /// </summary>
 public abstract class QueryExecutorExtrasTestsBase<TDb, TConnection, TCommand, TQueryProvider, TTranslator>(
     ITestOutputHelper helper
@@ -1618,43 +1618,43 @@ public abstract class QueryExecutorExtrasTestsBase<TDb, TConnection, TCommand, T
 {
     /// <summary>
     /// EN: Creates a provider-specific connection for the supplied in-memory database.
-    /// PT: Cria uma conexao especifica do provedor para o banco em memoria informado.
+    /// PT-br: Cria uma conexao especifica do provedor para o banco em memoria informado.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 
     /// <summary>
     /// EN: Creates a provider-specific command initialized with the supplied SQL text.
-    /// PT: Cria um comando especifico do provedor inicializado com o texto SQL informado.
+    /// PT-br: Cria um comando especifico do provedor inicializado com o texto SQL informado.
     /// </summary>
     protected abstract TCommand CreateCommand(TConnection connection, string sql);
 
     /// <summary>
     /// EN: Gets the provider-specific SQL batch used to validate pagination behavior.
-    /// PT: Obtem o batch SQL especifico do provedor usado para validar o comportamento de paginacao.
+    /// PT-br: Obtem o batch SQL especifico do provedor usado para validar o comportamento de paginacao.
     /// </summary>
     protected abstract string PaginationBatchSql { get; }
 
     /// <summary>
     /// EN: Extracts the translator instance from the provider-specific query provider.
-    /// PT: Extrai a instancia do tradutor a partir do query provider especifico do provedor.
+    /// PT-br: Extrai a instancia do tradutor a partir do query provider especifico do provedor.
     /// </summary>
     protected abstract object GetTranslatorFromProvider(IQueryProvider provider);
 
     /// <summary>
     /// EN: Translates the supplied LINQ expression into provider-specific SQL text.
-    /// PT: Traduz a expressao LINQ informada para texto SQL especifico do provedor.
+    /// PT-br: Traduz a expressao LINQ informada para texto SQL especifico do provedor.
     /// </summary>
     protected abstract string TranslateSql(object translator, Expression expression);
 
     /// <summary>
     /// EN: Creates a queryable source used to validate provider translation behavior.
-    /// PT: Cria uma fonte queryable usada para validar o comportamento de traducao do provedor.
+    /// PT-br: Cria uma fonte queryable usada para validar o comportamento de traducao do provedor.
     /// </summary>
     protected abstract IQueryable<QueryExecutorFoo> CreateQueryable(TConnection connection);
 
     /// <summary>
     /// EN: Verifies provider-specific pagination fragments emitted for LINQ Skip/Take translation.
-    /// PT: Verifica os fragmentos de paginacao especificos do provedor gerados na traducao LINQ de Skip/Take.
+    /// PT-br: Verifica os fragmentos de paginacao especificos do provedor gerados na traducao LINQ de Skip/Take.
     /// </summary>
     protected virtual void AssertPaginationSql(string sql)
     {
@@ -1667,13 +1667,13 @@ public abstract class QueryExecutorExtrasTestsBase<TDb, TConnection, TCommand, T
 
     /// <summary>
     /// EN: Creates the in-memory database used by query executor tests.
-    /// PT: Cria o banco em memoria usado pelos testes do executor de consultas.
+    /// PT-br: Cria o banco em memoria usado pelos testes do executor de consultas.
     /// </summary>
     protected virtual TDb CreateDb() => DbMockFactory.Create<TDb>();
 
     /// <summary>
     /// EN: Verifies grouping and aggregate functions compute the expected values.
-    /// PT: Verifica se agrupamentos e funcoes de agregacao calculam os valores esperados.
+    /// PT-br: Verifica se agrupamentos e funcoes de agregacao calculam os valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Query")]
@@ -1707,7 +1707,7 @@ GROUP BY grp
 
     /// <summary>
     /// EN: Verifies order, limit, and offset pagination return the expected page of rows.
-    /// PT: Verifica se ordenacao, limite e offset de paginacao retornam a pagina esperada de linhas.
+    /// PT-br: Verifica se ordenacao, limite e offset de paginacao retornam a pagina esperada de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Query")]
@@ -1734,7 +1734,7 @@ GROUP BY grp
 
     /// <summary>
     /// EN: Verifies basic where/order-by translation produces the expected SQL fragments.
-    /// PT: Verifica se a traducao basica de where/order-by produz os fragmentos SQL esperados.
+    /// PT-br: Verifica se a traducao basica de where/order-by produz os fragmentos SQL esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "Query")]
@@ -1756,7 +1756,7 @@ GROUP BY grp
 
     /// <summary>
     /// EN: Seeds the in-memory database with rows used by query executor tests.
-    /// PT: Popula o banco em memoria com linhas usadas pelos testes do executor de consultas.
+    /// PT-br: Popula o banco em memoria com linhas usadas pelos testes do executor de consultas.
     /// </summary>
     protected virtual TDb SeedDb()
     {
@@ -1773,7 +1773,7 @@ GROUP BY grp
 
     /// <summary>
     /// EN: Gets a Dapper row value using a case-insensitive column-name match.
-    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// PT-br: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
     /// </summary>
     protected static object? GetValueIgnoreCase(object row, string name)
     {
@@ -1792,18 +1792,18 @@ GROUP BY grp
 #pragma warning disable CA1812
     /// <summary>
     /// EN: Lightweight query model used by query executor translation and projection tests.
-    /// PT: Modelo leve de consulta usado pelos testes de traducao e projecao do executor de consultas.
+    /// PT-br: Modelo leve de consulta usado pelos testes de traducao e projecao do executor de consultas.
     /// </summary>
     protected sealed class QueryExecutorFoo
     {
         /// <summary>
         /// EN: Gets or sets the numeric value used in translation assertions.
-        /// PT: Obtem ou define o valor numerico usado nas assercoes de traducao.
+        /// PT-br: Obtem ou define o valor numerico usado nas assercoes de traducao.
         /// </summary>
         public int X { get; set; }
         /// <summary>
         /// EN: Gets or sets the text value used in translation assertions.
-        /// PT: Obtem ou define o valor textual usado nas assercoes de traducao.
+        /// PT-br: Obtem ou define o valor textual usado nas assercoes de traducao.
         /// </summary>
         public string Y { get; set; } = string.Empty;
     }
@@ -1812,7 +1812,7 @@ GROUP BY grp
 
 /// <summary>
 /// EN: Shared Dapper join assertions for providers with identical JOIN semantics in the mock layer.
-/// PT: Asserções compartilhadas de JOIN via Dapper para providers com semântica idêntica na camada mock.
+/// PT-br: Asserções compartilhadas de JOIN via Dapper para providers com semântica idêntica na camada mock.
 /// </summary>
 public abstract class DapperJoinTestsBase<TDb, TConnection>(
     ITestOutputHelper helper
@@ -1822,19 +1822,19 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
 {
     /// <summary>
     /// EN: Creates a provider-specific connection for the supplied database used in join tests.
-    /// PT: Cria uma conexao especifica do provedor para o banco informado usado nos testes de join.
+    /// PT-br: Cria uma conexao especifica do provedor para o banco informado usado nos testes de join.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 
     /// <summary>
     /// EN: Creates the in-memory database used by join tests.
-    /// PT: Cria o banco em memoria usado pelos testes de join.
+    /// PT-br: Cria o banco em memoria usado pelos testes de join.
     /// </summary>
     protected virtual TDb CreateDb() => DbMockFactory.Create<TDb>();
 
     /// <summary>
     /// EN: Verifies a left join keeps all rows from the left table.
-    /// PT: Verifica se um left join preserva todas as linhas da tabela da esquerda.
+    /// PT-br: Verifica se um left join preserva todas as linhas da tabela da esquerda.
     /// </summary>
     protected void LeftJoin_ShouldKeepAllLeftRows()
     {
@@ -1852,7 +1852,7 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies a right join keeps all rows from the right table.
-    /// PT: Verifica se um right join preserva todas as linhas da tabela da direita.
+    /// PT-br: Verifica se um right join preserva todas as linhas da tabela da direita.
     /// </summary>
     protected void RightJoin_ShouldKeepAllRightRows()
     {
@@ -1875,7 +1875,7 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies join predicates with multiple AND conditions are evaluated correctly.
-    /// PT: Verifica se predicados de join com multiplas condicoes AND sao avaliados corretamente.
+    /// PT-br: Verifica se predicados de join com multiplas condicoes AND sao avaliados corretamente.
     /// </summary>
     protected void Join_ON_WithMultipleConditions_AND_ShouldWork()
     {
@@ -1893,7 +1893,7 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Gets a Dapper row value using a case-insensitive column-name match.
-    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// PT-br: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
     /// </summary>
     protected static object? GetValueIgnoreCase(object row, string name)
     {
@@ -1935,7 +1935,7 @@ public abstract class DapperJoinTestsBase<TDb, TConnection>(
 
 /// <summary>
 /// EN: Shared Dapper transaction/lifecycle assertions for providers that expose the same connection API.
-/// PT: Asserções compartilhadas de transação/ciclo de vida via Dapper para providers que expõem a mesma API de conexão.
+/// PT-br: Asserções compartilhadas de transação/ciclo de vida via Dapper para providers que expõem a mesma API de conexão.
 /// </summary>
 public abstract class DapperTransactionTestsBase<TDb, TConnection>(
     ITestOutputHelper helper
@@ -1945,19 +1945,19 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 {
     /// <summary>
     /// EN: Creates a provider-specific connection for the supplied database used in transaction tests.
-    /// PT: Cria uma conexao especifica do provedor para o banco informado usado nos testes de transacao.
+    /// PT-br: Cria uma conexao especifica do provedor para o banco informado usado nos testes de transacao.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 
     /// <summary>
     /// EN: Creates the in-memory database used by transaction tests.
-    /// PT: Cria o banco em memoria usado pelos testes de transacao.
+    /// PT-br: Cria o banco em memoria usado pelos testes de transacao.
     /// </summary>
     protected virtual TDb CreateDb() => DbMockFactory.Create<TDb>();
 
     /// <summary>
     /// EN: Verifies committing a transaction persists inserted data.
-    /// PT: Verifica se confirmar uma transacao persiste os dados inseridos.
+    /// PT-br: Verifica se confirmar uma transacao persiste os dados inseridos.
     /// </summary>
     protected void TransactionCommitShouldPersistData()
     {
@@ -1985,7 +1985,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies rolling back a transaction prevents inserted data from persisting.
-    /// PT: Verifica se reverter uma transacao impede que os dados inseridos sejam persistidos.
+    /// PT-br: Verifica se reverter uma transacao impede que os dados inseridos sejam persistidos.
     /// </summary>
     protected void TransactionRollbackShouldNotPersistData()
     {
@@ -2009,7 +2009,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies a rollback restores connection-scoped temporary table contents.
-    /// PT: Verifica se um rollback restaura o conteudo das tabelas temporarias de escopo da conexao.
+    /// PT-br: Verifica se um rollback restaura o conteudo das tabelas temporarias de escopo da conexao.
     /// </summary>
     protected void TransactionRollback_ShouldRestoreConnectionTemporaryTable_Dapper()
     {
@@ -2034,7 +2034,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies rolling back to a savepoint restores the temporary table snapshot.
-    /// PT: Verifica se reverter para um savepoint restaura o snapshot da tabela temporaria.
+    /// PT-br: Verifica se reverter para um savepoint restaura o snapshot da tabela temporaria.
     /// </summary>
     protected void RollbackToSavepoint_ShouldRestoreConnectionTemporaryTableSnapshot_Dapper()
     {
@@ -2068,7 +2068,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data clears rows, resets identities, and clears session temp tables.
-    /// PT: Verifica se resetar todos os dados volateis limpa linhas, reinicia identidades e limpa tabelas temporarias da sessao.
+    /// PT-br: Verifica se resetar todos os dados volateis limpa linhas, reinicia identidades e limpa tabelas temporarias da sessao.
     /// </summary>
     protected void ResetAllVolatileData_ShouldClearRowsAndResetIdentity_Dapper()
     {
@@ -2103,7 +2103,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies database volatile-data reset respects the global temporary table inclusion flag.
-    /// PT: Verifica se o reset de dados volateis no banco respeita a flag de inclusao de tabelas temporarias globais.
+    /// PT-br: Verifica se o reset de dados volateis no banco respeita a flag de inclusao de tabelas temporarias globais.
     /// </summary>
     protected void ResetVolatileData_OnDb_ShouldRespectGlobalTemporaryTablesFlag_Dapper()
     {
@@ -2145,7 +2145,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies resetting volatile data on the database preserves table definitions.
-    /// PT: Verifica se resetar dados volateis no banco preserva as definicoes das tabelas.
+    /// PT-br: Verifica se resetar dados volateis no banco preserva as definicoes das tabelas.
     /// </summary>
     protected void ResetVolatileData_OnDb_ShouldKeepTableDefinitions_Dapper()
     {
@@ -2166,7 +2166,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies database volatile-data reset does not affect connection-scoped temporary tables.
-    /// PT: Verifica se o reset de dados volateis no banco nao afeta tabelas temporarias de escopo da conexao.
+    /// PT-br: Verifica se o reset de dados volateis no banco nao afeta tabelas temporarias de escopo da conexao.
     /// </summary>
     protected void ResetVolatileData_OnDb_ShouldNotAffectConnectionTemporaryTables_Dapper()
     {
@@ -2188,7 +2188,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data clears rows from global temporary tables.
-    /// PT: Verifica se resetar todos os dados volateis limpa as linhas das tabelas temporarias globais.
+    /// PT-br: Verifica se resetar todos os dados volateis limpa as linhas das tabelas temporarias globais.
     /// </summary>
     protected void ResetAllVolatileData_ShouldClearGlobalTemporaryTableRows_Dapper()
     {
@@ -2213,7 +2213,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies resetting all volatile data invalidates existing savepoints.
-    /// PT: Verifica se resetar todos os dados volateis invalida os savepoints existentes.
+    /// PT-br: Verifica se resetar todos os dados volateis invalida os savepoints existentes.
     /// </summary>
     protected void ResetAllVolatileData_ShouldInvalidateSavepoints_Dapper()
     {
@@ -2233,7 +2233,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies connection-scoped temporary tables remain isolated between different connections.
-    /// PT: Verifica se tabelas temporarias de escopo da conexao permanecem isoladas entre conexoes diferentes.
+    /// PT-br: Verifica se tabelas temporarias de escopo da conexao permanecem isoladas entre conexoes diferentes.
     /// </summary>
     protected void ConnectionTemporaryTables_ShouldBeIsolatedBetweenConnections_Dapper()
     {
@@ -2262,7 +2262,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies closing a connection clears session-scoped transactional and temporary state.
-    /// PT: Verifica se fechar uma conexao limpa o estado transacional e temporario de escopo da sessao.
+    /// PT-br: Verifica se fechar uma conexao limpa o estado transacional e temporario de escopo da sessao.
     /// </summary>
     protected void Close_ShouldClearConnectionSessionState_Dapper()
     {
@@ -2291,7 +2291,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies closing a connection preserves permanent rows and provider-specific global temporary-table state.
-    /// PT: Verifica se fechar uma conexao preserva linhas permanentes e o estado especifico do provedor das tabelas temporarias globais.
+    /// PT-br: Verifica se fechar uma conexao preserva linhas permanentes e o estado especifico do provedor das tabelas temporarias globais.
     /// </summary>
     protected void Close_ShouldPreservePermanentAndGlobalSharedState_Dapper()
     {
@@ -2338,7 +2338,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies reopening after close starts a fresh session while preserving shared database state.
-    /// PT: Verifica se reabrir apos fechar inicia uma nova sessao preservando o estado compartilhado do banco.
+    /// PT-br: Verifica se reabrir apos fechar inicia uma nova sessao preservando o estado compartilhado do banco.
     /// </summary>
     protected void OpenAfterClose_ShouldStartFreshSessionPreservingSharedState_Dapper()
     {
@@ -2372,23 +2372,23 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Lightweight user model used by transaction persistence and rollback tests.
-    /// PT: Modelo leve de usuario usado pelos testes de persistencia e rollback de transacoes.
+    /// PT-br: Modelo leve de usuario usado pelos testes de persistencia e rollback de transacoes.
     /// </summary>
     protected sealed class TransactionUser
     {
         /// <summary>
         /// EN: Gets or sets the transaction test user identifier.
-        /// PT: Obtem ou define o identificador do usuario de teste de transacao.
+        /// PT-br: Obtem ou define o identificador do usuario de teste de transacao.
         /// </summary>
         public int Id { get; set; }
         /// <summary>
         /// EN: Gets or sets the transaction test user name.
-        /// PT: Obtem ou define o nome do usuario de teste de transacao.
+        /// PT-br: Obtem ou define o nome do usuario de teste de transacao.
         /// </summary>
         public required string Name { get; set; }
         /// <summary>
         /// EN: Gets or sets the optional transaction test user email.
-        /// PT: Obtem ou define o email opcional do usuario de teste de transacao.
+        /// PT-br: Obtem ou define o email opcional do usuario de teste de transacao.
         /// </summary>
         public string? Email { get; set; }
     }
@@ -2396,7 +2396,7 @@ public abstract class DapperTransactionTestsBase<TDb, TConnection>(
 
 /// <summary>
 /// EN: Shared fluent API smoke tests for providers with identical setup semantics.
-/// PT: Testes smoke compartilhados da API fluente para provedores com semântica idêntica de setup.
+/// PT-br: Testes smoke compartilhados da API fluente para provedores com semântica idêntica de setup.
 /// </summary>
 public abstract class DapperFluentTestsBase<TDb, TConnection>(
     ITestOutputHelper helper
@@ -2406,19 +2406,19 @@ public abstract class DapperFluentTestsBase<TDb, TConnection>(
 {
     /// <summary>
     /// EN: Creates a provider-specific connection for fluent API tests.
-    /// PT: Cria uma conexao especifica do provedor para testes da API fluente.
+    /// PT-br: Cria uma conexao especifica do provedor para testes da API fluente.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 
     /// <summary>
     /// EN: Creates the in-memory database used by fluent API tests.
-    /// PT: Cria o banco em memoria usado pelos testes da API fluente.
+    /// PT-br: Cria o banco em memoria usado pelos testes da API fluente.
     /// </summary>
     protected virtual TDb CreateDb() => DbMockFactory.Create<TDb>();
 
     /// <summary>
     /// EN: Verifies the fluent setup supports insert, update, and delete operations with metrics tracking.
-    /// PT: Verifica se o setup fluente suporta operacoes de insert, update e delete com rastreamento de metricas.
+    /// PT-br: Verifica se o setup fluente suporta operacoes de insert, update e delete com rastreamento de metricas.
     /// </summary>
     protected void InsertUpdateDeleteFluentScenario()
     {
@@ -2455,7 +2455,7 @@ public abstract class DapperFluentTestsBase<TDb, TConnection>(
 
     /// <summary>
     /// EN: Verifies the fluent table-definition API creates schema and seeds rows correctly.
-    /// PT: Verifica se a API fluente de definicao de tabelas cria o schema e popula linhas corretamente.
+    /// PT-br: Verifica se a API fluente de definicao de tabelas cria o schema e popula linhas corretamente.
     /// </summary>
     protected void TestFluent()
     {
@@ -2497,7 +2497,7 @@ public abstract class DapperFluentTestsBase<TDb, TConnection>(
 
 /// <summary>
 /// EN: Shared extended Dapper/provider behavior tests for providers with equivalent semantics.
-/// PT: Testes compartilhados de comportamento estendido Dapper/provider para provedores com semântica equivalente.
+/// PT-br: Testes compartilhados de comportamento estendido Dapper/provider para provedores com semântica equivalente.
 /// </summary>
 public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TException>(
     ITestOutputHelper helper
@@ -2510,25 +2510,25 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Creates a provider-specific connection for the supplied database in extended behavior tests.
-    /// PT: Cria uma conexao especifica do provedor para o banco informado nos testes de comportamento estendido.
+    /// PT-br: Cria uma conexao especifica do provedor para o banco informado nos testes de comportamento estendido.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 
     /// <summary>
     /// EN: Creates the in-memory database used by extended provider behavior tests.
-    /// PT: Cria o banco em memoria usado pelos testes de comportamento estendido do provedor.
+    /// PT-br: Cria o banco em memoria usado pelos testes de comportamento estendido do provedor.
     /// </summary>
     protected virtual TDb CreateDb() => DbMockFactory.Create<TDb>();
 
     /// <summary>
     /// EN: Gets the provider-specific SQL used to validate distinct pagination behavior.
-    /// PT: Obtem o SQL especifico do provedor usado para validar o comportamento de paginacao com distinct.
+    /// PT-br: Obtem o SQL especifico do provedor usado para validar o comportamento de paginacao com distinct.
     /// </summary>
     protected abstract string DistinctPaginationSql { get; }
 
     /// <summary>
     /// EN: Verifies inserts into identity columns assign generated values when no identity is specified.
-    /// PT: Verifica se insercoes em colunas identity atribuem valores gerados quando nenhuma identidade e informada.
+    /// PT-br: Verifica se insercoes em colunas identity atribuem valores gerados quando nenhuma identidade e informada.
     /// </summary>
     protected void InsertAutoIncrementShouldAssignIdentityWhenNotSpecified()
     {
@@ -2553,7 +2553,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies explicit identity values are accepted only when the scenario enables identity override.
-    /// PT: Verifica se valores explícitos de identity são aceitos apenas quando o cenário habilita a sobrescrita de identity.
+    /// PT-br: Verifica se valores explícitos de identity são aceitos apenas quando o cenário habilita a sobrescrita de identity.
     /// </summary>
     protected void InsertAutoIncrementShouldRespectExplicitIdentityWhenEnabled()
     {
@@ -2582,7 +2582,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies inserting null into a nullable column succeeds.
-    /// PT: Verifica se inserir null em uma coluna anulavel funciona corretamente.
+    /// PT-br: Verifica se inserir null em uma coluna anulavel funciona corretamente.
     /// </summary>
     protected void InsertNullIntoNullableColumnShouldSucceed()
     {
@@ -2599,7 +2599,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies inserting null into a non-nullable column throws the expected provider exception.
-    /// PT: Verifica se inserir null em uma coluna nao anulavel lanca a excecao esperada do provedor.
+    /// PT-br: Verifica se inserir null em uma coluna nao anulavel lanca a excecao esperada do provedor.
     /// </summary>
     protected void InsertNullIntoNonNullableColumnShouldThrow()
     {
@@ -2615,7 +2615,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies filtering on a composite index returns the expected matching rows.
-    /// PT: Verifica se filtrar por um indice composto retorna as linhas correspondentes esperadas.
+    /// PT-br: Verifica se filtrar por um indice composto retorna as linhas correspondentes esperadas.
     /// </summary>
     protected void CompositeIndexFilterShouldReturnCorrectRows()
     {
@@ -2639,7 +2639,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies LIKE filters return the expected matching rows.
-    /// PT: Verifica se filtros LIKE retornam as linhas correspondentes esperadas.
+    /// PT-br: Verifica se filtros LIKE retornam as linhas correspondentes esperadas.
     /// </summary>
     protected void LikeFilterShouldReturnMatchingRows()
     {
@@ -2659,7 +2659,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies IN filters return the expected matching rows.
-    /// PT: Verifica se filtros IN retornam as linhas correspondentes esperadas.
+    /// PT-br: Verifica se filtros IN retornam as linhas correspondentes esperadas.
     /// </summary>
     protected void InFilterShouldReturnMatchingRows()
     {
@@ -2678,7 +2678,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies distinct pagination with ordering returns the expected rows.
-    /// PT: Verifica se a paginacao com distinct e ordenacao retorna as linhas esperadas.
+    /// PT-br: Verifica se a paginacao com distinct e ordenacao retorna as linhas esperadas.
     /// </summary>
     protected void OrderByLimitOffsetDistinctShouldReturnExpectedRows()
     {
@@ -2699,7 +2699,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies HAVING filters are applied after aggregation results are produced.
-    /// PT: Verifica se filtros HAVING sao aplicados apos a producao dos resultados agregados.
+    /// PT-br: Verifica se filtros HAVING sao aplicados apos a producao dos resultados agregados.
     /// </summary>
     protected void HavingFilterShouldApplyAfterAggregation()
     {
@@ -2723,7 +2723,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Gets a Dapper row value using a case-insensitive column-name match.
-    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// PT-br: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
     /// </summary>
     protected static object? GetValueIgnoreCase(object row, string name)
     {
@@ -2741,7 +2741,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies deleting a referenced parent row throws the expected foreign-key exception.
-    /// PT: Verifica se excluir uma linha pai referenciada lanca a excecao esperada de chave estrangeira.
+    /// PT-br: Verifica se excluir uma linha pai referenciada lanca a excecao esperada de chave estrangeira.
     /// </summary>
     protected void ForeignKeyDeleteShouldThrowOnReferencedParentDeletion()
     {
@@ -2764,7 +2764,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies deleting a referenced parent row without an explicit primary key still throws the expected exception.
-    /// PT: Verifica se excluir uma linha pai referenciada sem chave primaria explicita ainda lanca a excecao esperada.
+    /// PT-br: Verifica se excluir uma linha pai referenciada sem chave primaria explicita ainda lanca a excecao esperada.
     /// </summary>
     protected void ForeignKeyDeleteShouldThrowOnReferencedParentDeletionWithouPK()
     {
@@ -2786,7 +2786,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
     /// <summary>
     /// EN: Verifies Dapper inserts all rows when multiple parameter sets are supplied.
-    /// PT: Verifica se o Dapper insere todas as linhas quando multiplos conjuntos de parametros sao informados.
+    /// PT-br: Verifica se o Dapper insere todas as linhas quando multiplos conjuntos de parametros sao informados.
     /// </summary>
     protected void MultipleParameterSetsInsertShouldInsertAllRows()
     {
@@ -2820,7 +2820,7 @@ public abstract class ExtendedDapperProviderTestsBase<TDb, TConnection, TExcepti
 
 /// <summary>
 /// EN: Shared base for union/pagination/json compatibility tests that reuse the same seeded table and lifecycle.
-/// PT: Base compartilhada para testes de compatibilidade de union/paginação/json que reutilizam a mesma tabela seed e ciclo de vida.
+/// PT-br: Base compartilhada para testes de compatibilidade de union/paginação/json que reutilizam a mesma tabela seed e ciclo de vida.
 /// </summary>
 public abstract class DapperUnionLimitAndJsonCompatibilityTestsBase<TDb, TConnection>
     : XUnitTestBase
@@ -2831,7 +2831,7 @@ public abstract class DapperUnionLimitAndJsonCompatibilityTestsBase<TDb, TConnec
 
     /// <summary>
     /// EN: Creates the shared union, pagination, and JSON compatibility test base.
-    /// PT: Cria a base compartilhada de testes de compatibilidade de union, paginacao e JSON.
+    /// PT-br: Cria a base compartilhada de testes de compatibilidade de union, paginacao e JSON.
     /// </summary>
     protected DapperUnionLimitAndJsonCompatibilityTestsBase(ITestOutputHelper helper)
         : base(helper)
@@ -2841,19 +2841,19 @@ public abstract class DapperUnionLimitAndJsonCompatibilityTestsBase<TDb, TConnec
 
     /// <summary>
     /// EN: Gets the open provider connection used by the compatibility assertions.
-    /// PT: Obtem a conexao aberta do provedor usada pelas assercoes de compatibilidade.
+    /// PT-br: Obtem a conexao aberta do provedor usada pelas assercoes de compatibilidade.
     /// </summary>
     protected TConnection Connection => _connection;
 
     /// <summary>
     /// EN: Creates a provider-specific connection for the supplied database.
-    /// PT: Cria uma conexao especifica do provedor para o banco informado.
+    /// PT-br: Cria uma conexao especifica do provedor para o banco informado.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 
     /// <summary>
     /// EN: Seeds the database with rows used by union and JSON compatibility tests.
-    /// PT: Popula o banco com linhas usadas pelos testes de compatibilidade de union e JSON.
+    /// PT-br: Popula o banco com linhas usadas pelos testes de compatibilidade de union e JSON.
     /// </summary>
     protected virtual void Seed(TDb db)
     {
@@ -2867,7 +2867,7 @@ public abstract class DapperUnionLimitAndJsonCompatibilityTestsBase<TDb, TConnec
 
     /// <summary>
     /// EN: Creates, seeds, and opens a connection for the requested provider version.
-    /// PT: Cria, popula e abre uma conexao para a versao solicitada do provedor.
+    /// PT-br: Cria, popula e abre uma conexao para a versao solicitada do provedor.
     /// </summary>
     protected TConnection CreateOpenConnection(int? version)
     {
@@ -2880,13 +2880,13 @@ public abstract class DapperUnionLimitAndJsonCompatibilityTestsBase<TDb, TConnec
 
     /// <summary>
     /// EN: Creates the in-memory database instance for the requested provider version.
-    /// PT: Cria a instancia de banco em memoria para a versao solicitada do provedor.
+    /// PT-br: Cria a instancia de banco em memoria para a versao solicitada do provedor.
     /// </summary>
     protected virtual TDb CreateDb(int? version) => DbMockFactory.Create<TDb>(version);
 
     /// <summary>
     /// EN: Verifies UNION ALL preserves duplicates while UNION removes them.
-    /// PT: Verifica se UNION ALL preserva duplicidades enquanto UNION as remove.
+    /// PT-br: Verifica se UNION ALL preserva duplicidades enquanto UNION as remove.
     /// </summary>
     protected void AssertUnionAllKeepsDuplicatesAndUnionRemovesThem()
     {
@@ -2907,7 +2907,7 @@ SELECT id FROM t WHERE id = 1
 
     /// <summary>
     /// EN: Verifies UNION normalizes equivalent numeric column types into a compatible result.
-    /// PT: Verifica se UNION normaliza tipos numericos equivalentes em um resultado compativel.
+    /// PT-br: Verifica se UNION normaliza tipos numericos equivalentes em um resultado compativel.
     /// </summary>
     protected void AssertUnionNormalizesEquivalentNumericTypes()
     {
@@ -2922,7 +2922,7 @@ SELECT 1 AS v
 
     /// <summary>
     /// EN: Verifies UNION rejects incompatible column types across branches.
-    /// PT: Verifica se UNION rejeita tipos de coluna incompativeis entre seus ramos.
+    /// PT-br: Verifica se UNION rejeita tipos de coluna incompativeis entre seus ramos.
     /// </summary>
     protected void AssertUnionValidatesIncompatibleColumnTypes()
     {
@@ -2936,7 +2936,7 @@ SELECT 'x' AS v
 
     /// <summary>
     /// EN: Verifies UNION normalizes the result schema using the first select alias.
-    /// PT: Verifica se UNION normaliza o schema do resultado usando o alias do primeiro select.
+    /// PT-br: Verifica se UNION normaliza o schema do resultado usando o alias do primeiro select.
     /// </summary>
     protected void AssertUnionNormalizesSchemaToFirstSelectAlias()
     {
@@ -2952,7 +2952,7 @@ ORDER BY v
 
     /// <summary>
     /// EN: Gets a Dapper row value using a case-insensitive column-name match.
-    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// PT-br: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
     /// </summary>
     protected static object? GetValueIgnoreCase(object row, string name)
     {
@@ -2978,7 +2978,7 @@ ORDER BY v
 
 /// <summary>
 /// EN: Shared behavioral Dapper coverage for providers with equivalent null/join/aggregation semantics.
-/// PT: Cobertura comportamental Dapper compartilhada para providers com semântica equivalente de null/join/agregação.
+/// PT-br: Cobertura comportamental Dapper compartilhada para providers com semântica equivalente de null/join/agregação.
 /// </summary>
 public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
     : XUnitTestBase
@@ -2991,7 +2991,7 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
 
     /// <summary>
     /// EN: Creates the shared additional-behavior coverage test base with a seeded open connection.
-    /// PT: Cria a base compartilhada de cobertura de comportamento adicional com uma conexao aberta e populada.
+    /// PT-br: Cria a base compartilhada de cobertura de comportamento adicional com uma conexao aberta e populada.
     /// </summary>
     protected AdditionalBehaviorCoverageTestsBase(ITestOutputHelper helper)
         : base(helper)
@@ -3003,31 +3003,31 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
 
     /// <summary>
     /// EN: Gets the open provider connection used by the additional behavior assertions.
-    /// PT: Obtem a conexao aberta do provedor usada pelas assercoes de comportamento adicional.
+    /// PT-br: Obtem a conexao aberta do provedor usada pelas assercoes de comportamento adicional.
     /// </summary>
     protected TConnection Connection => _connection;
 
     /// <summary>
     /// EN: Creates a provider-specific connection for the supplied database.
-    /// PT: Cria uma conexao especifica do provedor para o banco informado.
+    /// PT-br: Cria uma conexao especifica do provedor para o banco informado.
     /// </summary>
     protected abstract TConnection CreateConnection(TDb db);
 
     /// <summary>
     /// EN: Creates the in-memory database used by additional behavior coverage tests.
-    /// PT: Cria o banco em memoria usado pelos testes de cobertura de comportamento adicional.
+    /// PT-br: Cria o banco em memoria usado pelos testes de cobertura de comportamento adicional.
     /// </summary>
     protected virtual TDb CreateDb() => DbMockFactory.Create<TDb>();
 
     /// <summary>
     /// EN: Gets the SQL used to validate deletes that accept parameter lists in IN clauses.
-    /// PT: Obtem o SQL usado para validar deletes que aceitam listas de parametros em clausulas IN.
+    /// PT-br: Obtem o SQL usado para validar deletes que aceitam listas de parametros em clausulas IN.
     /// </summary>
     protected virtual string DeleteWithInParameterListSql => "DELETE FROM users WHERE id IN @ids";
 
     /// <summary>
     /// EN: Verifies IS NULL and IS NOT NULL predicates return the expected rows.
-    /// PT: Verifica se os predicados IS NULL e IS NOT NULL retornam as linhas esperadas.
+    /// PT-br: Verifica se os predicados IS NULL e IS NOT NULL retornam as linhas esperadas.
     /// </summary>
     protected void Where_IsNull_And_IsNotNull_ShouldWork()
     {
@@ -3040,7 +3040,7 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
 
     /// <summary>
     /// EN: Verifies equality comparisons against NULL return no rows.
-    /// PT: Verifica se comparacoes de igualdade com NULL nao retornam linhas.
+    /// PT-br: Verifica se comparacoes de igualdade com NULL nao retornam linhas.
     /// </summary>
     protected void Where_EqualNull_ShouldReturnNoRows()
     {
@@ -3053,7 +3053,7 @@ public abstract class AdditionalBehaviorCoverageTestsBase<TDb, TConnection>
 
     /// <summary>
     /// EN: Verifies left joins preserve left-side rows even when there is no match.
-    /// PT: Verifica se left joins preservam as linhas da esquerda mesmo quando nao ha correspondencia.
+    /// PT-br: Verifica se left joins preservam as linhas da esquerda mesmo quando nao ha correspondencia.
     /// </summary>
     protected void LeftJoin_ShouldPreserveLeftRows_WhenNoMatch()
     {
@@ -3080,7 +3080,7 @@ ORDER BY u.id
 
     /// <summary>
     /// EN: Verifies mixed descending and ascending ordering produces deterministic results.
-    /// PT: Verifica se a ordenacao mista decrescente e crescente produz resultados deterministas.
+    /// PT-br: Verifica se a ordenacao mista decrescente e crescente produz resultados deterministas.
     /// </summary>
     protected void OrderBy_Desc_ThenAsc_ShouldBeDeterministic()
     {
@@ -3096,7 +3096,7 @@ ORDER BY amount DESC, id ASC
 
     /// <summary>
     /// EN: Verifies COUNT(*) and COUNT(column) differ correctly when null values are present.
-    /// PT: Verifica se COUNT(*) e COUNT(coluna) diferem corretamente quando ha valores nulos.
+    /// PT-br: Verifica se COUNT(*) e COUNT(coluna) diferem corretamente quando ha valores nulos.
     /// </summary>
     protected void Aggregation_CountStar_Vs_CountColumn_ShouldRespectNulls()
     {
@@ -3107,7 +3107,7 @@ ORDER BY amount DESC, id ASC
 
     /// <summary>
     /// EN: Gets a Dapper row value using a case-insensitive column-name match.
-    /// PT: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
+    /// PT-br: Obtem um valor de linha Dapper usando correspondencia case-insensitive do nome da coluna.
     /// </summary>
     protected static object? GetValueIgnoreCase(object row, string name)
     {
@@ -3125,7 +3125,7 @@ ORDER BY amount DESC, id ASC
 
     /// <summary>
     /// EN: Verifies HAVING filters grouped results after aggregation.
-    /// PT: Verifica se HAVING filtra resultados agrupados apos a agregacao.
+    /// PT-br: Verifica se HAVING filtra resultados agrupados apos a agregacao.
     /// </summary>
     protected void Having_ShouldFilterGroups()
     {
@@ -3142,7 +3142,7 @@ ORDER BY userid
 
     /// <summary>
     /// EN: Verifies parameter lists work correctly inside IN predicates.
-    /// PT: Verifica se listas de parametros funcionam corretamente dentro de predicados IN.
+    /// PT-br: Verifica se listas de parametros funcionam corretamente dentro de predicados IN.
     /// </summary>
     protected void Where_In_WithParameterList_ShouldWork()
     {
@@ -3152,7 +3152,7 @@ ORDER BY userid
 
     /// <summary>
     /// EN: Verifies inserts with columns out of declaration order map values correctly.
-    /// PT: Verifica se insercoes com colunas fora da ordem de declaracao mapeiam os valores corretamente.
+    /// PT-br: Verifica se insercoes com colunas fora da ordem de declaracao mapeiam os valores corretamente.
     /// </summary>
     protected void Insert_WithColumnsOutOfOrder_ShouldMapCorrectly()
     {
@@ -3166,7 +3166,7 @@ ORDER BY userid
 
     /// <summary>
     /// EN: Verifies binary keys round-trip through Dapper when the payload starts as Guid bytes.
-    /// PT: Verifica se chaves binarias retornam pelo Dapper quando o payload comeca como bytes de Guid.
+    /// PT-br: Verifica se chaves binarias retornam pelo Dapper quando o payload comeca como bytes de Guid.
     /// </summary>
     protected void BinaryGuidPrimaryKey_ShouldRoundTripThroughDapper()
     {
@@ -3203,7 +3203,7 @@ ORDER BY userid
 
     /// <summary>
     /// EN: Verifies deletes using an IN parameter list remove the expected rows.
-    /// PT: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
+    /// PT-br: Verifica se deletes usando uma lista de parametros em IN removem as linhas esperadas.
     /// </summary>
     protected void Delete_WithInParameterList_ShouldDeleteMatchingRows()
     {
@@ -3216,7 +3216,7 @@ ORDER BY userid
 
     /// <summary>
     /// EN: Verifies update set expressions can reference the current column value correctly.
-    /// PT: Verifica se expressoes SET em updates podem referenciar corretamente o valor atual da coluna.
+    /// PT-br: Verifica se expressoes SET em updates podem referenciar corretamente o valor atual da coluna.
     /// </summary>
     protected void Update_SetExpression_ShouldUpdateRows()
     {

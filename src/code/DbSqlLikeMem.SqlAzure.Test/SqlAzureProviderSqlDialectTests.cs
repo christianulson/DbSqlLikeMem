@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Contains tests for the SQL Azure provider SQL dialect helper.
-/// PT: Contem testes para o helper de dialeto SQL do provedor SQL Azure.
+/// PT-br: Contem testes para o helper de dialeto SQL do provedor SQL Azure.
 /// </summary>
 public sealed class SqlAzureProviderSqlDialectTests
 {
     /// <summary>
     /// EN: Verifies that the provider metadata matches the SQL Azure helper contract.
-    /// PT: Verifica se os metadados do provedor correspondem ao contrato do helper SQL Azure.
+    /// PT-br: Verifica se os metadados do provedor correspondem ao contrato do helper SQL Azure.
     /// </summary>
     [Fact]
     public void ProviderMetadata_ShouldMatchSqlAzure()
@@ -28,7 +28,7 @@ public sealed class SqlAzureProviderSqlDialectTests
 
     /// <summary>
     /// EN: Verifies that the helper emits SQL Azure-compatible savepoint SQL.
-    /// PT: Verifica se o helper emite SQL compativel com SQL Azure para savepoint.
+    /// PT-br: Verifica se o helper emite SQL compativel com SQL Azure para savepoint.
     /// </summary>
     [Fact]
     public void SavepointSql_ShouldUseSqlAzureSyntax()

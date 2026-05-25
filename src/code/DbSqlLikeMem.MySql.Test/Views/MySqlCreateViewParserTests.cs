@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test.Views;
 
 /// <summary>
 /// EN: Covers CREATE VIEW parsing scenarios in the MySql dialect.
-/// PT: Cobre cenarios de parsing de CREATE VIEW no dialeto MySql.
+/// PT-br: Cobre cenarios de parsing de CREATE VIEW no dialeto MySql.
 /// </summary>
 public sealed class MySqlCreateViewParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MySqlCreateViewParserTests(
 {
     /// <summary>
     /// EN: Verifies that CREATE VIEW followed by SELECT is parsed as two statements.
-    /// PT: Verifica se CREATE VIEW seguido de SELECT e parsed como duas instrucoes.
+    /// PT-br: Verifica se CREATE VIEW seguido de SELECT e parsed como duas instrucoes.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -40,7 +40,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that CREATE OR REPLACE VIEW sets the replace flag.
-    /// PT: Verifica se CREATE OR REPLACE VIEW define a flag de replace.
+    /// PT-br: Verifica se CREATE OR REPLACE VIEW define a flag de replace.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -58,7 +58,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that explicit view column names are captured.
-    /// PT: Verifica se nomes explicitos de colunas da view sao capturados.
+    /// PT-br: Verifica se nomes explicitos de colunas da view sao capturados.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -75,7 +75,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that backtick-delimited identifiers are parsed.
-    /// PT: Verifica se identificadores delimitados por backticks sao parsed.
+    /// PT-br: Verifica se identificadores delimitados por backticks sao parsed.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -92,7 +92,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that IF NOT EXISTS is rejected for CREATE VIEW.
-    /// PT: Verifica se IF NOT EXISTS e rejeitado em CREATE VIEW.
+    /// PT-br: Verifica se IF NOT EXISTS e rejeitado em CREATE VIEW.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -108,7 +108,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that extra tokens after DROP VIEW raise an error.
-    /// PT: Verifica se tokens extras apos DROP VIEW geram erro.
+    /// PT-br: Verifica se tokens extras apos DROP VIEW geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -124,7 +124,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that an extra statement after the CREATE VIEW body raises an error.
-    /// PT: Verifica se uma instrucao extra apos o corpo de CREATE VIEW gera erro.
+    /// PT-br: Verifica se uma instrucao extra apos o corpo de CREATE VIEW gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -140,7 +140,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that a CREATE VIEW body missing after AS raises an error.
-    /// PT: Verifica se um corpo ausente apos AS em CREATE VIEW gera erro.
+    /// PT-br: Verifica se um corpo ausente apos AS em CREATE VIEW gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -156,7 +156,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that DROP VIEW without a name raises an error.
-    /// PT: Verifica se DROP VIEW sem nome gera erro.
+    /// PT-br: Verifica se DROP VIEW sem nome gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -173,7 +173,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that an empty CREATE VIEW column list raises an error.
-    /// PT: Verifica se uma lista vazia de colunas em CREATE VIEW gera erro.
+    /// PT-br: Verifica se uma lista vazia de colunas em CREATE VIEW gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -189,7 +189,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that a trailing comma in the view column list raises an error.
-    /// PT: Verifica se uma virgula final na lista de colunas da view gera erro.
+    /// PT-br: Verifica se uma virgula final na lista de colunas da view gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -205,7 +205,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that a leading comma in the view column list raises an error.
-    /// PT: Verifica se uma virgula inicial na lista de colunas da view gera erro.
+    /// PT-br: Verifica se uma virgula inicial na lista de colunas da view gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -221,7 +221,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that an unclosed view column list raises an error.
-    /// PT: Verifica se uma lista de colunas de view nao fechada gera erro.
+    /// PT-br: Verifica se uma lista de colunas de view nao fechada gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -237,7 +237,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that missing commas between view columns raise an error.
-    /// PT: Verifica se virgulas ausentes entre colunas da view geram erro.
+    /// PT-br: Verifica se virgulas ausentes entre colunas da view geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -253,7 +253,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that extra statements after DROP VIEW raise an error.
-    /// PT: Verifica se instrucoes extras apos DROP VIEW geram erro.
+    /// PT-br: Verifica se instrucoes extras apos DROP VIEW geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -269,7 +269,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that extra statements after DROP VIEW IF EXISTS raise an error.
-    /// PT: Verifica se instrucoes extras apos DROP VIEW IF EXISTS geram erro.
+    /// PT-br: Verifica se instrucoes extras apos DROP VIEW IF EXISTS geram erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -285,7 +285,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that a double comma in the view column list raises an error.
-    /// PT: Verifica se uma virgula dupla na lista de colunas da view gera erro.
+    /// PT-br: Verifica se uma virgula dupla na lista de colunas da view gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]
@@ -301,7 +301,7 @@ SELECT * FROM v_users;
 
     /// <summary>
     /// EN: Verifies that an unclosed column list before AS raises an error.
-    /// PT: Verifica se uma lista de colunas nao fechada antes de AS gera erro.
+    /// PT-br: Verifica se uma lista de colunas nao fechada antes de AS gera erro.
     /// </summary>
     [Theory]
     [Trait("Category", "Views")]

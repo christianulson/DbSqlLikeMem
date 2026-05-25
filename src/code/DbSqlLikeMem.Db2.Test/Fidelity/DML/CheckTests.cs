@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs Db2 fidelity tests for the shared check-constraint workflows.
-/// PT: Executa testes de fidelidade Db2 para os fluxos compartilhados de restricao check.
+/// PT-br: Executa testes de fidelidade Db2 para os fluxos compartilhados de restricao check.
 /// </summary>
 [FidelityNativeClientSkip]
 public class CheckTests(

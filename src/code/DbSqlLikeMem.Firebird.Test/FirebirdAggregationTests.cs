@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Covers Firebird aggregation and HAVING scenarios against the Firebird mock provider.
-/// PT: Cobre cenarios de agregacao e HAVING do Firebird contra o provedor mock Firebird.
+/// PT-br: Cobre cenarios de agregacao e HAVING do Firebird contra o provedor mock Firebird.
 /// </summary>
 public sealed class FirebirdAggregationTests(
     ITestOutputHelper helper
@@ -37,7 +37,7 @@ public sealed class FirebirdAggregationTests(
 
     /// <summary>
     /// EN: Verifies grouped COUNT and SUM aggregation return the expected totals.
-    /// PT: Verifica se a contagem agrupada e a soma agregada retornam os totais esperados.
+    /// PT-br: Verifica se a contagem agrupada e a soma agregada retornam os totais esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAggregation")]
@@ -45,7 +45,7 @@ public sealed class FirebirdAggregationTests(
 
     /// <summary>
     /// EN: Verifies HAVING filters out grouped rows that do not meet the aggregate threshold.
-    /// PT: Verifica se HAVING filtra linhas agrupadas que nao atingem o limite da agregacao.
+    /// PT-br: Verifica se HAVING filtra linhas agrupadas que nao atingem o limite da agregacao.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAggregation")]
@@ -53,7 +53,7 @@ public sealed class FirebirdAggregationTests(
 
     /// <summary>
     /// EN: Ensures HAVING aggregate alias can be combined with ORDER BY ordinal in grouped execution.
-    /// PT: Garante que alias de agregacao no HAVING possa ser combinado com ORDER BY ordinal na execucao agrupada.
+    /// PT-br: Garante que alias de agregacao no HAVING possa ser combinado com ORDER BY ordinal na execucao agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAggregation")]
@@ -61,7 +61,7 @@ public sealed class FirebirdAggregationTests(
 
     /// <summary>
     /// EN: Verifies string aggregation with a custom separator returns the expected rows.
-    /// PT: Verifica se a agregacao textual com separador customizado retorna as linhas esperadas.
+    /// PT-br: Verifica se a agregacao textual com separador customizado retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAggregation")]
@@ -75,7 +75,7 @@ ORDER BY userId
 
     /// <summary>
     /// EN: Verifies string aggregation with DISTINCT ignores NULL values and deduplicates text.
-    /// PT: Verifica se a agregacao textual com DISTINCT ignora valores NULL e remove duplicidade de texto.
+    /// PT-br: Verifica se a agregacao textual com DISTINCT ignora valores NULL e remove duplicidade de texto.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdAggregation")]

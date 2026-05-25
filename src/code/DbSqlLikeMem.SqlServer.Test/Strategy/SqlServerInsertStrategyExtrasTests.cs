@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 /// <summary>
 /// EN: Covers extra INSERT scenarios in the SqlServer mock.
-/// PT: Cobre cenarios extras de INSERT no mock SqlServer.
+/// PT-br: Cobre cenarios extras de INSERT no mock SqlServer.
 /// </summary>
 public sealed class SqlServerInsertStrategyExtrasTests(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class SqlServerInsertStrategyExtrasTests(
 {
     /// <summary>
     /// EN: Verifies multi-row INSERT adds every row.
-    /// PT: Verifica se INSERT com multiplas linhas adiciona todas as linhas.
+    /// PT-br: Verifica se INSERT com multiplas linhas adiciona todas as linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -37,7 +37,7 @@ public sealed class SqlServerInsertStrategyExtrasTests(
 
     /// <summary>
     /// EN: Verifies INSERT applies identity and default values when columns are omitted.
-    /// PT: Verifica se INSERT aplica identidade e valores padrao quando colunas sao omitidas.
+    /// PT-br: Verifica se INSERT aplica identidade e valores padrao quando colunas sao omitidas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -69,7 +69,7 @@ public sealed class SqlServerInsertStrategyExtrasTests(
 
     /// <summary>
     /// EN: Verifies AddItem keeps omitted properties so column defaults are applied.
-    /// PT: Verifica se AddItem preserva propriedades omitidas para aplicar defaults de coluna.
+    /// PT-br: Verifica se AddItem preserva propriedades omitidas para aplicar defaults de coluna.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -94,7 +94,7 @@ public sealed class SqlServerInsertStrategyExtrasTests(
 
     /// <summary>
     /// EN: Verifies INSERT throws when the primary key already exists.
-    /// PT: Verifica se INSERT dispara erro quando a chave primaria ja existe.
+    /// PT-br: Verifica se INSERT dispara erro quando a chave primaria ja existe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -120,13 +120,13 @@ public sealed class SqlServerInsertStrategyExtrasTests(
 
 /// <summary>
 /// EN: Covers DELETE behavior when foreign keys reference the target row.
-/// PT: Cobre o comportamento de DELETE quando chaves estrangeiras referenciam a linha alvo.
+/// PT-br: Cobre o comportamento de DELETE quando chaves estrangeiras referenciam a linha alvo.
 /// </summary>
 public class SqlServerDeleteStrategyForeignKeyTests
 {
     /// <summary>
     /// EN: Verifies DELETE throws when the target row is referenced by a foreign key.
-    /// PT: Verifica se DELETE dispara erro quando a linha alvo e referenciada por uma chave estrangeira.
+    /// PT-br: Verifica se DELETE dispara erro quando a linha alvo e referenciada por uma chave estrangeira.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -160,13 +160,13 @@ public class SqlServerDeleteStrategyForeignKeyTests
 
 /// <summary>
 /// EN: Covers extra UPDATE scenarios in the SqlServer mock.
-/// PT: Cobre cenarios extras de UPDATE no mock SqlServer.
+/// PT-br: Cobre cenarios extras de UPDATE no mock SqlServer.
 /// </summary>
 public class SqlServerUpdateStrategyExtrasTests
 {
     /// <summary>
     /// EN: Verifies UPDATE only affects rows that match every condition.
-    /// PT: Verifica se UPDATE afeta apenas as linhas que correspondem a todas as condicoes.
+    /// PT-br: Verifica se UPDATE afeta apenas as linhas que correspondem a todas as condicoes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

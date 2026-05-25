@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs SQL Server fidelity tests for the shared primary-key select scenario.
-/// PT: Executa testes de fidelidade do SQL Server para o cenario compartilhado de selecao por chave primaria.
+/// PT-br: Executa testes de fidelidade do SQL Server para o cenario compartilhado de selecao por chave primaria.
 /// </summary>
 public class SelectTests(
     ITestOutputHelper helper

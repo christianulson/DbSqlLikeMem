@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Executes shared insert workflows and validates row counts for the current provider.
-/// PT: Executa fluxos compartilhados de insert e valida contagens de linhas para o provedor atual.
+/// PT-br: Executa fluxos compartilhados de insert e valida contagens de linhas para o provedor atual.
 /// </summary>
 public class InsertParameterUsersServiceTest(
         RepoService repo,
@@ -12,10 +12,10 @@ public class InsertParameterUsersServiceTest(
 {
     /// <summary>
     /// EN: Inserts the requested number of user rows and validates the final count.
-    /// PT: Insere a quantidade solicitada de linhas de usuario e valida a contagem final.
+    /// PT-br: Insere a quantidade solicitada de linhas de usuario e valida a contagem final.
     /// </summary>
-    /// <param name="args">EN: Optional row id and name for the parameter insert. PT: Id de linha e nome opcionais para o insert parametrizado.</param>
-    /// <returns>EN: The final row count. PT: A contagem final de linhas.</returns>
+    /// <param name="args">EN: Optional row id and name for the parameter insert. PT-br: Id de linha e nome opcionais para o insert parametrizado.</param>
+    /// <returns>EN: The final row count. PT-br: A contagem final de linhas.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var id = args.Length > 0 ? (int)args[0] : 1;

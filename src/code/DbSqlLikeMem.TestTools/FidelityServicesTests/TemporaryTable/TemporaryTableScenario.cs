@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.TemporaryTable;
 
 /// <summary>
 /// EN: Creates and drops the source users table used by temporary-table workflows.
-/// PT: Cria e remove a tabela fonte de usuarios usada pelos fluxos de tabela temporaria.
+/// PT-br: Cria e remove a tabela fonte de usuarios usada pelos fluxos de tabela temporaria.
 /// </summary>
 public sealed class TemporaryTableScenario(
         RepoService repo,
@@ -11,7 +11,7 @@ public sealed class TemporaryTableScenario(
 {
     /// <summary>
     /// EN: Creates the source users table and seeds the rows used by the temporary-table tests.
-    /// PT: Cria a tabela fonte de usuarios e preenche as linhas usadas pelos testes de tabela temporaria.
+    /// PT-br: Cria a tabela fonte de usuarios e preenche as linhas usadas pelos testes de tabela temporaria.
     /// </summary>
     public override async Task CreateScenarioAsync()
     {

@@ -172,6 +172,7 @@ internal static class UnionExecutionHelper
             var finalQ = new SqlSelectQuery(
                 Ctes: [],
                 Distinct: false,
+                DistinctOn: [],
                 SelectItems: [],
                 Joins: [],
                 Where: null,

@@ -60,6 +60,9 @@ internal abstract partial class AstQueryExecutorBase
         if (HasSqlCalcFoundRows(query))
             Cnn.SetLastSelectRows(result.Count);
 
+        if (query.DistinctOn.Count > 0)
+            return false;
+
         if (query.Distinct)
             result = _context.ApplyDistinct(result);
 
@@ -92,7 +95,7 @@ internal abstract partial class AstQueryExecutorBase
 
         if (query.Ctes.Count > 0
             || query.Joins.Count > 0
-            || query.Distinct
+            || query.HasDistinctClause()
             || query.GroupBy.Count > 0
             || query.Having is not null
             || query.RowLimit is not null

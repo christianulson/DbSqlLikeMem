@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Covers extended PostgreSQL mock scenarios that are shared across Dapper provider tests.
-/// PT: Cobre cenarios estendidos do mock PostgreSQL compartilhados entre testes de provedor Dapper.
+/// PT-br: Cobre cenarios estendidos do mock PostgreSQL compartilhados entre testes de provedor Dapper.
 /// </summary>
 public sealed class ExtendedPostgreSqlMockTests(
         ITestOutputHelper helper
@@ -18,7 +18,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies inserts without explicit identity values receive an auto-generated identifier.
-    /// PT: Verifica se insercoes sem valor explicito de identidade recebem um identificador gerado automaticamente.
+    /// PT-br: Verifica se insercoes sem valor explicito de identidade recebem um identificador gerado automaticamente.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -27,7 +27,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies explicit identity values are respected only when identity override is enabled for the scenario.
-    /// PT: Verifica se valores explícitos de identity são respeitados apenas quando a sobrescrita de identity está habilitada no cenário.
+    /// PT-br: Verifica se valores explícitos de identity são respeitados apenas quando a sobrescrita de identity está habilitada no cenário.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -36,7 +36,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies nextval reads and advances registered schema sequences during inserts.
-    /// PT: Verifica se nextval le e avanca sequences registradas no schema durante insercoes.
+    /// PT-br: Verifica se nextval le e avanca sequences registradas no schema durante insercoes.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -60,7 +60,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies SELECT nextval advances the registered schema sequence once per scalar evaluation.
-    /// PT: Verifica se SELECT nextval avanca a sequence registrada no schema uma vez por avaliacao escalar.
+    /// PT-br: Verifica se SELECT nextval avanca a sequence registrada no schema uma vez por avaliacao escalar.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -82,7 +82,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies schema-qualified sequences are resolved during scalar selects and inserts.
-    /// PT: Verifica se sequences qualificadas por schema sao resolvidas durante selects escalares e insercoes.
+    /// PT-br: Verifica se sequences qualificadas por schema sao resolvidas durante selects escalares e insercoes.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -107,7 +107,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies currval is session-local and only becomes available after nextval in the same connection.
-    /// PT: Verifica se currval e local da sessao e so fica disponivel apos nextval na mesma conexao.
+    /// PT-br: Verifica se currval e local da sessao e so fica disponivel apos nextval na mesma conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -137,7 +137,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies setval updates the sequence state and honors the is_called flag for the next nextval.
-    /// PT: Verifica se setval atualiza o estado da sequence e respeita a flag is_called para o proximo nextval.
+    /// PT-br: Verifica se setval atualiza o estado da sequence e respeita a flag is_called para o proximo nextval.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -171,7 +171,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies lastval returns the last sequence value produced in the current session.
-    /// PT: Verifica se lastval retorna o ultimo valor de sequence produzido na sessao atual.
+    /// PT-br: Verifica se lastval retorna o ultimo valor de sequence produzido na sessao atual.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -203,7 +203,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies setval with is_called false does not change lastval until a new nextval is executed.
-    /// PT: Verifica se setval com is_called false nao altera lastval ate que um novo nextval seja executado.
+    /// PT-br: Verifica se setval com is_called false nao altera lastval ate que um novo nextval seja executado.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -231,7 +231,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies inserts with null values succeed for nullable columns.
-    /// PT: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
+    /// PT-br: Verifica se insercoes com valores nulos funcionam para colunas anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -240,7 +240,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies inserts with null values fail for non-nullable columns.
-    /// PT: Verifica se insercoes com valores nulos falham para colunas nao anulaveis.
+    /// PT-br: Verifica se insercoes com valores nulos falham para colunas nao anulaveis.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -249,7 +249,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies composite index filters return only the expected rows.
-    /// PT: Verifica se filtros por indice composto retornam apenas as linhas esperadas.
+    /// PT-br: Verifica se filtros por indice composto retornam apenas as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -258,7 +258,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies LIKE filters return the matching rows.
-    /// PT: Verifica se filtros LIKE retornam as linhas correspondentes.
+    /// PT-br: Verifica se filtros LIKE retornam as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -267,7 +267,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies IN filters return the matching rows.
-    /// PT: Verifica se filtros IN retornam as linhas correspondentes.
+    /// PT-br: Verifica se filtros IN retornam as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -276,7 +276,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies distinct pagination returns the expected ordered page of rows.
-    /// PT: Verifica se a paginacao com distinct retorna a pagina ordenada esperada de linhas.
+    /// PT-br: Verifica se a paginacao com distinct retorna a pagina ordenada esperada de linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -285,7 +285,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies HAVING filters are applied after aggregation results are produced.
-    /// PT: Verifica se filtros HAVING sao aplicados depois que os resultados agregados sao produzidos.
+    /// PT-br: Verifica se filtros HAVING sao aplicados depois que os resultados agregados sao produzidos.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -294,7 +294,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies deleting a parent row fails when child rows still reference it.
-    /// PT: Verifica se excluir uma linha pai falha quando linhas filhas ainda a referenciam.
+    /// PT-br: Verifica se excluir uma linha pai falha quando linhas filhas ainda a referenciam.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -303,7 +303,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies deleting a referenced parent row without a primary key still fails.
-    /// PT: Verifica se excluir uma linha pai referenciada sem chave primaria ainda falha.
+    /// PT-br: Verifica se excluir uma linha pai referenciada sem chave primaria ainda falha.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]
@@ -312,7 +312,7 @@ public sealed class ExtendedPostgreSqlMockTests(
 
     /// <summary>
     /// EN: Verifies multiple parameter sets in one insert command add all expected rows.
-    /// PT: Verifica se multiplos conjuntos de parametros em um comando de insercao adicionam todas as linhas esperadas.
+    /// PT-br: Verifica se multiplos conjuntos de parametros em um comando de insercao adicionam todas as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "ExtendedPostgreSqlMock")]

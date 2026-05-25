@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 
 /// <summary>
 /// EN: Covers UPDATE statements in the SqlServer mock.
-/// PT: Cobre instrucoes UPDATE no mock SqlServer.
+/// PT-br: Cobre instrucoes UPDATE no mock SqlServer.
 /// </summary>
 public sealed class SqlServerUpdateStrategyTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlServerUpdateStrategyTests(
 {
     /// <summary>
     /// EN: Verifies UPDATE modifies an existing row.
-    /// PT: Verifica se UPDATE modifica uma linha existente.
+    /// PT-br: Verifica se UPDATE modifica uma linha existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -39,7 +39,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE returns zero when no rows match the WHERE clause.
-    /// PT: Verifica se UPDATE retorna zero quando nenhuma linha corresponde ao WHERE.
+    /// PT-br: Verifica se UPDATE retorna zero quando nenhuma linha corresponde ao WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -65,7 +65,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE affects every matching row.
-    /// PT: Verifica se UPDATE afeta todas as linhas correspondentes.
+    /// PT-br: Verifica se UPDATE afeta todas as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -94,7 +94,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE matches case-insensitive AND conditions.
-    /// PT: Verifica se UPDATE combina condicoes AND sem diferenciar maiusculas e minusculas.
+    /// PT-br: Verifica se UPDATE combina condicoes AND sem diferenciar maiusculas e minusculas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -123,7 +123,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE applies multiple SET assignments.
-    /// PT: Verifica se UPDATE aplica multiplas atribuicoes SET.
+    /// PT-br: Verifica se UPDATE aplica multiplas atribuicoes SET.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -149,7 +149,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE parsing is case-insensitive for UPDATE, SET, and WHERE keywords.
-    /// PT: Verifica se o parsing de UPDATE nao diferencia maiusculas e minusculas para as palavras UPDATE, SET e WHERE.
+    /// PT-br: Verifica se o parsing de UPDATE nao diferencia maiusculas e minusculas para as palavras UPDATE, SET e WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -174,7 +174,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE works in thread-safe and non-thread-safe mode.
-    /// PT: Verifica se UPDATE funciona em modo thread-safe e nao thread-safe.
+    /// PT-br: Verifica se UPDATE funciona em modo thread-safe e nao thread-safe.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -201,7 +201,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE throws when the table does not exist.
-    /// PT: Verifica se UPDATE dispara erro quando a tabela nao existe.
+    /// PT-br: Verifica se UPDATE dispara erro quando a tabela nao existe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -220,7 +220,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE throws when the statement does not contain UPDATE.
-    /// PT: Verifica se UPDATE dispara erro quando a instrucoes nao contem UPDATE.
+    /// PT-br: Verifica se UPDATE dispara erro quando a instrucoes nao contem UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -242,7 +242,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE preserves non-overridable generated columns.
-    /// PT: Verifica se UPDATE preserva colunas geradas que nao podem ser sobrescritas.
+    /// PT-br: Verifica se UPDATE preserva colunas geradas que nao podem ser sobrescritas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -268,7 +268,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Verifies UPDATE resolves parameters when the SQL value helper supports them.
-    /// PT: Verifica se UPDATE resolve parametros quando o helper de valores SQL oferece suporte.
+    /// PT-br: Verifica se UPDATE resolve parametros quando o helper de valores SQL oferece suporte.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -303,7 +303,7 @@ public sealed class SqlServerUpdateStrategyTests(
     //
     /// <summary>
     /// EN: Verifies UPDATE throws when a unique index would be violated.
-    /// PT: Verifica se UPDATE dispara erro quando um indice unico seria violado.
+    /// PT-br: Verifica se UPDATE dispara erro quando um indice unico seria violado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -331,7 +331,7 @@ public sealed class SqlServerUpdateStrategyTests(
 
     /// <summary>
     /// EN: Recomputes persisted generated columns during update and preserves unique index consistency.
-    /// PT: Recalcula colunas geradas persistidas durante update e preserva a consistência de índices únicos.
+    /// PT-br: Recalcula colunas geradas persistidas durante update e preserva a consistência de índices únicos.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

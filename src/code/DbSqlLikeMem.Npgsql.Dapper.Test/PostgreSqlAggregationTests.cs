@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Runs shared aggregation/HAVING scenarios for PostgreSQL and keeps PostgreSQL-specific coverage.
-/// PT: Executa cenários compartilhados de agregação/HAVING para PostgreSQL e mantém cobertura específica de PostgreSQL.
+/// PT-br: Executa cenários compartilhados de agregação/HAVING para PostgreSQL e mantém cobertura específica de PostgreSQL.
 /// </summary>
 /// <remarks>
 /// EN: Creates the PostgreSQL aggregation test suite helper.
-/// PT: Cria o helper da suite de testes de agregacao do PostgreSQL.
+/// PT-br: Cria o helper da suite de testes de agregacao do PostgreSQL.
 /// </remarks>
-/// <param name="helper">EN: Output helper. PT: Helper de saída.</param>
+/// <param name="helper">EN: Output helper. PT-br: Helper de saída.</param>
 public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : AggregationHavingOrdinalTestsBase<NpgsqlDbMock, NpgsqlConnectionMock>(helper)
 {
 
@@ -23,7 +23,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Verifies DISTINCT ordering with pagination returns the expected rows.
-    /// PT: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
+    /// PT-br: Verifica se a ordenacao DISTINCT com paginacao retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -34,7 +34,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Verifies string aggregation with a custom separator returns the expected rows.
-    /// PT: Verifica se a agregacao textual com separador customizado retorna as linhas esperadas.
+    /// PT-br: Verifica se a agregacao textual com separador customizado retorna as linhas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -53,7 +53,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures mixed projection with string aggregation and NULL literal works consistently.
-    /// PT: Garante que projeção mista com agregação textual e literal NULL funcione de forma consistente.
+    /// PT-br: Garante que projeção mista com agregação textual e literal NULL funcione de forma consistente.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -72,7 +72,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CASE projection returning NULL stays stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE retornando NULL permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE retornando NULL permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -92,7 +92,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CASE projection with mixed text/NULL branches remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE com ramos mistos texto/NULL permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE com ramos mistos texto/NULL permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -112,7 +112,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures multi-branch CASE projection remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE de múltiplos ramos permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE de múltiplos ramos permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -135,7 +135,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures numeric multi-branch CASE projection remains stable with grouped string aggregation.
-    /// PT: Garante que projeção CASE numérica multibranch permaneça estável com agregação textual agrupada.
+    /// PT-br: Garante que projeção CASE numérica multibranch permaneça estável com agregação textual agrupada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -158,7 +158,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures string aggregation with DISTINCT ignores NULL values and deduplicates text.
-    /// PT: Garante que agregação textual com DISTINCT ignore NULL e remova duplicidade de texto.
+    /// PT-br: Garante que agregação textual com DISTINCT ignore NULL e remova duplicidade de texto.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -170,7 +170,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures ordered-set syntax WITHIN GROUP applies ORDER BY to string aggregation output.
-    /// PT: Garante que a sintaxe ordered-set WITHIN GROUP aplique ORDER BY na saída da agregação textual.
+    /// PT-br: Garante que a sintaxe ordered-set WITHIN GROUP aplique ORDER BY na saída da agregação textual.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -181,7 +181,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures WITHIN GROUP ascending order is applied by string aggregation.
-    /// PT: Garante que a ordenação ascendente do WITHIN GROUP seja aplicada na agregação textual.
+    /// PT-br: Garante que a ordenação ascendente do WITHIN GROUP seja aplicada na agregação textual.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -192,7 +192,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures WITHIN GROUP supports composite ORDER BY expressions.
-    /// PT: Garante que WITHIN GROUP suporte expressões compostas no ORDER BY.
+    /// PT-br: Garante que WITHIN GROUP suporte expressões compostas no ORDER BY.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -203,7 +203,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures DISTINCT respects WITHIN GROUP ordering semantics.
-    /// PT: Garante que DISTINCT respeite a semântica de ordenação do WITHIN GROUP.
+    /// PT-br: Garante que DISTINCT respeite a semântica de ordenação do WITHIN GROUP.
     /// </summary>
     [Fact]
     [Trait("Category", "Aggregation")]
@@ -215,7 +215,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in WHERE filter and projection.
-    /// PT: Garante que função temporal sem argumentos funcione em filtro WHERE e projeção.
+    /// PT-br: Garante que função temporal sem argumentos funcione em filtro WHERE e projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -232,7 +232,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE and CURRENT_TIME tokens work in WHERE filter and projection.
-    /// PT: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em filtro WHERE e projeção.
+    /// PT-br: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em filtro WHERE e projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -249,7 +249,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE and CURRENT_TIME tokens work in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que tokens CURRENT_DATE e CURRENT_TIME funcionem em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -272,7 +272,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures NOW() call-style temporal function works in WHERE filter and projection.
-    /// PT: Garante que função temporal NOW() (call-style) funcione em filtro WHERE e projeção.
+    /// PT-br: Garante que função temporal NOW() (call-style) funcione em filtro WHERE e projeção.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -286,7 +286,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in INSERT values and can be read back.
-    /// PT: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
+    /// PT-br: Garante que função temporal sem argumentos funcione em valores de INSERT e possa ser lida depois.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -304,7 +304,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in UPDATE set expression.
-    /// PT: Garante que função temporal sem argumentos funcione em expressão de UPDATE.
+    /// PT-br: Garante que função temporal sem argumentos funcione em expressão de UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -322,7 +322,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures zero-arg temporal function works in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que função temporal sem argumentos funcione em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -346,7 +346,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures NOW() call-style temporal function works in HAVING and ORDER BY grouped queries.
-    /// PT: Garante que função temporal NOW() (call-style) funcione em HAVING e ORDER BY com agrupamento.
+    /// PT-br: Garante que função temporal NOW() (call-style) funcione em HAVING e ORDER BY com agrupamento.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -367,7 +367,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures NOW() call-style temporal function keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que a função temporal NOW() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que a função temporal NOW() (call-style) mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -405,7 +405,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que o token CURRENT_DATE mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que o token CURRENT_DATE mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -443,7 +443,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CURRENT_TIME token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que o token CURRENT_TIME mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que o token CURRENT_TIME mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -481,7 +481,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CURRENT_TIMESTAMP token keeps consistent behavior across SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
-    /// PT: Garante que o token CURRENT_TIMESTAMP mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
+    /// PT-br: Garante que o token CURRENT_TIMESTAMP mantenha comportamento consistente em SELECT/WHERE/HAVING/ORDER BY/INSERT/UPDATE.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -519,7 +519,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures unsupported temporal function from another dialect reports a clear error message.
-    /// PT: Garante que função temporal de outro dialeto gere mensagem de erro clara.
+    /// PT-br: Garante que função temporal de outro dialeto gere mensagem de erro clara.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -536,7 +536,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures token-only temporal function called with parentheses reports clear error.
-    /// PT: Garante que função temporal no formato token chamada com parênteses gere erro claro.
+    /// PT-br: Garante que função temporal no formato token chamada com parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -552,7 +552,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CURRENT_DATE token called with parentheses reports clear error.
-    /// PT: Garante que o token CURRENT_DATE chamado com parênteses gere erro claro.
+    /// PT-br: Garante que o token CURRENT_DATE chamado com parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -567,7 +567,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures CURRENT_TIME token called with parentheses reports clear error.
-    /// PT: Garante que o token CURRENT_TIME chamado com parênteses gere erro claro.
+    /// PT-br: Garante que o token CURRENT_TIME chamado com parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]
@@ -583,7 +583,7 @@ public sealed class PostgreSqlAggregationTests(ITestOutputHelper helper) : Aggre
 
     /// <summary>
     /// EN: Ensures call-only temporal function used without parentheses reports clear error.
-    /// PT: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
+    /// PT-br: Garante que função temporal apenas-invocável usada sem parênteses gere erro claro.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlAggregation")]

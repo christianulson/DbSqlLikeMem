@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Executes the MariaDB RETURNING insert workflow and validates the returned row count.
-/// PT: Executa o fluxo INSERT RETURNING do MariaDB e valida a contagem de linhas retornadas.
+/// PT-br: Executa o fluxo INSERT RETURNING do MariaDB e valida a contagem de linhas retornadas.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,7 +14,7 @@ public class BatchInsertReturningServiceTest(
 {
     /// <summary>
     /// EN: Executes the MariaDB RETURNING insert workflow and validates the returned row count.
-    /// PT: Executa o fluxo INSERT RETURNING do MariaDB e valida a contagem de linhas retornadas.
+    /// PT-br: Executa o fluxo INSERT RETURNING do MariaDB e valida a contagem de linhas retornadas.
     /// </summary>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {

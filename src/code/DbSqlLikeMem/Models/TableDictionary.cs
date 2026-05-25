@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Implements a table dictionary with case-insensitive comparison.
-/// PT: Implementa um dicionário de tabelas com comparação case-insensitive.
+/// PT-br: Implementa um dicionário de tabelas com comparação case-insensitive.
 /// </summary>
 public class TableDictionary
     : Dictionary<string, ITableMock>,
@@ -10,7 +10,7 @@ public class TableDictionary
 {
     /// <summary>
     /// EN: Creates an empty table dictionary.
-    /// PT: Cria um dicionário de tabelas vazio.
+    /// PT-br: Cria um dicionário de tabelas vazio.
     /// </summary>
     public TableDictionary()
         : base(StringComparer.OrdinalIgnoreCase)
@@ -19,9 +19,9 @@ public class TableDictionary
 
     /// <summary>
     /// EN: Creates a table dictionary from another set.
-    /// PT: Cria um dicionário de tabelas a partir de outro conjunto.
+    /// PT-br: Cria um dicionário de tabelas a partir de outro conjunto.
     /// </summary>
-    /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>
+    /// <param name="tables">EN: Initial tables. PT-br: Tabelas iniciais.</param>
     public TableDictionary(
         IDictionary<string, ITableMock>? tables)
     : base(StringComparer.OrdinalIgnoreCase)

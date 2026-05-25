@@ -4,28 +4,28 @@ internal static class NpgsqlExceptionFactory
 {
     /// <summary>
     /// EN: Implements DuplicateKey.
-    /// PT: Implementa DuplicateKey.
+    /// PT-br: Implementa DuplicateKey.
     /// </summary>
     public static Exception DuplicateKey(string tbl, string key, object? val)
     => new NpgsqlMockException(SqlExceptionMessages.DuplicateKey(val, key), 1062);
 
     /// <summary>
     /// EN: Implements UnknownColumn.
-    /// PT: Implementa UnknownColumn.
+    /// PT-br: Implementa UnknownColumn.
     /// </summary>
     public static Exception UnknownColumn(string col)
         => new NpgsqlMockException(SqlExceptionMessages.UnknownColumn(col), 1054);
 
     /// <summary>
     /// EN: Implements ColumnCannotBeNull.
-    /// PT: Implementa ColumnCannotBeNull.
+    /// PT-br: Implementa ColumnCannotBeNull.
     /// </summary>
     public static Exception ColumnCannotBeNull(string col)
         => new NpgsqlMockException(SqlExceptionMessages.ColumnCannotBeNull(col), 1048);
 
     /// <summary>
     /// EN: Implements ForeignKeyFails.
-    /// PT: Implementa ForeignKeyFails.
+    /// PT-br: Implementa ForeignKeyFails.
     /// </summary>
     public static Exception ForeignKeyFails(string col, string refTbl)
         => new NpgsqlMockException(
@@ -33,7 +33,7 @@ internal static class NpgsqlExceptionFactory
 
     /// <summary>
     /// EN: Implements ReferencedRow.
-    /// PT: Implementa ReferencedRow.
+    /// PT-br: Implementa ReferencedRow.
     /// </summary>
     public static Exception ReferencedRow(string tbl)
         => new NpgsqlMockException(

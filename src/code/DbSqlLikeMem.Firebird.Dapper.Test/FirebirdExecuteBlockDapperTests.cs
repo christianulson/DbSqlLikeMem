@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Firebird.Dapper.Test;
+namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird EXECUTE BLOCK scenarios through the Dapper-facing provider surface.
-/// PT: Cobre cenarios de EXECUTE BLOCK pela surface do provedor exposta ao Dapper.
+/// PT-br: Cobre cenarios de EXECUTE BLOCK pela surface do provedor exposta ao Dapper.
 /// </summary>
 public sealed class FirebirdExecuteBlockDapperTests(
     ITestOutputHelper helper
@@ -32,7 +32,7 @@ public sealed class FirebirdExecuteBlockDapperTests(
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK inserts rows through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK insere linhas pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK insere linhas pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -62,7 +62,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can create a stored procedure through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK pode criar uma stored procedure pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK pode criar uma stored procedure pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -88,7 +88,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK ignores SUSPEND statements through the Dapper surface while still executing supported SQL.
-    /// PT: Verifica se EXECUTE BLOCK ignora instrucoes SUSPEND pela surface Dapper enquanto ainda executa SQL suportado.
+    /// PT-br: Verifica se EXECUTE BLOCK ignora instrucoes SUSPEND pela surface Dapper enquanto ainda executa SQL suportado.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -116,7 +116,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK stops after EXIT through the Dapper surface while keeping earlier SQL changes.
-    /// PT: Verifica se EXECUTE BLOCK para apos EXIT pela surface Dapper mantendo as alteracoes SQL anteriores.
+    /// PT-br: Verifica se EXECUTE BLOCK para apos EXIT pela surface Dapper mantendo as alteracoes SQL anteriores.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -145,7 +145,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes a simple EXECUTE STATEMENT payload through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK executa uma carga simples de EXECUTE STATEMENT pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK executa uma carga simples de EXECUTE STATEMENT pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -172,7 +172,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK assigns the first row returned by EXECUTE STATEMENT through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK atribui a primeira linha retornada por EXECUTE STATEMENT pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK atribui a primeira linha retornada por EXECUTE STATEMENT pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -203,7 +203,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes parameterized EXECUTE STATEMENT payloads with Firebird clauses through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK executa cargas parametrizadas de EXECUTE STATEMENT com clausulas Firebird pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK executa cargas parametrizadas de EXECUTE STATEMENT com clausulas Firebird pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -231,7 +231,7 @@ END
 
     /// <summary>
     /// EN: Verifies autonomous EXECUTE STATEMENT changes survive a rollback on the outer Dapper transaction.
-    /// PT: Verifica se alteracoes autonomas de EXECUTE STATEMENT sobrevivem ao rollback da transacao externa Dapper.
+    /// PT-br: Verifica se alteracoes autonomas de EXECUTE STATEMENT sobrevivem ao rollback da transacao externa Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -263,7 +263,7 @@ END
 
     /// <summary>
     /// EN: Verifies common-transaction EXECUTE STATEMENT changes stay attached to the outer Dapper transaction.
-    /// PT: Verifica se alteracoes de EXECUTE STATEMENT com transacao comum permanecem ligadas à transacao externa Dapper.
+    /// PT-br: Verifica se alteracoes de EXECUTE STATEMENT com transacao comum permanecem ligadas à transacao externa Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -295,7 +295,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN ANY DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN ANY DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN ANY DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -327,7 +327,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN SQLCODE DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN SQLCODE DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN SQLCODE DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -362,7 +362,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using the Firebird SQLCODE -803 form through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando a forma Firebird SQLCODE -803 pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando a forma Firebird SQLCODE -803 pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -397,7 +397,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can resolve a comma-separated WHEN SQLCODE selector list through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN SQLCODE separada por virgula pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN SQLCODE separada por virgula pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -432,7 +432,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN GDSCODE DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN GDSCODE DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN GDSCODE DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -467,7 +467,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a specific WHEN SQLCODE &lt;code&gt; DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN SQLCODE &lt;codigo&gt; DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN SQLCODE &lt;codigo&gt; DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -502,7 +502,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a specific WHEN GDSCODE &lt;name&gt; DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN GDSCODE &lt;nome&gt; DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler especifico WHEN GDSCODE &lt;nome&gt; DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -537,7 +537,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -572,7 +572,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN SQLSTATE '23000' DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN SQLSTATE '23000' DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN SQLSTATE '23000' DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -607,7 +607,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN SQLSTATE '23000' DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN SQLSTATE '23000' DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN SQLSTATE '23000' DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -651,7 +651,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_violation DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -686,7 +686,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_violation DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_violation DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -721,7 +721,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a duplicate-key error using a specific WHEN GDSCODE primary_key_exists DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_exists DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave duplicada usando um handler especifico WHEN GDSCODE primary_key_exists DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -756,7 +756,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -800,7 +800,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key_violation DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -844,7 +844,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a foreign-key error using a specific WHEN GDSCODE foreign_key_violation DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de chave estrangeira usando um handler especifico WHEN GDSCODE foreign_key_violation DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -888,7 +888,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE not_null_violation DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE not_null_violation DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE not_null_violation DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -920,7 +920,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a referenced-row error using a specific WHEN GDSCODE referenced_row DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de linha referenciada usando um handler especifico WHEN GDSCODE referenced_row DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de linha referenciada usando um handler especifico WHEN GDSCODE referenced_row DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -965,7 +965,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE column_cannot_be_null DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -997,7 +997,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from a not-null error using a specific WHEN GDSCODE column_cannot_be_null DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro de not null usando um handler especifico WHEN GDSCODE column_cannot_be_null DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1029,7 +1029,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can resolve a comma-separated WHEN GDSCODE selector list through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN GDSCODE separada por virgula pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue resolver uma lista de seletores WHEN GDSCODE separada por virgula pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1061,7 +1061,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK keeps the first matching WHEN handler when multiple handlers are present through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK preserva o primeiro handler WHEN correspondente quando ha varios handlers pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK preserva o primeiro handler WHEN correspondente quando ha varios handlers pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1101,7 +1101,7 @@ END;
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can recover from an error using a WHEN EXCEPTION &lt;name&gt; DO handler through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN EXCEPTION &lt;nome&gt; DO pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK consegue se recuperar de um erro usando um handler WHEN EXCEPTION &lt;nome&gt; DO pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1136,7 +1136,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK does not match WHEN EXCEPTION handlers with a different logical name through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK nao corresponde a handlers WHEN EXCEPTION com nome logico diferente pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK nao corresponde a handlers WHEN EXCEPTION com nome logico diferente pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1169,7 +1169,7 @@ END
 
     /// <summary>
     /// EN: Verifies ON EXTERNAL DATA SOURCE is preserved on the cloned external connection through the Dapper surface.
-    /// PT: Verifica se ON EXTERNAL DATA SOURCE e preservado na conexao externa clonada pela surface Dapper.
+    /// PT-br: Verifica se ON EXTERNAL DATA SOURCE e preservado na conexao externa clonada pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1207,7 +1207,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts Firebird external EXECUTE STATEMENT clauses through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK aceita clausulas externas do EXECUTE STATEMENT do Firebird pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita clausulas externas do EXECUTE STATEMENT do Firebird pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1240,7 +1240,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE STATEMENT external user and role clauses affect Firebird context values through the Dapper surface.
-    /// PT: Verifica se as clausulas externas de usuario e role do EXECUTE STATEMENT afetam os valores de contexto Firebird pela surface Dapper.
+    /// PT-br: Verifica se as clausulas externas de usuario e role do EXECUTE STATEMENT afetam os valores de contexto Firebird pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1276,7 +1276,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE STATEMENT accepts Firebird option clauses in different orders through the Dapper surface.
-    /// PT: Verifica se EXECUTE STATEMENT aceita clausulas de opcao do Firebird em ordens diferentes pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE STATEMENT aceita clausulas de opcao do Firebird em ordens diferentes pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1309,7 +1309,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK resolves declared input parameters through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK resolve parametros de entrada declarados pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK resolve parametros de entrada declarados pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1338,7 +1338,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK can assign RETURNS variables and reuse them later through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK pode atribuir variaveis de RETURNS e reutiliza-las depois pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK pode atribuir variaveis de RETURNS e reutiliza-las depois pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1369,7 +1369,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK executes nested BEGIN ... END compound statements through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK executa blocos compostos BEGIN ... END aninhados pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK executa blocos compostos BEGIN ... END aninhados pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1403,7 +1403,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates IF ... THEN ... ELSE blocks through the Dapper surface and uses the selected branch output.
-    /// PT: Verifica se EXECUTE BLOCK avalia blocos IF ... THEN ... ELSE pela surface Dapper e usa a saida do ramo selecionado.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia blocos IF ... THEN ... ELSE pela surface Dapper e usa a saida do ramo selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1442,7 +1442,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates WHILE loops through the Dapper surface and keeps loop variables scoped across iterations.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops WHILE pela surface Dapper e mantem variaveis do loop no escopo entre iteracoes.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops WHILE pela surface Dapper e mantem variaveis do loop no escopo entre iteracoes.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1479,7 +1479,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK stops a WHILE loop when LEAVE is reached through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK interrompe um loop WHILE quando LEAVE e alcancado pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK interrompe um loop WHILE quando LEAVE e alcancado pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1519,7 +1519,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates FOR SELECT loops through the Dapper surface and assigns selected values to scoped variables.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops FOR SELECT pela surface Dapper e atribui os valores selecionados a variaveis no escopo.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops FOR SELECT pela surface Dapper e atribui os valores selecionados a variaveis no escopo.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1560,7 +1560,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates FOR EXECUTE STATEMENT loops through the Dapper surface and assigns selected values to scoped variables.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT pela surface Dapper e atribui os valores selecionados a variaveis no escopo.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT pela surface Dapper e atribui os valores selecionados a variaveis no escopo.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1601,7 +1601,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts AS CURSOR on FOR EXECUTE STATEMENT loops through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR EXECUTE STATEMENT pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita AS CURSOR em loops FOR EXECUTE STATEMENT pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1642,7 +1642,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK evaluates FOR EXECUTE STATEMENT loops with named parameters through the Dapper surface and assigns selected values to scoped variables.
-    /// PT: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT com parametros nomeados pela surface Dapper e atribui os valores selecionados a variaveis no escopo.
+    /// PT-br: Verifica se EXECUTE BLOCK avalia loops FOR EXECUTE STATEMENT com parametros nomeados pela surface Dapper e atribui os valores selecionados a variaveis no escopo.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1682,7 +1682,7 @@ END
 
     /// <summary>
     /// EN: Verifies EXECUTE BLOCK accepts FOR EXECUTE STATEMENT with caller privileges clauses through the Dapper surface.
-    /// PT: Verifica se EXECUTE BLOCK aceita FOR EXECUTE STATEMENT com clausulas de caller privileges pela surface Dapper.
+    /// PT-br: Verifica se EXECUTE BLOCK aceita FOR EXECUTE STATEMENT com clausulas de caller privileges pela surface Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -1723,7 +1723,7 @@ END
 
     /// <summary>
     /// EN: Verifies FOR EXECUTE STATEMENT preserves the external connection string details through the cloned Dapper connection.
-    /// PT: Verifica se FOR EXECUTE STATEMENT preserva os detalhes da connection string externa pela conexao clonada Dapper.
+    /// PT-br: Verifica se FOR EXECUTE STATEMENT preserva os detalhes da connection string externa pela conexao clonada Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]

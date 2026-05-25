@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers Firebird temporary table parsing scenarios in the mock dialect.
-/// PT: Cobre cenarios de parsing de tabela temporaria Firebird no dialeto simulado.
+/// PT-br: Cobre cenarios de parsing de tabela temporaria Firebird no dialeto simulado.
 /// </summary>
 public sealed class FirebirdTemporaryTableParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdTemporaryTableParserTests(
 {
     /// <summary>
     /// EN: Verifies CREATE TEMPORARY TABLE followed by SELECT is parsed as two statements.
-    /// PT: Verifica se CREATE TEMPORARY TABLE seguido de SELECT e parsed como duas instrucoes.
+    /// PT-br: Verifica se CREATE TEMPORARY TABLE seguido de SELECT e parsed como duas instrucoes.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]
@@ -39,7 +39,7 @@ SELECT * FROM tmp_users;
 
     /// <summary>
     /// EN: Verifies supported CREATE TEMPORARY TABLE variants parse successfully.
-    /// PT: Verifica se variantes suportadas de CREATE TEMPORARY TABLE sao parsed com sucesso.
+    /// PT-br: Verifica se variantes suportadas de CREATE TEMPORARY TABLE sao parsed com sucesso.
     /// </summary>
     [Theory]
     [InlineData("CREATE TEMPORARY TABLE IF NOT EXISTS tmp_users AS SELECT id FROM users")]
@@ -66,7 +66,7 @@ WHERE tenantid = 10
 
     /// <summary>
     /// EN: Verifies DROP TEMPORARY TABLE IF EXISTS parses as a temporary drop.
-    /// PT: Verifica se DROP TEMPORARY TABLE IF EXISTS e parsed como uma remocao temporaria.
+    /// PT-br: Verifica se DROP TEMPORARY TABLE IF EXISTS e parsed como uma remocao temporaria.
     /// </summary>
     [Fact]
     [Trait("Category", "TemporaryTable")]

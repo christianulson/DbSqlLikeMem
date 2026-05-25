@@ -2,12 +2,12 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Temporary index definition record used during parsing.
-/// PT: Registro temporario de definicao de indice usado durante o parsing.
+/// PT-br: Registro temporario de definicao de indice usado durante o parsing.
 /// </summary>
-/// <param name="Name">EN: Index name. PT: Nome do indice.</param>
-/// <param name="KeyCols">EN: Key columns. PT: Colunas chaves.</param>
-/// <param name="Unique">EN: Is unique. PT: E unico.</param>
-/// <param name="Include">EN: Included columns. PT: Colunas incluidas.</param>
+/// <param name="Name">EN: Index name. PT-br: Nome do indice.</param>
+/// <param name="KeyCols">EN: Key columns. PT-br: Colunas chaves.</param>
+/// <param name="Unique">EN: Is unique. PT-br: E unico.</param>
+/// <param name="Include">EN: Included columns. PT-br: Colunas incluidas.</param>
 public sealed record Idx(
     string Name,
     IReadOnlyList<string> KeyCols,
@@ -17,19 +17,19 @@ public sealed record Idx(
 
 /// <summary>
 /// EN: Represents an index definition, including key columns and uniqueness.
-/// PT: Representa a definição de um índice, incluindo colunas-chave e unicidade.
+/// PT-br: Representa a definição de um índice, incluindo colunas-chave e unicidade.
 /// </summary>
 public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>
 {
     /// <summary>
     /// EN: Initializes the index definition.
-    /// PT: Inicializa a definição do índice.
+    /// PT-br: Inicializa a definição do índice.
     /// </summary>
-    /// <param name="table">EN: Parent table. PT: Tabela pai.</param>
-    /// <param name="name">EN: Index name. PT: Nome do índice.</param>
-    /// <param name="keyCols">EN: Index key columns. PT: Colunas chave do índice.</param>
-    /// <param name="include">EN: Additional included columns. PT: Colunas incluídas adicionais.</param>
-    /// <param name="unique">EN: Whether the index is unique. PT: Indica se o índice é único.</param>
+    /// <param name="table">EN: Parent table. PT-br: Tabela pai.</param>
+    /// <param name="name">EN: Index name. PT-br: Nome do índice.</param>
+    /// <param name="keyCols">EN: Index key columns. PT-br: Colunas chave do índice.</param>
+    /// <param name="include">EN: Additional included columns. PT-br: Colunas incluídas adicionais.</param>
+    /// <param name="unique">EN: Whether the index is unique. PT-br: Indica se o índice é único.</param>
     internal IndexDef(
         ITableMock table,
         string name,
@@ -50,31 +50,31 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Parent table.
-    /// PT: Tabela pai.
+    /// PT-br: Tabela pai.
     /// </summary>
     public ITableMock Table { get; private set; }
 
     /// <summary>
     /// EN: Gets the index name.
-    /// PT: Obtém o nome do índice.
+    /// PT-br: Obtém o nome do índice.
     /// </summary>
     public string Name { get; }
 
     /// <summary>
     /// EN: Gets the columns that compose the index key.
-    /// PT: Obtém as colunas que compõem a chave do índice.
+    /// PT-br: Obtém as colunas que compõem a chave do índice.
     /// </summary>
     public IReadOnlyList<string> KeyCols { get; }
 
     /// <summary>
     /// EN: Indicates whether the index is unique.
-    /// PT: Indica se o índice é único.
+    /// PT-br: Indica se o índice é único.
     /// </summary>
     public bool Unique { get; }
 
     /// <summary>
     /// EN: Gets columns included in the index that are not part of the key.
-    /// PT: Obtém colunas incluídas no índice, mas não fazem parte da chave.
+    /// PT-br: Obtém colunas incluídas no índice, mas não fazem parte da chave.
     /// </summary>
     public IReadOnlyList<string> Include { get; }
 
@@ -194,7 +194,7 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Gets an enumerable collection that contains the keys in the read-only dictionary.
-    /// PT: Obtem uma colecao enumeravel que contem as chaves no dicionario somente leitura.
+    /// PT-br: Obtem uma colecao enumeravel que contem as chaves no dicionario somente leitura.
     /// </summary>
     public IEnumerable<IndexKey> Keys
     {
@@ -207,7 +207,7 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Gets an enumerable collection that contains the values in the read-only dictionary.
-    /// PT: Obtem uma colecao enumeravel que contem os valores no dicionario somente leitura.
+    /// PT-br: Obtem uma colecao enumeravel que contem os valores no dicionario somente leitura.
     /// </summary>
     public IEnumerable<IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>> Values
     {
@@ -221,7 +221,7 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Gets the number of elements in the collection.
-    /// PT: Obtem o numero de elementos na colecao.
+    /// PT-br: Obtem o numero de elementos na colecao.
     /// </summary>
     public int Count
     {
@@ -234,9 +234,9 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Gets the element that has the specified key in the read-only dictionary.
-    /// PT: Obtem o elemento que tem a chave especificada no dicionario somente leitura.
+    /// PT-br: Obtem o elemento que tem a chave especificada no dicionario somente leitura.
     /// </summary>
-    /// <param name="key">EN: The key to locate. PT: A chave para localizar.</param>
+    /// <param name="key">EN: The key to locate. PT-br: A chave para localizar.</param>
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> this[IndexKey key]
     {
         get
@@ -248,9 +248,9 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Determines whether the read-only dictionary contains an element that has the specified key.
-    /// PT: Determina se o dicionario somente leitura contem um elemento que tem a chave especificada.
+    /// PT-br: Determina se o dicionario somente leitura contem um elemento que tem a chave especificada.
     /// </summary>
-    /// <param name="key">EN: The key to locate. PT: A chave para localizar.</param>
+    /// <param name="key">EN: The key to locate. PT-br: A chave para localizar.</param>
     public bool ContainsKey(IndexKey key)
     {
         EnsureReady();
@@ -259,10 +259,10 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Gets the value that is associated with the specified key.
-    /// PT: Obtem o valor que esta associado a chave especificada.
+    /// PT-br: Obtem o valor que esta associado a chave especificada.
     /// </summary>
-    /// <param name="key">EN: The key to locate. PT: A chave para localizar.</param>
-    /// <param name="value">EN: The output value. PT: O valor de saida.</param>
+    /// <param name="key">EN: The key to locate. PT-br: A chave para localizar.</param>
+    /// <param name="value">EN: The output value. PT-br: O valor de saida.</param>
     public bool TryGetValue(IndexKey key, out IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>> value)
     {
         EnsureReady();
@@ -277,7 +277,7 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Returns an enumerator that iterates through the collection.
-    /// PT: Retorna um enumerador que itera atraves da colecao.
+    /// PT-br: Retorna um enumerador que itera atraves da colecao.
     /// </summary>
     public IEnumerator<KeyValuePair<IndexKey, IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>>> GetEnumerator()
     {
@@ -473,10 +473,10 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Looks up values in the index using the given key.
-    /// PT: Procura valores no índice usando a chave informada.
+    /// PT-br: Procura valores no índice usando a chave informada.
     /// </summary>
-    /// <param name="key">EN: Key to search. PT: Chave a buscar.</param>
-    /// <returns>EN: List of positions or null. PT: Lista de posições ou null.</returns>
+    /// <param name="key">EN: Key to search. PT-br: Chave a buscar.</param>
+    /// <returns>EN: List of positions or null. PT-br: Lista de posições ou null.</returns>
     public IReadOnlyDictionary<int, IReadOnlyDictionary<string, object?>>? Lookup(IndexKey key)
     {
         EnsureReady();
@@ -497,10 +497,10 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Updates the index with a new row.
-    /// PT: Atualiza o indice com uma nova linha.
+    /// PT-br: Atualiza o indice com uma nova linha.
     /// </summary>
-    /// <param name="rowIndex">EN: Row index. PT: Indice da linha.</param>
-    /// <param name="newRow">EN: The new row data. PT: Os dados da nova linha.</param>
+    /// <param name="rowIndex">EN: Row index. PT-br: Indice da linha.</param>
+    /// <param name="newRow">EN: The new row data. PT-br: Os dados da nova linha.</param>
     public void UpdateIndexesWithRow(
         int rowIndex,
         IReadOnlyDictionary<int, object?> newRow)
@@ -545,11 +545,11 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
     /// <summary>
     /// EN: Updates the index replacing an old row with a new one.
-    /// PT: Atualiza o indice substituindo uma linha antiga por uma nova.
+    /// PT-br: Atualiza o indice substituindo uma linha antiga por uma nova.
     /// </summary>
-    /// <param name="rowIndex">EN: Row index. PT: Indice da linha.</param>
-    /// <param name="oldRow">EN: The old row data. PT: Os dados da linha antiga.</param>
-    /// <param name="newRow">EN: The new row data. PT: Os dados da nova linha.</param>
+    /// <param name="rowIndex">EN: Row index. PT-br: Indice da linha.</param>
+    /// <param name="oldRow">EN: The old row data. PT-br: Os dados da linha antiga.</param>
+    /// <param name="newRow">EN: The new row data. PT-br: Os dados da nova linha.</param>
     public void UpdateIndexesWithRow(
         int rowIndex,
         IReadOnlyDictionary<int, object?>? oldRow,

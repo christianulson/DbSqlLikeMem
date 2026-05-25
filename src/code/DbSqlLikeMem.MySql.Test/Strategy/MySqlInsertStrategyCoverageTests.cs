@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test.Strategy;
 
 /// <summary>
 /// EN: Covers multi-row and select-based INSERT scenarios in the MySql mock.
-/// PT: Cobre cenarios de INSERT com multiplas linhas e baseado em SELECT no mock MySql.
+/// PT-br: Cobre cenarios de INSERT com multiplas linhas e baseado em SELECT no mock MySql.
 /// </summary>
 public sealed class MySqlInsertStrategyCoverageTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MySqlInsertStrategyCoverageTests(
 {
     /// <summary>
     /// EN: Verifies that a multi-row VALUES insert adds every row.
-    /// PT: Verifica se um INSERT VALUES com varias linhas adiciona todas as linhas.
+    /// PT-br: Verifica se um INSERT VALUES com varias linhas adiciona todas as linhas.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -39,7 +39,7 @@ public sealed class MySqlInsertStrategyCoverageTests(
 
     /// <summary>
     /// EN: Verifies that omitting an identity column lets MySql generate the value.
-    /// PT: Verifica se omitir a coluna identity permite ao MySql gerar o valor.
+    /// PT-br: Verifica se omitir a coluna identity permite ao MySql gerar o valor.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -70,7 +70,7 @@ public sealed class MySqlInsertStrategyCoverageTests(
 
     /// <summary>
     /// EN: Verifies that INSERT ... SELECT copies rows from the source query.
-    /// PT: Verifica se INSERT ... SELECT copia linhas da consulta de origem.
+    /// PT-br: Verifica se INSERT ... SELECT copia linhas da consulta de origem.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

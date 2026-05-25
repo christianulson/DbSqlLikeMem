@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MySql.Test;
 
 /// <summary>
 /// EN: Verifies MySqlDataSourceMock exposes the expected provider-facing surface.
-/// PT: Verifica se MySqlDataSourceMock expõe a superfície esperada do provedor.
+/// PT-br: Verifica se MySqlDataSourceMock expõe a superfície esperada do provedor.
 /// </summary>
 public sealed class MySqlDataSourceMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class MySqlDataSourceMockTests(
 {
     /// <summary>
     /// EN: Verifies the mock data source exposes an empty connection string and creates connections bound to the supplied database.
-    /// PT: Verifica se a fonte de dados simulada expõe string de conexão vazia e cria conexões vinculadas ao banco informado.
+    /// PT-br: Verifica se a fonte de dados simulada expõe string de conexão vazia e cria conexões vinculadas ao banco informado.
     /// </summary>
     [Fact]
     public void DataSource_ShouldExposeEmptyConnectionString_AndCreateBoundConnections()

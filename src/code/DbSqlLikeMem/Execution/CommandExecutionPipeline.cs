@@ -14,7 +14,7 @@ internal sealed class CommandExecutionPipelineOptions
 
 /// <summary>
 /// EN: Shared non-query execution pipeline with provider hooks for special commands.
-/// PT: Pipeline compartilhado de non-query com hooks por provider para comandos especiais.
+/// PT-br: Pipeline compartilhado de non-query com hooks por provider para comandos especiais.
 /// </summary>
 internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
 {

@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.SqlServer;
 #pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Sql Server Mock Exception.
-/// PT: Representa Sql Server simulada Exceção.
+/// PT-br: Representa Sql Server simulada Exceção.
 /// </summary>
 public sealed class SqlServerMockException
     : SqlMockException
@@ -12,14 +12,14 @@ public sealed class SqlServerMockException
 {
     /// <summary>
     /// EN: Represents Sql Server Mock Exception.
-    /// PT: Representa Sql Server simulada Exceção.
+    /// PT-br: Representa Sql Server simulada Exceção.
     /// </summary>
     public SqlServerMockException(string message, int code)
         : base(message, code) { }
 
     /// <summary>
     /// EN: Represents Sql Server Mock Exception.
-    /// PT: Representa Sql Server simulada Exceção.
+    /// PT-br: Representa Sql Server simulada Exceção.
     /// </summary>
     public SqlServerMockException() : base()
     {
@@ -27,7 +27,7 @@ public sealed class SqlServerMockException
 
     /// <summary>
     /// EN: Represents Sql Server Mock Exception.
-    /// PT: Representa Sql Server simulada Exceção.
+    /// PT-br: Representa Sql Server simulada Exceção.
     /// </summary>
     public SqlServerMockException(string? message) : base(message)
     {
@@ -35,7 +35,7 @@ public sealed class SqlServerMockException
 
     /// <summary>
     /// EN: Represents Sql Server Mock Exception.
-    /// PT: Representa Sql Server simulada Exceção.
+    /// PT-br: Representa Sql Server simulada Exceção.
     /// </summary>
     public SqlServerMockException(string? message, Exception? innerException) : base(message, innerException)
     {

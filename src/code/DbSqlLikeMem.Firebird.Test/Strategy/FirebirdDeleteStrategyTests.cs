@@ -1,14 +1,14 @@
-﻿namespace DbSqlLikeMem.Firebird.Test.Strategy;
+namespace DbSqlLikeMem.Firebird.Test.Strategy;
 
 /// <summary>
 /// EN: Covers DELETE execution scenarios in the Firebird mock.
-/// PT: Cobre cenarios de execucao de DELETE no mock Firebird.
+/// PT-br: Cobre cenarios de execucao de DELETE no mock Firebird.
 /// </summary>
 public sealed class FirebirdDeleteStrategyTests
 {
     /// <summary>
     /// EN: Verifies that DELETE removes a single matching row.
-    /// PT: Verifica se DELETE remove uma unica linha correspondente.
+    /// PT-br: Verifica se DELETE remove uma unica linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -33,7 +33,7 @@ public sealed class FirebirdDeleteStrategyTests
 
     /// <summary>
     /// EN: Verifies that DELETE removes every matching row.
-    /// PT: Verifica se DELETE remove todas as linhas correspondentes.
+    /// PT-br: Verifica se DELETE remove todas as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -59,7 +59,7 @@ public sealed class FirebirdDeleteStrategyTests
 
     /// <summary>
     /// EN: Verifies that DELETE returns zero when no rows match.
-    /// PT: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
+    /// PT-br: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -82,7 +82,7 @@ public sealed class FirebirdDeleteStrategyTests
 
     /// <summary>
     /// EN: Verifies that DELETE parsing is case-insensitive.
-    /// PT: Verifica se o parsing de DELETE e case-insensitive.
+    /// PT-br: Verifica se o parsing de DELETE e case-insensitive.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

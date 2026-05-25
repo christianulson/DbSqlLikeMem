@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Service that tests batch insert operations by inserting multiple user rows and validating the count.
-/// PT: Serviço que testa operações de inserção em lote, inserindo várias linhas de usuário e validando a contagem.
+/// PT-br: Serviço que testa operações de inserção em lote, inserindo várias linhas de usuário e validando a contagem.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,9 +14,9 @@ public class BatchInsertServiceTest(
 {
     /// <summary>
     /// EN: Inserts the requested number of user rows in a batch and validates the final count.
-    /// PT: Insere a quantidade solicitada de linhas de usuario em lote e valida a contagem final.
+    /// PT-br: Insere a quantidade solicitada de linhas de usuario em lote e valida a contagem final.
     /// </summary>
-    /// <param name="args">EN: The row count for the batch insert. PT: A contagem de linhas para o insert em lote.</param>
+    /// <param name="args">EN: The row count for the batch insert. PT-br: A contagem de linhas para o insert em lote.</param>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         using var transaction = Repo.BeginTransaction();

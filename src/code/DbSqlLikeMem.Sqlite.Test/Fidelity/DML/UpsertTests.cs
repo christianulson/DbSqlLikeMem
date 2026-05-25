@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared upsert workflows.
-/// PT: Executa testes de fidelidade SQLite para os fluxos compartilhados de upsert.
+/// PT-br: Executa testes de fidelidade SQLite para os fluxos compartilhados de upsert.
 /// </summary>
 public class UpsertTests(
     ITestOutputHelper helper

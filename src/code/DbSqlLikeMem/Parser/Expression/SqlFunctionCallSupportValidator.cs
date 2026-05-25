@@ -33,7 +33,7 @@ internal static class SqlFunctionCallSupportValidator
         }
 
         // EN: MATCH is a special predicate handled by SqlMatchAgainstExpressionParserHelper.
-        // PT: MATCH é um predicado especial tratado pelo SqlMatchAgainstExpressionParserHelper.
+        // PT-br: MATCH é um predicado especial tratado pelo SqlMatchAgainstExpressionParserHelper.
         if (name.Equals("MATCH", StringComparison.OrdinalIgnoreCase))
         {
             if (ctx.Dialect.SupportsMatchAgainstPredicate)
@@ -43,7 +43,7 @@ internal static class SqlFunctionCallSupportValidator
         }
 
         // EN: Allow JSON_TABLE here so SqlSpecialFunctionCallParserHelper can throw a better error.
-        // PT: Permite JSON_TABLE aqui para que o SqlSpecialFunctionCallParserHelper possa lançar um erro melhor.
+        // PT-br: Permite JSON_TABLE aqui para que o SqlSpecialFunctionCallParserHelper possa lançar um erro melhor.
         if (name.Equals(SqlConst.JSON_TABLE, StringComparison.OrdinalIgnoreCase))
             return;
 

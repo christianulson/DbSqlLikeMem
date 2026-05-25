@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Query;
 
 /// <summary>
 /// EN: Covers PostgreSQL query-executor extras against the Dapper provider.
-/// PT: Cobre extras do executor de consultas PostgreSQL contra o provedor Dapper.
+/// PT-br: Cobre extras do executor de consultas PostgreSQL contra o provedor Dapper.
 /// </summary>
 public sealed class QueryExecutorExtrasTests(
     ITestOutputHelper helper

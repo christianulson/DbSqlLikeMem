@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Auto.Test;
 
 /// <summary>
 /// EN: Covers the first parser slice of the automatic SQL dialect mode.
-/// PT: Cobre a primeira fatia de parser do modo automatico de dialeto SQL.
+/// PT-br: Cobre a primeira fatia de parser do modo automatico de dialeto SQL.
 /// </summary>
 public sealed class SqlDialectAutoParserTests(
         ITestOutputHelper helper
@@ -12,7 +12,7 @@ public sealed class SqlDialectAutoParserTests(
 {
     /// <summary>
     /// EN: Verifies Auto dialect exposes the pagination capabilities required for TOP, LIMIT and FETCH parsing.
-    /// PT: Verifica se o dialeto Auto expoe as capabilities de paginacao necessarias para parsing de TOP, LIMIT e FETCH.
+    /// PT-br: Verifica se o dialeto Auto expoe as capabilities de paginacao necessarias para parsing de TOP, LIMIT e FETCH.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -28,7 +28,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies TOP, LIMIT and FETCH FIRST normalize to the same canonical row-limit AST shape in Auto dialect.
-    /// PT: Verifica se TOP, LIMIT e FETCH FIRST sao normalizados para o mesmo formato canonico de AST de limite de linhas no dialeto Auto.
+    /// PT-br: Verifica se TOP, LIMIT e FETCH FIRST sao normalizados para o mesmo formato canonico de AST de limite de linhas no dialeto Auto.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -51,7 +51,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect parses the pipe operator as string concatenation.
-    /// PT: Verifica se o dialeto Auto interpreta o operador pipe como concatenacao de strings.
+    /// PT-br: Verifica se o dialeto Auto interpreta o operador pipe como concatenacao de strings.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -67,7 +67,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies OFFSET/FETCH keeps using the canonical LIMIT/OFFSET node in Auto dialect.
-    /// PT: Verifica se OFFSET/FETCH continua usando o no canonico de LIMIT/OFFSET no dialeto Auto.
+    /// PT-br: Verifica se OFFSET/FETCH continua usando o no canonico de LIMIT/OFFSET no dialeto Auto.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -84,7 +84,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Oracle-style ROWNUM predicates normalize to the canonical row-limit node in Auto dialect.
-    /// PT: Verifica se predicados no estilo Oracle com ROWNUM sao normalizados para o no canonico de limite de linhas no dialeto Auto.
+    /// PT-br: Verifica se predicados no estilo Oracle com ROWNUM sao normalizados para o no canonico de limite de linhas no dialeto Auto.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -103,7 +103,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies ROWNUM normalization removes only the limit predicate and preserves the remaining WHERE filter.
-    /// PT: Verifica se a normalizacao de ROWNUM remove apenas o predicado de limite e preserva o filtro restante do WHERE.
+    /// PT-br: Verifica se a normalizacao de ROWNUM remove apenas o predicado de limite e preserva o filtro restante do WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -122,7 +122,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto normalization tightens existing pagination when TOP and strict ROWNUM bounds are combined.
-    /// PT: Verifica se a normalizacao Auto restringe a paginacao existente quando TOP e limites estritos com ROWNUM sao combinados.
+    /// PT-br: Verifica se a normalizacao Auto restringe a paginacao existente quando TOP e limites estritos com ROWNUM sao combinados.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -141,7 +141,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect keeps unsafe ROWNUM predicates in WHERE when they are combined with OR.
-    /// PT: Verifica se o dialeto Auto mantem predicados inseguros com ROWNUM no WHERE quando eles sao combinados com OR.
+    /// PT-br: Verifica se o dialeto Auto mantem predicados inseguros com ROWNUM no WHERE quando eles sao combinados com OR.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -158,7 +158,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect does not rewrite ROWNUM when the query already uses offset-based pagination.
-    /// PT: Verifica se o dialeto Auto nao reescreve ROWNUM quando a consulta ja usa paginacao baseada em offset.
+    /// PT-br: Verifica se o dialeto Auto nao reescreve ROWNUM quando a consulta ja usa paginacao baseada em offset.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -177,7 +177,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect resolves integer parameters before normalizing a safe ROWNUM predicate.
-    /// PT: Verifica se o dialeto Auto resolve parametros inteiros antes de normalizar um predicado seguro com ROWNUM.
+    /// PT-br: Verifica se o dialeto Auto resolve parametros inteiros antes de normalizar um predicado seguro com ROWNUM.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -202,7 +202,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies the parser exposes dedicated Auto helpers for single statements, batches and UNION chains.
-    /// PT: Verifica se o parser expoe helpers dedicados de Auto para statements unicos, lotes e cadeias UNION.
+    /// PT-br: Verifica se o parser expoe helpers dedicados de Auto para statements unicos, lotes e cadeias UNION.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -223,7 +223,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies the expression parser exposes dedicated Auto helpers for scalar and WHERE expressions.
-    /// PT: Verifica se o parser de expressoes expoe helpers dedicados de Auto para expressoes escalares e WHERE.
+    /// PT-br: Verifica se o parser de expressoes expoe helpers dedicados de Auto para expressoes escalares e WHERE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -246,7 +246,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection also recognizes high-value identity and concatenation markers in one token scan.
-    /// PT: Verifica se a deteccao de sintaxe Auto tambem reconhece marcadores de identidade e concatenacao de alto retorno em uma unica varredura de tokens.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto tambem reconhece marcadores de identidade e concatenacao de alto retorno em uma unica varredura de tokens.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -269,7 +269,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection ignores markers that appear only inside string literals.
-    /// PT: Verifica se a deteccao de sintaxe Auto ignora marcadores que aparecem apenas dentro de literais string.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto ignora marcadores que aparecem apenas dentro de literais string.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -283,7 +283,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection ignores quoted identifiers that happen to match dialect marker names.
-    /// PT: Verifica se a deteccao de sintaxe Auto ignora identificadores quoted que por acaso coincidem com nomes de marcadores de dialeto.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto ignora identificadores quoted que por acaso coincidem com nomes de marcadores de dialeto.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -297,7 +297,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared sequence capabilities already supported by the parser and runtime contracts.
-    /// PT: Verifica se o dialeto Auto expoe as capabilities compartilhadas de sequence ja suportadas pelos contratos de parser e runtime.
+    /// PT-br: Verifica se o dialeto Auto expoe as capabilities compartilhadas de sequence ja suportadas pelos contratos de parser e runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -319,7 +319,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared sequence DDL without requiring a provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta DDL compartilhado de sequence sem exigir selecao de dialeto especifico por provider.
+    /// PT-br: Verifica se o modo Auto interpreta DDL compartilhado de sequence sem exigir selecao de dialeto especifico por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -342,7 +342,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses the pragmatic shared subset of CREATE/DROP INDEX DDL.
-    /// PT: Verifica se o modo Auto interpreta o subset pragmático compartilhado de DDL CREATE/DROP INDEX.
+    /// PT-br: Verifica se o modo Auto interpreta o subset pragmático compartilhado de DDL CREATE/DROP INDEX.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -366,7 +366,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses the pragmatic shared ALTER TABLE ... ADD COLUMN subset.
-    /// PT: Verifica se o modo Auto interpreta o subset pragmático compartilhado de ALTER TABLE ... ADD COLUMN.
+    /// PT-br: Verifica se o modo Auto interpreta o subset pragmático compartilhado de ALTER TABLE ... ADD COLUMN.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -388,7 +388,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode preserves DECIMAL precision and scale metadata in the pragmatic ALTER TABLE ... ADD COLUMN subset.
-    /// PT: Verifica se o modo Auto preserva os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD COLUMN.
+    /// PT-br: Verifica se o modo Auto preserva os metadados de precisao e escala de DECIMAL no subset pragmatico de ALTER TABLE ... ADD COLUMN.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -408,7 +408,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode preserves binary column size metadata in the pragmatic ALTER TABLE ... ADD COLUMN subset.
-    /// PT: Verifica se o modo Auto preserva o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD COLUMN.
+    /// PT-br: Verifica se o modo Auto preserva o metadado de tamanho de coluna binaria no subset pragmatico de ALTER TABLE ... ADD COLUMN.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -426,7 +426,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when the table reference includes an alias in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando a referencia da tabela inclui alias no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando a referencia da tabela inclui alias no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -442,7 +442,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when the table reference is a derived source instead of a concrete table name.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -458,7 +458,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses the first pragmatic scalar FUNCTION DDL subset using SQL Server-style syntax.
-    /// PT: Verifica se o modo Auto interpreta o primeiro subset pragmatico de FUNCTION escalar usando sintaxe no estilo SQL Server.
+    /// PT-br: Verifica se o modo Auto interpreta o primeiro subset pragmatico de FUNCTION escalar usando sintaxe no estilo SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -482,7 +482,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when NOT NULL is combined with DEFAULT NULL in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando NOT NULL e combinado com DEFAULT NULL no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando NOT NULL e combinado com DEFAULT NULL no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -498,7 +498,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when VARCHAR type arguments are not numeric in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR nao sao numericos no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR nao sao numericos no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -514,7 +514,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when DECIMAL scale arguments are not numeric in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de escala de DECIMAL nao sao numericos no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de escala de DECIMAL nao sao numericos no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -530,7 +530,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when VARCHAR type arguments are empty in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR estao vazios no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR estao vazios no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -546,7 +546,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when DECIMAL type arguments are empty in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo DECIMAL estao vazios no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo DECIMAL estao vazios no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -562,7 +562,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when VARCHAR type arguments contain an empty trailing entry in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR contem uma entrada vazia final no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo VARCHAR contem uma entrada vazia final no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -578,7 +578,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects ALTER TABLE ... ADD COLUMN when DECIMAL type arguments contain an empty trailing entry in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo DECIMAL contem uma entrada vazia final no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita ALTER TABLE ... ADD COLUMN quando os argumentos de tipo DECIMAL contem uma entrada vazia final no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -594,7 +594,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects CREATE INDEX definitions that repeat the same key column in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita definicoes de CREATE INDEX que repetem a mesma coluna-chave no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita definicoes de CREATE INDEX que repetem a mesma coluna-chave no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -610,7 +610,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects CREATE INDEX with an empty key-column list in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita CREATE INDEX com lista vazia de colunas-chave no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita CREATE INDEX com lista vazia de colunas-chave no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -626,7 +626,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects CREATE INDEX when the table reference includes an alias in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita CREATE INDEX quando a referencia da tabela inclui alias no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita CREATE INDEX quando a referencia da tabela inclui alias no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -642,7 +642,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects CREATE INDEX when the table reference is a derived source instead of a concrete table name.
-    /// PT: Verifica se o modo Auto rejeita CREATE INDEX quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
+    /// PT-br: Verifica se o modo Auto rejeita CREATE INDEX quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -658,7 +658,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects DROP INDEX ... ON when the table name is missing in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita DROP INDEX ... ON quando falta o nome da tabela no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita DROP INDEX ... ON quando falta o nome da tabela no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -674,7 +674,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects DROP INDEX ... ON when the table reference includes an alias in the shared subset.
-    /// PT: Verifica se o modo Auto rejeita DROP INDEX ... ON quando a referencia de tabela inclui alias no subset compartilhado.
+    /// PT-br: Verifica se o modo Auto rejeita DROP INDEX ... ON quando a referencia de tabela inclui alias no subset compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -690,7 +690,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode rejects DROP INDEX ... ON when the table reference is a derived source instead of a concrete table name.
-    /// PT: Verifica se o modo Auto rejeita DROP INDEX ... ON quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
+    /// PT-br: Verifica se o modo Auto rejeita DROP INDEX ... ON quando a referencia da tabela e uma fonte derivada em vez de um nome concreto.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -706,7 +706,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses the shared sequence expression families into the existing canonical call nodes.
-    /// PT: Verifica se o modo Auto interpreta as familias compartilhadas de expressoes de sequence para os nos canonicos de chamada ja existentes.
+    /// PT-br: Verifica se o modo Auto interpreta as familias compartilhadas de expressoes de sequence para os nos canonicos de chamada ja existentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -735,7 +735,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared JSON arrow capability used by the parser and executor.
-    /// PT: Verifica se o dialeto Auto expoe a capability compartilhada de operadores JSON usada pelo parser e pelo executor.
+    /// PT-br: Verifica se o dialeto Auto expoe a capability compartilhada de operadores JSON usada pelo parser e pelo executor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -749,7 +749,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared JSON arrow operators into the neutral JSON access AST node.
-    /// PT: Verifica se o modo Auto interpreta operadores JSON compartilhados para o no neutro de AST de acesso JSON.
+    /// PT-br: Verifica se o modo Auto interpreta operadores JSON compartilhados para o no neutro de AST de acesso JSON.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -766,7 +766,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared JSON function capabilities already implemented by the parser and executor.
-    /// PT: Verifica se o dialeto Auto expoe as capabilities compartilhadas de funcoes JSON ja implementadas pelo parser e pelo executor.
+    /// PT-br: Verifica se o dialeto Auto expoe as capabilities compartilhadas de funcoes JSON ja implementadas pelo parser e pelo executor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -782,7 +782,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared JSON_EXTRACT and JSON_VALUE calls and the OPENJSON table function without provider-specific selection.
-    /// PT: Verifica se o modo Auto interpreta chamadas compartilhadas de JSON_EXTRACT e JSON_VALUE e a função de tabela OPENJSON sem seleção específica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta chamadas compartilhadas de JSON_EXTRACT e JSON_VALUE e a função de tabela OPENJSON sem seleção específica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -804,7 +804,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared temporal aliases already supported by the evaluator.
-    /// PT: Verifica se o dialeto Auto expoe os aliases temporais compartilhados ja suportados pelo evaluator.
+    /// PT-br: Verifica se o dialeto Auto expoe os aliases temporais compartilhados ja suportados pelo evaluator.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -824,7 +824,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared temporal identifiers and calls without provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta identificadores e chamadas temporais compartilhadas sem selecao de dialeto especifica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta identificadores e chamadas temporais compartilhadas sem selecao de dialeto especifica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -847,7 +847,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared date-add function families without provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta familias compartilhadas de funcoes de adicao temporal sem selecao de dialeto especifica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta familias compartilhadas de funcoes de adicao temporal sem selecao de dialeto especifica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -866,7 +866,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses Firebird-specific temporal and hash function syntax through the shared automatic dialect.
-    /// PT: Verifica se o modo Auto interpreta a sintaxe especifica do Firebird para funcoes temporais e de hash pelo dialeto automatico compartilhado.
+    /// PT-br: Verifica se o modo Auto interpreta a sintaxe especifica do Firebird para funcoes temporais e de hash pelo dialeto automatico compartilhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -896,7 +896,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared string-aggregate capabilities already supported by parser and executor.
-    /// PT: Verifica se o dialeto Auto expoe as capabilities compartilhadas de agregacao textual ja suportadas por parser e executor.
+    /// PT-br: Verifica se o dialeto Auto expoe as capabilities compartilhadas de agregacao textual ja suportadas por parser e executor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -918,7 +918,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared rowcount helper capabilities already supported by parser and executor.
-    /// PT: Verifica se o dialeto Auto expoe as capabilities compartilhadas de helpers de rowcount ja suportadas por parser e executor.
+    /// PT-br: Verifica se o dialeto Auto expoe as capabilities compartilhadas de helpers de rowcount ja suportadas por parser e executor.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -937,7 +937,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared null-safe equality capability.
-    /// PT: Verifica se o dialeto Auto expoe a capability compartilhada de igualdade null-safe.
+    /// PT-br: Verifica se o dialeto Auto expoe a capability compartilhada de igualdade null-safe.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -950,7 +950,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared ILIKE capability.
-    /// PT: Verifica se o dialeto Auto expoe a capability compartilhada de ILIKE.
+    /// PT-br: Verifica se o dialeto Auto expoe a capability compartilhada de ILIKE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -963,7 +963,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared MATCH ... AGAINST capability.
-    /// PT: Verifica se o dialeto Auto expoe a capability compartilhada de MATCH ... AGAINST.
+    /// PT-br: Verifica se o dialeto Auto expoe a capability compartilhada de MATCH ... AGAINST.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -976,7 +976,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared conditional and null-substitute capabilities.
-    /// PT: Verifica se o dialeto Auto expoe as capabilities compartilhadas de condicionais e substituicao de nulos.
+    /// PT-br: Verifica se o dialeto Auto expoe as capabilities compartilhadas de condicionais e substituicao de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -993,7 +993,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared window-function capability surface.
-    /// PT: Verifica se o dialeto Auto expoe a superficie compartilhada de capabilities de funcoes de janela.
+    /// PT-br: Verifica se o dialeto Auto expoe a superficie compartilhada de capabilities de funcoes de janela.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1009,7 +1009,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes the shared PIVOT capability already available in the shared parser and executor.
-    /// PT: Verifica se o dialeto Auto expoe a capability compartilhada de PIVOT ja disponivel no parser e no executor compartilhados.
+    /// PT-br: Verifica se o dialeto Auto expoe a capability compartilhada de PIVOT ja disponivel no parser e no executor compartilhados.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1022,7 +1022,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes shared WITH/CTE support.
-    /// PT: Verifica se o dialeto Auto expoe suporte compartilhado a WITH/CTE.
+    /// PT-br: Verifica se o dialeto Auto expoe suporte compartilhado a WITH/CTE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1036,7 +1036,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes shared DML RETURNING support.
-    /// PT: Verifica se o dialeto Auto expoe suporte compartilhado a RETURNING em DML.
+    /// PT-br: Verifica se o dialeto Auto expoe suporte compartilhado a RETURNING em DML.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1049,7 +1049,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto dialect exposes shared ORDER BY NULLS FIRST/LAST support.
-    /// PT: Verifica se o dialeto Auto expoe suporte compartilhado a ORDER BY NULLS FIRST/LAST.
+    /// PT-br: Verifica se o dialeto Auto expoe suporte compartilhado a ORDER BY NULLS FIRST/LAST.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1062,7 +1062,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared string-aggregate families, including ordered-set syntax.
-    /// PT: Verifica se o modo Auto interpreta familias compartilhadas de agregacao textual, incluindo sintaxe ordered-set.
+    /// PT-br: Verifica se o modo Auto interpreta familias compartilhadas de agregacao textual, incluindo sintaxe ordered-set.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1083,7 +1083,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared rowcount helpers and the SQL Server-style identifier alias.
-    /// PT: Verifica se o modo Auto interpreta helpers compartilhados de rowcount e o alias identificador no estilo SQL Server.
+    /// PT-br: Verifica se o modo Auto interpreta helpers compartilhados de rowcount e o alias identificador no estilo SQL Server.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1105,7 +1105,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared null-safe equality into the canonical comparison node.
-    /// PT: Verifica se o modo Auto interpreta a igualdade null-safe compartilhada para o no canonico de comparacao.
+    /// PT-br: Verifica se o modo Auto interpreta a igualdade null-safe compartilhada para o no canonico de comparacao.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1120,7 +1120,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses ILIKE into a case-insensitive LIKE expression.
-    /// PT: Verifica se o modo Auto interpreta ILIKE para uma expressão LIKE case-insensitive.
+    /// PT-br: Verifica se o modo Auto interpreta ILIKE para uma expressão LIKE case-insensitive.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1135,7 +1135,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses MATCH ... AGAINST into the shared internal call form.
-    /// PT: Verifica se o modo Auto interpreta MATCH ... AGAINST para a forma interna compartilhada de chamada.
+    /// PT-br: Verifica se o modo Auto interpreta MATCH ... AGAINST para a forma interna compartilhada de chamada.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1152,7 +1152,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared conditional and null-substitute helpers.
-    /// PT: Verifica se o modo Auto interpreta helpers compartilhados condicionais e de substituicao de nulos.
+    /// PT-br: Verifica se o modo Auto interpreta helpers compartilhados condicionais e de substituicao de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1178,7 +1178,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared window functions without provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta funcoes de janela compartilhadas sem selecao de dialeto especifica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta funcoes de janela compartilhadas sem selecao de dialeto especifica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1201,7 +1201,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared PIVOT syntax without provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de PIVOT sem selecao de dialeto especifica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta sintaxe compartilhada de PIVOT sem selecao de dialeto especifica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1226,7 +1226,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared UNPIVOT syntax without provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de UNPIVOT sem selecao de dialeto especifica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta sintaxe compartilhada de UNPIVOT sem selecao de dialeto especifica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1251,7 +1251,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared FOR JSON PATH syntax without provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de FOR JSON PATH sem selecao de dialeto especifica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta sintaxe compartilhada de FOR JSON PATH sem selecao de dialeto especifica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1270,7 +1270,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared WITH/CTE syntax without provider-specific dialect selection.
-    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de WITH/CTE sem selecao de dialeto especifica por provider.
+    /// PT-br: Verifica se o modo Auto interpreta sintaxe compartilhada de WITH/CTE sem selecao de dialeto especifica por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1297,7 +1297,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared RETURNING syntax for DML statements.
-    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de RETURNING para comandos DML.
+    /// PT-br: Verifica se o modo Auto interpreta sintaxe compartilhada de RETURNING para comandos DML.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1320,7 +1320,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses shared ORDER BY NULLS FIRST/LAST syntax.
-    /// PT: Verifica se o modo Auto interpreta sintaxe compartilhada de ORDER BY NULLS FIRST/LAST.
+    /// PT-br: Verifica se o modo Auto interpreta sintaxe compartilhada de ORDER BY NULLS FIRST/LAST.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1342,7 +1342,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto mode parses the shared SQL_CALC_FOUND_ROWS select modifier.
-    /// PT: Verifica se o modo Auto interpreta o modificador compartilhado SQL_CALC_FOUND_ROWS em SELECT.
+    /// PT-br: Verifica se o modo Auto interpreta o modificador compartilhado SQL_CALC_FOUND_ROWS em SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1358,7 +1358,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared sequence markers without requiring provider-specific parsing.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de sequence sem exigir parsing especifico por provider.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de sequence sem exigir parsing especifico por provider.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1376,7 +1376,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared JSON arrow markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de operadores JSON.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de operadores JSON.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1389,7 +1389,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared JSON function markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de funcoes JSON.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de funcoes JSON.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1402,7 +1402,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared temporal identifier and call markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de identificadores e chamadas temporais.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de identificadores e chamadas temporais.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1415,7 +1415,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared date-add markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de adicao temporal.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de adicao temporal.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1428,7 +1428,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared string-aggregate markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de agregacao textual.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de agregacao textual.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1441,7 +1441,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared rowcount helper markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de helpers de rowcount.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de helpers de rowcount.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1455,7 +1455,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes the shared null-safe equality marker.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece o marcador compartilhado de igualdade null-safe.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece o marcador compartilhado de igualdade null-safe.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1468,7 +1468,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes the shared ILIKE marker.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece o marcador compartilhado de ILIKE.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece o marcador compartilhado de ILIKE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1481,7 +1481,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes MATCH ... AGAINST markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores de MATCH ... AGAINST.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores de MATCH ... AGAINST.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1494,7 +1494,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared conditional and null-substitute markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados condicionais e de substituicao de nulos.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados condicionais e de substituicao de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1507,7 +1507,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared window-function markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de funcoes de janela.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de funcoes de janela.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1520,7 +1520,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared PIVOT markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de PIVOT.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de PIVOT.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1533,7 +1533,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared UNPIVOT markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de UNPIVOT.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de UNPIVOT.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1546,7 +1546,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared WITH/CTE markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de WITH/CTE.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de WITH/CTE.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1559,7 +1559,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared RETURNING markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de RETURNING.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de RETURNING.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]
@@ -1572,7 +1572,7 @@ public sealed class SqlDialectAutoParserTests(
 
     /// <summary>
     /// EN: Verifies Auto syntax detection recognizes shared ORDER BY NULLS FIRST/LAST markers.
-    /// PT: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de ORDER BY NULLS FIRST/LAST.
+    /// PT-br: Verifica se a deteccao de sintaxe Auto reconhece marcadores compartilhados de ORDER BY NULLS FIRST/LAST.
     /// </summary>
     [Fact]
     [Trait("Category", "Parser")]

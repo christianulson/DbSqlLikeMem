@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Covers DbType parsing and .NET type mapping contracts used by core coercion paths.
-/// PT: Cobre contratos de parsing de DbType e mapeamento de tipos .NET usados pelos caminhos centrais de coerção.
+/// PT-br: Cobre contratos de parsing de DbType e mapeamento de tipos .NET usados pelos caminhos centrais de coerção.
 /// </summary>
 public sealed class DbTypeCoercionTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class DbTypeCoercionTests(
 {
     /// <summary>
     /// EN: Ensures DbType.Time literals parse to TimeSpan.
-    /// PT: Garante que literais de DbType.Time sejam convertidos para TimeSpan.
+    /// PT-br: Garante que literais de DbType.Time sejam convertidos para TimeSpan.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -24,7 +24,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures boolean aliases commonly used in SQL payloads are accepted.
-    /// PT: Garante que aliases booleanos comuns em payloads SQL sejam aceitos.
+    /// PT-br: Garante que aliases booleanos comuns em payloads SQL sejam aceitos.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]
@@ -41,7 +41,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures DateTimeOffset type mapping is preserved in DbType conversion helpers.
-    /// PT: Garante que o mapeamento de DateTimeOffset seja preservado nos helpers de conversão de DbType.
+    /// PT-br: Garante que o mapeamento de DateTimeOffset seja preservado nos helpers de conversão de DbType.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -53,7 +53,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures ConvertTypeToDbType unwraps Nullable and maps using the underlying scalar type.
-    /// PT: Garante que ConvertTypeToDbType desembrulhe Nullable e mapeie usando o tipo escalar subjacente.
+    /// PT-br: Garante que ConvertTypeToDbType desembrulhe Nullable e mapeie usando o tipo escalar subjacente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -65,7 +65,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures ConvertTypeToDbType maps enums through their integral backing type.
-    /// PT: Garante que ConvertTypeToDbType mapeie enums pelo tipo integral subjacente.
+    /// PT-br: Garante que ConvertTypeToDbType mapeie enums pelo tipo integral subjacente.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -77,7 +77,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures parser supports byte and sbyte conversion paths.
-    /// PT: Garante que o parser suporte caminhos de conversão para byte e sbyte.
+    /// PT-br: Garante que o parser suporte caminhos de conversão para byte e sbyte.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -89,7 +89,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures parser accepts fixed and ANSI string DbType flavors as plain text.
-    /// PT: Garante que o parser aceite variações de DbType string fixed/ANSI como texto simples.
+    /// PT-br: Garante que o parser aceite variações de DbType string fixed/ANSI como texto simples.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -101,7 +101,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures DbType->CLR mapping covers signed/unsigned integral families used by parser/executor coercion.
-    /// PT: Garante que o mapeamento DbType->CLR cubra famílias integrais signed/unsigned usadas pela coerção de parser/executor.
+    /// PT-br: Garante que o mapeamento DbType->CLR cubra famílias integrais signed/unsigned usadas pela coerção de parser/executor.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -115,7 +115,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures VarNumeric keeps numeric semantics across parser and type mapping helpers.
-    /// PT: Garante que VarNumeric mantenha semântica numérica entre parser e helpers de mapeamento de tipo.
+    /// PT-br: Garante que VarNumeric mantenha semântica numérica entre parser e helpers de mapeamento de tipo.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -127,7 +127,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures object parsing infers common scalar/JSON forms for broader literal coverage.
-    /// PT: Garante que o parsing de object infira formas comuns escalares/JSON para maior cobertura de literais.
+    /// PT-br: Garante que o parsing de object infira formas comuns escalares/JSON para maior cobertura de literais.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -146,7 +146,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures binary parser accepts hexadecimal SQL-style literals with 0x prefix.
-    /// PT: Garante que o parser binário aceite literais estilo SQL hexadecimal com prefixo 0x.
+    /// PT-br: Garante que o parser binário aceite literais estilo SQL hexadecimal com prefixo 0x.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -158,7 +158,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures binary parser accepts SQL quoted-hex format X'ABCD'.
-    /// PT: Garante que o parser binário aceite o formato SQL hex quoted X'ABCD'.
+    /// PT-br: Garante que o parser binário aceite o formato SQL hex quoted X'ABCD'.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -173,7 +173,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures binary parser accepts PostgreSQL bytea hexadecimal format with \x prefix.
-    /// PT: Garante que o parser binário aceite formato hexadecimal bytea do PostgreSQL com prefixo \x.
+    /// PT-br: Garante que o parser binário aceite formato hexadecimal bytea do PostgreSQL com prefixo \x.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -186,7 +186,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures object parsing infers Guid and DateTimeOffset literals for richer coercion coverage.
-    /// PT: Garante que o parsing de object infira literais de Guid e DateTimeOffset para maior cobertura de coerção.
+    /// PT-br: Garante que o parsing de object infira literais de Guid e DateTimeOffset para maior cobertura de coerção.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -204,7 +204,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures object parsing infers DateTime and TimeSpan literals when no offset information is present.
-    /// PT: Garante que o parsing de object infira literais DateTime e TimeSpan quando não há informação de offset.
+    /// PT-br: Garante que o parsing de object infira literais DateTime e TimeSpan quando não há informação de offset.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -222,7 +222,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures quoted NULL tokens are interpreted as null for object parsing.
-    /// PT: Garante que tokens NULL entre aspas sejam interpretados como null no parsing de object.
+    /// PT-br: Garante que tokens NULL entre aspas sejam interpretados como null no parsing de object.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -234,7 +234,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures quoted NULL tokens remain textual for string DbType parsing.
-    /// PT: Garante que tokens NULL entre aspas permaneçam textuais no parsing de DbType string.
+    /// PT-br: Garante que tokens NULL entre aspas permaneçam textuais no parsing de DbType string.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -246,7 +246,7 @@ public sealed class DbTypeCoercionTests(
 
     /// <summary>
     /// EN: Ensures boolean parser supports compact aliases used by some dialects.
-    /// PT: Garante que o parser booleano suporte aliases compactos usados por alguns dialetos.
+    /// PT-br: Garante que o parser booleano suporte aliases compactos usados por alguns dialetos.
     /// </summary>
     [Theory]
     [Trait("Category", "Core")]

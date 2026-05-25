@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Validation;
 
 /// <summary>
 /// EN: Reads embedded snapshot metadata from generated class files.
-/// PT: Le os metadados de snapshot embutidos em arquivos de classe gerados.
+/// PT-br: Le os metadados de snapshot embutidos em arquivos de classe gerados.
 /// </summary>
 public static class GeneratedClassSnapshotReader
 {
     /// <summary>
     /// EN: Reads a generated file and returns the snapshot metadata embedded in it.
-    /// PT: Le um arquivo gerado e retorna os metadados de snapshot embutidos nele.
+    /// PT-br: Le um arquivo gerado e retorna os metadados de snapshot embutidos nele.
     /// </summary>
     public static async Task<LocalObjectSnapshot> ReadAsync(
         string filePath,

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Base of an in-memory database with schemas, tables, procedures, and sequences.
-/// PT: Base de um banco em memória com schemas, tabelas, procedimentos e sequences.
+/// PT-br: Base de um banco em memória com schemas, tabelas, procedimentos e sequences.
 /// </summary>
 public abstract class DbMock
     : Dictionary<string, SchemaMock>
@@ -12,43 +12,43 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Simulated database version.
-    /// PT: Versão do banco simulada.
+    /// PT-br: Versão do banco simulada.
     /// </summary>
     public int Version { get; }
 
     /// <summary>
     /// EN: Indicates whether operations should lock for thread safety.
-    /// PT: Indica se operações devem aplicar bloqueio para segurança de threads.
+    /// PT-br: Indica se operações devem aplicar bloqueio para segurança de threads.
     /// </summary>
     public bool ThreadSafe { get; set; }
 
     /// <summary>
     /// EN: Controls whether execution plans are formatted and captured during command execution.
-    /// PT: Controla se planos de execução serão formatados e capturados durante a execução dos comandos.
+    /// PT-br: Controla se planos de execução serão formatados e capturados durante a execução dos comandos.
     /// </summary>
     public bool CaptureExecutionPlans { get; set; } = true;
 
     /// <summary>
     /// EN: Indicates whether global temporary table definitions are shared across connections for this database.
-    /// PT: Indica se as definicoes de tabelas temporarias globais sao compartilhadas entre conexoes neste banco.
+    /// PT-br: Indica se as definicoes de tabelas temporarias globais sao compartilhadas entre conexoes neste banco.
     /// </summary>
     public virtual bool GlobalTemporaryTablesShareDefinitionAcrossConnections => false;
 
     /// <summary>
     /// EN: Indicates whether global temporary table rows are shared across connections for this database.
-    /// PT: Indica se as linhas de tabelas temporarias globais sao compartilhadas entre conexoes neste banco.
+    /// PT-br: Indica se as linhas de tabelas temporarias globais sao compartilhadas entre conexoes neste banco.
     /// </summary>
     public virtual bool GlobalTemporaryTablesShareRowsAcrossConnections => false;
 
     /// <summary>
     /// EN: Gets the implicit schema used when callers omit an explicit schema name.
-    /// PT: Obtém o schema implícito usado quando os chamadores omitem um nome de schema explicito.
+    /// PT-br: Obtém o schema implícito usado quando os chamadores omitem um nome de schema explicito.
     /// </summary>
     protected virtual string DefaultSchemaName => "DefaultSchema";
 
     /// <summary>
     /// EN: Gets the schema lookup order used when callers omit an explicit schema name.
-    /// PT: Obtém a ordem de consulta de schema usada quando os chamadores omitem um nome de schema explicito.
+    /// PT-br: Obtém a ordem de consulta de schema usada quando os chamadores omitem um nome de schema explicito.
     /// </summary>
     protected virtual IReadOnlyList<string> ImplicitSchemaLookupOrder => [DefaultSchemaName];
 
@@ -56,11 +56,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Executes the given action while holding the database lock when ThreadSafe is enabled.
-    /// PT: Executa a acao informada enquanto segura o lock do banco quando ThreadSafe estiver habilitado.
+    /// PT-br: Executa a acao informada enquanto segura o lock do banco quando ThreadSafe estiver habilitado.
     /// </summary>
-    /// <typeparam name="T">EN: Return type of the action. PT: Tipo de retorno da acao.</typeparam>
-    /// <param name="action">EN: Action to execute under the lock. PT: Acao a executar sob o lock.</param>
-    /// <returns>EN: Result returned by the action. PT: Resultado retornado pela acao.</returns>
+    /// <typeparam name="T">EN: Return type of the action. PT-br: Tipo de retorno da acao.</typeparam>
+    /// <param name="action">EN: Action to execute under the lock. PT-br: Acao a executar sob o lock.</param>
+    /// <returns>EN: Result returned by the action. PT-br: Resultado retornado pela acao.</returns>
     internal T ExecuteWithLock<T>(Func<T> action)
     {
         if (!ThreadSafe)
@@ -71,9 +71,9 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Executes the given action while holding the database lock when ThreadSafe is enabled.
-    /// PT: Executa a acao informada enquanto segura o lock do banco quando ThreadSafe estiver habilitado.
+    /// PT-br: Executa a acao informada enquanto segura o lock do banco quando ThreadSafe estiver habilitado.
     /// </summary>
-    /// <param name="action">EN: Action to execute under the lock. PT: Acao a executar sob o lock.</param>
+    /// <param name="action">EN: Action to execute under the lock. PT-br: Acao a executar sob o lock.</param>
     internal void ExecuteWithLock(Action action)
     {
         if (!ThreadSafe)
@@ -109,9 +109,9 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Initializes the database with the given version and a default schema.
-    /// PT: Inicializa o banco com a versão informada e um schema padrão.
+    /// PT-br: Inicializa o banco com a versão informada e um schema padrão.
     /// </summary>
-    /// <param name="version">EN: Simulated database version. PT: Versão simulada do banco.</param>
+    /// <param name="version">EN: Simulated database version. PT-br: Versão simulada do banco.</param>
     protected DbMock(
         int version)
         : base(StringComparer.OrdinalIgnoreCase)
@@ -127,22 +127,22 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Creates a new schema instance for the database.
-    /// PT: Cria uma nova instância de schema para o banco.
+    /// PT-br: Cria uma nova instância de schema para o banco.
     /// </summary>
-    /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
-    /// <param name="tables">EN: Initial tables. PT: Tabelas iniciais.</param>
-    /// <returns>EN: New schema instance. PT: Nova instância de schema.</returns>
+    /// <param name="schemaName">EN: Schema name. PT-br: Nome do schema.</param>
+    /// <param name="tables">EN: Initial tables. PT-br: Tabelas iniciais.</param>
+    /// <returns>EN: New schema instance. PT-br: Nova instância de schema.</returns>
     protected abstract SchemaMock NewSchema(
         string schemaName,
         IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);
 
     /// <summary>
     /// EN: Creates a schema and registers it in the database.
-    /// PT: Cria um schema e o registra no banco.
+    /// PT-br: Cria um schema e o registra no banco.
     /// </summary>
-    /// <param name="schemaName">EN: Schema name. PT: Nome do schema.</param>
-    /// <param name="tables">EN: Initial schema tables. PT: Tabelas iniciais do schema.</param>
-    /// <returns>EN: Created schema. PT: Schema criado.</returns>
+    /// <param name="schemaName">EN: Schema name. PT-br: Nome do schema.</param>
+    /// <param name="tables">EN: Initial schema tables. PT-br: Tabelas iniciais do schema.</param>
+    /// <returns>EN: Created schema. PT-br: Schema criado.</returns>
     public ISchemaMock CreateSchema(
         string schemaName,
         IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
@@ -171,11 +171,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Tries to get a schema by name.
-    /// PT: Tenta obter um schema pelo nome.
+    /// PT-br: Tenta obter um schema pelo nome.
     /// </summary>
-    /// <param name="key">EN: Schema name. PT: Nome do schema.</param>
-    /// <param name="value">EN: Found schema, if any. PT: Schema encontrado, se houver.</param>
-    /// <returns>EN: True if the schema exists. PT: True se o schema existir.</returns>
+    /// <param name="key">EN: Schema name. PT-br: Nome do schema.</param>
+    /// <param name="value">EN: Found schema, if any. PT-br: Schema encontrado, se houver.</param>
+    /// <returns>EN: True if the schema exists. PT-br: True se o schema existir.</returns>
     public bool TryGetValue(
         string key,
         out ISchemaMock value
@@ -296,13 +296,13 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Creates and adds a table to the specified schema.
-    /// PT: Cria e adiciona uma tabela ao schema indicado.
+    /// PT-br: Cria e adiciona uma tabela ao schema indicado.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="columns">EN: Column definitions. PT: Definição das colunas.</param>
-    /// <param name="rows">EN: Initial rows. PT: Linhas iniciais.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: Created table. PT: Tabela criada.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="columns">EN: Column definitions. PT-br: Definição das colunas.</param>
+    /// <param name="rows">EN: Initial rows. PT-br: Linhas iniciais.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: Created table. PT-br: Tabela criada.</returns>
     public ITableMock AddTable(
         string tableName,
         IEnumerable<Col>? columns = null,
@@ -317,11 +317,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Gets a table by name, throwing if it does not exist.
-    /// PT: Obtém uma tabela pelo nome, lançando erro se não existir.
+    /// PT-br: Obtém uma tabela pelo nome, lançando erro se não existir.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: Found table. PT: Tabela encontrada.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: Found table. PT-br: Tabela encontrada.</returns>
     public ITableMock GetTable(
         string tableName,
         string? schemaName = null)
@@ -346,12 +346,12 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Tries to get a table by name.
-    /// PT: Tenta obter uma tabela pelo nome.
+    /// PT-br: Tenta obter uma tabela pelo nome.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="tb">EN: Found table, if any. PT: Tabela encontrada, se houver.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: True if the table exists. PT: True se a tabela existir.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="tb">EN: Found table, if any. PT-br: Tabela encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: True if the table exists. PT-br: True se a tabela existir.</returns>
     public bool TryGetTable(
         string tableName,
         out ITableMock? tb,
@@ -374,11 +374,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Checks whether a table exists in the specified schema.
-    /// PT: Verifica se uma tabela existe no schema informado.
+    /// PT-br: Verifica se uma tabela existe no schema informado.
     /// </summary>
-    /// <param name="tableName">EN: Table name. PT: Nome da tabela.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    /// <param name="tableName">EN: Table name. PT-br: Nome da tabela.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT-br: True se existir.</returns>
     public bool ContainsTable(
         string tableName,
         string? schemaName = null)
@@ -521,11 +521,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Resets volatile in-memory data for all tables and optionally global temporary tables.
-    /// PT: Reseta dados voláteis em memória de todas as tabelas e, opcionalmente, das tabelas temporárias globais.
+    /// PT-br: Reseta dados voláteis em memória de todas as tabelas e, opcionalmente, das tabelas temporárias globais.
     /// </summary>
     /// <param name="includeGlobalTemporaryTables">
     /// EN: Includes global temporary tables in the reset.
-    /// PT: Inclui tabelas temporárias globais no reset.
+    /// PT-br: Inclui tabelas temporárias globais no reset.
     /// </param>
     public void ResetVolatileData(bool includeGlobalTemporaryTables = true)
     {
@@ -651,10 +651,10 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Registers a stored procedure in the specified schema.
-    /// PT: Registra um procedimento armazenado no schema informado.
+    /// PT-br: Registra um procedimento armazenado no schema informado.
     /// </summary>
-    /// <param name="procedure">EN: Procedure definition. PT: Definição do procedimento.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="procedure">EN: Procedure definition. PT-br: Definição do procedimento.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
     public void AddProcedure(
         ProcedureDef procedure,
         string? schemaName = null)
@@ -668,10 +668,10 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Registers a stored procedure using the legacy method name kept for compatibility.
-    /// PT: Registra um procedimento armazenado usando o nome de metodo legado mantido por compatibilidade.
+    /// PT-br: Registra um procedimento armazenado usando o nome de metodo legado mantido por compatibilidade.
     /// </summary>
-    /// <param name="pr">EN: Procedure definition. PT: Definição do procedimento.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="pr">EN: Procedure definition. PT-br: Definição do procedimento.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
     public void AddProdecure(
         ProcedureDef pr,
         string? schemaName = null)
@@ -679,10 +679,10 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Registers a user-defined function in the specified schema.
-    /// PT: Registra uma funcao definida pelo usuario no schema informado.
+    /// PT-br: Registra uma funcao definida pelo usuario no schema informado.
     /// </summary>
-    /// <param name="function">EN: Function definition. PT: Definicao da funcao.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="function">EN: Function definition. PT-br: Definicao da funcao.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
     public void AddFunction(
         DbFunctionDef function,
         string? schemaName = null)
@@ -690,12 +690,12 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Tries to get a stored procedure by name.
-    /// PT: Tenta obter um procedimento armazenado pelo nome.
+    /// PT-br: Tenta obter um procedimento armazenado pelo nome.
     /// </summary>
-    /// <param name="procName">EN: Procedure name. PT: Nome do procedimento.</param>
-    /// <param name="pr">EN: Found procedure, if any. PT: Procedimento encontrado, se houver.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    /// <param name="procName">EN: Procedure name. PT-br: Nome do procedimento.</param>
+    /// <param name="pr">EN: Found procedure, if any. PT-br: Procedimento encontrado, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT-br: True se existir.</returns>
     public bool TryGetProcedure(
         string procName,
         out ProcedureDef? pr,
@@ -755,11 +755,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Replaces or registers a user-defined function in the specified schema.
-    /// PT: Substitui ou registra uma funcao definida pelo usuario no schema informado.
+    /// PT-br: Substitui ou registra uma funcao definida pelo usuario no schema informado.
     /// </summary>
-    /// <param name="definition">EN: Function definition. PT: Definicao da funcao.</param>
-    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definicao existente.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="definition">EN: Function definition. PT-br: Definicao da funcao.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT-br: True para substituir uma definicao existente.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
     public void CreateFunction(
         DbFunctionDef definition,
         bool orReplace = false,
@@ -835,12 +835,12 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Replaces or registers a stored procedure in the specified schema.
-    /// PT: Substitui ou registra um procedimento armazenado no schema informado.
+    /// PT-br: Substitui ou registra um procedimento armazenado no schema informado.
     /// </summary>
-    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
-    /// <param name="procedure">EN: Procedure definition. PT: Definição da procedure.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <param name="orReplace">EN: True to replace an existing definition. PT: True para substituir uma definição existente.</param>
+    /// <param name="procedureName">EN: Procedure name. PT-br: Nome da procedure.</param>
+    /// <param name="procedure">EN: Procedure definition. PT-br: Definição da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <param name="orReplace">EN: True to replace an existing definition. PT-br: True para substituir uma definição existente.</param>
     public void CreateProcedure(
         string procedureName,
         ProcedureDef procedure,
@@ -857,11 +857,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Restores a stored procedure definition in the specified schema.
-    /// PT: Restaura uma definição de procedimento armazenado no schema informado.
+    /// PT-br: Restaura uma definição de procedimento armazenado no schema informado.
     /// </summary>
-    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
-    /// <param name="procedure">EN: Procedure definition. PT: Definição da procedure.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="procedureName">EN: Procedure name. PT-br: Nome da procedure.</param>
+    /// <param name="procedure">EN: Procedure definition. PT-br: Definição da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
     internal void RestoreProcedure(
         string procedureName,
         ProcedureDef procedure,
@@ -875,10 +875,10 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Removes a stored procedure from the specified schema.
-    /// PT: Remove um procedimento armazenado do schema informado.
+    /// PT-br: Remove um procedimento armazenado do schema informado.
     /// </summary>
-    /// <param name="procedureName">EN: Procedure name. PT: Nome da procedure.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="procedureName">EN: Procedure name. PT-br: Nome da procedure.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
     internal void RemoveProcedure(
         string procedureName,
         string? schemaName = null)
@@ -894,11 +894,11 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Registers a sequence in the specified schema.
-    /// PT: Registra uma sequence no schema informado.
+    /// PT-br: Registra uma sequence no schema informado.
     /// </summary>
-    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
-    /// <param name="sequence">EN: Sequence definition. PT: Definição da sequence.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
+    /// <param name="sequenceName">EN: Sequence name. PT-br: Nome da sequence.</param>
+    /// <param name="sequence">EN: Sequence definition. PT-br: Definição da sequence.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
     public void AddSequence(
         string sequenceName,
         SequenceDef sequence,
@@ -914,20 +914,20 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Creates and registers a sequence in the specified schema.
-    /// PT: Cria e registra uma sequence no schema informado.
+    /// PT-br: Cria e registra uma sequence no schema informado.
     /// </summary>
-    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
-    /// <param name="startValue">EN: First sequence value. PT: Primeiro valor da sequence.</param>
-    /// <param name="incrementBy">EN: Increment step. PT: Passo de incremento.</param>
-    /// <param name="currentValue">EN: Current value when known. PT: Valor atual quando conhecido.</param>
-    /// <param name="minValue">EN: Minimum allowed value when the sequence is bounded. PT: Valor minimo permitido quando a sequence e limitada.</param>
-    /// <param name="maxValue">EN: Maximum allowed value when the sequence is bounded. PT: Valor maximo permitido quando a sequence e limitada.</param>
-    /// <param name="isCycle">EN: Whether the sequence wraps around when it reaches a bound. PT: Indica se a sequence reinicia ao atingir um limite.</param>
-    /// <param name="ownedBySchema">EN: Schema of the owning table when the sequence is attached to a column. PT: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
-    /// <param name="ownedByTable">EN: Owning table name when the sequence is attached to a column. PT: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
-    /// <param name="ownedByColumn">EN: Owning column name when the sequence is attached to a column. PT: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: Registered sequence. PT: Sequence registrada.</returns>
+    /// <param name="sequenceName">EN: Sequence name. PT-br: Nome da sequence.</param>
+    /// <param name="startValue">EN: First sequence value. PT-br: Primeiro valor da sequence.</param>
+    /// <param name="incrementBy">EN: Increment step. PT-br: Passo de incremento.</param>
+    /// <param name="currentValue">EN: Current value when known. PT-br: Valor atual quando conhecido.</param>
+    /// <param name="minValue">EN: Minimum allowed value when the sequence is bounded. PT-br: Valor minimo permitido quando a sequence e limitada.</param>
+    /// <param name="maxValue">EN: Maximum allowed value when the sequence is bounded. PT-br: Valor maximo permitido quando a sequence e limitada.</param>
+    /// <param name="isCycle">EN: Whether the sequence wraps around when it reaches a bound. PT-br: Indica se a sequence reinicia ao atingir um limite.</param>
+    /// <param name="ownedBySchema">EN: Schema of the owning table when the sequence is attached to a column. PT-br: Schema da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByTable">EN: Owning table name when the sequence is attached to a column. PT-br: Nome da tabela proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="ownedByColumn">EN: Owning column name when the sequence is attached to a column. PT-br: Nome da coluna proprietaria quando a sequence e vinculada a uma coluna.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: Registered sequence. PT-br: Sequence registrada.</returns>
     public SequenceDef AddSequence(
         string sequenceName,
         long startValue = 1,
@@ -958,12 +958,12 @@ public abstract class DbMock
 
     /// <summary>
     /// EN: Tries to get a sequence by name.
-    /// PT: Tenta obter uma sequence pelo nome.
+    /// PT-br: Tenta obter uma sequence pelo nome.
     /// </summary>
-    /// <param name="sequenceName">EN: Sequence name. PT: Nome da sequence.</param>
-    /// <param name="sequence">EN: Found sequence, if any. PT: Sequence encontrada, se houver.</param>
-    /// <param name="schemaName">EN: Target schema. PT: Schema alvo.</param>
-    /// <returns>EN: True if it exists. PT: True se existir.</returns>
+    /// <param name="sequenceName">EN: Sequence name. PT-br: Nome da sequence.</param>
+    /// <param name="sequence">EN: Found sequence, if any. PT-br: Sequence encontrada, se houver.</param>
+    /// <param name="schemaName">EN: Target schema. PT-br: Schema alvo.</param>
+    /// <returns>EN: True if it exists. PT-br: True se existir.</returns>
     public bool TryGetSequence(
         string sequenceName,
         out SequenceDef? sequence,

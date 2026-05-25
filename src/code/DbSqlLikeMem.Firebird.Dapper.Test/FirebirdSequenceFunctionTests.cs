@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird sequence function aliases through the Dapper-facing mock surface.
-/// PT: Cobre aliases de funcoes de sequence Firebird pela surface simulada voltada para Dapper.
+/// PT-br: Cobre aliases de funcoes de sequence Firebird pela surface simulada voltada para Dapper.
 /// </summary>
 public sealed class FirebirdSequenceFunctionTests
 {
     /// <summary>
     /// EN: Verifies GEN_ID and NEXT VALUE FOR stay consistent on the Dapper-facing Firebird surface.
-    /// PT: Verifica se GEN_ID e NEXT VALUE FOR permanecem consistentes na surface Firebird voltada para Dapper.
+    /// PT-br: Verifica se GEN_ID e NEXT VALUE FOR permanecem consistentes na surface Firebird voltada para Dapper.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]

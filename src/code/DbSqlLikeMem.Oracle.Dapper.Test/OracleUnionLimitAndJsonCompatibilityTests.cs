@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Covers Oracle UNION, offset/fetch, and JSON compatibility scenarios already supported by the in-memory mock.
-/// PT: Cobre cenarios de compatibilidade de UNION, offset/fetch e JSON do Oracle que o mock em memoria ja suporta.
+/// PT-br: Cobre cenarios de compatibilidade de UNION, offset/fetch e JSON do Oracle que o mock em memoria ja suporta.
 /// </summary>
 /// <remarks>
 /// EN: Creates the in-memory Oracle connection used by the UNION, offset/fetch, and JSON compatibility tests.
-/// PT: Cria a conexao Oracle em memoria usada pelos testes de compatibilidade de UNION, offset/fetch e JSON.
+/// PT-br: Cria a conexao Oracle em memoria usada pelos testes de compatibilidade de UNION, offset/fetch e JSON.
 /// </remarks>
 public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<OracleDbMock, OracleConnectionMock>(helper)
 {
@@ -16,7 +16,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
-    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
+    /// PT-br: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -25,7 +25,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Verifies OFFSET/FETCH pagination returns the expected rows.
-    /// PT: Verifica se a paginacao OFFSET/FETCH retorna as linhas esperadas.
+    /// PT-br: Verifica se a paginacao OFFSET/FETCH retorna as linhas esperadas.
     /// </summary>
     [Theory]
     [MemberDataOracleVersion]
@@ -48,7 +48,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Verifies JSON_VALUE returns the expected scalar values.
-    /// PT: Verifica se JSON_VALUE retorna os valores escalares esperados.
+    /// PT-br: Verifica se JSON_VALUE retorna os valores escalares esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -62,7 +62,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Ensures JSON_VALUE RETURNING text types are applied by the executor instead of leaving numeric payloads untouched.
-    /// PT: Garante que JSON_VALUE RETURNING em tipos textuais seja aplicado pelo executor em vez de deixar payloads numéricos inalterados.
+    /// PT-br: Garante que JSON_VALUE RETURNING em tipos textuais seja aplicado pelo executor em vez de deixar payloads numéricos inalterados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -76,7 +76,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Verifies ORDER BY NULLS FIRST applies explicit null ordering.
-    /// PT: Verifica se ORDER BY NULLS FIRST aplica a ordenacao explicita de nulos.
+    /// PT-br: Verifica se ORDER BY NULLS FIRST aplica a ordenacao explicita de nulos.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -89,7 +89,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Verifies unsupported JSON functions throw the expected exception.
-    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
+    /// PT-br: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -101,7 +101,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
-    /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
+    /// PT-br: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -110,7 +110,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
-    /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
+    /// PT-br: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]
@@ -121,7 +121,7 @@ public sealed class OracleUnionLimitAndJsonCompatibilityTests(ITestOutputHelper 
 
     /// <summary>
     /// EN: Ensures UNION schema keeps aliases from the first SELECT projection.
-    /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
+    /// PT-br: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleUnionLimitAndJsonCompatibility")]

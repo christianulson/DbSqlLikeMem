@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Exposes and validates the supported placeholders for template-based generation.
-/// PT: Expoe e valida os placeholders suportados pela geracao baseada em templates.
+/// PT-br: Expoe e valida os placeholders suportados pela geracao baseada em templates.
 /// </summary>
 public static class TemplateTokenCatalog
 {
@@ -23,15 +23,15 @@ public static class TemplateTokenCatalog
 
     /// <summary>
     /// EN: Gets the placeholders currently supported by the generation runtime.
-    /// PT: Obtem os placeholders atualmente suportados pelo runtime de geracao.
+    /// PT-br: Obtem os placeholders atualmente suportados pelo runtime de geracao.
     /// </summary>
     public static IReadOnlyCollection<string> GetSupportedTokens() => SupportedTokens;
 
     /// <summary>
     /// EN: Finds placeholders present in a template that are not supported by the runtime.
-    /// PT: Localiza placeholders presentes em um template que nao sao suportados pelo runtime.
+    /// PT-br: Localiza placeholders presentes em um template que nao sao suportados pelo runtime.
     /// </summary>
-    /// <param name="template">EN: Raw template content to inspect. PT: Conteudo bruto do template a inspecionar.</param>
+    /// <param name="template">EN: Raw template content to inspect. PT-br: Conteudo bruto do template a inspecionar.</param>
     public static IReadOnlyCollection<string> FindUnsupportedTokens(string template)
     {
         if (string.IsNullOrWhiteSpace(template))

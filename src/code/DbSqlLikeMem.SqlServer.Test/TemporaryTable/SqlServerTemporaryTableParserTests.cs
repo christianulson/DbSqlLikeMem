@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlServer.Test.TemporaryTable;
 
 /// <summary>
 /// EN: Covers temporary table parser rules for the SqlServer dialect.
-/// PT: Cobre as regras de parser de tabelas temporarias para o dialeto SqlServer.
+/// PT-br: Cobre as regras de parser de tabelas temporarias para o dialeto SqlServer.
 /// </summary>
 public sealed class SqlServerTemporaryTableParserTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlServerTemporaryTableParserTests(
 {
     /// <summary>
     /// EN: Verifies CREATE TEMPORARY TABLE followed by SELECT is parsed as a multi-statement batch.
-    /// PT: Verifica se CREATE TEMPORARY TABLE seguido de SELECT e parseado como um lote com multiplas instrucoes.
+    /// PT-br: Verifica se CREATE TEMPORARY TABLE seguido de SELECT e parseado como um lote com multiplas instrucoes.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -40,7 +40,7 @@ SELECT * FROM tmp_users;
 
     /// <summary>
     /// EN: Provides test data for CreateTempTableStatements.
-    /// PT: Fornece dados de teste para CreateTempTableStatements.
+    /// PT-br: Fornece dados de teste para CreateTempTableStatements.
     /// </summary>
     public static IEnumerable<object[]> CreateTempTableStatements()
     {
@@ -68,7 +68,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies temporary table creation variants are accepted.
-    /// PT: Verifica se variantes de criacao de tabela temporaria sao aceitas.
+    /// PT-br: Verifica se variantes de criacao de tabela temporaria sao aceitas.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -86,7 +86,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies hash-based temporary table scopes are recognized.
-    /// PT: Verifica se escopos de tabelas temporarias baseados em hash sao reconhecidos.
+    /// PT-br: Verifica se escopos de tabelas temporarias baseados em hash sao reconhecidos.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -107,7 +107,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies CREATE OR REPLACE TABLE is rejected.
-    /// PT: Verifica se CREATE OR REPLACE TABLE e rejeitado.
+    /// PT-br: Verifica se CREATE OR REPLACE TABLE e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -122,7 +122,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies unexpected statements after CREATE TEMPORARY TABLE body are rejected.
-    /// PT: Verifica se instrucoes inesperadas apos o corpo de CREATE TEMPORARY TABLE sao rejeitadas.
+    /// PT-br: Verifica se instrucoes inesperadas apos o corpo de CREATE TEMPORARY TABLE sao rejeitadas.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -137,7 +137,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies missing CREATE TEMPORARY TABLE body after AS is rejected.
-    /// PT: Verifica se a ausencia do corpo de CREATE TEMPORARY TABLE apos AS e rejeitada.
+    /// PT-br: Verifica se a ausencia do corpo de CREATE TEMPORARY TABLE apos AS e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -152,7 +152,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies an empty column list is rejected.
-    /// PT: Verifica se uma lista de colunas vazia e rejeitada.
+    /// PT-br: Verifica se uma lista de colunas vazia e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -167,7 +167,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies a trailing comma in the column list is rejected.
-    /// PT: Verifica se uma virgula no final da lista de colunas e rejeitada.
+    /// PT-br: Verifica se uma virgula no final da lista de colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -182,7 +182,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies a leading comma in the column list is rejected.
-    /// PT: Verifica se uma virgula no inicio da lista de colunas e rejeitada.
+    /// PT-br: Verifica se uma virgula no inicio da lista de colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -197,7 +197,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies an unclosed column list is rejected.
-    /// PT: Verifica se uma lista de colunas sem fechamento e rejeitada.
+    /// PT-br: Verifica se uma lista de colunas sem fechamento e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -212,7 +212,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies a missing comma between columns is rejected.
-    /// PT: Verifica se a ausencia de virgula entre colunas e rejeitada.
+    /// PT-br: Verifica se a ausencia de virgula entre colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -227,7 +227,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies a missing comma after a parenthesized type is rejected.
-    /// PT: Verifica se a ausencia de virgula apos um tipo entre parenteses e rejeitada.
+    /// PT-br: Verifica se a ausencia de virgula apos um tipo entre parenteses e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -242,7 +242,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies a double comma in the column list is rejected.
-    /// PT: Verifica se uma virgula dupla na lista de colunas e rejeitada.
+    /// PT-br: Verifica se uma virgula dupla na lista de colunas e rejeitada.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -257,7 +257,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies IF EXISTS is rejected when IF NOT EXISTS is required.
-    /// PT: Verifica se IF EXISTS e rejeitado quando IF NOT EXISTS e obrigatorio.
+    /// PT-br: Verifica se IF EXISTS e rejeitado quando IF NOT EXISTS e obrigatorio.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -272,7 +272,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies DROP TABLE IF EXISTS is accepted.
-    /// PT: Verifica se DROP TABLE IF EXISTS e aceito.
+    /// PT-br: Verifica se DROP TABLE IF EXISTS e aceito.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -291,7 +291,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies DROP GLOBAL TEMPORARY TABLE IF EXISTS is accepted.
-    /// PT: Verifica se DROP GLOBAL TEMPORARY TABLE IF EXISTS e aceito.
+    /// PT-br: Verifica se DROP GLOBAL TEMPORARY TABLE IF EXISTS e aceito.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -310,7 +310,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies DROP GLOBAL TABLE without TEMPORARY is rejected.
-    /// PT: Verifica se DROP GLOBAL TABLE sem TEMPORARY e rejeitado.
+    /// PT-br: Verifica se DROP GLOBAL TABLE sem TEMPORARY e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -326,7 +326,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies DROP TABLE without a table name is rejected.
-    /// PT: Verifica se DROP TABLE sem nome de tabela e rejeitado.
+    /// PT-br: Verifica se DROP TABLE sem nome de tabela e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -341,7 +341,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies unexpected statements after DROP TABLE are rejected.
-    /// PT: Verifica se instrucoes inesperadas apos DROP TABLE sao rejeitadas.
+    /// PT-br: Verifica se instrucoes inesperadas apos DROP TABLE sao rejeitadas.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]
@@ -356,7 +356,7 @@ WHERE tenantid = 10",
 
     /// <summary>
     /// EN: Verifies CREATE GLOBAL TABLE without TEMPORARY is rejected.
-    /// PT: Verifica se CREATE GLOBAL TABLE sem TEMPORARY e rejeitado.
+    /// PT-br: Verifica se CREATE GLOBAL TABLE sem TEMPORARY e rejeitado.
     /// </summary>
     [Theory]
     [Trait("Category", "TemporaryTable")]

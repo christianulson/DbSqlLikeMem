@@ -2,11 +2,11 @@
 
 ## Status
 
-IN PROGRESS
+DONE
 
 ## Percentual de entrega
 
-98%
+100%
 
 ## O que foi feito
 
@@ -27,6 +27,7 @@ IN PROGRESS
 - Adicionado teste negativo no Oracle para garantir que `OWNED BY` siga rejeitado mesmo com `CREATE SEQUENCE` disponivel.
 - Adicionado teste negativo no Firebird para garantir que `OWNED BY` siga rejeitado mesmo com `CREATE SEQUENCE` disponivel.
 - Adicionado teste negativo no Db2 para garantir que `OWNED BY` siga rejeitado mesmo com `CREATE SEQUENCE` disponivel.
+- Adicionados testes de parser e execucao para `CREATE TEMPORARY TABLE ... AS SELECT` no MySQL, incluindo o fluxo de multiplas instrucoes com o SELECT final sobre a tabela temporaria criada.
 - Adicionado teste negativo no SQL Server para garantir que `WITH ... AS MATERIALIZED` e `WITH ... AS NOT MATERIALIZED` sigam rejeitados.
 - Adicionado teste negativo no Oracle para garantir que `WITH ... AS MATERIALIZED` e `WITH ... AS NOT MATERIALIZED` sigam rejeitados.
 - Adicionado teste negativo no SQL Server para garantir que `ORDER BY ... NULLS FIRST/LAST` siga rejeitado.
@@ -36,6 +37,7 @@ IN PROGRESS
 - Adicionados testes negativos no MySQL e no MariaDB para garantir que `WITH ... AS MATERIALIZED` e `WITH ... AS NOT MATERIALIZED` sigam rejeitados.
 - Adicionados testes negativos no Db2 e no Firebird para garantir que `WITH ... AS MATERIALIZED` e `WITH ... AS NOT MATERIALIZED` sigam rejeitados.
 - Adicionados testes de parser para `CREATE SEQUENCE ... OWNED BY` e `ALTER SEQUENCE ... OWNED BY NONE`, validando o novo contrato da sintaxe.
+- Adicionados wrappers de fidelidade `ParseTests` em todos os providers principais, incluindo SQLite, reaproveitando `ParseTestsBase` para os benchmarks compartilhados de parser.
 
 ## Próximos passos
 

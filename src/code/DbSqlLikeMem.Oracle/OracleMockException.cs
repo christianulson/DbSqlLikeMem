@@ -4,14 +4,14 @@ namespace DbSqlLikeMem.Oracle;
 #pragma warning disable RCS1194
 /// <summary>
 /// EN: Represents Oracle Mock Exception.
-/// PT: Representa Oracle simulada Exceção.
+/// PT-br: Representa Oracle simulada Exceção.
 /// </summary>
 public sealed class OracleMockException : SqlMockException
 #pragma warning restore CA1032 // Implement standard exception constructors
 {
     /// <summary>
     /// EN: Represents Oracle Mock Exception.
-    /// PT: Representa Oracle simulada Exceção.
+    /// PT-br: Representa Oracle simulada Exceção.
     /// </summary>
     public OracleMockException(string message, int code)
         : base(message, code)
@@ -19,7 +19,7 @@ public sealed class OracleMockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Oracle Mock Exception.
-    /// PT: Representa Oracle simulada Exceção.
+    /// PT-br: Representa Oracle simulada Exceção.
     /// </summary>
     public OracleMockException() : base()
     {
@@ -27,7 +27,7 @@ public sealed class OracleMockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Oracle Mock Exception.
-    /// PT: Representa Oracle simulada Exceção.
+    /// PT-br: Representa Oracle simulada Exceção.
     /// </summary>
     public OracleMockException(string? message) : base(message)
     {
@@ -35,7 +35,7 @@ public sealed class OracleMockException : SqlMockException
 
     /// <summary>
     /// EN: Represents Oracle Mock Exception.
-    /// PT: Representa Oracle simulada Exceção.
+    /// PT-br: Representa Oracle simulada Exceção.
     /// </summary>
     public OracleMockException(string? message, Exception? innerException) : base(message, innerException)
     {

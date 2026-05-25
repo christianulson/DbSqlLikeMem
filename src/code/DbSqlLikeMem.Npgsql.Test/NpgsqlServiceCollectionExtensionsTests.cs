@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Validates Npgsql service collection registration helpers.
-/// PT: Valida os helpers de registro de Npgsql na coleção de serviços.
+/// PT-br: Valida os helpers de registro de Npgsql na coleção de serviços.
 /// </summary>
 public sealed class NpgsqlServiceCollectionExtensionsTests(
         ITestOutputHelper helper
@@ -20,7 +20,7 @@ public sealed class NpgsqlServiceCollectionExtensionsTests(
     }
     /// <summary>
     /// EN: Verifies AddNpgsqlDbMockTransient registers a transient factory that creates new configured NpgsqlDbMock instances on each resolution.
-    /// PT: Verifica se AddNpgsqlDbMockTransient registra uma factory transient que cria novas instancias configuradas de NpgsqlDbMock em cada resolucao.
+    /// PT-br: Verifica se AddNpgsqlDbMockTransient registra uma factory transient que cria novas instancias configuradas de NpgsqlDbMock em cada resolucao.
     /// </summary>
     [Fact]
     public void AddNpgsqlDbMockTransient_ShouldCreateNewConfiguredInstanceEachResolution()

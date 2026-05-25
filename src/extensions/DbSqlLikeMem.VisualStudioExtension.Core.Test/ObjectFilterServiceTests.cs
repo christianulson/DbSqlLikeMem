@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies object name filtering in the extension core.
-/// PT: Verifica a filtragem por nome de objeto no core da extensao.
+/// PT-br: Verifica a filtragem por nome de objeto no core da extensao.
 /// </summary>
 public class ObjectFilterServiceTests
 {
     /// <summary>
     /// EN: Verifies exact matching returns only the selected object.
-    /// PT: Verifica se a correspondencia exata retorna apenas o objeto selecionado.
+    /// PT-br: Verifica se a correspondencia exata retorna apenas o objeto selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectFilterService")]
@@ -29,7 +29,7 @@ public class ObjectFilterServiceTests
 
     /// <summary>
     /// EN: Verifies contains matching returns all objects whose names include the filter value.
-    /// PT: Verifica se a correspondencia por contem retorna todos os objetos cujo nome inclui o valor filtrado.
+    /// PT-br: Verifica se a correspondencia por contem retorna todos os objetos cujo nome inclui o valor filtrado.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectFilterService")]
@@ -50,7 +50,7 @@ public class ObjectFilterServiceTests
 
     /// <summary>
     /// EN: Verifies blank filter values return the original object set.
-    /// PT: Verifica se valores de filtro em branco retornam o conjunto original de objetos.
+    /// PT-br: Verifica se valores de filtro em branco retornam o conjunto original de objetos.
     /// </summary>
     [Fact]
     [Trait("Category", "ObjectFilterService")]

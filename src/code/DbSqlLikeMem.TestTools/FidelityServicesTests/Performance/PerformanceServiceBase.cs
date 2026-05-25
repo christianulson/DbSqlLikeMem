@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.TestTools.Performance;
 
 /// <summary>
 /// EN: Describes shared reflection helpers for benchmark services that inspect provider diagnostics.
-/// PT: Descreve helpers de reflexao compartilhados para services de benchmark que inspecionam diagnosticos do provedor.
+/// PT-br: Descreve helpers de reflexao compartilhados para services de benchmark que inspecionam diagnosticos do provedor.
 /// </summary>
 public abstract class PerformanceServiceBase(
         RepoService repo,
@@ -17,7 +17,7 @@ public abstract class PerformanceServiceBase(
 
     /// <summary>
     /// EN: Reads a property or field from a diagnostic object when it is available.
-    /// PT: Lê uma propriedade ou campo de um objeto de diagnostico quando ele esta disponivel.
+    /// PT-br: Lê uma propriedade ou campo de um objeto de diagnostico quando ele esta disponivel.
     /// </summary>
     protected static object? TryReadDiagnosticValue(object target, string memberName)
     {
@@ -45,7 +45,7 @@ public abstract class PerformanceServiceBase(
 
     /// <summary>
     /// EN: Invokes a parameterless method when it exists on the target object.
-    /// PT: Invoca um metodo sem parametros quando ele existe no objeto alvo.
+    /// PT-br: Invoca um metodo sem parametros quando ele existe no objeto alvo.
     /// </summary>
     protected static bool TryInvokeIfExists(object target, string methodName)
     {
@@ -71,7 +71,7 @@ public abstract class PerformanceServiceBase(
 
     /// <summary>
     /// EN: Invokes a single-parameter method when it exists on the target object.
-    /// PT: Invoca um metodo com um parametro quando ele existe no objeto alvo.
+    /// PT-br: Invoca um metodo com um parametro quando ele existe no objeto alvo.
     /// </summary>
     protected static object? TryInvokeWithArgIfExists(object target, string methodName, object? arg)
     {
@@ -96,7 +96,7 @@ public abstract class PerformanceServiceBase(
 
     /// <summary>
     /// EN: Invokes a parameterless snapshot method when it exists on the target object.
-    /// PT: Invoca um metodo de snapshot sem parametros quando ele existe no objeto alvo.
+    /// PT-br: Invoca um metodo de snapshot sem parametros quando ele existe no objeto alvo.
     /// </summary>
     protected static object? TryInvokeSnapshot(object target, string methodName)
     {

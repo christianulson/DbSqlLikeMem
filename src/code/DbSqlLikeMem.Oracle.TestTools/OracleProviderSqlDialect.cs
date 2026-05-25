@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.TestTools;
 
 /// <summary>
 /// EN: Provides Oracle-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de Oracle usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de Oracle usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class OracleProviderSqlDialect : ProviderSqlDialect
 {
@@ -22,6 +22,9 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsJsonScalarRead => true;
 
     /// <inheritdoc />
+    public override bool SupportsJsonQueryFunction => true;
+
+    /// <inheritdoc />
     public override bool SupportsReleaseSavepoints => false;
 
     /// <inheritdoc />
@@ -29,6 +32,24 @@ public sealed class OracleProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsGuidInputOutputParameters => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRemainderFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTruncFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTruncScaleFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
 
     /// <inheritdoc />
     public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;
@@ -106,11 +127,11 @@ CREATE TABLE {context.TbOrdersFullName} (
 
     /// <summary>
     /// EN: Returns the Oracle SQL expression used to format decimal values with a fixed scale for fidelity checks.
-    /// PT: Retorna a expressao SQL do Oracle usada para formatar valores decimais com escala fixa nas verificacoes de fidelidade.
+    /// PT-br: Retorna a expressao SQL do Oracle usada para formatar valores decimais com escala fixa nas verificacoes de fidelidade.
     /// </summary>
-    /// <param name="expression">EN: The numeric SQL expression to format. PT: A expressao SQL numerica a formatar.</param>
-    /// <param name="scale">EN: The number of fractional digits to render. PT: A quantidade de casas fracionarias a exibir.</param>
-    /// <returns>EN: The Oracle SQL expression that renders the numeric value as fixed-point text. PT: A expressao SQL do Oracle que renderiza o valor numerico como texto de ponto fixo.</returns>
+    /// <param name="expression">EN: The numeric SQL expression to format. PT-br: A expressao SQL numerica a formatar.</param>
+    /// <param name="scale">EN: The number of fractional digits to render. PT-br: A quantidade de casas fracionarias a exibir.</param>
+    /// <returns>EN: The Oracle SQL expression that renders the numeric value as fixed-point text. PT-br: A expressao SQL do Oracle que renderiza o valor numerico como texto de ponto fixo.</returns>
     public override string DecimalTextExpression(string expression, int scale = 2)
     {
         var fractionalDigits = new string('0', Math.Max(1, scale));
@@ -304,6 +325,14 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"LENGTH({expression})";
 
     /// <inheritdoc />
+    public override string MathCeilingExpression(string expression) =>
+        $"CEIL({expression})";
+
+    /// <inheritdoc />
+    public override string MathLog10Expression(string expression) =>
+        $"LOG(10, {expression})";
+
+    /// <inheritdoc />
     public override string StringCastExpression(string expression, int length = 10)
     {
         _ = length;
@@ -342,7 +371,7 @@ SELECT * FROM cte
 
     /// <summary>
     /// EN: Returns the Oracle SQL text used when release-savepoint handling is emitted.
-    /// PT: Retorna o texto SQL do Oracle usado quando o tratamento de release-savepoint eh emitido.
+    /// PT-br: Retorna o texto SQL do Oracle usado quando o tratamento de release-savepoint eh emitido.
     /// </summary>
     public override string ReleaseSavepoint(string savepointName) =>
         $"RELEASE SAVEPOINT {savepointName}";

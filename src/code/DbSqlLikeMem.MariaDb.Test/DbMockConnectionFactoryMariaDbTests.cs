@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MariaDb.Test;
 
 /// <summary>
 /// EN: Validates MariaDb-specific DbMock connection factory contract behavior.
-/// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de MariaDb.
+/// PT-br: Valida o comportamento do contrato da factory de conexao DbMock especifica de MariaDb.
 /// </summary>
 public sealed class DbMockConnectionFactoryMariaDbTests(
         ITestOutputHelper helper

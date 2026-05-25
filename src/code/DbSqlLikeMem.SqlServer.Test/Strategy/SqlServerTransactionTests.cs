@@ -1,7 +1,7 @@
 namespace DbSqlLikeMem.SqlServer.Test.Strategy;
 /// <summary>
 /// EN: Covers transaction commit and rollback scenarios in the SqlServer mock.
-/// PT: Cobre cenarios de commit e rollback de transacao no mock SqlServer.
+/// PT-br: Cobre cenarios de commit e rollback de transacao no mock SqlServer.
 /// </summary>
 public sealed class SqlServerTransactionTests(
         ITestOutputHelper helper
@@ -9,7 +9,7 @@ public sealed class SqlServerTransactionTests(
 {
     /// <summary>
     /// EN: Verifies that committing a transaction persists the pending changes.
-    /// PT: Verifica se o commit de uma transacao persiste as alteracoes pendentes.
+    /// PT-br: Verifica se o commit de uma transacao persiste as alteracoes pendentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -44,7 +44,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Verifies that rolling back a transaction discards the pending changes.
-    /// PT: Verifica se o rollback de uma transacao descarta as alteracoes pendentes.
+    /// PT-br: Verifica se o rollback de uma transacao descarta as alteracoes pendentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -76,7 +76,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures explicit transaction isolation level is exposed and reset after commit.
-    /// PT: Garante que o nível de isolamento explícito seja exposto e resetado após commit.
+    /// PT-br: Garante que o nível de isolamento explícito seja exposto e resetado após commit.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -98,7 +98,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback resets current isolation level to unspecified.
-    /// PT: Garante que rollback resete o nível de isolamento atual para não especificado.
+    /// PT-br: Garante que rollback resete o nível de isolamento atual para não especificado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -119,7 +119,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures connection-scoped temporary tables stay isolated between different connections.
-    /// PT: Garante que tabelas temporárias no escopo da conexão permaneçam isoladas entre conexões diferentes.
+    /// PT-br: Garante que tabelas temporárias no escopo da conexão permaneçam isoladas entre conexões diferentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -149,7 +149,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures closing the connection clears session-scoped lifecycle state.
-    /// PT: Garante que fechar a conexão limpe estado de ciclo de vida no escopo da sessão.
+    /// PT-br: Garante que fechar a conexão limpe estado de ciclo de vida no escopo da sessão.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -180,7 +180,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures closing a connection clears only session-scoped state and preserves shared database state.
-    /// PT: Garante que fechar a conexão limpe apenas estado de sessão e preserve o estado compartilhado do banco.
+    /// PT-br: Garante que fechar a conexão limpe apenas estado de sessão e preserve o estado compartilhado do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -218,7 +218,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures reopening a closed connection starts a fresh session while preserving shared database state.
-    /// PT: Garante que reabrir conexão fechada inicie sessão limpa preservando o estado compartilhado do banco.
+    /// PT-br: Garante que reabrir conexão fechada inicie sessão limpa preservando o estado compartilhado do banco.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -254,7 +254,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures transaction rollback restores connection temporary-table state.
-    /// PT: Garante que rollback de transação restaure o estado de tabela temporária da conexão.
+    /// PT-br: Garante que rollback de transação restaure o estado de tabela temporária da conexão.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -285,7 +285,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback restores multiple tables correctly when the database runs in thread-safe mode.
-    /// PT: Garante que rollback restaure varias tabelas corretamente quando o banco executa em modo thread-safe.
+    /// PT-br: Garante que rollback restaure varias tabelas corretamente quando o banco executa em modo thread-safe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -323,7 +323,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback to savepoint restores connection temporary-table snapshot.
-    /// PT: Garante que rollback para savepoint restaure snapshot de tabela temporária da conexão.
+    /// PT-br: Garante que rollback para savepoint restaure snapshot de tabela temporária da conexão.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -365,7 +365,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures nested savepoints restore the transaction snapshot from the selected outer point.
-    /// PT: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
+    /// PT-br: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -415,7 +415,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures full volatile reset clears permanent and temporary data and resets identity counters.
-    /// PT: Garante que reset volátil completo limpe dados permanentes/temporários e resete contadores de identidade.
+    /// PT-br: Garante que reset volátil completo limpe dados permanentes/temporários e resete contadores de identidade.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -455,7 +455,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures full volatile reset also clears rows from global temporary tables while preserving definitions.
-    /// PT: Garante que reset volátil completo também limpe linhas de temporárias globais preservando definições.
+    /// PT-br: Garante que reset volátil completo também limpe linhas de temporárias globais preservando definições.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -490,7 +490,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures full volatile reset invalidates active savepoints by clearing transaction state.
-    /// PT: Garante que reset volátil completo invalide savepoints ativos ao limpar o estado transacional.
+    /// PT-br: Garante que reset volátil completo invalide savepoints ativos ao limpar o estado transacional.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -515,7 +515,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures database-level volatile reset clears rows and identity while keeping table definitions.
-    /// PT: Garante que reset volátil no banco limpe linhas/identidade mantendo definições de tabela.
+    /// PT-br: Garante que reset volátil no banco limpe linhas/identidade mantendo definições de tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -542,7 +542,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures database-level volatile reset does not affect connection-scoped temporary tables.
-    /// PT: Garante que reset volátil no banco não afete tabelas temporárias no escopo da conexão.
+    /// PT-br: Garante que reset volátil no banco não afete tabelas temporárias no escopo da conexão.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -569,7 +569,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures database volatile reset can preserve or clear global temporary table rows based on the input flag.
-    /// PT: Garante que o reset volátil do banco preserve ou limpe linhas de tabela temporária global conforme o parâmetro.
+    /// PT-br: Garante que o reset volátil do banco preserve ou limpe linhas de tabela temporária global conforme o parâmetro.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -611,7 +611,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures unsupported savepoint operations use standardized runtime not-supported diagnostics.
-    /// PT: Garante que operações de savepoint não suportadas usem diagnóstico padronizado de não suporte em runtime.
+    /// PT-br: Garante que operações de savepoint não suportadas usem diagnóstico padronizado de não suporte em runtime.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -635,7 +635,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback to savepoint restores the table snapshot within an active transaction.
-    /// PT: Garante que rollback para savepoint restaure o snapshot da tabela dentro de uma transação ativa.
+    /// PT-br: Garante que rollback para savepoint restaure o snapshot da tabela dentro de uma transação ativa.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -671,7 +671,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback to an unknown savepoint keeps the existing actionable runtime message.
-    /// PT: Garante que rollback para um savepoint desconhecido mantenha a mensagem de runtime acionável existente.
+    /// PT-br: Garante que rollback para um savepoint desconhecido mantenha a mensagem de runtime acionável existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -692,7 +692,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures savepoint creation uses standardized not-supported diagnostics when provider disables savepoints.
-    /// PT: Garante que criação de savepoint use diagnóstico padronizado de não suportado quando o provedor desabilita savepoints.
+    /// PT-br: Garante que criação de savepoint use diagnóstico padronizado de não suportado quando o provedor desabilita savepoints.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -714,7 +714,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback-to-savepoint uses standardized not-supported diagnostics when provider disables savepoints.
-    /// PT: Garante que rollback para savepoint use diagnóstico padronizado de não suportado quando o provedor desabilita savepoints.
+    /// PT-br: Garante que rollback para savepoint use diagnóstico padronizado de não suportado quando o provedor desabilita savepoints.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -736,7 +736,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures releasing an unknown savepoint keeps the existing actionable runtime message when release is enabled.
-    /// PT: Garante que liberar um savepoint desconhecido mantenha a mensagem de runtime acionável existente quando release está habilitado.
+    /// PT-br: Garante que liberar um savepoint desconhecido mantenha a mensagem de runtime acionável existente quando release está habilitado.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -759,7 +759,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures creating a savepoint without an active transaction keeps the existing actionable message.
-    /// PT: Garante que criar savepoint sem transação ativa mantenha a mensagem acionável existente.
+    /// PT-br: Garante que criar savepoint sem transação ativa mantenha a mensagem acionável existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -778,7 +778,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures rollback to savepoint without an active transaction keeps the existing actionable message.
-    /// PT: Garante que rollback para savepoint sem transação ativa mantenha a mensagem acionável existente.
+    /// PT-br: Garante que rollback para savepoint sem transação ativa mantenha a mensagem acionável existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -798,7 +798,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures releasing savepoint without an active transaction keeps the existing actionable message.
-    /// PT: Garante que liberar savepoint sem transação ativa mantenha a mensagem acionável existente.
+    /// PT-br: Garante que liberar savepoint sem transação ativa mantenha a mensagem acionável existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -817,7 +817,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures creating a savepoint with an empty name keeps the existing parameter validation message.
-    /// PT: Garante que criar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// PT-br: Garante que criar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -837,7 +837,7 @@ public sealed class SqlServerTransactionTests(
 
     /// <summary>
     /// EN: Ensures releasing a savepoint with an empty name keeps the existing parameter validation message.
-    /// PT: Garante que liberar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
+    /// PT-br: Garante que liberar um savepoint com nome vazio mantenha a mensagem de validacao de parametro existente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

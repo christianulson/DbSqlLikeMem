@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.LinqToDb.Test;
 
 /// <summary>
 /// EN: Executes shared LinqToDB smoke contract tests using the Firebird provider connection factory.
-/// PT: Executa testes compartilhados de contrato smoke de LinqToDB usando a fabrica de conexao do provedor Firebird.
+/// PT-br: Executa testes compartilhados de contrato smoke de LinqToDB usando a fabrica de conexao do provedor Firebird.
 /// </summary>
 public sealed class LinqToDbSmokeTests(
     ITestOutputHelper helper

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Strategy;
 
 /// <summary>
 /// EN: Covers DELETE execution scenarios in the Npgsql mock.
-/// PT: Cobre cenarios de execucao de DELETE no mock Npgsql.
+/// PT-br: Cobre cenarios de execucao de DELETE no mock Npgsql.
 /// </summary>
 public sealed class PostgreSqlCommandDeleteTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 {
     /// <summary>
     /// EN: Verifies that DELETE removes a single matching row.
-    /// PT: Verifica se DELETE remove uma unica linha correspondente.
+    /// PT-br: Verifica se DELETE remove uma unica linha correspondente.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -34,7 +34,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE removes every matching row.
-    /// PT: Verifica se DELETE remove todas as linhas correspondentes.
+    /// PT-br: Verifica se DELETE remove todas as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -59,7 +59,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE returns zero when no rows match.
-    /// PT: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
+    /// PT-br: Verifica se DELETE retorna zero quando nenhuma linha corresponde.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -81,7 +81,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE fails when the target table does not exist.
-    /// PT: Verifica se DELETE falha quando a tabela alvo nao existe.
+    /// PT-br: Verifica se DELETE falha quando a tabela alvo nao existe.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -97,7 +97,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE fails when the SQL is invalid without FROM.
-    /// PT: Verifica se DELETE falha quando o SQL e invalido sem FROM.
+    /// PT-br: Verifica se DELETE falha quando o SQL e invalido sem FROM.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -117,7 +117,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE is blocked when a foreign key references the row.
-    /// PT: Verifica se DELETE e bloqueado quando uma FK referencia a linha.
+    /// PT-br: Verifica se DELETE e bloqueado quando uma FK referencia a linha.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -144,7 +144,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies a thread-safe delete with multiple parent rows stops when one row is still referenced.
-    /// PT: Verifica se um delete thread-safe com varias linhas pai para quando uma linha ainda esta referenciada.
+    /// PT-br: Verifica se um delete thread-safe com varias linhas pai para quando uma linha ainda esta referenciada.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -174,7 +174,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE works with both thread-safe modes.
-    /// PT: Verifica se DELETE funciona com ambos os modos thread-safe.
+    /// PT-br: Verifica se DELETE funciona com ambos os modos thread-safe.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]
@@ -197,7 +197,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE parsing is case-insensitive.
-    /// PT: Verifica se o parsing de DELETE e case-insensitive.
+    /// PT-br: Verifica se o parsing de DELETE e case-insensitive.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -218,7 +218,7 @@ public sealed class PostgreSqlCommandDeleteTests(
 
     /// <summary>
     /// EN: Verifies that DELETE supports parameters when the helper does.
-    /// PT: Verifica se DELETE suporta parametros quando o helper suporta.
+    /// PT-br: Verifica se DELETE suporta parametros quando o helper suporta.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

@@ -1,26 +1,26 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Linq.Expressions;
 
 namespace DbSqlLikeMem.Sqlite;
 /// <summary>
 /// EN: Represents Sqlite Queryable.
-/// PT: Representa Sqlite Queryable.
+/// PT-br: Representa Sqlite Queryable.
 /// </summary>
 public class SqliteQueryable<T> : IOrderedQueryable<T>
 {
     /// <summary>
     /// EN: Gets or sets table name.
-    /// PT: Obtém ou define table name.
+    /// PT-br: Obtém ou define table name.
     /// </summary>
     public string TableName { get; }
     /// <summary>
     /// EN: Gets or sets expression.
-    /// PT: Obtém ou define expression.
+    /// PT-br: Obtém ou define expression.
     /// </summary>
     public Expression Expression { get; }
     /// <summary>
     /// EN: Executes sqlite queryable.
-    /// PT: Executa sqlite queryable.
+    /// PT-br: Executa sqlite queryable.
     /// </summary>
     public IQueryProvider Provider { get; }
 
@@ -48,14 +48,14 @@ public class SqliteQueryable<T> : IOrderedQueryable<T>
 
     /// <summary>
     /// EN: Executes typeof.
-    /// PT: Executa typeof.
+    /// PT-br: Executa typeof.
     /// </summary>
     public Type ElementType => typeof(T);
     IEnumerator IEnumerable.GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();
     /// <summary>
     /// EN: Gets enumerator.
-    /// PT: Obtém enumerador.
+    /// PT-br: Obtém enumerador.
     /// </summary>
     public IEnumerator<T> GetEnumerator()
         => Provider.Execute<IEnumerable<T>>(Expression).GetEnumerator();

@@ -57,6 +57,7 @@ internal static class SqlCreateTemporaryTableHelper
         "BLOB",
         "BINARY",
         "VARBINARY",
+        "UNIQUEIDENTIFIER",
         "GUID",
         "UUID",
     };
@@ -659,6 +660,15 @@ internal static class SqlCreateTemporaryTableHelper
             || normalizedValue.Equals("CURRENT TIME", StringComparison.OrdinalIgnoreCase))
         {
             value = BuildCurrentTimeDefault(dbType);
+            return true;
+        }
+
+        if (normalizedValue.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
+            || normalizedValue.Equals("NEWSEQUENTIALID()", StringComparison.OrdinalIgnoreCase)
+            || normalizedValue.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
+            || normalizedValue.Equals("NEWID()", StringComparison.OrdinalIgnoreCase))
+        {
+            value = new GuidDefaultValue();
             return true;
         }
 

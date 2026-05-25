@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.DDL;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared table DDL workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de DDL de tabela.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados de DDL de tabela.
 /// </summary>
 [FidelityNativeClientSkip]
 public class TableTests(

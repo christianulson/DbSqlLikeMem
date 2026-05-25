@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared select workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de select.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados de select.
 /// </summary>
 [FidelityNativeClientSkip]
 public class SelectTests(

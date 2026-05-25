@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Oracle.Test;
 
 /// <summary>
 /// EN: Validates Oracle function execution for common scalar and aggregate utilities.
-/// PT: Valida a execucao de funcoes Oracle para utilitarios escalares e agregados comuns.
+/// PT-br: Valida a execucao de funcoes Oracle para utilitarios escalares e agregados comuns.
 /// </summary>
 public sealed class OracleFunctionTests
     : XUnitTestBase
@@ -11,7 +11,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Creates Oracle function test fixtures with sample tables.
-    /// PT: Cria fixtures de funcoes Oracle com tabelas de exemplo.
+    /// PT-br: Cria fixtures de funcoes Oracle com tabelas de exemplo.
     /// </summary>
     public OracleFunctionTests(ITestOutputHelper helper)
         : base(helper)
@@ -41,9 +41,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle executes the pragmatic scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o Oracle execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// PT-br: Garante que o Oracle execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versao do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versao do dialeto Oracle em teste.</param>
     [Theory]
     [MemberDataOracleVersion]
     [Trait("Category", "OracleMock")]
@@ -63,9 +63,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle replaces an existing scalar function body through CREATE OR REPLACE FUNCTION.
-    /// PT: Garante que o Oracle substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION.
+    /// PT-br: Garante que o Oracle substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION.
     /// </summary>
-    /// <param name="version">EN: Oracle dialect version under test. PT: Versao do dialeto Oracle em teste.</param>
+    /// <param name="version">EN: Oracle dialect version under test. PT-br: Versao do dialeto Oracle em teste.</param>
     [Theory]
     [MemberDataOracleVersion]
     [Trait("Category", "OracleMock")]
@@ -80,7 +80,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures core Oracle conversion functions return expected results.
-    /// PT: Garante que funcoes de conversao Oracle retornem resultados esperados.
+    /// PT-br: Garante que funcoes de conversao Oracle retornem resultados esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
@@ -119,7 +119,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures common Oracle scalar functions return expected values.
-    /// PT: Garante que funcoes escalares comuns do Oracle retornem valores esperados.
+    /// PT-br: Garante que funcoes escalares comuns do Oracle retornem valores esperados.
     /// </summary>
     [Theory]
     [MemberData(nameof(OracleScalarCases))]
@@ -133,7 +133,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle functions with stubbed behavior return null for now.
-    /// PT: Garante que funcoes Oracle com comportamento stub retornem null por enquanto.
+    /// PT-br: Garante que funcoes Oracle com comportamento stub retornem null por enquanto.
     /// </summary>
     [Theory]
     [MemberData(nameof(OracleNullCases))]
@@ -145,7 +145,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Validates Oracle aggregate functions that were implemented in the mock.
-    /// PT: Valida funcoes agregadas Oracle que foram implementadas no mock.
+    /// PT-br: Valida funcoes agregadas Oracle que foram implementadas no mock.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
@@ -263,9 +263,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle JSON_TABLE materializes rows when the version gate is enabled.
-    /// PT: Garante que Oracle JSON_TABLE materialize linhas quando o gate de versao esta habilitado.
+    /// PT-br: Garante que Oracle JSON_TABLE materialize linhas quando o gate de versao esta habilitado.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versao do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versao do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -311,9 +311,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle approximate aggregate helpers follow the configured database version gates.
-    /// PT: Garante que os helpers Oracle de agregacao aproximada sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que os helpers Oracle de agregacao aproximada sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -380,9 +380,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle-specific conversion helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle especificos de conversao sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle especificos de conversao sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -410,9 +410,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle SCN helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de SCN sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de SCN sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -426,9 +426,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle analytics/modeling helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de analytics/modelagem sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de analytics/modelagem sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -457,9 +457,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle clustering helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de clustering sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de clustering sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -476,9 +476,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle container and rowid helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de container e rowid sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de container e rowid sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -496,9 +496,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle metadata, validation, and JSON transform helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de metadados, validacao e JSON transform sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de metadados, validacao e JSON transform sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -519,9 +519,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle JSON extraction helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de extracao JSON sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de extracao JSON sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -535,9 +535,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle collation and NLS helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de collation e NLS sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de collation e NLS sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -559,9 +559,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures Oracle hash and SYS helpers follow the configured database version gates.
-    /// PT: Garante que helpers Oracle de hash e SYS sigam os gates da versao configurada do banco.
+    /// PT-br: Garante que helpers Oracle de hash e SYS sigam os gates da versao configurada do banco.
     /// </summary>
-    /// <param name="version">EN: Oracle version under test. PT: Versão do Oracle em teste.</param>
+    /// <param name="version">EN: Oracle version under test. PT-br: Versão do Oracle em teste.</param>
     [Theory]
     [Trait("Category", "OracleMock")]
     [MemberDataOracleVersion]
@@ -588,7 +588,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Verifies Oracle time and timezone helpers return expected types.
-    /// PT: Verifica se auxiliares de tempo e fuso do Oracle retornam tipos esperados.
+    /// PT-br: Verifica se auxiliares de tempo e fuso do Oracle retornam tipos esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
@@ -622,7 +622,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Ensures date arithmetic helpers return expected dates.
-    /// PT: Garante que auxiliares de aritmetica de datas retornem datas esperadas.
+    /// PT-br: Garante que auxiliares de aritmetica de datas retornem datas esperadas.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
@@ -634,7 +634,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Confirms Oracle RAW, regex, and user environment helpers return expected values.
-    /// PT: Confirma que auxiliares RAW, regex e ambiente de usuario Oracle retornam valores esperados.
+    /// PT-br: Confirma que auxiliares RAW, regex e ambiente de usuario Oracle retornam valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "OracleMock")]
@@ -700,9 +700,9 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Releases Oracle connections created for the tests.
-    /// PT: Libera as conexoes Oracle criadas para os testes.
+    /// PT-br: Libera as conexoes Oracle criadas para os testes.
     /// </summary>
-    /// <param name="disposing">EN: True to dispose managed resources. PT: True para descartar recursos gerenciados.</param>
+    /// <param name="disposing">EN: True to dispose managed resources. PT-br: True para descartar recursos gerenciados.</param>
     protected override void Dispose(bool disposing)
     {
         _connection.Dispose();
@@ -711,7 +711,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Provides scalar function cases and expected values.
-    /// PT: Fornece casos de funcoes escalares e valores esperados.
+    /// PT-br: Fornece casos de funcoes escalares e valores esperados.
     /// </summary>
     public static IEnumerable<object[]> OracleScalarCases()
     {
@@ -772,7 +772,7 @@ public sealed class OracleFunctionTests
 
     /// <summary>
     /// EN: Provides function calls that currently return null in the mock.
-    /// PT: Fornece chamadas de funcoes que atualmente retornam null no mock.
+    /// PT-br: Fornece chamadas de funcoes que atualmente retornam null no mock.
     /// </summary>
     public static IEnumerable<object[]> OracleNullCases()
     {

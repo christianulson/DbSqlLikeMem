@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Validates Firebird-specific DbMock connection factory contract behavior.
-/// PT: Valida o comportamento do contrato da factory de conexao DbMock especifica de Firebird.
+/// PT-br: Valida o comportamento do contrato da factory de conexao DbMock especifica de Firebird.
 /// </summary>
 public sealed class DbMockConnectionFactoryFirebirdTests(
         ITestOutputHelper helper

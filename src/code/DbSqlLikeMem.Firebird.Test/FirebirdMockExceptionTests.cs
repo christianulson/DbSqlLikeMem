@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Contains tests for the Firebird mock exception surface.
-/// PT: Contem testes para a superficie da excecao simulada Firebird.
+/// PT-br: Contem testes para a superficie da excecao simulada Firebird.
 /// </summary>
 public sealed class FirebirdMockExceptionTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdMockExceptionTests(
 {
     /// <summary>
     /// EN: Verifies the message-and-code constructor preserves the provided values.
-    /// PT: Verifica se o construtor com mensagem e codigo preserva os valores informados.
+    /// PT-br: Verifica se o construtor com mensagem e codigo preserva os valores informados.
     /// </summary>
     [Fact]
     public void Constructor_WithMessageAndCode_ShouldPreserveValues()

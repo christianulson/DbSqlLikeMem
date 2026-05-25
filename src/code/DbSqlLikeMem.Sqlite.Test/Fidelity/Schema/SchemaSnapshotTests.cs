@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.Schema;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared schema-snapshot workflows.
-/// PT: Executa testes de fidelidade SQLite para os fluxos compartilhados de snapshot de schema.
+/// PT-br: Executa testes de fidelidade SQLite para os fluxos compartilhados de snapshot de schema.
 /// </summary>
 public class SchemaSnapshotTests(
     ITestOutputHelper helper

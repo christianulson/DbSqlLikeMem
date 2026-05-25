@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Exercises select-into, insert-select, update, and delete-from-select flows for PostgreSQL.
-/// PT: Exercita fluxos de select-into, insert-select, update e delete-from-select para PostgreSQL.
+/// PT-br: Exercita fluxos de select-into, insert-select, update e delete-from-select para PostgreSQL.
 /// </summary>
 /// <param name="helper">
 /// EN: Output helper used by the test base.
-/// PT: Helper de saída usado pela base de testes.
+/// PT-br: Helper de saída usado pela base de testes.
 /// </param>
 public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
         ITestOutputHelper helper
@@ -17,19 +17,19 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 
     /// <summary>
     /// EN: Creates a new PostgreSQL mock database for each scenario.
-    /// PT: Cria um novo banco simulado de PostgreSQL para cada cenário.
+    /// PT-br: Cria um novo banco simulado de PostgreSQL para cada cenário.
     /// </summary>
     protected override NpgsqlDbMock CreateDb() => [];
 
     /// <summary>
     /// EN: Gets the affected-row count expected for CREATE TABLE AS SELECT in PostgreSQL.
-    /// PT: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no PostgreSQL.
+    /// PT-br: Obtém a contagem de linhas afetadas esperada para CREATE TABLE AS SELECT no PostgreSQL.
     /// </summary>
     protected override int CreateTableAsSelectExpectedAffectedRows => 2;
 
     /// <summary>
     /// EN: Executes a non-query command using a PostgreSQL mock connection.
-    /// PT: Executa um comando sem retorno usando uma conexão simulada de PostgreSQL.
+    /// PT-br: Executa um comando sem retorno usando uma conexão simulada de PostgreSQL.
     /// </summary>
     protected override int ExecuteNonQuery(
         NpgsqlDbMock db,
@@ -42,7 +42,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 
     /// <summary>
     /// EN: Verifies DELETE USING with join condition plus extra filter removes only rows matching both predicates.
-    /// PT: Verifica que DELETE USING com condição de join e filtro extra remove apenas linhas que atendem aos dois predicados.
+    /// PT-br: Verifica que DELETE USING com condição de join e filtro extra remove apenas linhas que atendem aos dois predicados.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -67,7 +67,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 
     /// <summary>
     /// EN: Verifies DELETE USING accepts nested parenthesized join predicates and deletes matching rows.
-    /// PT: Verifica que DELETE USING aceita predicados de join aninhados entre parênteses e exclui as linhas correspondentes.
+    /// PT-br: Verifica que DELETE USING aceita predicados de join aninhados entre parênteses e exclui as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]
@@ -91,7 +91,7 @@ public sealed class SelectIntoInsertSelectUpdateDeleteFromSelectTests(
 
     /// <summary>
     /// EN: Verifies DELETE USING without a join condition is rejected with an actionable guidance message.
-    /// PT: Verifica que DELETE USING sem condição de join é rejeitado com mensagem de orientação acionável.
+    /// PT-br: Verifica que DELETE USING sem condição de join é rejeitado com mensagem de orientação acionável.
     /// </summary>
     [Fact]
     [Trait("Category", "SelectIntoInsertSelectUpdateDeleteFromSelect")]

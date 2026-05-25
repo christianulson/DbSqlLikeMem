@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Oracle;
 #pragma warning disable CA1305 // Specify IFormatProvider
 /// <summary>
 /// EN: Translates LINQ expressions into Oracle-compatible SQL statements.
-/// PT: Traduz expressões LINQ para instruções SQL compatíveis com Oracle.
+/// PT-br: Traduz expressões LINQ para instruções SQL compatíveis com Oracle.
 /// </summary>
 public class OracleTranslator : ExpressionVisitor
 {
@@ -25,7 +25,7 @@ public class OracleTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Translates a LINQ expression into SQL and parameters.
-    /// PT: Traduz uma expressão LINQ em SQL e parâmetros.
+    /// PT-br: Traduz uma expressão LINQ em SQL e parâmetros.
     /// </summary>
     public TranslationResult Translate(Expression expression)
     {
@@ -100,7 +100,7 @@ public class OracleTranslator : ExpressionVisitor
 #pragma warning disable CS8605 // Unboxing a possibly null value.
     /// <summary>
     /// EN: Represents Visit Method Call.
-    /// PT: Representa Visit Method Call.
+    /// PT-br: Representa Visit Method Call.
     /// </summary>
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
@@ -170,7 +170,7 @@ public class OracleTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Represents Visit Constant.
-    /// PT: Representa Visit Constant.
+    /// PT-br: Representa Visit Constant.
     /// </summary>
     protected override Expression VisitConstant(ConstantExpression node)
     {
@@ -211,7 +211,7 @@ public class OracleTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Represents Visit Binary.
-    /// PT: Representa Visit Binary.
+    /// PT-br: Representa Visit Binary.
     /// </summary>
     protected override Expression VisitBinary(BinaryExpression node)
     {
@@ -234,7 +234,7 @@ public class OracleTranslator : ExpressionVisitor
 
     /// <summary>
     /// EN: Represents Visit Member.
-    /// PT: Representa Visit Member.
+    /// PT-br: Representa Visit Member.
     /// </summary>
     protected override Expression VisitMember(MemberExpression node)
     {

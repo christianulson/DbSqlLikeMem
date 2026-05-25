@@ -8,7 +8,7 @@ internal sealed class SqlTokenizer
 
     /// <summary>
     /// EN: Implements SqlTokenizer.
-    /// PT: Implementa SqlTokenizer.
+    /// PT-br: Implementa SqlTokenizer.
     /// </summary>
     public SqlTokenizer(string sql, ISqlDialect dialect)
     {
@@ -18,7 +18,7 @@ internal sealed class SqlTokenizer
 
     /// <summary>
     /// EN: Implements Tokenize.
-    /// PT: Implementa Tokenize.
+    /// PT-br: Implementa Tokenize.
     /// </summary>
     public IReadOnlyList<SqlToken> Tokenize()
     {
@@ -46,6 +46,20 @@ internal sealed class SqlTokenizer
                 Read(); // Unicode string prefix
                 tokens.Add(ReadString());
                 continue;
+            }
+
+            if (ch == '_')
+            {
+                var savePos = _pos;
+                Read();
+                var identStart = _pos;
+                while (!Eof && IsIdentChar(Peek())) Read();
+                if (identStart < _pos && !Eof && _dialect.IsStringQuote(Peek()))
+                {
+                    tokens.Add(ReadString());
+                    continue;
+                }
+                _pos = savePos;
             }
 
             if (_dialect.IsStringQuote(ch))

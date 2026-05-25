@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Npgsql.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Changes the PostgreSQL sequence increment and reads the next generated values for fidelity coverage.
-/// PT: Altera o incremento da sequence PostgreSQL e le os proximos valores gerados para cobertura de fidelidade.
+/// PT-br: Altera o incremento da sequence PostgreSQL e le os proximos valores gerados para cobertura de fidelidade.
 /// </summary>
 public sealed class SequenceIncrementByServiceTest(
     RepoService repo,
@@ -12,12 +12,17 @@ public sealed class SequenceIncrementByServiceTest(
 {
     /// <summary>
     /// EN: Returns the sequence values before and after changing the increment size.
-    /// PT: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
+    /// PT-br: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
     /// </summary>
     public async Task<object?> RunTestAsync(params object[] args)
-    {
-        _ = args;
+        => await RunSequenceIncrementByAsync();
 
+    /// <summary>
+    /// EN: Returns the sequence values before and after changing the increment size.
+    /// PT-br: Retorna os valores da sequence antes e depois de alterar o tamanho do incremento.
+    /// </summary>
+    public async Task<long[]> RunSequenceIncrementByAsync()
+    {
         var first = await ExecuteScalarLongAsync($"SELECT nextval('{Context.Seq}')");
 
         using (var alter = Repo.Cnn.CreateCommand())

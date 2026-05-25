@@ -20,7 +20,7 @@ This file defines the minimum operating rules for any agent working in this repo
 
 When adding or updating XML comments, follow these rules exactly:
 
-1. Use `EN` first, then `PT`.
+1. Use `EN` first, then `PT-br`.
 2. Always explain what the member does.
 3. Prefer concise and direct wording.
 4. For `override` members, use `/// <inheritdoc />` when the base member already documents the contract.
@@ -37,7 +37,7 @@ Use this structure:
 ```csharp
 /// <summary>
 /// EN: Explains what the method, property, or class does.
-/// PT: Explica o que o metodo, propriedade ou classe faz.
+/// PT-br: Explica o que o metodo, propriedade ou classe faz.
 /// </summary>
 ```
 
@@ -46,7 +46,7 @@ Example for a concrete method:
 ```csharp
 /// <summary>
 /// EN: Creates and opens the mock connection used by this test suite.
-/// PT: Cria e abre a conexao simulada usada por esta suite de testes.
+/// PT-br: Cria e abre a conexao simulada usada por esta suite de testes.
 /// </summary>
 ```
 
@@ -70,7 +70,7 @@ Example:
 ```csharp
 /// <summary>
 /// EN: Verifies left joins keep all rows from the left table.
-/// PT: Verifica se left joins mantem todas as linhas da tabela da esquerda.
+/// PT-br: Verifica se left joins mantem todas as linhas da tabela da esquerda.
 /// </summary>
 ```
 
@@ -120,6 +120,6 @@ This project is used to validate application behavior before production, so the 
 If the user asks to "preencher os summarys", the expected behavior is:
 
 - fill missing XML docs
-- use `EN` first and `PT` second
+- use `EN` first and `PT-br` second
 - explain what the member does
 - use `inheritdoc` on overrides whenever appropriate

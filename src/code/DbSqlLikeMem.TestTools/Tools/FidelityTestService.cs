@@ -1,10 +1,11 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace DbSqlLikeMem.TestTools;
 
 /// <summary>
 /// EN: FidelityTestService is a generic class designed to facilitate the execution of fidelity tests across different database providers. It abstracts the testing logic, allowing for the comparison of results between a mock implementation and a real containerized database connection. The class is parameterized with two types, TCnn1 and TCnn2, representing the connection types for the mock and container scenarios, respectively. This design promotes code reuse and consistency in testing across various database providers and scenarios.
-/// PT: FidelityTestService é uma classe genérica projetada para facilitar a execução de testes de fidelidade entre diferentes provedores de banco de dados. Ela abstrai a lógica de teste, permitindo a comparação de resultados entre uma implementação mock e uma conexão real em um ambiente containerizado. A classe é parametrizada com dois tipos, TCnn1 e TCnn2, representando os tipos de conexão para os cenários mock e container, respectivamente. Esse design promove a reutilização de código e a consistência nos testes entre vários provedores de banco de dados e cenários.
+/// PT-br: FidelityTestService é uma classe genérica projetada para facilitar a execução de testes de fidelidade entre diferentes provedores de banco de dados. Ela abstrai a lógica de teste, permitindo a comparação de resultados entre uma implementação mock e uma conexão real em um ambiente containerizado. A classe é parametrizada com dois tipos, TCnn1 e TCnn2, representando os tipos de conexão para os cenários mock e container, respectivamente. Esse design promove a reutilização de código e a consistência nos testes entre vários provedores de banco de dados e cenários.
 /// </summary>
 /// <typeparam name="TCnn1"></typeparam>
 /// <typeparam name="TCnn2"></typeparam>
@@ -18,7 +19,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Initializes a new instance of the FidelityTestService class using the specified connection factory.
-    /// PT: Inicializa uma nova instância da classe FidelityTestService usando a fábrica de conexões especificada.
+    /// PT-br: Inicializa uma nova instância da classe FidelityTestService usando a fábrica de conexões especificada.
     /// </summary>
     /// <param name="connectionMock">A delegate that returns an instance of TCnn1 to be used as the connection for the service. Cannot be null.</param>
     /// <param name="connectionContainer">A delegate that returns an instance of TCnn2 to be used as the connection for the containerized service. Cannot be null.</param>
@@ -40,13 +41,13 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Initializes a new instance of the FidelityTestService class using a custom temporal comparison tolerance.
-    /// PT: Inicializa uma nova instância da classe FidelityTestService usando uma tolerância temporal personalizada para comparação.
+    /// PT-br: Inicializa uma nova instância da classe FidelityTestService usando uma tolerância temporal personalizada para comparação.
     /// </summary>
-    /// <param name="connectionMock">EN: Delegate that creates the mock connection. PT: Delegado que cria a conexão mock.</param>
-    /// <param name="connectionContainer">EN: Delegate that creates the container connection. PT: Delegado que cria a conexão do container.</param>
-    /// <param name="dialect">EN: SQL dialect used by the service. PT: Dialeto SQL usado pelo serviço.</param>
-    /// <param name="temporalComparisonTolerance">EN: Tolerance applied when comparing DateTime and DateTimeOffset values. PT: Tolerância aplicada na comparação de valores DateTime e DateTimeOffset.</param>
-    /// <param name="initialData">EN: Initial scenario rows. PT: Linhas iniciais do cenário.</param>
+    /// <param name="connectionMock">EN: Delegate that creates the mock connection. PT-br: Delegado que cria a conexão mock.</param>
+    /// <param name="connectionContainer">EN: Delegate that creates the container connection. PT-br: Delegado que cria a conexão do container.</param>
+    /// <param name="dialect">EN: SQL dialect used by the service. PT-br: Dialeto SQL usado pelo serviço.</param>
+    /// <param name="temporalComparisonTolerance">EN: Tolerance applied when comparing DateTime and DateTimeOffset values. PT-br: Tolerância aplicada na comparação de valores DateTime e DateTimeOffset.</param>
+    /// <param name="initialData">EN: Initial scenario rows. PT-br: Linhas iniciais do cenário.</param>
     public FidelityTestService(
         Func<TCnn1> connectionMock,
         Func<string, TCnn2> connectionContainer,
@@ -57,22 +58,22 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         this.temporalComparisonTolerance = temporalComparisonTolerance;
 
-        if (TestEnv.RunContainerTests.Value
-            && ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
+        if (!TestEnv.RunContainerTests.Value
+            || !ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
+            return;
+        
+        if (dialect.Provider == ProviderId.Sqlite && string.IsNullOrWhiteSpace(connectionString))
         {
-            if (dialect.Provider == ProviderId.Sqlite && string.IsNullOrWhiteSpace(connectionString))
-            {
-                // Keep SQLite clones pointed at the same shared in-memory database for this test run.
-                connectionString = $"Data Source=file:dbsqllikemem_{Guid.NewGuid():N}?mode=memory&cache=shared";
-            }
-
-            repoContainer = new RepoService(() => connectionContainer(connectionString), dialect);
+            // Keep SQLite clones pointed at the same shared in-memory database for this test run.
+            connectionString = $"Data Source=file:dbsqllikemem_{Guid.NewGuid():N}?mode=memory&cache=shared";
         }
+
+        repoContainer = new RepoService(() => connectionContainer(connectionString), dialect);
     }
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -97,6 +98,46 @@ public class FidelityTestService<TCnn1, TCnn2>
 
         var objResultMock = await Execute<TScenario, TServiceTest>(args, RepoMock, InitialData, context);
 
+        Trace();
+
+        if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
+            AssertEquivalentResults(objResultMock, objResultContainer);
+        }
+
+        return objResultMock;
+    }
+
+    /// <summary>
+    /// EN: Executes the specified test scenario and returns the typed result after comparing mock and container runs.
+    /// PT-br: Executa o cenario de teste especificado e retorna o resultado tipado apos comparar as execucoes mock e container.
+    /// </summary>
+    public override async Task<TResult> RunTestAsync<TScenario, TServiceTest, TResult>(
+        Func<TServiceTest, object[], Task<TResult>> fnRunTest,
+        params object[] args)
+    {
+        var context = new FidelityTestContext();
+        object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
+        if (TestEnv.RunContainerTests.Value)
+        {
+            if (repoContainer == null)
+                throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
+            await EnsureContainerConnectionAvailableAsync();
+            objResultContainer = await Execute<TScenario, TServiceTest, TResult>(fnRunTest, args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
+        }
+
+        var objResultMock = await Execute<TScenario, TServiceTest, TResult>(fnRunTest, args, RepoMock, InitialData, context);
+
+        Trace();
+
         if (TestEnv.RunContainerTests.Value)
         {
             var elapsedMock = sw.ElapsedMilliseconds;
@@ -109,7 +150,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -135,6 +176,58 @@ public class FidelityTestService<TCnn1, TCnn2>
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(args, RepoMock, InitialData, context);
 
+        Trace();
+
+        if (TestEnv.RunContainerTests.Value)
+        {
+            var elapsedMock = sw.ElapsedMilliseconds;
+            Console.WriteLine($"CompareTime: {elapsedContainer} ms (container) / {elapsedMock} ms (mock), diff: {elapsedMock - elapsedContainer} ms");
+            AssertEquivalentResults(objResultMock, objResultContainer);
+        }
+
+        return objResultMock;
+    }
+
+    /// <inheritdoc />
+    protected override void CaptureDiagnostics(RepoService repo)
+    {
+        if (repo.Cnn is DbConnectionMockBase cnn)
+        {
+            SetDiagnosticsSnapshot(cnn.LastExecutionPlan, cnn.GetLastDebugTraceSnapshot());
+            return;
+        }
+
+        SetDiagnosticsSnapshot(null, null);
+    }
+
+    /// <summary>
+    /// EN: Executes the specified test scenarios and returns the typed result after comparing mock and container runs.
+    /// PT-br: Executa os cenarios de teste especificados e retorna o resultado tipado apos comparar as execucoes mock e container.
+    /// </summary>
+    public override async Task<TResult> RunTestAsync<TScenario, TScenario2, TServiceTest, TResult>(
+        Func<TServiceTest, object[], Task<TResult>> fnRunTest,
+        params object[] args)
+    {
+        var context = new FidelityTestContext();
+        object? objResultContainer = null;
+        var sw = Stopwatch.StartNew();
+        long elapsedContainer = 0;
+        if (TestEnv.RunContainerTests.Value)
+        {
+            if (repoContainer == null)
+                throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {RepoMock.Dialect.Provider} is not configured.");
+
+            using var containerGate = CrossProcessProviderGate.Acquire(RepoMock.Dialect);
+            await EnsureContainerConnectionAvailableAsync();
+            objResultContainer = await Execute<TScenario, TScenario2, TServiceTest, TResult>(fnRunTest, args, repoContainer, InitialData, context);
+            elapsedContainer = sw.ElapsedMilliseconds;
+            sw.Restart();
+        }
+
+        var objResultMock = await Execute<TScenario, TScenario2, TServiceTest, TResult>(fnRunTest, args, RepoMock, InitialData, context);
+
+        Trace();
+
         if (TestEnv.RunContainerTests.Value)
         {
             var elapsedMock = sw.ElapsedMilliseconds;
@@ -148,7 +241,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -175,6 +268,8 @@ public class FidelityTestService<TCnn1, TCnn2>
 
         var objResultMock = await Execute<TScenario, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
+        Trace();
+
         if (TestEnv.RunContainerTests.Value)
         {
             var elapsedMock = sw.ElapsedMilliseconds;
@@ -187,7 +282,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Executes the specified test scenario and service test, comparing results between mock and container runs when applicable. The method creates instances of the scenario and service test, sets them up with the appropriate connections and dialect, and executes the test logic. If container tests are enabled, it compares the results from both runs using FluentAssertions, accounting for any provider-specific precision differences in DateTime values.
-    /// PT: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
+    /// PT-br: Executa o cenário de teste e o teste de serviço especificados, comparando os resultados entre as execuções mock e container quando aplicável. O método cria instâncias do cenário e do teste de serviço, configura-os com as conexões e dialeto apropriados, e executa a lógica do teste. Se os testes de container estiverem habilitados, ele compara os resultados de ambas as execuções usando FluentAssertions, levando em consideração quaisquer diferenças de precisão específicas do provedor em valores DateTime.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -215,6 +310,8 @@ public class FidelityTestService<TCnn1, TCnn2>
 
         var objResultMock = await Execute<TScenario, TScenario2, TServiceTest>(fnRunTest, args, RepoMock, InitialData, context);
 
+        Trace();
+
         if (TestEnv.RunContainerTests.Value)
         {
             var elapsedMock = sw.ElapsedMilliseconds;
@@ -231,6 +328,25 @@ public class FidelityTestService<TCnn1, TCnn2>
             .WhenTypeIs<DateTime>()
             .Using<DateTimeOffset>(context => context.Subject.Should().BeCloseTo(context.Expectation, temporalComparisonTolerance))
             .WhenTypeIs<DateTimeOffset>());
+
+    private void Trace()
+    {
+        var cnn = (DbConnectionMockBase)RepoMock.Cnn;
+        var lastExecutionPlan = LastExecutionPlanSnapshot ?? cnn.LastExecutionPlan;
+        var lastDebugTrace = LastDebugTraceSnapshot ?? cnn.LastDebugTrace;
+
+        Console.WriteLine($"Provider: {RepoMock.Dialect.Provider}");
+        Console.WriteLine($"Dialect: {RepoMock.Dialect.DisplayName}");
+        Console.WriteLine($"MockConnectionType: {RepoMock.Cnn.GetType().FullName}");
+        Console.WriteLine($"ConnectionState: {RepoMock.Cnn.State}");
+        Console.WriteLine($"CaptureExecutionPlans: {cnn.CaptureExecutionPlans}");
+        Console.WriteLine($"DebugTraceCaptureEnabled: {cnn.IsDebugTraceCaptureEnabled}");
+        Console.WriteLine($"LastExecutionPlansCount: {cnn.LastExecutionPlans.Count}");
+        Console.WriteLine($"LastDebugTracesCount: {cnn.LastDebugTraces.Count}");
+        Console.WriteLine($"LastExecutionPlan: {lastExecutionPlan ?? "<not captured>"}");
+        Console.WriteLine($"LastDebugTrace: {(lastDebugTrace is null ? "<not captured>" : global::DbSqlLikeMem.QueryDebugTraceFormatter.Format(lastDebugTrace))}");
+        Console.WriteLine($"LastDebugTraceJson: {(lastDebugTrace is null ? "<not captured>" : JsonSerializer.Serialize(lastDebugTrace))}");
+    }
 
     private async Task EnsureContainerConnectionAvailableAsync()
     {
@@ -263,7 +379,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
-    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// PT-br: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -289,7 +405,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
-    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// PT-br: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -317,7 +433,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
-    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// PT-br: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
@@ -345,7 +461,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Static helper method to run a fidelity test with the specified parameters, creating an instance of FidelityTestService and executing the provided test logic. This method abstracts the setup and execution of the test, allowing for a more concise and reusable way to run fidelity tests across different scenarios and service tests.
-    /// PT: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
+    /// PT-br: Método auxiliar estático para executar um teste de fidelidade com os parâmetros especificados, criando uma instância de FidelityTestService e executando a lógica de teste fornecida. Este método abstrai a configuração e execução do teste, permitindo uma maneira mais concisa e reutilizável de executar testes de fidelidade em diferentes cenários e testes de serviço.
     /// </summary>
     /// <typeparam name="TScenario"></typeparam>
     /// <typeparam name="TScenario2"></typeparam>
@@ -377,7 +493,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Disposes the FidelityTestService instance, releasing all managed resources. If disposing is true, it disposes the Cnn2 connection if it exists. It always disposes the Cnn1 connection and sets the disposedValue flag to true to prevent multiple disposals.
-    /// PT: Descarta a instância do FidelityTestService, liberando todos os recursos gerenciados. Se disposing for true, ele descarta a conexão Cnn2 se ela existir. Ele sempre descarta a conexão Cnn1 e define a flag disposedValue como true para evitar múltiplas liberações.
+    /// PT-br: Descarta a instância do FidelityTestService, liberando todos os recursos gerenciados. Se disposing for true, ele descarta a conexão Cnn2 se ela existir. Ele sempre descarta a conexão Cnn1 e define a flag disposedValue como true para evitar múltiplas liberações.
     /// </summary>
     /// <param name="disposing"></param>
     protected override void Dispose(bool disposing)
@@ -389,7 +505,7 @@ public class FidelityTestService<TCnn1, TCnn2>
 
     /// <summary>
     /// EN: Finalizer for the FidelityTestService class that ensures resources are released if Dispose is not called.
-    /// PT: Finalizador para a classe FidelityTestService que garante que os recursos sejam liberados caso Dispose não seja chamado.
+    /// PT-br: Finalizador para a classe FidelityTestService que garante que os recursos sejam liberados caso Dispose não seja chamado.
     /// </summary>
     ~FidelityTestService()
     {

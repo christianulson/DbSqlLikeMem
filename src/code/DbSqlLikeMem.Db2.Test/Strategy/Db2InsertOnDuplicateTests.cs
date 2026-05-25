@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Db2.Test.Strategy;
 
 /// <summary>
 /// EN: Covers INSERT ... ON DUPLICATE scenarios in the Db2 mock.
-/// PT: Cobre cenarios de INSERT ... ON DUPLICATE no mock Db2.
+/// PT-br: Cobre cenarios de INSERT ... ON DUPLICATE no mock Db2.
 /// </summary>
 public class Db2InsertOnDuplicateTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public class Db2InsertOnDuplicateTests(
 {
     /// <summary>
     /// EN: DB2 dialect must reject ON DUPLICATE KEY UPDATE syntax.
-    /// PT: O dialeto DB2 deve rejeitar sintaxe ON DUPLICATE KEY UPDATE.
+    /// PT-br: O dialeto DB2 deve rejeitar sintaxe ON DUPLICATE KEY UPDATE.
     /// </summary>
     [Theory]
     [Trait("Category", "Strategy")]

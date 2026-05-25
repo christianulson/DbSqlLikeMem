@@ -4,13 +4,13 @@ namespace DbSqlLikeMem.SqlAzure.Test.Strategy;
 
 /// <summary>
 /// EN: Verifies transaction and session lifecycle behavior exposed by the SQL Azure strategy surface.
-/// PT: Verifica o comportamento de transacao e ciclo de vida de sessao exposto pela superficie de estrategia do SQL Azure.
+/// PT-br: Verifica o comportamento de transacao e ciclo de vida de sessao exposto pela superficie de estrategia do SQL Azure.
 /// </summary>
 public sealed class SqlAzureTransactionStrategyTests
 {
     /// <summary>
     /// EN: Ensures SQL Azure transactions commit inserted rows to the shared table state.
-    /// PT: Garante que transacoes do SQL Azure confirmem linhas inseridas no estado compartilhado da tabela.
+    /// PT-br: Garante que transacoes do SQL Azure confirmem linhas inseridas no estado compartilhado da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -36,7 +36,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures SQL Azure transactions rollback inserted rows from the shared table state.
-    /// PT: Garante que transacoes do SQL Azure revertam linhas inseridas do estado compartilhado da tabela.
+    /// PT-br: Garante que transacoes do SQL Azure revertam linhas inseridas do estado compartilhado da tabela.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -60,7 +60,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures explicit transaction isolation is visible during execution and reset after commit.
-    /// PT: Garante que o isolamento explicito da transacao fique visivel durante a execucao e seja resetado apos commit.
+    /// PT-br: Garante que o isolamento explicito da transacao fique visivel durante a execucao e seja resetado apos commit.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -80,7 +80,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures closing the connection clears session-scoped temporary state and invalidates old savepoints.
-    /// PT: Garante que fechar a conexao limpe o estado temporario da sessao e invalide savepoints antigos.
+    /// PT-br: Garante que fechar a conexao limpe o estado temporario da sessao e invalide savepoints antigos.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -109,7 +109,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures closing one SQL Azure connection preserves permanent and global temporary shared state.
-    /// PT: Garante que fechar uma conexao SQL Azure preserve o estado compartilhado permanente e temporario global.
+    /// PT-br: Garante que fechar uma conexao SQL Azure preserve o estado compartilhado permanente e temporario global.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -144,7 +144,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures reopening SQL Azure starts a fresh session while keeping shared database state available.
-    /// PT: Garante que reabrir o SQL Azure inicie uma sessao limpa mantendo o estado compartilhado do banco disponivel.
+    /// PT-br: Garante que reabrir o SQL Azure inicie uma sessao limpa mantendo o estado compartilhado do banco disponivel.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -177,7 +177,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures rollback to savepoint restores the connection-scoped temporary-table snapshot in SQL Azure.
-    /// PT: Garante que rollback para savepoint restaure o snapshot da tabela temporaria no escopo da conexao no SQL Azure.
+    /// PT-br: Garante que rollback para savepoint restaure o snapshot da tabela temporaria no escopo da conexao no SQL Azure.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -214,7 +214,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures nested savepoints restore the transaction snapshot from the selected outer point on SQL Azure.
-    /// PT: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado no SQL Azure.
+    /// PT-br: Garante que savepoints aninhados restaurem o snapshot da transacao a partir do ponto externo selecionado no SQL Azure.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -259,7 +259,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures volatile reset clears active savepoints by dropping transaction state in SQL Azure.
-    /// PT: Garante que o reset volatil limpe savepoints ativos ao descartar o estado transacional no SQL Azure.
+    /// PT-br: Garante que o reset volatil limpe savepoints ativos ao descartar o estado transacional no SQL Azure.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -279,7 +279,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures unsupported release-savepoint API calls keep the standardized diagnostic on SQL Azure.
-    /// PT: Garante que chamadas nao suportadas da API de release savepoint mantenham o diagnostico padronizado no SQL Azure.
+    /// PT-br: Garante que chamadas nao suportadas da API de release savepoint mantenham o diagnostico padronizado no SQL Azure.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -300,7 +300,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures releasing a savepoint without an active transaction keeps the actionable runtime message on SQL Azure.
-    /// PT: Garante que liberar um savepoint sem uma transação ativa mantenha a mensagem acionável em runtime no SQL Azure.
+    /// PT-br: Garante que liberar um savepoint sem uma transação ativa mantenha a mensagem acionável em runtime no SQL Azure.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -315,7 +315,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures creating a savepoint with a blank name keeps the parameter validation message on SQL Azure.
-    /// PT: Garante que criar um savepoint com nome em branco mantenha a mensagem de validacao de parametro no SQL Azure.
+    /// PT-br: Garante que criar um savepoint com nome em branco mantenha a mensagem de validacao de parametro no SQL Azure.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]
@@ -332,7 +332,7 @@ public sealed class SqlAzureTransactionStrategyTests
 
     /// <summary>
     /// EN: Ensures rolling back to a savepoint with a blank name keeps the parameter validation message on SQL Azure.
-    /// PT: Garante que executar rollback para um savepoint com nome em branco mantenha a mensagem de validacao de parametro no SQL Azure.
+    /// PT-br: Garante que executar rollback para um savepoint com nome em branco mantenha a mensagem de validacao de parametro no SQL Azure.
     /// </summary>
     [Fact]
     [Trait("Category", "Strategy")]

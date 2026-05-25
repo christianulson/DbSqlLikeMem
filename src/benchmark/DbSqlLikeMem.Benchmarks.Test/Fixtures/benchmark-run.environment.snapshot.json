@@ -1,0 +1,13 @@
+{
+  "runId": "run-123",
+  "jobId": "job-456",
+  "environment": {
+    "profile": "core",
+    "os": "Windows",
+    "framework": "net8.0",
+    "runtime": ".NET 8",
+    "machine": "machine-1",
+    "benchmarkDotNetVersion": "0.0.0",
+    "timestampUtc": "2026-05-01T12:00:00+00:00"
+  }
+}

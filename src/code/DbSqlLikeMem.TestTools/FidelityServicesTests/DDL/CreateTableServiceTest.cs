@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DDL;
 
 /// <summary>
 /// EN: Executes the users-table creation command for DDL scenarios.
-/// PT: Executa o comando de criacao da tabela de usuarios para cenarios DDL.
+/// PT-br: Executa o comando de criacao da tabela de usuarios para cenarios DDL.
 /// </summary>
 public class CreateTableServiceTest(
         RepoService repo,
@@ -12,9 +12,9 @@ public class CreateTableServiceTest(
 {
     /// <summary>
     /// EN: Creates the users table used by the scenario.
-    /// PT: Cria a tabela de usuarios usada pelo cenario.
+    /// PT-br: Cria a tabela de usuarios usada pelo cenario.
     /// </summary>
-    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
+    /// <param name="args">EN: Unused benchmark arguments kept for signature consistency. PT-br: Argumentos de benchmark nao utilizados, mantidos para consistencia da assinatura.</param>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var sql = Repo.Dialect.CreateUsersTable(Context);

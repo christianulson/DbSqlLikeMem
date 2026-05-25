@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Test;
 
 /// <summary>
 /// EN: Tests core binary/char/nested-reader APIs of <see cref="DbDataReaderMockBase"/>.
-/// PT: Testa APIs centrais de binário/char/leitor aninhado de <see cref="DbDataReaderMockBase"/>.
+/// PT-br: Testa APIs centrais de binário/char/leitor aninhado de <see cref="DbDataReaderMockBase"/>.
 /// </summary>
 public sealed class DbDataReaderMockBaseTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class DbDataReaderMockBaseTests(
 {
     /// <summary>
     /// EN: Verifies GetBytes returns total byte length when the destination buffer is null.
-    /// PT: Verifica que GetBytes retorna o tamanho total dos bytes quando o buffer de destino é nulo.
+    /// PT-br: Verifica que GetBytes retorna o tamanho total dos bytes quando o buffer de destino é nulo.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -26,7 +26,7 @@ public sealed class DbDataReaderMockBaseTests(
 
     /// <summary>
     /// EN: Verifies GetBytes copies only the requested byte segment to the destination buffer.
-    /// PT: Verifica que GetBytes copia apenas o segmento de bytes solicitado para o buffer de destino.
+    /// PT-br: Verifica que GetBytes copia apenas o segmento de bytes solicitado para o buffer de destino.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -44,7 +44,7 @@ public sealed class DbDataReaderMockBaseTests(
 
     /// <summary>
     /// EN: Verifies GetChars copies only the requested character segment to the destination buffer.
-    /// PT: Verifica que GetChars copia apenas o segmento de caracteres solicitado para o buffer de destino.
+    /// PT-br: Verifica que GetChars copia apenas o segmento de caracteres solicitado para o buffer de destino.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -64,7 +64,7 @@ public sealed class DbDataReaderMockBaseTests(
 
     /// <summary>
     /// EN: Verifies GetOrdinal resolves bracket-quoted column names without brackets.
-    /// PT: Verifica que GetOrdinal resolve nomes de coluna entre colchetes sem os colchetes.
+    /// PT-br: Verifica que GetOrdinal resolve nomes de coluna entre colchetes sem os colchetes.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -86,7 +86,7 @@ public sealed class DbDataReaderMockBaseTests(
 
     /// <summary>
     /// EN: Verifies GetData returns the nested reader when the value already is a data reader.
-    /// PT: Verifica que GetData retorna o leitor aninhado quando o valor já é um data reader.
+    /// PT-br: Verifica que GetData retorna o leitor aninhado quando o valor já é um data reader.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -103,7 +103,7 @@ public sealed class DbDataReaderMockBaseTests(
 
     /// <summary>
     /// EN: Verifies GetData throws InvalidCastException when the value is not a nested reader.
-    /// PT: Verifica que GetData lança InvalidCastException quando o valor não é um leitor aninhado.
+    /// PT-br: Verifica que GetData lança InvalidCastException quando o valor não é um leitor aninhado.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -119,7 +119,7 @@ public sealed class DbDataReaderMockBaseTests(
 
     /// <summary>
     /// EN: Verifies GetValues copies only the destination array length when fields are more than slots.
-    /// PT: Verifica que GetValues copia apenas o tamanho do array de destino quando há mais campos que posições.
+    /// PT-br: Verifica que GetValues copia apenas o tamanho do array de destino quando há mais campos que posições.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]
@@ -146,7 +146,7 @@ public sealed class DbDataReaderMockBaseTests(
 
     /// <summary>
     /// EN: Verifies Dispose closes the current reader and nested disposable reader resources.
-    /// PT: Verifica que Dispose fecha o leitor atual e recursos de leitores aninhados descartáveis.
+    /// PT-br: Verifica que Dispose fecha o leitor atual e recursos de leitores aninhados descartáveis.
     /// </summary>
     [Fact]
     [Trait("Category", "Core")]

@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.Query;
 
 /// <summary>
 /// EN: Runs Db2 fidelity tests for the shared scalar temporal workflow.
-/// PT: Executa testes de fidelidade Db2 para o fluxo escalar temporal compartilhado.
+/// PT-br: Executa testes de fidelidade Db2 para o fluxo escalar temporal compartilhado.
 /// </summary>
 [FidelityNativeClientSkip]
 public class ScalarTemporalTests(

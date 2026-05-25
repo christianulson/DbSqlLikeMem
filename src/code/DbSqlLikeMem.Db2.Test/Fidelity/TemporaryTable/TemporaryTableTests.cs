@@ -8,7 +8,7 @@ namespace DbSqlLikeMem.Db2.Test.Fidelity.TemporaryTable;
 
 /// <summary>
 /// EN: Runs Db2 fidelity tests for the shared temporary-table scenario.
-/// PT: Executa testes de fidelidade Db2 para o cenario compartilhado de tabela temporaria.
+/// PT-br: Executa testes de fidelidade Db2 para o cenario compartilhado de tabela temporaria.
 /// </summary>
 [FidelityNativeClientSkip]
 public class TemporaryTableTests(

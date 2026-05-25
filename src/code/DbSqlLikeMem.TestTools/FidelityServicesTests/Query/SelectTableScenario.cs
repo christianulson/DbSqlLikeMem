@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.Query;
 
 /// <summary>
 /// EN: Creates the users table and seed row required by the primary-key select scenario.
-/// PT: Cria a tabela de usuarios e a linha inicial exigidas pelo cenario de selecao por chave primaria.
+/// PT-br: Cria a tabela de usuarios e a linha inicial exigidas pelo cenario de selecao por chave primaria.
 /// </summary>
 public class SelectTableScenario(
         RepoService repo,
@@ -12,7 +12,7 @@ public class SelectTableScenario(
 {
     /// <summary>
     /// EN: Creates the users table and inserts the seed row used by the select scenario.
-    /// PT: Cria a tabela de usuarios e insere a linha base usada pelo cenario de select.
+    /// PT-br: Cria a tabela de usuarios e insere a linha base usada pelo cenario de select.
     /// </summary>
     public async Task CreateScenarioAsync()
     {
@@ -22,7 +22,7 @@ public class SelectTableScenario(
 
     /// <summary>
     /// EN: Drops the users table created for the select scenario.
-    /// PT: Remove a tabela de usuarios criada para o cenario de select.
+    /// PT-br: Remove a tabela de usuarios criada para o cenario de select.
     /// </summary>
     public Task DropScenarioAsync()
     {

@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Db2.Test;
+namespace DbSqlLikeMem.Db2.Test;
 
 /// <summary>
 /// EN: Covers subquery projection and nested join scenarios in the Db2 mock.
-/// PT: Cobre projecao de subquery e cenarios de join aninhado no mock Db2.
+/// PT-br: Cobre projecao de subquery e cenarios de join aninhado no mock Db2.
 /// </summary>
 public sealed class SubqueryFromAndJoinsTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SubqueryFromAndJoinsTests(
 {
     /// <summary>
     /// EN: Verifies that a filtered subquery keeps the projected row order.
-    /// PT: Verifica se a subquery filtrada mantem a ordem das linhas projetadas.
+    /// PT-br: Verifica se a subquery filtrada mantem a ordem das linhas projetadas.
     /// </summary>
     [Fact]
     [Trait("Category", "SubqueryFromAndJoins")]
@@ -43,7 +43,7 @@ public sealed class SubqueryFromAndJoinsTests(
 
     /// <summary>
     /// EN: Verifies that a join against a filtered subquery returns matching rows.
-    /// PT: Verifica se o join com uma subquery filtrada retorna as linhas correspondentes.
+    /// PT-br: Verifica se o join com uma subquery filtrada retorna as linhas correspondentes.
     /// </summary>
     [Fact]
     [Trait("Category", "SubqueryFromAndJoins")]
@@ -88,7 +88,7 @@ ORDER BY u.Id, o.Amount";
 
     /// <summary>
     /// EN: Verifies that nested subqueries preserve the projected identifiers.
-    /// PT: Verifica se subqueries aninhadas preservam os identificadores projetados.
+    /// PT-br: Verifica se subqueries aninhadas preservam os identificadores projetados.
     /// </summary>
     [Fact]
     [Trait("Category", "SubqueryFromAndJoins")]

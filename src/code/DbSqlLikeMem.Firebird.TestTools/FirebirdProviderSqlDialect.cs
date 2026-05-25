@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.TestTools;
 
 /// <summary>
 /// EN: Provides Firebird-specific SQL snippets used by the shared benchmark and fidelity helpers.
-/// PT: Fornece trechos SQL especificos de Firebird usados pelos helpers compartilhados de benchmark e fidelidade.
+/// PT-br: Fornece trechos SQL especificos de Firebird usados pelos helpers compartilhados de benchmark e fidelidade.
 /// </summary>
 public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
 {
@@ -29,6 +29,33 @@ public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
 
     /// <inheritdoc />
     public override bool SupportsGuidInputOutputParameters => false;
+
+    /// <inheritdoc />
+    public override bool SupportsMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathLogBaseFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathPiFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathRandFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathCotFunction => true;
+
+    /// <inheritdoc />
+    public override bool SupportsFirebirdAliasMathFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsGreatestLeastModFunctions => true;
+
+    /// <inheritdoc />
+    public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
+    public override string MathRandExpression(string? seedExpression = null) => "RAND()";
 
     /// <inheritdoc />
     public override bool GlobalTemporaryTablesShareDefinitionAcrossConnections => true;

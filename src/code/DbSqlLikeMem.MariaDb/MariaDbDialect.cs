@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.MariaDb;
 
 /// <summary>
 /// EN: SQL dialect implementation for MariaDB built on top of the shared MySQL family behavior.
-/// PT: Implementacao de dialeto SQL para MariaDB construida sobre o comportamento compartilhado da familia MySQL.
+/// PT-br: Implementacao de dialeto SQL para MariaDB construida sobre o comportamento compartilhado da familia MySQL.
 /// </summary>
 internal sealed class MariaDbDialect
     : MySqlDialect, ISqlDialect
@@ -15,9 +15,9 @@ internal sealed class MariaDbDialect
 
     /// <summary>
     /// EN: Initializes the MariaDB dialect for the requested simulated version.
-    /// PT: Inicializa o dialeto MariaDB para a versao simulada informada.
+    /// PT-br: Inicializa o dialeto MariaDB para a versao simulada informada.
     /// </summary>
-    /// <param name="version">EN: Simulated MariaDB version. PT: Versao simulada do MariaDB.</param>
+    /// <param name="version">EN: Simulated MariaDB version. PT-br: Versao simulada do MariaDB.</param>
     internal MariaDbDialect(int version)
         : base(DialectName, version)
     {

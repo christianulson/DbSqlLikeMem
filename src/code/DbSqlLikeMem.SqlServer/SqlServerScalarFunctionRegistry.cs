@@ -732,7 +732,8 @@ internal static partial class SqlServerScalarFunctionRegistry
             DbFunctionDef.CreateIdentifier("@@DATEFIRST", "INT"),
             "@@DATEFIRST",
             "@@MAX_PRECISION",
-            "@@TEXTSIZE");
+            "@@TEXTSIZE",
+            "@@SPID");
 
         dialect.AddScalarFunction(DbFunctionDef.CreateIdentifier("@@IDENTITY", "BIGINT"));
 
@@ -1312,12 +1313,20 @@ internal static partial class SqlServerScalarFunctionRegistry
             "DATE",
             AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
 
-        dialect.AddScalarFunctions(
-            "DATETIME",
-            AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction,
+        dialect.AddScalarFunction(
             "DATETIMEFROMPARTS",
+            "DATETIME",
+            AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+
+        dialect.AddScalarFunction(
             "DATETIME2FROMPARTS",
-            "SMALLDATETIMEFROMPARTS");
+            "DATETIME2",
+            AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
+
+        dialect.AddScalarFunction(
+            "SMALLDATETIMEFROMPARTS",
+            "DATETIME",
+            AstQuerySqlServerDateConstructionFunctionEvaluator.TryEvaluateSqlServerDateConstructionFunction);
 
         dialect.AddScalarFunction(
             "DATETIMEOFFSETFROMPARTS",

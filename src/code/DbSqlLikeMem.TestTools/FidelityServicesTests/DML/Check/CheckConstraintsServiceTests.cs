@@ -74,10 +74,10 @@ WHERE Id = {Repo.Dialect.Parameter("id")}
 
 /// <summary>
 /// EN: Inserts rows that satisfy the check constraints and validates the persisted defaults and nullable values.
-/// PT: Insere linhas que satisfazem as restricoes check e valida os defaults persistidos e os valores anulaveis.
+/// PT-br: Insere linhas que satisfazem as restricoes check e valida os defaults persistidos e os valores anulaveis.
 /// </summary>
-/// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-/// <param name="context">EN: Scenario context with the current table names. PT: Contexto do cenario com os nomes atuais das tabelas.</param>
+/// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+/// <param name="context">EN: Scenario context with the current table names. PT-br: Contexto do cenario com os nomes atuais das tabelas.</param>
 internal class CheckConstraintsValidInsertServiceTest(
     RepoService repo,
     FidelityTestContext context
@@ -86,10 +86,10 @@ internal class CheckConstraintsValidInsertServiceTest(
 {
     /// <summary>
     /// EN: Inserts a row that satisfies the check constraints and returns the persisted projection.
-    /// PT: Insere uma linha que satisfaz as restricoes check e retorna a projecao persistida.
+    /// PT-br: Insere uma linha que satisfaz as restricoes check e retorna a projecao persistida.
     /// </summary>
-    /// <param name="args">EN: Optional row id, required column value, and check column value. PT: Id da linha, valor da coluna obrigatoria e valor da coluna de check opcionais.</param>
-    /// <returns>EN: The persisted row projection. PT: A projecao da linha persistida.</returns>
+    /// <param name="args">EN: Optional row id, required column value, and check column value. PT-br: Id da linha, valor da coluna obrigatoria e valor da coluna de check opcionais.</param>
+    /// <returns>EN: The persisted row projection. PT-br: A projecao da linha persistida.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var id = args.Length > 0 ? (int)args[0] : 1;
@@ -116,10 +116,10 @@ internal class CheckConstraintsValidInsertServiceTest(
 
 /// <summary>
 /// EN: Attempts to insert a row that violates a check constraint and returns true when the provider rejects it.
-/// PT: Tenta inserir uma linha que viola uma restricao check e retorna true quando o provedor a rejeita.
+/// PT-br: Tenta inserir uma linha que viola uma restricao check e retorna true quando o provedor a rejeita.
 /// </summary>
-/// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-/// <param name="context">EN: Scenario context with the current table names. PT: Contexto do cenario com os nomes atuais das tabelas.</param>
+/// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+/// <param name="context">EN: Scenario context with the current table names. PT-br: Contexto do cenario com os nomes atuais das tabelas.</param>
 internal class CheckConstraintsInvalidInsertServiceTest(
     RepoService repo,
     FidelityTestContext context
@@ -128,10 +128,10 @@ internal class CheckConstraintsInvalidInsertServiceTest(
 {
     /// <summary>
     /// EN: Inserts a row that violates a check constraint and returns true when the provider rejects it.
-    /// PT: Insere uma linha que viola uma restricao check e retorna true quando o provedor a rejeita.
+    /// PT-br: Insere uma linha que viola uma restricao check e retorna true quando o provedor a rejeita.
     /// </summary>
-    /// <param name="args">EN: Optional row id and required column value. PT: Id da linha e valor da coluna obrigatoria opcionais.</param>
-    /// <returns>EN: True when the insert fails as expected. PT: True quando o insert falha como esperado.</returns>
+    /// <param name="args">EN: Optional row id and required column value. PT-br: Id da linha e valor da coluna obrigatoria opcionais.</param>
+    /// <returns>EN: True when the insert fails as expected. PT-br: True quando o insert falha como esperado.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var id = args.Length > 0 ? (int)args[0] : 2;
@@ -160,10 +160,10 @@ internal class CheckConstraintsInvalidInsertServiceTest(
 
 /// <summary>
 /// EN: Updates a row into an invalid check state and returns the persisted row when the provider rejects the update.
-/// PT: Atualiza uma linha para um estado invalido de check e retorna a linha persistida quando o provedor rejeita o update.
+/// PT-br: Atualiza uma linha para um estado invalido de check e retorna a linha persistida quando o provedor rejeita o update.
 /// </summary>
-/// <param name="repo">EN: Repository used to execute SQL commands. PT: Repositorio usado para executar comandos SQL.</param>
-/// <param name="context">EN: Scenario context with the current table names. PT: Contexto do cenario com os nomes atuais das tabelas.</param>
+/// <param name="repo">EN: Repository used to execute SQL commands. PT-br: Repositorio usado para executar comandos SQL.</param>
+/// <param name="context">EN: Scenario context with the current table names. PT-br: Contexto do cenario com os nomes atuais das tabelas.</param>
 internal class CheckConstraintsInvalidUpdateServiceTest(
     RepoService repo,
     FidelityTestContext context
@@ -172,10 +172,10 @@ internal class CheckConstraintsInvalidUpdateServiceTest(
 {
     /// <summary>
     /// EN: Inserts a valid row, attempts an invalid update, and returns the persisted values when the provider rejects the update.
-    /// PT: Insere uma linha valida, tenta um update invalido e retorna os valores persistidos quando o provedor rejeita o update.
+    /// PT-br: Insere uma linha valida, tenta um update invalido e retorna os valores persistidos quando o provedor rejeita o update.
     /// </summary>
-    /// <param name="args">EN: Optional row id, required column value, and check column value. PT: Id da linha, valor da coluna obrigatoria e valor da coluna de check opcionais.</param>
-    /// <returns>EN: The persisted row projection after the rejected update. PT: A projecao da linha persistida apos o update rejeitado.</returns>
+    /// <param name="args">EN: Optional row id, required column value, and check column value. PT-br: Id da linha, valor da coluna obrigatoria e valor da coluna de check opcionais.</param>
+    /// <returns>EN: The persisted row projection after the rejected update. PT-br: A projecao da linha persistida apos o update rejeitado.</returns>
     public virtual async Task<object?> RunTestAsync(params object[] args)
     {
         var id = args.Length > 0 ? (int)args[0] : 3;

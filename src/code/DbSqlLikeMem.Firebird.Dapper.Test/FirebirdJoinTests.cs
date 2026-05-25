@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird join scenarios against the Firebird Dapper mock provider.
-/// PT: Cobre cenarios de join do Firebird contra o provedor mock Dapper do Firebird.
+/// PT-br: Cobre cenarios de join do Firebird contra o provedor mock Dapper do Firebird.
 /// </summary>
 public sealed class FirebirdJoinTests(
     ITestOutputHelper helper
@@ -13,7 +13,7 @@ public sealed class FirebirdJoinTests(
 
     /// <summary>
     /// EN: Verifies left joins keep all rows from the left table.
-    /// PT: Verifica se left joins mantem todas as linhas da tabela da esquerda.
+    /// PT-br: Verifica se left joins mantem todas as linhas da tabela da esquerda.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdJoin")]
@@ -21,7 +21,7 @@ public sealed class FirebirdJoinTests(
 
     /// <summary>
     /// EN: Verifies right joins keep all rows from the right table.
-    /// PT: Verifica se right joins mantem todas as linhas da tabela da direita.
+    /// PT-br: Verifica se right joins mantem todas as linhas da tabela da direita.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdJoin")]
@@ -29,7 +29,7 @@ public sealed class FirebirdJoinTests(
 
     /// <summary>
     /// EN: Verifies join conditions with multiple AND predicates are evaluated correctly.
-    /// PT: Verifica se condicoes de join com multiplos predicados AND sao avaliadas corretamente.
+    /// PT-br: Verifica se condicoes de join com multiplos predicados AND sao avaliadas corretamente.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdJoin")]

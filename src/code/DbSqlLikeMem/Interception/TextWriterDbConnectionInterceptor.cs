@@ -4,7 +4,7 @@ namespace DbSqlLikeMem;
 
 /// <summary>
 /// EN: Writes formatted interception events to a <see cref="TextWriter"/>.
-/// PT: Escreve eventos de interceptacao formatados em um <see cref="TextWriter"/>.
+/// PT-br: Escreve eventos de interceptacao formatados em um <see cref="TextWriter"/>.
 /// </summary>
 public sealed class TextWriterDbConnectionInterceptor : DbConnectionInterceptor
 {
@@ -14,9 +14,9 @@ public sealed class TextWriterDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Creates an interceptor that writes one formatted line per event to the supplied writer.
-    /// PT: Cria um interceptor que escreve uma linha formatada por evento no writer informado.
+    /// PT-br: Cria um interceptor que escreve uma linha formatada por evento no writer informado.
     /// </summary>
-    /// <param name="writer">EN: Writer that receives the formatted events. PT: Writer que recebe os eventos formatados.</param>
+    /// <param name="writer">EN: Writer that receives the formatted events. PT-br: Writer que recebe os eventos formatados.</param>
     public TextWriterDbConnectionInterceptor(TextWriter writer)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(writer, nameof(writer));
@@ -25,7 +25,7 @@ public sealed class TextWriterDbConnectionInterceptor : DbConnectionInterceptor
 
     /// <summary>
     /// EN: Gets the writer used by this interceptor.
-    /// PT: Obtem o writer usado por este interceptor.
+    /// PT-br: Obtem o writer usado por este interceptor.
     /// </summary>
     public TextWriter Writer => _writer;
 

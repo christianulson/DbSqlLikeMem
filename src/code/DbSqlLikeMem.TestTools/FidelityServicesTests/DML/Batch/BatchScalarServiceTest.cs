@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Service that tests batch scalar operations by inserting multiple user rows and validating the count and a specific value.
-/// PT: Serviço que testa operações escalares em lote, inserindo várias linhas de usuário e validando a contagem e um valor específico.
+/// PT-br: Serviço que testa operações escalares em lote, inserindo várias linhas de usuário e validando a contagem e um valor específico.
 /// </summary>
 /// <param name="repo"></param>
 /// <param name="context"></param>
@@ -14,9 +14,9 @@ public class BatchScalarServiceTest(
 {
     /// <summary>
     /// EN: Executes a scalar batch workflow and validates the count and second row value.
-    /// PT: Executa um fluxo de lote escalar e valida a contagem e o valor da segunda linha.
+    /// PT-br: Executa um fluxo de lote escalar e valida a contagem e o valor da segunda linha.
     /// </summary>
-    /// <param name="args">EN: Optional user ids for the inserted rows. PT: Ids opcionais de usuario para as linhas inseridas.</param>
+    /// <param name="args">EN: Optional user ids for the inserted rows. PT-br: Ids opcionais de usuario para as linhas inseridas.</param>
     public async Task<object?> RunTestAsync(params object[] args)
     {
         var firstUserId = args.Length > 0 ? (int)args[0] : 1;

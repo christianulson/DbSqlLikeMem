@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies database generation rules used by the extension core.
-/// PT: Verifica as regras de geracao de banco usadas pelo core da extensao.
+/// PT-br: Verifica as regras de geracao de banco usadas pelo core da extensao.
 /// </summary>
 public sealed class GenerationRuleSetTests
 {
     /// <summary>
     /// EN: Verifies PascalCase conversion for common identifier formats.
-    /// PT: Verifica a conversao para PascalCase em formatos comuns de identificador.
+    /// PT-br: Verifica a conversao para PascalCase em formatos comuns de identificador.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -27,7 +27,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies CLR type mapping for database column types and provider rules.
-    /// PT: Verifica o mapeamento de tipos CLR para tipos de coluna e regras do provedor.
+    /// PT-br: Verifica o mapeamento de tipos CLR para tipos de coluna e regras do provedor.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -57,7 +57,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies Oracle NUMBER columns switch to Decimal when the source column has a fractional scale.
-    /// PT: Verifica se colunas Oracle NUMBER mudam para Decimal quando a coluna de origem tem escala fracionaria.
+    /// PT-br: Verifica se colunas Oracle NUMBER mudam para Decimal quando a coluna de origem tem escala fracionaria.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -74,7 +74,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies GUID heuristics for binary and character columns.
-    /// PT: Verifica heuristicas de GUID para colunas binaria e de caractere.
+    /// PT-br: Verifica heuristicas de GUID para colunas binaria e de caractere.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -91,7 +91,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies literal default detection used by the generator.
-    /// PT: Verifica a deteccao de literais padrao usada pela geracao.
+    /// PT-br: Verifica a deteccao de literais padrao usada pela geracao.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -107,7 +107,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies default literal formatting for boolean, string, and numeric values.
-    /// PT: Verifica a formatacao de literais padrao para valores booleanos, string e numericos.
+    /// PT-br: Verifica a formatacao de literais padrao para valores booleanos, string e numericos.
     /// </summary>
     [Theory]
     [Trait("Category", "GenerationRuleSet")]
@@ -123,7 +123,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies enum and set parsing returns the expected discrete values.
-    /// PT: Verifica se o parser de enum e set retorna os valores discretos esperados.
+    /// PT-br: Verifica se o parser de enum e set retorna os valores discretos esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -138,7 +138,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies enum parsing returns no values for non-enum inputs.
-    /// PT: Verifica se o parser de enum nao retorna valores para entradas nao enum.
+    /// PT-br: Verifica se o parser de enum nao retorna valores para entradas nao enum.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -150,7 +150,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies the generated lambda for SQL IS NULL expressions.
-    /// PT: Verifica a lambda gerada para expressoes SQL IS NULL.
+    /// PT-br: Verifica a lambda gerada para expressoes SQL IS NULL.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -165,7 +165,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies the fallback behavior when the SQL pattern does not match.
-    /// PT: Verifica o comportamento de fallback quando o padrao SQL nao corresponde.
+    /// PT-br: Verifica o comportamento de fallback quando o padrao SQL nao corresponde.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]
@@ -179,7 +179,7 @@ public sealed class GenerationRuleSetTests
 
     /// <summary>
     /// EN: Verifies string escaping for generated C# literals.
-    /// PT: Verifica o escaping de string para literais C# gerados.
+    /// PT-br: Verifica o escaping de string para literais C# gerados.
     /// </summary>
     [Fact]
     [Trait("Category", "GenerationRuleSet")]

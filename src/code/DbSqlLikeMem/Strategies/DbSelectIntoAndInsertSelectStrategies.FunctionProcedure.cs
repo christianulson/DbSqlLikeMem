@@ -4,7 +4,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 {
     /// <summary>
     /// EN: Creates a scalar function definition in the current schema.
-    /// PT: Cria uma definicao de funcao escalar no schema atual.
+    /// PT-br: Cria uma definicao de funcao escalar no schema atual.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateFunction(
         this DbConnectionMockBase connection,
@@ -32,7 +32,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Creates a trigger definition on the target table.
-    /// PT: Cria uma definicao de trigger na tabela de destino.
+    /// PT-br: Cria uma definicao de trigger na tabela de destino.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateTrigger(
         this DbConnectionMockBase connection,
@@ -44,7 +44,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteCreateProcedure.
-    /// PT: Implementa ExecuteCreateProcedure.
+    /// PT-br: Implementa ExecuteCreateProcedure.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateProcedure(
         this DbConnectionMockBase connection,
@@ -73,7 +73,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Drops a scalar function definition from the current schema.
-    /// PT: Remove uma definicao de funcao escalar do schema atual.
+    /// PT-br: Remove uma definicao de funcao escalar do schema atual.
     /// </summary>
     public static DmlExecutionResult ExecuteDropFunction(
         this DbConnectionMockBase connection,
@@ -92,7 +92,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDropProcedure.
-    /// PT: Implementa ExecuteDropProcedure.
+    /// PT-br: Implementa ExecuteDropProcedure.
     /// </summary>
     public static DmlExecutionResult ExecuteDropProcedure(
         this DbConnectionMockBase connection,
@@ -121,7 +121,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDropTrigger.
-    /// PT: Implementa ExecuteDropTrigger.
+    /// PT-br: Implementa ExecuteDropTrigger.
     /// </summary>
     public static DmlExecutionResult ExecuteDropTrigger(
         this DbConnectionMockBase connection,

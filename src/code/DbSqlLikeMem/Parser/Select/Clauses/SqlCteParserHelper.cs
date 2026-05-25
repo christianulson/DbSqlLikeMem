@@ -71,11 +71,13 @@ internal static class SqlCteParserHelper
         if (!dialect.SupportsWithCte)
             throw SqlUnsupported.NotSupported(dialect, SqlConst.WITH_CTE);
 
+        var isRecursive = false;
         if (isRecursiveWord(0))
         {
             if (!dialect.SupportsWithRecursive)
                 throw SqlUnsupported.NotSupportedWithRecursive(dialect);
 
+            isRecursive = true;
             consume();
         }
 
@@ -97,7 +99,7 @@ internal static class SqlCteParserHelper
             var innerSql = readBalancedParenRawTokens();
             var q = parseQuery(innerSql);
             if (q is SqlSelectQuery or SqlUnionQuery)
-                list.Add(new SqlCte(name, q));
+                list.Add(new SqlCte(name, q, isRecursive));
 
             if (isComma(0))
             {

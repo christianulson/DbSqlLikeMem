@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies how template baseline metadata is exposed to UI flows that consume the shared catalog.
-/// PT: Verifica como os metadados de baseline de templates sao expostos para fluxos de UI que consomem o catalogo compartilhado.
+/// PT-br: Verifica como os metadados de baseline de templates sao expostos para fluxos de UI que consomem o catalogo compartilhado.
 /// </summary>
 public sealed class TemplateBaselinePresentationTests
 {
     /// <summary>
     /// EN: Ensures the profile summary keeps the description, test focus, and next review window visible to the UI.
-    /// PT: Garante que o resumo do perfil mantenha a descricao, o foco de testes e a proxima janela de revisao visiveis para a UI.
+    /// PT-br: Garante que o resumo do perfil mantenha a descricao, o foco de testes e a proxima janela de revisao visiveis para a UI.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselinePresentation")]
@@ -29,7 +29,7 @@ public sealed class TemplateBaselinePresentationTests
 
     /// <summary>
     /// EN: Ensures the mapping summary exposes the recommended folder and file pattern for the selected object type.
-    /// PT: Garante que o resumo de mapeamento exponha a pasta e o padrao de arquivo recomendados para o tipo de objeto selecionado.
+    /// PT-br: Garante que o resumo de mapeamento exponha a pasta e o padrao de arquivo recomendados para o tipo de objeto selecionado.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselinePresentation")]
@@ -47,7 +47,7 @@ public sealed class TemplateBaselinePresentationTests
 
     /// <summary>
     /// EN: Ensures overdue review windows become visible in the profile summary presented to the UI.
-    /// PT: Garante que janelas de revisao vencidas fiquem visiveis no resumo do perfil apresentado para a UI.
+    /// PT-br: Garante que janelas de revisao vencidas fiquem visiveis no resumo do perfil apresentado para a UI.
     /// </summary>
     [Fact]
     [Trait("Category", "TemplateBaselinePresentation")]

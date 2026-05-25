@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.DDL;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared table scenarios.
-/// PT: Executa testes de fidelidade do SQLite para os cenarios compartilhados de tabela.
+/// PT-br: Executa testes de fidelidade do SQLite para os cenarios compartilhados de tabela.
 /// </summary>
 public class TableTests(
     ITestOutputHelper helper

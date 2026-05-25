@@ -1,0 +1,20 @@
+{
+  "runId": "core-20260501-120000000",
+  "benchmarkStableId": "core.connection.open",
+  "benchmarkFeatureId": "ConnectionOpen",
+  "providerId": "SqlAzure",
+  "engine": "DbSqlLikeMem",
+  "suiteName": "SqlAzure_DbSqlLikeMem_Benchmarks",
+  "methodName": "ConnectionOpen",
+  "category": "Core",
+  "environment": {
+    "profile": "core",
+    "os": "Windows",
+    "framework": "net8.0",
+    "runtime": ".NET 8"
+  },
+  "status": "Skipped",
+  "tags": [
+    "profile-excluded"
+  ]
+}

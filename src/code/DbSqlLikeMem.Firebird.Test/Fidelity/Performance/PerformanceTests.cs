@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.Performance;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared performance workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de performance.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados de performance.
 /// </summary>
 [FidelityNativeClientSkip]
 public sealed class PerformanceTests(

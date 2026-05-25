@@ -4,7 +4,7 @@ internal static class DbStoredProcedureStrategy
 {
     /// <summary>
     /// EN: Implements ExecuteStoredProcedure.
-    /// PT: Implementa ExecuteStoredProcedure.
+    /// PT-br: Implementa ExecuteStoredProcedure.
     /// </summary>
     public static DmlExecutionResult ExecuteStoredProcedure(
         this DbConnectionMockBase connection,
@@ -37,7 +37,7 @@ internal static class DbStoredProcedureStrategy
 
     /// <summary>
     /// EN: Implements ExecuteCall.
-    /// PT: Implementa ExecuteCall.
+    /// PT-br: Implementa ExecuteCall.
     /// </summary>
     public static DmlExecutionResult ExecuteCall(
         this DbConnectionMockBase connection,

@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.SqlAzure.Test;
 
 /// <summary>
 /// EN: Contains tests for SQL Azure parameter collection behavior.
-/// PT: Contém testes para o comportamento da coleção de parâmetros do SQL Azure.
+/// PT-br: Contém testes para o comportamento da coleção de parâmetros do SQL Azure.
 /// </summary>
 public sealed class SqlAzureDataParameterCollectionMockTests(
         ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class SqlAzureDataParameterCollectionMockTests(
 {
     /// <summary>
     /// EN: Ensures adding duplicate parameter names is rejected case-insensitively.
-    /// PT: Garante que adicionar nomes de parâmetros duplicados seja rejeitado sem diferenciar maiúsculas/minúsculas.
+    /// PT-br: Garante que adicionar nomes de parâmetros duplicados seja rejeitado sem diferenciar maiúsculas/minúsculas.
     /// </summary>
     [Fact]
     public void Add_DuplicateName_ShouldThrow()
@@ -23,7 +23,7 @@ public sealed class SqlAzureDataParameterCollectionMockTests(
 
     /// <summary>
     /// EN: Ensures normalized lookups support quoted/backticked parameter names.
-    /// PT: Garante que buscas normalizadas suportem nomes de parâmetro entre aspas/backticks.
+    /// PT-br: Garante que buscas normalizadas suportem nomes de parâmetro entre aspas/backticks.
     /// </summary>
     [Fact]
     public void Contains_ShouldMatchNormalizedQuotedNames()
@@ -37,7 +37,7 @@ public sealed class SqlAzureDataParameterCollectionMockTests(
 
     /// <summary>
     /// EN: Ensures RemoveAt by name keeps dictionary index mapping consistent.
-    /// PT: Garante que RemoveAt por nome mantenha consistente o mapeamento de índices no dicionário.
+    /// PT-br: Garante que RemoveAt por nome mantenha consistente o mapeamento de índices no dicionário.
     /// </summary>
     [Fact]
     public void RemoveAt_ShouldReindexDictionary()

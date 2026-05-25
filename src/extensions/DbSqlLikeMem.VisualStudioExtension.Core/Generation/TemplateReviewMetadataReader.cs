@@ -4,15 +4,15 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Generation;
 
 /// <summary>
 /// EN: Loads the versioned review metadata that governs the shared template baseline when the repository files are available.
-/// PT: Carrega os metadados versionados de revisao que governam a baseline compartilhada de templates quando os arquivos do repositorio estao disponiveis.
+/// PT-br: Carrega os metadados versionados de revisao que governam a baseline compartilhada de templates quando os arquivos do repositorio estao disponiveis.
 /// </summary>
 public static class TemplateReviewMetadataReader
 {
     /// <summary>
     /// EN: Tries to load review metadata from the informed repository root and returns `null` when the file is unavailable or invalid.
-    /// PT: Tenta carregar os metadados de revisao a partir da raiz de repositorio informada e retorna `null` quando o arquivo estiver indisponivel ou invalido.
+    /// PT-br: Tenta carregar os metadados de revisao a partir da raiz de repositorio informada e retorna `null` quando o arquivo estiver indisponivel ou invalido.
     /// </summary>
-    /// <param name="repositoryRoot">EN: Absolute repository root path. PT: Caminho absoluto da raiz do repositorio.</param>
+    /// <param name="repositoryRoot">EN: Absolute repository root path. PT-br: Caminho absoluto da raiz do repositorio.</param>
     public static TemplateReviewMetadata? TryLoadFromRepositoryRoot(string repositoryRoot)
     {
         if (!TryGetMetadataPath(repositoryRoot, out var metadataPath))

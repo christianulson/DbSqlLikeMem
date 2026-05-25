@@ -2,150 +2,150 @@ namespace DbSqlLikeMem.Models;
 
 /// <summary>
 /// EN: Describes the capability flags supported by a SQL function definition.
-/// PT: Descreve as flags de capacidade suportadas por uma definicao de funcao SQL.
+/// PT-br: Descreve as flags de capacidade suportadas por uma definicao de funcao SQL.
 /// </summary>
 [Flags]
 public enum DbFunctionCapability
 {
     /// <summary>
     /// EN: Indicates that no capability flags are set.
-    /// PT: Indica que nenhuma flag de capacidade esta definida.
+    /// PT-br: Indica que nenhuma flag de capacidade esta definida.
     /// </summary>
     None = 0,
 
     /// <summary>
     /// EN: Marks a scalar function definition.
-    /// PT: Marca uma definicao de funcao escalar.
+    /// PT-br: Marca uma definicao de funcao escalar.
     /// </summary>
     Scalar = 1 << 0,
     /// <summary>
     /// EN: Marks an aggregate function definition.
-    /// PT: Marca uma definicao de funcao agregada.
+    /// PT-br: Marca uma definicao de funcao agregada.
     /// </summary>
     Aggregate = 1 << 1,
     /// <summary>
     /// EN: Marks a window function definition.
-    /// PT: Marca uma definicao de funcao de janela.
+    /// PT-br: Marca uma definicao de funcao de janela.
     /// </summary>
     Window = 1 << 2,
     /// <summary>
     /// EN: Marks a table function definition.
-    /// PT: Marca uma definicao de funcao de tabela.
+    /// PT-br: Marca uma definicao de funcao de tabela.
     /// </summary>
     Table = 1 << 3,
 
     /// <summary>
     /// EN: Indicates that the function supports an OVER clause.
-    /// PT: Indica que a funcao suporta a clausula OVER.
+    /// PT-br: Indica que a funcao suporta a clausula OVER.
     /// </summary>
     SupportsOver = 1 << 4,
     /// <summary>
     /// EN: Indicates that the function requires an OVER clause.
-    /// PT: Indica que a funcao exige a clausula OVER.
+    /// PT-br: Indica que a funcao exige a clausula OVER.
     /// </summary>
     RequiresOver = 1 << 5,
 
     /// <summary>
     /// EN: Indicates that the function supports WITHIN GROUP.
-    /// PT: Indica que a funcao suporta WITHIN GROUP.
+    /// PT-br: Indica que a funcao suporta WITHIN GROUP.
     /// </summary>
     SupportsWithinGroup = 1 << 6,
     /// <summary>
     /// EN: Indicates that the function supports a FILTER clause.
-    /// PT: Indica que a funcao suporta uma clausula FILTER.
+    /// PT-br: Indica que a funcao suporta uma clausula FILTER.
     /// </summary>
     SupportsFilterClause = 1 << 7,
     /// <summary>
     /// EN: Indicates that the function supports ORDER BY arguments.
-    /// PT: Indica que a funcao suporta argumentos ORDER BY.
+    /// PT-br: Indica que a funcao suporta argumentos ORDER BY.
     /// </summary>
     SupportsOrderByArguments = 1 << 8,
 
     /// <summary>
     /// EN: Marks a niladic function definition.
-    /// PT: Marca uma definicao de funcao niladica.
+    /// PT-br: Marca uma definicao de funcao niladica.
     /// </summary>
     Niladic = 1 << 9,
     /// <summary>
     /// EN: Marks a variadic function definition.
-    /// PT: Marca uma definicao de funcao variadica.
+    /// PT-br: Marca uma definicao de funcao variadica.
     /// </summary>
     Variadic = 1 << 10
 }
 
 /// <summary>
 /// EN: Describes the functional category used to group SQL functions.
-/// PT: Descreve a categoria funcional usada para agrupar funcoes SQL.
+/// PT-br: Descreve a categoria funcional usada para agrupar funcoes SQL.
 /// </summary>
 public enum DbFunctionCategory
 {
     /// <summary>
     /// EN: Uses the default general-purpose category.
-    /// PT: Usa a categoria geral padrao.
+    /// PT-br: Usa a categoria geral padrao.
     /// </summary>
     General,
     /// <summary>
     /// EN: Groups string-oriented functions.
-    /// PT: Agrupa funcoes orientadas a texto.
+    /// PT-br: Agrupa funcoes orientadas a texto.
     /// </summary>
     String,
     /// <summary>
     /// EN: Groups numeric functions.
-    /// PT: Agrupa funcoes numericas.
+    /// PT-br: Agrupa funcoes numericas.
     /// </summary>
     Numeric,
     /// <summary>
     /// EN: Groups date and time functions.
-    /// PT: Agrupa funcoes de data e hora.
+    /// PT-br: Agrupa funcoes de data e hora.
     /// </summary>
     DateTime,
     /// <summary>
     /// EN: Groups JSON functions.
-    /// PT: Agrupa funcoes JSON.
+    /// PT-br: Agrupa funcoes JSON.
     /// </summary>
     Json,
     /// <summary>
     /// EN: Groups system-provided functions.
-    /// PT: Agrupa funcoes fornecidas pelo sistema.
+    /// PT-br: Agrupa funcoes fornecidas pelo sistema.
     /// </summary>
     System,
     /// <summary>
     /// EN: Groups control-flow functions.
-    /// PT: Agrupa funcoes de controle de fluxo.
+    /// PT-br: Agrupa funcoes de controle de fluxo.
     /// </summary>
     ControlFlow,
     /// <summary>
     /// EN: Groups type-conversion functions.
-    /// PT: Agrupa funcoes de conversao de tipo.
+    /// PT-br: Agrupa funcoes de conversao de tipo.
     /// </summary>
     Conversion,
     /// <summary>
     /// EN: Groups analytic functions.
-    /// PT: Agrupa funcoes analiticas.
+    /// PT-br: Agrupa funcoes analiticas.
     /// </summary>
     Analytic
 }
 
 /// <summary>
 /// EN: Describes how a SQL function is invoked by the parser and runtime.
-/// PT: Descreve como uma funcao SQL e invocada pelo parser e pelo runtime.
+/// PT-br: Descreve como uma funcao SQL e invocada pelo parser e pelo runtime.
 /// </summary>
 [Flags]
 public enum DbInvocationStyle
 {
     /// <summary>
     /// EN: Indicates that no invocation style is enabled.
-    /// PT: Indica que nenhum estilo de invocacao esta habilitado.
+    /// PT-br: Indica que nenhum estilo de invocacao esta habilitado.
     /// </summary>
     None = 0,
     /// <summary>
     /// EN: Indicates that call syntax is supported.
-    /// PT: Indica que a sintaxe de chamada e suportada.
+    /// PT-br: Indica que a sintaxe de chamada e suportada.
     /// </summary>
     Call = 1 << 0,
     /// <summary>
     /// EN: Indicates that identifier syntax is supported.
-    /// PT: Indica que a sintaxe de identificador e suportada.
+    /// PT-br: Indica que a sintaxe de identificador e suportada.
     /// </summary>
     Identifier = 1 << 1
 }
@@ -158,15 +158,15 @@ internal delegate TableResultMock AstQueryTableFunctionHandler(
 
 /// <summary>
 /// EN: Describes one parameter declared by a SQL function signature.
-/// PT: Descreve um parametro declarado por uma assinatura de funcao SQL.
+/// PT-br: Descreve um parametro declarado por uma assinatura de funcao SQL.
 /// </summary>
-/// <param name="Name">EN: Parameter name. PT: Nome do parametro.</param>
-/// <param name="TypeSql">EN: SQL type text associated with the parameter. PT: Texto do tipo SQL associado ao parametro.</param>
-/// <param name="Required">EN: Indicates whether the parameter is required. PT: Indica se o parametro e obrigatorio.</param>
-/// <param name="IsVariadic">EN: Indicates whether the parameter accepts variadic values. PT: Indica se o parametro aceita valores variadicos.</param>
-/// <param name="IsOrderByClause">EN: Indicates whether the parameter represents an ORDER BY clause. PT: Indica se o parametro representa uma clausula ORDER BY.</param>
-/// <param name="IsFrameClause">EN: Indicates whether the parameter represents a frame clause. PT: Indica se o parametro representa uma clausula de frame.</param>
-/// <param name="DefaultValue">EN: Default value used when the argument is omitted. PT: Valor padrao usado quando o argumento e omitido.</param>
+/// <param name="Name">EN: Parameter name. PT-br: Nome do parametro.</param>
+/// <param name="TypeSql">EN: SQL type text associated with the parameter. PT-br: Texto do tipo SQL associado ao parametro.</param>
+/// <param name="Required">EN: Indicates whether the parameter is required. PT-br: Indica se o parametro e obrigatorio.</param>
+/// <param name="IsVariadic">EN: Indicates whether the parameter accepts variadic values. PT-br: Indica se o parametro aceita valores variadicos.</param>
+/// <param name="IsOrderByClause">EN: Indicates whether the parameter represents an ORDER BY clause. PT-br: Indica se o parametro representa uma clausula ORDER BY.</param>
+/// <param name="IsFrameClause">EN: Indicates whether the parameter represents a frame clause. PT-br: Indica se o parametro representa uma clausula de frame.</param>
+/// <param name="DefaultValue">EN: Default value used when the argument is omitted. PT-br: Valor padrao usado quando o argumento e omitido.</param>
 public sealed record DbFunctionParameterDef(
     string Name,
     string? TypeSql,
@@ -193,13 +193,13 @@ public sealed record DbFunctionParameterDef(
 
 /// <summary>
 /// EN: Describes one callable signature accepted by a SQL function definition.
-/// PT: Descreve uma assinatura chamavel aceita por uma definicao de funcao SQL.
+/// PT-br: Descreve uma assinatura chamavel aceita por uma definicao de funcao SQL.
 /// </summary>
-/// <param name="Parameters">EN: Parameters declared by the signature. PT: Parametros declarados pela assinatura.</param>
-/// <param name="MinArguments">EN: Minimum accepted argument count. PT: Numero minimo de argumentos aceitos.</param>
-/// <param name="MaxArguments">EN: Maximum accepted argument count. PT: Numero maximo de argumentos aceitos.</param>
-/// <param name="AcceptsStar">EN: Indicates whether the signature accepts star syntax. PT: Indica se a assinatura aceita sintaxe de asterisco.</param>
-/// <param name="RequiresOrderBy">EN: Indicates whether the signature requires ORDER BY. PT: Indica se a assinatura exige ORDER BY.</param>
+/// <param name="Parameters">EN: Parameters declared by the signature. PT-br: Parametros declarados pela assinatura.</param>
+/// <param name="MinArguments">EN: Minimum accepted argument count. PT-br: Numero minimo de argumentos aceitos.</param>
+/// <param name="MaxArguments">EN: Maximum accepted argument count. PT-br: Numero maximo de argumentos aceitos.</param>
+/// <param name="AcceptsStar">EN: Indicates whether the signature accepts star syntax. PT-br: Indica se a assinatura aceita sintaxe de asterisco.</param>
+/// <param name="RequiresOrderBy">EN: Indicates whether the signature requires ORDER BY. PT-br: Indica se a assinatura exige ORDER BY.</param>
 public sealed record DbFunctionSignature(
     IReadOnlyList<DbFunctionParameterDef> Parameters,
     int MinArguments,
@@ -213,12 +213,12 @@ public sealed record DbFunctionSignature(
 
 /// <summary>
 /// EN: Describes a SQL function definition used by the mock runtime and parser.
-/// PT: Descreve uma definicao de funcao SQL usada pelo runtime simulado e pelo parser.
+/// PT-br: Descreve uma definicao de funcao SQL usada pelo runtime simulado e pelo parser.
 /// </summary>
-/// <param name="Name">EN: Function name. PT: Nome da funcao.</param>
-/// <param name="ReturnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-/// <param name="Capabilities">EN: Capability flags exposed by the function. PT: Flags de capacidade expostas pela funcao.</param>
-/// <param name="Category">EN: Functional category associated with the function. PT: Categoria funcional associada a funcao.</param>
+/// <param name="Name">EN: Function name. PT-br: Nome da funcao.</param>
+/// <param name="ReturnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+/// <param name="Capabilities">EN: Capability flags exposed by the function. PT-br: Flags de capacidade expostas pela funcao.</param>
+/// <param name="Category">EN: Functional category associated with the function. PT-br: Categoria funcional associada a funcao.</param>
 public sealed record DbFunctionDef(
     string Name,
     string? ReturnTypeSql,
@@ -228,7 +228,7 @@ public sealed record DbFunctionDef(
 {
     /// <summary>
     /// EN: Gets the declared parameters for the function.
-    /// PT: Obtem os parametros declarados para a funcao.
+    /// PT-br: Obtem os parametros declarados para a funcao.
     /// </summary>
     public IReadOnlyList<DbFunctionParameterDef> Parameters { get; init; } = [];
 
@@ -236,31 +236,31 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Gets the accepted callable signatures for the function.
-    /// PT: Obtem as assinaturas chamaveis aceitas pela funcao.
+    /// PT-br: Obtem as assinaturas chamaveis aceitas pela funcao.
     /// </summary>
     public IReadOnlyList<DbFunctionSignature> Signatures { get; init; } = [];
 
     /// <summary>
     /// EN: Gets the temporal kind associated with the function when applicable.
-    /// PT: Obtem o tipo temporal associado a funcao quando aplicavel.
+    /// PT-br: Obtem o tipo temporal associado a funcao quando aplicavel.
     /// </summary>
     public SqlTemporalFunctionKind? TemporalKind { get; init; }
 
     /// <summary>
     /// EN: Indicates whether the function is marked as a string aggregate.
-    /// PT: Indica se a funcao esta marcada como agregacao de texto.
+    /// PT-br: Indica se a funcao esta marcada como agregacao de texto.
     /// </summary>
     public bool IsStringAggregate { get; init; }
 
     /// <summary>
     /// EN: Indicates whether integral inputs should be promoted to decimal for aggregate inference.
-    /// PT: Indica se entradas inteiras devem ser promovidas para decimal na inferencia de agregados.
+    /// PT-br: Indica se entradas inteiras devem ser promovidas para decimal na inferencia de agregados.
     /// </summary>
     public bool PromotesIntegralInputsToDecimal { get; init; }
 
     /// <summary>
     /// EN: Gets the invocation styles supported by the function.
-    /// PT: Obtem os estilos de invocacao suportados pela funcao.
+    /// PT-br: Obtem os estilos de invocacao suportados pela funcao.
     /// </summary>
     public DbInvocationStyle InvocationStyle { get; init; } = DbInvocationStyle.Call;
 
@@ -270,14 +270,14 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a window function definition with a single signature.
-    /// PT: Cria uma definicao de funcao de janela com uma unica assinatura.
+    /// PT-br: Cria uma definicao de funcao de janela com uma unica assinatura.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="minArguments">EN: Minimum accepted argument count. PT: Numero minimo de argumentos aceitos.</param>
-    /// <param name="maxArguments">EN: Maximum accepted argument count. PT: Numero maximo de argumentos aceitos.</param>
-    /// <param name="requiresOver">EN: Indicates whether OVER is required. PT: Indica se OVER e obrigatorio.</param>
-    /// <param name="requiresOrderBy">EN: Indicates whether ORDER BY is required. PT: Indica se ORDER BY e obrigatorio.</param>
-    /// <param name="acceptsStar">EN: Indicates whether star syntax is accepted. PT: Indica se a sintaxe de asterisco e aceita.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="minArguments">EN: Minimum accepted argument count. PT-br: Numero minimo de argumentos aceitos.</param>
+    /// <param name="maxArguments">EN: Maximum accepted argument count. PT-br: Numero maximo de argumentos aceitos.</param>
+    /// <param name="requiresOver">EN: Indicates whether OVER is required. PT-br: Indica se OVER e obrigatorio.</param>
+    /// <param name="requiresOrderBy">EN: Indicates whether ORDER BY is required. PT-br: Indica se ORDER BY e obrigatorio.</param>
+    /// <param name="acceptsStar">EN: Indicates whether star syntax is accepted. PT-br: Indica se a sintaxe de asterisco e aceita.</param>
     public DbFunctionDef(
         string name,
         int minArguments,
@@ -303,12 +303,12 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a general function definition with the supplied signatures.
-    /// PT: Cria uma definicao geral de funcao com as assinaturas fornecidas.
+    /// PT-br: Cria uma definicao geral de funcao com as assinaturas fornecidas.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="capabilities">EN: Capability flags for the function. PT: Flags de capacidade da funcao.</param>
-    /// <param name="signatures">EN: Accepted signatures. PT: Assinaturas aceitas.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="capabilities">EN: Capability flags for the function. PT-br: Flags de capacidade da funcao.</param>
+    /// <param name="signatures">EN: Accepted signatures. PT-br: Assinaturas aceitas.</param>
     public DbFunctionDef(
         string name,
         string? returnTypeSql,
@@ -321,13 +321,13 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a categorized function definition with the supplied signatures.
-    /// PT: Cria uma definicao de funcao categorizada com as assinaturas fornecidas.
+    /// PT-br: Cria uma definicao de funcao categorizada com as assinaturas fornecidas.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="capabilities">EN: Capability flags for the function. PT: Flags de capacidade da funcao.</param>
-    /// <param name="category">EN: Functional category for the function. PT: Categoria funcional da funcao.</param>
-    /// <param name="signatures">EN: Accepted signatures. PT: Assinaturas aceitas.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="capabilities">EN: Capability flags for the function. PT-br: Flags de capacidade da funcao.</param>
+    /// <param name="category">EN: Functional category for the function. PT-br: Categoria funcional da funcao.</param>
+    /// <param name="signatures">EN: Accepted signatures. PT-br: Assinaturas aceitas.</param>
     public DbFunctionDef(
         string name,
         string? returnTypeSql,
@@ -341,13 +341,13 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a function definition with the supplied invocation style.
-    /// PT: Cria uma definicao de funcao com o estilo de invocacao fornecido.
+    /// PT-br: Cria uma definicao de funcao com o estilo de invocacao fornecido.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="capabilities">EN: Capability flags for the function. PT: Flags de capacidade da funcao.</param>
-    /// <param name="invocationStyle">EN: Supported invocation style. PT: Estilo de invocacao suportado.</param>
-    /// <param name="signatures">EN: Accepted signatures. PT: Assinaturas aceitas.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="capabilities">EN: Capability flags for the function. PT-br: Flags de capacidade da funcao.</param>
+    /// <param name="invocationStyle">EN: Supported invocation style. PT-br: Estilo de invocacao suportado.</param>
+    /// <param name="signatures">EN: Accepted signatures. PT-br: Assinaturas aceitas.</param>
     public DbFunctionDef(
         string name,
         string? returnTypeSql,
@@ -362,14 +362,14 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a categorized function definition with the supplied invocation style.
-    /// PT: Cria uma definicao de funcao categorizada com o estilo de invocacao fornecido.
+    /// PT-br: Cria uma definicao de funcao categorizada com o estilo de invocacao fornecido.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="capabilities">EN: Capability flags for the function. PT: Flags de capacidade da funcao.</param>
-    /// <param name="category">EN: Functional category for the function. PT: Categoria funcional da funcao.</param>
-    /// <param name="invocationStyle">EN: Supported invocation style. PT: Estilo de invocacao suportado.</param>
-    /// <param name="signatures">EN: Accepted signatures. PT: Assinaturas aceitas.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="capabilities">EN: Capability flags for the function. PT-br: Flags de capacidade da funcao.</param>
+    /// <param name="category">EN: Functional category for the function. PT-br: Categoria funcional da funcao.</param>
+    /// <param name="invocationStyle">EN: Supported invocation style. PT-br: Estilo de invocacao suportado.</param>
+    /// <param name="signatures">EN: Accepted signatures. PT-br: Assinaturas aceitas.</param>
     public DbFunctionDef(
         string name,
         string? returnTypeSql,
@@ -385,13 +385,13 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a temporal function definition.
-    /// PT: Cria uma definicao de funcao temporal.
+    /// PT-br: Cria uma definicao de funcao temporal.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="capabilities">EN: Capability flags for the function. PT: Flags de capacidade da funcao.</param>
-    /// <param name="temporalKind">EN: Temporal kind associated with the function. PT: Tipo temporal associado a funcao.</param>
-    /// <param name="signatures">EN: Accepted signatures. PT: Assinaturas aceitas.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="capabilities">EN: Capability flags for the function. PT-br: Flags de capacidade da funcao.</param>
+    /// <param name="temporalKind">EN: Temporal kind associated with the function. PT-br: Tipo temporal associado a funcao.</param>
+    /// <param name="signatures">EN: Accepted signatures. PT-br: Assinaturas aceitas.</param>
     public DbFunctionDef(
         string name,
         string? returnTypeSql,
@@ -406,14 +406,14 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a categorized temporal function definition.
-    /// PT: Cria uma definicao de funcao temporal categorizada.
+    /// PT-br: Cria uma definicao de funcao temporal categorizada.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="capabilities">EN: Capability flags for the function. PT: Flags de capacidade da funcao.</param>
-    /// <param name="category">EN: Functional category for the function. PT: Categoria funcional da funcao.</param>
-    /// <param name="temporalKind">EN: Temporal kind associated with the function. PT: Tipo temporal associado a funcao.</param>
-    /// <param name="signatures">EN: Accepted signatures. PT: Assinaturas aceitas.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="capabilities">EN: Capability flags for the function. PT-br: Flags de capacidade da funcao.</param>
+    /// <param name="category">EN: Functional category for the function. PT-br: Categoria funcional da funcao.</param>
+    /// <param name="temporalKind">EN: Temporal kind associated with the function. PT-br: Tipo temporal associado a funcao.</param>
+    /// <param name="signatures">EN: Accepted signatures. PT-br: Assinaturas aceitas.</param>
     public DbFunctionDef(
         string name,
         string? returnTypeSql,
@@ -429,16 +429,16 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a categorized temporal function definition with an explicit invocation style.
-    /// PT: Cria uma definicao de funcao temporal categorizada com estilo de invocacao explicito.
+    /// PT-br: Cria uma definicao de funcao temporal categorizada com estilo de invocacao explicito.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="capabilities">EN: Capability flags for the function. PT: Flags de capacidade da funcao.</param>
-    /// <param name="category">EN: Functional category for the function. PT: Categoria funcional da funcao.</param>
-    /// <param name="invocationStyle">EN: Supported invocation style. PT: Estilo de invocacao suportado.</param>
-    /// <param name="temporalKind">EN: Temporal kind associated with the function. PT: Tipo temporal associado a funcao.</param>
-    /// <param name="isStringAggregate">EN: Indicates whether the function is a string aggregate. PT: Indica se a funcao e uma agregacao de texto.</param>
-    /// <param name="signatures">EN: Accepted signatures. PT: Assinaturas aceitas.</param>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="capabilities">EN: Capability flags for the function. PT-br: Flags de capacidade da funcao.</param>
+    /// <param name="category">EN: Functional category for the function. PT-br: Categoria funcional da funcao.</param>
+    /// <param name="invocationStyle">EN: Supported invocation style. PT-br: Estilo de invocacao suportado.</param>
+    /// <param name="temporalKind">EN: Temporal kind associated with the function. PT-br: Tipo temporal associado a funcao.</param>
+    /// <param name="isStringAggregate">EN: Indicates whether the function is a string aggregate. PT-br: Indica se a funcao e uma agregacao de texto.</param>
+    /// <param name="signatures">EN: Accepted signatures. PT-br: Assinaturas aceitas.</param>
     public DbFunctionDef(
         string name,
         string? returnTypeSql,
@@ -458,28 +458,28 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Checks whether the function exposes the specified capability flag.
-    /// PT: Verifica se a funcao expõe a flag de capacidade informada.
+    /// PT-br: Verifica se a funcao expõe a flag de capacidade informada.
     /// </summary>
     public bool HasCapability(DbFunctionCapability capability)
         => (Capabilities & capability) == capability;
 
     /// <summary>
     /// EN: Indicates whether the function supports call syntax.
-    /// PT: Indica se a funcao suporta sintaxe de chamada.
+    /// PT-br: Indica se a funcao suporta sintaxe de chamada.
     /// </summary>
     public bool AllowsCall
         => (InvocationStyle & DbInvocationStyle.Call) != 0;
 
     /// <summary>
     /// EN: Indicates whether the function supports identifier syntax.
-    /// PT: Indica se a funcao suporta sintaxe de identificador.
+    /// PT-br: Indica se a funcao suporta sintaxe de identificador.
     /// </summary>
     public bool AllowsIdentifier
         => (InvocationStyle & DbInvocationStyle.Identifier) != 0;
 
     /// <summary>
     /// EN: Gets the minimum accepted argument count across the signatures.
-    /// PT: Obtem o numero minimo de argumentos aceitos entre as assinaturas.
+    /// PT-br: Obtem o numero minimo de argumentos aceitos entre as assinaturas.
     /// </summary>
     public int MinArguments
         => Signatures.Count == 0
@@ -488,7 +488,7 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Gets the maximum accepted argument count across the signatures.
-    /// PT: Obtem o numero maximo de argumentos aceitos entre as assinaturas.
+    /// PT-br: Obtem o numero maximo de argumentos aceitos entre as assinaturas.
     /// </summary>
     public int MaxArguments
         => Signatures.Count == 0
@@ -497,14 +497,14 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Indicates whether any signature requires ORDER BY.
-    /// PT: Indica se alguma assinatura exige ORDER BY.
+    /// PT-br: Indica se alguma assinatura exige ORDER BY.
     /// </summary>
     public bool RequiresOrderBy
         => Signatures.Any(signature => signature.RequiresOrderBy);
 
     /// <summary>
     /// EN: Indicates whether any signature accepts star syntax.
-    /// PT: Indica se alguma assinatura aceita sintaxe de asterisco.
+    /// PT-br: Indica se alguma assinatura aceita sintaxe de asterisco.
     /// </summary>
     public bool AcceptsStar
         => Signatures.Any(signature => signature.AcceptsStar);
@@ -516,7 +516,7 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a scalar function definition with the provided signatures.
-    /// PT: Cria uma definicao de funcao escalar com as assinaturas fornecidas.
+    /// PT-br: Cria uma definicao de funcao escalar com as assinaturas fornecidas.
     /// </summary>
     public static DbFunctionDef CreateScalar(
         string name,
@@ -576,15 +576,15 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a user-defined scalar function by parsing the SQL body in the provided database context.
-    /// PT: Cria uma funcao escalar definida pelo usuario fazendo o parsing do corpo SQL no contexto de banco informado.
+    /// PT-br: Cria uma funcao escalar definida pelo usuario fazendo o parsing do corpo SQL no contexto de banco informado.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="parameters">EN: Declared function parameters. PT: Parametros declarados da funcao.</param>
-    /// <param name="bodySql">EN: Scalar SQL expression used as the function body. PT: Expressao SQL escalar usada como corpo da funcao.</param>
-    /// <param name="db">EN: Database context used to parse the body. PT: Contexto de banco usado para fazer o parsing do corpo.</param>
-    /// <param name="customFunctionSupported">EN: Optional resolver for schema-defined functions referenced by the body. PT: Resolvedor opcional para funcoes definidas no schema referenciadas pelo corpo.</param>
-    /// <returns>EN: Created function definition. PT: Definicao de funcao criada.</returns>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="parameters">EN: Declared function parameters. PT-br: Parametros declarados da funcao.</param>
+    /// <param name="bodySql">EN: Scalar SQL expression used as the function body. PT-br: Expressao SQL escalar usada como corpo da funcao.</param>
+    /// <param name="db">EN: Database context used to parse the body. PT-br: Contexto de banco usado para fazer o parsing do corpo.</param>
+    /// <param name="customFunctionSupported">EN: Optional resolver for schema-defined functions referenced by the body. PT-br: Resolvedor opcional para funcoes definidas no schema referenciadas pelo corpo.</param>
+    /// <returns>EN: Created function definition. PT-br: Definicao de funcao criada.</returns>
     public static DbFunctionDef CreateUserDefined(
         string name,
         string? returnTypeSql,
@@ -596,16 +596,16 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a user-defined scalar function by parsing the SQL body with an explicit dialect.
-    /// PT: Cria uma funcao escalar definida pelo usuario fazendo o parsing do corpo SQL com um dialeto explicito.
+    /// PT-br: Cria uma funcao escalar definida pelo usuario fazendo o parsing do corpo SQL com um dialeto explicito.
     /// </summary>
-    /// <param name="name">EN: Function name. PT: Nome da funcao.</param>
-    /// <param name="returnTypeSql">EN: SQL text for the return type. PT: Texto SQL do tipo de retorno.</param>
-    /// <param name="parameters">EN: Declared function parameters. PT: Parametros declarados da funcao.</param>
-    /// <param name="bodySql">EN: Scalar SQL expression used as the function body. PT: Expressao SQL escalar usada como corpo da funcao.</param>
-    /// <param name="db">EN: Database context used to parse the body. PT: Contexto de banco usado para fazer o parsing do corpo.</param>
-    /// <param name="dialect">EN: Optional dialect override used while parsing. PT: Dialeto opcional de substituicao usado durante o parsing.</param>
-    /// <param name="customFunctionSupported">EN: Optional resolver for schema-defined functions referenced by the body. PT: Resolvedor opcional para funcoes definidas no schema referenciadas pelo corpo.</param>
-    /// <returns>EN: Created function definition. PT: Definicao de funcao criada.</returns>
+    /// <param name="name">EN: Function name. PT-br: Nome da funcao.</param>
+    /// <param name="returnTypeSql">EN: SQL text for the return type. PT-br: Texto SQL do tipo de retorno.</param>
+    /// <param name="parameters">EN: Declared function parameters. PT-br: Parametros declarados da funcao.</param>
+    /// <param name="bodySql">EN: Scalar SQL expression used as the function body. PT-br: Expressao SQL escalar usada como corpo da funcao.</param>
+    /// <param name="db">EN: Database context used to parse the body. PT-br: Contexto de banco usado para fazer o parsing do corpo.</param>
+    /// <param name="dialect">EN: Optional dialect override used while parsing. PT-br: Dialeto opcional de substituicao usado durante o parsing.</param>
+    /// <param name="customFunctionSupported">EN: Optional resolver for schema-defined functions referenced by the body. PT-br: Resolvedor opcional para funcoes definidas no schema referenciadas pelo corpo.</param>
+    /// <returns>EN: Created function definition. PT-br: Definicao de funcao criada.</returns>
     internal static DbFunctionDef CreateUserDefined(
         string name,
         string? returnTypeSql,
@@ -630,7 +630,7 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a table function definition with the provided signatures.
-    /// PT: Cria uma definicao de funcao de tabela com as assinaturas fornecidas.
+    /// PT-br: Cria uma definicao de funcao de tabela com as assinaturas fornecidas.
     /// </summary>
     public static DbFunctionDef CreateTable(
         string name,
@@ -648,7 +648,7 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a temporal scalar function definition with the provided signatures.
-    /// PT: Cria uma definicao de funcao escalar temporal com as assinaturas fornecidas.
+    /// PT-br: Cria uma definicao de funcao escalar temporal com as assinaturas fornecidas.
     /// </summary>
     public static DbFunctionDef CreateTemporal(
         string name,
@@ -668,7 +668,7 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a niladic scalar function definition that is invoked as an identifier.
-    /// PT: Cria uma definicao de funcao escalar niladica invocada como identificador.
+    /// PT-br: Cria uma definicao de funcao escalar niladica invocada como identificador.
     /// </summary>
     public static DbFunctionDef CreateIdentifier(
         string name,
@@ -685,7 +685,7 @@ public sealed record DbFunctionDef(
 
     /// <summary>
     /// EN: Creates a scalar function definition that accepts both call and identifier syntax.
-    /// PT: Cria uma definicao de funcao escalar que aceita sintaxe de chamada e identificador.
+    /// PT-br: Cria uma definicao de funcao escalar que aceita sintaxe de chamada e identificador.
     /// </summary>
     public static DbFunctionDef CreateCallOrIdentifier(
         string name,

@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Sqlite.Test.Fidelity.TemporaryTable;
 
 /// <summary>
 /// EN: Runs SQLite fidelity tests for the shared temporary-table scenario.
-/// PT: Executa testes de fidelidade SQLite para o cenario compartilhado de tabela temporaria.
+/// PT-br: Executa testes de fidelidade SQLite para o cenario compartilhado de tabela temporaria.
 /// </summary>
 public class TemporaryTableTests(
     ITestOutputHelper helper

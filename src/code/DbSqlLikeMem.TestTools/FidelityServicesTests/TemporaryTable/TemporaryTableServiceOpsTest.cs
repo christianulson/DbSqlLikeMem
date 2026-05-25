@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.TemporaryTable;
 
 /// <summary>
 /// EN: Executes temporary-table workflows used by the fidelity tests.
-/// PT: Executa fluxos de tabela temporaria usados pelos testes de fidelidade.
+/// PT-br: Executa fluxos de tabela temporaria usados pelos testes de fidelidade.
 /// </summary>
 public class TemporaryTableServiceOpsTest(
         RepoService repo,
@@ -11,9 +11,9 @@ public class TemporaryTableServiceOpsTest(
 {
     /// <summary>
     /// EN: Creates a temporary table from the source users table and returns the projected row identifiers.
-    /// PT: Cria uma tabela temporaria a partir da tabela fonte de usuarios e retorna os identificadores projetados das linhas.
+    /// PT-br: Cria uma tabela temporaria a partir da tabela fonte de usuarios e retorna os identificadores projetados das linhas.
     /// </summary>
-    public async Task<object?> RunCreateTemporaryTableAsSelectThenSelectAsync(params object[] pars)
+    public async Task<List<int>> RunCreateTemporaryTableAsSelectThenSelectAsync(params object[] pars)
     {
         var isMockConnection = Repo.Cnn is DbConnectionMockBase;
         var tempTable = BuildTemporaryTableName(Context.UId, isMockConnection);
@@ -148,9 +148,9 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
 
     /// <summary>
     /// EN: Counts the rows available in the temporary-table scenario.
-    /// PT: Conta as linhas disponiveis no cenario de tabela temporaria.
+    /// PT-br: Conta as linhas disponiveis no cenario de tabela temporaria.
     /// </summary>
-    public async Task<object?> RunTempTableCreateAndUse(params object[] pars)
+    public async Task<int> RunTempTableCreateAndUse(params object[] pars)
     {
         var users = pars.Length > 0
             ? (string)pars[0]
@@ -171,7 +171,7 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
 
     /// <summary>
     /// EN: Opens a transaction, uses a savepoint, and rolls the work back for the temporary-table scenario.
-    /// PT: Abre uma transacao, usa um savepoint e desfaz o trabalho para o cenario de tabela temporaria.
+    /// PT-br: Abre uma transacao, usa um savepoint e desfaz o trabalho para o cenario de tabela temporaria.
     /// </summary>
     public async Task RunTempTableRollback(params object[] pars)
     {
@@ -195,11 +195,11 @@ SELECT Id, Name FROM {sourceUsersTable} WHERE TenantId = 10";
 
     /// <summary>
     /// EN: Verifies that a temporary table is not visible or not populated from a secondary connection.
-    /// PT: Verifica se uma tabela temporaria nao fica visivel ou nao fica populada a partir de uma conexao secundaria.
+    /// PT-br: Verifica se uma tabela temporaria nao fica visivel ou nao fica populada a partir de uma conexao secundaria.
     /// </summary>
-    /// <param name="pars">EN: The temporary users table name. PT: O nome da tabela temporaria de usuarios.</param>
-    /// <returns>EN: Zero when the secondary connection cannot observe the inserted temporary-table row. PT: Zero quando a conexao secundaria nao consegue observar a linha inserida na tabela temporaria.</returns>
-    public async Task<object?> RunTemporaryTableCrossConnectionIsolation(params object[] pars)
+    /// <param name="pars">EN: The temporary users table name. PT-br: O nome da tabela temporaria de usuarios.</param>
+    /// <returns>EN: Zero when the secondary connection cannot observe the inserted temporary-table row. PT-br: Zero quando a conexao secundaria nao consegue observar a linha inserida na tabela temporaria.</returns>
+    public async Task<int> RunTemporaryTableCrossConnectionIsolation(params object[] pars)
     {
         var users = pars.Length > 0
             ? (string)pars[0]

@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Test;
 
 /// <summary>
 /// EN: Covers Firebird CREATE OR ALTER PROCEDURE and TRIGGER execution scenarios in the mock engine.
-/// PT: Cobre cenarios de execucao de CREATE OR ALTER PROCEDURE e TRIGGER no motor simulado Firebird.
+/// PT-br: Cobre cenarios de execucao de CREATE OR ALTER PROCEDURE e TRIGGER no motor simulado Firebird.
 /// </summary>
 public sealed class FirebirdProcedureAndTriggerDdlTests
 {
     /// <summary>
     /// EN: Verifies CREATE OR ALTER PROCEDURE registers the procedure and allows CALL execution.
-    /// PT: Verifica se CREATE OR ALTER PROCEDURE registra a procedure e permite execucao via CALL.
+    /// PT-br: Verifica se CREATE OR ALTER PROCEDURE registra a procedure e permite execucao via CALL.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -46,7 +46,7 @@ public sealed class FirebirdProcedureAndTriggerDdlTests
 
     /// <summary>
     /// EN: Verifies CREATE OR ALTER PROCEDURE accepts a default input parameter and allows CALL execution without the argument.
-    /// PT: Verifica se CREATE OR ALTER PROCEDURE aceita um parametro de entrada padrao e permite execucao via CALL sem o argumento.
+    /// PT-br: Verifica se CREATE OR ALTER PROCEDURE aceita um parametro de entrada padrao e permite execucao via CALL sem o argumento.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]
@@ -81,7 +81,7 @@ public sealed class FirebirdProcedureAndTriggerDdlTests
 
     /// <summary>
     /// EN: Verifies CREATE OR ALTER TRIGGER registers the trigger and keeps table DML working.
-    /// PT: Verifica se CREATE OR ALTER TRIGGER registra o trigger e mantém o DML da tabela funcionando.
+    /// PT-br: Verifica se CREATE OR ALTER TRIGGER registra o trigger e mantém o DML da tabela funcionando.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdMock")]

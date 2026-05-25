@@ -2,18 +2,47 @@ namespace DbSqlLikeMem.TestTools.DML;
 
 /// <summary>
 /// EN: Creates and drops the users and orders tables used by the join workflow.
-/// PT: Cria e remove as tabelas de usuarios e pedidos usadas pelo fluxo de junção.
+/// PT-br: Cria e remove as tabelas de usuarios e pedidos usadas pelo fluxo de junção.
 /// </summary>
-public sealed class UsersOrdersScenario(
-    RepoService repo,
-       FidelityTestContext context,
-    (int id, string name)[]? seedUsers = null,
-    (int id, int userId, string note)[]? seedOrders = null
-    ) : BaseScenario(repo, context), ITestScenario
+public sealed class UsersOrdersScenario : BaseScenario, ITestScenario
 {
+    private readonly (int id, string name)[]? seedUsers;
+    private readonly (int id, int userId, string note)[]? seedOrders;
+    private readonly (int id, int userId, string note, decimal amount, int quantity, bool isPaid)[]? seedOrdersWithMetrics;
+
     /// <summary>
     /// EN: Creates a users-and-orders scenario with custom users and default empty orders.
-    /// PT: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
+    /// PT-br: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
+    /// </summary>
+    public UsersOrdersScenario(
+        RepoService repo,
+        FidelityTestContext context,
+        (int id, string name)[]? seedUsers = null,
+        (int id, int userId, string note)[]? seedOrders = null)
+        : base(repo, context)
+    {
+        this.seedUsers = seedUsers;
+        this.seedOrders = seedOrders;
+    }
+
+    /// <summary>
+    /// EN: Creates a users-and-orders scenario with custom users and metric-aware orders.
+    /// PT-br: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos com metricas.
+    /// </summary>
+    public UsersOrdersScenario(
+        RepoService repo,
+        FidelityTestContext context,
+        (int id, string name)[]? seedUsers,
+        (int id, int userId, string note, decimal amount, int quantity, bool isPaid)[]? seedOrders)
+        : base(repo, context)
+    {
+        this.seedUsers = seedUsers;
+        seedOrdersWithMetrics = seedOrders;
+    }
+
+    /// <summary>
+    /// EN: Creates a users-and-orders scenario with custom users and default empty orders.
+    /// PT-br: Cria um cenário de usuarios e pedidos com usuarios customizados e pedidos vazios por padrão.
     /// </summary>
     public UsersOrdersScenario(
         RepoService repo,
@@ -25,12 +54,11 @@ public sealed class UsersOrdersScenario(
 
     /// <summary>
     /// EN: Creates the users and orders tables and seeds the join data.
-    /// PT: Cria as tabelas de usuarios e pedidos e preenche os dados da junção.
+    /// PT-br: Cria as tabelas de usuarios e pedidos e preenche os dados da junção.
     /// </summary>
     public async Task CreateScenarioAsync()
     {
         var usersSeed = seedUsers ?? [(1, "Alice")];
-        var ordersSeed = seedOrders ?? [(10, 1, "A"), (11, 1, "B")];
         var d = Repo.Dialect;
 
         var currentTimestampExpr = d.Provider is ProviderId.SqlServer or ProviderId.SqlAzure
@@ -45,6 +73,18 @@ public sealed class UsersOrdersScenario(
             await Repo.ExecuteNonQueryAsync(d.InsertUser(Context, id, name));
         }
 
+        if (seedOrdersWithMetrics is not null)
+        {
+            foreach (var (id, userId, note, amount, quantity, isPaid) in seedOrdersWithMetrics)
+            {
+                var orderNumber = $"o-{id}";
+                await Repo.ExecuteNonQueryAsync(d.InsertOrder(Context, id, userId, note, orderNumber, amount, quantity, isPaid, currentTimestampExpr));
+            }
+
+            return;
+        }
+
+        var ordersSeed = seedOrders ?? [(10, 1, "A"), (11, 1, "B")];
         foreach (var (id, userId, note) in ordersSeed)
         {
             var orderNumber = $"o-{id}";
@@ -54,7 +94,7 @@ public sealed class UsersOrdersScenario(
 
     /// <summary>
     /// EN: Drops the orders table first and then the users table.
-    /// PT: Remove primeiro a tabela de pedidos e depois a tabela de usuarios.
+    /// PT-br: Remove primeiro a tabela de pedidos e depois a tabela de usuarios.
     /// </summary>
     public async Task DropScenarioAsync()
     {

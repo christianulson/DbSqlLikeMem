@@ -5,7 +5,7 @@ namespace DbSqlLikeMem.Firebird.TestTools;
 
 /// <summary>
 /// EN: Creates Firebird provider connections after verifying that the native client is available.
-/// PT: Cria conexoes do provedor Firebird apos verificar que o cliente nativo esta disponivel.
+/// PT-br: Cria conexoes do provedor Firebird apos verificar que o cliente nativo esta disponivel.
 /// </summary>
 public static class FirebirdConnectionFactory
 {
@@ -13,10 +13,10 @@ public static class FirebirdConnectionFactory
 
     /// <summary>
     /// EN: Creates a Firebird connection for fidelity tests and skips the test when the native client is missing.
-    /// PT: Cria uma conexao Firebird para testes de fidelidade e ignora o teste quando o cliente nativo estiver ausente.
+    /// PT-br: Cria uma conexao Firebird para testes de fidelidade e ignora o teste quando o cliente nativo estiver ausente.
     /// </summary>
-    /// <param name="connectionString">EN: The provider connection string used to open the connection. PT: A string de conexao do provedor usada para abrir a conexao.</param>
-    /// <returns>EN: A ready-to-use Firebird connection. PT: Uma conexao Firebird pronta para uso.</returns>
+    /// <param name="connectionString">EN: The provider connection string used to open the connection. PT-br: A string de conexao do provedor usada para abrir a conexao.</param>
+    /// <returns>EN: A ready-to-use Firebird connection. PT-br: Uma conexao Firebird pronta para uso.</returns>
     public static FbConnection Create(string connectionString)
     {
         EnsureNativeClientAvailable();
@@ -25,9 +25,9 @@ public static class FirebirdConnectionFactory
 
     /// <summary>
     /// EN: Ensures the Firebird native client can be loaded by the current test process.
-    /// PT: Garante que o cliente nativo do Firebird possa ser carregado pelo processo de teste atual.
+    /// PT-br: Garante que o cliente nativo do Firebird possa ser carregado pelo processo de teste atual.
     /// </summary>
-    /// <exception cref="FidelityTestSkippedException">EN: Thrown when the native client is not available. PT: Lancada quando o cliente nativo nao esta disponivel.</exception>
+    /// <exception cref="FidelityTestSkippedException">EN: Thrown when the native client is not available. PT-br: Lancada quando o cliente nativo nao esta disponivel.</exception>
     public static void EnsureNativeClientAvailable()
     {
         var candidatePath = Path.Combine(AppContext.BaseDirectory, NativeLibraryName);

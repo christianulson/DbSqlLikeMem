@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.Core.Test;
 
 /// <summary>
 /// EN: Verifies the explorer tree built by the Visual Studio extension core.
-/// PT: Verifica a arvore do explorador montada pelo core da extensao do Visual Studio.
+/// PT-br: Verifica a arvore do explorador montada pelo core da extensao do Visual Studio.
 /// </summary>
 public sealed class TreeViewBuilderTests
 {
     /// <summary>
     /// EN: Verifies function objects are grouped under the Functions node and sorted by name.
-    /// PT: Verifica se objetos function sao agrupados sob o no Functions e ordenados por nome.
+    /// PT-br: Verifica se objetos function sao agrupados sob o no Functions e ordenados por nome.
     /// </summary>
     [Fact]
     [Trait("Category", "TreeViewBuilder")]

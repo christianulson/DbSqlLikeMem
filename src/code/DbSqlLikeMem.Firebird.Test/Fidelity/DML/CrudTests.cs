@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Firebird.Test.Fidelity.DML;
 
 /// <summary>
 /// EN: Runs Firebird fidelity tests for the shared CRUD workflows.
-/// PT: Executa testes de fidelidade Firebird para os fluxos compartilhados de CRUD.
+/// PT-br: Executa testes de fidelidade Firebird para os fluxos compartilhados de CRUD.
 /// </summary>
 [FidelityNativeClientSkip]
 public class CrudTests(

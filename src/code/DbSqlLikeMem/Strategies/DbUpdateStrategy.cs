@@ -6,7 +6,7 @@ internal static class DbUpdateStrategy
 {
     /// <summary>
     /// EN: Implements ExecuteUpdate.
-    /// PT: Implementa ExecuteUpdate.
+    /// PT-br: Implementa ExecuteUpdate.
     /// </summary>
     public static DmlExecutionResult ExecuteUpdate(
         this DbConnectionMockBase connection,
@@ -16,7 +16,7 @@ internal static class DbUpdateStrategy
 
     /// <summary>
     /// EN: Implements ExecuteUpdate using a pre-built execution context.
-    /// PT: Implementa ExecuteUpdate usando um contexto de execução pré-construído.
+    /// PT-br: Implementa ExecuteUpdate usando um contexto de execução pré-construído.
     /// </summary>
     public static DmlExecutionResult ExecuteUpdate(
         this DbConnectionMockBase connection,

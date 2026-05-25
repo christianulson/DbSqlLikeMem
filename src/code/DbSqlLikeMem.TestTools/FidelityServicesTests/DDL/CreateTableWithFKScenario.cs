@@ -2,7 +2,7 @@ namespace DbSqlLikeMem.TestTools.DDL;
 
 /// <summary>
 /// EN: Creates the users table before creating the related orders table with a foreign key.
-/// PT: Cria a tabela de usuarios antes de criar a tabela de pedidos relacionada com chave estrangeira.
+/// PT-br: Cria a tabela de usuarios antes de criar a tabela de pedidos relacionada com chave estrangeira.
 /// </summary>
 public class CreateTableWithFKScenario(
         RepoService repo,
@@ -12,14 +12,14 @@ public class CreateTableWithFKScenario(
 {
     /// <summary>
     /// EN: Seeds the parent users table required by the foreign-key scenario.
-    /// PT: Preenche a tabela pai de usuarios exigida pelo cenario de chave estrangeira.
+    /// PT-br: Preenche a tabela pai de usuarios exigida pelo cenario de chave estrangeira.
     /// </summary>
     public Task CreateScenarioAsync()
     =>  Repo.ExecuteNonQueryAsync(Repo.Dialect.CreateUsersTable(Context));
 
     /// <summary>
     /// EN: Drops the related orders table before removing the parent users table.
-    /// PT: Remove a tabela relacionada de pedidos antes de remover a tabela pai de usuarios.
+    /// PT-br: Remove a tabela relacionada de pedidos antes de remover a tabela pai de usuarios.
     /// </summary>
     /// <exception cref="NotImplementedException"></exception>
     public async Task DropScenarioAsync()

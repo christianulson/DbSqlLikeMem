@@ -1,8 +1,8 @@
-﻿namespace DbSqlLikeMem.Firebird.Dapper.Test;
+namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird WHERE parser and executor scenarios over a direct mock connection.
-/// PT: Cobre cenarios do parser e executor de WHERE Firebird sobre uma conexao mock direta.
+/// PT-br: Cobre cenarios do parser e executor de WHERE Firebird sobre uma conexao mock direta.
 /// </summary>
 public sealed class FirebirdWhereParserAndExecutorTests(
     ITestOutputHelper helper
@@ -10,7 +10,7 @@ public sealed class FirebirdWhereParserAndExecutorTests(
 {
     /// <summary>
     /// EN: Creates the in-memory Firebird database used by the WHERE parser and executor coverage tests.
-    /// PT: Cria o banco Firebird em memoria usado pelos testes de cobertura do parser e executor de WHERE.
+    /// PT-br: Cria o banco Firebird em memoria usado pelos testes de cobertura do parser e executor de WHERE.
     /// </summary>
     private static FirebirdConnectionMock CreateOpenConnection()
     {
@@ -40,7 +40,7 @@ public sealed class FirebirdWhereParserAndExecutorTests(
 
     /// <summary>
     /// EN: Verifies AND binds stronger than OR in Firebird WHERE coverage.
-    /// PT: Verifica se AND tem maior precedencia que OR na cobertura de WHERE do Firebird.
+    /// PT-br: Verifica se AND tem maior precedencia que OR na cobertura de WHERE do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdWhereParserAndExecutor")]
@@ -57,7 +57,7 @@ public sealed class FirebirdWhereParserAndExecutorTests(
 
     /// <summary>
     /// EN: Verifies parentheses grouping works in Firebird WHERE coverage.
-    /// PT: Verifica se o agrupamento com parenteses funciona na cobertura de WHERE do Firebird.
+    /// PT-br: Verifica se o agrupamento com parenteses funciona na cobertura de WHERE do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdWhereParserAndExecutor")]
@@ -75,7 +75,7 @@ public sealed class FirebirdWhereParserAndExecutorTests(
 
     /// <summary>
     /// EN: Verifies arithmetic expressions, CASE, and COALESCE work in Firebird SELECT projections.
-    /// PT: Verifica se expressoes aritmeticas, CASE e COALESCE funcionam em projecoes SELECT do Firebird.
+    /// PT-br: Verifica se expressoes aritmeticas, CASE e COALESCE funcionam em projecoes SELECT do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdWhereParserAndExecutor")]
@@ -101,7 +101,7 @@ FROM users
 
     /// <summary>
     /// EN: Verifies JOIN predicates with OR and grouped conditions work in Firebird coverage.
-    /// PT: Verifica se predicados JOIN com OR e condicoes agrupadas funcionam na cobertura do Firebird.
+    /// PT-br: Verifica se predicados JOIN com OR e condicoes agrupadas funcionam na cobertura do Firebird.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdWhereParserAndExecutor")]

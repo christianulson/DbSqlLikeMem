@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.SqlServer.Dapper.Test;
 
 /// <summary>
 /// EN: Covers SQL Server UNION, OFFSET/FETCH, and JSON compatibility scenarios already supported by the in-memory mock.
-/// PT: Cobre cenarios de compatibilidade de UNION, OFFSET/FETCH e JSON do SQL Server que o mock em memoria ja suporta.
+/// PT-br: Cobre cenarios de compatibilidade de UNION, OFFSET/FETCH e JSON do SQL Server que o mock em memoria ja suporta.
 /// </summary>
 /// <remarks>
 /// EN: Creates the in-memory SQL Server connection used by the UNION, OFFSET/FETCH, and JSON compatibility tests.
-/// PT: Cria a conexao SQL Server em memoria usada pelos testes de compatibilidade de UNION, OFFSET/FETCH e JSON.
+/// PT-br: Cria a conexao SQL Server em memoria usada pelos testes de compatibilidade de UNION, OFFSET/FETCH e JSON.
 /// </remarks>
 public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelper helper) : DapperUnionLimitAndJsonCompatibilityTestsBase<SqlServerDbMock, SqlServerConnectionMock>(helper)
 {
@@ -21,7 +21,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Verifies UNION ALL keeps duplicates while UNION removes them.
-    /// PT: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
+    /// PT-br: Verifica se UNION ALL mantem duplicatas enquanto UNION as remove.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -30,7 +30,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Verifies OFFSET/FETCH respects the configured SQL Server version.
-    /// PT: Verifica se OFFSET/FETCH respeita a versao SQL Server configurada.
+    /// PT-br: Verifica se OFFSET/FETCH respeita a versao SQL Server configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -53,7 +53,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Verifies JSON_VALUE respects the configured SQL Server version.
-    /// PT: Verifica se JSON_VALUE respeita a versao SQL Server configurada.
+    /// PT-br: Verifica se JSON_VALUE respeita a versao SQL Server configurada.
     /// </summary>
     [Theory]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -80,7 +80,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Verifies ORDER BY NULLS FIRST throws when the dialect does not support that modifier.
-    /// PT: Verifica se ORDER BY NULLS FIRST gera erro quando o dialeto nao suporta esse modificador.
+    /// PT-br: Verifica se ORDER BY NULLS FIRST gera erro quando o dialeto nao suporta esse modificador.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -93,7 +93,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Verifies unsupported JSON functions throw the expected exception.
-    /// PT: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
+    /// PT-br: Verifica se funcoes JSON sem suporte lancam a excecao esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -107,7 +107,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Ensures UNION normalizes equivalent numeric literals into a single row.
-    /// PT: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
+    /// PT-br: Garante que o UNION normalize literais numéricos equivalentes em uma única linha.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -116,7 +116,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Ensures UNION rejects incompatible column types across SELECT parts.
-    /// PT: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
+    /// PT-br: Garante que o UNION rejeite tipos de coluna incompatíveis entre partes do SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]
@@ -127,7 +127,7 @@ public sealed class SqlServerUnionLimitAndJsonCompatibilityTests(ITestOutputHelp
 
     /// <summary>
     /// EN: Ensures UNION schema keeps aliases from the first SELECT projection.
-    /// PT: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
+    /// PT-br: Garante que o schema do UNION mantenha os aliases da primeira projeção SELECT.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerUnionLimitAndJsonCompatibility")]

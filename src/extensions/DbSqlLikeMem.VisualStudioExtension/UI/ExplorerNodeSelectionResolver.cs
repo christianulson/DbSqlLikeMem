@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 /// <summary>
 /// EN: Resolves the effective explorer node used by context menu actions.
-/// PT: Resolve o no efetivo do explorador usado pelas acoes do menu de contexto.
+/// PT-br: Resolve o no efetivo do explorador usado pelas acoes do menu de contexto.
 /// </summary>
 internal static class ExplorerNodeSelectionResolver
 {
     /// <summary>
     /// EN: Returns the object node that should drive the current explorer selection.
-    /// PT: Retorna o no de objeto que deve direcionar a selecao atual do explorador.
+    /// PT-br: Retorna o no de objeto que deve direcionar a selecao atual do explorador.
     /// </summary>
     internal static ExplorerNode? GetEffectiveSelectedNode(ExplorerNode? node)
     {
@@ -22,7 +22,7 @@ internal static class ExplorerNodeSelectionResolver
 
     /// <summary>
     /// EN: Walks the parent chain until the owning object node is found.
-    /// PT: Percorre a cadeia de pais ate encontrar o no de objeto proprietario.
+    /// PT-br: Percorre a cadeia de pais ate encontrar o no de objeto proprietario.
     /// </summary>
     internal static ExplorerNode? FindParentObjectNode(ExplorerNode? detailNode)
     {

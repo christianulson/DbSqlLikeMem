@@ -22,8 +22,10 @@ DONE
 - O helper `RunRelationalCompositeAssertionsAsync` passou a comparar snapshots inteiros para os blocos relacionais do composite.
 - O serviço de select por chave primaria agora retorna snapshot completo em vez de apenas o valor escalar.
 - Os relatórios relacionais de janela e join que ainda retornavam apenas a quantidade de linhas agora devolvem o rowset completo com `QueryResultSnapshot`.
+- Os fluxos de tabela temporaria em `TemporaryTableServiceOpsTest` e `TemporaryTableTestsBase` passaram a retornar `List<int>`, `int` e `object?` tipados diretamente, removendo o boxing nos cenarios de projecao, contagem e isolamento entre conexoes.
 - Os helpers de decomposição de snapshot ficaram mais robustos e deixaram de tratar `string` como sequência de snapshots.
 - A decomposição de tuplas nos helpers compartilhados passou a usar `ITuple` diretamente, evitando reflexão para snapshots compostos.
+- Os fluxos de snapshot de schema passaram a usar `SchemaSnapshot`, `JsonDocument` e `bool` tipados diretamente no serviço e na base compartilhada.
 
 ## Próximos passos
 

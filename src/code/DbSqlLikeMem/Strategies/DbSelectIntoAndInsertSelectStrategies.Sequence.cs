@@ -4,7 +4,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 {
     /// <summary>
     /// EN: Implements ExecuteCreateSequence.
-    /// PT: Implementa ExecuteCreateSequence.
+    /// PT-br: Implementa ExecuteCreateSequence.
     /// </summary>
     public static DmlExecutionResult ExecuteCreateSequence(
         this DbConnectionMockBase connection,
@@ -44,7 +44,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteAlterSequence.
-    /// PT: Implementa ExecuteAlterSequence.
+    /// PT-br: Implementa ExecuteAlterSequence.
     /// </summary>
     public static DmlExecutionResult ExecuteAlterSequence(
         this DbConnectionMockBase connection,
@@ -100,7 +100,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     /// <summary>
     /// EN: Implements ExecuteDropSequence.
-    /// PT: Implementa ExecuteDropSequence.
+    /// PT-br: Implementa ExecuteDropSequence.
     /// </summary>
     public static DmlExecutionResult ExecuteDropSequence(
         this DbConnectionMockBase connection,

@@ -5,11 +5,11 @@ namespace DbSqlLikeMem.SqlServer.Test;
 
 /// <summary>
 /// EN: Validates SQL Server function execution for provider-specific scalar and sequence features.
-/// PT: Valida a execucao de funcoes SQL Server para recursos escalares e de sequence especificos do provedor.
+/// PT-br: Valida a execucao de funcoes SQL Server para recursos escalares e de sequence especificos do provedor.
 /// </summary>
 /// <remarks>
 /// EN: Creates SQL Server function fixtures with sample tables and sequences.
-/// PT: Cria fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
+/// PT-br: Cria fixtures de funcoes SQL Server com tabelas e sequences de exemplo.
 /// </remarks>
 public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         : XUnitTestBase(helper)
@@ -18,9 +18,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server executes the first pragmatic scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o SQL Server execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
+    /// PT-br: Garante que o SQL Server execute end-to-end o primeiro subset pragmatico de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
@@ -40,7 +40,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server system functions return expected values.
-    /// PT: Garante que funcoes de sistema do SQL Server retornem valores esperados.
+    /// PT-br: Garante que funcoes de sistema do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -76,7 +76,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal("2022", ExecuteScalar("SELECT SERVERPROPERTY('ProductVersion') FROM Users WHERE Id = 1"));
         Assert.Equal("sa", ExecuteScalar("SELECT ORIGINAL_LOGIN() FROM Users WHERE Id = 1"));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT CURRENT_REQUEST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT SESSION_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT @@SPID FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(56, Convert.ToInt32(ExecuteScalar("SELECT TYPE_ID('int') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("int", ExecuteScalar("SELECT TYPE_NAME(56) FROM Users WHERE Id = 1"));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT TYPEPROPERTY('int', 'OwnerId') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -99,9 +99,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures @@TEXTSIZE returns the default mock value across SQL Server versions.
-    /// PT: Garante que @@TEXTSIZE retorne o valor padrao do mock em todas as versoes do SQL Server.
+    /// PT-br: Garante que @@TEXTSIZE retorne o valor padrao do mock em todas as versoes do SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
@@ -116,24 +116,32 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures NEWSEQUENTIALID returns a GUID across SQL Server versions.
-    /// PT: Garante que NEWSEQUENTIALID retorne um GUID em todas as versoes do SQL Server.
+    /// PT-br: Garante que NEWSEQUENTIALID retorne um GUID em todas as versoes do SQL Server.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
     public void NewSequentialId_ShouldReturnGuid(int version)
     {
         using var connection = CreateOpenConnection(version);
+        ExecuteNonQuery(connection, "CREATE TABLE SequentialGuidUsers (Id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID())");
+        try
+        {
+            ExecuteNonQuery(connection, "INSERT INTO SequentialGuidUsers (Id) VALUES (DEFAULT)");
 
-        var value = ExecuteScalar(connection, "SELECT NEWSEQUENTIALID() FROM Users WHERE Id = 1");
-
-        Assert.True(Guid.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out _));
+            var value = ExecuteScalar(connection, "SELECT Id FROM SequentialGuidUsers");
+            Assert.True(Guid.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out _));
+        }
+        finally
+        {
+            ExecuteNonQuery(connection, "DROP TABLE IF EXISTS SequentialGuidUsers");
+        }
     }
 
     /// <summary>
     /// EN: Ensures SQL Server transaction-state helpers reflect active transactions.
-    /// PT: Garante que helpers de estado de transacao do SQL Server reflitam transacoes ativas.
+    /// PT-br: Garante que helpers de estado de transacao do SQL Server reflitam transacoes ativas.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -153,7 +161,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server scalar helpers return expected values.
-    /// PT: Garante que helpers escalares do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers escalares do SQL Server retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -180,7 +188,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.NotEmpty(compressed);
         Assert.Equal("AnaMaria", ExecuteScalar("SELECT CONCAT('Ana', 'Maria') FROM Users WHERE Id = 1"));
         Assert.Equal("Ana-Maria", ExecuteScalar("SELECT CONCAT_WS('-', 'Ana', NULL, 'Maria') FROM Users WHERE Id = 1"));
-        Assert.Equal(Encoding.Unicode.GetBytes("Ana"), Assert.IsType<byte[]>(ExecuteScalar("SELECT DECOMPRESS(COMPRESS('Ana')) FROM Users WHERE Id = 1")));
+        Assert.Equal(Encoding.UTF8.GetBytes("Ana"), Assert.IsType<byte[]>(ExecuteScalar("SELECT DECOMPRESS(COMPRESS('Ana')) FROM Users WHERE Id = 1")));
         Assert.Equal("fallback", ExecuteScalar("SELECT ISNULL(NULL, 'fallback') FROM Users WHERE Id = 1"));
         Assert.Equal("yes", ExecuteScalar("SELECT IIF(Id = 1, 'yes', 'no') FROM Users WHERE Id = 1"));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT ISJSON('{\"a\":1}') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -224,7 +232,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server date constructor and offset helpers return expected values.
-    /// PT: Garante que helpers de construcao de data e offset do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers de construcao de data e offset do SQL Server retornem valores esperados.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -371,10 +379,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         else
         {
             Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEFROMPARTS(2020, 2, 29) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12, 0) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 7) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
 
-            var offset = (DateTimeOffset)ExecuteScalar(connection, "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 60) FROM Users WHERE Id = 1")!;
+            var offset = (DateTimeOffset)ExecuteScalar(connection, "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 1, 0, 7) FROM Users WHERE Id = 1")!;
             Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), TimeSpan.FromMinutes(60)), offset);
             Assert.Equal(new TimeSpan(10, 11, 12).Add(TimeSpan.FromTicks(1234567 * 10L)), Assert.IsType<TimeSpan>(ExecuteScalar(connection, "SELECT TIMEFROMPARTS(10, 11, 12, 1234567, 7) FROM Users WHERE Id = 1")));
             Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 0), Convert.ToDateTime(ExecuteScalar(connection, "SELECT SMALLDATETIMEFROMPARTS(2020, 2, 29, 10, 11) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -396,9 +404,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PERCENTILE_CONT and PERCENTILE_DISC aggregate helpers return deterministic values.
-    /// PT: Garante que os agregados PERCENTILE_CONT e PERCENTILE_DISC retornem valores determinísticos.
+    /// PT-br: Garante que os agregados PERCENTILE_CONT e PERCENTILE_DISC retornem valores determinísticos.
     /// </summary>
-    /// <param name="version">EN: SQL Server dialect version under test. PT: Versão do dialeto SQL Server em teste.</param>
+    /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
     [MemberDataSqlServerVersion]
     [Trait("Category", "SqlServerMock")]
@@ -422,7 +430,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server metadata helpers return expected provider-compatible values.
-    /// PT: Garante que helpers de metadados do SQL Server retornem valores compativeis com o provedor.
+    /// PT-br: Garante que helpers de metadados do SQL Server retornem valores compativeis com o provedor.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -437,7 +445,10 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATALENGTH('AB') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING_ID(1, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(new byte[] { 0x0A, 0x0B }, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
+        var expectedContextInfo = new byte[128];
+        expectedContextInfo[0] = 0x0A;
+        expectedContextInfo[1] = 0x0B;
+        Assert.Equal(expectedContextInfo, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("localhost", ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
@@ -460,7 +471,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server SCOPE_IDENTITY returns the last identity value generated on the current connection scope.
-    /// PT: Garante que SCOPE_IDENTITY do SQL Server retorne o ultimo valor identity gerado no escopo atual da conexao.
+    /// PT-br: Garante que SCOPE_IDENTITY do SQL Server retorne o ultimo valor identity gerado no escopo atual da conexao.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -473,7 +484,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server JSON scalar helpers return expected values.
-    /// PT: Garante que helpers escalares de JSON do SQL Server retornem valores esperados.
+    /// PT-br: Garante que helpers escalares de JSON do SQL Server retornem valores esperados.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -515,7 +526,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server JSON_QUERY without a path preserves a root JSON fragment.
-    /// PT: Garante que JSON_QUERY do SQL Server sem path preserve um fragmento JSON de raiz.
+    /// PT-br: Garante que JSON_QUERY do SQL Server sem path preserve um fragmento JSON de raiz.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -542,7 +553,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server aggregate and window functions return expected ordered values.
-    /// PT: Garante que funcoes de agregacao e janela do SQL Server retornem valores ordenados esperados.
+    /// PT-br: Garante que funcoes de agregacao e janela do SQL Server retornem valores ordenados esperados.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -673,7 +684,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server math and error helpers return expected scalar values.
-    /// PT: Garante que helpers matematicos e de erro do SQL Server retornem valores escalares esperados.
+    /// PT-br: Garante que helpers matematicos e de erro do SQL Server retornem valores escalares esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -686,7 +697,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.True(exp > 2.7d && exp < 2.8d);
 
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar("SELECT FLOOR(1.9) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(2d, Convert.ToDouble(ExecuteScalar("SELECT LOG(10, 100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
+        Assert.Equal(0.5d, Convert.ToDouble(ExecuteScalar("SELECT LOG(10, 100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(2d, Convert.ToDouble(ExecuteScalar("SELECT LOG10(100) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(8d, Convert.ToDouble(ExecuteScalar("SELECT POWER(2, 3) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
         Assert.Equal(Math.PI, Convert.ToDouble(ExecuteScalar("SELECT RADIANS(180) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture), 12);
@@ -710,7 +721,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server sequence expressions advance values in execution order.
-    /// PT: Garante que expressoes de sequence do SQL Server avancem valores na ordem de execucao.
+    /// PT-br: Garante que expressoes de sequence do SQL Server avancem valores na ordem de execucao.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -731,7 +742,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server STRING_SPLIT materializes rows for APPLY-based table function usage.
-    /// PT: Garante que STRING_SPLIT do SQL Server materialize linhas para uso de table function com APPLY.
+    /// PT-br: Garante que STRING_SPLIT do SQL Server materialize linhas para uso de table function com APPLY.
     /// </summary>
     [Theory]
     [MemberDataSqlServerVersion]
@@ -775,7 +786,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server @@ROWCOUNT exposes the affected-row count from the previous statement.
-    /// PT: Garante que @@ROWCOUNT do SQL Server exponha a contagem de linhas afetadas pela instrução anterior.
+    /// PT-br: Garante que @@ROWCOUNT do SQL Server exponha a contagem de linhas afetadas pela instrução anterior.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]
@@ -793,7 +804,7 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures SQL Server ROWCOUNT_BIG() exposes the last row-count value as bigint.
-    /// PT: Garante que ROWCOUNT_BIG() do SQL Server exponha o ultimo valor de contagem de linhas como bigint.
+    /// PT-br: Garante que ROWCOUNT_BIG() do SQL Server exponha o ultimo valor de contagem de linhas como bigint.
     /// </summary>
     [Fact]
     [Trait("Category", "SqlServerMock")]

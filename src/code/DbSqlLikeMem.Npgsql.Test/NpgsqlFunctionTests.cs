@@ -2,11 +2,11 @@ namespace DbSqlLikeMem.Npgsql.Test;
 
 /// <summary>
 /// EN: Validates PostgreSQL function execution for common scalar and aggregate utilities.
-/// PT: Valida a execucao de funcoes PostgreSQL para utilitarios escalares e agregados comuns.
+/// PT-br: Valida a execucao de funcoes PostgreSQL para utilitarios escalares e agregados comuns.
 /// </summary>
 /// <remarks>
 /// EN: Creates the PostgreSQL function test fixtures with sample tables.
-/// PT: Cria os fixtures de testes de funcoes PostgreSQL com tabelas de exemplo.
+/// PT-br: Cria os fixtures de testes de funcoes PostgreSQL com tabelas de exemplo.
 /// </remarks>
 public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
         : XUnitTestBase(helper)
@@ -15,9 +15,9 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL executes the pragmatic scalar FUNCTION DDL subset end to end.
-    /// PT: Garante que o PostgreSQL execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
+    /// PT-br: Garante que o PostgreSQL execute end-to-end o subset pragmatico de DDL de FUNCTION escalar.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [MemberDataNpgsqlVersion]
     [Trait("Category", "PostgreSqlMock")]
@@ -37,9 +37,9 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL replaces an existing scalar function body through CREATE OR REPLACE FUNCTION.
-    /// PT: Garante que o PostgreSQL substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION.
+    /// PT-br: Garante que o PostgreSQL substitua o corpo de uma funcao escalar existente com CREATE OR REPLACE FUNCTION.
     /// </summary>
-    /// <param name="version">EN: Npgsql dialect version under test. PT: Versao do dialeto Npgsql em teste.</param>
+    /// <param name="version">EN: Npgsql dialect version under test. PT-br: Versao do dialeto Npgsql em teste.</param>
     [Theory]
     [MemberDataNpgsqlVersion]
     [Trait("Category", "PostgreSqlMock")]
@@ -54,7 +54,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL system functions return expected values.
-    /// PT: Garante que funcoes de sistema do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que funcoes de sistema do PostgreSQL retornem valores esperados.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -92,7 +92,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL date helpers return expected values.
-    /// PT: Garante que helpers de data do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers de data do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -136,7 +136,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures common PostgreSQL numeric helpers return expected values.
-    /// PT: Garante que helpers numericos comuns do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers numericos comuns do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -157,7 +157,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL trigonometric and power helpers return expected values.
-    /// PT: Garante que helpers trigonometricos e de potencia do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers trigonometricos e de potencia do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -184,7 +184,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL text helpers return expected values.
-    /// PT: Garante que helpers de texto do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers de texto do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -234,7 +234,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL formatting helpers return expected values for text and numeric formatting.
-    /// PT: Garante que helpers de formatacao do PostgreSQL retornem valores esperados para formatacao textual e numerica.
+    /// PT-br: Garante que helpers de formatacao do PostgreSQL retornem valores esperados para formatacao textual e numerica.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -246,7 +246,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL unicode helpers return expected normalized and ASCII-only text.
-    /// PT: Garante que helpers unicode do PostgreSQL retornem texto normalizado e somente ASCII.
+    /// PT-br: Garante que helpers unicode do PostgreSQL retornem texto normalizado e somente ASCII.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -258,7 +258,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL network helpers return expected host and mask information.
-    /// PT: Garante que helpers de rede do PostgreSQL retornem as informacoes esperadas de host e mascara.
+    /// PT-br: Garante que helpers de rede do PostgreSQL retornem as informacoes esperadas de host e mascara.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -274,7 +274,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL comparison helpers and digest functions return expected values.
-    /// PT: Garante que helpers de comparacao e funcoes de digest do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers de comparacao e funcoes de digest do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -288,7 +288,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL random helpers follow provider-specific return types and ranges.
-    /// PT: Garante que helpers aleatorios do PostgreSQL sigam os tipos de retorno e intervalos especificos do provedor.
+    /// PT-br: Garante que helpers aleatorios do PostgreSQL sigam os tipos de retorno e intervalos especificos do provedor.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -300,7 +300,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL regex helpers return expected values for search, replace and split operations.
-    /// PT: Garante que helpers de regex do PostgreSQL retornem valores esperados para operacoes de busca, substituicao e split.
+    /// PT-br: Garante que helpers de regex do PostgreSQL retornem valores esperados para operacoes de busca, substituicao e split.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -323,7 +323,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL DECODE uses byte decoding semantics instead of Oracle-style conditional decoding.
-    /// PT: Garante que DECODE no PostgreSQL use semantica de decodificacao binaria em vez do decode condicional estilo Oracle.
+    /// PT-br: Garante que DECODE no PostgreSQL use semantica de decodificacao binaria em vez do decode condicional estilo Oracle.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -338,7 +338,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL LOG follows provider-specific semantics for one and two arguments.
-    /// PT: Garante que LOG no PostgreSQL siga a semantica especifica do provedor para um e dois argumentos.
+    /// PT-br: Garante que LOG no PostgreSQL siga a semantica especifica do provedor para um e dois argumentos.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -356,7 +356,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL arithmetic helpers return expected scalar values.
-    /// PT: Garante que helpers aritmeticos do PostgreSQL retornem valores escalares esperados.
+    /// PT-br: Garante que helpers aritmeticos do PostgreSQL retornem valores escalares esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -372,7 +372,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL array helpers return expected values.
-    /// PT: Garante que helpers de array do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers de array do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -409,7 +409,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL JSON helpers return expected values.
-    /// PT: Garante que helpers JSON do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers JSON do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -462,7 +462,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL JSON pretty printers format JSONB values with indentation.
-    /// PT: Garante que os formatadores JSON do PostgreSQL formatem valores JSONB com identacao.
+    /// PT-br: Garante que os formatadores JSON do PostgreSQL formatem valores JSONB com identacao.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -476,7 +476,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL UUID helpers return expected values.
-    /// PT: Garante que helpers de UUID do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que helpers de UUID do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -489,7 +489,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL aggregate functions return expected values.
-    /// PT: Garante que funcoes agregadas do PostgreSQL retornem valores esperados.
+    /// PT-br: Garante que funcoes agregadas do PostgreSQL retornem valores esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -511,7 +511,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL numeric conversion helpers return expected signs and parsed values.
-    /// PT: Garante que helpers de conversao numerica do PostgreSQL retornem sinais e valores parseados esperados.
+    /// PT-br: Garante que helpers de conversao numerica do PostgreSQL retornem sinais e valores parseados esperados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -523,7 +523,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL window functions return expected values for ordered partitions.
-    /// PT: Garante que funcoes de janela do PostgreSQL retornem valores esperados para particoes ordenadas.
+    /// PT-br: Garante que funcoes de janela do PostgreSQL retornem valores esperados para particoes ordenadas.
     /// </summary>
     [Theory]
     [MemberDataNpgsqlVersion]
@@ -574,7 +574,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL conditional and quantified expressions follow expected semantics.
-    /// PT: Garante que expressoes condicionais e quantificadas do PostgreSQL sigam a semantica esperada.
+    /// PT-br: Garante que expressoes condicionais e quantificadas do PostgreSQL sigam a semantica esperada.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]
@@ -588,7 +588,7 @@ public sealed class NpgsqlFunctionTests(ITestOutputHelper helper)
 
     /// <summary>
     /// EN: Ensures PostgreSQL sequence functions keep session-scoped values in sync.
-    /// PT: Garante que funcoes de sequence do PostgreSQL mantenham valores de sessao sincronizados.
+    /// PT-br: Garante que funcoes de sequence do PostgreSQL mantenham valores de sessao sincronizados.
     /// </summary>
     [Fact]
     [Trait("Category", "PostgreSqlMock")]

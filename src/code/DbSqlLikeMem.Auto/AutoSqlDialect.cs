@@ -4,7 +4,7 @@ namespace DbSqlLikeMem.Auto;
 
 /// <summary>
 /// EN: Provides the automatic SQL dialect implementation from the dedicated Auto assembly.
-/// PT: Fornece a implementacao do dialeto SQL automatico no assembly Auto dedicado.
+/// PT-br: Fornece a implementacao do dialeto SQL automatico no assembly Auto dedicado.
 /// </summary>
 internal sealed class AutoSqlDialect : SqlDialectBase
 {
@@ -28,9 +28,9 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Initializes the automatic dialect with a compatibility-oriented default version.
-    /// PT: Inicializa o dialeto automatico com uma versao padrao orientada a compatibilidade.
+    /// PT-br: Inicializa o dialeto automatico com uma versao padrao orientada a compatibilidade.
     /// </summary>
-    /// <param name="version">EN: Compatibility version marker used by the parser cache key. PT: Marcador de versao de compatibilidade usado pela chave de cache do parser.</param>
+    /// <param name="version">EN: Compatibility version marker used by the parser cache key. PT-br: Marcador de versao de compatibilidade usado pela chave de cache do parser.</param>
     internal AutoSqlDialect(int version = 1)
         : base(
             name: DialectName,
@@ -68,43 +68,43 @@ internal sealed class AutoSqlDialect : SqlDialectBase
 
     /// <summary>
     /// EN: Accepts backtick-quoted identifiers to cover MySQL-family syntax in Auto mode.
-    /// PT: Aceita identificadores entre crases para cobrir sintaxe da familia MySQL no modo Auto.
+    /// PT-br: Aceita identificadores entre crases para cobrir sintaxe da familia MySQL no modo Auto.
     /// </summary>
     public override bool AllowsBacktickIdentifiers => true;
 
     /// <summary>
     /// EN: Accepts bracket-quoted identifiers to cover SQL Server-family syntax in Auto mode.
-    /// PT: Aceita identificadores entre colchetes para cobrir sintaxe da familia SQL Server no modo Auto.
+    /// PT-br: Aceita identificadores entre colchetes para cobrir sintaxe da familia SQL Server no modo Auto.
     /// </summary>
     public override bool AllowsBracketIdentifiers => true;
 
     /// <summary>
     /// EN: Accepts cross-dialect quoted identifiers while the automatic detector keeps evolving.
-    /// PT: Aceita identificadores com quoting cross-dialect enquanto o detector automatico evolui.
+    /// PT-br: Aceita identificadores com quoting cross-dialect enquanto o detector automatico evolui.
     /// </summary>
     public override bool AllowsParserCrossDialectQuotedIdentifiers => true;
 
     /// <summary>
     /// EN: Enables LIMIT/OFFSET parsing for MySQL/PostgreSQL-style pagination in Auto mode.
-    /// PT: Habilita parsing de LIMIT/OFFSET para paginacao no estilo MySQL/PostgreSQL no modo Auto.
+    /// PT-br: Habilita parsing de LIMIT/OFFSET para paginacao no estilo MySQL/PostgreSQL no modo Auto.
     /// </summary>
     public override bool SupportsLimitOffset => true;
 
     /// <summary>
     /// EN: Enables FETCH FIRST/NEXT parsing for ANSI-style pagination in Auto mode.
-    /// PT: Habilita parsing de FETCH FIRST/NEXT para paginacao no estilo ANSI no modo Auto.
+    /// PT-br: Habilita parsing de FETCH FIRST/NEXT para paginacao no estilo ANSI no modo Auto.
     /// </summary>
     public override bool SupportsFetchFirst => true;
 
     /// <summary>
     /// EN: Enables TOP parsing for SQL Server-style pagination in Auto mode.
-    /// PT: Habilita parsing de TOP para paginacao no estilo SQL Server no modo Auto.
+    /// PT-br: Habilita parsing de TOP para paginacao no estilo SQL Server no modo Auto.
     /// </summary>
     public override bool SupportsTop => true;
 
     /// <summary>
     /// EN: Enables OFFSET/FETCH parsing for dialects that expose the two-clause pagination tail.
-    /// PT: Habilita parsing de OFFSET/FETCH para dialetos que expõem a cauda de paginacao em duas clausulas.
+    /// PT-br: Habilita parsing de OFFSET/FETCH para dialetos que expõem a cauda de paginacao em duas clausulas.
     /// </summary>
     public override bool SupportsOffsetFetch => true;
 

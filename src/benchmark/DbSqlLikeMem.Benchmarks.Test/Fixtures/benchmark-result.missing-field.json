@@ -1,0 +1,19 @@
+{
+  "runId": "smoke-20260501-120000000",
+  "benchmarkStableId": "mock-only.debug.trace.select",
+  "benchmarkFeatureId": "DebugTraceSelect",
+  "providerId": "DbSqlLikeMem",
+  "engine": "DbSqlLikeMem",
+  "suiteName": "DbSqlLikeMemBenchmarkSessionBase",
+  "methodName": "DebugTraceSelect",
+  "category": "Diagnostics",
+  "environment": {
+    "profile": "smoke",
+    "os": "Windows",
+    "framework": "net8.0",
+    "runtime": ".NET 8"
+  },
+  "tags": [
+    "invalid-fixture"
+  ]
+}

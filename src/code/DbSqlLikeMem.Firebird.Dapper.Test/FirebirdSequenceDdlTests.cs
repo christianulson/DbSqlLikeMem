@@ -2,13 +2,13 @@ namespace DbSqlLikeMem.Firebird.Dapper.Test;
 
 /// <summary>
 /// EN: Covers Firebird ALTER SEQUENCE execution scenarios over the Dapper-facing mock surface.
-/// PT: Cobre cenarios de execucao de ALTER SEQUENCE sobre a surface simulada voltada para Dapper.
+/// PT-br: Cobre cenarios de execucao de ALTER SEQUENCE sobre a surface simulada voltada para Dapper.
 /// </summary>
 public sealed class FirebirdSequenceDdlTests
 {
     /// <summary>
     /// EN: Verifies ALTER SEQUENCE RESTART WITH changes the next generated value through the command surface.
-    /// PT: Verifica se ALTER SEQUENCE RESTART WITH altera o proximo valor gerado pela surface de comando.
+    /// PT-br: Verifica se ALTER SEQUENCE RESTART WITH altera o proximo valor gerado pela surface de comando.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
@@ -53,7 +53,7 @@ public sealed class FirebirdSequenceDdlTests
 
     /// <summary>
     /// EN: Verifies SET GENERATOR changes the sequence value through the command surface.
-    /// PT: Verifica se SET GENERATOR altera o valor da sequence pela surface de comando.
+    /// PT-br: Verifica se SET GENERATOR altera o valor da sequence pela surface de comando.
     /// </summary>
     [Fact]
     [Trait("Category", "FirebirdDapper")]
