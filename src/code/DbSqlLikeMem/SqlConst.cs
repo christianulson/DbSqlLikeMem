@@ -838,6 +838,13 @@ public static class SqlConst
     /// EN: Helper token containing a spaced AND fragment.
     /// PT-br: Token auxiliar contendo um fragmento AND com espacos.
     /// </summary>
+    public const string AND_SPACED = " AND ";
+
+    /// <summary>
+    /// EN: Helper token containing a spaced AND fragment.
+    /// PT-br: Token auxiliar contendo um fragmento AND com espacos.
+    /// </summary>
+    [Obsolete("Use AND_SPACED instead.")]
     public const string _AND_ = " AND ";
     /// <summary>
     /// EN: SQL keyword used in DML ON DUPLICATE DO/SET clauses.

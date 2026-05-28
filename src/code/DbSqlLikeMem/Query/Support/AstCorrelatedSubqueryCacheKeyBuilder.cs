@@ -1116,7 +1116,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             return originalPredicate;
 
         segments.Sort(StringComparer.Ordinal);
-        return string.Join(SqlConst._AND_, segments);
+        return string.Join(SqlConst.AND_SPACED, segments);
     }
 
     /// <summary>

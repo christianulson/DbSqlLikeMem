@@ -129,7 +129,7 @@ internal static class SqlExprPrinter
                 if (bt.Negated) sb.Append(" NOT");
                 sb.Append(" BETWEEN ");
                 Wrap(bt.Low, sb);
-                sb.Append(SqlConst._AND_);
+                sb.Append(SqlConst.AND_SPACED);
                 Wrap(bt.High, sb);
                 break;
 

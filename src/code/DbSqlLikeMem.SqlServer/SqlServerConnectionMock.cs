@@ -24,23 +24,17 @@ public class SqlServerConnectionMock
         _serverVersion = $"SQL Server {Db.Version}";
     }
 
-    /// <summary>
-    /// EN: Creates a new transaction instance.
-    /// PT-br: Cria uma nova instância de transaction.
-    /// </summary>
+    /// <inheritdoc />
     protected override DbTransaction CreateTransaction(IsolationLevel isolationLevel)
         => new SqlServerTransactionMock(this, isolationLevel);
 
-    /// <summary>
-    /// EN: Creates a new db command core instance.
-    /// PT-br: Cria uma nova instância de comando de banco principal.
-    /// </summary>
+    /// <inheritdoc />
     protected override DbCommand CreateDbCommandCore(DbTransaction? transaction)
         => new SqlServerCommandMock(this, transaction as SqlServerTransactionMock);
 
     /// <summary>
-    /// EN: Executes new exception.
-    /// PT-br: Executa new exception.
+    /// EN: Indicates whether the provider supports releasing savepoints.
+    /// PT-br: Indica se o provedor suporta liberar savepoints.
     /// </summary>
     protected override bool SupportsReleaseSavepoint => false;
 

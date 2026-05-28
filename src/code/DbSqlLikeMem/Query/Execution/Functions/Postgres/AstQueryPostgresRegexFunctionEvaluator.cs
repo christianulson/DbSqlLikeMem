@@ -150,7 +150,7 @@ internal static class AstQueryPostgresRegexFunctionEvaluator
 
             var startIndex = Math.Min(source.Length, Math.Max(0, start - 1));
             var segment = source[startIndex..];
-            var regex = _regexCache.GetOrAdd((pattern, regexOptions), static k => new Regex(k.Pattern, k.Options));
+            var regex = _regexCache.GetOrAdd((pattern, regexOptions), static k => new Regex(k.Pattern, k.Options, TimeSpan.FromMilliseconds(100)));
 
             if (replace)
             {

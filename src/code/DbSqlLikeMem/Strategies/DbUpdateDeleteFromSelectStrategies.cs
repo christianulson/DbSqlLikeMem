@@ -532,7 +532,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         if (joinCondition is null)
             throw new InvalidOperationException(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition());
 
-        remainingWhere = parts.Count == 0 ? null : string.Join(SqlConst._AND_, parts);
+        remainingWhere = parts.Count == 0 ? null : string.Join(SqlConst.AND_SPACED, parts);
         return joinCondition;
     }
 
