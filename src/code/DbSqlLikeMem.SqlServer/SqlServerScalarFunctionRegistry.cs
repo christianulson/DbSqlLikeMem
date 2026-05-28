@@ -697,6 +697,17 @@ internal static partial class SqlServerScalarFunctionRegistry
         }
 #pragma warning restore CS8321
 
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("CONTAINS", "INT") with
+            {
+                AstExecutor = QueryTextSearchFunctionHelper.TryEvalContainsFunction
+            });
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("FREETEXT", "INT") with
+            {
+                AstExecutor = QueryTextSearchFunctionHelper.TryEvalContainsFunction
+            });
+
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar("APPLOCK_MODE", "VARCHAR"),
             "APPLOCK_MODE",

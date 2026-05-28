@@ -293,6 +293,10 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
         $"SELECT LISTAGG(Name, ',') WITHIN GROUP (ORDER BY Name) FROM {context.TbUsersFullName}";
 
     /// <inheritdoc />
+    public override string JsonQueryRootFragment(string jsonLiteral) =>
+        $"SELECT JSON_QUERY('{jsonLiteral}', '$') FROM DUAL";
+
+    /// <inheritdoc />
     public override string JsonScalarRead(string jsonLiteral) =>
         $"SELECT JSON_VALUE('{jsonLiteral}', '$.name') FROM DUAL";
 
@@ -327,6 +331,14 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
     /// <inheritdoc />
     public override string MathCeilingExpression(string expression) =>
         $"CEIL({expression})";
+
+    /// <inheritdoc />
+    public override string MathDegreesExpression(string expression) =>
+        $"{expression} * 180 / ACOS(-1)";
+
+    /// <inheritdoc />
+    public override string MathRadiansExpression(string expression) =>
+        $"{expression} * ACOS(-1) / 180";
 
     /// <inheritdoc />
     public override string MathLog10Expression(string expression) =>

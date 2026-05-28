@@ -9,6 +9,30 @@ internal static class QueryTextSearchFunctionHelper
         @"[\p{L}\p{N}_]+",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    /// <summary>
+    /// EN: Evaluates CONTAINS/FREETEXT returning 1 (match) or 0 (no match).
+    /// PT-br: Avalia CONTAINS/FREETEXT retornando 1 (correspondencia) ou 0 (sem correspondencia).
+    /// </summary>
+    public static bool TryEvalContainsFunction(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        Func<int, object?> evalArg,
+        out object? result)
+    {
+        if (!TryEvalMatchAgainstFunction(context, fn, evalArg, out var score))
+        {
+            result = null;
+            return false;
+        }
+
+        result = score is int intScore && intScore > 0 ? 1 : 0;
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Evaluates FIND_IN_SET returning the 1-based position of a value in a comma-separated list.
+    /// PT-br: Avalia FIND_IN_SET retornando a posicao (base 1) de um valor em uma lista separada por virgula.
+    /// </summary>
     public static bool TryEvalFindInSetFunction(
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
@@ -38,15 +62,16 @@ internal static class QueryTextSearchFunctionHelper
         return true;
     }
 
+    /// <summary>
+    /// EN: Evaluates MATCH ... AGAINST (MySQL), returning a score based on term matching and boolean mode rules.
+    /// PT-br: Avalia MATCH ... AGAINST (MySQL), retornando um score baseado na correspondencia de termos e regras de modo booleano.
+    /// </summary>
     public static bool TryEvalMatchAgainstFunction(
         this QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        if (!context.Dialect.SupportsMatchAgainstPredicate)
-            throw SqlUnsupported.NotSupported(context.Dialect, "MATCH ... AGAINST full-text predicate");
-
         if (fn.Args.Count < 2)
         {
             result = 0;

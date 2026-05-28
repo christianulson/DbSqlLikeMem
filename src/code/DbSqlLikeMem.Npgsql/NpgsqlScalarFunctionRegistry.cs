@@ -22,6 +22,7 @@ internal static partial class NpgsqlScalarFunctionRegistry
             });
         RegisterGeneratedScalarFunctions(dialect);
 
+        RegisterFullTextFunctions(dialect);
         RegisterJsonFunctions(dialect, version);
     }
 
@@ -648,5 +649,42 @@ internal static partial class NpgsqlScalarFunctionRegistry
 
         result = AstQueryRuntimeHelper.NextRandomDouble();
         return true;
+    }
+
+    private static void RegisterFullTextFunctions(ISqlDialect dialect)
+    {
+        static bool TryEvalTsQueryFunction(
+            QueryExecutionContext context,
+            FunctionCallExpr fn,
+            Func<int, object?> evalArg,
+            out object? result)
+        {
+            ArgumentNullExceptionCompatible.ThrowIfNull(fn, nameof(fn));
+            ArgumentNullExceptionCompatible.ThrowIfNull(evalArg, nameof(evalArg));
+            _ = context;
+            if (fn.Args.Count == 0)
+            {
+                result = string.Empty;
+                return true;
+            }
+            var argIndex = fn.Args.Count == 1 ? 0 : 1;
+            result = evalArg(argIndex)?.ToString() ?? string.Empty;
+            return true;
+        }
+
+        dialect.AddScalarFunctions(
+            DbFunctionDef.CreateScalar("to_tsquery", "VARCHAR") with
+            {
+                AstExecutor = TryEvalTsQueryFunction
+            },
+            "plainto_tsquery",
+            "phraseto_tsquery",
+            "websearch_to_tsquery");
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("to_tsvector", "VARCHAR") with
+            {
+                AstExecutor = TryEvalTsQueryFunction
+            });
     }
 }

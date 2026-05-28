@@ -106,6 +106,13 @@ internal static partial class CommandScalarExecutionPrelude
                 case SqlBinaryOp.LessOrEqual:
                 case SqlBinaryOp.NullSafeEq:
                     return TryEvaluateConstantComparisonBinaryExpression(op, left, right, out value);
+                case SqlBinaryOp.FullTextMatch:
+                    return TryEvaluateConstantFullTextMatchExpression(left, right, out value);
+                case SqlBinaryOp.Modulo:
+                case SqlBinaryOp.Regexp:
+                case SqlBinaryOp.SoundLike:
+                case SqlBinaryOp.Is:
+                    return false;
                 default:
                     return false;
             }
@@ -232,6 +239,22 @@ internal static partial class CommandScalarExecutionPrelude
             }
 
             return false;
+        }
+
+        private static bool TryEvaluateConstantFullTextMatchExpression(
+            object? left,
+            object? right,
+            out object? value)
+        {
+            value = null;
+
+            if (IsNullish(left) || IsNullish(right))
+                return true;
+
+            var leftStr = left?.ToString() ?? string.Empty;
+            var rightStr = right?.ToString() ?? string.Empty;
+            value = leftStr.IndexOf(rightStr, StringComparison.OrdinalIgnoreCase) >= 0;
+            return true;
         }
     }
 }

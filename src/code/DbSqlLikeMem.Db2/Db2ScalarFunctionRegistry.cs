@@ -18,6 +18,11 @@ internal static class Db2ScalarFunctionRegistry
         RegisterAnalyticsFunctions(dialect);
         RegisterStringFunctions(dialect, version);
         RegisterRowCountFunctions(dialect);
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("CONTAINS", "INT") with
+            {
+                AstExecutor = QueryTextSearchFunctionHelper.TryEvalContainsFunction
+            });
     }
 
     private static void RegisterConversionFunctions(ISqlDialect dialect)

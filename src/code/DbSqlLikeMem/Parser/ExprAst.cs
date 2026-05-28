@@ -93,5 +93,8 @@ internal enum SqlBinaryOp
 
     // pattern / misc
     Regexp,
-    SoundLike
+    SoundLike,
+
+    // full-text search operators
+    FullTextMatch
 }

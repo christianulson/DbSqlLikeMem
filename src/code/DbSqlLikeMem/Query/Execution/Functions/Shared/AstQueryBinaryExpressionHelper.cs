@@ -78,7 +78,7 @@ internal static class AstQueryBinaryExpressionHelper
             SqlBinaryOp.LessOrEqual => comparison <= 0,
             SqlBinaryOp.Regexp => AstQueryBinarySupportHelper.EvalRegexp(left, right, context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para REGEXP.")),
             SqlBinaryOp.SoundLike => AstQueryBinarySupportHelper.EvalSoundLike(left, right),
-            _ => throw new InvalidOperationException($"Binary op não suportado: {op}")
+            SqlBinaryOp.FullTextMatch => AstQueryBinarySupportHelper.EvalMatchAgainst(left, right),
         };
     }
 }

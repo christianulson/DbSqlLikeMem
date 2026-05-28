@@ -24,6 +24,11 @@ internal static class OracleScalarFunctionRegistry
         RegisterNlsFunctions(dialect, version);
         RegisterTimeFunctions(dialect, version);
         RegisterSequenceFunctions(dialect);
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("CONTAINS", "INT") with
+            {
+                AstExecutor = QueryTextSearchFunctionHelper.TryEvalContainsFunction
+            });
         RegisterStubbedNullFunctions(dialect);
     }
 

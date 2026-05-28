@@ -27,6 +27,13 @@ internal static class AstQueryBinarySupportHelper
         }
     }
 
+    internal static bool EvalMatchAgainst(object left, object right)
+    {
+        var leftStr = left.ToString() ?? string.Empty;
+        var rightStr = right.ToString() ?? string.Empty;
+        return leftStr.IndexOf(rightStr, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
     internal static bool IsSqlNullLike(object? value)
         => value is null or DBNull;
 

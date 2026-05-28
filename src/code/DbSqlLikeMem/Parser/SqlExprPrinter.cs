@@ -164,7 +164,13 @@ internal static class SqlExprPrinter
         SqlBinaryOp.NullSafeEq => "<=>",
         SqlBinaryOp.Regexp => "REGEXP",
         SqlBinaryOp.SoundLike => "SOUNDS LIKE",
+        SqlBinaryOp.Add => "+",
+        SqlBinaryOp.Subtract => "-",
+        SqlBinaryOp.Multiply => "*",
+        SqlBinaryOp.Divide => "/",
+        SqlBinaryOp.Modulo => "%",
         SqlBinaryOp.Concat => "||",
+        SqlBinaryOp.FullTextMatch => "MATCH",
         _ => op.ToString()
     };
 }

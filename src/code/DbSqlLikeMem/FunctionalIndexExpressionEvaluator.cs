@@ -133,6 +133,8 @@ internal static class FunctionalIndexExpressionEvaluator
                 return left is true || right is true;
             case SqlBinaryOp.Is:
                 return ReferenceEquals(left, right) || Equals(left, right);
+            case SqlBinaryOp.FullTextMatch:
+                return AstQueryBinarySupportHelper.EvalMatchAgainst(left, right);
             default:
                 return null;
         }

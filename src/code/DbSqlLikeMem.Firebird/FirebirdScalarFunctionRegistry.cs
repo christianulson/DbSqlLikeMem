@@ -15,6 +15,7 @@ internal static class FirebirdScalarFunctionRegistry
         RegisterContextFunctions(dialect);
         RegisterSequenceFunctions(dialect);
         RegisterBinaryFunctions(dialect);
+        RegisterFullTextFunctions(dialect);
         RegisterFirebirdSpecificFunctions(dialect);
     }
 
@@ -137,6 +138,16 @@ internal static class FirebirdScalarFunctionRegistry
             "VARBINARY",
             DbFunctionCategory.Conversion,
             AstQuerySharedBinaryTextFunctionEvaluator.TryEvaluate);
+    }
+
+    private static void RegisterFullTextFunctions(ISqlDialect dialect)
+    {
+        RegisterScalar(
+            dialect,
+            "CONTAINS",
+            "INT",
+            DbFunctionCategory.General,
+            QueryTextSearchFunctionHelper.TryEvalContainsFunction);
     }
 
     private static void RegisterFirebirdSpecificFunctions(ISqlDialect dialect)

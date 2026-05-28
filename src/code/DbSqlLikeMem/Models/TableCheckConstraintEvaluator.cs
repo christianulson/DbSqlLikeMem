@@ -144,6 +144,8 @@ internal static class TableCheckConstraintEvaluator
             SqlBinaryOp.Concat => EvaluateConcat(left, right, table),
             SqlBinaryOp.Regexp => EvaluateRegexp(left, right),
             SqlBinaryOp.SoundLike => EvaluateSoundLike(left, right),
+            SqlBinaryOp.FullTextMatch => EvaluateMatchAgainst(left, right),
+            SqlBinaryOp.Is => EvaluateIs(left, right),
             _ => throw new NotSupportedException($"CHECK constraint binary operator '{binary.Op}' is not supported.")
         };
     }
@@ -288,6 +290,19 @@ internal static class TableCheckConstraintEvaluator
             right!.ToString(),
             StringComparison.OrdinalIgnoreCase);
     }
+
+    private static object? EvaluateMatchAgainst(object? left, object? right)
+    {
+        if (AstQueryExecutorBase.IsNullish(left) || AstQueryExecutorBase.IsNullish(right))
+            return null;
+
+        var leftStr = left?.ToString() ?? string.Empty;
+        var rightStr = right?.ToString() ?? string.Empty;
+        return leftStr.IndexOf(rightStr, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static object? EvaluateIs(object? left, object? right)
+        => ReferenceEquals(left, right) || Equals(left, right);
 
     private static object? EvaluateLike(
         LikeExpr likeExpr,

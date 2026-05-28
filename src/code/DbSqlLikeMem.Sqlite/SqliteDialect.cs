@@ -9,7 +9,7 @@ internal sealed class SqliteDialect : SqlDialectBase
         ) : base(
         name: DialectName,
         version: version,
-        keywords: [],//"REGEXP"],
+        keywords: ["MATCH"],
         binOps:
         [
             new KeyValuePair<string, SqlBinaryOp>(SqlConst.AND, SqlBinaryOp.And),
@@ -23,6 +23,7 @@ internal sealed class SqliteDialect : SqlDialectBase
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
+            new KeyValuePair<string, SqlBinaryOp>("MATCH", SqlBinaryOp.FullTextMatch),
         ],
         operators:
         [

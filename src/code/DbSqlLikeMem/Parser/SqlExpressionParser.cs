@@ -617,7 +617,12 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         _context.Consume(); // * or /
         var right = ParseExpression(rbp);
 
-        var op = t.Text == "*" ? SqlBinaryOp.Multiply : SqlBinaryOp.Divide;
+        var op = t.Text switch
+        {
+            "*" => SqlBinaryOp.Multiply,
+            "/" => SqlBinaryOp.Divide,
+            _ => SqlBinaryOp.Modulo
+        };
         left = new BinaryExpr(op, left, right);
         return true;
     }
