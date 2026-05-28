@@ -158,6 +158,23 @@ public class NpgsqlTranslator : ExpressionVisitor
             return node;
         }
 
+        // SqlFunctions: TsQuery
+        if (node.Method.DeclaringType == typeof(SqlFunctions))
+        {
+            switch (method)
+            {
+                case nameof(SqlFunctions.TsQuery):
+                    _sb.Append("to_tsvector(");
+                    Visit(node.Arguments[0]);
+                    _sb.Append(") @@ to_tsquery(");
+                    Visit(node.Arguments[1]);
+                    _sb.Append(')');
+                    return node;
+                default:
+                    return base.VisitMethodCall(node);
+            }
+        }
+
         // raiz: Query<TEntity>
         return base.VisitMethodCall(node);
     }
@@ -340,6 +357,13 @@ public class NpgsqlTranslator : ExpressionVisitor
             if (node.Method.Name == "Count")
             {
                 Visit(node.Arguments[0]);
+                return node;
+            }
+
+            if (node.Method.DeclaringType == typeof(SqlFunctions))
+            {
+                foreach (var arg in node.Arguments)
+                    Visit(arg);
                 return node;
             }
 

@@ -158,6 +158,21 @@ public class SqliteTranslator : ExpressionVisitor
             return node;
         }
 
+        // SqlFunctions: Match
+        if (node.Method.DeclaringType == typeof(SqlFunctions))
+        {
+            switch (method)
+            {
+                case nameof(SqlFunctions.Match):
+                    Visit(node.Arguments[0]);
+                    _sb.Append(" MATCH ");
+                    Visit(node.Arguments[1]);
+                    return node;
+                default:
+                    return base.VisitMethodCall(node);
+            }
+        }
+
         // raiz: Query<TEntity>
         return base.VisitMethodCall(node);
     }
@@ -340,6 +355,13 @@ public class SqliteTranslator : ExpressionVisitor
             if (node.Method.Name == "Count")
             {
                 Visit(node.Arguments[0]);
+                return node;
+            }
+
+            if (node.Method.DeclaringType == typeof(SqlFunctions))
+            {
+                foreach (var arg in node.Arguments)
+                    Visit(arg);
                 return node;
             }
 
