@@ -143,7 +143,7 @@ public sealed class TextSearchTests : XUnitTestBase
         using var cnn = CreateOpenConnection();
         using var cmd = new FirebirdCommandMock(cnn)
         {
-            CommandText = "SELECT Id FROM Documents WHERE CONTAINS(Title, @query) = 1 ORDER BY Id"
+            CommandText = "SELECT Id FROM Documents WHERE CONTAINS(Body, @query) = 1 ORDER BY Id"
         };
         cmd.Parameters.Add(new FbParameter("@query", "enterprise"));
 

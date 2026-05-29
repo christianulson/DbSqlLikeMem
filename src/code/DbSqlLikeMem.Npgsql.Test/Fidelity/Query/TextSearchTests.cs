@@ -210,7 +210,7 @@ public sealed class TextSearchTests : XUnitTestBase
         using var cnn = CreateOpenConnection();
         using var cmd = new NpgsqlCommandMock(cnn)
         {
-            CommandText = "SELECT Id FROM Documents WHERE to_tsvector('english', Title) @@ to_tsquery('english', @query) ORDER BY Id"
+            CommandText = "SELECT Id FROM Documents WHERE to_tsvector('english', Body) @@ to_tsquery('english', @query) ORDER BY Id"
         };
         cmd.Parameters.Add(new NpgsqlParameter("@query", "enterprise"));
 

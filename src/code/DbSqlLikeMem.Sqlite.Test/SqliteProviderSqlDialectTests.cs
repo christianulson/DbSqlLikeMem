@@ -21,12 +21,12 @@ public sealed class SqliteProviderSqlDialectTests
         Assert.Equal("SQLite", dialect.DisplayName);
         Assert.True(dialect.SupportsUpsert);
         Assert.True(dialect.SupportsMathFunctions);
-        Assert.True(dialect.SupportsMathLog2Function);
-        Assert.True(dialect.SupportsMathLogBaseFunction);
-        Assert.True(dialect.SupportsMathPiFunction);
-        Assert.True(dialect.SupportsMathTruncFunction);
+        Assert.False(dialect.SupportsMathLog2Function);
+        Assert.False(dialect.SupportsMathLogBaseFunction);
+        Assert.False(dialect.SupportsMathPiFunction);
+        Assert.False(dialect.SupportsMathTruncFunction);
         Assert.False(dialect.SupportsMathTruncScaleFunction);
-        Assert.True(dialect.SupportsMathTranscendentalFunctions);
+        Assert.False(dialect.SupportsMathTranscendentalFunctions);
         Assert.True(dialect.SupportsReleaseSavepoints);
         Assert.True(dialect.SupportsJsonScalarRead);
         Assert.True(dialect.SupportsJsonTableFunctions);

@@ -190,7 +190,7 @@ public sealed class SqlAzureFunctionTests
         if (sqlVersion < FromPartsMinVersion)
         {
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEFROMPARTS(2020, 2, 29) FROM Users WHERE Id = 1"));
-            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12) FROM Users WHERE Id = 1"));
+            Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12, 0) FROM Users WHERE Id = 1"));
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567) FROM Users WHERE Id = 1"));
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 60) FROM Users WHERE Id = 1"));
             Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT TIMEFROMPARTS(10, 11, 12, 1234567, 7) FROM Users WHERE Id = 1"));
@@ -200,7 +200,7 @@ public sealed class SqlAzureFunctionTests
         else
         {
             Assert.Equal(new DateTime(2020, 2, 29), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATEFROMPARTS(2020, 2, 29) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+            Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIMEFROMPARTS(2020, 2, 29, 10, 11, 12, 0) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
             Assert.Equal(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), Convert.ToDateTime(ExecuteScalar(connection, "SELECT DATETIME2FROMPARTS(2020, 2, 29, 10, 11, 12, 1234567) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
             var offset = (DateTimeOffset)ExecuteScalar(connection, "SELECT DATETIMEOFFSETFROMPARTS(2020, 2, 29, 10, 11, 12, 1234567, 60) FROM Users WHERE Id = 1")!;
             Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12).AddTicks(1234567 * 10L), TimeSpan.FromMinutes(60)), offset);

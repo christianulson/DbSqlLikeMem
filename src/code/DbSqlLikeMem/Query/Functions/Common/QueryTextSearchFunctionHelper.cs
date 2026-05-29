@@ -11,6 +11,12 @@ internal static class QueryTextSearchFunctionHelper
     private static readonly Regex _sqlServerNearRegex = new(
         @"^\s*NEAR\s*\(\s*\((?<terms>.*?)\)\s*(?:,\s*(?<distance>\d+)\s*(?:,\s*(?<matchOrder>TRUE|FALSE))?\s*)?\)\s*$",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+    private static readonly Regex _oracleFuzzyRegex = new(
+        @"\bFUZZY\s*\(\s*(?<term>(?:""[^""]+""|'[^']+'|[^,()]+?))\s*,\s*(?<score>\d+)\s*\)",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex _oracleWithinRegex = new(
+        @"\bWITHIN\s+[A-Za-z_][A-Za-z0-9_#$]*",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex _matchAgainstWordRegex = new(
         @"[\p{L}\p{N}_]+",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -25,21 +31,16 @@ internal static class QueryTextSearchFunctionHelper
         Func<int, object?> evalArg,
         out object? result)
     {
-        var normalizedQuery = NormalizeSqlServerFullTextQuery(evalArg(1)?.ToString() ?? string.Empty);
+        var normalizedQuery = NormalizeContainsQuery(evalArg(1)?.ToString() ?? string.Empty);
         var haystack = FlattenMatchAgainstTarget(evalArg(0));
-        if (TryEvalSqlServerNearQuery(haystack, normalizedQuery, context.Dialect.TextComparison, out var nearMatch))
+        var comparison = StringComparison.OrdinalIgnoreCase;
+        if (TryEvalSqlServerNearQuery(haystack, normalizedQuery, comparison, out var nearMatch))
         {
             result = nearMatch ? 1 : 0;
             return true;
         }
 
-        if (!TryEvalMatchAgainstFunction(context, fn, index => index == 1 ? normalizedQuery : evalArg(index), out var score))
-        {
-            result = null;
-            return false;
-        }
-
-        result = score is int intScore && intScore > 0 ? 1 : 0;
+        result = EvaluateContainsQuery(haystack, normalizedQuery, comparison) ? 1 : 0;
         return true;
     }
 
@@ -230,6 +231,180 @@ internal static class QueryTextSearchFunctionHelper
             var forms = ExpandInflectionalForms(term);
             return string.Join(" ", forms);
         });
+    }
+
+    private static string NormalizeContainsQuery(string query)
+    {
+        var normalized = NormalizeSqlServerFullTextQuery(query);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return string.Empty;
+
+        normalized = _oracleFuzzyRegex.Replace(normalized, match =>
+        {
+            var term = match.Groups["term"].Value.Trim();
+            if (term.Length >= 2
+                && ((term[0] == '"' && term[^1] == '"')
+                    || (term[0] == '\'' && term[^1] == '\'')))
+            {
+                term = term[1..^1];
+            }
+
+            term = term.Trim();
+            if (term.Length == 0)
+                return string.Empty;
+
+            return term.EndsWith("*", StringComparison.Ordinal) ? term : term + "*";
+        });
+
+        normalized = _oracleWithinRegex.Replace(normalized, string.Empty);
+        return normalized;
+    }
+
+    private static bool EvaluateContainsQuery(
+        string haystack,
+        string query,
+        StringComparison comparison)
+    {
+        if (string.IsNullOrWhiteSpace(haystack) || string.IsNullOrWhiteSpace(query))
+            return false;
+
+        var andClauses = SplitContainsBooleanClauses(query, "AND");
+        if (andClauses.Count > 1)
+            return andClauses.All(clause => EvaluateContainsClause(haystack, clause, comparison));
+
+        var orClauses = SplitContainsBooleanClauses(query, "OR");
+        if (orClauses.Count > 1)
+            return orClauses.Any(clause => EvaluateContainsClause(haystack, clause, comparison));
+
+        return EvaluateContainsClause(haystack, query, comparison);
+    }
+
+    private static bool EvaluateContainsClause(
+        string haystack,
+        string clause,
+        StringComparison comparison)
+    {
+        var trimmed = clause.Trim();
+        if (trimmed.Length == 0)
+            return false;
+
+        if (trimmed.StartsWith("NOT ", StringComparison.OrdinalIgnoreCase))
+            return !EvaluateContainsClause(haystack, trimmed[4..], comparison);
+
+        if (TryEvalSqlServerNearQuery(haystack, trimmed, comparison, out var nearMatch))
+            return nearMatch;
+
+        var haystackWords = ExtractMatchAgainstWords(haystack);
+        var terms = ExtractMatchAgainstTerms(trimmed);
+        if (terms.Count == 0)
+            return false;
+
+        foreach (var term in terms)
+        {
+            if (ContainsMatchAgainstTerm(haystack, haystackWords, term, comparison))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static IReadOnlyList<string> SplitContainsBooleanClauses(string query, string keyword)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return [];
+
+        var clauses = new List<string>();
+        var start = 0;
+        var depth = 0;
+        var inSingleQuote = false;
+        var inDoubleQuote = false;
+
+        for (var i = 0; i < query.Length; i++)
+        {
+            var ch = query[i];
+            if (inSingleQuote)
+            {
+                if (ch == '\'')
+                {
+                    if (i + 1 < query.Length && query[i + 1] == '\'')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inSingleQuote = false;
+                }
+
+                continue;
+            }
+
+            if (inDoubleQuote)
+            {
+                if (ch == '"')
+                {
+                    if (i + 1 < query.Length && query[i + 1] == '"')
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    inDoubleQuote = false;
+                }
+
+                continue;
+            }
+
+            if (ch == '\'')
+            {
+                inSingleQuote = true;
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                inDoubleQuote = true;
+                continue;
+            }
+
+            if (ch == '(')
+            {
+                depth++;
+                continue;
+            }
+
+            if (ch == ')' && depth > 0)
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth != 0)
+                continue;
+
+            if (IsBooleanKeywordAt(query, i, keyword))
+            {
+                clauses.Add(query[start..i]);
+                i += keyword.Length - 1;
+                start = i + 1;
+            }
+        }
+
+        clauses.Add(query[start..]);
+        return [.. clauses.Where(static clause => !string.IsNullOrWhiteSpace(clause))];
+    }
+
+    private static bool IsBooleanKeywordAt(string input, int index, string keyword)
+    {
+        if (index < 0 || string.IsNullOrWhiteSpace(keyword) || index + keyword.Length > input.Length)
+            return false;
+
+        if (!input.AsSpan(index, keyword.Length).Equals(keyword, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var beforeOk = index == 0 || char.IsWhiteSpace(input[index - 1]) || input[index - 1] == '(';
+        var afterIndex = index + keyword.Length;
+        var afterOk = afterIndex >= input.Length || char.IsWhiteSpace(input[afterIndex]) || input[afterIndex] == ')';
+        return beforeOk && afterOk;
     }
 
     private static IReadOnlyList<string> ExpandInflectionalForms(string term)

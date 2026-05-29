@@ -83,7 +83,8 @@ internal sealed class SqlTokenizer
                 continue;
             }
 
-            if (_dialect.IsParameterPrefix(ch))
+            if (_dialect.IsParameterPrefix(ch)
+                && !(ch == '@' && Peek(1) == '@' && _dialect.Operators.Any(op => op == "@@")))
             {
                 tokens.Add(ReadParameter());
                 continue;
