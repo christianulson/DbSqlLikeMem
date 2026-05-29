@@ -298,7 +298,35 @@ internal static class TableCheckConstraintEvaluator
 
         var leftStr = left?.ToString() ?? string.Empty;
         var rightStr = right?.ToString() ?? string.Empty;
+
+        if (rightStr.EndsWith('*') && rightStr.Length > 1)
+        {
+            var prefix = rightStr.Substring(0, rightStr.Length - 1);
+            return leftStr.IndexOf(prefix, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        if (TryEvalConstraintNearOperator(leftStr, rightStr, out var nearResult))
+            return nearResult;
+
         return leftStr.IndexOf(rightStr, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool TryEvalConstraintNearOperator(string leftStr, string rightStr, out bool result)
+    {
+        result = false;
+
+        if (!rightStr.StartsWith("NEAR(", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var closeParen = rightStr.LastIndexOf(')');
+        if (closeParen < 0)
+            return false;
+
+        var inner = rightStr.Substring(5, closeParen - 5);
+        var terms = inner.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+
+        result = terms.Length > 0 && terms.All(t => leftStr.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0);
+        return true;
     }
 
     private static object? EvaluateIs(object? left, object? right)

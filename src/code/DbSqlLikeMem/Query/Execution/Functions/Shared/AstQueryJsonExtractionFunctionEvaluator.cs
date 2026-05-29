@@ -64,7 +64,7 @@ internal static class AstQueryJsonExtractionFunctionEvaluator
             || trimmed.StartsWith("strict ", StringComparison.OrdinalIgnoreCase))
             return trimmed.ToString();
 
-        if (trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
+        if (trimmed.StartsWith('{') && trimmed.EndsWith('}'))
         {
             var inner = trimmed[1..^1];
             var hasContent = false;

@@ -1618,8 +1618,8 @@ public abstract class TableMock
             {
                 var rhs = cond.V.Trim();
 
-                var candidates = rhs.StartsWith("(")
-                    && rhs.EndsWith(")")
+                var candidates = rhs.StartsWith('(')
+                    && rhs.EndsWith(')')
                     ? GetCandidatesFromSub(table, pars, cond, info, rhs)
                     : GetCanditateFromTable(table, pars, cond, info, rhs);
 
@@ -1722,8 +1722,8 @@ public abstract class TableMock
             {
                 var rhs = cond.V.Trim();
 
-                var candidates = rhs.StartsWith("(")
-                    && rhs.EndsWith(")")
+                var candidates = rhs.StartsWith('(')
+                    && rhs.EndsWith(')')
                     ? GetCandidatesFromSub(table, pars, cond, info, rhs)
                     : GetCanditateFromTable(table, pars, cond, info, rhs);
 

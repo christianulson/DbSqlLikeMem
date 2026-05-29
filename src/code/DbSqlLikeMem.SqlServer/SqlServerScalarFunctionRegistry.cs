@@ -192,7 +192,7 @@ internal static partial class SqlServerScalarFunctionRegistry
                 return true;
             }
 
-            result = offsetMinutes.ToString(CultureInfo.InvariantCulture);
+            result = SqlServerTemporalUnitHelper.FormatTimeZoneOffset(offsetMinutes);
             return true;
         }
         if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion

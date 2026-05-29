@@ -152,6 +152,9 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             // REGEXP
             if (TryParseRegexpInfix(ref left, minBp)) continue;
 
+            // MATCH (SQLite: col MATCH 'query')
+            if (TryParseMatchInfix(ref left, minBp)) continue;
+
             // PostgreSQL-style type cast: expr::type
             if (TryParseTypeCastInfix(ref left, minBp)) continue;
 
@@ -503,6 +506,42 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
 
         var pattern = ParseExpression(rbp);
         var expr = (SqlExpr)new BinaryExpr(SqlBinaryOp.Regexp, left, pattern);
+        left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
+        return true;
+    }
+
+    private bool TryParseMatchInfix(ref SqlExpr left, int minBp)
+    {
+        var t = _context.Peek();
+        var negate = false;
+
+        if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.NOT))
+        {
+            var next = _context.Peek(1);
+            if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(next, "MATCH"))
+                return false;
+            negate = true;
+        }
+        else if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, "MATCH"))
+        {
+            return false;
+        }
+
+        var (lbp, rbp) = (50, 51);
+        if (lbp < minBp) return false;
+
+        if (negate)
+        {
+            _context.Consume(); // NOT
+            _context.Consume(); // MATCH
+        }
+        else
+        {
+            _context.Consume(); // MATCH
+        }
+
+        var right = ParseExpression(rbp);
+        var expr = (SqlExpr)new BinaryExpr(SqlBinaryOp.FullTextMatch, left, right);
         left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
         return true;
     }
@@ -2058,7 +2097,8 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
                 or SqlBinaryOp.Greater
                 or SqlBinaryOp.GreaterOrEqual
                 or SqlBinaryOp.Less
-                or SqlBinaryOp.LessOrEqual;
+                or SqlBinaryOp.LessOrEqual
+                or SqlBinaryOp.FullTextMatch;
         }
 
         bop = default;

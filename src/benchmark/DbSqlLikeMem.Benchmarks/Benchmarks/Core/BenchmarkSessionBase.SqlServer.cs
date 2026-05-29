@@ -81,7 +81,7 @@ public abstract partial class BenchmarkSessionBase
     [BenchmarkFeature(BenchmarkFeatureId.SqlServerSessionFunctions)]
     protected virtual void RunSqlServerSessionFunctions()
     {
-        var state = GetPreparedNoopQueryState("NoopQuery");
+        var state = GetPreparedUsersQueryState("SqlServerSessionFunctions", (1, "Ana"), (2, "Bob"));
         var value = state.Service.RunSqlServerSessionFunctionsAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
@@ -93,7 +93,7 @@ public abstract partial class BenchmarkSessionBase
     [BenchmarkFeature(BenchmarkFeatureId.SqlServerAggregateFunctions)]
     protected virtual void RunSqlServerAggregateFunctions()
     {
-        var state = GetPreparedNoopQueryState("NoopQuery");
+        var state = GetPreparedUsersQueryState("SqlServerAggregateFunctions", (1, "Ana"), (2, "Bob"));
         var value = state.Service.RunSqlServerAggregateFunctionsAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }

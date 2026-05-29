@@ -97,6 +97,15 @@ internal static class SqlServerTemporalUnitHelper
     internal static int GetWeekdayIndex(DateTime dateTime)
         => ((int)dateTime.DayOfWeek) + 1;
 
+    internal static string FormatTimeZoneOffset(int offsetMinutes)
+    {
+        var sign = offsetMinutes < 0 ? "-" : "+";
+        var absoluteMinutes = Math.Abs(offsetMinutes);
+        var hours = absoluteMinutes / 60;
+        var minutes = absoluteMinutes % 60;
+        return $"{sign}{hours:00}:{minutes:00}";
+    }
+
     internal static string GetWeekdayName(DateTime dateTime)
         => dateTime.ToString("dddd", CultureInfo.InvariantCulture);
 

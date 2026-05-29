@@ -742,7 +742,7 @@ internal sealed class SqlQueryParserContext
             return string.Empty;
 
         var txt = raw!.Trim();
-        if (txt.EndsWith(";", StringComparison.Ordinal))
+        if (txt.EndsWith(';'))
             txt = txt[..^1].TrimEnd();
 
         return txt;
@@ -754,7 +754,7 @@ internal sealed class SqlQueryParserContext
         if (txt.Length == 0)
             return string.Empty;
 
-        if (txt.EndsWith(";", StringComparison.Ordinal))
+        if (txt.EndsWith(';'))
             txt = txt[..^1].TrimEnd();
 
         return txt.ToString();

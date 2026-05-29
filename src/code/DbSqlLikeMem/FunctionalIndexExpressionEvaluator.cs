@@ -230,10 +230,10 @@ internal static class FunctionalIndexExpressionEvaluator
             return element;
 
         // Handle simple JSON path expressions: $.key, $[*], $[*].name, $[0].key
-        if (!path.StartsWith("$", StringComparison.Ordinal))
+        if (!path.StartsWith('$'))
             return element;
 
-        var segments = path[1..].Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+        var segments = path[1..].Split('.', StringSplitOptions.RemoveEmptyEntries);
         var current = element;
 
         foreach (var segment in segments)
@@ -246,7 +246,7 @@ internal static class FunctionalIndexExpressionEvaluator
                     : current;
             }
 
-            if (segment.StartsWith("[", StringComparison.Ordinal) && segment.EndsWith("]", StringComparison.Ordinal))
+            if (segment.StartsWith('[') && segment.EndsWith(']'))
             {
                 if (int.TryParse(segment[1..^1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx))
                 {
@@ -390,7 +390,7 @@ internal static class FunctionalIndexExpressionEvaluator
         {
             using var doc = JsonDocument.Parse(jsonStr);
             // Ensure path starts with $
-            if (!path.StartsWith("$", StringComparison.Ordinal))
+            if (!path.StartsWith('$'))
                 path = "$." + path;
             var result = NavigateJsonPath(doc.RootElement, path);
             return result?.GetRawText();

@@ -564,7 +564,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         joinCondition = string.Empty;
 
         var candidate = part;
-        while (candidate.StartsWith("(") && candidate.EndsWith(")"))
+        while (candidate.StartsWith('(') && candidate.EndsWith(')'))
             candidate = candidate[1..^1].Trim();
 
         var onM = _regexOnSql.Match(candidate.ToString());

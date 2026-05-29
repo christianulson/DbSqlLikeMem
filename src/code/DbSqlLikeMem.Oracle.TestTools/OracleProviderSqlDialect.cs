@@ -334,11 +334,11 @@ WHEN NOT MATCHED THEN INSERT (Id, Name) VALUES (source.Id, source.Name)";
 
     /// <inheritdoc />
     public override string MathDegreesExpression(string expression) =>
-        $"{expression} * 180 / ACOS(-1)";
+        $"TO_BINARY_DOUBLE({expression}) * TO_BINARY_DOUBLE(180) / TO_BINARY_DOUBLE(ACOS(-1))";
 
     /// <inheritdoc />
     public override string MathRadiansExpression(string expression) =>
-        $"{expression} * ACOS(-1) / 180";
+        $"TO_BINARY_DOUBLE({expression}) * TO_BINARY_DOUBLE(ACOS(-1)) / TO_BINARY_DOUBLE(180)";
 
     /// <inheritdoc />
     public override string MathLog10Expression(string expression) =>

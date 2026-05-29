@@ -34,6 +34,19 @@ internal static class QueryTextSearchFunctionHelper
         var normalizedQuery = NormalizeContainsQuery(evalArg(1)?.ToString() ?? string.Empty);
         var haystack = FlattenMatchAgainstTarget(evalArg(0));
         var comparison = StringComparison.OrdinalIgnoreCase;
+
+        if (fn.Name.Equals("FREETEXT", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!TryEvalMatchAgainstFunction(context, fn, index => index == 1 ? normalizedQuery : evalArg(index), out var score))
+            {
+                result = null;
+                return false;
+            }
+
+            result = score is int intScore && intScore > 0 ? 1 : 0;
+            return true;
+        }
+
         if (TryEvalSqlServerNearQuery(haystack, normalizedQuery, comparison, out var nearMatch))
         {
             result = nearMatch ? 1 : 0;
@@ -253,7 +266,7 @@ internal static class QueryTextSearchFunctionHelper
             if (term.Length == 0)
                 return string.Empty;
 
-            return term.EndsWith("*", StringComparison.Ordinal) ? term : term + "*";
+            return term.EndsWith('*') ? term : term + "*";
         });
 
         normalized = _oracleWithinRegex.Replace(normalized, string.Empty);
@@ -299,13 +312,7 @@ internal static class QueryTextSearchFunctionHelper
         if (terms.Count == 0)
             return false;
 
-        foreach (var term in terms)
-        {
-            if (ContainsMatchAgainstTerm(haystack, haystackWords, term, comparison))
-                return true;
-        }
-
-        return false;
+        return terms.All(term => ContainsMatchAgainstTerm(haystack, haystackWords, term, comparison));
     }
 
     private static IReadOnlyList<string> SplitContainsBooleanClauses(string query, string keyword)
@@ -456,7 +463,7 @@ internal static class QueryTextSearchFunctionHelper
             Add(baseForm + "ed");
             Add(baseForm + "ing");
 
-            if (!baseForm.EndsWith("e", StringComparison.OrdinalIgnoreCase))
+            if (!baseForm.EndsWith('e'))
                 Add(baseForm + "es");
         }
 
@@ -657,7 +664,7 @@ internal static class QueryTextSearchFunctionHelper
                     ? phrase
                     : m.Groups["term"].Value;
 
-                var prefixWildcard = token.EndsWith("*", StringComparison.Ordinal);
+                var prefixWildcard = token.EndsWith('*');
                 if (prefixWildcard)
                     token = token[..^1];
 
