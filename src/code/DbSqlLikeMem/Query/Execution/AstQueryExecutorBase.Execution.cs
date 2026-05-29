@@ -98,92 +98,44 @@ internal abstract partial class AstQueryExecutorBase
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(selectQuery, nameof(selectQuery));
 
+        return debugTrace is not null
+            ? ExecuteSelectWithDebugTrace(selectQuery, inheritedCtes, outerRow, debugTrace)
+            : ExecuteSelectCore(selectQuery, inheritedCtes, outerRow);
+    }
+
+    private TableResultMock ExecuteSelectCore(
+        SqlSelectQuery selectQuery,
+        IDictionary<string, Source>? inheritedCtes,
+        EvalRow? outerRow)
+    {
         var ctes = inheritedCtes is null
             ? new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, Source>(inheritedCtes, StringComparer.OrdinalIgnoreCase);
 
         foreach (var cte in selectQuery.Ctes)
         {
-            var cteStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
             var res = ExecuteCte(cte, ctes, outerRow);
             ctes[cte.Name] = Source.FromResult(cte.Name, res);
-            debugTrace?.AddStep(
-                "CteMaterialize",
-                0,
-                res.Count,
-                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(cteStart)),
-                cte.Name);
         }
 
         if (TryEvaluateSimpleUnionCount(selectQuery, ctes, outerRow, out var fastCountResult))
             return fastCountResult;
 
-        var fromStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var rows = BuildFrom(
             selectQuery.Table,
             ctes,
             selectQuery.Where,
             hasOrderBy: selectQuery.OrderBy.Count > 0,
             hasGroupBy: selectQuery.GroupBy.Count > 0);
-        if (debugTrace is not null)
-        {
-            var fromRows = rows as List<EvalRow> ?? [.. rows];
-            debugTrace.AddStep(
-                "TableScan",
-                (int)Math.Min(int.MaxValue, _context.GetKnownSourceRows(selectQuery.Table)),
-                fromRows.Count,
-                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(fromStart)),
-                SqlSourceFormattingHelper.FormatSource(selectQuery.Table));
-            rows = fromRows;
-        }
 
         foreach (var j in selectQuery.Joins)
-        {
-            var joinStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
-            var inputRows = debugTrace is not null
-                ? (rows as ICollection<EvalRow>)?.Count ?? rows.Count()
-                : 0;
-            rows = ApplyJoin(
-                rows,
-                j,
-                ctes,
-                hasOrderBy: selectQuery.OrderBy.Count > 0,
-                hasGroupBy: selectQuery.GroupBy.Count > 0);
-            if (debugTrace is not null)
-            {
-                var joinedRows = rows as List<EvalRow> ?? [.. rows];
-                debugTrace.AddStep(
-                    $"Join({AstQuerySelectExecutionHelper.FormatJoinTypeForDebug(j.Type)})",
-                    inputRows,
-                    joinedRows.Count,
-                    TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(joinStart)),
-                    SqlSourceFormattingHelper.FormatJoinDebugDetails(j));
-                rows = joinedRows;
-            }
-        }
+            rows = ApplyJoin(rows, j, ctes, hasOrderBy: selectQuery.OrderBy.Count > 0, hasGroupBy: selectQuery.GroupBy.Count > 0);
 
         if (outerRow is not null)
             rows = AttachOuterRows(rows, outerRow);
 
         if (selectQuery.Where is not null)
-        {
-            var filterStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
-            var inputRows = debugTrace is not null
-                ? (rows as ICollection<EvalRow>)?.Count ?? rows.Count()
-                : 0;
             rows = ApplyRowPredicate(rows, selectQuery.Where, ctes);
-            if (debugTrace is not null)
-            {
-                var filteredRows = rows as List<EvalRow> ?? [.. rows];
-                debugTrace.AddStep(
-                    "Filter",
-                    inputRows,
-                    filteredRows.Count,
-                    TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(filterStart)),
-                    SqlExprPrinter.Print(selectQuery.Where));
-                rows = filteredRows;
-            }
-        }
 
         var needsGrouping = selectQuery.GroupBy.Count > 0
             || selectQuery.Having is not null
@@ -193,57 +145,134 @@ internal abstract partial class AstQueryExecutorBase
                 AggregateExpressionInspector.WalkHasAggregate);
         if (needsGrouping)
         {
-            var groupedRows = rows as List<EvalRow> ?? [.. rows];
-            if (debugTrace is null && TryEvaluateSimpleStringAggregate(selectQuery, groupedRows, ctes, out var fastStringAggregateResult))
-                return fastStringAggregateResult;
+            // Fast path: avoid materialization when rows is already a List.
+            if (rows is List<EvalRow> groupedRows)
+            {
+                if (TryEvaluateSimpleStringAggregate(selectQuery, groupedRows, ctes, out var fastStringAggregateResult))
+                    return fastStringAggregateResult;
+            }
 
+            return ExecuteGroupCore(selectQuery, ctes, rows);
+        }
+
+        var projectedRows = rows as List<EvalRow> ?? [.. rows];
+        var projected = ProjectRows(selectQuery, projectedRows, ctes);
+
+        if (selectQuery.DistinctOn.Count > 0)
+        {
+            if (selectQuery.OrderBy.Count > 0)
+                _context.TryApplyOrder(projected, selectQuery.OrderBy, ParseExpr, (expr, row) => Eval(expr, row, group: null, ctes));
+
+            projected = _context.ApplyDistinctOn(projected, selectQuery.DistinctOn, ParseExpr, (expr, row) => Eval(expr, row, group: null, ctes));
+        }
+        else if (selectQuery.Distinct)
+        {
+            projected = _context.ApplyDistinct(projected);
+        }
+
+        if (HasSqlCalcFoundRows(selectQuery))
+            Cnn.SetLastSelectRows(projected.Count);
+
+        projected = context.ApplyQueryOrderLimit(projected, selectQuery, ctes, ParseExpr,
+            (expr, row) => Eval(expr, row, group: null, ctes),
+            (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture));
+        return AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(projected, selectQuery);
+    }
+
+    private TableResultMock ExecuteSelectWithDebugTrace(
+        SqlSelectQuery selectQuery,
+        IDictionary<string, Source>? inheritedCtes,
+        EvalRow? outerRow,
+        QueryDebugTraceBuilder debugTrace)
+    {
+        var ctes = inheritedCtes is null
+            ? new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, Source>(inheritedCtes, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var cte in selectQuery.Ctes)
+        {
+            var cteStart = Stopwatch.GetTimestamp();
+            var res = ExecuteCte(cte, ctes, outerRow);
+            ctes[cte.Name] = Source.FromResult(cte.Name, res);
+            debugTrace.AddStep("CteMaterialize", 0, res.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(cteStart)), cte.Name);
+        }
+
+        if (TryEvaluateSimpleUnionCount(selectQuery, ctes, outerRow, out var fastCountResult))
+            return fastCountResult;
+
+        var fromStart = Stopwatch.GetTimestamp();
+        var rows = BuildFrom(selectQuery.Table, ctes, selectQuery.Where,
+            hasOrderBy: selectQuery.OrderBy.Count > 0, hasGroupBy: selectQuery.GroupBy.Count > 0);
+        var fromRows = rows as List<EvalRow> ?? [.. rows];
+        debugTrace.AddStep("TableScan",
+            (int)Math.Min(int.MaxValue, _context.GetKnownSourceRows(selectQuery.Table)),
+            fromRows.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(fromStart)),
+            SqlSourceFormattingHelper.FormatSource(selectQuery.Table));
+        rows = fromRows;
+
+        foreach (var j in selectQuery.Joins)
+        {
+            var joinStart = Stopwatch.GetTimestamp();
+            var inputRows = (rows as ICollection<EvalRow>)?.Count ?? rows.Count();
+            rows = ApplyJoin(rows, j, ctes, hasOrderBy: selectQuery.OrderBy.Count > 0, hasGroupBy: selectQuery.GroupBy.Count > 0);
+            var joinedRows = rows as List<EvalRow> ?? [.. rows];
+            debugTrace.AddStep($"Join({AstQuerySelectExecutionHelper.FormatJoinTypeForDebug(j.Type)})",
+                inputRows, joinedRows.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(joinStart)),
+                SqlSourceFormattingHelper.FormatJoinDebugDetails(j));
+            rows = joinedRows;
+        }
+
+        if (outerRow is not null)
+            rows = AttachOuterRows(rows, outerRow);
+
+        if (selectQuery.Where is not null)
+        {
+            var filterStart = Stopwatch.GetTimestamp();
+            var inputRows = (rows as ICollection<EvalRow>)?.Count ?? rows.Count();
+            rows = ApplyRowPredicate(rows, selectQuery.Where, ctes);
+            var filteredRows = rows as List<EvalRow> ?? [.. rows];
+            debugTrace.AddStep("Filter", inputRows, filteredRows.Count,
+                TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(filterStart)),
+                SqlExprPrinter.Print(selectQuery.Where));
+            rows = filteredRows;
+        }
+
+        var needsGrouping = selectQuery.GroupBy.Count > 0
+            || selectQuery.Having is not null
+            || AstQueryAggregateAnalysisHelper.ContainsAggregate(selectQuery, ParseScalarExpr, AggregateExpressionInspector.WalkHasAggregate);
+        if (needsGrouping)
+        {
+            var groupedRows = rows as List<EvalRow> ?? [.. rows];
             return ExecuteGroup(selectQuery, ctes, groupedRows, debugTrace);
         }
 
         var projectedRows = rows as List<EvalRow> ?? [.. rows];
-        var projectStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+        var projectStart = Stopwatch.GetTimestamp();
         var projected = ProjectRows(selectQuery, projectedRows, ctes);
-        debugTrace?.AddStep(
-            "Project",
-            projectedRows.Count,
-            projected.Count,
+        debugTrace.AddStep("Project", projectedRows.Count, projected.Count,
             TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
             QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(selectQuery.SelectItems));
 
         if (selectQuery.DistinctOn.Count > 0)
         {
-            var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var distinctStart = Stopwatch.GetTimestamp();
             var inputRows = projected.Count;
-
             if (selectQuery.OrderBy.Count > 0)
-                _context.TryApplyOrder(
-                    projected,
-                    selectQuery.OrderBy,
-                    ParseExpr,
-                    (expr, row) => Eval(expr, row, group: null, ctes));
-
-            projected = _context.ApplyDistinctOn(projected, selectQuery.DistinctOn, ParseExpr, (expr, row) =>
-            {
-                using var positionalScope = _context.BeginPositionalParameterScope();
-                return Eval(expr, row, group: null, ctes);
-            });
-
-            debugTrace?.AddStep(
-                "Distinct On",
-                inputRows,
-                projected.Count,
+                _context.TryApplyOrder(projected, selectQuery.OrderBy, ParseExpr, (expr, row) => Eval(expr, row, group: null, ctes));
+            projected = _context.ApplyDistinctOn(projected, selectQuery.DistinctOn, ParseExpr, (expr, row) => Eval(expr, row, group: null, ctes));
+            debugTrace.AddStep("Distinct On", inputRows, projected.Count,
                 TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
                 QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(selectQuery.DistinctOn.Count));
         }
         else if (selectQuery.Distinct)
         {
-            var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
+            var distinctStart = Stopwatch.GetTimestamp();
             var inputRows = projected.Count;
             projected = _context.ApplyDistinct(projected);
-            debugTrace?.AddStep(
-                "Distinct",
-                inputRows,
-                projected.Count,
+            debugTrace.AddStep("Distinct", inputRows, projected.Count,
                 TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(distinctStart)),
                 QueryDebugTraceFormattingHelper.FormatDistinctDebugDetails(selectQuery.SelectItems.Count));
         }
@@ -251,16 +280,11 @@ internal abstract partial class AstQueryExecutorBase
         if (HasSqlCalcFoundRows(selectQuery))
             Cnn.SetLastSelectRows(projected.Count);
 
-        projected = context.ApplyQueryOrderLimit(
-            projected,
-            selectQuery,
-            ctes,
-            ParseExpr,
+        projected = context.ApplyQueryOrderLimit(projected, selectQuery, ctes, ParseExpr,
             (expr, row) => Eval(expr, row, group: null, ctes),
             (expr, scope) => Convert.ToInt32(Eval(expr, EvalRow.Empty(), null, scope), CultureInfo.InvariantCulture),
             debugTrace);
-        projected = AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(projected, selectQuery, debugTrace);
-        return projected;
+        return AstQueryExecutorForJsonHelper.ApplyForJsonIfNeeded(projected, selectQuery, debugTrace);
     }
 
     private bool TryEvaluateSimpleUnionCount(

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Threading;
 
 namespace DbSqlLikeMem;
 
@@ -499,293 +500,77 @@ public sealed class DbMetrics
     /// </summary>
     public TimeSpan Elapsed => Enabled ? _sw.Elapsed : TimeSpan.Zero;
 
-    internal void IncrementIndexHint(string indexName)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementIndexHint(string indexName) => IndexHints.AddOrUpdate(indexName, 1, _incrementHandler);
 
-        IndexHints.AddOrUpdate(indexName, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementTableHint(string tableName)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementTableHint(string tableName) => TableHints.AddOrUpdate(tableName, 1, _incrementHandler);
 
-        TableHints.AddOrUpdate(tableName, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementNonQueryStatement()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryStatement() => Interlocked.Increment(ref _nonQueryStatements);
 
-        NonQueryStatements++;
-    }
-
-    internal void IncrementNonQueryParseCacheHit()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryParseCacheHit() => Interlocked.Increment(ref _nonQueryParseCacheHits);
 
-        NonQueryParseCacheHits++;
-    }
-
-    internal void IncrementNonQueryParseCacheMiss()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryParseCacheMiss() => Interlocked.Increment(ref _nonQueryParseCacheMisses);
 
-        NonQueryParseCacheMisses++;
-    }
-
-    internal void IncrementNonQueryHandlerHit(string handlerName)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryHandlerHit(string handlerName) => NonQueryHandlerHits.AddOrUpdate(handlerName, 1, _incrementHandler);
 
-        NonQueryHandlerHits.AddOrUpdate(handlerName, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementNonQueryHandlerElapsedTicks(string handlerName, long elapsedTicks)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryHandlerElapsedTicks(string handlerName, long elapsedTicks) => NonQueryHandlerElapsedTicks.AddOrUpdate(handlerName, elapsedTicks, (_, current) => current + elapsedTicks);
 
-        NonQueryHandlerElapsedTicks.AddOrUpdate(handlerName, elapsedTicks, (_, current) => current + elapsedTicks);
-    }
-
-    internal void IncrementNonQueryHandlerFailure(string handlerName)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryHandlerFailure(string handlerName) => NonQueryHandlerFailures.AddOrUpdate(handlerName, 1, _incrementHandler);
 
-        NonQueryHandlerFailures.AddOrUpdate(handlerName, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementNonQueryException()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryException() => Interlocked.Increment(ref _nonQueryExceptions);
 
-        NonQueryExceptions++;
-    }
-
-    internal void IncrementNonQueryUnhandledStatement()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementNonQueryUnhandledStatement() => Interlocked.Increment(ref _nonQueryUnhandledStatements);
 
-        NonQueryUnhandledStatements++;
-    }
-
-    internal void IncrementReaderProcessedStatements(int count = 1)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementReaderProcessedStatements(int count = 1) => Interlocked.Add(ref _readerProcessedStatements, count);
 
-        ReaderProcessedStatements += count;
-    }
-
-    internal void IncrementReaderControlStatement()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementReaderControlStatement() => Interlocked.Increment(ref _readerControlStatements);
 
-        ReaderControlStatements++;
-    }
-
-    internal void IncrementReaderCallStatement()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementReaderCallStatement() => Interlocked.Increment(ref _readerCallStatements);
 
-        ReaderCallStatements++;
-    }
+    internal void IncrementReaderStoredProcedureStatement() => Interlocked.Increment(ref _readerStoredProcedureStatements);
 
-    internal void IncrementReaderStoredProcedureStatement()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementReaderResultTables(int count) => Interlocked.Add(ref _readerResultTables, count);
 
-        ReaderStoredProcedureStatements++;
-    }
+    internal void IncrementReaderRowsReturned(int count) => Interlocked.Add(ref _readerRowsReturned, count);
 
-    internal void IncrementReaderResultTables(int count)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementReaderWithoutSelectError() => Interlocked.Increment(ref _readerWithoutSelectErrors);
 
-        ReaderResultTables += count;
-    }
+    internal void IncrementReaderQueryTypeHit(string queryTypeName) => ReaderQueryTypeHits.AddOrUpdate(queryTypeName, 1, _incrementHandler);
 
-    internal void IncrementReaderRowsReturned(int count)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchNonQueryCommand() => Interlocked.Increment(ref _batchNonQueryCommands);
 
-        ReaderRowsReturned += count;
-    }
+    internal void IncrementBatchReaderCommand() => Interlocked.Increment(ref _batchReaderCommands);
 
-    internal void IncrementReaderWithoutSelectError()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchScalarCommand() => Interlocked.Increment(ref _batchScalarCommands);
 
-        ReaderWithoutSelectErrors++;
-    }
+    internal void IncrementBatchReaderFallbackToNonQuery() => Interlocked.Increment(ref _batchReaderFallbackToNonQuery);
 
-    internal void IncrementReaderQueryTypeHit(string queryTypeName)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchMaterialization() => Interlocked.Increment(ref _batchMaterializations);
 
-        ReaderQueryTypeHits.AddOrUpdate(queryTypeName, 1, (_, current) => current + 1);
-    }
+    internal void IncrementBatchResultTables(int count) => Interlocked.Add(ref _batchResultTables, count);
 
-    internal void IncrementBatchNonQueryCommand()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchRowsReturned(int count) => Interlocked.Add(ref _batchRowsReturned, count);
 
-        BatchNonQueryCommands++;
-    }
+    internal void IncrementBatchException() => Interlocked.Increment(ref _batchExceptions);
 
-    internal void IncrementBatchReaderCommand()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchCancellation() => Interlocked.Increment(ref _batchCancellations);
 
-        BatchReaderCommands++;
-    }
+    internal void IncrementBatchEmptyNonQueryExecution() => Interlocked.Increment(ref _batchEmptyNonQueryExecutions);
 
-    internal void IncrementBatchScalarCommand()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchEmptyReaderExecution() => Interlocked.Increment(ref _batchEmptyReaderExecutions);
 
-        BatchScalarCommands++;
-    }
+    internal void IncrementBatchEmptyScalarExecution() => Interlocked.Increment(ref _batchEmptyScalarExecutions);
 
-    internal void IncrementBatchReaderFallbackToNonQuery()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchCommandTypeHit(string key) => BatchCommandTypeHits.AddOrUpdate(key, 1, _incrementHandler);
 
-        BatchReaderFallbackToNonQuery++;
-    }
+    internal void IncrementBatchPhaseFailure(string phase) => BatchPhaseFailures.AddOrUpdate(phase, 1, _incrementHandler);
 
-    internal void IncrementBatchMaterialization()
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementBatchPhaseCancellation(string phase) => BatchPhaseCancellations.AddOrUpdate(phase, 1, _incrementHandler);
 
-        BatchMaterializations++;
-    }
+    internal void IncrementBatchPhaseElapsedTicks(string phase, long elapsedTicks) => BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
 
-    internal void IncrementBatchResultTables(int count)
-    {
-        if (!Enabled)
-            return;
+    internal void IncrementPerformancePhaseHit(string phase) => PerformancePhaseHits.AddOrUpdate(phase, 1, _incrementHandler);
 
-        BatchResultTables += count;
-    }
-
-    internal void IncrementBatchRowsReturned(int count)
-    {
-        if (!Enabled)
-            return;
-
-        BatchRowsReturned += count;
-    }
-
-    internal void IncrementBatchException()
-    {
-        if (!Enabled)
-            return;
-
-        BatchExceptions++;
-    }
-
-    internal void IncrementBatchCancellation()
-    {
-        if (!Enabled)
-            return;
-
-        BatchCancellations++;
-    }
-
-    internal void IncrementBatchEmptyNonQueryExecution()
-    {
-        if (!Enabled)
-            return;
-
-        BatchEmptyNonQueryExecutions++;
-    }
-
-    internal void IncrementBatchEmptyReaderExecution()
-    {
-        if (!Enabled)
-            return;
-
-        BatchEmptyReaderExecutions++;
-    }
-
-    internal void IncrementBatchEmptyScalarExecution()
-    {
-        if (!Enabled)
-            return;
-
-        BatchEmptyScalarExecutions++;
-    }
-
-    internal void IncrementBatchCommandTypeHit(string key)
-    {
-        if (!Enabled)
-            return;
-
-        BatchCommandTypeHits.AddOrUpdate(key, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementBatchPhaseFailure(string phase)
-    {
-        if (!Enabled)
-            return;
-
-        BatchPhaseFailures.AddOrUpdate(phase, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementBatchPhaseCancellation(string phase)
-    {
-        if (!Enabled)
-            return;
-
-        BatchPhaseCancellations.AddOrUpdate(phase, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementBatchPhaseElapsedTicks(string phase, long elapsedTicks)
-    {
-        if (!Enabled)
-            return;
-
-        BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
-    }
-
-    internal void IncrementPerformancePhaseHit(string phase)
-    {
-        if (!Enabled)
-            return;
-
-        PerformancePhaseHits.AddOrUpdate(phase, 1, (_, current) => current + 1);
-    }
-
-    internal void IncrementPerformancePhaseElapsedTicks(string phase, long elapsedTicks)
-    {
-        if (!Enabled)
-            return;
-
-        PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
-    }
+    internal void IncrementPerformancePhaseElapsedTicks(string phase, long elapsedTicks) => PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
 
     internal string? FormatPerformancePhases()
     {
@@ -899,6 +684,7 @@ public sealed class DbMetrics
 
     private readonly Stopwatch _sw = Stopwatch.StartNew();
     private static readonly AsyncLocal<DbMetrics?> _ambientMetrics = new();
+    private static readonly Func<string, int, int> _incrementHandler = static (_, current) => current + 1;
 
     private sealed class NoopDisposable : IDisposable
     {

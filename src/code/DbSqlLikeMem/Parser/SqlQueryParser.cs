@@ -78,9 +78,9 @@ internal sealed class SqlQueryParser
             parameters,
             customFunctionSupported,
             prelude.AutoSyntaxFeatures,
-            innerSql => Parse(innerSql, db, dialect, null, customFunctionSupported),
-            expr => SqlExpressionParser.ParseScalar(expr, db, dialect, parameters, customFunctionSupported),
-            txt => SqlExpressionParser.ParseWhere(txt, db, dialect, parameters, customFunctionSupported));
+            ParseInnerSql,
+            ParseExprScalar,
+            ParseExprWhere);
     }
 
     private SqlQueryParser(
@@ -101,10 +101,19 @@ internal sealed class SqlQueryParser
             parameters,
             customFunctionSupported,
             autoSyntaxFeatures,
-            innerSql => Parse(innerSql, db, dialect, null, customFunctionSupported),
-            expr => SqlExpressionParser.ParseScalar(expr, db, dialect, parameters, customFunctionSupported),
-            txt => SqlExpressionParser.ParseWhere(txt, db, dialect, parameters, customFunctionSupported));
+            ParseInnerSql,
+            ParseExprScalar,
+            ParseExprWhere);
     }
+
+    private SqlQueryBase ParseInnerSql(string innerSql)
+        => Parse(innerSql, _ctx.Db, _dialect, null, _customFunctionSupported);
+
+    private SqlExpr ParseExprScalar(string expr)
+        => SqlExpressionParser.ParseScalar(expr, _ctx.Db, _dialect, _parameters, _customFunctionSupported);
+
+    private SqlExpr ParseExprWhere(string txt)
+        => SqlExpressionParser.ParseWhere(txt, _ctx.Db, _dialect, _parameters, _customFunctionSupported);
 
     /// <summary>
     /// EN: Parses one SQL statement into an AST root using default parser options and no parameter collection.

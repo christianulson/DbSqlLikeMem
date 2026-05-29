@@ -1,9 +1,11 @@
+using System.Collections.Concurrent;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
 
 internal static class AstQueryMySqlUtilityFunctionEvaluator
 {
+    private static readonly ConcurrentDictionary<string, Regex> _regexpCache = new(StringComparer.OrdinalIgnoreCase);
     private delegate bool MySqlUtilityFunctionHandler(
         QueryExecutionContext context,
         FunctionCallExpr fn,
@@ -1362,7 +1364,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
         {
             if (string.Equals(fn.Name, "REGEXP_LIKE", StringComparison.OrdinalIgnoreCase))
             {
-                result = Regex.IsMatch(scoped, pattern, options) ? 1 : 0;
+                result = _regexpCache.GetOrAdd(pattern, p => new Regex(p, options)).IsMatch(scoped) ? 1 : 0;
                 return true;
             }
 
@@ -1371,7 +1373,7 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                 var replacement = fn.Args.Count >= 3 ? evalArg(2)?.ToString() ?? string.Empty : string.Empty;
                 if (fn.Args.Count >= 4 && !IsNullish(evalArg(3)) && occurrence > 0)
                 {
-                    var matches = Regex.Matches(scoped, pattern, options);
+                    var matches = _regexpCache.GetOrAdd(pattern, p => new Regex(p, options)).Matches(scoped);
                     if (matches.Count == 0)
                     {
                         result = scoped;
@@ -1386,11 +1388,11 @@ internal static class AstQueryMySqlUtilityFunctionEvaluator
                     return true;
                 }
 
-                result = Regex.Replace(scoped, pattern, replacement, options);
+                result = _regexpCache.GetOrAdd(pattern, p => new Regex(p, options)).Replace(scoped, replacement);
                 return true;
             }
 
-            var matchesForInstr = Regex.Matches(scoped, pattern, options);
+            var matchesForInstr = _regexpCache.GetOrAdd(pattern, p => new Regex(p, options)).Matches(scoped);
             if (matchesForInstr.Count == 0)
             {
                 result = string.Equals(fn.Name, "REGEXP_SUBSTR", StringComparison.OrdinalIgnoreCase) ? null : 0;

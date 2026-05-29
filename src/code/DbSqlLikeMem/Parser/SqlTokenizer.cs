@@ -4,6 +4,8 @@ internal sealed class SqlTokenizer
 {
     private readonly string _sql;
     private readonly ISqlDialect _dialect;
+    private static readonly string[] _jsonOperators = ["#>>", "->>", "#>", "->"];
+    private readonly HashSet<string> _operatorSet;
     private int _pos;
 
     /// <summary>
@@ -14,6 +16,7 @@ internal sealed class SqlTokenizer
     {
         _sql = sql ?? throw new ArgumentNullException(nameof(sql));
         _dialect = dialect;
+        _operatorSet = [.. dialect.Operators];
     }
 
     /// <summary>
@@ -69,7 +72,7 @@ internal sealed class SqlTokenizer
             }
 
             if (RemainingSpan.StartsWith("::", StringComparison.Ordinal)
-                && _dialect.Operators.Any(op => op == "::"))
+                && _operatorSet.Contains("::"))
             {
                 var start = _pos;
                 _pos += 2;
@@ -84,7 +87,7 @@ internal sealed class SqlTokenizer
             }
 
             if (_dialect.IsParameterPrefix(ch)
-                && !(ch == '@' && Peek(1) == '@' && _dialect.Operators.Any(op => op == "@@")))
+                && !(ch == '@' && Peek(1) == '@' && _operatorSet.Contains("@@")))
             {
                 tokens.Add(ReadParameter());
                 continue;
@@ -331,12 +334,12 @@ internal sealed class SqlTokenizer
         Read(); // 1o char
         while (!Eof && IsIdentChar(Peek())) Read();
 
-        var textSpan = _sql.AsSpan(startPos, _pos - startPos);
+        var word = _sql.Substring(startPos, _pos - startPos);
 
-        if (_dialect.IsKeyword(textSpan))
-            return new SqlToken(SqlTokenKind.Keyword, textSpan.ToString(), startPos);
+        if (_dialect.IsKeyword(word))
+            return new SqlToken(SqlTokenKind.Keyword, word, startPos);
 
-        return new SqlToken(SqlTokenKind.Identifier, textSpan.ToString(), startPos);
+        return new SqlToken(SqlTokenKind.Identifier, word, startPos);
     }
 
     private bool TryReadOperator(out SqlToken token)
@@ -357,7 +360,7 @@ internal sealed class SqlTokenizer
         // Compat parser: operadores JSON podem ser aceitos conforme regra do dialeto.
         if (_dialect.SupportsJsonArrowOperators || _dialect.AllowsParserCrossDialectJsonOperators)
         {
-            foreach (var op in new[] { "#>>", "->>", "#>", "->" })
+            foreach (var op in _jsonOperators)
             {
                 if (remaining.StartsWith(op, StringComparison.Ordinal))
                 {

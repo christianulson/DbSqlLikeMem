@@ -215,8 +215,14 @@ internal sealed class SqlExpressionParserContext
                     caseDepth--;
                 }
 
-                if (caseDepth == 0 && stopWords.Any(word => IsKeywordOrIdentifierWord(token, word)))
-                    break;
+                if (caseDepth == 0)
+                {
+                    foreach (var word in stopWords)
+                    {
+                        if (IsKeywordOrIdentifierWord(token, word))
+                            goto ExitWhile;
+                    }
+                }
             }
 
             if (IsSymbol(token, "("))
@@ -226,7 +232,7 @@ internal sealed class SqlExpressionParserContext
 
             tokens.Add(Consume());
         }
-
+        ExitWhile:
         return tokens;
     }
 

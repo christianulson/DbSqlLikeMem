@@ -32,7 +32,6 @@ internal abstract partial class AstQueryExecutorBase
 
         foreach (var r in rows)
         {
-            using var positionalScope = _context.BeginPositionalParameterScope();
             var outRow = new Dictionary<int, object?>(projectedColumnCount);
             for (int i = 0; i < projectedColumnCount; i++)
                 outRow[i] = selectPlan.Evaluators[i](r, null);
@@ -85,7 +84,6 @@ internal abstract partial class AstQueryExecutorBase
 
         foreach (var g in groupsList)
         {
-            using var positionalScope = _context.BeginPositionalParameterScope();
             var eg = new EvalGroup(g.Rows);
             var outRow = new Dictionary<int, object?>(groupedColumnCount);
 
@@ -112,11 +110,7 @@ internal abstract partial class AstQueryExecutorBase
                     ParseExpr,
                     (expr, row) => Eval(expr, row, group: null, ctes));
 
-            res = _context.ApplyDistinctOn(res, q.DistinctOn, ParseExpr, (expr, row) =>
-            {
-                using var positionalScope = _context.BeginPositionalParameterScope();
-                return Eval(expr, row, group: null, ctes);
-            });
+            res = _context.ApplyDistinctOn(res, q.DistinctOn, ParseExpr, (expr, row) => Eval(expr, row, group: null, ctes));
 
             debugTrace?.AddStep(
                 "Distinct On",

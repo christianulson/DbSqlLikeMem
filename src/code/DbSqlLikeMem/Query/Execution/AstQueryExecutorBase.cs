@@ -36,7 +36,20 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     private DbConnectionMockBase Cnn => _context.Connection;
 
     private IDataParameterCollection _pars => _context.DbParameters;
+    private const int ParsedExprCacheMaxSize = 512;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ITableMock> _resolvedBaseTableCache = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, SqlExpr> _parsedExprCache = new(StringComparer.Ordinal);
+    private int _parsedExprCacheMisses;
+
+    private sealed class SqlExprReferenceComparer : IEqualityComparer<SqlExpr>
+    {
+        public bool Equals(SqlExpr? x, SqlExpr? y) => ReferenceEquals(x, y);
+        public int GetHashCode(SqlExpr obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        public static readonly SqlExprReferenceComparer Instance = new();
+    }
+    private readonly Dictionary<SqlExpr, Func<EvalRow, bool>?> _compiledPredicateCache = new(SqlExprReferenceComparer.Instance);
+    private static readonly object? _trueBoxed = true;
+    private static readonly object? _falseBoxed = false;
     internal sealed record InSubqueryLookupState(
         List<object?> Values,
         HashSet<InLookupScalarKey>? ScalarCandidates,
@@ -192,28 +205,60 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
     // Dialect-aware expression parsing without hard dependency on a specific dialect type.
     // Custom schema functions are resolved through the current connection when available.
+    private void TrimParsedExprCache()
+    {
+        if (_parsedExprCache.Count <= ParsedExprCacheMaxSize)
+            return;
+
+        var removeCount = _parsedExprCache.Count - ParsedExprCacheMaxSize;
+        foreach (var key in _parsedExprCache.Keys.Take(removeCount).ToArray())
+            _parsedExprCache.Remove(key);
+    }
+
     private SqlExpr ParseExpr(string raw)
     {
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new InvalidOperationException("Raw SQL expression cannot be empty");
+
+        if (_parsedExprCache.TryGetValue(raw, out var cached))
+            return cached;
+
         var db = context.Connection.Db ?? throw new InvalidOperationException("Banco SQL não disponível para parse de expressão.");
         var dialect = context.Dialect ?? throw new InvalidOperationException("Dialecto SQL não disponível para parse de expressão.");
-        return SqlExpressionParser.ParseWhere(
+        var parsed = SqlExpressionParser.ParseWhere(
             raw,
             db,
             dialect,
             null,
             customFunctionSupported: name => Cnn.TryGetFunction(name, out _));
+
+        _parsedExprCache[raw] = parsed;
+        if (++_parsedExprCacheMisses % 64 == 0)
+            TrimParsedExprCache();
+        return parsed;
     }
 
     private SqlExpr ParseScalarExpr(string raw)
     {
+        if (string.IsNullOrWhiteSpace(raw))
+            throw new InvalidOperationException("Raw SQL expression cannot be empty");
+
+        if (_parsedExprCache.TryGetValue(raw, out var cached))
+            return cached;
+
         var db = context.Connection.Db ?? throw new InvalidOperationException("Banco SQL não disponível para parse de expressão.");
         var dialect = context.Dialect ?? throw new InvalidOperationException("Dialecto SQL não disponível para parse de expressão.");
-        return SqlExpressionParser.ParseScalar(
+        var parsed = SqlExpressionParser.ParseScalar(
             raw,
             db,
             dialect,
             _pars,
             customFunctionSupported: name => Cnn.TryGetFunction(name, out _));
+
+        _parsedExprCache[raw] = parsed;
+        if (++_parsedExprCacheMisses % 64 == 0)
+            TrimParsedExprCache();
+        return parsed;
     }
 
     private IReadOnlyList<SqlIndexRecommendation> BuildIndexRecommendations(
@@ -361,6 +406,157 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
     internal static bool IsNullish(object? v) => v is null || v is DBNull;
 
+    private Func<EvalRow, bool>? CompilePredicate(SqlExpr expr)
+    {
+        if (_compiledPredicateCache.TryGetValue(expr, out var cached))
+            return cached;
+
+        var compiled = TryCompilePredicate(expr);
+        _compiledPredicateCache[expr] = compiled;
+        return compiled;
+    }
+
+    private static Func<EvalRow, bool>? TryCompilePredicate(SqlExpr expr)
+    {
+        switch (expr)
+        {
+            case BinaryExpr b when b.Op == SqlBinaryOp.And:
+            {
+                var left = TryCompilePredicate(b.Left);
+                var right = TryCompilePredicate(b.Right);
+                if (left is not null && right is not null)
+                    return row => left(row) && right(row);
+                return null;
+            }
+
+            case BinaryExpr b when b.Op == SqlBinaryOp.Or:
+            {
+                var left = TryCompilePredicate(b.Left);
+                var right = TryCompilePredicate(b.Right);
+                if (left is not null && right is not null)
+                    return row => left(row) || right(row);
+                return null;
+            }
+
+            case UnaryExpr u when u.Op == SqlUnaryOp.Not:
+            {
+                var inner = TryCompilePredicate(u.Expr);
+                if (inner is not null)
+                    return row => !inner(row);
+                return null;
+            }
+
+            case BinaryExpr b when b.Right is LiteralExpr rightLit:
+            {
+                var leftReader = TryBuildColumnReader(b.Left);
+                if (leftReader is not null)
+                    return BuildBinaryCompiled(b.Op, leftReader, rightLit.Value);
+                return null;
+            }
+
+            case BinaryExpr b when b.Left is LiteralExpr leftLit:
+            {
+                var rightReader = TryBuildColumnReader(b.Right);
+                if (rightReader is not null)
+                    return BuildBinaryCompiled(b.Op, rightReader, leftLit.Value);
+                return null;
+            }
+
+            default:
+                return null;
+        }
+    }
+
+    private static Func<EvalRow, object?>? TryBuildColumnReader(SqlExpr expr)
+    {
+        if (expr is ColumnExpr col)
+        {
+            var name = string.IsNullOrWhiteSpace(col.Qualifier) ? col.Name : $"{col.Qualifier}.{col.Name}";
+            return row => ReadColumnValue(row, name);
+        }
+        return null;
+    }
+
+    private static object? ReadColumnValue(EvalRow row, string columnName)
+    {
+        if (row.OrdinalIndexes is not null && row.OrdinalIndexes.TryGetValue(columnName, out var idx)
+            && row.OrdinalValues is not null && idx >= 0 && idx < row.OrdinalValues.Length)
+            return row.OrdinalValues[idx];
+        row.Fields.TryGetValue(columnName, out var v);
+        return v;
+    }
+
+    private static Func<EvalRow, bool> BuildBinaryCompiled(SqlBinaryOp op, Func<EvalRow, object?> readColumn, object? literal)
+    {
+        return op switch
+        {
+            SqlBinaryOp.Eq => row =>
+            {
+                var val = readColumn(row);
+                if (val is null || val is DBNull) return literal is null || literal is DBNull;
+                if (literal is null || literal is DBNull) return false;
+                return val.EqualsSql(literal);
+            },
+
+            SqlBinaryOp.Neq => row =>
+            {
+                var val = readColumn(row);
+                if (val is null || val is DBNull) return !(literal is null || literal is DBNull);
+                if (literal is null || literal is DBNull) return true;
+                return !val.EqualsSql(literal);
+            },
+
+            SqlBinaryOp.Greater => row =>
+            {
+                var val = readColumn(row);
+                if (val is null || val is DBNull) return false;
+                if (literal is null || literal is DBNull) return false;
+                return CompareSql(val, literal) > 0;
+            },
+
+            SqlBinaryOp.GreaterOrEqual => row =>
+            {
+                var val = readColumn(row);
+                if (val is null || val is DBNull) return false;
+                if (literal is null || literal is DBNull) return false;
+                return CompareSql(val, literal) >= 0;
+            },
+
+            SqlBinaryOp.Less => row =>
+            {
+                var val = readColumn(row);
+                if (val is null || val is DBNull) return false;
+                if (literal is null || literal is DBNull) return false;
+                return CompareSql(val, literal) < 0;
+            },
+
+            SqlBinaryOp.LessOrEqual => row =>
+            {
+                var val = readColumn(row);
+                if (val is null || val is DBNull) return false;
+                if (literal is null || literal is DBNull) return false;
+                return CompareSql(val, literal) <= 0;
+            },
+
+            _ => null!
+        };
+    }
+
+    private static int CompareSql(object? left, object? right)
+    {
+        if (ReferenceEquals(left, right)) return 0;
+        if (left is null) return -1;
+        if (right is null) return 1;
+        if (left.GetType() == right.GetType() && left is IComparable c)
+            return c.CompareTo(right);
+        if (left is IComparable lc)
+        {
+            try { return lc.CompareTo(right); }
+            catch { }
+        }
+        return StringComparer.OrdinalIgnoreCase.Compare(left.ToString(), right.ToString());
+    }
+
     private static bool IsRowCountHelperSelect(SqlSelectQuery q)
     {
         if (q.SelectItems.Count != 1)
@@ -412,6 +608,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         private readonly Dictionary<string, string>? _qualifiedColumnNameLookup;
         private readonly string? _singlePrimaryKeyColumnName;
         private readonly IReadOnlyList<string>? _requestedPartitionNames;
+        private readonly Dictionary<string, int> _sourceOrdinalIndexes;
+        private readonly Dictionary<string, Source> _sourceDict;
         /// <summary>
         /// EN: Gets or sets Alias.
         /// PT-br: Obtém ou define Alias.
@@ -428,6 +626,19 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         /// </summary>
         public IReadOnlyList<string> ColumnNames { get; }
         public IReadOnlyList<SqlMySqlIndexHint> MySqlIndexHints { get; }
+
+        /// <summary>
+        /// EN: Pre-built ordinal index dictionary for this source (cached, not allocated per row).
+        /// PT-br: Dicionario de indices ordinais pre-construido para esta source (cache, nao alocado por linha).
+        /// </summary>
+        internal Dictionary<string, int> SourceOrdinalIndexes => _sourceOrdinalIndexes;
+
+        /// <summary>
+        /// EN: Pre-built source dictionary for EvalRow.Sources (cached, not allocated per row).
+        /// PT-br: Dicionario de sources pre-construido para EvalRow.Sources (cache, nao alocado por linha).
+        /// </summary>
+        internal Dictionary<string, Source> SourceDict => _sourceDict;
+
         private Source(
             string name,
             string alias,
@@ -477,6 +688,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 : null;
             MySqlIndexHints = mySqlIndexHints ?? [];
             _requestedPartitionNames = requestedPartitionNames;
+            _sourceOrdinalIndexes = BuildSourceOrdinalIndexes(columnNames, qualifiedColumnNames, sourceQualifiedColumnNames, Alias);
+            _sourceDict = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase) { [Alias] = this };
+            if (!Name.Equals(Alias, StringComparison.OrdinalIgnoreCase))
+                _sourceDict[Name] = this;
         }
         private Source(string name, string alias, TableResultMock result)
         {
@@ -515,6 +730,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             _singlePrimaryKeyColumnName = null;
             _requestedPartitionNames = null;
             MySqlIndexHints = [];
+            _sourceOrdinalIndexes = BuildSourceOrdinalIndexes(columnNames, qualifiedColumnNames, sourceQualifiedColumnNames, Alias);
+            _sourceDict = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase) { [Alias] = this };
+            if (!Name.Equals(Alias, StringComparison.OrdinalIgnoreCase))
+                _sourceDict[Name] = this;
         }
         /// <summary>
         /// EN: Implements WithAlias.
@@ -757,7 +976,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         internal long CountRowsByIndexes(IEnumerable<int> indexes)
         {
             if (Physical is null)
-                return Rows().Count();
+                return _result?.Count ?? 0;
 
             var emitted = new HashSet<int>();
             var count = 0L;
@@ -786,7 +1005,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         internal long CountRowsByIndex(int index)
         {
             if (Physical is null)
-                return Rows().Count();
+                return _result is not null && index < _result.Count ? 1 : 0;
 
             if (index < 0 || index >= Physical.Count)
                 return 0;
@@ -815,6 +1034,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 yield break;
             }
 
+            // Single-row yield; allocation is acceptable.
+            // Not using SqlRowPool here because caller manages the dict lifecycle.
             var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < ColumnNames.Count; i++)
             {
@@ -831,6 +1052,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             IEnumerable<int> indexes)
         {
             var emitted = new HashSet<int>();
+            var reusable = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
             foreach (var raw in indexes)
             {
                 if (raw < 0 || raw >= Physical!.Count)
@@ -847,16 +1069,16 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                     continue;
                 }
 
-                var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
+                reusable.Clear();
                 for (var i = 0; i < ColumnNames.Count; i++)
                 {
                     var idx = _physicalColumnIndexes![i];
-                    dict[_qualifiedColumnNames![i]] = row.TryGetValue(idx, out var v)
+                    reusable[_qualifiedColumnNames![i]] = row.TryGetValue(idx, out var v)
                         ? v
                         : null;
                 }
 
-                yield return dict;
+                yield return reusable;
             }
         }
 
@@ -897,6 +1119,23 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         /// </summary>
         public static Source FromResult(string tableName, TableResultMock result)
             => new(tableName, tableName, result);
+
+        private static Dictionary<string, int> BuildSourceOrdinalIndexes(
+            string[] columnNames,
+            string[] qualifiedColumnNames,
+            string[]? sourceQualifiedColumnNames,
+            string alias)
+        {
+            var ordinals = new Dictionary<string, int>(columnNames.Length * 3, StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < columnNames.Length; i++)
+            {
+                ordinals.TryAdd(qualifiedColumnNames[i], i);
+                ordinals.TryAdd(columnNames[i], i);
+                if (sourceQualifiedColumnNames is not null)
+                    ordinals.TryAdd(sourceQualifiedColumnNames[i], i);
+            }
+            return ordinals;
+        }
     }
 
     internal readonly record struct InMembershipState(bool Matched, bool HasNullCandidate);
@@ -957,16 +1196,51 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         ["SAT"] = DayOfWeek.Saturday
     };
 
-    internal sealed record EvalRow(
-        Dictionary<string, object?> Fields,
-        Dictionary<string, Source> Sources)
+    internal sealed class EvalRow
     {
-        internal object?[]? OrdinalValues { get; init; }
-        internal Dictionary<string, int>? OrdinalIndexes { get; init; }
+        private Dictionary<string, object?>? _fields;
+        public Dictionary<string, object?> Fields
+        {
+            get
+            {
+                if (_fields is null)
+                {
+                    _fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                    if (FieldKeys is not null && OrdinalValues is not null && OrdinalIndexes is not null)
+                    {
+                        foreach (var key in FieldKeys)
+                            if (OrdinalIndexes.TryGetValue(key, out var idx) && idx >= 0 && idx < OrdinalValues.Length)
+                                _fields[key] = OrdinalValues[idx];
+                    }
+                    else if (OrdinalValues is not null && OrdinalIndexes is not null)
+                    {
+                        foreach (var kvp in OrdinalIndexes)
+                            if (kvp.Value >= 0 && kvp.Value < OrdinalValues.Length)
+                                _fields[kvp.Key] = OrdinalValues[kvp.Value];
+                    }
+                }
+                return _fields;
+            }
+            set => _fields = value;
+        }
+        public Dictionary<string, Source> Sources { get; }
+        internal object?[]? OrdinalValues { get; set; }
+        internal Dictionary<string, int>? OrdinalIndexes { get; set; }
+        internal string[]? FieldKeys { get; set; }
         internal IReadOnlyList<KeyValuePair<string, object?>>? CorrelatedCacheFields { get; set; }
         internal Dictionary<string, IReadOnlyList<KeyValuePair<string, object?>>>? CorrelatedCacheFieldViews { get; set; }
         internal Dictionary<string, string>? CorrelatedCacheKeys { get; set; }
         internal Source? SingleSource { get; set; }
+
+        /// <summary>
+        /// EN: Initializes a new EvalRow with the given fields and sources.
+        /// PT-br: Inicializa um novo EvalRow com os campos e fontes fornecidos.
+        /// </summary>
+        public EvalRow(Dictionary<string, object?> fields, Dictionary<string, Source> sources)
+        {
+            Fields = fields;
+            Sources = sources;
+        }
 
         /// <summary>
         /// EN: Implements FromProjected.
@@ -978,9 +1252,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             Dictionary<string, int> aliasToIndex,
             Dictionary<string, object?>? joinFields = null)
         {
-            var fields = new Dictionary<string, object?>(
-                Math.Max(aliasToIndex.Count + (joinFields?.Count ?? 0) * 2, 1),
-                StringComparer.OrdinalIgnoreCase);
+            var fields = SqlRowPool.Get(Math.Max(aliasToIndex.Count + (joinFields?.Count ?? 0) * 2, 1));
+            // OrdinalValues here flows into EvalRow used by comparers; not returned to pool.
             var ordinalValues = new object?[res.Columns.Count];
             foreach (var kv in aliasToIndex)
             {
@@ -1003,7 +1276,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 }
             }
 
-            return new EvalRow(fields, new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase))
+            return new EvalRow(fields, new Dictionary<string, Source>(Math.Max(1, aliasToIndex.Count), StringComparer.OrdinalIgnoreCase))
             {
                 OrdinalValues = ordinalValues,
                 OrdinalIndexes = new Dictionary<string, int>(aliasToIndex, StringComparer.OrdinalIgnoreCase),
@@ -1017,7 +1290,11 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         /// </summary>
         public EvalRow CloneRow()
         {
-            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
+            // Clone does not release old Fields/OrdinalValues to pool because
+            // the source EvalRow may still be referenced elsewhere in the pipeline.
+            var fields = SqlRowPool.Get(Fields.Count);
+            foreach (var kvp in Fields)
+                fields[kvp.Key] = kvp.Value;
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
 
             return new EvalRow(fields, sources)
@@ -1038,8 +1315,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         /// <param name="extraSourceCapacity">EN: Extra capacity hint for sources. PT-br: Capacidade extra sugerida para fontes.</param>
         public EvalRow CloneRow(int extraFieldCapacity, int extraSourceCapacity)
         {
-            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(fields.Count + extraFieldCapacity);
+            // Does not release old Fields/OrdinalValues (same reason as CloneRow()).
+            var fields = SqlRowPool.Get(Fields.Count + extraFieldCapacity);
+            foreach (var kvp in Fields)
+                fields[kvp.Key] = kvp.Value;
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
             sources.EnsureCapacity(sources.Count + extraSourceCapacity);
@@ -1062,27 +1341,31 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         /// <param name="rightFields">EN: Fields produced by the joined row. PT-br: Campos produzidos pela linha associada.</param>
         internal EvalRow MergeJoinRow(Source rightSource, Dictionary<string, object?> rightFields)
         {
-            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(fields.Count + rightSource.ColumnNames.Count * 2);
+            var oldFields = Fields;
+            var fields = SqlRowPool.Get(oldFields.Count + rightSource.ColumnNames.Count * 2);
+            foreach (var kvp in oldFields)
+                fields[kvp.Key] = kvp.Value;
+            SqlRowPool.Return(oldFields);
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
             sources.EnsureCapacity(sources.Count + 1);
             sources[rightSource.Alias] = rightSource;
 
+            var leftOrdinals = OrdinalValues;
             object?[]? ordinalValues = null;
             Dictionary<string, int>? ordinalIndexes = null;
-            var hasLeftOrdinalMetadata = OrdinalValues is not null && OrdinalIndexes is not null;
+            var hasLeftOrdinalMetadata = leftOrdinals is not null && OrdinalIndexes is not null;
             var rightOrdinalCount = rightSource.ColumnNames.Count;
             if (hasLeftOrdinalMetadata || rightOrdinalCount > 0)
             {
-                var leftOrdinalCount = hasLeftOrdinalMetadata ? OrdinalValues!.Length : 0;
-                ordinalValues = new object?[leftOrdinalCount + rightOrdinalCount];
+                var leftOrdinalCount = hasLeftOrdinalMetadata ? leftOrdinals!.Length : 0;
+                ordinalValues = OrdinalPool.Rent(leftOrdinalCount + rightOrdinalCount);
                 ordinalIndexes = hasLeftOrdinalMetadata
                     ? new Dictionary<string, int>(OrdinalIndexes!, StringComparer.OrdinalIgnoreCase)
                     : new Dictionary<string, int>(Math.Max(1, rightOrdinalCount * 3), StringComparer.OrdinalIgnoreCase);
 
                 if (hasLeftOrdinalMetadata && leftOrdinalCount > 0)
-                    Array.Copy(OrdinalValues!, ordinalValues, leftOrdinalCount);
+                    Array.Copy(leftOrdinals!, ordinalValues, leftOrdinalCount);
 
                 if (rightOrdinalCount > 0)
                 {
@@ -1090,6 +1373,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                     PopulateJoinedSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, leftOrdinalCount, nullValue: null);
                 }
             }
+
+            OrdinalPool.Return(leftOrdinals);
 
             return new EvalRow(fields, sources)
             {
@@ -1106,27 +1391,31 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         /// <param name="rightSource">EN: Right-side source to append. PT-br: Source do lado direito a adicionar.</param>
         internal EvalRow CreateNullExtendedJoinRow(Source rightSource)
         {
-            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(fields.Count + rightSource.ColumnNames.Count * 2);
+            var oldFields = Fields;
+            var fields = SqlRowPool.Get(oldFields.Count + rightSource.ColumnNames.Count * 2);
+            foreach (var kvp in oldFields)
+                fields[kvp.Key] = kvp.Value;
+            SqlRowPool.Return(oldFields);
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
             sources.EnsureCapacity(sources.Count + 1);
             sources[rightSource.Alias] = rightSource;
 
+            var leftOrdinals = OrdinalValues;
             object?[]? ordinalValues = null;
             Dictionary<string, int>? ordinalIndexes = null;
-            var hasLeftOrdinalMetadata = OrdinalValues is not null && OrdinalIndexes is not null;
+            var hasLeftOrdinalMetadata = leftOrdinals is not null && OrdinalIndexes is not null;
             var rightOrdinalCount = rightSource.ColumnNames.Count;
             if (hasLeftOrdinalMetadata || rightOrdinalCount > 0)
             {
-                var leftOrdinalCount = hasLeftOrdinalMetadata ? OrdinalValues!.Length : 0;
-                ordinalValues = new object?[leftOrdinalCount + rightOrdinalCount];
+                var leftOrdinalCount = hasLeftOrdinalMetadata ? leftOrdinals!.Length : 0;
+                ordinalValues = OrdinalPool.Rent(leftOrdinalCount + rightOrdinalCount);
                 ordinalIndexes = hasLeftOrdinalMetadata
                     ? new Dictionary<string, int>(OrdinalIndexes!, StringComparer.OrdinalIgnoreCase)
                     : new Dictionary<string, int>(Math.Max(1, rightOrdinalCount * 3), StringComparer.OrdinalIgnoreCase);
 
                 if (hasLeftOrdinalMetadata && leftOrdinalCount > 0)
-                    Array.Copy(OrdinalValues!, ordinalValues, leftOrdinalCount);
+                    Array.Copy(leftOrdinals!, ordinalValues, leftOrdinalCount);
 
                 if (rightOrdinalCount > 0)
                 {
@@ -1134,6 +1423,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                     PopulateJoinedSourceColumns(rightSource, null, fields, ordinalValues, ordinalIndexes, leftOrdinalCount, nullValue: null);
                 }
             }
+
+            OrdinalPool.Return(leftOrdinals);
 
             return new EvalRow(fields, sources)
             {
@@ -1158,8 +1449,11 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 return this;
             }
 
-            var fields = new Dictionary<string, object?>(Fields, StringComparer.OrdinalIgnoreCase);
-            fields.EnsureCapacity(fields.Count + outer.Fields.Count * 2);
+            var oldFields = Fields;
+            var fields = SqlRowPool.Get(oldFields.Count + outer.Fields.Count * 2);
+            foreach (var kvp in oldFields)
+                fields[kvp.Key] = kvp.Value;
+            SqlRowPool.Return(oldFields);
 
             foreach (var it in outer.Fields)
             {
@@ -1179,21 +1473,22 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             foreach (var it in outer.Sources)
                 sources.TryAdd(it.Key, it.Value);
 
+            var innerOrdinals = OrdinalValues;
             object?[]? ordinalValues = null;
             Dictionary<string, int>? ordinalIndexes = null;
-            var hasInnerOrdinalMetadata = OrdinalValues is not null && OrdinalIndexes is not null;
+            var hasInnerOrdinalMetadata = innerOrdinals is not null && OrdinalIndexes is not null;
             var hasOuterOrdinalMetadata = outer.OrdinalValues is not null && outer.OrdinalIndexes is not null;
             if (hasInnerOrdinalMetadata || hasOuterOrdinalMetadata)
             {
-                var innerOrdinalCount = hasInnerOrdinalMetadata ? OrdinalValues!.Length : 0;
+                var innerOrdinalCount = hasInnerOrdinalMetadata ? innerOrdinals!.Length : 0;
                 var outerOrdinalCount = hasOuterOrdinalMetadata ? outer.OrdinalValues!.Length : 0;
-                ordinalValues = new object?[innerOrdinalCount + outerOrdinalCount];
+                ordinalValues = OrdinalPool.Rent(innerOrdinalCount + outerOrdinalCount);
                 ordinalIndexes = hasInnerOrdinalMetadata
                     ? new Dictionary<string, int>(OrdinalIndexes!, StringComparer.OrdinalIgnoreCase)
                     : new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
                 if (hasInnerOrdinalMetadata && innerOrdinalCount > 0)
-                    Array.Copy(OrdinalValues!, ordinalValues, innerOrdinalCount);
+                    Array.Copy(innerOrdinals!, ordinalValues, innerOrdinalCount);
 
                 if (hasOuterOrdinalMetadata && outerOrdinalCount > 0)
                 {
@@ -1201,6 +1496,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                     AppendOrdinalMetadata(outer, ordinalValues, ordinalIndexes, innerOrdinalCount);
                 }
             }
+
+            OrdinalPool.Return(innerOrdinals);
 
             return new EvalRow(fields, sources)
             {
@@ -1210,14 +1507,14 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             };
         }
 
+        private static readonly Dictionary<string, Source> _emptySources = new(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// EN: Returns an empty evaluation row placeholder.
         /// PT-br: Retorna um placeholder de linha de avaliação vazia.
         /// </summary>
         public static EvalRow Empty()
-            => new(
-                new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase),
-                new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase))
+            => new(SqlRowPool.Get(), new Dictionary<string, Source>(_emptySources, StringComparer.OrdinalIgnoreCase))
             {
                 OrdinalValues = [],
                 OrdinalIndexes = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -1496,13 +1793,39 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
     private sealed record MaterializedGroup(GroupKey Key, List<EvalRow> Rows);
 
-    private readonly record struct GroupKey(object?[] Values)
+    internal readonly struct GroupKey
     {
-        ///// <summary>
-        ///// EN: Implements GroupKeyComparer.
-        ///// PT-br: Implementa GroupKeyComparer.
-        ///// </summary>
-        //public static readonly IEqualityComparer<GroupKey> Comparer = new GroupKeyComparer(_context);
+        private readonly int _count;
+        private readonly object? _v0, _v1, _v2, _v3;
+        private readonly object?[]? _extra;
+
+        public GroupKey(object?[] values)
+        {
+            _count = values.Length;
+            if (_count > 0) _v0 = values[0];
+            if (_count > 1) _v1 = values[1];
+            if (_count > 2) _v2 = values[2];
+            if (_count > 3) _v3 = values[3];
+            _extra = _count > 4 ? new object?[_count - 4] : null;
+            if (_extra is not null)
+                Array.Copy(values, 4, _extra, 0, _count - 4);
+        }
+
+        public readonly int Length => _count;
+
+        public readonly object? this[int index]
+        {
+            get
+            {
+                if ((uint)index >= (uint)_count)
+                    throw new IndexOutOfRangeException();
+                return index switch
+                {
+                    0 => _v0, 1 => _v1, 2 => _v2, 3 => _v3,
+                    _ => _extra![index - 4]
+                };
+            }
+        }
 
         internal sealed class GroupKeyComparer(
             QueryExecutionContext context
@@ -1514,9 +1837,9 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             /// </summary>
             public bool Equals(GroupKey x, GroupKey y)
             {
-                if (x.Values.Length != y.Values.Length) return false;
-                for (int i = 0; i < x.Values.Length; i++)
-                    if (!x.Values[i].EqualsSql(y.Values[i], context)) return false;
+                if (x.Length != y.Length) return false;
+                for (int i = 0; i < x.Length; i++)
+                    if (!x[i].EqualsSql(y[i], context)) return false;
                 return true;
             }
 
@@ -1527,8 +1850,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             public int GetHashCode(GroupKey obj)
             {
                 var h = 17;
-                foreach (var v in obj.Values)
-                    h = (h * 31) + (v?.GetHashCode() ?? 0);
+                for (int i = 0; i < obj.Length; i++)
+                    h = (h * 31) + obj[i].GetHashCodeSql(context);
                 return h;
             }
         }
@@ -1583,6 +1906,54 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
             // fallback estável
             return StringComparer.OrdinalIgnoreCase.Compare(x.ToString(), y.ToString());
+        }
+    }
+
+    internal static class SqlRowPool
+    {
+        private static readonly System.Collections.Concurrent.ConcurrentBag<Dictionary<string, object?>> _bag = new();
+
+        public static Dictionary<string, object?> Get(int capacity = 0, IEqualityComparer<string>? comparer = null)
+        {
+            if (_bag.TryTake(out var dict))
+            {
+                dict.Clear();
+                return dict;
+            }
+            return new Dictionary<string, object?>(capacity, comparer ?? StringComparer.OrdinalIgnoreCase);
+        }
+
+        public static void Return(Dictionary<string, object?> dict)
+        {
+            dict.Clear();
+            _bag.Add(dict);
+        }
+    }
+
+    internal static class OrdinalPool
+    {
+        private static readonly System.Collections.Concurrent.ConcurrentBag<object?[]> _bag = new();
+
+        public static object?[] Rent(int minLength)
+        {
+            if (minLength <= 0)
+                return [];
+
+            if (_bag.TryTake(out var arr) && arr.Length >= minLength)
+            {
+                Array.Clear(arr, 0, minLength);
+                return arr;
+            }
+            return new object?[minLength];
+        }
+
+        public static void Return(object?[]? arr)
+        {
+            if (arr is null || arr.Length == 0)
+                return;
+
+            Array.Clear(arr, 0, arr.Length);
+            _bag.Add(arr);
         }
     }
 

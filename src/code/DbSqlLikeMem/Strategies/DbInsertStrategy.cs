@@ -831,9 +831,6 @@ internal static class DbInsertStrategy
         SqlInsertQuery query,
         ITableMock table)
     {
-        if (query.ValuesRaw.Count == 1)
-            return [CreateSingleRowFromValues(context, query, table)];
-
         var dialect = context.Dialect;
         var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
         var colNames = query.Columns; // Lista de colunas do Insert
@@ -914,82 +911,6 @@ internal static class DbInsertStrategy
             rows.Add(newRow);
         }
         return rows;
-    }
-
-    private static Dictionary<int, object?> CreateSingleRowFromValues(
-        QueryExecutionContext context,
-        SqlInsertQuery query,
-        ITableMock table)
-    {
-        var dialect = context.Dialect;
-        var colNames = query.Columns;
-        var colNamesCount = colNames.Count;
-        var valueBlock = query.ValuesRaw[0];
-        var valueCount = valueBlock.Count;
-        var parsedExprBlock = query.ValuesExpr.Count > 0 ? query.ValuesExpr[0] : null;
-        var parsedExprCount = parsedExprBlock?.Count ?? 0;
-
-        if (colNamesCount > 0 && colNamesCount != valueCount)
-            throw new InvalidOperationException($"Column count ({colNamesCount}) does not match value count ({valueCount}).");
-
-        ColumnDef[]? explicitTargetColumns = null;
-        IReadOnlyList<ColumnDef>? orderedTableColumns = null;
-        List<ColumnDef>? nonIdentityColumns = null;
-        IReadOnlyList<ColumnDef> targetColumns;
-        var targetColumnCount = 0;
-
-        var firstValueCount = valueCount;
-        if (colNamesCount > 0)
-        {
-            explicitTargetColumns = new ColumnDef[colNamesCount];
-            for (var i = 0; i < colNamesCount; i++)
-                explicitTargetColumns[i] = ResolveInsertColumn(table, colNames[i], dialect);
-            targetColumns = explicitTargetColumns;
-            targetColumnCount = explicitTargetColumns.Length;
-        }
-        else
-        {
-            orderedTableColumns = table is TableMock tableMock
-                ? tableMock.ColumnsByOrdinal
-                : [.. table.Columns.Values.OrderBy(c => c.Index)];
-            var orderedCount = orderedTableColumns.Count;
-            nonIdentityColumns = new List<ColumnDef>(orderedCount);
-            for (var i = 0; i < orderedCount; i++)
-            {
-                var col = orderedTableColumns[i];
-                if (!col.Identity)
-                    nonIdentityColumns.Add(col);
-            }
-
-            targetColumns = firstValueCount == orderedTableColumns.Count
-                ? orderedTableColumns
-                : firstValueCount == nonIdentityColumns.Count
-                    ? nonIdentityColumns
-                    : orderedTableColumns;
-            targetColumnCount = firstValueCount < targetColumns.Count
-                ? firstValueCount
-                : targetColumns.Count;
-        }
-
-        var newRow = new Dictionary<int, object?>(Math.Max(1, valueCount));
-        if (targetColumnCount > 0)
-        {
-            var limit = colNamesCount > 0
-                ? targetColumnCount
-                : valueCount < targetColumnCount
-                    ? valueCount
-                    : targetColumnCount;
-
-            for (var i = 0; i < limit; i++)
-            {
-                var parsedExpr = parsedExprBlock is not null && i < parsedExprCount
-                    ? parsedExprBlock[i]
-                    : null;
-                SetColValue(context, table, targetColumns[i], valueBlock[i], parsedExpr, newRow);
-            }
-        }
-
-        return newRow;
     }
 
     private static ColumnDef ResolveInsertColumn(ITableMock table, string columnName, ISqlDialect dialect)
@@ -1498,29 +1419,6 @@ internal static class DbInsertStrategy
             return targetRow.TryGetValue(info.Index, out var v) ? v : null;
         }
 
-        static object? Coerce(DbType dbType, object? value)
-        {
-            if (value is null || value is DBNull) return null;
-            try
-            {
-                return dbType switch
-                {
-                    DbType.String => value.ToString(),
-                    DbType.Int16 => Convert.ToInt16(value),
-                    DbType.Int32 => Convert.ToInt32(value),
-                    DbType.Int64 => Convert.ToInt64(value),
-                    DbType.Byte => Convert.ToByte(value),
-                    DbType.Boolean => value is bool b ? b : Convert.ToInt32(value) != 0,
-                    DbType.Decimal => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
-                    DbType.Double => Convert.ToDouble(value),
-                    DbType.Single => Convert.ToSingle(value),
-                    DbType.DateTime => value is DateTime dt ? dt : Convert.ToDateTime(value),
-                    _ => value
-                };
-            }
-            catch { return value; }
-        }
-
         object? Eval(SqlExpr expr)
         {
             return expr switch
@@ -1543,7 +1441,7 @@ internal static class DbInsertStrategy
                     SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Concat => EvalConcat(Eval(b.Left), Eval(b.Right)),
+                    SqlBinaryOp.Concat => EvalConcatDuplicateUpdate(Eval(b.Left), Eval(b.Right), context.Dialect),
                     SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
@@ -1554,20 +1452,6 @@ internal static class DbInsertStrategy
                 FunctionCallExpr fn => EvalFunction(fn),
                 _ => throw new NotSupportedException($"Expressão não suportada em ON DUPLICATE: {expr.GetType().Name}")
             };
-        }
-
-        object? EvalConcat(object? left, object? right)
-        {
-            var nullInputReturnsNull = context.Dialect.PlusStringConcatReturnsNullOnNullInput;
-            if (left is null or DBNull || right is null or DBNull)
-            {
-                if (nullInputReturnsNull)
-                    return null;
-            }
-
-            var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
-            var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
-            return string.Concat(leftText, rightText);
         }
 
         object? EvalFunction(FunctionCallExpr fn)
@@ -1640,15 +1524,16 @@ internal static class DbInsertStrategy
         {
             var colInfo = table.GetColumn(assignment.Column);
             if (colInfo.GetGenValue != null) continue;
-            var expr = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
+
+            var ast = assignment.ValueExpr ?? SqlExpressionParser.ParseScalar(
                 assignment.ValueRaw,
                 context.Connection.Db,
                 context.Dialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
-            var resolved = Eval(expr);
-            var coerced = Coerce(colInfo.DbType, resolved);
-            targetRow[colInfo.Index] = coerced;
+            var value = Eval(ast);
+
+            targetRow[colInfo.Index] = value;
         }
     }
 
@@ -1718,7 +1603,7 @@ internal static class DbInsertStrategy
                     SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
                     SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Concat => EvalConcat(Eval(b.Left), Eval(b.Right)),
+                    SqlBinaryOp.Concat => EvalConcatDuplicateUpdate(Eval(b.Left), Eval(b.Right), context.Dialect),
                     SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
                     SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
@@ -1730,20 +1615,6 @@ internal static class DbInsertStrategy
                 RawSqlExpr raw => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {raw.Sql}"),
                 _ => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {expr.GetType().Name}")
             };
-        }
-
-        object? EvalConcat(object? left, object? right)
-        {
-            var nullInputReturnsNull = context.Dialect.PlusStringConcatReturnsNullOnNullInput;
-            if (left is null or DBNull || right is null or DBNull)
-            {
-                if (nullInputReturnsNull)
-                    return null;
-            }
-
-            var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
-            var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
-            return string.Concat(leftText, rightText);
         }
 
         bool TryGetExcludedValueFromName(string rawName, out object? value)
@@ -1971,5 +1842,19 @@ internal static class DbInsertStrategy
         if (connection.IsTemporaryTable(table, tableName, schemaName)) return;
         if (table is TableMock tableMock)
             tableMock.TriggerManager.ExecuteTriggers(evt, oldRow, newRow);
+    }
+
+    private static object? EvalConcatDuplicateUpdate(object? left, object? right, ISqlDialect dialect)
+    {
+        var nullInputReturnsNull = dialect.PlusStringConcatReturnsNullOnNullInput;
+        if (left is null or DBNull || right is null or DBNull)
+        {
+            if (nullInputReturnsNull)
+                return null;
+        }
+
+        var leftText = left is null or DBNull ? string.Empty : left.ToString() ?? string.Empty;
+        var rightText = right is null or DBNull ? string.Empty : right.ToString() ?? string.Empty;
+        return string.Concat(leftText, rightText);
     }
 }

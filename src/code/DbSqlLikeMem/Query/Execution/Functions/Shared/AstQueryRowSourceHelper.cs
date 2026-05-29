@@ -8,31 +8,24 @@ internal static class AstQueryRowSourceHelper
     {
         var sourceColumns = source.ColumnNames;
         var ordinalValues = new object?[sourceColumns.Count];
-        var ordinalIndexes = new Dictionary<string, int>(sourceColumns.Count * 3, StringComparer.OrdinalIgnoreCase);
+        var ordinalIndexes = source.SourceOrdinalIndexes;
+
+        // Extract ordered field keys for lazy Fields reconstruction.
+        var fieldKeys = new string[fields.Count];
+        fields.Keys.CopyTo(fieldKeys, 0);
+
         for (var i = 0; i < sourceColumns.Count; i++)
         {
-            var columnName = sourceColumns[i];
-            var qualifiedName = $"{source.Alias}.{columnName}";
-            var value = fields.TryGetValue(qualifiedName, out var current) ? current : null;
-            ordinalValues[i] = value;
-            ordinalIndexes.TryAdd(qualifiedName, i);
-            ordinalIndexes.TryAdd(columnName, i);
-            if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
-                ordinalIndexes.TryAdd($"{source.Name}.{columnName}", i);
+            var qualifiedName = source.GetQualifiedColumnName(i);
+            ordinalValues[i] = fields.TryGetValue(qualifiedName, out var current) ? current : null;
         }
 
-        var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
-        {
-            [source.Alias] = source
-        };
-        if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
-            rowSources[source.Name] = source;
-
-        return new EvalRow(fields, rowSources)
+        return new EvalRow(null!, source.SourceDict)
         {
             OrdinalValues = ordinalValues,
             OrdinalIndexes = ordinalIndexes,
-            SingleSource = source
+            SingleSource = source.SourceDict.Count == 1 ? source : null,
+            FieldKeys = fieldKeys
         };
     }
 }

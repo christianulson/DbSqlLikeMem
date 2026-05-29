@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class SqlAliasParserHelper
 {
+    private static readonly Regex _operatorSuffix = new(@"(<=>|<>|!=|>=|<=|=|>|<|\|\||\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant);
+    private static readonly Regex _nextPreviousValueFor = new(@"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     internal static (string Expr, string? Alias) SplitTrailingAsAliasTopLevel(string raw, ISqlDialect dialect)
     {
         raw = raw.Trim();
@@ -149,9 +152,9 @@ internal static class SqlAliasParserHelper
         ThrowIfUnsupportedAliasQuote(right, dialect, options);
 
         var lastLeft = left.TrimEnd();
-        if (Regex.IsMatch(lastLeft.ToString(), @"(<=>|<>|!=|>=|<=|=|>|<|\|\||\+|-|\*|/|,)\s*$", RegexOptions.CultureInvariant))
+        if (_operatorSuffix.IsMatch(lastLeft.ToString()))
             return null;
-        if (Regex.IsMatch(lastLeft.ToString(), @"\b(NEXT|PREVIOUS)\s+VALUE\s+FOR\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (_nextPreviousValueFor.IsMatch(lastLeft.ToString()))
             return null;
 
         var compositeTemporalIdentifier = string.Concat(lastLeft.ToString(), " ", right.ToString());

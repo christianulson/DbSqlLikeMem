@@ -856,16 +856,15 @@ internal sealed class AstQueryCastConversionFamilyEvaluator(
         return TryParseDecimalScale(typeSql, out var scale) ? scale : null;
     }
 
+    private static readonly Regex _decimalNumericScaleRegex = new(@"^(?:DECIMAL|NUMERIC)\s*\(\s*\d+\s*,\s*(\d+)\s*\)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private static bool TryParseDecimalScale(string typeSql, out int scale)
     {
         scale = 0;
         if (string.IsNullOrWhiteSpace(typeSql))
             return false;
 
-        var match = Regex.Match(
-            typeSql,
-            @"^(?:DECIMAL|NUMERIC)\s*\(\s*\d+\s*,\s*(\d+)\s*\)$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var match = _decimalNumericScaleRegex.Match(typeSql);
 
         if (!match.Success)
             return false;

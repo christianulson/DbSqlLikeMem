@@ -412,7 +412,13 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
         }
 
         var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
-        var hex = new string(text.Where(char.IsLetterOrDigit).ToArray());
+        var hexBuilder = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            if (char.IsLetterOrDigit(ch))
+                hexBuilder.Append(ch);
+        }
+        var hex = hexBuilder.ToString();
         if (hex.Length != 32)
         {
             result = null;
@@ -549,13 +555,17 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
             return null;
 
         var trimmed = sequenceName!.Trim().Trim('\'', '"');
-        var parts = trimmed
-            .Split('.')
-            .Select(s => s.Trim())
-            .Where(s => !string.IsNullOrWhiteSpace(s))
-            .Select(part => part.Trim('\'', '"').NormalizeName())
-            .Where(part => !string.IsNullOrWhiteSpace(part))
-            .ToArray();
+        var partsList = new List<string>();
+        foreach (var s in trimmed.Split('.'))
+        {
+            var trimmedPart = s.Trim();
+            if (string.IsNullOrWhiteSpace(trimmedPart))
+                continue;
+            var normalized = trimmedPart.Trim('\'', '"').NormalizeName();
+            if (!string.IsNullOrWhiteSpace(normalized))
+                partsList.Add(normalized);
+        }
+        var parts = partsList.ToArray();
 
         if (parts.Length == 0)
             return null;
@@ -569,7 +579,13 @@ internal static class AstQueryFirebirdScalarFunctionEvaluator
     {
         bytes = [];
 
-        var hex = new string(text.Where(char.IsLetterOrDigit).ToArray());
+        var hexBuilder = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            if (char.IsLetterOrDigit(ch))
+                hexBuilder.Append(ch);
+        }
+        var hex = hexBuilder.ToString();
         if (hex.Length == 32)
         {
             try

@@ -11,6 +11,8 @@ public sealed class InterceptingDbCommand : DbCommand
     private readonly InterceptingDbConnection _connection;
     private readonly DbCommand _innerCommand;
     private readonly IReadOnlyList<DbConnectionInterceptor> _interceptors;
+    private readonly bool _hasInterceptors;
+    private readonly DbConnectionMockBase? _mockConnection;
     private DbTransaction? _transaction;
 
     internal InterceptingDbCommand(
@@ -24,6 +26,8 @@ public sealed class InterceptingDbCommand : DbCommand
         _connection = connection;
         _innerCommand = innerCommand;
         _interceptors = interceptors;
+        _hasInterceptors = interceptors.Count > 0;
+        _mockConnection = DbConnectionMockBaseExtensions.AsMockConnection(connection);
     }
 
     /// <summary>
@@ -99,47 +103,71 @@ public sealed class InterceptingDbCommand : DbCommand
 
     /// <inheritdoc />
     public override int ExecuteNonQuery()
-        => ExecuteWithInterception(
+    {
+        if (!_hasInterceptors)
+            return _innerCommand.ExecuteNonQuery();
+        return ExecuteWithInterception(
             DbCommandExecutionKind.NonQuery,
             static command => command.ExecuteNonQuery());
+    }
 
     /// <inheritdoc />
     public override object? ExecuteScalar()
-        => ExecuteWithInterception(
+    {
+        if (!_hasInterceptors)
+            return _innerCommand.ExecuteScalar();
+        return ExecuteWithInterception(
             DbCommandExecutionKind.Scalar,
             static command => command.ExecuteScalar());
+    }
 
     /// <inheritdoc />
     public override void Prepare() => _innerCommand.Prepare();
 
     /// <inheritdoc />
     public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken)
-        => ExecuteWithInterceptionAsync(
+    {
+        if (!_hasInterceptors)
+            return _innerCommand.ExecuteNonQueryAsync(cancellationToken);
+        return ExecuteWithInterceptionAsync(
             DbCommandExecutionKind.NonQuery,
             command => command.ExecuteNonQueryAsync(cancellationToken));
+    }
 
     /// <inheritdoc />
     public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken)
-        => ExecuteWithInterceptionAsync(
+    {
+        if (!_hasInterceptors)
+            return _innerCommand.ExecuteScalarAsync(cancellationToken);
+        return ExecuteWithInterceptionAsync(
             DbCommandExecutionKind.Scalar,
             command => command.ExecuteScalarAsync(cancellationToken));
+    }
 
     /// <inheritdoc />
     protected override DbParameter CreateDbParameter() => _innerCommand.CreateParameter();
 
     /// <inheritdoc />
     protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior)
-        => ExecuteWithInterception(
+    {
+        if (!_hasInterceptors)
+            return _innerCommand.ExecuteReader(behavior);
+        return ExecuteWithInterception(
             DbCommandExecutionKind.Reader,
             command => command.ExecuteReader(behavior));
+    }
 
     /// <inheritdoc />
     protected override Task<DbDataReader> ExecuteDbDataReaderAsync(
         CommandBehavior behavior,
         CancellationToken cancellationToken)
-        => ExecuteWithInterceptionAsync(
+    {
+        if (!_hasInterceptors)
+            return _innerCommand.ExecuteReaderAsync(behavior, cancellationToken);
+        return ExecuteWithInterceptionAsync(
             DbCommandExecutionKind.Reader,
             command => command.ExecuteReaderAsync(behavior, cancellationToken));
+    }
 
     private T ExecuteWithInterception<T>(
         DbCommandExecutionKind executionKind,
@@ -152,7 +180,7 @@ public sealed class InterceptingDbCommand : DbCommand
 
         try
         {
-            using var currentQueryScope = _connection.AsMockConnection()?.BeginCurrentQueryScope(_innerCommand.CommandText);
+            using var currentQueryScope = _mockConnection?.BeginCurrentQueryScope(_innerCommand.CommandText);
             var result = executor(_innerCommand);
 
             for (var i = _interceptors.Count - 1; i >= 0; i--)
@@ -180,7 +208,7 @@ public sealed class InterceptingDbCommand : DbCommand
 
         try
         {
-            using var currentQueryScope = _connection.AsMockConnection()?.BeginCurrentQueryScope(_innerCommand.CommandText);
+            using var currentQueryScope = _mockConnection?.BeginCurrentQueryScope(_innerCommand.CommandText);
             var result = await executor(_innerCommand).ConfigureAwait(false);
 
             for (var i = _interceptors.Count - 1; i >= 0; i--)

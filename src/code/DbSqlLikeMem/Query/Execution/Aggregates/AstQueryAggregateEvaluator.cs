@@ -1,3 +1,4 @@
+using System.Buffers;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
@@ -178,6 +179,10 @@ internal static class AstQueryAggregateEvaluator
             return EvalSimpleStringAggregate(context, fn, group, ctes, eval, separator, defaultSeparator);
         }
 
+        var streamingResult = TryEvalStreamingAggregate(context, name, fn, group, ctes, eval);
+        if (streamingResult is not null)
+            return streamingResult;
+
         var values = TryGetAggregateValues(context, fn, group, ctes, eval);
         if (values is null)
             return null;
@@ -239,8 +244,8 @@ internal static class AstQueryAggregateEvaluator
         {
             SqlConst.SUM => AggregateNumericValues(values, AggregateNumericOperation.Sum),
             SqlConst.AVG => AggregateNumericValues(values, AggregateNumericOperation.Average),
-            SqlConst.MIN => AggregateMinMaxValues(values, useMax: false),
-            SqlConst.MAX => AggregateMinMaxValues(values, useMax: true),
+            SqlConst.MIN => AggregateMinMaxValues(context, values, useMax: false),
+            SqlConst.MAX => AggregateMinMaxValues(context, values, useMax: true),
             SqlConst.CHECKSUM_AGG => AggregateChecksumValues(values, binary: false),
             SqlConst.GROUP_CONCAT => EvalStringAggregate(values, separator, ","),
             SqlConst.STRING_AGG => EvalStringAggregate(values, separator, ","),
@@ -282,6 +287,227 @@ internal static class AstQueryAggregateEvaluator
         return result;
     }
 
+    private static bool IsStreamingCompatibleAggregate(string name)
+        => name switch
+        {
+            SqlConst.SUM or SqlConst.AVG or SqlConst.MIN or SqlConst.MAX
+                or SqlConst.COUNT or SqlConst.TOTAL or SqlConst.BIT_AND
+                or SqlConst.BIT_OR or SqlConst.BIT_XOR or SqlConst.BOOL_AND
+                or SqlConst.BOOL_OR or SqlConst.ANY_VALUE => true,
+            _ => false
+        };
+
+    private static object? TryEvalStreamingAggregate(
+        QueryExecutionContext context,
+        string name,
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        if (fn.Distinct || !IsStreamingCompatibleAggregate(name))
+            return null;
+
+        if (group.Rows.Count == 0)
+            return name == SqlConst.TOTAL ? 0d : null;
+
+        var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
+        return EvalStreamingAggregate(context, name, EnumerateGroupValues(group.Rows, fn, ctes, eval), separator);
+    }
+
+    private static object? EvalGroupStreamingValues(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name)
+    {
+        var rows = group.Rows;
+        var rowCount = rows.Count;
+        if (rowCount == 0)
+            return name == SqlConst.TOTAL ? 0d : null;
+
+        var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
+        return EvalStreamingAggregate(context, name, EnumerateGroupValues(rows, fn, ctes, eval), separator);
+    }
+
+    private static IEnumerable<object?> EnumerateGroupValues(
+        List<EvalRow> rows,
+        FunctionCallExpr fn,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        foreach (var r in rows)
+            yield return eval(fn.Args[0], r, null, ctes);
+    }
+
+    private static object? EvalStreamingAggregate(QueryExecutionContext context, string name, IEnumerable<object?> values, object? separator)
+    {
+        return name switch
+        {
+            SqlConst.SUM => AggregateNumericValuesStreaming(values, AggregateNumericOperation.Sum),
+            SqlConst.AVG => AggregateNumericValuesStreaming(values, AggregateNumericOperation.Average),
+            SqlConst.MIN => AggregateMinMaxValuesStreaming(context, values, useMax: false),
+            SqlConst.MAX => AggregateMinMaxValuesStreaming(context, values, useMax: true),
+            SqlConst.COUNT => AggregateCount(values),
+            SqlConst.TOTAL => AggregateTotalStreaming(values),
+            SqlConst.BIT_AND => AggregateBitwiseValuesStreaming(values, BitwiseAggregateOperation.And),
+            SqlConst.BIT_OR => AggregateBitwiseValuesStreaming(values, BitwiseAggregateOperation.Or),
+            SqlConst.BIT_XOR => AggregateBitwiseValuesStreaming(values, BitwiseAggregateOperation.Xor),
+            SqlConst.BOOL_AND => AggregateBoolValuesStreaming(values, useAnd: true),
+            SqlConst.BOOL_OR => AggregateBoolValuesStreaming(values, useAnd: false),
+            SqlConst.ANY_VALUE => AggregateAnyValueStreaming(values),
+            _ => null
+        };
+    }
+
+    private static object? AggregateNumericValuesStreaming(IEnumerable<object?> values, AggregateNumericOperation op)
+    {
+        decimal? sum = 0m;
+        int count = 0;
+        decimal? min = null;
+        decimal? max = null;
+        bool any = false;
+
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            if (!TryConvertNumericToDecimal(v, out var d))
+                continue;
+
+            any = true;
+            count++;
+            sum = sum + d;
+            if (!min.HasValue || d < min.Value) min = d;
+            if (!max.HasValue || d > max.Value) max = d;
+        }
+
+        if (!any)
+            return null;
+
+        return op switch
+        {
+            AggregateNumericOperation.Sum => sum,
+            AggregateNumericOperation.Average => sum / count,
+            AggregateNumericOperation.Min => min,
+            AggregateNumericOperation.Max => max,
+            _ => null
+        };
+    }
+
+    private static object? AggregateMinMaxValuesStreaming(QueryExecutionContext context, IEnumerable<object?> values, bool useMax)
+    {
+        object? best = null;
+        bool any = false;
+
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            if (!any)
+            {
+                best = v;
+                any = true;
+                continue;
+            }
+
+            var comparison = CompareAggregateValues(context, v, best);
+            if (useMax ? comparison > 0 : comparison < 0)
+                best = v;
+        }
+
+        return any ? best : null;
+    }
+
+    private static object? AggregateCount(IEnumerable<object?> values)
+    {
+        int count = 0;
+        foreach (var v in values)
+        {
+            if (v is not null and not DBNull)
+                count++;
+        }
+        return count;
+    }
+
+    private static object? AggregateTotalStreaming(IEnumerable<object?> values)
+    {
+        var total = 0d;
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            if (!TryConvertNumericToDouble(v, out var d))
+                continue;
+
+            total += d;
+        }
+        return total;
+    }
+
+    private static object? AggregateBitwiseValuesStreaming(IEnumerable<object?> values, BitwiseAggregateOperation operation)
+    {
+        var hasValue = false;
+        var acc = 0L;
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            var next = Convert.ToInt64(v, CultureInfo.InvariantCulture);
+            if (!hasValue)
+            {
+                acc = next;
+                hasValue = true;
+                continue;
+            }
+
+            acc = operation switch
+            {
+                BitwiseAggregateOperation.And => acc & next,
+                BitwiseAggregateOperation.Or => acc | next,
+                BitwiseAggregateOperation.Xor => acc ^ next,
+                _ => acc
+            };
+        }
+
+        return hasValue ? acc : null;
+    }
+
+    private static object? AggregateBoolValuesStreaming(IEnumerable<object?> values, bool useAnd)
+    {
+        var hasValue = false;
+        var acc = useAnd;
+
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            hasValue = true;
+            var current = v!.ToBool();
+            acc = useAnd ? acc && current : acc || current;
+        }
+
+        return hasValue ? acc : null;
+    }
+
+    private static object? AggregateAnyValueStreaming(IEnumerable<object?> values)
+    {
+        foreach (var v in values)
+        {
+            if (!IsNullish(v))
+                return v;
+        }
+
+        return null;
+    }
+
     private static object? EvalJsonGroupObjectAggregate(
         FunctionCallExpr fn,
         EvalGroup group,
@@ -316,64 +542,75 @@ internal static class AstQueryAggregateEvaluator
         if (fn.Args.Count == 0)
             return null;
 
-        var values = new List<double>(group.Rows.Count);
-        foreach (var row in group.Rows)
+        var count = group.Rows.Count;
+        var pool = ArrayPool<double>.Shared;
+        var buffer = pool.Rent(count);
+        int actualCount = 0;
+        try
         {
-            var value = eval(fn.Args[0], row, null, ctes);
-            if (IsNullish(value))
-                continue;
-
-            if (TryConvertNumericToDouble(value, out var numeric))
-                values.Add(numeric);
-        }
-
-        if (values.Count == 0)
-            return null;
-
-        values.Sort();
-
-        var percentile = 0.5d;
-        if (fn.Args.Count > 1)
-        {
-            if (fn.Args[1] is LiteralExpr percentileLiteral)
+            for (var i = 0; i < count; i++)
             {
-                if (!TryConvertNumericToDouble(percentileLiteral.Value, out percentile))
-                    return null;
+                var value = eval(fn.Args[0], group.Rows[i], null, ctes);
+                if (IsNullish(value))
+                    continue;
+
+                if (TryConvertNumericToDouble(value, out var numeric))
+                    buffer[actualCount++] = numeric;
             }
-            else
+
+            if (actualCount == 0)
+                return null;
+
+            Array.Sort(buffer, 0, actualCount);
+
+            var percentile = 0.5d;
+            if (fn.Args.Count > 1)
             {
-                var percentileValue = eval(fn.Args[1], EvalRow.Empty(), null, ctes);
-                if (IsNullish(percentileValue) || !TryConvertNumericToDouble(percentileValue, out percentile))
-                    return null;
+                if (fn.Args[1] is LiteralExpr percentileLiteral)
+                {
+                    if (!TryConvertNumericToDouble(percentileLiteral.Value, out percentile))
+                        return null;
+                }
+                else
+                {
+                    var percentileValue = eval(fn.Args[1], EvalRow.Empty(), null, ctes);
+                    if (IsNullish(percentileValue) || !TryConvertNumericToDouble(percentileValue, out percentile))
+                        return null;
+                }
             }
+
+            if (percentile < 0d)
+                percentile = 0d;
+            else if (percentile > 1d)
+                percentile = 1d;
+
+            var isDiscrete = name.Equals("PERCENTILE_DISC", StringComparison.OrdinalIgnoreCase);
+            if (name.Equals("MEDIAN", StringComparison.OrdinalIgnoreCase))
+                percentile = 0.5d;
+
+            if (isDiscrete)
+            {
+                var index = (int)Math.Ceiling(percentile * actualCount) - 1;
+                if (index < 0)
+                    index = 0;
+                if (index >= actualCount)
+                    index = actualCount - 1;
+                return buffer[index];
+            }
+
+            var rank = percentile * (actualCount - 1);
+            var lowerIndex = (int)Math.Floor(rank);
+            var upperIndex = (int)Math.Ceiling(rank);
+            if (lowerIndex == upperIndex)
+                return buffer[lowerIndex];
+
+            var fraction = rank - lowerIndex;
+            return buffer[lowerIndex] + (buffer[upperIndex] - buffer[lowerIndex]) * fraction;
         }
-
-        if (percentile < 0d)
-            percentile = 0d;
-        else if (percentile > 1d)
-            percentile = 1d;
-        var isDiscrete = name.Equals("PERCENTILE_DISC", StringComparison.OrdinalIgnoreCase);
-        if (name.Equals("MEDIAN", StringComparison.OrdinalIgnoreCase))
-            percentile = 0.5d;
-
-        if (isDiscrete)
+        finally
         {
-            var index = (int)Math.Ceiling(percentile * values.Count) - 1;
-            if (index < 0)
-                index = 0;
-            if (index >= values.Count)
-                index = values.Count - 1;
-            return values[index];
+            pool.Return(buffer);
         }
-
-        var rank = percentile * (values.Count - 1);
-        var lowerIndex = (int)Math.Floor(rank);
-        var upperIndex = (int)Math.Ceiling(rank);
-        if (lowerIndex == upperIndex)
-            return values[lowerIndex];
-
-        var fraction = rank - lowerIndex;
-        return values[lowerIndex] + (values[upperIndex] - values[lowerIndex]) * fraction;
     }
 
     private static object? EvalCorrelationAggregate(
@@ -749,77 +986,53 @@ internal static class AstQueryAggregateEvaluator
 
     private static object? AggregateNumericValues(IReadOnlyList<object?> values, AggregateNumericOperation operation)
     {
-        if (values.Count == 0)
-            return null;
-
         if (operation == AggregateNumericOperation.Sum
             && TryAggregateIntegralSum(values, out var integralSum))
         {
             return integralSum;
         }
 
-        var useDouble = false;
-        for (var i = 0; i < values.Count; i++)
-        {
-            if (values[i] is float or double)
-            {
-                useDouble = true;
-                break;
-            }
-        }
+        decimal? result = null;
+        decimal? min = null;
+        decimal? max = null;
+        int nonNullCount = 0;
 
-        if (useDouble)
+        foreach (var v in values)
         {
-            var numericValues = new double[values.Count];
-            for (var i = 0; i < values.Count; i++)
-                numericValues[i] = Convert.ToDouble(values[i], CultureInfo.InvariantCulture);
+            if (v is null or DBNull)
+                continue;
 
-            double sum = 0d;
-            double min = numericValues[0];
-            double max = numericValues[0];
-            for (var i = 0; i < numericValues.Length; i++)
+            if (!TryConvertNumericToDecimal(v, out var d))
+                continue;
+
+            nonNullCount++;
+
+            switch (operation)
             {
-                var current = numericValues[i];
-                sum += current;
-                if (current < min)
-                    min = current;
-                if (current > max)
-                    max = current;
+                case AggregateNumericOperation.Sum:
+                    result = (result ?? 0m) + d;
+                    break;
+                case AggregateNumericOperation.Average:
+                    result = (result ?? 0m) + d;
+                    break;
             }
 
-            return operation switch
-            {
-                AggregateNumericOperation.Sum => sum,
-                AggregateNumericOperation.Average => sum / numericValues.Length,
-                AggregateNumericOperation.Min => min,
-                AggregateNumericOperation.Max => max,
-                _ => null
-            };
+            if (operation == AggregateNumericOperation.Min && (!min.HasValue || d < min.Value))
+                min = d;
+
+            if (operation == AggregateNumericOperation.Max && (!max.HasValue || d > max.Value))
+                max = d;
         }
 
-        var decimalValues = new decimal[values.Count];
-        for (var i = 0; i < values.Count; i++)
-            decimalValues[i] = values[i]!.ToDec();
-
-        decimal decimalSum = 0m;
-        decimal decimalMin = decimalValues[0];
-        decimal decimalMax = decimalValues[0];
-        for (var i = 0; i < decimalValues.Length; i++)
-        {
-            var current = decimalValues[i];
-            decimalSum += current;
-            if (current < decimalMin)
-                decimalMin = current;
-            if (current > decimalMax)
-                decimalMax = current;
-        }
+        if (nonNullCount == 0)
+            return null;
 
         return operation switch
         {
-            AggregateNumericOperation.Sum => decimalSum,
-            AggregateNumericOperation.Average => decimalSum / decimalValues.Length,
-            AggregateNumericOperation.Min => decimalMin,
-            AggregateNumericOperation.Max => decimalMax,
+            AggregateNumericOperation.Sum => result,
+            AggregateNumericOperation.Average => result / nonNullCount,
+            AggregateNumericOperation.Min => min,
+            AggregateNumericOperation.Max => max,
             _ => null
         };
     }
@@ -890,7 +1103,7 @@ internal static class AstQueryAggregateEvaluator
         }
     }
 
-    private static object? AggregateMinMaxValues(IReadOnlyList<object?> values, bool useMax)
+    private static object? AggregateMinMaxValues(QueryExecutionContext context, IReadOnlyList<object?> values, bool useMax)
     {
         if (values.Count == 0)
             return null;
@@ -899,7 +1112,7 @@ internal static class AstQueryAggregateEvaluator
         for (var i = 1; i < values.Count; i++)
         {
             var current = values[i];
-            var comparison = CompareAggregateValues(current, best);
+            var comparison = CompareAggregateValues(context, current, best);
             if (useMax ? comparison > 0 : comparison < 0)
             {
                 best = current;
@@ -909,7 +1122,7 @@ internal static class AstQueryAggregateEvaluator
         return best;
     }
 
-    private static int CompareAggregateValues(object? left, object? right)
+    private static int CompareAggregateValues(QueryExecutionContext context, object? left, object? right)
     {
         if (ReferenceEquals(left, right))
             return 0;
@@ -973,9 +1186,7 @@ internal static class AstQueryAggregateEvaluator
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        var leftTextFallback = Convert.ToString(left, CultureInfo.InvariantCulture) ?? string.Empty;
-        var rightTextFallback = Convert.ToString(right, CultureInfo.InvariantCulture) ?? string.Empty;
-        return StringComparer.Ordinal.Compare(leftTextFallback, rightTextFallback);
+        return context.Dialect.Compare(left, right);
     }
 
     private static object? AggregateTotal(IReadOnlyList<object?> values)

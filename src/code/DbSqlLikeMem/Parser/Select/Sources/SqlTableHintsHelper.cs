@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static class SqlTableHintsHelper
 {
+    private static readonly Regex _mySqlQuotedIdentifier = new(@"^`(?:``|[^`])+`$", RegexOptions.CultureInvariant);
+    private static readonly Regex _mySqlSimpleIdentifier = new(@"^[A-Za-z_$][A-Za-z0-9_$]*$", RegexOptions.CultureInvariant);
+
     internal static IReadOnlyList<SqlMySqlIndexHint> ConsumeTableHintsIfPresent(
         this SqlQueryParserContext ctx)
     {
@@ -130,13 +133,13 @@ internal static class SqlTableHintsHelper
                 continue;
             }
 
-            if (Regex.IsMatch(item, @"^`(?:``|[^`])+`$", RegexOptions.CultureInvariant))
+            if (_mySqlQuotedIdentifier.IsMatch(item))
             {
                 parsedItems.Add(UnquoteMySqlIdentifier(item));
                 continue;
             }
 
-            if (Regex.IsMatch(item, @"^[A-Za-z_$][A-Za-z0-9_$]*$", RegexOptions.CultureInvariant))
+            if (_mySqlSimpleIdentifier.IsMatch(item))
             {
                 parsedItems.Add(item);
                 continue;

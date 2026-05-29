@@ -2,6 +2,9 @@ namespace DbSqlLikeMem;
 
 internal static partial class DbSelectIntoAndInsertSelectStrategies
 {
+    private static readonly Regex _simpleIdentifier = new(@"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant);
+    private static readonly Regex _executeStatement = new(@"^EXECUTE\s+STATEMENT\s+'(?<sql>(?:''|[^'])*)'\s*;?$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
     /// <summary>
     /// EN: Implements ExecuteExecuteBlock.
     /// PT-br: Implementa ExecuteExecuteBlock.
@@ -1809,7 +1812,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
         if (string.IsNullOrWhiteSpace(value))
             return value;
 
-        if (!Regex.IsMatch(value, @"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant) || dialect.IsKeyword(value))
+        if (!_simpleIdentifier.IsMatch(value) || dialect.IsKeyword(value))
         {
             return dialect.IdentifierEscapeStyle switch
             {
@@ -2525,10 +2528,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     private static string ExtractExecuteStatementSql(string sqlRaw)
     {
-        var match = Regex.Match(
-            sqlRaw.Trim(),
-            @"^EXECUTE\s+STATEMENT\s+'(?<sql>(?:''|[^'])*)'\s*;?$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var match = _executeStatement.Match(sqlRaw.Trim());
 
         if (!match.Success)
             throw new InvalidOperationException("EXECUTE STATEMENT requires a single quoted SQL string literal.");

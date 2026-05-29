@@ -1,7 +1,11 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 internal static class AstQueryBinarySupportHelper
 {
+    private static readonly ConcurrentDictionary<string, Regex> _regexpCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, IReadOnlyList<string>> _matchQueryCache = new();
     internal static bool EvalSoundLike(object left, object right)
     {
         var leftSoundex = AstQuerySqlServerResolutionHelper.ComputeSoundex(left.ToString() ?? string.Empty);
@@ -13,11 +17,7 @@ internal static class AstQueryBinarySupportHelper
     {
         try
         {
-            var options = RegexOptions.CultureInvariant;
-            if (dialect.RegexIsCaseInsensitive)
-                options |= RegexOptions.IgnoreCase;
-
-            return Regex.IsMatch(left.ToString() ?? string.Empty, right.ToString() ?? string.Empty, options);
+            return _regexpCache.GetOrAdd(right.ToString() ?? string.Empty, static pattern => new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant)).IsMatch(left.ToString() ?? string.Empty);
         }
         catch (ArgumentException)
         {
@@ -34,7 +34,7 @@ internal static class AstQueryBinarySupportHelper
         if (string.IsNullOrWhiteSpace(leftStr) || string.IsNullOrWhiteSpace(rightStr))
             return false;
 
-        var tokens = TokenizeMatchQuery(rightStr);
+        var tokens = _matchQueryCache.GetOrAdd(rightStr, static q => TokenizeMatchQuery(q));
         if (tokens.Count == 0)
             return false;
 
@@ -376,10 +376,15 @@ internal static class AstQueryBinarySupportHelper
         if (string.IsNullOrWhiteSpace(value))
             return [];
 
-        return [.. value
-            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(TrimMatchToken)
-            .Where(static token => token.Length > 0)];
+        var parts = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var result = new List<string>(parts.Length);
+        foreach (var part in parts)
+        {
+            var trimmed = TrimMatchToken(part);
+            if (trimmed.Length > 0)
+                result.Add(trimmed);
+        }
+        return result;
     }
 
     private static IReadOnlyList<string> TokenizeMatchQuery(string query)

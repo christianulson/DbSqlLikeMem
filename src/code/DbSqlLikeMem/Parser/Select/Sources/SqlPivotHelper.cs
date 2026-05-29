@@ -2,6 +2,11 @@ namespace DbSqlLikeMem;
 
 internal static class SqlPivotHelper
 {
+    private static readonly Regex _pivotSpec = new(@"^\s*(?<agg>[A-Za-z_][A-Za-z0-9_]*)\s*\(\s*(?<arg>[^\)]+?)\s*\)\s+FOR\s+(?<for>[A-Za-z_][A-Za-z0-9_\.]*)\s+IN\s*\((?<in>.+)\)\s*$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+    private static readonly Regex _pivotInItem = new(@"^(?<val>.+?)(?:\s+AS\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*))?$", RegexOptions.IgnoreCase);
+    private static readonly Regex _unpivotSpec = new(@"^\s*(?<value>(?:\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*))\s+FOR\s+(?<name>(?:\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*))\s+IN\s*\((?<in>.+)\)\s*$", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+    private static readonly Regex _unpivotInItem = new(@"^(?:\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)$", RegexOptions.CultureInvariant);
+
     internal static SqlTableSource TryParsePivot(
         this SqlQueryParserContext ctx,
         SqlTableSource source)
@@ -100,10 +105,7 @@ internal static class SqlPivotHelper
 
     private static SqlPivotSpec ParsePivotSpec(string raw)
     {
-        var m = Regex.Match(
-            raw,
-            @"^\s*(?<agg>[A-Za-z_][A-Za-z0-9_]*)\s*\(\s*(?<arg>[^\)]+?)\s*\)\s+FOR\s+(?<for>[A-Za-z_][A-Za-z0-9_\.]*)\s+IN\s*\((?<in>.+)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _pivotSpec.Match(raw);
 
         if (!m.Success)
             throw new InvalidOperationException("invalid: unsupported PIVOT syntax");
@@ -120,7 +122,7 @@ internal static class SqlPivotHelper
             if (item.Length == 0)
                 continue;
 
-            var im = Regex.Match(item, @"^(?<val>.+?)(?:\s+AS\s+(?<alias>[A-Za-z_][A-Za-z0-9_]*))?$", RegexOptions.IgnoreCase);
+            var im = _pivotInItem.Match(item);
             if (!im.Success)
                 throw new InvalidOperationException("invalid: unsupported PIVOT IN item");
 
@@ -143,12 +145,7 @@ internal static class SqlPivotHelper
 
     private static SqlUnpivotSpec ParseUnpivotSpec(string raw)
     {
-        const string identifierPattern = @"(?:\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)";
-
-        var match = Regex.Match(
-            raw,
-            $@"^\s*(?<value>{identifierPattern})\s+FOR\s+(?<name>{identifierPattern})\s+IN\s*\((?<in>.+)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+        var match = _unpivotSpec.Match(raw);
 
         if (!match.Success)
             throw new InvalidOperationException("invalid: unsupported UNPIVOT syntax");
@@ -164,7 +161,7 @@ internal static class SqlPivotHelper
             if (item.Length == 0)
                 continue;
 
-            if (!Regex.IsMatch(item, $"^{identifierPattern}$", RegexOptions.CultureInvariant))
+            if (!_unpivotInItem.IsMatch(item))
                 throw new InvalidOperationException("invalid: unsupported UNPIVOT IN item");
 
             var normalized = item.NormalizeName();

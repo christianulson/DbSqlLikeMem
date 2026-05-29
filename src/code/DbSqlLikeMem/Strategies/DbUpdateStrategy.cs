@@ -86,7 +86,7 @@ internal static class DbUpdateStrategy
 
             // Simula Update (reaproveitado por validacoes/trigger)
             var simulated = TableMock.CloneRow(row);
-            UpdateRowValuesInMemory(table, setPairs, parsedSetPairs, simulated, simulatedSetContext);
+            var resolvedValues = UpdateRowValuesInMemory(table, setPairs, parsedSetPairs, simulated, simulatedSetContext);
 
             // Valida Unique Constraints antes de aplicar (somente quando necessario)
             if (requiresUniqueValidation)
@@ -99,7 +99,7 @@ internal static class DbUpdateStrategy
 
             tableMock.ValidateCheckConstraintsOnRow(simulated);
 
-            UpdateRowValues(table, setPairs, parsedSetPairs, rowIdx, row, rowSetContext);
+            UpdateRowValues(table, setPairs, parsedSetPairs, rowIdx, row, rowSetContext, resolvedValues);
 
             if (hasAfterUpdateTrigger)
                 TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[rowIdx]));
@@ -332,7 +332,8 @@ internal static class DbUpdateStrategy
         IReadOnlyList<SqlAssignment> parsedSetPairs,
         int rowIdx,
         IReadOnlyDictionary<int, object?> row,
-        QueryExecutionContext context)
+        QueryExecutionContext context,
+        Dictionary<int, object?>? preResolvedValues = null)
     {
         for (var i = 0; i < setPairs.Length; i++)
         {
@@ -340,19 +341,27 @@ internal static class DbUpdateStrategy
             var info = table.GetColumn(Col);
             if (info.GetGenValue != null) continue;
 
-            var parsedExpr = i < parsedSetPairs.Count ? parsedSetPairs[i].ValueExpr : null;
-            var raw = ResolveSetValue(table, row, info, Col, Val, parsedExpr, context);
+            object? raw;
+            if (preResolvedValues is not null && preResolvedValues.TryGetValue(info.Index, out var preResolved))
+                raw = preResolved;
+            else
+            {
+                var parsedExpr = i < parsedSetPairs.Count ? parsedSetPairs[i].ValueExpr : null;
+                raw = ResolveSetValue(table, row, info, Col, Val, parsedExpr, context);
+            }
+
             table.UpdateRowColumn(rowIdx, info.Index, raw);
         }
     }
 
-    private static void UpdateRowValuesInMemory(
+    private static Dictionary<int, object?> UpdateRowValuesInMemory(
         ITableMock table,
         (string Col, string Val)[] setPairs,
         IReadOnlyList<SqlAssignment> parsedSetPairs,
         IDictionary<int, object?> row,
         QueryExecutionContext context)
     {
+        var resolvedValues = new Dictionary<int, object?>(setPairs.Length);
         var readOnlyRow = row as IReadOnlyDictionary<int, object?> ?? new ReadOnlyDictionary<int, object?>(row);
         for (var i = 0; i < setPairs.Length; i++)
         {
@@ -362,7 +371,10 @@ internal static class DbUpdateStrategy
             var parsedExpr = i < parsedSetPairs.Count ? parsedSetPairs[i].ValueExpr : null;
             var raw = ResolveSetValue(table, readOnlyRow, info, Col, Val, parsedExpr, context);
             row[info.Index] = raw;
+            resolvedValues[info.Index] = raw;
         }
+
+        return resolvedValues;
     }
 
     private static object? ResolveSetValue(

@@ -26,12 +26,16 @@ internal abstract partial class SqlDialectBase
         foreach (var kv in binOps)
             _binOps[kv.Key] = kv.Value;
 
-        Operators = [.. operators
-            .Concat(["*", "/", "+", "-"])
-            .Concat(binOps.Select(kv => kv.Key))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderByDescending(s => s.Length)
-            .ThenBy(s => s, StringComparer.Ordinal)];
+        var opSet = new HashSet<string>(operators, StringComparer.OrdinalIgnoreCase);
+        opSet.Add("*"); opSet.Add("/"); opSet.Add("+"); opSet.Add("-");
+        foreach (var kv in binOps) opSet.Add(kv.Key);
+        var opList = new List<string>(opSet);
+        opList.Sort((a, b) =>
+        {
+            var cmp = b.Length.CompareTo(a.Length);
+            return cmp != 0 ? cmp : string.Compare(a, b, StringComparison.OrdinalIgnoreCase);
+        });
+        Operators = [.. opList];
     }
 
     /// <summary>

@@ -29,19 +29,8 @@ internal static class SqlOpenJsonHelper
         { "XML", DbType.Binary },
     };
 
-    internal static SqlOpenJsonWithClause ParseOpenJsonWithClause(string rawSchema)
-    {
-        var items = SqlRawCommaSplitterHelper.SplitRawByComma(rawSchema)
-            .Select(static x => x.Trim())
-            .Where(static x => x.Length > 0)
-            .ToList();
-
-        if (items.Count == 0)
-            throw new InvalidOperationException("OPENJSON WITH requires at least one column definition.");
-
-        var columns = items.Select(ParseOpenJsonWithColumn).ToList();
-        return new SqlOpenJsonWithClause(columns);
-    }
+    private static readonly Regex _pathSuffix = new(@"\s+(?<path>N?'(?:''|[^'])*')\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex _nameAndType = new(@"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+)$", RegexOptions.CultureInvariant);
 
     private static SqlOpenJsonWithColumn ParseOpenJsonWithColumn(string rawItem)
     {
@@ -54,20 +43,14 @@ internal static class SqlOpenJsonHelper
         }
 
         string? path = null;
-        var pathMatch = Regex.Match(
-            item,
-            @"\s+(?<path>N?'(?:''|[^'])*')\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var pathMatch = _pathSuffix.Match(item);
         if (pathMatch.Success)
         {
             path = UnquoteSqlStringLiteral(pathMatch.Groups["path"].Value);
             item = item[..pathMatch.Index].TrimEnd();
         }
 
-        var nameAndTypeMatch = Regex.Match(
-            item,
-            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+)$",
-            RegexOptions.CultureInvariant);
+        var nameAndTypeMatch = _nameAndType.Match(item);
         if (!nameAndTypeMatch.Success)
             throw new InvalidOperationException($"OPENJSON WITH column definition is invalid: '{rawItem}'.");
 
@@ -82,6 +65,21 @@ internal static class SqlOpenJsonHelper
             ParseOpenJsonColumnDbType(sqlType),
             path,
             asJson);
+    }
+
+    internal static SqlOpenJsonWithClause? ParseOpenJsonWithClause(string rawSchema)
+    {
+        if (string.IsNullOrWhiteSpace(rawSchema))
+            return null;
+
+        var rawColumns = SqlRawCommaSplitterHelper.SplitRawByComma(rawSchema);
+        var columns = new List<SqlOpenJsonWithColumn>(rawColumns.Count);
+        foreach (var rawCol in rawColumns)
+        {
+            columns.Add(ParseOpenJsonWithColumn(rawCol));
+        }
+
+        return new SqlOpenJsonWithClause(columns);
     }
 
     internal static DbType ParseOpenJsonColumnDbType(string sqlType)

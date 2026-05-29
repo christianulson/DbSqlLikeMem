@@ -259,6 +259,7 @@ internal sealed class TableIndexManager(TableMock table)
         if (unique)
             table.UniqueIndexesMutable.Add(idx);
         table.IndexVersionValue++;
+        table.InvalidateIndexesCache();
         return idx;
     }
 
@@ -275,6 +276,7 @@ internal sealed class TableIndexManager(TableMock table)
                 table.UniqueIndexesMutable.RemoveAll(index => string.Equals(index.Name, name, StringComparison.OrdinalIgnoreCase));
 
             table.IndexVersionValue++;
+            table.InvalidateIndexesCache();
             return;
         }
 

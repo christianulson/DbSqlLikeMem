@@ -2,6 +2,33 @@ namespace DbSqlLikeMem;
 
 internal static class DbMergeStrategy
 {
+    private static readonly Regex _mergeTargetRegex = new(
+        @"MERGE\s+INTO\s+(?<target>[A-Za-z0-9_#]+)(?:\s+AS)?\s+(?<alias>[A-Za-z0-9_]+)?",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex _srcAliasRegex = new(
+        @"^\s+(?:AS\s+)?(?<alias>(?!ON\b|WHEN\b)[A-Za-z0-9_]+)",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _srcColumnsRegex = new(
+        @"^\s+(?:AS\s+)?[A-Za-z0-9_]+\s*\((?<cols>[^)]*)\)",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _mergeOnRegex = new(
+        @"ON\s+(?<on>.+?)\s+WHEN",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _joinConditionRegex = new(
+        @"(?<talias>[A-Za-z0-9_]+)\.(?<tcol>[A-Za-z0-9_]+)\s*=\s*(?<salias>[A-Za-z0-9_]+)\.(?<scol>[A-Za-z0-9_]+)",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex _mergeUpdateRegex = new(
+        @"WHEN\s+MATCHED\s+THEN\s+UPDATE\s+SET\s+(?<set>.+?)(?=WHEN\s+NOT\s+MATCHED|$)",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _mergeInsertRegex = new(
+        @"WHEN\s+NOT\s+MATCHED\s+THEN\s+INSERT\s*\((?<cols>[^)]*)\)\s*VALUES\s*\((?<vals>[^)]*)\)",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
     /// <summary>
     /// EN: Implements ExecuteMerge.
     /// PT-br: Implementa ExecuteMerge.
@@ -48,10 +75,7 @@ internal static class DbMergeStrategy
         context.ResetPositionalParameterCursor();
         var dialect = context.Dialect;
         var sql = query.RawSql;
-        var targetMatch = Regex.Match(
-            sql,
-            @"MERGE\s+INTO\s+(?<target>[A-Za-z0-9_#]+)(?:\s+AS)?\s+(?<alias>[A-Za-z0-9_]+)?",
-            RegexOptions.IgnoreCase);
+        var targetMatch = _mergeTargetRegex.Match(sql);
         if (!targetMatch.Success)
             throw new InvalidOperationException(SqlExceptionMessages.MergeCouldNotIdentifyTargetTable());
 
@@ -66,15 +90,9 @@ internal static class DbMergeStrategy
 
         var selectSql = ExtractParenthesized(sql, sql.IndexOf('(', usingIndex), out var usingCloseIndex);
         var sourceTail = sql[usingCloseIndex..];
-        var srcAliasMatch = Regex.Match(
-            sourceTail,
-            @"^\s+(?:AS\s+)?(?<alias>(?!ON\b|WHEN\b)[A-Za-z0-9_]+)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var srcAliasMatch = _srcAliasRegex.Match(sourceTail);
         var sourceAlias = srcAliasMatch.Success ? srcAliasMatch.Groups["alias"].Value : "src";
-        var srcColumnsMatch = Regex.Match(
-            sourceTail,
-            @"^\s+(?:AS\s+)?[A-Za-z0-9_]+\s*\((?<cols>[^)]*)\)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var srcColumnsMatch = _srcColumnsRegex.Match(sourceTail);
         List<string> sourceColumnNames = srcColumnsMatch.Success
             ? [.. SplitByComma(srcColumnsMatch.Groups["cols"].Value).Where(static col => !string.IsNullOrWhiteSpace(col))]
             : [];
@@ -90,31 +108,19 @@ internal static class DbMergeStrategy
             sourceTable = ExecuteMergeSourceSelect(selectSql, context);
         }
 
-        var onMatch = Regex.Match(
-            sql,
-            @"ON\s+(?<on>.+?)\s+WHEN",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var onMatch = _mergeOnRegex.Match(sql);
         if (!onMatch.Success)
             throw new InvalidOperationException(SqlExceptionMessages.MergeOnClauseNotFound());
 
-        var joinMatch = Regex.Match(
-            onMatch.Groups["on"].Value,
-            @"(?<talias>[A-Za-z0-9_]+)\.(?<tcol>[A-Za-z0-9_]+)\s*=\s*(?<salias>[A-Za-z0-9_]+)\.(?<scol>[A-Za-z0-9_]+)",
-            RegexOptions.IgnoreCase);
+        var joinMatch = _joinConditionRegex.Match(onMatch.Groups["on"].Value);
         if (!joinMatch.Success)
             throw new InvalidOperationException(SqlExceptionMessages.MergeOnConditionNotSupported());
 
         var targetJoinColumn = joinMatch.Groups["tcol"].Value;
         var sourceJoinColumn = joinMatch.Groups["scol"].Value;
 
-        var updateMatch = Regex.Match(
-            sql,
-            @"WHEN\s+MATCHED\s+THEN\s+UPDATE\s+SET\s+(?<set>.+?)(?=WHEN\s+NOT\s+MATCHED|$)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        var insertMatch = Regex.Match(
-            sql,
-            @"WHEN\s+NOT\s+MATCHED\s+THEN\s+INSERT\s*\((?<cols>[^)]*)\)\s*VALUES\s*\((?<vals>[^)]*)\)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var updateMatch = _mergeUpdateRegex.Match(sql);
+        var insertMatch = _mergeInsertRegex.Match(sql);
 
         var updates = updateMatch.Success ? SplitByComma(updateMatch.Groups["set"].Value) : [];
         var insertCols = insertMatch.Success ? SplitByComma(insertMatch.Groups["cols"].Value) : [];
@@ -127,6 +133,21 @@ internal static class DbMergeStrategy
         ColumnDef[] insertTargets = [.. insertCols.Select(table.GetColumn)];
         var pendingInsertRows = new List<Dictionary<int, object?>>();
         var pendingJoinKeys = new HashSet<object?>();
+
+        Dictionary<object, List<int>>? matchLookup = null;
+        if (table.Count > 100)
+        {
+            matchLookup = new Dictionary<object, List<int>>();
+            for (int i = 0; i < table.Count; i++)
+            {
+                if (table[i].TryGetValue(targetJoinCol.Index, out var val) && val is not null)
+                {
+                    if (!matchLookup.TryGetValue(val!, out var list))
+                        matchLookup[val!] = list = new List<int>();
+                    list.Add(i);
+                }
+            }
+        }
 
         var affected = new DmlExecutionResult();
         foreach (var srcRow in sourceTable)
@@ -142,7 +163,7 @@ internal static class DbMergeStrategy
             if (pendingJoinKeys.Contains(srcKey))
                 FlushPendingMergeInsertBatch(table, pendingInsertRows, pendingJoinKeys, ref affected);
 
-            var existingIndex = FindRowIndex(table, targetJoinCol.Index, srcKey);
+            var existingIndex = FindRowIndex(table, targetJoinCol.Index, srcKey, matchLookup);
 
             if (existingIndex >= 0)
             {
@@ -232,7 +253,7 @@ internal static class DbMergeStrategy
         return [.. parsed];
     }
 
-    private static int FindRowIndex(TableMock table, int columnIndex, object? value)
+    private static int FindRowIndex(TableMock table, int columnIndex, object? value, IReadOnlyDictionary<object, List<int>>? matchLookup = null)
     {
         if (table.PrimaryKeyIndexes.Count == 1
             && table.PrimaryKeyIndexes.Contains(columnIndex)
@@ -240,6 +261,9 @@ internal static class DbMergeStrategy
         {
             return pkRowIndex;
         }
+
+        if (matchLookup is not null && value is not null && matchLookup.TryGetValue(value!, out var matches))
+            return matches[0];
 
         for (int i = 0; i < table.Count; i++)
         {

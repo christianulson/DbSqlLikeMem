@@ -140,6 +140,7 @@ public abstract class TableMock
     private bool _hasPersistedComputedColumns;
     private bool _hasPersistedComputedColumnsInitialized;
     private int _indexVersion;
+    private IndexDef[]? _cachedIndexes;
     private IReadOnlyHashSet<int> _primaryKeyIndexesView;
 
     /// <summary>
@@ -168,6 +169,8 @@ public abstract class TableMock
         get => _indexVersion;
         set => _indexVersion = value;
     }
+
+    internal void InvalidateIndexesCache() => _cachedIndexes = null;
 
     private readonly List<Dictionary<int, object?>> _items = [];
 
@@ -687,7 +690,7 @@ public abstract class TableMock
         if (_indexes.Count == 0 && _uniqueIndexes.Count == 0)
             return AddBatchWithoutSecondaryIndexes(values, hasForeignKeys);
 
-        var allIndexes = _indexes.Values.ToArray();
+        var allIndexes = _cachedIndexes ??= _indexes.Values.ToArray();
         var allIndexCount = allIndexes.Length;
         var uniqueIndexCount = _uniqueIndexes.Count;
 
@@ -879,6 +882,9 @@ public abstract class TableMock
     {
         foreach (var col in _columnsByOrdinal)
         {
+            if (value.ContainsKey(col.Index))
+                continue;
+
             var hasExplicitValue = value.TryGetValue(col.Index, out var currentValue);
 
             if (!col.Identity)

@@ -9,6 +9,7 @@ public sealed class InterceptingDbTransaction : DbTransaction
     private readonly InterceptingDbConnection _connection;
     private readonly DbTransaction _innerTransaction;
     private readonly IReadOnlyList<DbConnectionInterceptor> _interceptors;
+    private readonly bool _hasInterceptors;
 
     internal InterceptingDbTransaction(
         InterceptingDbConnection connection,
@@ -21,6 +22,7 @@ public sealed class InterceptingDbTransaction : DbTransaction
         _connection = connection;
         _innerTransaction = innerTransaction;
         _interceptors = interceptors;
+        _hasInterceptors = interceptors.Count > 0;
     }
 
     /// <summary>
@@ -37,15 +39,29 @@ public sealed class InterceptingDbTransaction : DbTransaction
 
     /// <inheritdoc />
     public override void Commit()
-        => ExecuteWithInterception(
+    {
+        if (!_hasInterceptors)
+        {
+            _innerTransaction.Commit();
+            return;
+        }
+        ExecuteWithInterception(
             DbTransactionOperationKind.Commit,
             static transaction => transaction.Commit());
+    }
 
     /// <inheritdoc />
     public override void Rollback()
-        => ExecuteWithInterception(
+    {
+        if (!_hasInterceptors)
+        {
+            _innerTransaction.Rollback();
+            return;
+        }
+        ExecuteWithInterception(
             DbTransactionOperationKind.Rollback,
             static transaction => transaction.Rollback());
+    }
 
 #if NET6_0_OR_GREATER
     /// <inheritdoc />
@@ -125,6 +141,15 @@ public sealed class InterceptingDbTransaction : DbTransaction
         if (string.IsNullOrWhiteSpace(savepointName))
             throw new ArgumentException("Savepoint name cannot be empty.", nameof(savepointName));
 
+#if NET6_0_OR_GREATER
+        switch (methodName)
+        {
+            case "Save": _innerTransaction.Save(savepointName); break;
+            case "Rollback": _innerTransaction.Rollback(savepointName); break;
+            case "Release": _innerTransaction.Release(savepointName); break;
+            default: throw new NotSupportedException($"Savepoint operation '{methodName}' is not supported by the wrapped transaction.");
+        }
+#else
         try
         {
             _innerTransaction.GetType().InvokeMember(
@@ -138,6 +163,7 @@ public sealed class InterceptingDbTransaction : DbTransaction
         {
             throw new NotSupportedException($"Savepoint operation '{methodName}' is not supported by the wrapped transaction.", ex);
         }
+#endif
     }
 
 }

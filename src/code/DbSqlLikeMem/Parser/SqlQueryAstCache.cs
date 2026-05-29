@@ -1,25 +1,18 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 internal sealed class SqlQueryAstCache
 {
-    // Bump when parser semantics change in a way that invalidates previously cached ASTs.
     private const int ParserCacheKeyVersion = 5;
 
     private readonly int _capacity;
-    private readonly object _gate = new();
-    private readonly Dictionary<string, CacheEntry> _entries;
-    private readonly LinkedList<string> _lru = [];
-
-    private sealed class CacheEntry(SqlQueryBase query, LinkedListNode<string> node)
-    {
-        public SqlQueryBase Query { get; set; } = query;
-        public LinkedListNode<string> Node { get; } = node;
-    }
+    private readonly ConcurrentDictionary<string, SqlQueryBase> _entries;
 
     private SqlQueryAstCache(int capacity)
     {
         _capacity = capacity;
-        _entries = new Dictionary<string, CacheEntry>(capacity <= 0 ? 1 : capacity, StringComparer.Ordinal);
+        _entries = new ConcurrentDictionary<string, SqlQueryBase>(StringComparer.Ordinal);
     }
 
     public static SqlQueryAstCache CreateFromEnvironment()
@@ -64,19 +57,14 @@ internal sealed class SqlQueryAstCache
             return false;
         }
 
-        lock (_gate)
+        if (_entries.TryGetValue(key, out var cached))
         {
-            if (!_entries.TryGetValue(key, out var entry))
-            {
-                query = null!;
-                return false;
-            }
-
-            _lru.Remove(entry.Node);
-            _lru.AddFirst(entry.Node);
-            query = entry.Query;
+            query = cached;
             return true;
         }
+
+        query = null!;
+        return false;
     }
 
     public void Set(string key, SqlQueryBase query)
@@ -84,30 +72,10 @@ internal sealed class SqlQueryAstCache
         if (_capacity <= 0)
             return;
 
-        lock (_gate)
-        {
-            if (_entries.TryGetValue(key, out var entry))
-            {
-                entry.Query = query;
-                _lru.Remove(entry.Node);
-                _lru.AddFirst(entry.Node);
-                return;
-            }
+        _entries.TryAdd(key, query);
 
-            var node = new LinkedListNode<string>(key);
-            _lru.AddFirst(node);
-            _entries[key] = new CacheEntry(query, node);
-
-            if (_entries.Count <= _capacity)
-                return;
-
-            var tail = _lru.Last;
-            if (tail is null)
-                return;
-
-            _lru.RemoveLast();
-            _entries.Remove(tail.Value);
-        }
+        if (_entries.Count > _capacity)
+            TrimExcess();
     }
 
     public void Clear()
@@ -115,10 +83,22 @@ internal sealed class SqlQueryAstCache
         if (_capacity <= 0)
             return;
 
-        lock (_gate)
+        _entries.Clear();
+    }
+
+    private void TrimExcess()
+    {
+        var removeCount = _entries.Count - _capacity;
+        if (removeCount <= 0)
+            return;
+
+        foreach (var kvp in _entries)
         {
-            _entries.Clear();
-            _lru.Clear();
+            if (removeCount <= 0)
+                break;
+
+            if (_entries.TryRemove(kvp.Key, out _))
+                removeCount--;
         }
     }
 

@@ -8,6 +8,7 @@
 		<Using Include="DbSqlLikeMem.Models" />
 		<Using Include="DbSqlLikeMem.Resources" />
 		<Using Include="System.Collections" />
+		<Using Include="System.Collections.Concurrent" />
 		<Using Include="System.Data" />
 		<Using Include="System.Data.Common" />
 		<Using Include="System.Diagnostics" />

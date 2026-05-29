@@ -39,6 +39,7 @@ internal sealed class SqlQueryParserContext
         SqlConst.UNPIVOT,
         SqlConst.RETURNING
     };
+    private static readonly Regex _simpleIdentifier = new(@"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant);
     private readonly Func<string, SqlQueryBase> _parseQuery;
     private readonly Func<string, SqlExpr> _parseScalar;
     private readonly Func<string, SqlExpr> _parseWhere;
@@ -421,12 +422,16 @@ internal sealed class SqlQueryParserContext
         return false;
     }
 
+    private static readonly ConcurrentDictionary<string, HashSet<string>> _skipWordCache = new();
+
     internal void SkipUntilTopLevelWord(params string[] words)
     {
         if (words is null || words.Length == 0)
             throw new ArgumentException("words vazio", nameof(words));
 
-        var set = new HashSet<string>(words, StringComparer.OrdinalIgnoreCase);
+        var key = string.Join("|", words);
+        if (!_skipWordCache.TryGetValue(key, out var set))
+            _skipWordCache[key] = set = new HashSet<string>(words, StringComparer.OrdinalIgnoreCase);
 
         var depth = 0;
         while (!IsEnd(Peek()))
@@ -662,7 +667,7 @@ internal sealed class SqlQueryParserContext
             if (Dialect.IsKeyword(ident))
                 return true;
 
-            if (!Regex.IsMatch(ident, @"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant))
+            if (!_simpleIdentifier.IsMatch(ident))
                 return true;
 
             return ident.Contains(' ')
@@ -771,8 +776,12 @@ internal sealed class SqlQueryParserContext
 
     private static bool ShouldStopAtTopLevelToken(SqlToken current, IReadOnlyList<string> stopWords, IReadOnlyList<SqlToken> buffer)
     {
-        if (!stopWords.Any(sw => IsWord(current, sw)))
-            return false;
+        bool found = false;
+        foreach (var sw in stopWords)
+        {
+            if (IsWord(current, sw)) { found = true; break; }
+        }
+        if (!found) return false;
 
         if (IsWord(current, SqlConst.FOR) && EndsWithWords(buffer, SqlConst.NEXT, SqlConst.VALUE))
             return false;

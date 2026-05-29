@@ -227,10 +227,18 @@ internal static class SqlExtensions
         if (a.GetType() == b.GetType() && a is IComparable comparable)
             return comparable.CompareTo(b);
 
+        // Fast path for mixed numeric types: skip DateTime/bool checks inside TryConvertToDecimal
+        if (IsNumeric(a) && IsNumeric(b))
+        {
+            var da = Convert.ToDecimal(a, CultureInfo.InvariantCulture);
+            var db = Convert.ToDecimal(b, CultureInfo.InvariantCulture);
+            return da.CompareTo(db);
+        }
+
         // numeric compare if possible
         if (dialect.SupportsImplicitNumericStringComparison
-            && TryConvertToDecimal(a, out var da) && TryConvertToDecimal(b, out var db))
-            return da.CompareTo(db);
+            && TryConvertToDecimal(a, out var da0) && TryConvertToDecimal(b, out var db0))
+            return da0.CompareTo(db0);
 
         if (TryConvertToDateTimeLike(a, out var dateTimeA)
             && TryConvertToDateTimeLike(b, out var dateTimeB))
@@ -272,6 +280,42 @@ internal static class SqlExtensions
 
         return string.Equals(a.ToString(), b.ToString(), dialect.TextComparison);
     }
+
+    private static StringComparer GetComparer(StringComparison comparison) => comparison switch
+    {
+        StringComparison.Ordinal => StringComparer.Ordinal,
+        StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+        StringComparison.CurrentCulture => StringComparer.CurrentCulture,
+        StringComparison.CurrentCultureIgnoreCase => StringComparer.CurrentCultureIgnoreCase,
+        StringComparison.InvariantCulture => StringComparer.InvariantCulture,
+        StringComparison.InvariantCultureIgnoreCase => StringComparer.InvariantCultureIgnoreCase,
+        _ => StringComparer.Ordinal
+    };
+
+    internal static int GetHashCodeSql(this object? value, ISqlDialect dialect)
+    {
+        if (value is null || value is DBNull)
+            return 0;
+
+        if (value is string s)
+            return GetComparer(dialect.TextComparison).GetHashCode(s);
+
+        if (value is byte[] ba)
+        {
+            var hc = 17;
+            foreach (var b in ba)
+                hc = (hc * 31) + b.GetHashCode();
+            return hc;
+        }
+
+        if (TryConvertToDecimal(value, out var d))
+            return d.GetHashCode();
+
+        return value.ToString() is { } str ? GetComparer(dialect.TextComparison).GetHashCode(str) : 0;
+    }
+
+    internal static int GetHashCodeSql(this object? value, QueryExecutionContext context)
+        => GetHashCodeSql(value, context.Dialect);
 
     private sealed class SqlExtensionsDefaultDialect : SqlDialectBase
     {
@@ -362,6 +406,9 @@ internal static class SqlExtensions
         dateTime = default;
         return false;
     }
+
+    private static bool IsNumeric(object value) => value is int or long or decimal or double or float
+        or short or byte or sbyte or ushort or uint or ulong;
 
     /// <summary>
     /// EN: Compares two binary payloads lexicographically to provide deterministic ordering semantics.

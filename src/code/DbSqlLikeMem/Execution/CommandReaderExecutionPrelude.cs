@@ -38,10 +38,9 @@ internal static class CommandReaderExecutionPrelude
                 continue;
 
             // Preserve previous behavior: store trimmed statements.
-            var trimmed = (s.Length > 0 && (char.IsWhiteSpace(s[0]) || char.IsWhiteSpace(s[^1])))
-                ? s.Trim()
-                : s;
-            statements.Add(trimmed);
+            var trimmed = s.AsSpan().Trim();
+            var statement = trimmed.Length == s.Length ? s : trimmed.ToString();
+            statements.Add(statement);
         }
 
         if (statements.Count == 1 && statements[0].TrimStart().StartsWith("CALL", StringComparison.OrdinalIgnoreCase))
