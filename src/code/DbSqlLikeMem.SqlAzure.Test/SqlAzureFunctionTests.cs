@@ -243,7 +243,7 @@ public sealed class SqlAzureFunctionTests
         connection.SetContextInfo([0x0A, 0x0B]);
 
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT GETANSINULL() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATALENGTH('AB') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATALENGTH('AB') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING_ID(1, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         var expectedContextInfo = new byte[128];
@@ -251,7 +251,7 @@ public sealed class SqlAzureFunctionTests
         expectedContextInfo[1] = 0x0B;
         Assert.Equal(expectedContextInfo, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("localhost", ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
+        Assert.Equal(Environment.MachineName, ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_ROLEMEMBER('db_datareader') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_SRVROLEMEMBER('sysadmin') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));

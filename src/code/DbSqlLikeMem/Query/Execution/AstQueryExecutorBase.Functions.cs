@@ -219,6 +219,7 @@ internal abstract partial class AstQueryExecutorBase
     private AstQuerySqlServerSessionFunctionEvaluator SqlServerSessionFunctionEvaluator
         => _sqlServerSessionFunctionEvaluator ??= new AstQuerySqlServerSessionFunctionEvaluator(
             getDialect: () => context.Dialect,
+            getConnectionTypeName: () => context.Connection.GetType().Name,
             getContextInfo: Cnn.GetContextInfo,
             hasActiveTransaction: () => Cnn.HasActiveTransaction || _context.HasActiveTransaction,
             tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,

@@ -876,8 +876,8 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     }
 
     /// <summary>
-    /// EN: Verifies @@TEXTSIZE and NEWSEQUENTIALID keep the expected values for the current provider.
-    /// PT-br: Verifica se @@TEXTSIZE e NEWSEQUENTIALID mantem os valores esperados para o provedor atual.
+    /// EN: Verifies @@TEXTSIZE and the NEWSEQUENTIALID UUID version keep the expected values for the current provider.
+    /// PT-br: Verifica se @@TEXTSIZE e a versao UUID do NEWSEQUENTIALID mantem os valores esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
     public async Task SqlServerSpecialFunctionsTest()
@@ -887,16 +887,16 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
         if (!dialect.SupportsSqlServerMetadataIdentifier("@@TEXTSIZE")
             || !dialect.SupportsSqlServerScalarFunction("NEWSEQUENTIALID"))
         {
-            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int textSize, string newSequentialId)>(
+            await FluentActions.Awaiting(() => testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int textSize, int newSequentialIdVersion)>(
                 async (QueryServiceTest s, object[] _) => await s.RunSqlServerSpecialFunctionsAsync())).Should().ThrowAsync<NotSupportedException>();
             return;
         }
 
-        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int textSize, string newSequentialId)>(
+        var result = await testService.RunTestAsync<InsertUsersScenario, QueryServiceTest, (int textSize, int newSequentialIdVersion)>(
             async (QueryServiceTest s, object[] _) => await s.RunSqlServerSpecialFunctionsAsync());
 
-        result.textSize.Should().Be(4096);
-        Guid.TryParse(result.newSequentialId, out _).Should().BeTrue();
+        result.textSize.Should().Be(-1);
+        result.newSequentialIdVersion.Should().Be(1);
     }
 
     /// <summary>
@@ -980,13 +980,28 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
             async (QueryServiceTest s, object[] _) => await s.RunSqlServerSessionFunctionsAsync());
 
         result.getAnsiNull.Should().Be(1);
-        result.dataLength.Should().Be(4);
+        result.dataLength.Should().Be(2);
         result.grouping.Should().Be(0);
         result.groupingId.Should().Be(0);
-        result.hostId.Should().Be(1);
-        result.hostName.Should().Be("localhost");
-        result.isMember.Should().Be(0);
-        result.isRoleMember.Should().Be(0);
+        result.hostId.Should().Be(dialect.Provider switch
+        {
+            ProviderId.SqlServer => System.Diagnostics.Process.GetCurrentProcess().Id,
+            ProviderId.SqlAzure => 1,
+            _ => 1
+        });
+        result.hostName.Should().Be(Environment.MachineName);
+        result.isMember.Should().Be(dialect.Provider switch
+        {
+            ProviderId.SqlServer => 1,
+            ProviderId.SqlAzure => 0,
+            _ => 0
+        });
+        result.isRoleMember.Should().Be(dialect.Provider switch
+        {
+            ProviderId.SqlServer => 1,
+            ProviderId.SqlAzure => 0,
+            _ => 0
+        });
         result.isSrvRoleMember.Should().Be(1);
         result.isDateValid.Should().Be(1);
         result.isDateInvalid.Should().Be(0);

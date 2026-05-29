@@ -48,7 +48,7 @@ internal static class AstQuerySqlServerIdentifierEvaluator
 
         if (identifier.Name.Equals("@@TEXTSIZE", StringComparison.OrdinalIgnoreCase))
         {
-            result = 4096;
+            result = -1;
             return true;
         }
 

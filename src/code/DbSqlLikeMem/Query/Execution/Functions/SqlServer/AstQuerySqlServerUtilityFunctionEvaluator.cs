@@ -156,8 +156,15 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
             return true;
         }
 
-        var text = value?.ToString() ?? string.Empty;
-        result = Encoding.Unicode.GetByteCount(text);
+        if (value is string text)
+        {
+            // String literals are evaluated as non-Unicode text in the current mock pipeline.
+            result = Encoding.ASCII.GetByteCount(text);
+            return true;
+        }
+
+        var textValue = value?.ToString() ?? string.Empty;
+        result = Encoding.ASCII.GetByteCount(textValue);
         return true;
     }
 
@@ -205,7 +212,9 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         _ = fn;
         _ = context;
         _ = evalArg;
-        result = 1;
+        result = string.Equals(context.Connection.GetType().Name, "SqlServerConnectionMock", StringComparison.Ordinal)
+            ? System.Diagnostics.Process.GetCurrentProcess().Id
+            : 1;
         return true;
     }
 
@@ -218,7 +227,7 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         _ = fn;
         _ = context;
         _ = evalArg;
-        result = "localhost";
+        result = Environment.MachineName;
         return true;
     }
 
@@ -554,7 +563,9 @@ internal sealed class AstQuerySqlServerUtilityFunctionEvaluator
         out object? result)
     {
         _ = evalArg;
-        result = Guid.NewGuid().ToString("D");
+        result = string.Equals(fn.Name, "NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
+            ? GuidDefaultValueHelper.CreateSequentialGuid().ToString("D")
+            : Guid.NewGuid().ToString("D");
         return true;
     }
 

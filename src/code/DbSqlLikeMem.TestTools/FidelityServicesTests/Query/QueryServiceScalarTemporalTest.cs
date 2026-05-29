@@ -807,10 +807,10 @@ CREATE TABLE IdentityUsers (
         => Repo.ExecuteNonQueryAsync("DROP TABLE IF EXISTS IdentityUsers");
 
     /// <summary>
-    /// EN: Executes the SQL Server TEXTSIZE and NEWSEQUENTIALID benchmark and keeps the provider result alive.
-    /// PT-br: Executa o benchmark TEXTSIZE e NEWSEQUENTIALID do SQL Server e mantém o resultado do provedor vivo.
+    /// EN: Executes the SQL Server TEXTSIZE and NEWSEQUENTIALID benchmark and returns the TEXTSIZE value and UUID version.
+    /// PT-br: Executa o benchmark TEXTSIZE e NEWSEQUENTIALID do SQL Server e retorna o valor do TEXTSIZE e a versao do UUID.
     /// </summary>
-    public async Task<(int textSize, string newSequentialId)> RunSqlServerSpecialFunctionsAsync()
+    public async Task<(int textSize, int newSequentialIdVersion)> RunSqlServerSpecialFunctionsAsync()
     {
         if (!Repo.Dialect.SupportsSqlServerMetadataIdentifier("@@TEXTSIZE")
             || !Repo.Dialect.SupportsSqlServerScalarFunction("NEWSEQUENTIALID"))
@@ -824,16 +824,27 @@ CREATE TABLE IdentityUsers (
             var textSize = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT @@TEXTSIZE"), CultureInfo.InvariantCulture);
             await Repo.ExecuteNonQueryAsync("INSERT INTO SequentialGuidUsers (Id) VALUES (DEFAULT)");
             var newSequentialId = Convert.ToString(await Repo.ExecuteScalarAsync("SELECT Id FROM SequentialGuidUsers"), CultureInfo.InvariantCulture) ?? string.Empty;
+            var newSequentialIdVersion = GetGuidVersion(newSequentialId);
 
             GC.KeepAlive(textSize);
             GC.KeepAlive(newSequentialId);
+            GC.KeepAlive(newSequentialIdVersion);
 
-            return (textSize, newSequentialId);
+            return (textSize, newSequentialIdVersion);
         }
         finally
         {
             await Repo.ExecuteNonQueryAsync("DROP TABLE IF EXISTS SequentialGuidUsers");
         }
+    }
+
+    private static int GetGuidVersion(string value)
+    {
+        if (!Guid.TryParse(value, out var guid))
+            return 0;
+
+        var canonical = guid.ToString("D");
+        return Convert.ToInt32(canonical.Split('-')[2][0].ToString(), 16);
     }
 
     /// <summary>

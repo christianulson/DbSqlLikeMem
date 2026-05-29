@@ -350,7 +350,7 @@ public sealed class SqlServerMockTests
         Assert.Equal("dbo", command.ExecuteScalar());
 
         command.CommandText = "SELECT DATALENGTH('AB')";
-        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT DATENAME(month, '2020-02-10')";
         Assert.Equal("February", command.ExecuteScalar());
@@ -542,10 +542,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT HOST_ID()";
-        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(System.Diagnostics.Process.GetCurrentProcess().Id, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT HOST_NAME()";
-        Assert.Equal("localhost", command.ExecuteScalar());
+        Assert.Equal(Environment.MachineName, command.ExecuteScalar());
 
         command.CommandText = "SELECT ISDATE('2020-01-01')";
         Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));

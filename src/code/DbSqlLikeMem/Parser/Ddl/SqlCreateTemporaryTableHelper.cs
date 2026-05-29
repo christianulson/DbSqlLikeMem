@@ -663,12 +663,9 @@ internal static class SqlCreateTemporaryTableHelper
             return true;
         }
 
-        if (normalizedValue.Equals("NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
-            || normalizedValue.Equals("NEWSEQUENTIALID()", StringComparison.OrdinalIgnoreCase)
-            || normalizedValue.Equals("NEWID", StringComparison.OrdinalIgnoreCase)
-            || normalizedValue.Equals("NEWID()", StringComparison.OrdinalIgnoreCase))
+        if (GuidDefaultValueHelper.TryParseGeneratedGuidDefaultValueText(normalizedValue, out var guidDefaultValue))
         {
-            value = new GuidDefaultValue();
+            value = guidDefaultValue;
             return true;
         }
 

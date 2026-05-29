@@ -444,8 +444,8 @@ public abstract class TableMock
                 value = NextIdentity++;
             else if (column.DefaultValue is SequenceDef sequenceDefault)
                 value = ResolveSequenceDefault(sequenceDefault);
-            else if (column.DefaultValue is GuidDefaultValue)
-                value = Guid.NewGuid();
+            else if (GuidDefaultValueHelper.TryGetGeneratedGuidDefaultValue(column.DefaultValue, out var generatedGuidDefaultValue))
+                value = GuidDefaultValueHelper.CreateGuidValue(generatedGuidDefaultValue);
             else
                 value = column.DefaultValue;
 
@@ -887,8 +887,8 @@ public abstract class TableMock
                 {
                     if (col.DefaultValue is SequenceDef sequenceDefault)
                         value[col.Index] = ResolveSequenceDefault(sequenceDefault);
-                    else if (col.DefaultValue is GuidDefaultValue)
-                        value[col.Index] = Guid.NewGuid();
+                    else if (GuidDefaultValueHelper.TryGetGeneratedGuidDefaultValue(col.DefaultValue, out var generatedGuidDefaultValue))
+                        value[col.Index] = GuidDefaultValueHelper.CreateGuidValue(generatedGuidDefaultValue);
                     else if (col.DefaultValue != null)
                         value[col.Index] = col.DefaultValue;
                     else

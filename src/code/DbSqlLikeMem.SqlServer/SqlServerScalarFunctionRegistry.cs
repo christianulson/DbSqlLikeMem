@@ -673,6 +673,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         {
             var evaluator = new AstQuerySqlServerSessionFunctionEvaluator(
                 getDialect: () => context.Dialect,
+                getConnectionTypeName: () => context.Connection.GetType().Name,
                 getContextInfo: context.Connection.GetContextInfo,
                 hasActiveTransaction: () => context.Connection.HasActiveTransaction || context.HasActiveTransaction,
                 tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,
@@ -1212,6 +1213,7 @@ internal static partial class SqlServerScalarFunctionRegistry
     {
         var evaluator = new AstQuerySqlServerSessionFunctionEvaluator(
             getDialect: () => context.Dialect,
+            getConnectionTypeName: () => context.Connection.GetType().Name,
             getContextInfo: context.Connection.GetContextInfo,
             hasActiveTransaction: () => context.Connection.HasActiveTransaction || context.HasActiveTransaction,
             tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,

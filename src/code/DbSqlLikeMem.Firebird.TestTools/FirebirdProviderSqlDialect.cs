@@ -55,6 +55,38 @@ public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsMathTranscendentalFunctions => true;
 
     /// <inheritdoc />
+    public override string MathAcosExpression(string expression) =>
+        $"ACOS({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathAsinExpression(string expression) =>
+        $"ASIN({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathAtanExpression(string expression) =>
+        $"ATAN({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathAtan2Expression(string yExpression, string xExpression) =>
+        $"ATAN2({yExpression}, {xExpression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathCosExpression(string expression) =>
+        $"COS({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathExpExpression(string expression) =>
+        $"EXP({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathSinExpression(string expression) =>
+        $"SIN({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathTanExpression(string expression) =>
+        $"TAN({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
     public override string MathRandExpression(string? seedExpression = null) => "RAND()";
 
     /// <inheritdoc />

@@ -275,7 +275,7 @@ public sealed class OracleDialectFeatureParserTests(
         var db = Get(version, v => new OracleDbMock(v));
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }

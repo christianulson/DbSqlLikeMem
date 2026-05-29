@@ -121,7 +121,7 @@ public sealed class TextSearchTests : XUnitTestBase
         using var cnn = CreateOpenConnection();
         using var cmd = new SqlServerCommandMock(cnn)
         {
-            CommandText = "SELECT Id FROM Documents WHERE CONTAINS(Title, '"C#*"') = 1 ORDER BY Id"
+            CommandText = "SELECT Id FROM Documents WHERE CONTAINS(Title, 'C#*') = 1 ORDER BY Id"
         };
 
         using var reader = cmd.ExecuteReader();

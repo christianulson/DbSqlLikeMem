@@ -474,12 +474,9 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             return DateTime.Now;
         }
 
-        if (string.Equals(value, "NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "NEWSEQUENTIALID()", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "NEWID", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "NEWID()", StringComparison.OrdinalIgnoreCase))
+        if (GuidDefaultValueHelper.TryParseGeneratedGuidDefaultValueText(value, out var guidDefaultValue))
         {
-            return new GuidDefaultValue();
+            return guidDefaultValue;
         }
 
         if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
@@ -914,9 +911,9 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             return true;
         }
 
-        if (column.DefaultValue is GuidDefaultValue)
+        if (GuidDefaultValueHelper.TryGetGeneratedGuidDefaultValue(column.DefaultValue, out var generatedGuidDefaultValue))
         {
-            value = Guid.NewGuid();
+            value = GuidDefaultValueHelper.CreateGuidValue(generatedGuidDefaultValue);
             return true;
         }
 

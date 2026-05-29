@@ -36,7 +36,7 @@ public sealed class TextSearchTests : XUnitTestBase
                     (2, 'Java Basics', 'Java is a popular language for enterprise development'),
                     (3, 'Python Data Science', 'Python with pandas and numpy for data analysis'),
                     (4, 'JavaScript Web', 'Build web applications with JavaScript and Node.js'),
-                    (5, 'C# Advanced', 'Deep dive into C# patterns, LINQ, and async programming');
+                    (5, 'C# Advanced', 'Deep dive into patterns, LINQ, and async workflows');
                 """
         };
         seed.ExecuteNonQuery();

@@ -123,7 +123,7 @@ internal static class AstQueryAggregateEvaluator
             return EvalCorrelationAggregate(fn, group, ctes, eval, normalized);
         }
 
-        if (name is "GROUP_ID")
+        if (name is "GROUP_ID" or "GROUPING" or "GROUPING_ID")
             return 0;
 
         if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase))

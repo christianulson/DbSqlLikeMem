@@ -90,8 +90,8 @@ public sealed class TextSearchTests : XUnitTestBase
     }
 
     /// <summary>
-    /// EN: Verifies @@ with AND operator (&) matches rows containing all terms.
-    /// PT-br: Verifica que @@ com operador AND (&) encontra linhas com todos os termos.
+    /// EN: Verifies @@ with AND operator (&amp;) matches rows containing all terms.
+    /// PT-br: Verifica que @@ com operador AND (&amp;) encontra linhas com todos os termos.
     /// </summary>
     [FidelityFact]
     public void TsQuery_AndOperator_ShouldMatchAllTerms()
