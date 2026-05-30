@@ -7,12 +7,12 @@ internal static class AstQueryRowSourceHelper
     internal static EvalRow CreateSourceEvalRow(Source source, Dictionary<string, object?> fields)
     {
         var sourceColumns = source.ColumnNames;
-        var ordinalValues = new object?[sourceColumns.Count];
+        var ordinalValues = OrdinalPool.Rent(sourceColumns.Count);
         var ordinalIndexes = source.SourceOrdinalIndexes;
 
-        // Extract ordered field keys for lazy Fields reconstruction.
-        var fieldKeys = new string[fields.Count];
-        fields.Keys.CopyTo(fieldKeys, 0);
+        var pooledFields = SqlRowPool.Get(fields.Count);
+        foreach (var kvp in fields)
+            pooledFields[kvp.Key] = kvp.Value;
 
         for (var i = 0; i < sourceColumns.Count; i++)
         {
@@ -20,12 +20,11 @@ internal static class AstQueryRowSourceHelper
             ordinalValues[i] = fields.TryGetValue(qualifiedName, out var current) ? current : null;
         }
 
-        return new EvalRow(null!, source.SourceDict)
+        return new EvalRow(pooledFields, source.SourceDict)
         {
             OrdinalValues = ordinalValues,
             OrdinalIndexes = ordinalIndexes,
-            SingleSource = source.SourceDict.Count == 1 ? source : null,
-            FieldKeys = fieldKeys
+            SingleSource = source.SourceDict.Count == 1 ? source : null
         };
     }
 }

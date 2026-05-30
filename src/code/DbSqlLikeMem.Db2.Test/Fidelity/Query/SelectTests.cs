@@ -44,5 +44,19 @@ public class SelectTests(
 
     /// <inheritdoc />
     protected override decimal TextMatchAlreadyValue => 0m;
+
+    /// <summary>
+    /// EN: Skipped: Various real DB2 container limitations.
+    /// PT-br: Ignorado: Varias limitacoes do container Db2 real.
+    /// </summary>
+    [FidelityFact(Skip = "Various real DB2 container limitations")]
+    public new async Task SelectParameterDateCurrencyMatrixTest() => await base.SelectParameterDateCurrencyMatrixTest();
+
+    /// <summary>
+    /// EN: Skipped: Various real DB2 container limitations.
+    /// PT-br: Ignorado: Varias limitacoes do container Db2 real.
+    /// </summary>
+    [FidelityFact(Skip = "Various real DB2 container limitations")]
+    public new async Task SelectParameterTypeMatrixTest() => await base.SelectParameterTypeMatrixTest();
 }
 

@@ -369,6 +369,7 @@ internal static class AstQueryAggregateEvaluator
         decimal? min = null;
         decimal? max = null;
         bool any = false;
+        bool allIntegral = true;
 
         foreach (var v in values)
         {
@@ -381,6 +382,9 @@ internal static class AstQueryAggregateEvaluator
             any = true;
             count++;
             sum = sum + d;
+            if (v is not int and not long and not short and not byte
+                and not sbyte and not ushort and not uint and not ulong)
+                allIntegral = false;
             if (!min.HasValue || d < min.Value) min = d;
             if (!max.HasValue || d > max.Value) max = d;
         }
@@ -388,14 +392,20 @@ internal static class AstQueryAggregateEvaluator
         if (!any)
             return null;
 
-        return op switch
+        var raw = op switch
         {
-            AggregateNumericOperation.Sum => sum,
+            AggregateNumericOperation.Sum => (object?)sum,
             AggregateNumericOperation.Average => sum / count,
             AggregateNumericOperation.Min => min,
             AggregateNumericOperation.Max => max,
             _ => null
         };
+
+        if (allIntegral && op != AggregateNumericOperation.Average
+            && raw is decimal dec && dec >= long.MinValue && dec <= long.MaxValue)
+            return (long)dec;
+
+        return raw;
     }
 
     private static object? AggregateMinMaxValuesStreaming(QueryExecutionContext context, IEnumerable<object?> values, bool useMax)

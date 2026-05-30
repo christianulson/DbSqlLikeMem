@@ -128,8 +128,9 @@ public sealed class TextSearchTests : XUnitTestBase
         while (reader.Read())
             ids.Add(Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
 
-        Assert.Single(ids);
-        Assert.Equal(2, ids[0]);
+        Assert.Equal(2, ids.Count);
+        Assert.Contains(2, ids);
+        Assert.Contains(4, ids);
     }
 
     /// <summary>

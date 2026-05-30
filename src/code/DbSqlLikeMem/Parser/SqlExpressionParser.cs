@@ -1457,9 +1457,14 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     {
         try
         {
+            // Create a mutable copy with EOF sentinel so the parser knows where to stop
+            var withEof = new List<SqlToken>(tokens.Count + 1);
+            withEof.AddRange(tokens);
+            withEof.Add(SqlToken.EOF);
+
             var parser = new SqlExpressionParser(
                 new SqlExpressionParserContext(
-                    tokens,
+                    withEof,
                     _context.Db,
                     _context.Dialect,
                     _context.Parameters,

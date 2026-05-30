@@ -242,7 +242,7 @@ internal static class QueryTextSearchFunctionHelper
             }
 
             var forms = ExpandInflectionalForms(term);
-            return string.Join(" ", forms);
+            return string.Join(" OR ", forms);
         });
     }
 

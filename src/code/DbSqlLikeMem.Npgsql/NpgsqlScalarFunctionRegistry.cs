@@ -668,8 +668,14 @@ internal static partial class NpgsqlScalarFunctionRegistry
                 return true;
             }
             var argIndex = fn.Args.Count == 1 ? 0 : 1;
-            result = evalArg(argIndex)?.ToString() ?? string.Empty;
+            var text = evalArg(argIndex)?.ToString() ?? string.Empty;
+            result = NormalizeTsQuery(text);
             return true;
+        }
+
+        static string NormalizeTsQuery(string query)
+        {
+            return query.Replace(":*", "*");
         }
 
         dialect.AddScalarFunctions(
@@ -680,6 +686,12 @@ internal static partial class NpgsqlScalarFunctionRegistry
             "plainto_tsquery",
             "phraseto_tsquery",
             "websearch_to_tsquery");
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("to_tsquery", "VARCHAR") with
+            {
+                AstExecutor = TryEvalTsQueryFunction
+            });
 
         dialect.AddScalarFunction(
             DbFunctionDef.CreateScalar("to_tsvector", "VARCHAR") with

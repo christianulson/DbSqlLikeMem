@@ -882,24 +882,21 @@ public abstract class TableMock
     {
         foreach (var col in _columnsByOrdinal)
         {
-            if (value.ContainsKey(col.Index))
-                continue;
-
             var hasExplicitValue = value.TryGetValue(col.Index, out var currentValue);
 
             if (!col.Identity)
             {
-                if (!hasExplicitValue)
-                {
-                    if (col.DefaultValue is SequenceDef sequenceDefault)
-                        value[col.Index] = ResolveSequenceDefault(sequenceDefault);
-                    else if (GuidDefaultValueHelper.TryGetGeneratedGuidDefaultValue(col.DefaultValue, out var generatedGuidDefaultValue))
-                        value[col.Index] = GuidDefaultValueHelper.CreateGuidValue(generatedGuidDefaultValue);
-                    else if (col.DefaultValue != null)
-                        value[col.Index] = col.DefaultValue;
-                    else
-                        value[col.Index] = null;
-                }
+                if (hasExplicitValue)
+                    continue;
+
+                if (col.DefaultValue is SequenceDef sequenceDefault)
+                    value[col.Index] = ResolveSequenceDefault(sequenceDefault);
+                else if (GuidDefaultValueHelper.TryGetGeneratedGuidDefaultValue(col.DefaultValue, out var generatedGuidDefaultValue))
+                    value[col.Index] = GuidDefaultValueHelper.CreateGuidValue(generatedGuidDefaultValue);
+                else if (col.DefaultValue != null)
+                    value[col.Index] = col.DefaultValue;
+                else
+                    value[col.Index] = null;
             }
             else if (AllowIdentityInsert && currentValue is not null)
                 UpdateNextIdentityFromExplicitValue(currentValue);

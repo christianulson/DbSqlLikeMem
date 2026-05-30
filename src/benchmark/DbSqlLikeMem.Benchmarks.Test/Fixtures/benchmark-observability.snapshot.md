@@ -41,3 +41,4 @@ Guia para localizar, interpretar e diagnosticar falhas de benchmark.
 - `NotSupported` e skip controlado, nao falha inesperada.
 - `Failed` indica erro real de execucao ou infraestrutura.
 - `Skipped` indica exclusao proposital por perfil ou filtro.
+

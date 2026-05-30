@@ -361,8 +361,7 @@ internal static class AstQueryBinarySupportHelper
                 continue;
             }
 
-            if (haystackTokens.Any(word => word.Equals(token, StringComparison.OrdinalIgnoreCase))
-                || haystack.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
+            if (haystackTokens.Any(word => word.Equals(token, StringComparison.OrdinalIgnoreCase)))
             {
                 return true;
             }

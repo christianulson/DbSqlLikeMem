@@ -40,6 +40,10 @@ internal abstract partial class AstQueryExecutorBase
             res.JoinFields.Add(r.Fields);
         }
 
+        // Return per-row OrdinalValues arrays to pool; no longer needed after projection.
+        foreach (var r in rows)
+            OrdinalPool.Return(r.OrdinalValues);
+
         return res;
     }
 

@@ -106,19 +106,22 @@ internal static class QueryOrderByHelper
             }
 
             var parsedExpression = parseExpression(raw);
+            // Pre-compute the sort key for each row once, avoiding EvalRow.FromProjected
+            // on every comparison (O(n log n) × 2 calls → O(n) calls).
+            var joinFieldsByRow = getJoinFieldsByRow();
+            var precomputedKeys = new Dictionary<Dictionary<int, object?>, object?>(
+                result.Count, ReferenceEqualityComparer<Dictionary<int, object?>>.Instance);
+            for (var rowIdx = 0; rowIdx < result.Count; rowIdx++)
+            {
+                var row = result[rowIdx];
+                joinFieldsByRow.TryGetValue(row, out var joinFields);
+                var projectedRow = AstQueryExecutorBase.EvalRow.FromProjected(
+                    result, row, aliasToIndex, joinFields);
+                precomputedKeys[row] = evalExpression(parsedExpression, projectedRow);
+            }
+
             keySelectors.Add(new OrderByKeySelector(
-                row =>
-                {
-                    using var positionalScope = context.BeginPositionalParameterScope();
-                    var joinFieldsByRow = getJoinFieldsByRow();
-                    joinFieldsByRow.TryGetValue(row, out var joinFields);
-                    var projectedRow = AstQueryExecutorBase.EvalRow.FromProjected(
-                        result,
-                        row,
-                        aliasToIndex,
-                        joinFields);
-                    return evalExpression(parsedExpression, projectedRow);
-                },
+                row => precomputedKeys.TryGetValue(row, out var value) ? value : null,
                 item.Desc,
                 item.NullsFirst));
         }

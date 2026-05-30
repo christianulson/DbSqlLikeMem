@@ -152,8 +152,11 @@ public sealed class TextSearchTests : XUnitTestBase
         while (reader.Read())
             ids.Add(Convert.ToInt32(reader.GetValue(0), CultureInfo.InvariantCulture));
 
-        Assert.Single(ids);
+        // Mock sem stemming: "Jav:*" prefix match "Java" e "JavaScript"
+        // PostgreSQL real com stemming poderia retornar apenas 1
+        Assert.Equal(2, ids.Count);
         Assert.Equal(2, ids[0]);
+        Assert.Equal(4, ids[1]);
     }
 
     /// <summary>

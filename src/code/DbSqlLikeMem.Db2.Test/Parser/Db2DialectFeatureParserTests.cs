@@ -320,7 +320,7 @@ public sealed class Db2DialectFeatureParserTests(
         var db = Get(version, v => new Db2DbMock(v));
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, Get(version, v => new Db2Dialect(v))));
 
         Assert.Contains(SqlConst.MERGE, ex.Message, StringComparison.OrdinalIgnoreCase);
     }

@@ -38,7 +38,15 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch"
       ]
     },
     {
@@ -71,7 +79,15 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch"
       ]
     },
     {
@@ -104,7 +120,15 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch"
       ]
     },
     {
@@ -137,7 +161,15 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch"
       ],
       "notes": "Use SQL Server as the nearest real-engine proxy in local benchmarks."
     },
@@ -171,7 +203,15 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch"
       ]
     },
     {
@@ -204,7 +244,21 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch",
+        "ReturningInsert",
+        "BatchReturningInsert",
+        "ReturningUpdate",
+        "MergeBasic",
+        "MergeInsertThenUpdate",
+        "UpsertInsertThenUpdate"
       ]
     },
     {
@@ -237,7 +291,21 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch",
+        "ReturningInsert",
+        "BatchReturningInsert",
+        "ReturningUpdate",
+        "MergeBasic",
+        "MergeInsertThenUpdate",
+        "UpsertInsertThenUpdate"
       ]
     },
     {
@@ -270,7 +338,22 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ExecuteBlockSqlState23000",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch",
+        "ReturningInsert",
+        "BatchReturningInsert",
+        "ReturningUpdate",
+        "MergeBasic",
+        "MergeInsertThenUpdate",
+        "UpsertInsertThenUpdate"
       ]
     },
     {
@@ -303,7 +386,21 @@
         "FluentSchemaBuild",
         "FluentSeed100",
         "FluentSeed1000",
-        "FluentScenarioCompose"
+        "FluentScenarioCompose",
+        "ParseSimpleSelect",
+        "ParseComplexJoin",
+        "ParseInsertReturning",
+        "ParseOnConflictDoUpdate",
+        "ParseJsonExtract",
+        "ParseStringAggregateWithinGroup",
+        "ParseAutoDialectTopLimitFetch",
+        "ParseMultiStatementBatch",
+        "ReturningInsert",
+        "BatchReturningInsert",
+        "ReturningUpdate",
+        "MergeBasic",
+        "MergeInsertThenUpdate",
+        "UpsertInsertThenUpdate"
       ],
       "notes": "Change the image tag here if you prefer to stay strictly inside the Db2 11 family."
     }
@@ -476,6 +573,13 @@
       "category": "Setup",
       "comparable": false,
       "notes": "Compose a complete fluent scenario with schema + seed + execution."
+    },
+    {
+      "id": "ExecuteBlockSqlState23000",
+      "displayName": "Execute block SQLSTATE 23000",
+      "category": "Dialect",
+      "comparable": false,
+      "notes": "Firebird EXECUTE BLOCK benchmark that traps SQLSTATE 23000."
     }
   ]
 }

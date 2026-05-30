@@ -1198,35 +1198,10 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
     internal sealed class EvalRow
     {
-        private Dictionary<string, object?>? _fields;
-        public Dictionary<string, object?> Fields
-        {
-            get
-            {
-                if (_fields is null)
-                {
-                    _fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                    if (FieldKeys is not null && OrdinalValues is not null && OrdinalIndexes is not null)
-                    {
-                        foreach (var key in FieldKeys)
-                            if (OrdinalIndexes.TryGetValue(key, out var idx) && idx >= 0 && idx < OrdinalValues.Length)
-                                _fields[key] = OrdinalValues[idx];
-                    }
-                    else if (OrdinalValues is not null && OrdinalIndexes is not null)
-                    {
-                        foreach (var kvp in OrdinalIndexes)
-                            if (kvp.Value >= 0 && kvp.Value < OrdinalValues.Length)
-                                _fields[kvp.Key] = OrdinalValues[kvp.Value];
-                    }
-                }
-                return _fields;
-            }
-            set => _fields = value;
-        }
+        public Dictionary<string, object?> Fields { get; set; }
         public Dictionary<string, Source> Sources { get; }
         internal object?[]? OrdinalValues { get; set; }
         internal Dictionary<string, int>? OrdinalIndexes { get; set; }
-        internal string[]? FieldKeys { get; set; }
         internal IReadOnlyList<KeyValuePair<string, object?>>? CorrelatedCacheFields { get; set; }
         internal Dictionary<string, IReadOnlyList<KeyValuePair<string, object?>>>? CorrelatedCacheFieldViews { get; set; }
         internal Dictionary<string, string>? CorrelatedCacheKeys { get; set; }
@@ -1345,7 +1320,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             var fields = SqlRowPool.Get(oldFields.Count + rightSource.ColumnNames.Count * 2);
             foreach (var kvp in oldFields)
                 fields[kvp.Key] = kvp.Value;
-            SqlRowPool.Return(oldFields);
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
             sources.EnsureCapacity(sources.Count + 1);
@@ -1374,8 +1348,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 }
             }
 
-            OrdinalPool.Return(leftOrdinals);
-
             return new EvalRow(fields, sources)
             {
                 OrdinalValues = ordinalValues,
@@ -1395,7 +1367,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             var fields = SqlRowPool.Get(oldFields.Count + rightSource.ColumnNames.Count * 2);
             foreach (var kvp in oldFields)
                 fields[kvp.Key] = kvp.Value;
-            SqlRowPool.Return(oldFields);
 
             var sources = new Dictionary<string, Source>(Sources, StringComparer.OrdinalIgnoreCase);
             sources.EnsureCapacity(sources.Count + 1);
@@ -1424,8 +1395,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 }
             }
 
-            OrdinalPool.Return(leftOrdinals);
-
             return new EvalRow(fields, sources)
             {
                 OrdinalValues = ordinalValues,
@@ -1453,7 +1422,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             var fields = SqlRowPool.Get(oldFields.Count + outer.Fields.Count * 2);
             foreach (var kvp in oldFields)
                 fields[kvp.Key] = kvp.Value;
-            SqlRowPool.Return(oldFields);
 
             foreach (var it in outer.Fields)
             {
@@ -1496,8 +1464,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                     AppendOrdinalMetadata(outer, ordinalValues, ordinalIndexes, innerOrdinalCount);
                 }
             }
-
-            OrdinalPool.Return(innerOrdinals);
 
             return new EvalRow(fields, sources)
             {

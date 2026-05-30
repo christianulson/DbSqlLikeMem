@@ -73,7 +73,7 @@ dotnet run -c Release -- --validate-catalog
 ## Scripts build Reports
 
 powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki.ps1
-powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-app-specific.ps1
+powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-app-specific.single-table.ps1
 powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-all.ps1
 powershell -ExecutionPolicy Bypass -File .\Scripts\export-wiki-all.ps1 -IncludeLegacySingleTable
 
