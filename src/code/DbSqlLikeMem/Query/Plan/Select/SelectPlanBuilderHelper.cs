@@ -250,6 +250,23 @@ internal static class SelectPlanBuilderHelper
                 return WrapDebugEvaluatorIfNeeded(context.Connection.IsDebugTraceCaptureEnabled, expression, windowAwareEvaluator);
             }
 
+            // Fast path for ColumnExpr: direct OrdinalIndexes lookup, bypass Eval() switch dispatch.
+            if (expression is ColumnExpr colExpr)
+            {
+                var colName = string.IsNullOrWhiteSpace(colExpr.Qualifier)
+                    ? colExpr.Name
+                    : $"{colExpr.Qualifier}.{colExpr.Name}";
+                var colEval = (Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>)((row, _) =>
+                {
+                    if (row.OrdinalIndexes is not null && row.OrdinalIndexes.TryGetValue(colName, out var idx)
+                        && row.OrdinalValues is not null && idx >= 0 && idx < row.OrdinalValues.Length)
+                        return row.OrdinalValues[idx];
+                    row.Fields.TryGetValue(colName, out var v);
+                    return v;
+                });
+                return WrapDebugEvaluatorIfNeeded(context.Connection.IsDebugTraceCaptureEnabled, expression, colEval);
+            }
+
             var evaluator = (Func<AstQueryExecutorBase.EvalRow, AstQueryExecutorBase.EvalGroup?, object?>)((row, group) => evalExpression(expression, row, group, ctes));
             return WrapDebugEvaluatorIfNeeded(context.Connection.IsDebugTraceCaptureEnabled, expression, evaluator);
         }

@@ -4,6 +4,7 @@ using MySqlConnector;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
 using System.Collections.Concurrent;
+using System.Reflection;
 
 namespace DbSqlLikeMem.Benchmarks.Core;
 
@@ -54,6 +55,10 @@ public abstract partial class BenchmarkSessionBase(
         {
             RunFeature(feature);
         }
+        catch (TargetInvocationException tie) when (tie.InnerException is not null)
+        {
+            LogBenchmarkIssue(GetErrorCode(tie.InnerException), feature, tie.InnerException);
+        }
         catch (InvalidOperationException ex)
         {
             LogBenchmarkIssue("NA-IOE", feature, ex);
@@ -87,6 +92,18 @@ public abstract partial class BenchmarkSessionBase(
             LogBenchmarkIssue("NA", feature, ex);
         }
     }
+
+    private static string GetErrorCode(Exception ex) => ex switch
+    {
+        InvalidOperationException => "NA-IOE",
+        NotSupportedException => "NA-NSE",
+        DB2Exception => "NA-DB2E",
+        SqlException => "NA-SqlE",
+        MySqlException => "NA-MSE",
+        NpgsqlException => "NA-NE",
+        OracleException => "NA-OE",
+        _ => "NA"
+    };
 
     /// <summary>
     /// EN: Dispatches the requested benchmark feature to the corresponding benchmark routine.
