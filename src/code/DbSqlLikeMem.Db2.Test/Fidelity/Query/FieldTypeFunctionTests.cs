@@ -25,27 +25,27 @@ public class FieldTypeFunctionTests(
     /// PT-br: Ignorado: Varias limitacoes do container Db2 real.
     /// </summary>
     [FidelityFact(Skip = "Various real DB2 container limitations")]
-    public new async Task Db2AliasMathFunctionsTest() => await base.Db2AliasMathFunctionsTest();
+    public override Task Db2AliasMathFunctionsTest() => base.Db2AliasMathFunctionsTest();
 
     /// <summary>
     /// EN: Skipped: Various real DB2 container limitations.
     /// PT-br: Ignorado: Varias limitacoes do container Db2 real.
     /// </summary>
     [FidelityFact(Skip = "Various real DB2 container limitations")]
-    public new async Task MathCotFunctionTest() => await base.MathCotFunctionTest();
+    public override Task MathCotFunctionTest() => base.MathCotFunctionTest();
 
     /// <summary>
     /// EN: Skipped: Various real DB2 container limitations.
     /// PT-br: Ignorado: Varias limitacoes do container Db2 real.
     /// </summary>
     [FidelityFact(Skip = "Various real DB2 container limitations")]
-    public new async Task MathTranscendentalFunctionsTest() => await base.MathTranscendentalFunctionsTest();
+    public override Task MathTranscendentalFunctionsTest() => base.MathTranscendentalFunctionsTest();
 
     /// <summary>
     /// EN: Skipped: Various real DB2 container limitations.
     /// PT-br: Ignorado: Varias limitacoes do container Db2 real.
     /// </summary>
     [FidelityFact(Skip = "Various real DB2 container limitations")]
-    public new async Task JsonQueryRootFragmentTest() => await base.JsonQueryRootFragmentTest();
+    public override Task JsonQueryRootFragmentTest() => base.JsonQueryRootFragmentTest();
 }
 

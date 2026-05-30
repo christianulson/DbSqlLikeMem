@@ -204,7 +204,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT-br: Verifica se JSON_QUERY sem path retorna um fragmento bruto de raiz para o provedor atual.
     /// </summary>
     [FidelityFact]
-    public async Task JsonQueryRootFragmentTest()
+    public virtual async Task JsonQueryRootFragmentTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
@@ -336,7 +336,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT-br: Verifica se ABS, CEIL/CEILING, DEGREES, FLOOR, LN/LOG10, POWER, RADIANS, ROUND, SIGN, SQRT e SQUARE mantem os resultados matematicos esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
-    public async Task MathFunctionsTest()
+    public virtual async Task MathFunctionsTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
@@ -513,7 +513,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT-br: Verifica se COT mantem o resultado matematico esperado para provedores que expoem a funcao.
     /// </summary>
     [FidelityFact]
-    public async Task MathCotFunctionTest()
+    public virtual async Task MathCotFunctionTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
@@ -587,7 +587,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT-br: Verifica se ABSVAL, MOD, TRUNC e TRUNCATE mantem os resultados esperados dos aliases do DB2 para provedores que expoem as funcoes.
     /// </summary>
     [FidelityFact]
-    public async Task Db2AliasMathFunctionsTest()
+    public virtual async Task Db2AliasMathFunctionsTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
@@ -640,7 +640,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT-br: Verifica se ACOS, ASIN, ATAN, ATAN2, COS, EXP, SIN e TAN mantem os resultados transcendentais esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
-    public async Task MathTranscendentalFunctionsTest()
+    public virtual async Task MathTranscendentalFunctionsTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 
@@ -955,7 +955,7 @@ public abstract class FieldTypeFunctionTestsBase<T, T2>(
     /// PT-br: Verifica se helpers de metadados e sessao do SQL Server mantem os valores esperados para o provedor atual.
     /// </summary>
     [FidelityFact]
-    public async Task SqlServerSessionFunctionsTest()
+    public virtual async Task SqlServerSessionFunctionsTest()
     {
         using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
 

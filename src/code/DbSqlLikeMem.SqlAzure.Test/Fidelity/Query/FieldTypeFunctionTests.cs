@@ -21,5 +21,5 @@ public class FieldTypeFunctionTests(
     /// PT-br: Ignorado: @@SPID varia por conexao no Azure real.
     /// </summary>
     [FidelityFact(Skip = "@@SPID varies per connection on real Azure")]
-    public new async Task SqlServerSessionFunctionsTest() => await base.SqlServerSessionFunctionsTest();
+    public override Task SqlServerSessionFunctionsTest() => base.SqlServerSessionFunctionsTest();
 }

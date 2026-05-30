@@ -21,12 +21,12 @@ public class FieldTypeFunctionTests(
     /// PT-br: Ignorado: O driver Oracle lanca InvalidCastException no container real.
     /// </summary>
     [FidelityFact(Skip = "Oracle driver throws InvalidCastException on real container")]
-    public new async Task MathFunctionsTest() => await base.MathFunctionsTest();
+    public override Task MathFunctionsTest() => base.MathFunctionsTest();
 
     /// <summary>
     /// EN: Skipped: Oracle driver throws InvalidCastException on real container.
     /// PT-br: Ignorado: O driver Oracle lanca InvalidCastException no container real.
     /// </summary>
     [FidelityFact(Skip = "Oracle driver throws InvalidCastException on real container")]
-    public new async Task MathTranscendentalFunctionsTest() => await base.MathTranscendentalFunctionsTest();
+    public override Task MathTranscendentalFunctionsTest() => base.MathTranscendentalFunctionsTest();
 }

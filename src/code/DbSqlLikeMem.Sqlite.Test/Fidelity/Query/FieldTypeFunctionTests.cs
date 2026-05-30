@@ -29,5 +29,5 @@ public class FieldTypeFunctionTests(
     /// PT-br: Ignorado: A funcao CEIL nao existe na versao do SQLite usada pelo container.
     /// </summary>
     [FidelityFact(Skip = "CEIL function missing in the SQLite version used by the container")]
-    public new async Task MathFunctionsTest() => await base.MathFunctionsTest();
+    public override Task MathFunctionsTest() => base.MathFunctionsTest();
 }

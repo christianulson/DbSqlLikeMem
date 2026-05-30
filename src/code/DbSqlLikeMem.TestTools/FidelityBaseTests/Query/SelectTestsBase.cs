@@ -568,7 +568,7 @@ ORDER BY Id
     /// PT-br: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, binario, GUID e nulos.
     /// </summary>
     [FidelityFact]
-    public async Task SelectParameterTypeMatrixTest()
+    public virtual async Task SelectParameterTypeMatrixTest()
     {
         var createdAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
         var ansiFixedText = "Fixed ANSI";
@@ -601,7 +601,7 @@ ORDER BY Id
     /// PT-br: Verifica se parametros tipados do provedor fazem roundtrip corretamente para valores de data e moeda.
     /// </summary>
     [FidelityFact]
-    public async Task SelectParameterDateCurrencyMatrixTest()
+    public virtual async Task SelectParameterDateCurrencyMatrixTest()
     {
         var dateValue = new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Unspecified);
         var currencyValue = 123.45m;
