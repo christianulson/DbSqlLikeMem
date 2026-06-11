@@ -56,7 +56,13 @@ internal static class QueryOrderByHelper
         if (keySelectors.Count == 0)
             return result;
 
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var comparer = context.Dialect.TextComparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
+        var seen = new HashSet<string>(comparer);
         var outputRows = new List<Dictionary<int, object?>>(result.Count);
 
         foreach (var row in result)
@@ -111,13 +117,16 @@ internal static class QueryOrderByHelper
             var joinFieldsByRow = getJoinFieldsByRow();
             var precomputedKeys = new Dictionary<Dictionary<int, object?>, object?>(
                 result.Count, ReferenceEqualityComparer<Dictionary<int, object?>>.Instance);
+            var reusableRow = new AstQueryExecutorBase.EvalRow(
+                new Dictionary<string, object?>(aliasToIndex.Count, StringComparer.OrdinalIgnoreCase),
+                new Dictionary<string, AstQueryExecutorBase.Source>(StringComparer.OrdinalIgnoreCase));
             for (var rowIdx = 0; rowIdx < result.Count; rowIdx++)
             {
                 var row = result[rowIdx];
                 joinFieldsByRow.TryGetValue(row, out var joinFields);
-                var projectedRow = AstQueryExecutorBase.EvalRow.FromProjected(
-                    result, row, aliasToIndex, joinFields);
-                precomputedKeys[row] = evalExpression(parsedExpression, projectedRow);
+                AstQueryExecutorBase.EvalRow.ReuseFromProjected(
+                    reusableRow, result, row, aliasToIndex, joinFields);
+                precomputedKeys[row] = evalExpression(parsedExpression, reusableRow);
             }
 
             keySelectors.Add(new OrderByKeySelector(

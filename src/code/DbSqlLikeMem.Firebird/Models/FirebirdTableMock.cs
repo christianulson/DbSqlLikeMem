@@ -8,7 +8,7 @@ public class FirebirdTableMock(
     string tableName,
     SchemaMock schema,
     IEnumerable<Col> columns,
-    IEnumerable<Dictionary<int, object?>>? rows = null
+    IEnumerable<object?[]>? rows = null
 ) : TableMock(tableName, schema, columns, rows)
 {
     /// <summary>

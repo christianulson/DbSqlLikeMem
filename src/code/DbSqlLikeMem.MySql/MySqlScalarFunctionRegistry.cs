@@ -270,6 +270,10 @@ internal partial class MySqlDialect
         var tryEvalMySqlUtilityFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlUtilityFunction;
         var tryEvalMySqlQueryUtilityFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlQueryUtilityFunction;
         var tryEvalMySqlDateTimeFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlDateTimeFunction;
+        static bool TryEvalNotSupported(QueryExecutionContext context, FunctionCallExpr fn, Func<int, object?> evalArg, out object? result)
+        {
+            throw context.NotSupported(fn.Name);
+        }
         var tryEvalMySqlConversionAndMetadataFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate;
         var tryEvalConvertFunction = (AstQueryGeneralScalarFunctionHandler)AstQueryMySqlConversionAndMetadataFunctionEvaluator.TryEvaluate;
         var tryEvalDateFunction = (AstQueryGeneralScalarFunctionHandler)TryEvalMySqlDatePartFunction;
@@ -711,11 +715,21 @@ internal partial class MySqlDialect
                 "GROUPING",
                 "INT",
                 executionHandler: AstQueryGroupingFunctionEvaluator.TryEvaluate);
+        else
+            this.AddScalarFunction(
+                "GROUPING",
+                "INT",
+                executionHandler: (AstQueryGeneralScalarFunctionHandler)TryEvalNotSupported);
         if (version >= 80)
             this.AddScalarFunction(
                 "GROUPING_ID",
                 "INT",
                 executionHandler: AstQueryGroupingFunctionEvaluator.TryEvaluate);
+        else
+            this.AddScalarFunction(
+                "GROUPING_ID",
+                "INT",
+                executionHandler: (AstQueryGeneralScalarFunctionHandler)TryEvalNotSupported);
         this.AddScalarFunctions(
             "DATETIME",
             AstQueryGeneralDateArithmeticFunctionEvaluator.TryEvaluate,

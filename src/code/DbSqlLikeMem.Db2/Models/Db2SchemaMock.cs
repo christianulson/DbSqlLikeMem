@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Db2;
 public class Db2SchemaMock(
     string schemaName,
     Db2DbMock db,
-    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
+    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null
     ) : SchemaMock(schemaName, db, tables)
 {
     /// <summary>
@@ -21,6 +21,6 @@ public class Db2SchemaMock(
     protected override TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null)
+        IEnumerable<object?[]>? rows = null)
         => new Db2TableMock(tableName, this, columns, rows);
 }

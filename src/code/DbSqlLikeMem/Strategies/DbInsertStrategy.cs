@@ -58,295 +58,257 @@ internal static class DbInsertStrategy
         QueryExecutionContext context,
         SqlInsertQuery query)
     {
-        var connection = context.Connection;
-        context.ResetPositionalParameterCursor();
-        var dialect = context.Dialect;
-        var capturePlans = context.CaptureExecutionPlans;
-        var sw = capturePlans ? Stopwatch.StartNew() : null;
-        var metricsEnabled = context.MetricsEnabled;
-        ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
-        ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
+        var setup = new InsertExecutionSetup(context, query);
 
-        var tableName = query.Table.Name!; // Nome vindo do Parser
-        if (!connection.TryGetTable(tableName, out var table, query.Table.DbName) || table == null)
-            throw SqlUnsupported.ForTableDoesNotExist(tableName);
-        var targetRowCountBefore = table.Count;
+        if (setup.Query.IsReplace)
+            return ExecuteReplaceCore(context, setup.Query, setup.Table, setup.TableMock, setup.NewRows, setup.TargetRowCountBefore);
 
-        // Identifica linhas a inserir (seja via VALUES ou SELECT)
-        List<Dictionary<int, object?>> newRows;
+        var (insertedCount, updatedCount, affectedIndexes) = ExecuteInsertCore(setup);
 
-        if (query.InsertSelect != null)
-        {
-            // Caso: INSERT INTO ... SELECT ...
-            newRows = CreateRowsFromSelect(context, query, table);
-        }
-        else
-        {
-            // Caso: INSERT INTO ... VALUES ...
-            newRows = CreateRowsFromValues(context, query, table);
-        }
+        return FinalizeExecute(context, setup, insertedCount, updatedCount, affectedIndexes);
+    }
 
-        var newRowsCount = newRows.Count;
-        int insertedCount = 0;
-        int updatedCount = 0;
-        var tableMock = (TableMock)table;
-        var supportsTriggers = dialect.SupportsTriggers;
-        var hasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
-        var hasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
-        var hasForeignKeys = tableMock.ForeignKeys.Count > 0;
-        ValidateInsertPartitions(query, tableMock);
-        ValidatePartitionedInsertRows(query, tableMock, newRows);
-        var canUseBatchInsert = CanUseBatchInsert(context, table, tableName, query.Table.DbName, tableMock);
-        var affectedIndexes = new List<int>(newRows.Count);
-        var hasBeforeUpdateTrigger = false;
-        var hasAfterUpdateTrigger = false;
-        var requiresOldSnapshotForIndex = false;
-        var hasInsertConflictTargets = tableMock.PkIndexArray.Length > 0 || tableMock.UniqueIndexes.Count > 0;
-
-        if (query.HasOnDuplicateKeyUpdate)
-        {
-            var onDupChangedColumns = new List<string>(query.OnDupAssignsParsed.Count);
-            for (var i = 0; i < query.OnDupAssignsParsed.Count; i++)
-                onDupChangedColumns.Add(query.OnDupAssignsParsed[i].Column);
-
-            requiresOldSnapshotForIndex = HasIndexedKeyChanges(tableMock, onDupChangedColumns);
-            hasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
-            hasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
-        }
-
-        if (query.IsReplace)
-            return ExecuteReplaceCore(context, query, table, tableMock, newRows, targetRowCountBefore);
+    private static (int Inserted, int Updated, List<int> AffectedIndexes) ExecuteInsertCore(InsertExecutionSetup setup)
+    {
+        var context = setup.Context;
+        var query = setup.Query;
+        var table = setup.Table;
+        var tableMock = setup.TableMock;
+        var tableName = setup.TableName;
+        var newRows = setup.NewRows;
 
         if (!query.HasOnDuplicateKeyUpdate
             && !query.IsOnConflictDoNothing
-            && newRowsCount > 1
-            && canUseBatchInsert)
+            && setup.CanUseBatchInsert
+            && setup.NewRowsCount > 1)
+            return ExecuteSimpleBatchInsert(setup);
+
+        if (query.HasOnDuplicateKeyUpdate && setup.CanUseBatchInsert && setup.NewRowsCount > 1)
+            return ExecuteBatchWithDuplicateKey(setup);
+
+        return ExecutePerRowInsert(setup);
+    }
+
+    private static (int Inserted, int Updated, List<int> AffectedIndexes) ExecuteSimpleBatchInsert(InsertExecutionSetup setup)
+    {
+        var table = setup.Table;
+        var newRows = setup.NewRows;
+        var beforeCount = table.Count;
+        setup.TableMock.AddBatch(newRows);
+        var insertedCount = setup.NewRowsCount;
+        var affectedIndexes = new List<int>(insertedCount);
+        for (int i = beforeCount; i < beforeCount + insertedCount; i++)
+            affectedIndexes.Add(i);
+        TrySetLastInsertId(setup.Context, table, newRows[^1]);
+        return (insertedCount, 0, affectedIndexes);
+    }
+
+    private static (int Inserted, int Updated, List<int> AffectedIndexes) ExecuteBatchWithDuplicateKey(InsertExecutionSetup setup)
+    {
+        if (!setup.HasInsertConflictTargets)
+            return ExecuteSimpleBatchInsert(setup);
+
+        return ExecuteBatchWithDuplicateKeyAndConflicts(setup);
+    }
+
+    private static (int Inserted, int Updated, List<int> AffectedIndexes) ExecutePerRowInsert(InsertExecutionSetup setup)
+    {
+        var query = setup.Query;
+        var table = setup.Table;
+        var newRows = setup.NewRows;
+        var insertedCount = 0;
+        var updatedCount = 0;
+        var affectedIndexes = new List<int>(setup.NewRowsCount);
+
+        foreach (var newRow in newRows)
         {
-            var beforeCount = table.Count;
-            tableMock.AddBatch(newRows);
-            var afterCount = beforeCount + newRowsCount;
-            insertedCount = newRowsCount;
-            for (int i = beforeCount; i < afterCount; i++)
-                affectedIndexes.Add(i);
-            TrySetLastInsertId(context, table, newRows[^1]);
-        }
-        else if (query.HasOnDuplicateKeyUpdate
-            && newRowsCount > 1
-            && canUseBatchInsert)
-        {
-            if (!hasInsertConflictTargets)
+            if (!query.HasOnDuplicateKeyUpdate)
             {
-                var beforeCount = table.Count;
-                tableMock.AddBatch(newRows);
-                var afterCount = beforeCount + newRowsCount;
-                insertedCount = newRowsCount;
-                for (int i = beforeCount; i < afterCount; i++)
-                    affectedIndexes.Add(i);
-                TrySetLastInsertId(context, table, newRows[^1]);
+                TryInsertSingleRow(setup, newRow, ref insertedCount, affectedIndexes);
             }
             else
             {
-                var pendingInsertRows = new List<Dictionary<int, object?>>(newRows.Count);
-                HashSet<IndexKey>? pendingPrimaryKeys = tableMock.PkIndexArray.Length > 0
-                    ? new HashSet<IndexKey>()
-                    : null;
-                List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys = null;
-                foreach (var index in tableMock.UniqueIndexes)
-                {
-                    pendingUniqueKeys ??= new List<(IndexDef Index, HashSet<IndexKey> Keys)>();
-                    pendingUniqueKeys.Add((index, new HashSet<IndexKey>()));
-                }
-                var tracksPendingBatchConflicts = pendingPrimaryKeys is not null || pendingUniqueKeys is not null;
-                var pendingUniqueKeysBuffer = pendingUniqueKeys is not null
-                    ? new IndexKey[pendingUniqueKeys.Count]
-                    : null;
-
-                foreach (var newRow in newRows)
-                {
-                    IndexKey? pendingBatchPrimaryKey = null;
-                    IndexKey[]? pendingBatchUniqueKeys = null;
-                    if (tracksPendingBatchConflicts)
-                    {
-                        BuildPendingBatchKeys(
-                            tableMock,
-                            pendingPrimaryKeys,
-                            pendingUniqueKeys,
-                            pendingUniqueKeysBuffer,
-                            newRow,
-                            out pendingBatchPrimaryKey,
-                            out pendingBatchUniqueKeys);
-                    }
-
-                    if (pendingInsertRows.Count > 0
-                        && tracksPendingBatchConflicts
-                        && HasPendingBatchConflict(pendingPrimaryKeys, pendingUniqueKeys, pendingBatchPrimaryKey, pendingBatchUniqueKeys))
-                    {
-                        var before = table.Count;
-                        FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
-                        for (int i = before; i < table.Count; i++) affectedIndexes.Add(i);
-                    }
-
-                    var conflictIdx = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
-                    if (conflictIdx is null)
-                    {
-                        pendingInsertRows.Add(newRow);
-                        if (tracksPendingBatchConflicts)
-                            RegisterPendingBatchKeys(pendingPrimaryKeys, pendingUniqueKeys, pendingBatchPrimaryKey, pendingBatchUniqueKeys);
-                        continue;
-                    }
-                    var beforeFlush = table.Count;
-                    FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
-                    for (int i = beforeFlush; i < table.Count; i++) affectedIndexes.Add(i);
-
-                    if (query.IsOnConflictDoNothing)
-                        continue;
-                    if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
-                        continue;
-
-                    var oldSnapshot = requiresOldSnapshotForIndex || hasBeforeUpdateTrigger || hasAfterUpdateTrigger
-                        ? TableMock.SnapshotRow(table[conflictIdx.Value])
-                        : null;
-                    var simulatedUpdated = TableMock.CloneRow(table[conflictIdx.Value]);
-                    ApplyOnDuplicateUpdateAstInMemory(
-                        table,
-                        conflictIdx.Value,
-                        newRow,
-                        query.OnDupAssignsParsed,
-                        context,
-                        simulatedUpdated);
-                    if (hasForeignKeys)
-                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(simulatedUpdated);
-
-                    if (hasBeforeUpdateTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
-
-                    tableMock.ValidateCheckConstraintsOnRow(simulatedUpdated);
-
-                    ApplyOnDuplicateUpdateAst(
-                        table,
-                        conflictIdx.Value,
-                        newRow,
-                        query.OnDupAssignsParsed,
-                        context);
-
-                    if (hasAfterUpdateTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
-
-                    if (requiresOldSnapshotForIndex)
-                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
-                    else
-                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value);
-                    updatedCount++;
-                    affectedIndexes.Add(conflictIdx.Value);
-                }
-                var beforeFinalFlush = table.Count;
-                FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
-                for (int i = beforeFinalFlush; i < table.Count; i++) affectedIndexes.Add(i);
+                TryInsertOrUpdateSingleRow(setup, newRow, ref insertedCount, ref updatedCount, affectedIndexes);
             }
         }
+
+        return (insertedCount, updatedCount, affectedIndexes);
+    }
+
+    private static void TryInsertSingleRow(InsertExecutionSetup setup, Dictionary<int, object?> newRow, ref int insertedCount, List<int> affectedIndexes)
+    {
+        var table = setup.Table;
+        var tableMock = setup.TableMock;
+        var context = setup.Context;
+
+        if (setup.Query.IsOnConflictDoNothing && setup.HasInsertConflictTargets)
+        {
+            var conflictIdx = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
+            if (conflictIdx is not null)
+                return;
+        }
+
+        InsertRow(setup, newRow, table, tableMock, context);
+        insertedCount++;
+        affectedIndexes.Add(table.Count - 1);
+    }
+
+    private static void InsertRow(InsertExecutionSetup setup, Dictionary<int, object?> newRow, ITableMock table, TableMock tableMock, QueryExecutionContext context)
+    {
+        if (setup.HasBeforeInsertTrigger)
+            TryExecuteTableTrigger(context, table, setup.TableName, setup.Query.Table!.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
+
+        table.Add(newRow);
+        var insertedRow = table[table.Count - 1];
+
+        if (setup.HasAfterInsertTrigger)
+            TryExecuteTableTrigger(context, table, setup.TableName, setup.Query.Table!.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
+        TrySetLastInsertId(context, table, insertedRow);
+    }
+
+    private static void TryInsertOrUpdateSingleRow(InsertExecutionSetup setup, Dictionary<int, object?> newRow, ref int insertedCount, ref int updatedCount, List<int> affectedIndexes)
+    {
+        var table = setup.Table;
+        var tableMock = setup.TableMock;
+        var context = setup.Context;
+        var query = setup.Query;
+
+        var conflictIdx = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
+        if (conflictIdx is null)
+        {
+            InsertRow(setup, newRow, table, tableMock, context);
+            insertedCount++;
+            affectedIndexes.Add(table.Count - 1);
+            return;
+        }
+
+        if (query.IsOnConflictDoNothing)
+            return;
+        if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
+            return;
+
+        UpdateOnDuplicateRow(setup, conflictIdx.Value, newRow);
+        updatedCount++;
+        affectedIndexes.Add(conflictIdx.Value);
+    }
+
+    private static void UpdateOnDuplicateRow(InsertExecutionSetup setup, int conflictIdx, Dictionary<int, object?> newRow)
+    {
+        var table = setup.Table;
+        var tableMock = setup.TableMock;
+        var context = setup.Context;
+        var query = setup.Query;
+
+        var oldSnapshot = setup.RequiresOldSnapshotForIndex || setup.HasBeforeUpdateTrigger || setup.HasAfterUpdateTrigger
+            ? TableMock.SnapshotRow(table[conflictIdx])
+            : null;
+        var simulatedUpdated = TableMock.CloneRow(table[conflictIdx]);
+        ApplyOnDuplicateUpdateAstInMemory(table, conflictIdx, newRow, query.OnDupAssignsParsed, context, simulatedUpdated);
+
+        if (setup.HasForeignKeys)
+            tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(simulatedUpdated);
+
+        if (setup.HasBeforeUpdateTrigger)
+            TryExecuteTableTrigger(context, table, setup.TableName, query.Table!.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
+
+        tableMock.ValidateCheckConstraintsOnRow(simulatedUpdated);
+        ApplyOnDuplicateUpdateAst(table, conflictIdx, newRow, query.OnDupAssignsParsed, context);
+
+        if (setup.HasAfterUpdateTrigger)
+            TryExecuteTableTrigger(context, table, setup.TableName, query.Table!.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx]));
+
+        if (setup.RequiresOldSnapshotForIndex)
+            tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx, oldSnapshot, table[conflictIdx]);
         else
+            tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx);
+    }
+
+    private static (int Inserted, int Updated, List<int> AffectedIndexes) ExecuteBatchWithDuplicateKeyAndConflicts(InsertExecutionSetup setup)
+    {
+        var context = setup.Context;
+        var table = setup.Table;
+        var tableMock = setup.TableMock;
+        var query = setup.Query;
+        var newRows = setup.NewRows;
+        var insertedCount = 0;
+        var updatedCount = 0;
+        var affectedIndexes = new List<int>(setup.NewRowsCount);
+
+        var pendingInsertRows = new List<Dictionary<int, object?>>(newRows.Count);
+        HashSet<IndexKey>? pendingPrimaryKeys = setup.HasPrimaryKey ? new HashSet<IndexKey>() : null;
+        List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys = null;
+        foreach (var index in tableMock.UniqueIndexes)
         {
-            foreach (var newRow in newRows)
-            {
-                if (!query.HasOnDuplicateKeyUpdate)
-                {
-                    // Insercao normal
-                    if (query.IsOnConflictDoNothing)
-                    {
-                        if (hasInsertConflictTargets)
-                        {
-                            var conflictIdx1 = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
-                            if (conflictIdx1 is not null)
-                                continue;
-                        }
-                    }
-
-                    if (hasForeignKeys)
-                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(newRow);
-                    if (hasBeforeInsertTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
-
-                    table.Add(newRow);
-                    var insertedRow = table[table.Count - 1];
-
-                    if (hasAfterInsertTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
-                    TrySetLastInsertId(context, table, insertedRow);
-                    insertedCount++;
-                    affectedIndexes.Add(table.Count - 1);
-                    continue;
-                }
-
-                // Lógica ON DUPLICATE KEY UPDATE
-                var conflictIdx = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
-                if (conflictIdx is null)
-                {
-                    // Sem conflito -> Insere
-                    if (hasForeignKeys)
-                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(newRow);
-                    if (hasBeforeInsertTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
-
-                    table.Add(newRow);
-                    var insertedRow = table[table.Count - 1];
-
-                    if (hasAfterInsertTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
-                    TrySetLastInsertId(context, table, insertedRow);
-                    insertedCount++;
-                    affectedIndexes.Add(table.Count - 1);
-                }
-                else
-                {
-                    if (query.IsOnConflictDoNothing)
-                        continue;
-                    if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
-                        continue;
-
-                    // Conflito -> Update
-                    var oldSnapshot = requiresOldSnapshotForIndex || hasBeforeUpdateTrigger || hasAfterUpdateTrigger
-                        ? TableMock.SnapshotRow(table[conflictIdx.Value])
-                        : null;
-                    var simulatedUpdated = TableMock.CloneRow(table[conflictIdx.Value]);
-                    ApplyOnDuplicateUpdateAstInMemory(
-                        table,
-                        conflictIdx.Value,
-                        newRow,
-                        query.OnDupAssignsParsed,
-                        context,
-                        simulatedUpdated);
-                    if (hasForeignKeys)
-                        tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(simulatedUpdated);
-
-                    if (hasBeforeUpdateTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, TableMock.SnapshotRow(newRow));
-
-                    tableMock.ValidateCheckConstraintsOnRow(simulatedUpdated);
-
-                    ApplyOnDuplicateUpdateAst(
-                        table,
-                        conflictIdx.Value,
-                        newRow,
-                        query.OnDupAssignsParsed,
-                        context);
-
-                    if (hasAfterUpdateTrigger)
-                        TryExecuteTableTrigger(context, table, tableName, query.Table.DbName, TableTriggerEvent.AfterUpdate, oldSnapshot, TableMock.SnapshotRow(table[conflictIdx.Value]));
-
-                    if (requiresOldSnapshotForIndex)
-                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value, oldSnapshot, table[conflictIdx.Value]);
-                    else
-                        tableMock.IndexManager.UpdateIndexesWithRow(conflictIdx.Value);
-                    updatedCount++;
-                    affectedIndexes.Add(conflictIdx.Value);
-                }
-            }
+            pendingUniqueKeys ??= [];
+            pendingUniqueKeys.Add((index, []));
         }
+        var tracksPendingBatchConflicts = pendingPrimaryKeys is not null || pendingUniqueKeys is not null;
+        var pendingUniqueKeysBuffer = pendingUniqueKeys is not null
+            ? new IndexKey[pendingUniqueKeys.Count]
+            : null;
 
-        if (metricsEnabled)
+        foreach (var newRow in newRows)
         {
-            (context.Connection.Metrics).Inserts += insertedCount;
-            (context.Connection.Metrics).Updates += updatedCount;
+            IndexKey? pendingBatchPrimaryKey = null;
+            IndexKey[]? pendingBatchUniqueKeys = null;
+            if (tracksPendingBatchConflicts)
+            {
+                BuildPendingBatchKeys(tableMock, pendingPrimaryKeys, pendingUniqueKeys, pendingUniqueKeysBuffer, newRow,
+                    out pendingBatchPrimaryKey, out pendingBatchUniqueKeys);
+            }
+
+            if (pendingInsertRows.Count > 0 && tracksPendingBatchConflicts
+                && HasPendingBatchConflict(pendingPrimaryKeys, pendingUniqueKeys, pendingBatchPrimaryKey, pendingBatchUniqueKeys))
+            {
+                FlushPendingBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount, affectedIndexes);
+            }
+
+            var conflictIdx = tableMock.IndexManager.FindConflictingRowIndex(newRow, out _, out _);
+            if (conflictIdx is null)
+            {
+                pendingInsertRows.Add(newRow);
+                if (tracksPendingBatchConflicts)
+                    RegisterPendingBatchKeys(pendingPrimaryKeys, pendingUniqueKeys, pendingBatchPrimaryKey, pendingBatchUniqueKeys);
+                continue;
+            }
+
+            FlushPendingBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount, affectedIndexes);
+
+            if (query.IsOnConflictDoNothing)
+                continue;
+            if (!ShouldApplyOnConflictUpdateWhere(query, table, conflictIdx.Value, newRow, context))
+                continue;
+
+            UpdateOnDuplicateRow(setup, conflictIdx.Value, newRow);
+            updatedCount++;
+            affectedIndexes.Add(conflictIdx.Value);
+        }
+        FlushPendingBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount, affectedIndexes);
+
+        return (insertedCount, updatedCount, affectedIndexes);
+    }
+
+    private static void FlushPendingBatch(QueryExecutionContext context, ITableMock table, TableMock tableMock,
+        List<Dictionary<int, object?>> pendingInsertRows, HashSet<IndexKey>? pendingPrimaryKeys,
+        List<(IndexDef Index, HashSet<IndexKey> Keys)>? pendingUniqueKeys, ref int insertedCount, List<int> affectedIndexes)
+    {
+        var before = table.Count;
+        FlushPendingInsertBatch(context, table, tableMock, pendingInsertRows, pendingPrimaryKeys, pendingUniqueKeys, ref insertedCount);
+        for (int i = before; i < table.Count; i++)
+            affectedIndexes.Add(i);
+    }
+
+    private static DmlExecutionResult FinalizeExecute(QueryExecutionContext context, InsertExecutionSetup setup, int insertedCount, int updatedCount, List<int> affectedIndexes)
+    {
+        var connection = context.Connection;
+        var dialect = context.Dialect;
+        var capturePlans = context.CaptureExecutionPlans;
+        var sw = capturePlans ? Stopwatch.StartNew() : null;
+
+        if (context.MetricsEnabled)
+        {
+            connection.Metrics.Inserts += insertedCount;
+            connection.Metrics.Updates += updatedCount;
         }
 
         var affected = dialect.GetInsertUpsertAffectedRowCount(insertedCount, updatedCount);
@@ -357,19 +319,19 @@ internal static class DbInsertStrategy
         {
             affectedRowsData = new List<IReadOnlyDictionary<int, object?>>(affectedIndexes.Count);
             for (var i = 0; i < affectedIndexes.Count; i++)
-                affectedRowsData.Add(TableMock.SnapshotRow(table[affectedIndexes[i]]));
+                affectedRowsData.Add(TableMock.SnapshotRow(setup.Table[affectedIndexes[i]]));
         }
 
         if (capturePlans)
         {
             sw!.Stop();
             var metrics = new SqlPlanRuntimeMetrics(
-                InputTables: query.InsertSelect is null ? 1 : 1 + CountInputTables(query.InsertSelect),
-                EstimatedRowsRead: targetRowCountBefore + newRowsCount,
+                InputTables: setup.Query.InsertSelect is null ? 1 : 1 + CountInputTables(setup.Query.InsertSelect),
+                EstimatedRowsRead: setup.TargetRowCountBefore + setup.NewRowsCount,
                 ActualRows: affected,
                 ElapsedMs: sw.ElapsedMilliseconds);
             var plan = SqlExecutionPlanFormatter.FormatInsert(
-                query,
+                setup.Query,
                 metrics,
                 new SqlPlanMockRuntimeContext(connection.SimulatedLatencyMs, connection.DropProbability, connection.Db.ThreadSafe));
             connection.RegisterExecutionPlan(plan);
@@ -381,6 +343,71 @@ internal static class DbInsertStrategy
             AffectedIndexes = affectedIndexes,
             AffectedRowsData = affectedRowsData ?? []
         };
+    }
+
+    private sealed record InsertExecutionSetup
+    {
+        public QueryExecutionContext Context { get; }
+        public SqlInsertQuery Query { get; }
+        public ITableMock Table { get; }
+        public TableMock TableMock { get; }
+        public string TableName { get; }
+        public List<Dictionary<int, object?>> NewRows { get; }
+        public int NewRowsCount { get; }
+        public int TargetRowCountBefore { get; }
+        public bool HasBeforeInsertTrigger { get; }
+        public bool HasAfterInsertTrigger { get; }
+        public bool HasBeforeUpdateTrigger { get; }
+        public bool HasAfterUpdateTrigger { get; }
+        public bool HasForeignKeys { get; }
+        public bool CanUseBatchInsert { get; }
+        public bool HasInsertConflictTargets { get; }
+        public bool HasPrimaryKey { get; }
+        public bool RequiresOldSnapshotForIndex { get; }
+        public InsertExecutionSetup(QueryExecutionContext context, SqlInsertQuery query)
+        {
+            Context = context;
+            Query = query;
+            context.ResetPositionalParameterCursor();
+
+            ArgumentNullExceptionCompatible.ThrowIfNull(query.Table, nameof(query.Table));
+            ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(query.Table!.Name, nameof(query.Table.Name));
+
+            TableName = query.Table.Name!;
+            var connection = context.Connection;
+            if (!connection.TryGetTable(TableName, out var table, query.Table!.DbName) || table is null)
+                throw SqlUnsupported.ForTableDoesNotExist(TableName);
+            Table = table;
+            TableMock = (TableMock)table;
+            TargetRowCountBefore = table.Count;
+
+            NewRows = query.InsertSelect is not null
+                ? CreateRowsFromSelect(context, query, table)
+                : CreateRowsFromValues(context, query, table);
+            NewRowsCount = NewRows.Count;
+
+            var dialect = context.Dialect;
+            var supportsTriggers = dialect.SupportsTriggers;
+            HasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
+            HasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
+            HasForeignKeys = TableMock.ForeignKeys.Count > 0;
+            ValidateInsertPartitions(query, TableMock);
+            ValidatePartitionedInsertRows(query, TableMock, NewRows);
+            CanUseBatchInsert = CanUseBatchInsert(context, table, TableName, query.Table!.DbName, TableMock);
+            HasInsertConflictTargets = TableMock.PkIndexArray.Length > 0 || TableMock.UniqueIndexes.Count > 0;
+            HasPrimaryKey = TableMock.PkIndexArray.Length > 0;
+
+            if (query.HasOnDuplicateKeyUpdate)
+            {
+                var onDupChangedColumns = new List<string>(query.OnDupAssignsParsed.Count);
+                for (var i = 0; i < query.OnDupAssignsParsed.Count; i++)
+                    onDupChangedColumns.Add(query.OnDupAssignsParsed[i].Column);
+
+                RequiresOldSnapshotForIndex = HasIndexedKeyChanges(TableMock, onDupChangedColumns);
+                HasBeforeUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeUpdate);
+                HasAfterUpdateTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterUpdate);
+            }
+        }
     }
 
     private static DmlExecutionResult ExecuteReplaceCore(
@@ -424,28 +451,26 @@ internal static class DbInsertStrategy
                         oldRow = TableMock.SnapshotRow(table[idx]);
 
                     if (hasBeforeDeleteTrigger)
-                        TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
+                        TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table!.DbName, TableTriggerEvent.BeforeDelete, oldRow, null);
 
                     table.RemoveAt(idx);
 
                     if (hasAfterDeleteTrigger)
-                        TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
+                        TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table!.DbName, TableTriggerEvent.AfterDelete, oldRow, null);
 
                     deletedCount++;
                 }
             }
 
-                if (hasForeignKeys)
-                    tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(newRow);
             if (hasBeforeInsertTrigger)
-                TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
+                TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table!.DbName, TableTriggerEvent.BeforeInsert, null, TableMock.SnapshotRow(newRow));
 
             var beforeInsert = table.Count;
             table.Add(newRow);
             var insertedRow = table[table.Count - 1];
 
             if (hasAfterInsertTrigger)
-                TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
+                TryExecuteTableTrigger(context, table, query.Table!.Name!, query.Table!.DbName, TableTriggerEvent.AfterInsert, null, TableMock.SnapshotRow(insertedRow));
 
             TrySetLastInsertId(context, table, insertedRow);
             insertedCount++;
@@ -1399,126 +1424,126 @@ internal static class DbInsertStrategy
         return providerContext.TryEvaluateZeroArgIdentifier(functionName, out value);
     }
 
+    private sealed class OnDuplicateEvalContext
+    {
+        private readonly ITableMock _table;
+        private readonly IReadOnlyDictionary<int, object?> _insertedRow;
+        private readonly QueryExecutionContext _context;
+        private readonly Func<string, object?> _getExistingValue;
+
+        public OnDuplicateEvalContext(
+            ITableMock table,
+            IReadOnlyDictionary<int, object?> insertedRow,
+            QueryExecutionContext context,
+            Func<string, object?> getExistingValue)
+        {
+            _table = table;
+            _insertedRow = insertedRow;
+            _context = context;
+            _getExistingValue = getExistingValue;
+        }
+
+        public object? Eval(SqlExpr expr) => expr switch
+        {
+            LiteralExpr lit => lit.Value,
+            ParameterExpr p => _context.TryResolveParameter(p.Name, out var v) ? v : null,
+            IdentifierExpr id => TryGetExcludedValueFromName(id.Name) ?? _getExistingValue(GetUnqualifiedName(id.Name)),
+            ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
+                ? GetInsertedColumnValue(c.Name)
+                : _getExistingValue(c.Name),
+            UnaryExpr u when u.Op == SqlUnaryOp.Not => !(Convert.ToBoolean(Eval(u.Expr) ?? false)),
+            IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
+            BinaryExpr b => EvalBinary(b),
+            CallExpr call => EvalCall(call),
+            FunctionCallExpr fn => EvalFunction(fn),
+            _ => throw new NotSupportedException($"Expressao nao suportada em ON DUPLICATE: {expr.GetType().Name}")
+        };
+
+        public object? GetInsertedColumnValue(string col)
+        {
+            var info = _table.GetColumn(col);
+            return _insertedRow.TryGetValue(info.Index, out var v) ? v : null;
+        }
+
+        private object? EvalBinary(BinaryExpr b) => b.Op switch
+        {
+            SqlBinaryOp.Add => ToDecimal(Eval(b.Left)) + ToDecimal(Eval(b.Right)),
+            SqlBinaryOp.Subtract => ToDecimal(Eval(b.Left)) - ToDecimal(Eval(b.Right)),
+            SqlBinaryOp.Multiply => ToDecimal(Eval(b.Left)) * ToDecimal(Eval(b.Right)),
+            SqlBinaryOp.Divide => ToDecimal(Eval(b.Left)) / ToDecimal(Eval(b.Right)),
+            SqlBinaryOp.Concat => EvalConcatDuplicateUpdate(Eval(b.Left), Eval(b.Right), _context.Dialect),
+            SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
+            SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
+            SqlBinaryOp.And => ToBool(Eval(b.Left)) && ToBool(Eval(b.Right)),
+            SqlBinaryOp.Or => ToBool(Eval(b.Left)) || ToBool(Eval(b.Right)),
+            _ => throw new NotSupportedException($"Operador nao suportado em ON DUPLICATE: {b.Op}")
+        };
+
+        private object? EvalFunction(FunctionCallExpr fn)
+        {
+            EnsureDialectSupportsSequenceFunction(_context.Dialect, fn.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(_table, fn.Name, fn.Args, Eval, out var seqValue))
+                return seqValue;
+
+            if (fn.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase) && fn.Args.Count == 1)
+            {
+                var col = ExtractColumnName(fn.Args[0]);
+                if (col is not null)
+                    return GetInsertedColumnValue(col);
+            }
+
+            throw new NotSupportedException($"Funcao nao suportada em ON DUPLICATE: {fn.Name}()");
+        }
+
+        private object? EvalCall(CallExpr call)
+        {
+            EnsureDialectSupportsSequenceFunction(_context.Dialect, call.Name);
+            if (SqlSequenceEvaluator.TryEvaluateCall(_table, call.Name, call.Args, Eval, out var seqValue))
+                return seqValue;
+
+            if (call.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase) && call.Args.Count == 1)
+            {
+                var col = ExtractColumnName(call.Args[0]);
+                if (col is not null)
+                    return GetInsertedColumnValue(col);
+                throw new NotSupportedException("VALUES() espera 1 coluna");
+            }
+
+            throw new NotSupportedException($"CALL nao suportado em ON DUPLICATE: {call.Name}");
+        }
+
+        private object? TryGetExcludedValueFromName(string rawName)
+        {
+            if (TrySplitQualifiedName(rawName, out var firstPart, out var secondPart)
+                && (string.Equals(firstPart, "excluded", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(firstPart, "values", StringComparison.OrdinalIgnoreCase)))
+            {
+                return GetInsertedColumnValue(secondPart);
+            }
+            return null;
+        }
+
+        private static string? ExtractColumnName(SqlExpr arg) => arg switch
+        {
+            IdentifierExpr id => id.Name,
+            ColumnExpr c => c.Name,
+            _ => null
+        };
+
+        private static decimal ToDecimal(object? v) => Convert.ToDecimal(v ?? 0m);
+        private static bool ToBool(object? v) => Convert.ToBoolean(v ?? false);
+    }
+
     private static void ApplyOnDuplicateUpdateAstInMemory(
         ITableMock table,
         int existinIndex,
         IReadOnlyDictionary<int, object?> insertedRow,
         IReadOnlyList<SqlAssignment> assigns,
         QueryExecutionContext context,
-        IDictionary<int, object?> targetRow)
+        object?[] targetRow)
     {
-        object? GetInsertedColumnValue(string col)
-        {
-            var info = table.GetColumn(col);
-            return insertedRow.TryGetValue(info.Index, out var v) ? v : null;
-        }
-
-        object? GetExistingColumnValue(string col)
-        {
-            var info = table.GetColumn(col);
-            return targetRow.TryGetValue(info.Index, out var v) ? v : null;
-        }
-
-        object? Eval(SqlExpr expr)
-        {
-            return expr switch
-            {
-                LiteralExpr lit => lit.Value,
-                ParameterExpr p => context.TryResolveParameter(p.Name, out var parameterValue) ? parameterValue : null,
-                IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
-                    ? excluded
-                    : TryEvaluateTemporalToken(context, id.Name, out var temporalIdentifierValue)
-                        ? temporalIdentifierValue
-                        : GetExistingColumnValue(GetUnqualifiedName(id.Name)),
-                ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
-                    ? GetInsertedColumnValue(c.Name)
-                    : GetExistingColumnValue(c.Name),
-                UnaryExpr u when u.Op == SqlUnaryOp.Not => !(Convert.ToBoolean(Eval(u.Expr) ?? false)),
-                IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
-                BinaryExpr b => b.Op switch
-                {
-                    SqlBinaryOp.Add => (Convert.ToDecimal(Eval(b.Left) ?? 0m) + Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Concat => EvalConcatDuplicateUpdate(Eval(b.Left), Eval(b.Right), context.Dialect),
-                    SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
-                    SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
-                    SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
-                    SqlBinaryOp.Or => Convert.ToBoolean(Eval(b.Left) ?? false) || Convert.ToBoolean(Eval(b.Right) ?? false),
-                    _ => throw new NotSupportedException($"Operador não suportado em ON DUPLICATE: {b.Op}")
-                },
-                CallExpr call => EvalCall(call),
-                FunctionCallExpr fn => EvalFunction(fn),
-                _ => throw new NotSupportedException($"Expressão não suportada em ON DUPLICATE: {expr.GetType().Name}")
-            };
-        }
-
-        object? EvalFunction(FunctionCallExpr fn)
-        {
-            EnsureDialectSupportsSequenceFunction(context.Dialect, fn.Name);
-            if (SqlSequenceEvaluator.TryEvaluateCall(table, fn.Name, fn.Args, Eval, out var sequenceValue))
-                return sequenceValue;
-
-            if (fn.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
-                && fn.Args.Count == 1)
-            {
-                var col = fn.Args[0] switch
-                {
-                    IdentifierExpr id => id.Name,
-                    ColumnExpr c => c.Name,
-                    _ => null
-                };
-
-                if (!string.IsNullOrWhiteSpace(col))
-                    return GetInsertedColumnValue(col!);
-            }
-
-            throw new NotSupportedException($"Função não suportada em ON DUPLICATE: {fn.Name}()");
-        }
-
-        object? EvalCall(CallExpr call)
-        {
-            EnsureDialectSupportsSequenceFunction(context.Dialect, call.Name);
-            if (SqlSequenceEvaluator.TryEvaluateCall(table, call.Name, call.Args, Eval, out var sequenceValue))
-                return sequenceValue;
-
-            if (call.Name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
-                && call.Args.Count == 1)
-            {
-                var col = call.Args[0] switch
-                {
-                    IdentifierExpr id => id.Name,
-                    ColumnExpr c => c.Name,
-                    _ => null
-                };
-
-                if (string.IsNullOrWhiteSpace(col))
-                    throw new NotSupportedException("VALUES() espera 1 coluna");
-
-                return GetInsertedColumnValue(col!);
-            }
-
-            throw new NotSupportedException($"CALL não suportado em ON DUPLICATE: {call.Name}");
-        }
-
-        bool TryGetExcludedValueFromName(string rawName, out object? val)
-        {
-            val = null;
-            var n = rawName.Trim();
-            int dot = n.IndexOf('.');
-            if (dot <= 0) return false;
-
-            var qualifier = n[..dot];
-            var col = n[(dot + 1)..];
-
-            if (!(string.Equals(qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
-               || string.Equals(qualifier, "values", StringComparison.OrdinalIgnoreCase)))
-                return false;
-
-            val = GetInsertedColumnValue(col);
-            return true;
-        }
+        var eval = new OnDuplicateEvalContext(table, insertedRow, context,
+            col => targetRow[table.GetColumn(col).Index]);
 
         foreach (var assignment in assigns)
         {
@@ -1531,9 +1556,7 @@ internal static class DbInsertStrategy
                 context.Dialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
-            var value = Eval(ast);
-
-            targetRow[colInfo.Index] = value;
+            targetRow[colInfo.Index] = eval.Eval(ast);
         }
     }
 
@@ -1544,148 +1567,12 @@ internal static class DbInsertStrategy
         IReadOnlyList<SqlAssignment> assigns,
         QueryExecutionContext context)
     {
-        object? GetInsertedColumnValue(string col)
-        {
-            var info = table.GetColumn(col);
-            return insertedRow.TryGetValue(info.Index, out var v) ? v : null;
-        }
-
-        object? GetExistingColumnValue(string col)
-        {
-            var info = table.GetColumn(col);
-            return table[existinIndex].TryGetValue(info.Index, out var v) ? v : null;
-        }
-
-        static object? Coerce(DbType dbType, object? value)
-        {
-            if (value is null || value is DBNull) return null;
-
-            try
+        var eval = new OnDuplicateEvalContext(table, insertedRow, context,
+            col =>
             {
-                return dbType switch
-                {
-                    DbType.String => value.ToString(),
-                    DbType.Int16 => Convert.ToInt16(value),
-                    DbType.Int32 => Convert.ToInt32(value),
-                    DbType.Int64 => Convert.ToInt64(value),
-                    DbType.Byte => Convert.ToByte(value),
-                    DbType.Boolean => value is bool b ? b : Convert.ToInt32(value) != 0,
-                    DbType.Decimal => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
-                    DbType.Double => Convert.ToDouble(value),
-                    DbType.Single => Convert.ToSingle(value),
-                    DbType.DateTime => value is DateTime dt ? dt : Convert.ToDateTime(value),
-                    _ => value
-                };
-            }
-            catch
-            {
-                return value;
-            }
-        }
-
-        object? Eval(SqlExpr expr)
-        {
-            return expr switch
-            {
-                LiteralExpr lit => lit.Value,
-                ParameterExpr p => context.TryResolveParameter(p.Name, out var parameterValue) ? parameterValue : null,
-                IdentifierExpr id => TryGetExcludedValueFromName(id.Name, out var excluded)
-                    ? excluded
-                    : GetExistingColumnValue(GetUnqualifiedName(id.Name)),
-                ColumnExpr c => string.Equals(c.Qualifier, "excluded", StringComparison.OrdinalIgnoreCase)
-                    ? GetInsertedColumnValue(c.Name)
-                    : GetExistingColumnValue(c.Name),
-                UnaryExpr u when u.Op == SqlUnaryOp.Not => !(Convert.ToBoolean(Eval(u.Expr) ?? false)),
-                IsNullExpr n => (Eval(n.Expr) is null) ^ n.Negated,
-                BinaryExpr b => b.Op switch
-                {
-                    SqlBinaryOp.Add => (Convert.ToDecimal(Eval(b.Left) ?? 0m) + Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Subtract => (Convert.ToDecimal(Eval(b.Left) ?? 0m) - Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Multiply => (Convert.ToDecimal(Eval(b.Left) ?? 0m) * Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Divide => (Convert.ToDecimal(Eval(b.Left) ?? 0m) / Convert.ToDecimal(Eval(b.Right) ?? 0m)),
-                    SqlBinaryOp.Concat => EvalConcatDuplicateUpdate(Eval(b.Left), Eval(b.Right), context.Dialect),
-                    SqlBinaryOp.Eq => Equals(Eval(b.Left), Eval(b.Right)),
-                    SqlBinaryOp.Neq => !Equals(Eval(b.Left), Eval(b.Right)),
-                    SqlBinaryOp.And => Convert.ToBoolean(Eval(b.Left) ?? false) && Convert.ToBoolean(Eval(b.Right) ?? false),
-                    SqlBinaryOp.Or => Convert.ToBoolean(Eval(b.Left) ?? false) || Convert.ToBoolean(Eval(b.Right) ?? false),
-                    _ => throw new InvalidOperationException($"Operador não suportado no ON DUPLICATE: {b.Op}")
-                },
-                CallExpr call => EvalCall(call),
-                FunctionCallExpr fn => EvalFunction(fn),
-                RawSqlExpr raw => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {raw.Sql}"),
-                _ => throw new InvalidOperationException($"Expressão não suportada no ON DUPLICATE: {expr.GetType().Name}")
-            };
-        }
-
-        bool TryGetExcludedValueFromName(string rawName, out object? value)
-        {
-            value = null;
-            if (string.IsNullOrWhiteSpace(rawName))
-                return false;
-
-            if (TrySplitQualifiedName(rawName, out var firstPart, out var secondPart)
-                && string.Equals(firstPart, "excluded", StringComparison.OrdinalIgnoreCase))
-            {
-                value = GetInsertedColumnValue(secondPart);
-                return true;
-            }
-
-            return false;
-        }
-
-        object? EvalFunction(FunctionCallExpr fn)
-        {
-            var name = fn.Name;
-            EnsureDialectSupportsSequenceFunction(context.Dialect, name);
-            if (SqlSequenceEvaluator.TryEvaluateCall(table, name, fn.Args, Eval, out var sequenceValue))
-                return sequenceValue;
-
-            if (fn.Args.Count == 0 && context.TryEvaluateZeroArgCall(name, out var temporalValue))
-                return temporalValue;
-
-            if (name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
-                && fn.Args.Count == 1)
-            {
-                var col = fn.Args[0] switch
-                {
-                    IdentifierExpr id => id.Name,
-                    ColumnExpr c => c.Name,
-                    _ => null
-                };
-                if (!string.IsNullOrWhiteSpace(col))
-                    return GetInsertedColumnValue(col!);
-            }
-
-            throw new InvalidOperationException($"Função não suportada no ON DUPLICATE: {fn.Name}()");
-        }
-
-        object? EvalCall(CallExpr call)
-        {
-            var name = call.Name;
-            EnsureDialectSupportsSequenceFunction(context.Dialect, name);
-            if (SqlSequenceEvaluator.TryEvaluateCall(table, name, call.Args, Eval, out var sequenceValue))
-                return sequenceValue;
-
-            if (name.Equals(SqlConst.VALUES, StringComparison.OrdinalIgnoreCase)
-                && call.Args.Count == 1)
-            {
-                var col = call.Args[0] switch
-                {
-                    IdentifierExpr id => id.Name,
-                    ColumnExpr c => c.Name,
-                    _ => null
-                };
-                if (string.IsNullOrWhiteSpace(col))
-                    throw new InvalidOperationException("VALUES() espera 1 coluna");
-
-                return GetInsertedColumnValue(col!);
-            }
-
-            if (call.Args.Count == 0 && context.TryEvaluateZeroArgCall(name, out var temporalValue))
-                return temporalValue;
-
-            throw new InvalidOperationException($"CALL não suportado no ON DUPLICATE: {call.Name}");
-        }
+                var info = table.GetColumn(col);
+                return table[existinIndex].TryGetValue(info.Index, out var v) ? v : null;
+            });
 
         foreach (var assignment in assigns)
         {
@@ -1698,12 +1585,35 @@ internal static class DbInsertStrategy
                 context.Dialect,
                 null,
                 SqlCustomFunctionResolverFactory.Create(table.Schema.Db, table.Schema.SchemaName));
-            var value = Eval(ast);
+            table.UpdateRowColumn(existinIndex, colInfo.Index,
+                CoerceForDbType(colInfo.DbType, eval.Eval(ast)));
+        }
+    }
 
-            table.UpdateRowColumn(
-                existinIndex,
-                colInfo.Index,
-                Coerce(colInfo.DbType, value));
+    private static object? CoerceForDbType(DbType dbType, object? value)
+    {
+        if (value is null || value is DBNull) return null;
+
+        try
+        {
+            return dbType switch
+            {
+                DbType.String => value.ToString(),
+                DbType.Int16 => Convert.ToInt16(value),
+                DbType.Int32 => Convert.ToInt32(value),
+                DbType.Int64 => Convert.ToInt64(value),
+                DbType.Byte => Convert.ToByte(value),
+                DbType.Boolean => value is bool b ? b : Convert.ToInt32(value) != 0,
+                DbType.Decimal => Convert.ToDecimal(value, CultureInfo.InvariantCulture),
+                DbType.Double => Convert.ToDouble(value),
+                DbType.Single => Convert.ToSingle(value),
+                DbType.DateTime => value is DateTime dt ? dt : Convert.ToDateTime(value),
+                _ => value
+            };
+        }
+        catch
+        {
+            return value;
         }
     }
 

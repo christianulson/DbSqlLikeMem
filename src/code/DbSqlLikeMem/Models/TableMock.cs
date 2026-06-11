@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.ObjectModel;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
@@ -26,7 +27,7 @@ public abstract class TableMock
         string tableName,
         SchemaMock schema,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null)
+        IEnumerable<object?[]>? rows = null)
     {
         TableName = tableName.NormalizeName();
         Schema = schema;
@@ -35,12 +36,11 @@ public abstract class TableMock
         _indexManager = new TableIndexManager(this);
         _stateManager = new TableStateManager(this);
         _columnsView = new ReadOnlyDictionary<string, ColumnDef>(_columns);
-        _itemsView = new ItemsView(_items);
         _indexesView = new ReadOnlyDictionary<string, IndexDef>(_indexes);
         _primaryKeyIndexesView = new ReadOnlyHashSet<int>(_primaryKeyIndexes);
         foreach (var c in columns)
             AddColumn(c);
-        AddRange(rows ?? []);
+        AddRangeArray(rows ?? []);
     }
 
     /// <summary>
@@ -131,7 +131,6 @@ public abstract class TableMock
     private readonly Dictionary<int, string> _columnsByIndex = [];
     private readonly List<ColumnDef> _columnsByOrdinal = [];
     private readonly ReadOnlyDictionary<string, ColumnDef> _columnsView;
-    private readonly ItemsView _itemsView;
     private readonly ReadOnlyDictionary<string, IndexDef> _indexesView;
     private readonly List<IndexDef> _uniqueIndexes = [];
     private readonly List<SchemaSnapshotCheckConstraint> _checkConstraints = [];
@@ -172,13 +171,13 @@ public abstract class TableMock
 
     internal void InvalidateIndexesCache() => _cachedIndexes = null;
 
-    private readonly List<Dictionary<int, object?>> _items = [];
+    private readonly List<object?[]> _items = [];
 
     /// <summary>
     /// EN: Gets the read-only list of items in the table.
     /// PT-br: Obtem a lista somente leitura de itens na tabela.
     /// </summary>
-    public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => _itemsView;
+    public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => new ArrayRowListAdapter(_items);
 
     /// <summary>
     /// EN: Gets the check constraints configured for the table.
@@ -186,11 +185,15 @@ public abstract class TableMock
     /// </summary>
     public IReadOnlyList<SchemaSnapshotCheckConstraint> CheckConstraints => _checkConstraints;
 
-    private sealed class ItemsView(List<Dictionary<int, object?>> items) : IReadOnlyList<IReadOnlyDictionary<int, object?>>
+    private sealed class ArrayRowListAdapter(List<object?[]> items) : IReadOnlyList<IReadOnlyDictionary<int, object?>>
     {
         public int Count => items.Count;
-        public IReadOnlyDictionary<int, object?> this[int index] => items[index];
-        public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator() => items.GetEnumerator();
+        public IReadOnlyDictionary<int, object?> this[int index] => new ArrayRow(items[index]);
+        public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
+        {
+            foreach (var row in items)
+                yield return new ArrayRow(row);
+        }
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
@@ -319,17 +322,23 @@ public abstract class TableMock
     /// EN: Creates a detachable row snapshot without allocating a dictionary.
     /// PT-br: Cria um snapshot de linha sem alocar um dicionário.
     /// </summary>
-    internal static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?>? row)
+    internal static IReadOnlyDictionary<int, object?> SnapshotRow(object?[]? row)
     {
+        if (row is null)
+            return null!;
+
+        var snapshot = new object?[row.Length];
+        Array.Copy(row, snapshot, row.Length);
+
         var metrics = DbMetrics.Current;
         if (metrics is null)
-            return LazyRowSnapshot.From(row);
+            return new ArrayRow(snapshot);
 
         metrics.IncrementPerformancePhaseHit(DbPerformanceMetricKeys.RowSnapshot);
         var startedAt = Stopwatch.GetTimestamp();
         try
         {
-            return LazyRowSnapshot.From(row);
+            return new ArrayRow(snapshot);
         }
         finally
         {
@@ -339,11 +348,23 @@ public abstract class TableMock
         }
     }
 
+    /// <summary>
+    /// EN: Creates a detachable row snapshot from an IReadOnlyDictionary row.
+    /// PT-br: Cria um snapshot de linha a partir de uma linha IReadOnlyDictionary.
+    /// </summary>
+    internal static IReadOnlyDictionary<int, object?> SnapshotRow(IReadOnlyDictionary<int, object?>? row)
+    {
+        if (row is null)
+            return null!;
+
+        return SnapshotRow(CloneRow(row));
+    }
+
     private void NotifyMutationApplied(
         TableMutationKind kind,
         int rowIndex,
-        Dictionary<int, object?> row,
-        Dictionary<int, object?>? oldRowSnapshot = null,
+        object?[] row,
+        object?[]? oldRowSnapshot = null,
         int previousNextIdentity = 0)
     {
         if (MutationApplied is null)
@@ -440,8 +461,18 @@ public abstract class TableMock
         if (_items.Count == 0)
             return;
 
-        foreach (var row in _items)
+        var requiredSize = _columns.Count;
+        for (var i = 0; i < _items.Count; i++)
         {
+            var oldRow = _items[i];
+            if (oldRow.Length < requiredSize)
+            {
+                var newRow = new object?[requiredSize];
+                Array.Copy(oldRow, newRow, oldRow.Length);
+                _items[i] = newRow;
+                oldRow = newRow;
+            }
+
             object? value;
             if (column.Identity)
                 value = NextIdentity++;
@@ -452,15 +483,15 @@ public abstract class TableMock
             else
                 value = column.DefaultValue;
 
-            row[column.Index] = value;
+            oldRow[column.Index] = value;
 
             if (column.GetGenValue != null && column.PersistComputedValue)
-                row[column.Index] = column.GetGenValue(row, this);
+                oldRow[column.Index] = column.GetGenValue(new ArrayRow(oldRow), this);
 
             if (column.GetGenValue != null && !column.PersistComputedValue)
                 continue;
 
-            if (!column.Nullable && row[column.Index] == null)
+            if (!column.Nullable && oldRow[column.Index] == null)
                 throw ColumnCannotBeNull(column.Name);
         }
     }
@@ -552,12 +583,12 @@ public abstract class TableMock
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
         var rows = items is ICollection<T> collection
-            ? new List<Dictionary<int, object?>>(collection.Count)
-            : new List<Dictionary<int, object?>>();
+            ? new List<object?[]>(collection.Count)
+            : new List<object?[]>();
         foreach (var item in items)
             rows.Add(MaterializeItem(item));
 
-        return AddBatch(rows);
+        return AddBatchArray(rows);
     }
 
     /// <summary>
@@ -568,16 +599,29 @@ public abstract class TableMock
     public ITableMock AddRange(IEnumerable<Dictionary<int, object?>> items)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
-        if (items is IReadOnlyList<Dictionary<int, object?>> materializedRows)
-            return AddBatch(materializedRows);
+        var rows = new List<object?[]>();
+        var explicitSets = new List<ISet<int>?>();
+        foreach (var dict in items)
+        {
+            rows.Add(DictToArray(dict));
+            explicitSets.Add(new HashSet<int>(dict.Keys));
+        }
+        return AddBatchArray(rows, explicitSets);
+    }
 
-        var rows = items is ICollection<Dictionary<int, object?>> collection
-            ? new List<Dictionary<int, object?>>(collection.Count)
-            : new List<Dictionary<int, object?>>();
+    internal ITableMock AddRangeArray(IEnumerable<object?[]> items)
+    {
+        ArgumentNullExceptionCompatible.ThrowIfNull(items, nameof(items));
+        if (items is IReadOnlyList<object?[]> materializedRows)
+            return AddBatchArray(materializedRows);
+
+        var rows = items is ICollection<object?[]> collection
+            ? new List<object?[]>(collection.Count)
+            : new List<object?[]>();
         foreach (var row in items)
             rows.Add(row);
 
-        return AddBatch(rows);
+        return AddBatchArray(rows);
     }
 
     /// <summary>
@@ -589,11 +633,11 @@ public abstract class TableMock
     public ITableMock AddItem<T>(T item)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(item, nameof(item));
-        Add(MaterializeItem(item));
+        AddArray(MaterializeItem(item));
         return this;
     }
 
-    private Dictionary<int, object?> MaterializeItem<T>(T item)
+    private object?[] MaterializeItem<T>(T item)
     {
         var metrics = DbMetrics.Current;
         if (metrics is null)
@@ -613,9 +657,9 @@ public abstract class TableMock
         }
     }
 
-    private Dictionary<int, object?> MaterializeItemCore<T>(T item)
+    private object?[] MaterializeItemCore<T>(T item)
     {
-        var row = new Dictionary<int, object?>();
+        var row = new object?[_columns.Count];
         var accessors = GetItemAccessors(typeof(T));
 
         foreach (var p in Columns)
@@ -668,132 +712,205 @@ public abstract class TableMock
     }
 
     /// <summary>
+    /// EN: Adds multiple rows in batch (compatibility shim).
+    /// PT-br: Adiciona multiplas linhas em lote (shim de compatibilidade).
+    /// </summary>
+    public ITableMock AddBatch(IReadOnlyList<Dictionary<int, object?>> values)
+    {
+        var converted = new List<object?[]>(values.Count);
+        var explicitSets = new List<ISet<int>?>(values.Count);
+        foreach (var dict in values)
+        {
+            converted.Add(DictToArray(dict));
+            explicitSets.Add(new HashSet<int>(dict.Keys));
+        }
+        return AddBatchArray(converted, explicitSets);
+    }
+
+    /// <summary>
     /// EN: Adds multiple rows in batch while validating uniqueness and updating indexes incrementally.
     /// PT-br: Adiciona multiplas linhas em lote validando unicidade e atualizando indices de forma incremental.
     /// </summary>
     /// <param name="values">EN: Rows to insert. PT-br: Linhas a inserir.</param>
-    public ITableMock AddBatch(IReadOnlyList<Dictionary<int, object?>> values)
+    /// <param name="explicitColumnSets"></param>
+    public ITableMock AddBatchArray(IReadOnlyList<object?[]> values, IReadOnlyList<ISet<int>?>? explicitColumnSets = null)
     {
         var valueCount = values.Count;
         if (valueCount == 0)
             return this;
 
-        var hasForeignKeys = _foreignKeyManager.HasForeignKeys;
-        var hasPersistedComputedColumns = HasPersistedComputedColumns();
         if (valueCount == 1 || HasSelfReferencingForeignKey())
         {
-            foreach (var value in values)
-                Add(value);
+            for (var i = 0; i < valueCount; i++)
+            {
+                var explicitSet = explicitColumnSets?[i];
+                AddArray(values[i], explicitSet is not null ? new HashSet<int>(explicitSet) : null);
+            }
             return this;
         }
 
+        var hasForeignKeys = _foreignKeyManager.HasForeignKeys;
         if (_indexes.Count == 0 && _uniqueIndexes.Count == 0)
-            return AddBatchWithoutSecondaryIndexes(values, hasForeignKeys);
+            return AddBatchWithoutSecondaryIndexes(values, hasForeignKeys, explicitColumnSets);
 
-        var allIndexes = _cachedIndexes ??= _indexes.Values.ToArray();
-        var allIndexCount = allIndexes.Length;
-        var uniqueIndexCount = _uniqueIndexes.Count;
+        var context = new BatchInsertContext(this, values, explicitColumnSets, hasForeignKeys);
+        ValidateAndPrepareBatch(context);
+        InsertBatchRows(context);
+        UpdateBatchIndexes(context);
+        NotifyBatchMutations(context);
+        ReturnIndexKeyMatrix(context);
+        return this;
+    }
 
-        var uniqueIndexSlots = uniqueIndexCount > 0 ? new int[uniqueIndexCount] : Array.Empty<int>();
-        if (uniqueIndexCount > 0)
+    private sealed record BatchInsertContext(
+        TableMock Table,
+        IReadOnlyList<object?[]> Values,
+        IReadOnlyList<ISet<int>?>? ExplicitColumnSets,
+        bool HasForeignKeys)
+    {
+        public int ValueCount => Values.Count;
+        public IndexDef[] AllIndexes => _allIndexes ??= Table._cachedIndexes ??= Table._indexes.Values.ToArray();
+        private IndexDef[]? _allIndexes;
+
+        public int AllIndexCount => AllIndexes.Length;
+        public int UniqueIndexCount => Table._uniqueIndexes.Count;
+
+        public int[] UniqueIndexSlots => _uniqueIndexSlots ??= BuildUniqueIndexSlots();
+        private int[]? _uniqueIndexSlots;
+
+        public HashSet<IndexKey>? BatchPrimaryKeys => Table._primaryKeyIndexes.Count > 0
+            ? _batchPrimaryKeys ??= new HashSet<IndexKey>()
+            : null;
+        private HashSet<IndexKey>? _batchPrimaryKeys;
+
+        public bool HasMutationApplied => Table.MutationApplied is not null;
+
+        public int[]? PreviousNextIdentities => HasMutationApplied
+            ? _previousNextIdentities ??= new int[ValueCount]
+            : null;
+        private int[]? _previousNextIdentities;
+
+        public HashSet<IndexKey>?[]? BatchUniqueSets => UniqueIndexCount > 0
+            ? _batchUniqueSets ??= CreateBatchUniqueSets()
+            : null;
+        private HashSet<IndexKey>?[]? _batchUniqueSets;
+
+        public IndexKey[][] IndexKeysMatrix => _indexKeysMatrix ??= RentIndexKeyMatrix();
+        private IndexKey[][]? _indexKeysMatrix;
+
+        public bool HasPersistedComputedColumns => Table.HasPersistedComputedColumns();
+        public bool HasPrimaryKey => Table._primaryKeyIndexes.Count > 0;
+
+        public int StartIndex => Table._items.Count;
+
+        private int[] BuildUniqueIndexSlots()
         {
-            var uniqueSlot = 0;
-            for (var i = 0; i < allIndexCount; i++)
+            if (UniqueIndexCount == 0) return [];
+            var slots = new int[UniqueIndexCount];
+            var slot = 0;
+            for (var i = 0; i < AllIndexCount; i++)
             {
-                if (allIndexes[i].Unique)
-                    uniqueIndexSlots[uniqueSlot++] = i;
+                if (AllIndexes[i].Unique)
+                    slots[slot++] = i;
             }
+            return slots;
         }
 
-        var batchPrimaryKeys = _primaryKeyIndexes.Count > 0
-            ? new HashSet<IndexKey>()
-            : null;
-        var hasMutationApplied = MutationApplied is not null;
-
-        int[]? previousNextIdentities = hasMutationApplied ? new int[valueCount] : null;
-        HashSet<IndexKey>?[]? batchUniqueSets = uniqueIndexCount > 0
-            ? new HashSet<IndexKey>?[uniqueIndexCount]
-            : null;
-        if (batchUniqueSets is not null)
+        private HashSet<IndexKey>?[] CreateBatchUniqueSets()
         {
-            for (var i = 0; i < uniqueIndexCount; i++)
-                batchUniqueSets[i] = new HashSet<IndexKey>();
+            var sets = new HashSet<IndexKey>?[UniqueIndexCount];
+            for (var i = 0; i < UniqueIndexCount; i++)
+                sets[i] = new HashSet<IndexKey>();
+            return sets;
         }
 
-        var indexKeysMatrix = new IndexKey[allIndexCount][];
-        for (int i = 0; i < allIndexCount; i++)
-            indexKeysMatrix[i] = new IndexKey[valueCount];
-
-        for (var valueIndex = 0; valueIndex < valueCount; valueIndex++)
+        private IndexKey[][] RentIndexKeyMatrix()
         {
-            var row = values[valueIndex];
-            if (hasMutationApplied)
-                previousNextIdentities![valueIndex] = NextIdentity;
+            var matrix = new IndexKey[AllIndexCount][];
+            for (int i = 0; i < AllIndexCount; i++)
+                matrix[i] = ArrayPool<IndexKey>.Shared.Rent(ValueCount);
+            return matrix;
+        }
+    }
 
-            ApplyDefaultValues(row);
-            if (hasPersistedComputedColumns)
+    private void ValidateAndPrepareBatch(BatchInsertContext ctx)
+    {
+        for (var valueIndex = 0; valueIndex < ctx.ValueCount; valueIndex++)
+        {
+            var row = ctx.Values[valueIndex];
+            var explicitSet = ctx.ExplicitColumnSets?[valueIndex];
+
+            if (ctx.HasMutationApplied)
+                ctx.PreviousNextIdentities![valueIndex] = NextIdentity;
+
+            ApplyDefaultValues(row, explicitSet);
+            if (ctx.HasPersistedComputedColumns)
                 RefreshPersistedComputedValues(row);
             ValidateCheckConstraintsOnRow(row);
-            if (hasForeignKeys)
+            if (ctx.HasForeignKeys)
                 _foreignKeyManager.ValidateForeignKeysOnRow(row);
 
-            if (batchPrimaryKeys is not null)
-                _indexManager.EnsurePrimaryKeyUniqueOnInsert(row, batchPrimaryKeys);
+            if (ctx.BatchPrimaryKeys is not null)
+                _indexManager.EnsurePrimaryKeyUniqueOnInsert(new ArrayRow(row), ctx.BatchPrimaryKeys);
 
-            for (int i = 0; i < allIndexCount; i++)
+            for (int i = 0; i < ctx.AllIndexCount; i++)
             {
-                var index = allIndexes[i];
-                var key = index.BuildIndexKey(row);
-                indexKeysMatrix[i][valueIndex] = key;
+                var index = ctx.AllIndexes[i];
+                ctx.IndexKeysMatrix[i][valueIndex] = index.BuildIndexKey(new ArrayRow(row));
             }
 
-            for (var uniqueSlot = 0; uniqueSlot < uniqueIndexCount; uniqueSlot++)
+            for (var uniqueSlot = 0; uniqueSlot < ctx.UniqueIndexCount; uniqueSlot++)
             {
-                var index = allIndexes[uniqueIndexSlots[uniqueSlot]];
-                var key = indexKeysMatrix[uniqueIndexSlots[uniqueSlot]][valueIndex];
-                var uniqueKeys = batchUniqueSets![uniqueSlot]!;
+                var index = ctx.AllIndexes[ctx.UniqueIndexSlots[uniqueSlot]];
+                var key = ctx.IndexKeysMatrix[ctx.UniqueIndexSlots[uniqueSlot]][valueIndex];
+                var uniqueKeys = ctx.BatchUniqueSets![uniqueSlot]!;
                 if (index.LookupMutable(key)?.Count > 0 || !uniqueKeys.Add(key))
                     throw DuplicateKey(TableName, index.Name, key);
             }
         }
+    }
 
-        var startIndex = _items.Count;
-        _items.AddRange(values);
+    private void InsertBatchRows(BatchInsertContext ctx)
+    {
+        _items.AddRange(ctx.Values);
+    }
 
-        // Update indexes using PRE-CALCULATED keys
-        var hasPrimaryKey = _primaryKeyIndexes.Count > 0;
-        for (var rowOffset = 0; rowOffset < valueCount; rowOffset++)
+    private void UpdateBatchIndexes(BatchInsertContext ctx)
+    {
+        for (var rowOffset = 0; rowOffset < ctx.ValueCount; rowOffset++)
         {
-            var rowIndex = startIndex + rowOffset;
-            var row = values[rowOffset];
-
-            for (int i = 0; i < allIndexCount; i++)
-            {
-                allIndexes[i].UpdateIndexesWithRow(rowIndex, row, indexKeysMatrix[i][rowOffset]);
-            }
+            var rowIndex = ctx.StartIndex + rowOffset;
+            for (int i = 0; i < ctx.AllIndexCount; i++)
+                ctx.AllIndexes[i].UpdateIndexesWithRow(rowIndex, new ArrayRow(ctx.Values[rowOffset]), ctx.IndexKeysMatrix[i][rowOffset]);
         }
 
-        if (hasPrimaryKey)
-            _indexManager.RegisterPrimaryKeys(startIndex, values);
+        if (ctx.HasPrimaryKey)
+            _indexManager.RegisterPrimaryKeys(ctx.StartIndex, ctx.Values);
+    }
 
-        if (hasMutationApplied)
+    private void NotifyBatchMutations(BatchInsertContext ctx)
+    {
+        if (!ctx.HasMutationApplied) return;
+        for (var rowOffset = 0; rowOffset < ctx.ValueCount; rowOffset++)
         {
-            for (var rowOffset = 0; rowOffset < valueCount; rowOffset++)
-            {
-                NotifyMutationApplied(
-                    TableMutationKind.Insert,
-                    startIndex + rowOffset,
-                    values[rowOffset],
-                    previousNextIdentity: previousNextIdentities![rowOffset]);
-            }
+            NotifyMutationApplied(
+                TableMutationKind.Insert,
+                ctx.StartIndex + rowOffset,
+                ctx.Values[rowOffset],
+                previousNextIdentity: ctx.PreviousNextIdentities![rowOffset]);
         }
+    }
 
-        return this;
+    private static void ReturnIndexKeyMatrix(BatchInsertContext ctx)
+    {
+        for (int i = 0; i < ctx.AllIndexCount; i++)
+            ArrayPool<IndexKey>.Shared.Return(ctx.IndexKeysMatrix[i], clearArray: true);
     }
 
     private ITableMock AddBatchWithoutSecondaryIndexes(
-        IReadOnlyList<Dictionary<int, object?>> values,
-        bool hasForeignKeys)
+        IReadOnlyList<object?[]> values,
+        bool hasForeignKeys,
+        IReadOnlyList<ISet<int>?>? explicitColumnSets = null)
     {
         var valueCount = values.Count;
         var hasMutationApplied = MutationApplied is not null;
@@ -808,7 +925,7 @@ public abstract class TableMock
             if (hasMutationApplied)
                 previousNextIdentities![valueIndex] = NextIdentity;
 
-            ApplyDefaultValues(row);
+            ApplyDefaultValues(row, explicitColumnSets?[valueIndex]);
             if (hasPersistedComputedColumns)
                 RefreshPersistedComputedValues(row);
             ValidateCheckConstraintsOnRow(row);
@@ -818,7 +935,7 @@ public abstract class TableMock
             if (batchPrimaryKeys is null)
                 continue;
 
-            _indexManager.EnsurePrimaryKeyUniqueOnInsert(row, batchPrimaryKeys);
+            _indexManager.EnsurePrimaryKeyUniqueOnInsert(new ArrayRow(row), batchPrimaryKeys);
         }
 
         var startIndex = _items.Count;
@@ -852,21 +969,27 @@ public abstract class TableMock
     /// <param name="value">EN: Row to insert. PT-br: Linha a inserir.</param>
     public ITableMock Add(Dictionary<int, object?> value)
     {
+        var arr = DictToArray(value);
+        return AddArray(arr, new HashSet<int>(value.Keys));
+    }
+
+    internal ITableMock AddArray(object?[] value, ISet<int>? explicitlyProvidedColumns = null)
+    {
         var hasMutationApplied = MutationApplied is not null;
         var previousNextIdentity = hasMutationApplied ? NextIdentity : 0;
         var hasPersistedComputedColumns = HasPersistedComputedColumns();
-        ApplyDefaultValues(value);
+        ApplyDefaultValues(value, explicitlyProvidedColumns);
         if (hasPersistedComputedColumns)
             RefreshPersistedComputedValues(value);
         ValidateCheckConstraintsOnRow(value);
         if (_foreignKeyManager.HasForeignKeys)
             _foreignKeyManager.ValidateForeignKeysOnRow(value);
-        _indexManager.EnsureUniqueOnInsert(value);
+        _indexManager.EnsureUniqueOnInsert(new ArrayRow(value));
         _items.Add(value);
         // Update _indexes with the new row
         int newIdx = Count - 1;
         _indexManager.UpdateIndexesWithRow(newIdx);
-        _indexManager.RegisterPrimaryKey(newIdx, value);
+        _indexManager.RegisterPrimaryKey(newIdx, new ArrayRow(value));
         if (hasMutationApplied)
         {
             NotifyMutationApplied(
@@ -878,15 +1001,27 @@ public abstract class TableMock
         return this;
     }
 
-    private void ApplyDefaultValues(Dictionary<int, object?> value)
+    private object?[] DictToArray(Dictionary<int, object?> dict)
+    {
+        var arr = new object?[_columns.Count];
+        foreach (var kv in dict)
+            if (kv.Key >= 0 && kv.Key < arr.Length)
+                arr[kv.Key] = kv.Value;
+        return arr;
+    }
+
+    private void ApplyDefaultValues(object?[] value, ISet<int>? explicitlyProvidedColumns = null)
     {
         foreach (var col in _columnsByOrdinal)
         {
-            var hasExplicitValue = value.TryGetValue(col.Index, out var currentValue);
+            var currentValue = value[col.Index];
 
             if (!col.Identity)
             {
-                if (hasExplicitValue)
+                if (explicitlyProvidedColumns is not null && explicitlyProvidedColumns.Contains(col.Index))
+                    continue;
+
+                if (currentValue is not null)
                     continue;
 
                 if (col.DefaultValue is SequenceDef sequenceDefault)
@@ -904,7 +1039,7 @@ public abstract class TableMock
                 value[col.Index] = NextIdentity++;
 
             if (col.GetGenValue != null && col.PersistComputedValue)
-                value[col.Index] = col.GetGenValue(value, this);
+                value[col.Index] = col.GetGenValue(new ArrayRow(value), this);
 
             if (col.GetGenValue != null && !col.PersistComputedValue)
                 continue;
@@ -914,13 +1049,13 @@ public abstract class TableMock
         }
     }
 
-    internal void ValidateCheckConstraintsOnRow(IReadOnlyDictionary<int, object?> row)
+    internal void ValidateCheckConstraintsOnRow(object?[] row)
     {
         if (_checkConstraints.Count == 0)
             return;
 
         var compiledConstraints = GetCompiledCheckConstraints();
-        TableCheckConstraintEvaluator.Validate(this, row, compiledConstraints);
+        TableCheckConstraintEvaluator.Validate(this, new ArrayRow(row), compiledConstraints);
     }
 
     private IReadOnlyList<CompiledCheckConstraint> GetCompiledCheckConstraints()
@@ -980,14 +1115,14 @@ public abstract class TableMock
         }
     }
 
-    private void RefreshPersistedComputedValues(Dictionary<int, object?> row)
+    private void RefreshPersistedComputedValues(object?[] row)
     {
         foreach (var col in _columnsByOrdinal)
         {
             if (col.GetGenValue == null || !col.PersistComputedValue)
                 continue;
 
-            row[col.Index] = col.GetGenValue(row, this);
+            row[col.Index] = col.GetGenValue(new ArrayRow(row), this);
         }
     }
 
@@ -2062,11 +2197,20 @@ public abstract class TableMock
     /// </summary>
     public Dictionary<int, object?> RemoveAt(int idx)
     {
+        var arr = RemoveAtArray(idx);
+        var dict = new Dictionary<int, object?>(arr.Length);
+        for (var i = 0; i < arr.Length; i++)
+            dict[i] = arr[i];
+        return dict;
+    }
+
+    internal object?[] RemoveAtArray(int idx)
+    {
         var hasMutationApplied = MutationApplied is not null;
         var it = _items[idx];
-        Schema.ValidateForeignKeysOnDelete(TableName, this, [it]);
-        _indexManager.RemoveRowFromIndexes(idx, it);
-        _indexManager.RemovePrimaryKey(idx, it);
+        Schema.ValidateForeignKeysOnDelete(TableName, this, [new ArrayRow(it)]);
+        _indexManager.RemoveRowFromIndexes(idx, new ArrayRow(it));
+        _indexManager.RemovePrimaryKey(idx, new ArrayRow(it));
         _items.RemoveAt(idx);
         _indexManager.ShiftIndexPositionsAfterDelete(idx);
         if (hasMutationApplied)
@@ -2085,33 +2229,33 @@ public abstract class TableMock
     {
         var hasMutationApplied = MutationApplied is not null;
         var row = _items[rowIdx];
-        var oldRow = hasMutationApplied ? CloneRow(row) : null;
+        var oldRow = hasMutationApplied ? CloneRow(new ArrayRow(row)) : null;
         var oldValue = row[colIdx];
         row[colIdx] = value;
         RefreshPersistedComputedValues(row);
-        _indexManager.UpdatePrimaryKeyIfNeeded(rowIdx, colIdx, oldValue, row);
+        _indexManager.UpdatePrimaryKeyIfNeeded(rowIdx, colIdx, oldValue, new ArrayRow(row));
         if (hasMutationApplied)
             NotifyMutationApplied(TableMutationKind.Update, rowIdx, row, oldRow);
     }
 
-    internal int FindRowIndexByReference(Dictionary<int, object?> row)
+    internal int FindRowIndexByReference(object?[] row)
         => _stateManager.FindRowIndexByReference(row);
 
-    internal void RemoveRowByReference(Dictionary<int, object?> row)
+    internal void RemoveRowByReference(object?[] row)
         => _stateManager.RemoveRowByReference(row);
 
-    internal void InsertRestoredRow(int rowIndex, Dictionary<int, object?> row)
+    internal void InsertRestoredRow(int rowIndex, object?[] row)
         => _stateManager.InsertRestoredRow(rowIndex, row);
 
     internal void RestoreRowSnapshot(
-        Dictionary<int, object?> targetRow,
+        object?[] targetRow,
         IReadOnlyDictionary<int, object?> snapshot)
         => _stateManager.RestoreRowSnapshot(targetRow, snapshot);
 
     internal void RestoreIndexesAfterJournalReplay()
         => _stateManager.RestoreIndexesAfterJournalReplay();
 
-    internal int FindRowIndexByReferenceCore(Dictionary<int, object?> row)
+    internal int FindRowIndexByReferenceCore(object?[] row)
     {
         for (var i = 0; i < _items.Count; i++)
         {
@@ -2128,7 +2272,7 @@ public abstract class TableMock
             _items.RemoveAt(rowIndex);
     }
 
-    internal void InsertRestoredRowCore(int rowIndex, Dictionary<int, object?> row)
+    internal void InsertRestoredRowCore(int rowIndex, object?[] row)
         => _items.Insert(rowIndex, row);
 
     internal void ClearRowsCore() => _items.Clear();
@@ -2153,12 +2297,19 @@ public abstract class TableMock
     /// </summary>
     public void ClearBackup() => _stateManager.ClearBackup();
 
-    internal static Dictionary<int, object?> CloneRow(IReadOnlyDictionary<int, object?> row)
+    internal static object?[] CloneRow(IReadOnlyDictionary<int, object?> row)
     {
-        var clone = new Dictionary<int, object?>(row.Count);
+        var clone = new object?[row.Count];
         foreach (var entry in row)
             clone[entry.Key] = entry.Value;
 
+        return clone;
+    }
+
+    internal static object?[] CloneRow(object?[] row)
+    {
+        var clone = new object?[row.Length];
+        Array.Copy(row, clone, row.Length);
         return clone;
     }
 
@@ -2178,7 +2329,7 @@ public abstract class TableMock
     /// EN: Gets or sets an item in this collection.
     /// PT-br: Obtém ou define um item desta coleção.
     /// </summary>
-    public IReadOnlyDictionary<int, object?> this[int index] => _items[index];
+    public IReadOnlyDictionary<int, object?> this[int index] => new ArrayRow(_items[index]);
 
     /// <summary>
     /// EN: Resolves a token to a value in the table context.
@@ -2236,7 +2387,10 @@ public abstract class TableMock
     /// PT-br: Implementa GetEnumerator.
     /// </summary>
     public IEnumerator<IReadOnlyDictionary<int, object?>> GetEnumerator()
-        => _items.GetEnumerator();
+    {
+        foreach (var row in _items)
+            yield return new ArrayRow(row);
+    }
 
     IEnumerator IEnumerable.GetEnumerator()
         => GetEnumerator();

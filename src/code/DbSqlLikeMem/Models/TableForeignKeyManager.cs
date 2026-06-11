@@ -37,17 +37,18 @@ internal sealed class TableForeignKeyManager(TableMock table, Func<string, strin
         return fk;
     }
 
-    internal void ValidateForeignKeysOnRow(IReadOnlyDictionary<int, object?> row)
+    internal void ValidateForeignKeysOnRow(object?[] row)
     {
         if (_foreignKeys.Count == 0)
             return;
 
+        var rowDict = new ArrayRow(row);
         foreach (var fk in _foreignKeys.Values)
         {
             var hasNull = false;
             foreach (var (col, _) in fk.References)
             {
-                if (!row.TryGetValue(col.Index, out var val)
+                if (!rowDict.TryGetValue(col.Index, out var val)
                     || val is null
                     || val is DBNull)
                 {
@@ -59,7 +60,7 @@ internal sealed class TableForeignKeyManager(TableMock table, Func<string, strin
             if (hasNull)
                 continue;
 
-            if (!HasReferencedRow(fk, row))
+            if (!HasReferencedRow(fk, rowDict))
             {
                 var refCols = string.Join(",", fk.References.Select(_ => _.col.Name));
                 throw foreignKeyFails(refCols, fk.RefTable.TableName);

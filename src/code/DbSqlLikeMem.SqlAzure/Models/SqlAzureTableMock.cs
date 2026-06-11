@@ -9,7 +9,7 @@ public class SqlAzureTableMock(
     string tableName,
     SqlAzureSchemaMock schema,
     IEnumerable<Col> columns,
-    IEnumerable<Dictionary<int, object?>>? rows = null
+    IEnumerable<object?[]>? rows = null
     ) : SqlServerTableMock(tableName, schema, columns, rows)
 {
     /// <summary>

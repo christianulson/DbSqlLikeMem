@@ -81,7 +81,7 @@ public class NotFidelityTestService<TCnn1>(
     /// <typeparam name="TScenario2"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
     /// <returns></returns>
-    public virtual async Task<object?> RunTestAsync<TScenario, TScenario2, TServiceTest>(
+    public virtual Task<object?> RunTestAsync<TScenario, TScenario2, TServiceTest>(
         params object[] args
     ) where TScenario : BaseScenario, ITestScenario
         where TScenario2 : BaseScenario, ITestScenario
@@ -122,7 +122,7 @@ public class NotFidelityTestService<TCnn1>(
     /// <typeparam name="TScenario2"></typeparam>
     /// <typeparam name="TServiceTest"></typeparam>
     /// <returns></returns>
-    public virtual async Task<object?> RunTestAsync<TScenario, TScenario2, TServiceTest>(
+    public virtual Task<object?> RunTestAsync<TScenario, TScenario2, TServiceTest>(
         Func<TServiceTest, object[], Task<object?>> fnRunTest,
         params object[] args
     ) where TScenario : BaseScenario, ITestScenario

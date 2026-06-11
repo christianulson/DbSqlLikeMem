@@ -84,59 +84,18 @@ internal static class AstQueryAggregateEvaluator
         if (TryEvalAggregateCount(context, fn, group, ctes, eval, name, out var countValue))
             return countValue;
 
-        if (name is SqlConst.JSON_GROUP_OBJECT or SqlConst.JSON_OBJECTAGG)
-        {
-            if (name == SqlConst.JSON_OBJECTAGG
-                && !context.Dialect.TryGetScalarFunctionDefinition(name, out _))
-            {
-                throw context.NotSupported(name);
-            }
+        var jsonResult = TryEvalJsonAggregate(context, fn, group, ctes, eval, name);
+        if (jsonResult is not null)
+            return jsonResult;
 
-            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
-        }
-
-        if (name is SqlConst.JSON_OBJECT_AGG
-            or SqlConst.JSON_OBJECT_AGG_STRICT
-            or SqlConst.JSON_OBJECT_AGG_UNIQUE
-            or SqlConst.JSON_OBJECT_AGG_UNIQUE_STRICT
-            or SqlConst.JSONB_OBJECT_AGG
-            or SqlConst.JSONB_OBJECT_AGG_STRICT
-            or SqlConst.JSONB_OBJECT_AGG_UNIQUE
-            or SqlConst.JSONB_OBJECT_AGG_UNIQUE_STRICT)
-            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
-
-        if (name is "CORR"
-            or "CORR_K"
-            or "CORR_S"
-            or "COVAR_POP"
-            or "COVAR_SAMP"
-            or "COVARIANCE"
-            or "COVARIANCE_SAMP"
-            or "CORRELATION")
-        {
-            var normalized = name switch
-            {
-                "COVARIANCE" => "COVAR_POP",
-                "COVARIANCE_SAMP" => "COVAR_SAMP",
-                "CORRELATION" => "CORR",
-                _ => name
-            };
-            return EvalCorrelationAggregate(fn, group, ctes, eval, normalized);
-        }
+        if (IsCorrelationAggregate(name))
+            return EvalCorrelationAggregate(fn, group, ctes, eval, NormalizeCorrelationName(name));
 
         if (name is "GROUP_ID" or "GROUPING" or "GROUPING_ID")
             return 0;
 
         if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase))
-        {
-            var definition = fn.ResolvedScalarFunction;
-            if (definition is null || !definition.AllowsCall)
-            {
-                throw context.NotSupported(name);
-            }
-
-            return EvalApproxAggregate(fn, group, ctes, eval, name);
-        }
+            return EvalApproxWithCheck(context, fn, group, ctes, eval, name);
 
         if (name.StartsWith("REGR_", StringComparison.OrdinalIgnoreCase))
             return EvalRegressionAggregate(fn, group, ctes, eval, name);
@@ -145,40 +104,101 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         if (name is "STD" or "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
-        {
-            var normalizedName = name == "STD" ? "STDDEV_POP" : name;
-            return EvalStdDevAggregate(context, fn, group, ctes, eval, normalizedName);
-        }
+            return EvalStdDevAggregate(context, fn, group, ctes, eval, name == "STD" ? "STDDEV_POP" : name);
 
         if (name is "RATIO_TO_REPORT")
             return null;
 
         if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
-        {
-            if (!context.Dialect.SupportsSqlServerAggregateFunction(name))
-            {
-                throw context.NotSupported(name);
-            }
-
-            return EvalPercentileAggregate(fn, group, ctes, eval, name);
-        }
+            return EvalPercentileWithCheck(context, fn, group, ctes, eval, name);
 
         if (name is SqlConst.CHECKSUM_AGG)
-        {
-            if (!(fn.ResolvedScalarFunction?.AllowsCall
-                ?? (context.Dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
-                    && checksumDefinition is not null
-                    && checksumDefinition.AllowsCall)))
-                throw context.NotSupported(name);
-        }
+            AssertChecksumSupported(context, fn, name);
 
         if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG or SqlConst.LIST)
+            return EvalStringAggregate(context, fn, group, ctes, eval, name);
+
+        return EvalFallbackAggregate(context, fn, group, ctes, eval, name);
+    }
+
+    private static object? TryEvalJsonAggregate(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        if (name is SqlConst.JSON_GROUP_OBJECT or SqlConst.JSON_OBJECTAGG)
         {
-            var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
-            var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
-            return EvalSimpleStringAggregate(context, fn, group, ctes, eval, separator, defaultSeparator);
+            if (name == SqlConst.JSON_OBJECTAGG
+                && !context.Dialect.TryGetScalarFunctionDefinition(name, out _))
+                throw context.NotSupported(name);
+            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
         }
 
+        if (name is SqlConst.JSON_OBJECT_AGG or SqlConst.JSON_OBJECT_AGG_STRICT
+            or SqlConst.JSON_OBJECT_AGG_UNIQUE or SqlConst.JSON_OBJECT_AGG_UNIQUE_STRICT
+            or SqlConst.JSONB_OBJECT_AGG or SqlConst.JSONB_OBJECT_AGG_STRICT
+            or SqlConst.JSONB_OBJECT_AGG_UNIQUE or SqlConst.JSONB_OBJECT_AGG_UNIQUE_STRICT)
+            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
+
+        return null;
+    }
+
+    private static bool IsCorrelationAggregate(string name)
+        => name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP"
+            or "COVARIANCE" or "COVARIANCE_SAMP" or "CORRELATION";
+
+    private static string NormalizeCorrelationName(string name) => name switch
+    {
+        "COVARIANCE" => "COVAR_POP",
+        "COVARIANCE_SAMP" => "COVAR_SAMP",
+        "CORRELATION" => "CORR",
+        _ => name
+    };
+
+    private static object? EvalApproxWithCheck(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        var definition = fn.ResolvedScalarFunction;
+        if (definition is null || !definition.AllowsCall)
+            throw context.NotSupported(name);
+        return EvalApproxAggregate(fn, group, ctes, eval, name);
+    }
+
+    private static object? EvalPercentileWithCheck(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        if (!context.Dialect.SupportsSqlServerAggregateFunction(name))
+            throw context.NotSupported(name);
+        return EvalPercentileAggregate(fn, group, ctes, eval, name);
+    }
+
+    private static void AssertChecksumSupported(QueryExecutionContext context, FunctionCallExpr fn, string name)
+    {
+        if (!(fn.ResolvedScalarFunction?.AllowsCall
+            ?? (context.Dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
+                && checksumDefinition is not null && checksumDefinition.AllowsCall)))
+            throw context.NotSupported(name);
+    }
+
+    private static object? EvalStringAggregate(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
+        var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
+        return EvalSimpleStringAggregate(context, fn, group, ctes, eval, separator, defaultSeparator);
+    }
+
+    private static object? EvalFallbackAggregate(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
         var streamingResult = TryEvalStreamingAggregate(context, name, fn, group, ctes, eval);
         if (streamingResult is not null)
             return streamingResult;
@@ -333,13 +353,13 @@ internal static class AstQueryAggregateEvaluator
     }
 
     private static IEnumerable<object?> EnumerateGroupValues(
-        List<EvalRow> rows,
+        IReadOnlyList<EvalRow> rows,
         FunctionCallExpr fn,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
-        foreach (var r in rows)
-            yield return eval(fn.Args[0], r, null, ctes);
+        for (var i = 0; i < rows.Count; i++)
+            yield return eval(fn.Args[0], rows[i], null, ctes);
     }
 
     private static object? EvalStreamingAggregate(QueryExecutionContext context, string name, IEnumerable<object?> values, object? separator)
@@ -1301,7 +1321,7 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
-        List<EvalRow> rows = group.Rows;
+        IReadOnlyList<EvalRow> rows = group.Rows;
         var rowCount = rows.Count;
         if (rowCount == 0)
             return null;
@@ -1317,7 +1337,7 @@ internal static class AstQueryAggregateEvaluator
                 : eval(fn.Args[0], rows[0], null, ctes);
             if (fn.Distinct)
             {
-                if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison: true, out var singleText1, out _))
+                if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison: context.Dialect.TextComparison == StringComparison.Ordinal, out var singleText1, out _))
                     return null;
 
                 return singleText1;
@@ -1329,13 +1349,20 @@ internal static class AstQueryAggregateEvaluator
             return singleText;
         }
 
+
         var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
         var hasSeparator = separator.Length > 0;
         StringBuilder? builder = null;
         var hasValue = false;
         var estimatedCapacity = EstimateStringAggregateCapacity(rowCount, separator.Length);
+        var aggComparer = context.Dialect.TextComparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
         HashSet<string>? seen = fn.Distinct && rowCount > 1
-            ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal)
+            ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), aggComparer)
             : null;
 
         if (!hasDirectValueSelector)
@@ -1351,7 +1378,7 @@ internal static class AstQueryAggregateEvaluator
                     var text = string.Empty;
                     if (seen is not null)
                     {
-                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: context.Dialect.TextComparison == StringComparison.Ordinal, out text, out var key)
                             || !seen.Add(key))
                             continue;
                     }
@@ -1481,7 +1508,7 @@ internal static class AstQueryAggregateEvaluator
     private static List<EvalRow> OrderStringAggregateRows(
         QueryExecutionContext context,
         IReadOnlyList<WindowOrderItem> orderBy,
-        List<EvalRow> rows,
+        IReadOnlyList<EvalRow> rows,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
@@ -1674,7 +1701,13 @@ internal static class AstQueryAggregateEvaluator
 
         var distinct = fn.Distinct;
         var rowCount = group.Rows.Count;
-        HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal) : null;
+        var distinctComparer = context.Dialect.TextComparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
+        HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), distinctComparer) : null;
         long c = 0;
         foreach (var r in group.Rows)
         {
@@ -1729,10 +1762,16 @@ internal static class AstQueryAggregateEvaluator
         var rows = group.Rows;
         var rowCount = rows.Count;
         var values = new List<object?>(rowCount);
+        var valuesComparer = context.Dialect.TextComparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
         HashSet<string>? seen = null;
         if (fn.Distinct)
         {
-            seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal);
+            seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), valuesComparer);
         }
         var traceGroupedCaseWhen = context.Connection.IsDebugTraceCaptureEnabled
             && fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)

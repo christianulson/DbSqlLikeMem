@@ -8,7 +8,7 @@ internal class OracleTableMock(
         string tableName,
         OracleSchemaMock schema,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null
+        IEnumerable<object?[]>? rows = null
         ) : TableMock(tableName, schema, columns, rows)
 {
     public override string? CurrentColumn

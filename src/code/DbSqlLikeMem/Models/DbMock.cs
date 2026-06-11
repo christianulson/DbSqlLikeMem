@@ -134,7 +134,7 @@ public abstract class DbMock
     /// <returns>EN: New schema instance. PT-br: Nova instância de schema.</returns>
     protected abstract SchemaMock NewSchema(
         string schemaName,
-        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null);
 
     /// <summary>
     /// EN: Creates a schema and registers it in the database.
@@ -145,7 +145,7 @@ public abstract class DbMock
     /// <returns>EN: Created schema. PT-br: Schema criado.</returns>
     public ISchemaMock CreateSchema(
         string schemaName,
-        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null)
     {
         var s = NewSchema(schemaName, tables);
         Add(schemaName, s);

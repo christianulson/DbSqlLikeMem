@@ -53,8 +53,8 @@ public abstract class DbConnectionMockBase(
         TableMock Table,
         TransactionJournalEntryKind Kind,
         int RowIndex,
-        Dictionary<int, object?>? Row,
-        Dictionary<int, object?>? OldRowSnapshot,
+        object?[]? Row,
+        object?[]? OldRowSnapshot,
         int PreviousNextIdentity,
         TransactionTableRegistrationKind RegistrationKind,
         string RegistrationKey,
@@ -64,7 +64,7 @@ public abstract class DbConnectionMockBase(
         TransactionFunctionState? FunctionState = null,
         TransactionProcedureState? ProcedureState = null,
         TransactionTriggerState? TriggerState = null,
-        Dictionary<int, object?>? NewRowSnapshot = null);
+        object?[]? NewRowSnapshot = null);
 
     internal sealed record TransactionViewState(
         string SchemaName,
@@ -2626,7 +2626,7 @@ public abstract class DbConnectionMockBase(
             mutation.PreviousNextIdentity,
             registrationKind,
             GetRegistrationKey(mutation.Table, registrationKind),
-            NewRowSnapshot: mutation.Kind == TableMutationKind.Update ? TableMock.CloneRow(mutation.Row) : null));
+            NewRowSnapshot: mutation.Kind == TableMutationKind.Update ? TableMock.CloneRow(new ArrayRow(mutation.Row)) : null));
     }
 
     private void RollbackJournalTo(int journalPosition)
@@ -2701,15 +2701,15 @@ public abstract class DbConnectionMockBase(
             entry.Table!.RestoreRowSnapshot(
                 entry.Row!,
                 MergeConcurrentUpdateRollback(
-                    entry.Row!,
-                    entry.OldRowSnapshot,
-                    entry.NewRowSnapshot));
+                    new ArrayRow(entry.Row!),
+                    new ArrayRow(entry.OldRowSnapshot),
+                    new ArrayRow(entry.NewRowSnapshot)));
         }
         else
         {
             entry.Table!.RestoreRowSnapshot(
                 entry.Row!,
-                entry.OldRowSnapshot ?? new Dictionary<int, object?>());
+                entry.OldRowSnapshot is not null ? new ArrayRow(entry.OldRowSnapshot) : new Dictionary<int, object?>());
         }
     }
 
@@ -2911,7 +2911,7 @@ public abstract class DbConnectionMockBase(
     }
 
     private static IReadOnlyDictionary<int, object?> MergeConcurrentUpdateRollback(
-        IDictionary<int, object?> currentRow,
+        IReadOnlyDictionary<int, object?> currentRow,
         IReadOnlyDictionary<int, object?> oldSnapshot,
         IReadOnlyDictionary<int, object?> newSnapshot)
     {

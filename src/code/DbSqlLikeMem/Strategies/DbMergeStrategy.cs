@@ -187,7 +187,7 @@ internal static class DbMergeStrategy
                     foreach (var resolvedUpdate in resolvedUpdates)
                         table.UpdateRowColumn(existingIndex, resolvedUpdate.ColumnIndex, resolvedUpdate.Value);
 
-                    table.IndexManager.UpdateIndexesWithRow(existingIndex, oldSnapshot, table[existingIndex]);
+                    table.IndexManager.UpdateIndexesWithRow(existingIndex, new ArrayRow(oldSnapshot), table[existingIndex]);
                 }
 
                 affected.IncreseAffected();

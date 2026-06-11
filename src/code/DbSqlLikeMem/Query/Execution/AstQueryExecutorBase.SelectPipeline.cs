@@ -50,7 +50,9 @@ internal abstract partial class AstQueryExecutorBase
                     isNullable: true)
             ]
         };
-        result.Add(new Dictionary<int, object?> { [0] = resultValue });
+        var r = IntDictPool.Get(1);
+        r[0] = resultValue;
+        result.Add(r);
         result.JoinFields.Add(firstRow.Fields);
 
         if (HasSqlCalcFoundRows(query))
@@ -291,7 +293,11 @@ internal abstract partial class AstQueryExecutorBase
         SqlExpr predicate,
         IDictionary<string, Source> ctes)
     {
-        var compiled = CompilePredicate(predicate);
+        var compiled = CompilePredicate(predicate)
+            ?? AstQueryPredicateCompiler.TryCompile(
+                predicate,
+                (expr, row, group, c) => Eval(expr, row, group, c),
+                ctes);
         if (compiled is not null)
         {
             foreach (var row in rows)
@@ -327,6 +333,8 @@ internal abstract partial class AstQueryExecutorBase
             HavingHelper.EnsureHavingIdentifiersAreBound(havingExpr, firstEvalCtx, context.Dialect!);
             if (Eval(havingExpr, firstEvalCtx, firstEvalGroup, ctes).ToBool())
                 filtered.Add(firstGroup);
+            else
+                firstGroup.ReleaseRows();
         }
 
         for (var i = 1; i < grouped.Count; i++)
@@ -335,6 +343,8 @@ internal abstract partial class AstQueryExecutorBase
             var evalCtx = BuildHavingEvaluationContext(group, aliasExprs, ctes, out var evalGroup);
             if (Eval(havingExpr, evalCtx, evalGroup, ctes).ToBool())
                 filtered.Add(group);
+            else
+                group.ReleaseRows();
         }
 
         return filtered;

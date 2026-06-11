@@ -90,12 +90,12 @@ internal static class DbUpdateStrategy
 
             // Valida Unique Constraints antes de aplicar (somente quando necessario)
             if (requiresUniqueValidation)
-                tableMock.IndexManager.EnsureUniqueBeforeUpdate(tableName, row, simulated, rowIdx, changedCols);
+                tableMock.IndexManager.EnsureUniqueBeforeUpdate(tableName, row, new ArrayRow(simulated), rowIdx, changedCols);
 
             tableMock.ForeignKeyManager.ValidateForeignKeysOnRow(simulated);
 
             if (hasBeforeUpdateTrigger)
-                TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, simulated);
+                TryExecuteTableTrigger(connection, dialect, table, tableName, queryTable.DbName, TableTriggerEvent.BeforeUpdate, oldSnapshot, new ArrayRow(simulated));
 
             tableMock.ValidateCheckConstraintsOnRow(simulated);
 
@@ -358,11 +358,11 @@ internal static class DbUpdateStrategy
         ITableMock table,
         (string Col, string Val)[] setPairs,
         IReadOnlyList<SqlAssignment> parsedSetPairs,
-        IDictionary<int, object?> row,
+        object?[] row,
         QueryExecutionContext context)
     {
         var resolvedValues = new Dictionary<int, object?>(setPairs.Length);
-        var readOnlyRow = row as IReadOnlyDictionary<int, object?> ?? new ReadOnlyDictionary<int, object?>(row);
+        var readOnlyRow = new ArrayRow(row);
         for (var i = 0; i < setPairs.Length; i++)
         {
             var (Col, Val) = setPairs[i];

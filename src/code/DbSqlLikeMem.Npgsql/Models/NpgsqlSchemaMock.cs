@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Npgsql;
 public class NpgsqlSchemaMock(
     string schemaName,
     NpgsqlDbMock db,
-    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
+    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null
     ) : SchemaMock(schemaName, db, tables)
 {
     /// <summary>
@@ -21,6 +21,6 @@ public class NpgsqlSchemaMock(
     protected override TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null)
+        IEnumerable<object?[]>? rows = null)
         => new NpgsqlTableMock(tableName, this, columns, rows);
 }

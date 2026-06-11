@@ -114,6 +114,7 @@ internal sealed class QueryExecutionContext
     private int _positionalParameterScopeDepth;
     private int _orderedParameterCursor;
     private bool _parametersBuilt;
+    private readonly object _parametersLock = new();
 
     /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
@@ -325,8 +326,14 @@ internal sealed class QueryExecutionContext
         if (_parametersBuilt)
             return;
 
-        _parametersBuilt = true;
-        BuildParameterLookupCaches(Parameters, out _namedParameterValues, out _positionalParameterValues, out _orderedParameterValues);
+        lock (_parametersLock)
+        {
+            if (_parametersBuilt)
+                return;
+
+            BuildParameterLookupCaches(Parameters, out _namedParameterValues, out _positionalParameterValues, out _orderedParameterValues);
+            _parametersBuilt = true;
+        }
     }
 
     internal bool TryResolveParameter(string parameterToken, out object? value)

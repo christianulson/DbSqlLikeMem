@@ -56,7 +56,10 @@ public abstract class DbDataReaderMockBase(
             {
                 var col = cols[c];
                 var normalized = NormalizeColumnName(col.ColumnAlias);
-                index[normalized] = col.ColumIndex;
+                index.TryAdd(normalized, col.ColumIndex);
+                var normalizedName = NormalizeColumnName(col.ColumnName);
+                if (!string.IsNullOrEmpty(normalizedName) && !index.ContainsKey(normalizedName))
+                    index[normalizedName] = col.ColumIndex;
             }
             result.Add(index);
         }
@@ -288,12 +291,47 @@ public abstract class DbDataReaderMockBase(
     public override int GetOrdinal(string name)
     {
         name = NormalizeColumnName(name);
-        var index = _columnOrdinalByNormalizedName[_currentResultSetIndex];
 
-        if (index.TryGetValue(name, out var ordinal))
-            return ordinal;
+        TryGetOrdinalFromResultSet(_currentResultSetIndex, name, out var ordinal);
+        if (ordinal.HasValue)
+            return ordinal.Value;
 
-        var cols = _columnsDic[_currentResultSetIndex];
+        for (var rs = 0; rs < _columnOrdinalByNormalizedName.Count; rs++)
+        {
+            if (rs == _currentResultSetIndex)
+                continue;
+            if (TryGetOrdinalFromResultSet(rs, name, out ordinal))
+                return ordinal!.Value;
+        }
+
+        for (var rs = 0; rs < _columnsDic.Count; rs++)
+        {
+            foreach (var kv in _columnsDic[rs])
+            {
+                var col = kv.Value;
+                if (NormalizeColumnName(col.ColumnAlias ?? string.Empty).Equals(name, StringComparison.OrdinalIgnoreCase)
+                    || NormalizeColumnName(col.ColumnName ?? string.Empty).Equals(name, StringComparison.OrdinalIgnoreCase))
+                {
+                    _currentResultSetIndex = rs;
+                    return kv.Key;
+                }
+            }
+        }
+
+        throw new IndexOutOfRangeException($"Column '{name}' was not found in reader.");
+    }
+
+    private bool TryGetOrdinalFromResultSet(int rs, string name, out int? ordinal)
+    {
+        ordinal = null;
+
+        if (_columnOrdinalByNormalizedName[rs].TryGetValue(name, out var found))
+        {
+            ordinal = found;
+            return true;
+        }
+
+        var cols = _columnsDic[rs];
         foreach (var kv in cols)
         {
             var stored = kv.Value.ColumnAlias ?? string.Empty;
@@ -302,11 +340,20 @@ public abstract class DbDataReaderMockBase(
             {
                 var tail = NormalizeColumnName(stored[(dot + 1)..]);
                 if (tail.Equals(name, StringComparison.OrdinalIgnoreCase))
-                    return kv.Key;
+                {
+                    ordinal = kv.Key;
+                    return true;
+                }
+            }
+
+            if (NormalizeColumnName(kv.Value.ColumnName).Equals(name, StringComparison.OrdinalIgnoreCase))
+            {
+                ordinal = kv.Key;
+                return true;
             }
         }
 
-        throw new IndexOutOfRangeException($"Column '{name}' was not found in reader.");
+        return false;
     }
 
     private static string NormalizeColumnName(string name)

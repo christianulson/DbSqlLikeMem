@@ -322,10 +322,15 @@ internal abstract partial class AstQueryExecutorBase
 
         // se não for agregado, trata como função "normal" reaproveitando EvalFunction
         // (Distinct em função escalar não faz sentido aqui, então ignoramos)
-        var shim = fn.ResolvedScalarFunction is not null
-            ? new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(fn.ResolvedScalarFunction)
-            : new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(
-                _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para função escalar."));
+        var shim = fn._cachedShim;
+        if (shim is null)
+        {
+            shim = fn.ResolvedScalarFunction is not null
+                ? new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(fn.ResolvedScalarFunction)
+                : new FunctionCallExpr(fn.Name, fn.Args).BindScalarFunctionDefinition(
+                    _context.Dialect ?? throw new InvalidOperationException("Dialeto SQL não disponível para função escalar."));
+            fn._cachedShim = shim;
+        }
         return EvalFunction(shim, row, group, ctes);
     }
 

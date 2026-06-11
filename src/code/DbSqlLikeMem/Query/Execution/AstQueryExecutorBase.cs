@@ -411,19 +411,21 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         if (_compiledPredicateCache.TryGetValue(expr, out var cached))
             return cached;
 
-        var compiled = TryCompilePredicate(expr);
+        var dialect = _context.Dialect;
+        var likeIsCaseInsensitive = dialect.LikeIsCaseInsensitive;
+        var compiled = TryCompilePredicate(expr, dialect, likeIsCaseInsensitive);
         _compiledPredicateCache[expr] = compiled;
         return compiled;
     }
 
-    private static Func<EvalRow, bool>? TryCompilePredicate(SqlExpr expr)
+    private static Func<EvalRow, bool>? TryCompilePredicate(SqlExpr expr, ISqlDialect dialect, bool likeIsCaseInsensitive)
     {
         switch (expr)
         {
             case BinaryExpr b when b.Op == SqlBinaryOp.And:
             {
-                var left = TryCompilePredicate(b.Left);
-                var right = TryCompilePredicate(b.Right);
+                var left = TryCompilePredicate(b.Left, dialect, likeIsCaseInsensitive);
+                var right = TryCompilePredicate(b.Right, dialect, likeIsCaseInsensitive);
                 if (left is not null && right is not null)
                     return row => left(row) && right(row);
                 return null;
@@ -431,8 +433,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
             case BinaryExpr b when b.Op == SqlBinaryOp.Or:
             {
-                var left = TryCompilePredicate(b.Left);
-                var right = TryCompilePredicate(b.Right);
+                var left = TryCompilePredicate(b.Left, dialect, likeIsCaseInsensitive);
+                var right = TryCompilePredicate(b.Right, dialect, likeIsCaseInsensitive);
                 if (left is not null && right is not null)
                     return row => left(row) || right(row);
                 return null;
@@ -440,7 +442,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
             case UnaryExpr u when u.Op == SqlUnaryOp.Not:
             {
-                var inner = TryCompilePredicate(u.Expr);
+                var inner = TryCompilePredicate(u.Expr, dialect, likeIsCaseInsensitive);
                 if (inner is not null)
                     return row => !inner(row);
                 return null;
@@ -450,7 +452,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             {
                 var leftReader = TryBuildColumnReader(b.Left);
                 if (leftReader is not null)
-                    return BuildBinaryCompiled(b.Op, leftReader, rightLit.Value);
+                    return BuildBinaryCompiled(b.Op, leftReader, rightLit.Value, dialect);
                 return null;
             }
 
@@ -458,7 +460,87 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             {
                 var rightReader = TryBuildColumnReader(b.Right);
                 if (rightReader is not null)
-                    return BuildBinaryCompiled(b.Op, rightReader, leftLit.Value);
+                    return BuildBinaryCompiled(b.Op, rightReader, leftLit.Value, dialect);
+                return null;
+            }
+
+            // column = column
+            case BinaryExpr b when (b.Op == SqlBinaryOp.Eq || b.Op == SqlBinaryOp.Neq):
+            {
+                var leftReader = TryBuildColumnReader(b.Left);
+                var rightReader = TryBuildColumnReader(b.Right);
+                if (leftReader is not null && rightReader is not null)
+                {
+                    if (b.Op == SqlBinaryOp.Eq)
+                        return row => EqSql(leftReader(row), rightReader(row), dialect.TextComparison);
+                    else
+                        return row => NeqSql(leftReader(row), rightReader(row), dialect.TextComparison);
+                }
+                return null;
+            }
+
+            // BETWEEN column AND literal1 AND literal2
+            case BetweenExpr bt when bt.Expr is ColumnExpr or IdentifierExpr:
+            {
+                var colReader = TryBuildColumnReader(bt.Expr);
+                if (colReader is not null && bt.Low is LiteralExpr lowLit && bt.High is LiteralExpr highLit)
+                {
+                    var lowVal = lowLit.Value;
+                    var highVal = highLit.Value;
+                    if (!bt.Negated)
+                        return row =>
+                        {
+                            var val = colReader(row);
+                            if (val is null || val is DBNull) return false;
+                            return CompareSql(val, lowVal, dialect.TextComparison) >= 0 && CompareSql(val, highVal, dialect.TextComparison) <= 0;
+                        };
+                    else
+                        return row =>
+                        {
+                            var val = colReader(row);
+                            if (val is null || val is DBNull) return true;
+                            return CompareSql(val, lowVal, dialect.TextComparison) < 0 || CompareSql(val, highVal, dialect.TextComparison) > 0;
+                        };
+                }
+                return null;
+            }
+
+            // LIKE column 'pattern'  (NOT LIKE is UnaryExpr(Not, LikeExpr), so this only handles positive LIKE)
+            case LikeExpr like when like.Left is ColumnExpr or IdentifierExpr && like.Pattern is LiteralExpr patLit && like.Escape is null:
+            {
+                var colReader = TryBuildColumnReader(like.Left);
+                if (colReader is not null && patLit.Value is string pattern)
+                {
+                    var caseInsensitive = like.CaseInsensitive || likeIsCaseInsensitive;
+                    var regexOptions = caseInsensitive
+                        ? System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled
+                        : System.Text.RegularExpressions.RegexOptions.Compiled;
+                    var regex = new System.Text.RegularExpressions.Regex(
+                        "^" + System.Text.RegularExpressions.Regex.Escape(pattern)
+                            .Replace("%", ".*").Replace("_", ".") + "$",
+                        regexOptions);
+                    return row =>
+                    {
+                        var val = colReader(row);
+                        return val is string s && regex.IsMatch(s);
+                    };
+                }
+                return null;
+            }
+
+            // IS NULL / IS NOT NULL
+            case IsNullExpr isn:
+            {
+                if (isn.Expr is IdentifierExpr)
+                    return null; // Can be a temporal function, not a column — fall back to runtime
+                var colReader = TryBuildColumnReader(isn.Expr);
+                if (colReader is not null)
+                {
+                    if (!isn.Negated)
+                        return row => IsNullish(colReader(row));
+                    else
+                        return row => !IsNullish(colReader(row));
+                }
                 return null;
             }
 
@@ -467,11 +549,30 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         }
     }
 
+    private static bool EqSql(object? a, object? b)
+    {
+        if (a is null || a is DBNull || b is null || b is DBNull)
+            return false;
+        return a.EqualsSql(b);
+    }
+
+    private static bool NeqSql(object? a, object? b)
+    {
+        if (a is null || a is DBNull || b is null || b is DBNull)
+            return false;
+        return !a.EqualsSql(b);
+    }
+
     private static Func<EvalRow, object?>? TryBuildColumnReader(SqlExpr expr)
     {
         if (expr is ColumnExpr col)
         {
             var name = string.IsNullOrWhiteSpace(col.Qualifier) ? col.Name : $"{col.Qualifier}.{col.Name}";
+            return row => ReadColumnValue(row, name);
+        }
+        if (expr is IdentifierExpr id)
+        {
+            var name = id.Name;
             return row => ReadColumnValue(row, name);
         }
         return null;
@@ -486,24 +587,29 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         return v;
     }
 
-    private static Func<EvalRow, bool> BuildBinaryCompiled(SqlBinaryOp op, Func<EvalRow, object?> readColumn, object? literal)
+    private static Func<EvalRow, bool> BuildBinaryCompiled(SqlBinaryOp op, Func<EvalRow, object?> readColumn, object? literal, ISqlDialect dialect)
     {
+        var textComparison = dialect.TextComparison;
         return op switch
         {
             SqlBinaryOp.Eq => row =>
             {
                 var val = readColumn(row);
-                if (val is null || val is DBNull) return literal is null || literal is DBNull;
-                if (literal is null || literal is DBNull) return false;
-                return val.EqualsSql(literal);
+                if (val is null || val is DBNull || literal is null || literal is DBNull)
+                    return false;
+                if (val is string s && literal is string l)
+                    return string.Equals(s, l, textComparison);
+                return val.EqualsSql(literal, dialect);
             },
 
             SqlBinaryOp.Neq => row =>
             {
                 var val = readColumn(row);
-                if (val is null || val is DBNull) return !(literal is null || literal is DBNull);
-                if (literal is null || literal is DBNull) return true;
-                return !val.EqualsSql(literal);
+                if (val is null || val is DBNull || literal is null || literal is DBNull)
+                    return false;
+                if (val is string s && literal is string l)
+                    return !string.Equals(s, l, textComparison);
+                return !val.EqualsSql(literal, dialect);
             },
 
             SqlBinaryOp.Greater => row =>
@@ -511,7 +617,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 var val = readColumn(row);
                 if (val is null || val is DBNull) return false;
                 if (literal is null || literal is DBNull) return false;
-                return CompareSql(val, literal) > 0;
+                return CompareSql(val, literal, textComparison) > 0;
             },
 
             SqlBinaryOp.GreaterOrEqual => row =>
@@ -519,7 +625,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 var val = readColumn(row);
                 if (val is null || val is DBNull) return false;
                 if (literal is null || literal is DBNull) return false;
-                return CompareSql(val, literal) >= 0;
+                return CompareSql(val, literal, textComparison) >= 0;
             },
 
             SqlBinaryOp.Less => row =>
@@ -527,7 +633,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 var val = readColumn(row);
                 if (val is null || val is DBNull) return false;
                 if (literal is null || literal is DBNull) return false;
-                return CompareSql(val, literal) < 0;
+                return CompareSql(val, literal, textComparison) < 0;
             },
 
             SqlBinaryOp.LessOrEqual => row =>
@@ -535,7 +641,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 var val = readColumn(row);
                 if (val is null || val is DBNull) return false;
                 if (literal is null || literal is DBNull) return false;
-                return CompareSql(val, literal) <= 0;
+                return CompareSql(val, literal, textComparison) <= 0;
             },
 
             _ => null!
@@ -543,6 +649,9 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     }
 
     private static int CompareSql(object? left, object? right)
+        => CompareSql(left, right, StringComparison.OrdinalIgnoreCase);
+
+    private static int CompareSql(object? left, object? right, StringComparison textComparison)
     {
         if (ReferenceEquals(left, right)) return 0;
         if (left is null) return -1;
@@ -554,7 +663,48 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             try { return lc.CompareTo(right); }
             catch { }
         }
-        return StringComparer.OrdinalIgnoreCase.Compare(left.ToString(), right.ToString());
+        if (TryConvertNumericToDecimal(left, out var xd)
+            && TryConvertNumericToDecimal(right, out var yd))
+            return xd.CompareTo(yd);
+        if (TryConvertToDateTimeLike(left, out var dtL)
+            && TryConvertToDateTimeLike(right, out var dtR))
+            return dtL.CompareTo(dtR);
+        if (left is string sl && right is string sr)
+            return string.Compare(sl, sr, textComparison);
+        return string.Compare(left.ToString(), right.ToString(), textComparison);
+    }
+
+    private static bool EqSql(object? a, object? b, StringComparison textComparison)
+    {
+        if (a is null || a is DBNull) return b is null || b is DBNull;
+        if (b is null || b is DBNull) return false;
+        if (a is string sa && b is string sb)
+            return string.Equals(sa, sb, textComparison);
+        if (a.GetType() == b.GetType())
+            return a.Equals(b);
+        if (TryConvertNumericToDecimal(a, out var xd)
+            && TryConvertNumericToDecimal(b, out var yd))
+            return xd == yd;
+        return a.Equals(b);
+    }
+
+    private static bool NeqSql(object? a, object? b, StringComparison textComparison)
+        => !EqSql(a, b, textComparison);
+
+    private static bool TryConvertToDateTimeLike(object? value, out DateTime dateTime)
+    {
+        if (value is DateTime dt)
+        {
+            dateTime = dt;
+            return true;
+        }
+        if (value is string s && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            dateTime = parsed;
+            return true;
+        }
+        dateTime = default;
+        return false;
     }
 
     private static bool IsRowCountHelperSelect(SqlSelectQuery q)
@@ -915,24 +1065,38 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         {
             if (Physical is not null)
             {
+                var partitionNames = _requestedPartitionNames;
+                var partitionRequested = partitionNames is { Count: > 0 };
+                var tableForPartition = partitionRequested ? Physical as TableMock : null;
+                var hasSourceQualified = _sourceQualifiedColumnNames is not null;
+
                 foreach (var row in Physical)
                 {
-                    if (_requestedPartitionNames is { Count: > 0 } requestedPartitions
-                        && Physical is TableMock table
-                        && !table.MatchesRequestedPartitions(row, requestedPartitions))
+                    if (partitionRequested
+                        && tableForPartition is not null
+                        && !tableForPartition.MatchesRequestedPartitions(row, partitionNames!))
                     {
                         continue;
                     }
 
-                    var dict = new Dictionary<string, object?>(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
-                    for (var i = 0; i < ColumnNames.Count; i++)
+                    var dict = SqlRowPool.Get(Math.Max(ColumnNames.Count, 1), StringComparer.OrdinalIgnoreCase);
+                    if (hasSourceQualified)
                     {
-                        var idx = _physicalColumnIndexes![i];
-                        dict[_qualifiedColumnNames![i]] = row?.TryGetValue(idx, out var v) == true
-                            ? v
-                            : null;
-                        if (_sourceQualifiedColumnNames is not null)
-                            dict[_sourceQualifiedColumnNames[i]] = dict[_qualifiedColumnNames[i]];
+                        for (var i = 0; i < ColumnNames.Count; i++)
+                        {
+                            var idx = _physicalColumnIndexes![i];
+                            var val = row?.TryGetValue(idx, out var v) == true ? v : null;
+                            dict[_qualifiedColumnNames![i]] = val;
+                            dict[_sourceQualifiedColumnNames![i]] = val;
+                        }
+                    }
+                    else
+                    {
+                        for (var i = 0; i < ColumnNames.Count; i++)
+                        {
+                            var idx = _physicalColumnIndexes![i];
+                            dict[_qualifiedColumnNames![i]] = row?.TryGetValue(idx, out var v) == true ? v : null;
+                        }
                     }
                     yield return dict;
                 }
@@ -940,16 +1104,28 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             }
             if (_result is not null)
             {
+                var hasSourceQualified = _sourceQualifiedColumnNames is not null;
+
                 foreach (var row in _result)
                 {
-                    var dict = new Dictionary<string, object?>(Math.Max(_result.Columns.Count, 1), StringComparer.OrdinalIgnoreCase);
-                    for (var i = 0; i < _resultQualifiedColumnNames!.Length; i++)
+                    var dict = SqlRowPool.Get(Math.Max(_result.Columns.Count, 1), StringComparer.OrdinalIgnoreCase);
+                    if (hasSourceQualified)
                     {
-                        dict[_resultQualifiedColumnNames[i]] = row.TryGetValue(i, out var v)
-                            ? v
-                            : null;
-                        if (_sourceQualifiedColumnNames is not null)
-                            dict[_sourceQualifiedColumnNames[i]] = dict[_resultQualifiedColumnNames[i]];
+                        for (var i = 0; i < _resultQualifiedColumnNames!.Length; i++)
+                        {
+                            var val = row.TryGetValue(i, out var v) ? v : null;
+                            dict[_resultQualifiedColumnNames[i]] = val;
+                            dict[_sourceQualifiedColumnNames![i]] = val;
+                        }
+                    }
+                    else
+                    {
+                        for (var i = 0; i < _resultQualifiedColumnNames!.Length; i++)
+                        {
+                            dict[_resultQualifiedColumnNames[i]] = row.TryGetValue(i, out var v)
+                                ? v
+                                : null;
+                        }
                     }
                     yield return dict;
                 }
@@ -1257,6 +1433,65 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                 OrdinalIndexes = new Dictionary<string, int>(aliasToIndex, StringComparer.OrdinalIgnoreCase),
                 SingleSource = null
             };
+        }
+
+        /// <summary>
+        /// EN: Reuses an existing EvalRow for projected evaluation, avoiding per-row allocations.
+        /// PT-br: Reutiliza um EvalRow existente para avaliacao projetada, evitando alocacoes por linha.
+        /// </summary>
+        internal static void ReuseFromProjected(
+            EvalRow target,
+            TableResultMock res,
+            Dictionary<int, object?> row,
+            Dictionary<string, int> aliasToIndex,
+            Dictionary<string, object?>? joinFields = null)
+        {
+            var fields = target.Fields;
+            fields.Clear();
+            fields.EnsureCapacity(aliasToIndex.Count + (joinFields?.Count ?? 0));
+
+            var ordinalValues = target.OrdinalValues;
+            if (ordinalValues is null || ordinalValues.Length < res.Columns.Count)
+            {
+                ordinalValues = new object?[res.Columns.Count];
+                target.OrdinalValues = ordinalValues;
+            }
+            else
+            {
+                Array.Clear(ordinalValues, 0, res.Columns.Count);
+            }
+
+            foreach (var kv in aliasToIndex)
+            {
+                var value = row.TryGetValue(kv.Value, out var v) ? v : null;
+                fields[kv.Key] = value;
+                if (kv.Value >= 0 && kv.Value < ordinalValues.Length)
+                    ordinalValues[kv.Value] = value;
+            }
+
+            if (joinFields is not null)
+            {
+                foreach (var pair in joinFields)
+                {
+                    if (fields.ContainsKey(pair.Key))
+                        continue;
+                    fields[pair.Key] = pair.Value;
+
+                    var dot = pair.Key.IndexOf('.');
+                    if (dot <= 0 || dot + 1 >= pair.Key.Length)
+                        continue;
+
+                    var unqualified = pair.Key[(dot + 1)..];
+                    if (!fields.ContainsKey(unqualified))
+                        fields[unqualified] = pair.Value;
+                }
+            }
+
+            if (target.OrdinalIndexes is null)
+                target.OrdinalIndexes = new Dictionary<string, int>(aliasToIndex, StringComparer.OrdinalIgnoreCase);
+
+            target.Sources.Clear();
+            target.SingleSource = null;
         }
 
         /// <summary>
@@ -1748,16 +1983,59 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
     /// EN: Implements EvalGroup.
     /// PT-br: Implementa EvalGroup.
     /// </summary>
-    internal sealed class EvalGroup(List<EvalRow> rows)
+    internal sealed class EvalGroup
     {
         /// <summary>
         /// EN: Gets or sets Rows.
         /// PT-br: Obtém ou define Rows.
         /// </summary>
-        public List<EvalRow> Rows { get; } = rows;
+        public IReadOnlyList<EvalRow> Rows { get; }
+
+        public EvalGroup(List<EvalRow> rows)
+        {
+            Rows = rows;
+        }
+
+        /// <summary>
+        /// EN: Creates an EvalGroup over a sub-range of a list without allocating a copy.
+        /// PT-br: Cria um EvalGroup sobre uma subfaixa de uma lista sem alocar uma copia.
+        /// </summary>
+        public EvalGroup(List<EvalRow> source, int startIndex, int count)
+        {
+            Rows = count > 0
+                ? new ListSegmentReadOnlyList<EvalRow>(source, startIndex, count)
+                : [];
+        }
+
+        private sealed class ListSegmentReadOnlyList<T>(List<T> source, int start, int count) : IReadOnlyList<T>
+        {
+            public T this[int index] => source[start + index];
+            public int Count => count;
+            public IEnumerator<T> GetEnumerator()
+            {
+                for (var i = 0; i < count; i++)
+                    yield return source[start + i];
+            }
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
     }
 
-    private sealed record MaterializedGroup(GroupKey Key, List<EvalRow> Rows);
+    private sealed class MaterializedGroup
+    {
+        public GroupKey Key { get; }
+        public List<EvalRow> Rows { get; private set; }
+
+        public MaterializedGroup(GroupKey key, List<EvalRow> rows)
+        {
+            Key = key;
+            Rows = rows;
+        }
+
+        public void ReleaseRows()
+        {
+            Rows.Clear();
+        }
+    }
 
     internal readonly struct GroupKey
     {
@@ -1851,23 +2129,15 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             if (x is object?[] && y is not object?[]) return 1;
             if (y is object?[] && x is not object?[]) return -1;
 
-            // escalares comuns
-            if (x is IComparable xc && y is IComparable)
+            // escalares comuns - normalized type comparison avoiding exceptions
+            if (x is IComparable xc)
             {
-#pragma warning disable CA1031 // Do not catch general exception types
-                try
-                {
+                if (y is IComparable && x.GetType() == y.GetType())
                     return xc.CompareTo(y);
-                }
-                catch (Exception e)
-                {
-#pragma warning disable CA1303 // Do not pass literals as localized parameters
-                    Console.WriteLine($"{nameof(ArrayObjectComparer)}.{nameof(Compare)}");
-#pragma warning restore CA1303 // Do not pass literals as localized parameters
-                    Console.WriteLine(e);
-                    // cai pro string se tipos diferentes (ex: int vs long vs decimal)
-                }
-#pragma warning restore CA1031 // Do not catch general exception types
+
+                // numeric cross-type: convert both to decimal for safe comparison
+                if (TryConvertNumericToDecimal(x, out var xd) && TryConvertNumericToDecimal(y, out var yd))
+                    return xd.CompareTo(yd);
             }
 
             // fallback estável
@@ -1877,6 +2147,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
     internal static class SqlRowPool
     {
+        private const int MaxCapacity = 256;
         private static readonly System.Collections.Concurrent.ConcurrentBag<Dictionary<string, object?>> _bag = new();
 
         public static Dictionary<string, object?> Get(int capacity = 0, IEqualityComparer<string>? comparer = null)
@@ -1892,25 +2163,54 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         public static void Return(Dictionary<string, object?> dict)
         {
             dict.Clear();
-            _bag.Add(dict);
+            if (_bag.Count < MaxCapacity)
+                _bag.Add(dict);
+        }
+    }
+
+    internal static class IntDictPool
+    {
+        private const int MaxCapacity = 256;
+        private static readonly System.Collections.Concurrent.ConcurrentBag<Dictionary<int, object?>> _bag = new();
+
+        public static Dictionary<int, object?> Get(int capacity = 0)
+        {
+            if (_bag.TryTake(out var dict))
+            {
+                dict.Clear();
+                return dict;
+            }
+            return new Dictionary<int, object?>(capacity);
+        }
+
+        public static void Return(Dictionary<int, object?> dict)
+        {
+            dict.Clear();
+            if (_bag.Count < MaxCapacity)
+                _bag.Add(dict);
+        }
+
+        public static void ReturnRange(IEnumerable<Dictionary<int, object?>> dicts)
+        {
+            foreach (var dict in dicts)
+            {
+                dict.Clear();
+                if (_bag.Count < MaxCapacity)
+                    _bag.Add(dict);
+            }
         }
     }
 
     internal static class OrdinalPool
     {
-        private static readonly System.Collections.Concurrent.ConcurrentBag<object?[]> _bag = new();
+        private static readonly System.Buffers.ArrayPool<object?> _pool = System.Buffers.ArrayPool<object?>.Shared;
 
         public static object?[] Rent(int minLength)
         {
             if (minLength <= 0)
                 return [];
 
-            if (_bag.TryTake(out var arr) && arr.Length >= minLength)
-            {
-                Array.Clear(arr, 0, minLength);
-                return arr;
-            }
-            return new object?[minLength];
+            return _pool.Rent(minLength);
         }
 
         public static void Return(object?[]? arr)
@@ -1918,8 +2218,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             if (arr is null || arr.Length == 0)
                 return;
 
-            Array.Clear(arr, 0, arr.Length);
-            _bag.Add(arr);
+            _pool.Return(arr, clearArray: true);
         }
     }
 
