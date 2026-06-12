@@ -6,20 +6,36 @@ namespace DbSqlLikeMem;
 /// </summary>
 internal sealed class DbConnectionDebugTraceManager
 {
+    private readonly object _traceLock = new();
     private readonly List<QueryDebugTrace> _lastDebugTraces = [];
     private int _debugTraceCaptureDepth;
+    private QueryDebugTrace? _lastDebugTrace;
 
     /// <summary>
     /// EN: Gets the last captured debug trace.
     /// PT-br: Obtem o ultimo trace de debug capturado.
     /// </summary>
-    public QueryDebugTrace? LastDebugTrace { get; private set; }
+    public QueryDebugTrace? LastDebugTrace
+    {
+        get
+        {
+            lock (_traceLock)
+                return _lastDebugTrace;
+        }
+    }
 
     /// <summary>
     /// EN: Gets the retained debug trace history.
     /// PT-br: Obtem o historico de traces de debug retido.
     /// </summary>
-    public IReadOnlyList<QueryDebugTrace> LastDebugTraces => _lastDebugTraces;
+    public IReadOnlyList<QueryDebugTrace> LastDebugTraces
+    {
+        get
+        {
+            lock (_traceLock)
+                return _lastDebugTraces.ToArray();
+        }
+    }
 
     /// <summary>
     /// EN: Gets or sets the maximum number of debug traces kept in memory.
@@ -31,7 +47,7 @@ internal sealed class DbConnectionDebugTraceManager
     /// EN: Gets whether debug trace capture is active.
     /// PT-br: Obtem se a captura de trace de debug esta ativa.
     /// </summary>
-    public bool IsDebugTraceCaptureEnabled => _debugTraceCaptureDepth > 0;
+    public bool IsDebugTraceCaptureEnabled => System.Threading.Volatile.Read(ref _debugTraceCaptureDepth) > 0;
 
     /// <summary>
     /// EN: Clears the current trace state and history.
@@ -39,8 +55,11 @@ internal sealed class DbConnectionDebugTraceManager
     /// </summary>
     public void Clear()
     {
-        LastDebugTrace = null;
-        _lastDebugTraces.Clear();
+        lock (_traceLock)
+        {
+            _lastDebugTrace = null;
+            _lastDebugTraces.Clear();
+        }
     }
 
     /// <summary>
@@ -49,10 +68,17 @@ internal sealed class DbConnectionDebugTraceManager
     /// </summary>
     public IDisposable BeginCapture()
     {
-        if (_debugTraceCaptureDepth == 0)
-            Clear();
+        lock (_traceLock)
+        {
+            if (_debugTraceCaptureDepth == 0)
+            {
+                _lastDebugTrace = null;
+                _lastDebugTraces.Clear();
+            }
 
-        _debugTraceCaptureDepth++;
+            _debugTraceCaptureDepth++;
+        }
+
         return new DebugTraceCaptureScope(this);
     }
 
@@ -63,9 +89,12 @@ internal sealed class DbConnectionDebugTraceManager
     public void Register(QueryDebugTrace trace)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(trace, nameof(trace));
-        LastDebugTrace = trace;
-        _lastDebugTraces.Add(trace);
-        TrimHistoryIfNeeded();
+        lock (_traceLock)
+        {
+            _lastDebugTrace = trace;
+            _lastDebugTraces.Add(trace);
+            TrimHistoryIfNeeded();
+        }
     }
 
     /// <summary>
@@ -75,10 +104,13 @@ internal sealed class DbConnectionDebugTraceManager
     public void Restore(IReadOnlyList<QueryDebugTrace> traces)
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(traces, nameof(traces));
-        _lastDebugTraces.Clear();
-        _lastDebugTraces.AddRange(traces);
-        TrimHistoryIfNeeded();
-        LastDebugTrace = _lastDebugTraces.Count > 0 ? _lastDebugTraces[^1] : null;
+        lock (_traceLock)
+        {
+            _lastDebugTraces.Clear();
+            _lastDebugTraces.AddRange(traces);
+            TrimHistoryIfNeeded();
+            _lastDebugTrace = _lastDebugTraces.Count > 0 ? _lastDebugTraces[^1] : null;
+        }
     }
 
     /// <summary>
@@ -97,21 +129,27 @@ internal sealed class DbConnectionDebugTraceManager
             statements.Add(trimmed.Length == statement.Length ? statement : trimmed.ToString());
         }
 
-        if (statements.Count == 0 || _lastDebugTraces.Count == 0)
-            return;
-
-        var contextualized = new List<QueryDebugTrace>(_lastDebugTraces.Count);
-        var statementOffset = Math.Max(0, statements.Count - _lastDebugTraces.Count);
-        for (var i = 0; i < _lastDebugTraces.Count; i++)
+        lock (_traceLock)
         {
-            var statementIndex = statementOffset + i;
-            var sqlText = statementIndex < statements.Count
-                ? statements[statementIndex]
-                : null;
-            contextualized.Add(_lastDebugTraces[i].WithStatementContext(statementIndex, sqlText));
-        }
+            if (statements.Count == 0 || _lastDebugTraces.Count == 0)
+                return;
 
-        Restore(contextualized);
+            var contextualized = new List<QueryDebugTrace>(_lastDebugTraces.Count);
+            var statementOffset = Math.Max(0, statements.Count - _lastDebugTraces.Count);
+            for (var i = 0; i < _lastDebugTraces.Count; i++)
+            {
+                var statementIndex = statementOffset + i;
+                var sqlText = statementIndex < statements.Count
+                    ? statements[statementIndex]
+                    : null;
+                contextualized.Add(_lastDebugTraces[i].WithStatementContext(statementIndex, sqlText));
+            }
+
+            _lastDebugTraces.Clear();
+            _lastDebugTraces.AddRange(contextualized);
+            TrimHistoryIfNeeded();
+            _lastDebugTrace = _lastDebugTraces.Count > 0 ? _lastDebugTraces[^1] : null;
+        }
     }
 
     /// <summary>
@@ -119,7 +157,10 @@ internal sealed class DbConnectionDebugTraceManager
     /// PT-br: Cria um snapshot do historico de traces retido.
     /// </summary>
     public IReadOnlyList<QueryDebugTrace> Snapshot()
-        => [.. _lastDebugTraces];
+    {
+        lock (_traceLock)
+            return [.. _lastDebugTraces];
+    }
 
     private void TrimHistoryIfNeeded()
     {
@@ -130,7 +171,7 @@ internal sealed class DbConnectionDebugTraceManager
 
         var removeCount = _lastDebugTraces.Count - retentionLimit;
         _lastDebugTraces.RemoveRange(0, removeCount);
-        LastDebugTrace = _lastDebugTraces[^1];
+        _lastDebugTrace = _lastDebugTraces[^1];
     }
 
     private sealed class DebugTraceCaptureScope(DbConnectionDebugTraceManager manager) : IDisposable
@@ -142,7 +183,8 @@ internal sealed class DbConnectionDebugTraceManager
             if (_manager is null)
                 return;
 
-            _manager._debugTraceCaptureDepth = Math.Max(0, _manager._debugTraceCaptureDepth - 1);
+            lock (_manager._traceLock)
+                _manager._debugTraceCaptureDepth = Math.Max(0, _manager._debugTraceCaptureDepth - 1);
             _manager = null;
         }
     }

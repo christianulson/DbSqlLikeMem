@@ -8,6 +8,7 @@ internal sealed class SqlQueryParsePreludeCache
 
     private readonly int _capacity;
     private readonly ConcurrentDictionary<string, Prelude> _entries;
+    private readonly object _trimLock = new();
 
     internal readonly record struct Prelude(IReadOnlyList<SqlToken> Tokens, AutoSqlSyntaxFeatures AutoSyntaxFeatures);
 
@@ -75,17 +76,20 @@ internal sealed class SqlQueryParsePreludeCache
 
     private void TrimExcess()
     {
-        var removeCount = _entries.Count - _capacity;
-        if (removeCount <= 0)
-            return;
-
-        foreach (var kvp in _entries)
+        lock (_trimLock)
         {
+            var removeCount = _entries.Count - _capacity;
             if (removeCount <= 0)
-                break;
+                return;
 
-            if (_entries.TryRemove(kvp.Key, out _))
-                removeCount--;
+            foreach (var kvp in _entries)
+            {
+                if (removeCount <= 0)
+                    break;
+
+                if (_entries.TryRemove(kvp.Key, out _))
+                    removeCount--;
+            }
         }
     }
 }

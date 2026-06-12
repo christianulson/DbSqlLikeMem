@@ -549,21 +549,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         }
     }
 
-    private static bool EqSql(object? a, object? b)
-    {
-        if (a is null || a is DBNull || b is null || b is DBNull)
-            return false;
-        return a.EqualsSql(b);
-    }
-
-    private static bool NeqSql(object? a, object? b)
-    {
-        if (a is null || a is DBNull || b is null || b is DBNull)
-            return false;
-        return !a.EqualsSql(b);
-    }
-
-    private static Func<EvalRow, object?>? TryBuildColumnReader(SqlExpr expr)
+    internal static Func<EvalRow, object?>? TryBuildColumnReader(SqlExpr expr)
     {
         if (expr is ColumnExpr col)
         {
@@ -583,8 +569,14 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         if (row.OrdinalIndexes is not null && row.OrdinalIndexes.TryGetValue(columnName, out var idx)
             && row.OrdinalValues is not null && idx >= 0 && idx < row.OrdinalValues.Length)
             return row.OrdinalValues[idx];
-        row.Fields.TryGetValue(columnName, out var v);
-        return v;
+        if (row.Fields.TryGetValue(columnName, out var v))
+            return v;
+        if (row.SingleSource is not null
+            && row.SingleSource.TryGetQualifiedColumnName(columnName, out var qn)
+            && qn?.Length > 0
+            && row.Fields.TryGetValue(qn, out v))
+            return v;
+        return null;
     }
 
     private static Func<EvalRow, bool> BuildBinaryCompiled(SqlBinaryOp op, Func<EvalRow, object?> readColumn, object? literal, ISqlDialect dialect)
@@ -663,15 +655,44 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             try { return lc.CompareTo(right); }
             catch { }
         }
-        if (TryConvertNumericToDecimal(left, out var xd)
-            && TryConvertNumericToDecimal(right, out var yd))
+        if (TryConvertToDecimal(left, out var xd) && TryConvertToDecimal(right, out var yd))
             return xd.CompareTo(yd);
-        if (TryConvertToDateTimeLike(left, out var dtL)
-            && TryConvertToDateTimeLike(right, out var dtR))
+        if (TryConvertToDateTime(left, out var dtL) && TryConvertToDateTime(right, out var dtR))
             return dtL.CompareTo(dtR);
         if (left is string sl && right is string sr)
             return string.Compare(sl, sr, textComparison);
         return string.Compare(left.ToString(), right.ToString(), textComparison);
+    }
+
+    private static bool TryConvertToDecimal(object? value, out decimal result)
+    {
+        switch (value)
+        {
+            case int i: result = i; return true;
+            case long l: result = l; return true;
+            case short s: result = s; return true;
+            case byte b: result = b; return true;
+            case uint u: result = u; return true;
+            case ulong ul: result = ul; return true;
+            case ushort us: result = us; return true;
+            case sbyte sb: result = sb; return true;
+            case float f: result = (decimal)f; return true;
+            case double d: result = (decimal)d; return true;
+            case decimal m: result = m; return true;
+            default: result = 0; return false;
+        }
+    }
+
+    private static bool TryConvertToDateTime(object? value, out DateTime result)
+    {
+        switch (value)
+        {
+            case DateTime dt: result = dt; return true;
+            case DateTimeOffset dto: result = dto.DateTime; return true;
+            case string s when DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed):
+                result = parsed; return true;
+            default: result = default; return false;
+        }
     }
 
     private static bool EqSql(object? a, object? b, StringComparison textComparison)
@@ -682,30 +703,13 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             return string.Equals(sa, sb, textComparison);
         if (a.GetType() == b.GetType())
             return a.Equals(b);
-        if (TryConvertNumericToDecimal(a, out var xd)
-            && TryConvertNumericToDecimal(b, out var yd))
+        if (TryConvertToDecimal(a, out var xd) && TryConvertToDecimal(b, out var yd))
             return xd == yd;
         return a.Equals(b);
     }
 
     private static bool NeqSql(object? a, object? b, StringComparison textComparison)
         => !EqSql(a, b, textComparison);
-
-    private static bool TryConvertToDateTimeLike(object? value, out DateTime dateTime)
-    {
-        if (value is DateTime dt)
-        {
-            dateTime = dt;
-            return true;
-        }
-        if (value is string s && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
-        {
-            dateTime = parsed;
-            return true;
-        }
-        dateTime = default;
-        return false;
-    }
 
     private static bool IsRowCountHelperSelect(SqlSelectQuery q)
     {
@@ -2011,12 +2015,31 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         {
             public T this[int index] => source[start + index];
             public int Count => count;
-            public IEnumerator<T> GetEnumerator()
-            {
-                for (var i = 0; i < count; i++)
-                    yield return source[start + i];
-            }
+            public IEnumerator<T> GetEnumerator() => new Enumerator(source, start, count);
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+            private sealed class Enumerator : IEnumerator<T>
+            {
+                private readonly List<T> _source;
+                private readonly int _start;
+                private readonly int _count;
+                private int _index;
+
+                public Enumerator(List<T> source, int start, int count)
+                {
+                    _source = source;
+                    _start = start;
+                    _count = count;
+                    _index = -1;
+                }
+
+                public T Current => _source[_start + _index];
+                object? IEnumerator.Current => Current;
+
+                public bool MoveNext() => ++_index < _count;
+                public void Reset() => _index = -1;
+                public void Dispose() { }
+            }
         }
     }
 
@@ -2043,9 +2066,12 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         private readonly object? _v0, _v1, _v2, _v3;
         private readonly object?[]? _extra;
 
-        public GroupKey(object?[] values)
+        public GroupKey(object?[] values, int count)
         {
-            _count = values.Length;
+            if ((uint)count > (uint)values.Length)
+                throw new ArgumentOutOfRangeException(nameof(count));
+
+            _count = count;
             if (_count > 0) _v0 = values[0];
             if (_count > 1) _v1 = values[1];
             if (_count > 2) _v2 = values[2];
@@ -2129,14 +2155,16 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             if (x is object?[] && y is not object?[]) return 1;
             if (y is object?[] && x is not object?[]) return -1;
 
-            // escalares comuns - normalized type comparison avoiding exceptions
+            // escalares comuns - same-type fast path, cross-type via try/catch
             if (x is IComparable xc)
             {
                 if (y is IComparable && x.GetType() == y.GetType())
                     return xc.CompareTo(y);
 
-                // numeric cross-type: convert both to decimal for safe comparison
-                if (TryConvertNumericToDecimal(x, out var xd) && TryConvertNumericToDecimal(y, out var yd))
+                try { return xc.CompareTo(y); }
+                catch { }
+
+                if (TryConvertToDecimal(x, out var xd) && TryConvertToDecimal(y, out var yd))
                     return xd.CompareTo(yd);
             }
 
@@ -2147,7 +2175,6 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
 
     internal static class SqlRowPool
     {
-        private const int MaxCapacity = 256;
         private static readonly System.Collections.Concurrent.ConcurrentBag<Dictionary<string, object?>> _bag = new();
 
         public static Dictionary<string, object?> Get(int capacity = 0, IEqualityComparer<string>? comparer = null)
@@ -2163,19 +2190,17 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         public static void Return(Dictionary<string, object?> dict)
         {
             dict.Clear();
-            if (_bag.Count < MaxCapacity)
-                _bag.Add(dict);
+            _bag.Add(dict);
         }
     }
 
     internal static class IntDictPool
     {
-        private const int MaxCapacity = 256;
-        private static readonly System.Collections.Concurrent.ConcurrentBag<Dictionary<int, object?>> _bag = new();
+        private static readonly System.Collections.Concurrent.ConcurrentStack<Dictionary<int, object?>> _stack = new();
 
         public static Dictionary<int, object?> Get(int capacity = 0)
         {
-            if (_bag.TryTake(out var dict))
+            if (_stack.TryPop(out var dict))
             {
                 dict.Clear();
                 return dict;
@@ -2186,8 +2211,7 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         public static void Return(Dictionary<int, object?> dict)
         {
             dict.Clear();
-            if (_bag.Count < MaxCapacity)
-                _bag.Add(dict);
+            _stack.Push(dict);
         }
 
         public static void ReturnRange(IEnumerable<Dictionary<int, object?>> dicts)
@@ -2195,22 +2219,28 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             foreach (var dict in dicts)
             {
                 dict.Clear();
-                if (_bag.Count < MaxCapacity)
-                    _bag.Add(dict);
+                _stack.Push(dict);
             }
         }
     }
 
     internal static class OrdinalPool
     {
-        private static readonly System.Buffers.ArrayPool<object?> _pool = System.Buffers.ArrayPool<object?>.Shared;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, System.Collections.Concurrent.ConcurrentBag<object?[]>> _buckets = new();
 
         public static object?[] Rent(int minLength)
         {
             if (minLength <= 0)
                 return [];
 
-            return _pool.Rent(minLength);
+            if (_buckets.TryGetValue(minLength, out var bucket)
+                && bucket.TryTake(out var arr))
+            {
+                Array.Clear(arr, 0, arr.Length);
+                return arr;
+            }
+
+            return new object?[minLength];
         }
 
         public static void Return(object?[]? arr)
@@ -2218,7 +2248,9 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
             if (arr is null || arr.Length == 0)
                 return;
 
-            _pool.Return(arr, clearArray: true);
+            Array.Clear(arr, 0, arr.Length);
+            var bucket = _buckets.GetOrAdd(arr.Length, static _ => new System.Collections.Concurrent.ConcurrentBag<object?[]>());
+            bucket.Add(arr);
         }
     }
 

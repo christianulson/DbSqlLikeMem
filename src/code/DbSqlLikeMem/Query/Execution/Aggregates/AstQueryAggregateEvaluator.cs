@@ -352,14 +352,26 @@ internal static class AstQueryAggregateEvaluator
         return EvalStreamingAggregate(context, name, EnumerateGroupValues(rows, fn, ctes, eval), separator);
     }
 
+    private static Func<EvalRow, object?> BuildAggregateValueSelector(
+        SqlExpr arg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        IDictionary<string, Source> ctes)
+    {
+        var reader = TryBuildColumnReader(arg);
+        if (reader is not null)
+            return reader;
+        return row => eval(arg, row, null, ctes);
+    }
+
     private static IEnumerable<object?> EnumerateGroupValues(
         IReadOnlyList<EvalRow> rows,
         FunctionCallExpr fn,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
+        var selector = BuildAggregateValueSelector(fn.Args[0], eval, ctes);
         for (var i = 0; i < rows.Count; i++)
-            yield return eval(fn.Args[0], rows[i], null, ctes);
+            yield return selector(rows[i]);
     }
 
     private static object? EvalStreamingAggregate(QueryExecutionContext context, string name, IEnumerable<object?> values, object? separator)
@@ -1708,10 +1720,11 @@ internal static class AstQueryAggregateEvaluator
             _ => StringComparer.OrdinalIgnoreCase
         };
         HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), distinctComparer) : null;
+        var selector = BuildAggregateValueSelector(fn.Args[0], eval, ctes);
         long c = 0;
         foreach (var r in group.Rows)
         {
-            var v = eval(fn.Args[0], r, null, ctes);
+            var v = selector(r);
             if (!IsNullish(v))
             {
                 if (seen is not null)
@@ -1773,6 +1786,7 @@ internal static class AstQueryAggregateEvaluator
         {
             seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), valuesComparer);
         }
+        var selector = BuildAggregateValueSelector(fn.Args[0], eval, ctes);
         var traceGroupedCaseWhen = context.Connection.IsDebugTraceCaptureEnabled
             && fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count > 0
@@ -1780,7 +1794,7 @@ internal static class AstQueryAggregateEvaluator
         for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
         {
             var r = rows[rowIndex];
-            var v = eval(fn.Args[0], r, null, ctes);
+            var v = selector(r);
             if (traceGroupedCaseWhen)
             {
                 Console.WriteLine(

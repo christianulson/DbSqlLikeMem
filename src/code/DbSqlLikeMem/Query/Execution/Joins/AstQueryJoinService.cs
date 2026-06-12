@@ -153,7 +153,7 @@ internal sealed class AstQueryJoinService(
             yield break;
         }
 
-        if (TryBuildGenericLeftJoinEqualityLookup(join, rightSource, rightRows, out var genericLookup))
+        if (rightRows.Count >= 20 && TryBuildGenericLeftJoinEqualityLookup(join, rightSource, rightRows, out var genericLookup))
         {
             var fullPredicate = join.On;
             var isComposite = genericLookup.Columns.Count > 1;

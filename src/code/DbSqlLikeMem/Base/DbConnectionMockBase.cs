@@ -137,9 +137,9 @@ public abstract class DbConnectionMockBase(
     private object? _lastInsertId;
     private readonly ISqlDialect _providerSqlDialect = db.Dialect;
     private readonly ISqlDialect _autoSqlDialect = AutoDialectFactory.Create(db.Version);
-    private readonly HashSet<string> _runtimeFunctions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, DbFunctionDef> _runtimeFunctionDefinitions = new(StringComparer.OrdinalIgnoreCase);
-    private string? _currentQueryText;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _runtimeFunctions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DbFunctionDef> _runtimeFunctionDefinitions = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly AsyncLocal<string?> _ambientCurrentQueryText = new();
     private static readonly AsyncLocal<TableTriggerEvent?> _ambientTriggerEvent = new();
 
     internal void ClearExecutionPlans()
@@ -173,7 +173,7 @@ public abstract class DbConnectionMockBase(
     }
 
     internal string? GetCurrentQueryText()
-        => _currentQueryText;
+        => _ambientCurrentQueryText.Value;
 
     internal IDisposable BeginCurrentQueryScope(string? sql)
         => new CurrentQueryScope(this, sql);
@@ -532,9 +532,9 @@ public abstract class DbConnectionMockBase(
         public CurrentQueryScope(DbConnectionMockBase connection, string? sql)
         {
             _connection = connection;
-            _previousQueryText = connection._currentQueryText;
+            _previousQueryText = _ambientCurrentQueryText.Value;
             _previousMutationConnection = _ambientMutationConnection.Value;
-            connection._currentQueryText = sql;
+            _ambientCurrentQueryText.Value = sql;
             _ambientMutationConnection.Value = connection;
         }
 
@@ -543,7 +543,7 @@ public abstract class DbConnectionMockBase(
             if (_connection is null)
                 return;
 
-            _connection._currentQueryText = _previousQueryText;
+            _ambientCurrentQueryText.Value = _previousQueryText;
             _ambientMutationConnection.Value = _previousMutationConnection;
             _connection = null;
         }
@@ -573,24 +573,24 @@ public abstract class DbConnectionMockBase(
     internal void SetLastFoundRows(long value)
     {
         var normalized = Math.Max(0, value);
-        _lastFoundRows = normalized;
-        _lastChangesRows = normalized;
+        System.Threading.Interlocked.Exchange(ref _lastFoundRows, normalized);
+        System.Threading.Interlocked.Exchange(ref _lastChangesRows, normalized);
     }
 
     internal void SetLastSelectRows(long value)
-        => _lastFoundRows = Math.Max(0, value);
+        => System.Threading.Interlocked.Exchange(ref _lastFoundRows, Math.Max(0, value));
 
     internal long GetLastFoundRows()
-        => _lastFoundRows;
+        => System.Threading.Interlocked.Read(ref _lastFoundRows);
 
     internal long GetLastChangesRows()
-        => _lastChangesRows;
+        => System.Threading.Interlocked.Read(ref _lastChangesRows);
 
     internal void SetLastInsertId(object? value)
-        => _lastInsertId = value;
+        => System.Threading.Volatile.Write(ref _lastInsertId, value);
 
     internal object? GetLastInsertId()
-        => _lastInsertId;
+        => System.Threading.Volatile.Read(ref _lastInsertId);
 
     internal int GetCurrentTransactionId()
         => _transactionState.CurrentTransactionId;
@@ -709,7 +709,8 @@ public abstract class DbConnectionMockBase(
         return db.GetSchemaName(null);
     }
 
-    private string _connectionString = "";
+    private static int _nextConnectionId;
+    private string _connectionString = $"DbMock Id={System.Threading.Interlocked.Increment(ref _nextConnectionId)}";
 
     private static string ParseConnectionStringDataSource(string connectionString)
     {
@@ -1749,7 +1750,7 @@ public abstract class DbConnectionMockBase(
     internal bool ContainsRuntimeFunction(string functionName)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        return _runtimeFunctions.Contains(functionName.NormalizeName());
+        return _runtimeFunctions.ContainsKey(functionName.NormalizeName());
     }
 
     internal bool TryGetRuntimeFunction(
@@ -1774,12 +1775,12 @@ public abstract class DbConnectionMockBase(
 
         if (runtimeDefinition is null)
         {
-            _runtimeFunctions.Remove(functionName.NormalizeName());
-            _runtimeFunctionDefinitions.Remove(functionName.NormalizeName());
+            _runtimeFunctions.TryRemove(functionName.NormalizeName(), out _);
+            _runtimeFunctionDefinitions.TryRemove(functionName.NormalizeName(), out _);
         }
         else
         {
-            _runtimeFunctions.Add(functionName.NormalizeName());
+            _runtimeFunctions.TryAdd(functionName.NormalizeName(), 0);
             _runtimeFunctionDefinitions[functionName.NormalizeName()] = runtimeDefinition;
         }
 
@@ -2374,7 +2375,7 @@ public abstract class DbConnectionMockBase(
         _globalTemporaryTables.Clear();
         _tableRegistrationCache.Clear();
         _sessionState.ClearAll();
-        _lastInsertId = 0;
+        SetLastInsertId(0);
         SetLastFoundRows(0);
         ClearExecutionPlans();
         ClearSelectPlanCache();

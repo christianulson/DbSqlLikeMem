@@ -102,9 +102,9 @@ public abstract class TranslatorBase<TProvider> : ExpressionVisitor
     private static void CacheTranslation(string cacheKey, string sql)
     {
         if (TranslationCache.Count >= TranslationCacheSoftLimit)
-            TranslationCache.Clear();
+            return;
 
-        TranslationCache[cacheKey] = sql;
+        TranslationCache.TryAdd(cacheKey, sql);
     }
 
     private List<object> CollectParameters(Expression expression)

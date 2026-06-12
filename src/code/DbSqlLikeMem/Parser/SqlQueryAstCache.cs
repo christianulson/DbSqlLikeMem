@@ -8,6 +8,7 @@ internal sealed class SqlQueryAstCache
 
     private readonly int _capacity;
     private readonly ConcurrentDictionary<string, SqlQueryBase> _entries;
+    private readonly object _trimLock = new();
 
     private SqlQueryAstCache(int capacity)
     {
@@ -83,7 +84,8 @@ internal sealed class SqlQueryAstCache
         if (_capacity <= 0)
             return;
 
-        _entries.Clear();
+        lock (_trimLock)
+            _entries.Clear();
     }
 
     private void TrimExcess()
@@ -92,13 +94,20 @@ internal sealed class SqlQueryAstCache
         if (removeCount <= 0)
             return;
 
-        foreach (var kvp in _entries)
+        lock (_trimLock)
         {
+            removeCount = _entries.Count - _capacity;
             if (removeCount <= 0)
-                break;
+                return;
 
-            if (_entries.TryRemove(kvp.Key, out _))
-                removeCount--;
+            foreach (var kvp in _entries)
+            {
+                if (removeCount <= 0)
+                    break;
+
+                if (_entries.TryRemove(kvp.Key, out _))
+                    removeCount--;
+            }
         }
     }
 

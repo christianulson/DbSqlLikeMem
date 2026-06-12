@@ -173,12 +173,17 @@ internal abstract partial class AstQueryExecutorBase
         GroupKey BuildGroupKey(EvalRow row)
         {
             var values = keyExprs.Length > 0 ? OrdinalPool.Rent(keyExprs.Length) : [];
-            for (var i = 0; i < keyExprs.Length; i++)
-                values[i] = Eval(keyExprs[i], row, group: null, ctes);
+            try
+            {
+                for (var i = 0; i < keyExprs.Length; i++)
+                    values[i] = Eval(keyExprs[i], row, group: null, ctes);
 
-            var key = new GroupKey(values);
-            OrdinalPool.Return(values);
-            return key;
+                return new GroupKey(values, keyExprs.Length);
+            }
+            finally
+            {
+                OrdinalPool.Return(values);
+            }
         }
 
         var groupStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
@@ -244,12 +249,17 @@ internal abstract partial class AstQueryExecutorBase
         GroupKey BuildGroupKey(EvalRow row)
         {
             var values = keyExprs.Length > 0 ? OrdinalPool.Rent(keyExprs.Length) : [];
-            for (var i = 0; i < keyExprs.Length; i++)
-                values[i] = Eval(keyExprs[i], row, group: null, ctes);
+            try
+            {
+                for (var i = 0; i < keyExprs.Length; i++)
+                    values[i] = Eval(keyExprs[i], row, group: null, ctes);
 
-            var key = new GroupKey(values);
-            OrdinalPool.Return(values);
-            return key;
+                return new GroupKey(values, keyExprs.Length);
+            }
+            finally
+            {
+                OrdinalPool.Return(values);
+            }
         }
 
         var grouped = MaterializeGroups(rows.GroupBy(
@@ -293,11 +303,7 @@ internal abstract partial class AstQueryExecutorBase
         SqlExpr predicate,
         IDictionary<string, Source> ctes)
     {
-        var compiled = CompilePredicate(predicate)
-            ?? AstQueryPredicateCompiler.TryCompile(
-                predicate,
-                (expr, row, group, c) => Eval(expr, row, group, c),
-                ctes);
+        var compiled = CompilePredicate(predicate);
         if (compiled is not null)
         {
             foreach (var row in rows)
