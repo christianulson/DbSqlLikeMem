@@ -324,7 +324,15 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         IDictionary<string, Source> ctes,
         EvalRow row)
     {
-        var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(SqlConst.SCALAR, sq.Sql, row);
+        var cacheKey = AstQuerySubqueryLookupSupport.TryBuildUncorrelatedSubqueryCacheKey(
+            SqlConst.SCALAR,
+            sq,
+            row,
+            ctes,
+            (tableSource, scope) => ResolveSource(tableSource, scope),
+            out var uncorrelatedCacheKey)
+            ? uncorrelatedCacheKey
+            : AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(SqlConst.SCALAR, sq.Sql, row);
 
         return _subqueryEvaluationCache.GetOrAddScalar(
             cacheKey,
@@ -1132,6 +1140,100 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
                         }
                     }
                     yield return dict;
+                }
+            }
+        }
+
+        internal IEnumerable<EvalRow> EvalRows()
+        {
+            if (Physical is not null)
+            {
+                var partitionNames = _requestedPartitionNames;
+                var partitionRequested = partitionNames is { Count: > 0 };
+                var tableForPartition = partitionRequested ? Physical as TableMock : null;
+                var hasSourceQualified = _sourceQualifiedColumnNames is not null;
+                var fieldCapacity = Math.Max(hasSourceQualified ? ColumnNames.Count * 2 : ColumnNames.Count, 1);
+
+                foreach (var row in Physical)
+                {
+                    if (partitionRequested
+                        && tableForPartition is not null
+                        && !tableForPartition.MatchesRequestedPartitions(row, partitionNames!))
+                    {
+                        continue;
+                    }
+
+                    var fields = SqlRowPool.Get(fieldCapacity, StringComparer.OrdinalIgnoreCase);
+                    var ordinalValues = OrdinalPool.Rent(ColumnNames.Count);
+                    if (hasSourceQualified)
+                    {
+                        for (var i = 0; i < ColumnNames.Count; i++)
+                        {
+                            var idx = _physicalColumnIndexes![i];
+                            var val = row?.TryGetValue(idx, out var v) == true ? v : null;
+                            fields[_qualifiedColumnNames![i]] = val;
+                            fields[_sourceQualifiedColumnNames![i]] = val;
+                            ordinalValues[i] = val;
+                        }
+                    }
+                    else
+                    {
+                        for (var i = 0; i < ColumnNames.Count; i++)
+                        {
+                            var idx = _physicalColumnIndexes![i];
+                            var val = row?.TryGetValue(idx, out var v) == true ? v : null;
+                            fields[_qualifiedColumnNames![i]] = val;
+                            ordinalValues[i] = val;
+                        }
+                    }
+
+                    yield return new EvalRow(fields, _sourceDict)
+                    {
+                        OrdinalValues = ordinalValues,
+                        OrdinalIndexes = _sourceOrdinalIndexes,
+                        SingleSource = _sourceDict.Count == 1 ? this : null
+                    };
+                }
+
+                yield break;
+            }
+
+            if (_result is not null)
+            {
+                var hasSourceQualified = _sourceQualifiedColumnNames is not null;
+                var columnCount = _resultQualifiedColumnNames!.Length;
+                var fieldCapacity = Math.Max(hasSourceQualified ? columnCount * 2 : columnCount, 1);
+
+                foreach (var row in _result)
+                {
+                    var fields = SqlRowPool.Get(fieldCapacity, StringComparer.OrdinalIgnoreCase);
+                    var ordinalValues = OrdinalPool.Rent(columnCount);
+                    if (hasSourceQualified)
+                    {
+                        for (var i = 0; i < columnCount; i++)
+                        {
+                            var val = row.TryGetValue(i, out var v) ? v : null;
+                            fields[_resultQualifiedColumnNames[i]] = val;
+                            fields[_sourceQualifiedColumnNames![i]] = val;
+                            ordinalValues[i] = val;
+                        }
+                    }
+                    else
+                    {
+                        for (var i = 0; i < columnCount; i++)
+                        {
+                            var val = row.TryGetValue(i, out var v) ? v : null;
+                            fields[_resultQualifiedColumnNames[i]] = val;
+                            ordinalValues[i] = val;
+                        }
+                    }
+
+                    yield return new EvalRow(fields, _sourceDict)
+                    {
+                        OrdinalValues = ordinalValues,
+                        OrdinalIndexes = _sourceOrdinalIndexes,
+                        SingleSource = _sourceDict.Count == 1 ? this : null
+                    };
                 }
             }
         }

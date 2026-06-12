@@ -27,6 +27,21 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
 
     internal void Clear() => _cache.Clear();
 
+    private string BuildSubqueryCacheKey(
+        string operation,
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes)
+        => AstQuerySubqueryLookupSupport.TryBuildUncorrelatedSubqueryCacheKey(
+            operation,
+            sq,
+            row,
+            ctes,
+            _resolveSource,
+            out var cacheKey)
+            ? cacheKey
+            : AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
+
     internal bool TryEvaluateScalarSubqueryFast(
         SqlSelectQuery query,
         EvalRow row,
@@ -171,7 +186,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         EvalRow row,
         IDictionary<string, Source> ctes)
     {
-        var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
+        var cacheKey = BuildSubqueryCacheKey(operation, sq, row, ctes);
         return _cache.GetOrAddFirstColumnValues(
             cacheKey,
             _ => EvaluateSubqueryFirstColumnValues(sq, operation, row, ctes));
@@ -183,7 +198,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         EvalRow row,
         IDictionary<string, Source> ctes)
     {
-        var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey(operation, sq.Sql, row);
+        var cacheKey = BuildSubqueryCacheKey(operation, sq, row, ctes);
         return _cache.GetOrAddOperationData(
             cacheKey,
             _ => EvaluateSubqueryRowValues(sq, operation, row, ctes));
@@ -194,7 +209,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         EvalRow row,
         IDictionary<string, Source> ctes)
     {
-        var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey("IN_LOOKUP", sq.Sql, row);
+        var cacheKey = BuildSubqueryCacheKey("IN_LOOKUP", sq, row, ctes);
         return _cache.GetOrAddOperationData(
             cacheKey,
             _ => BuildInSubqueryLookupState(sq, row, ctes));
@@ -205,7 +220,7 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         EvalRow row,
         IDictionary<string, Source> ctes)
     {
-        var cacheKey = AstQuerySubqueryLookupSupport.BuildCorrelatedSubqueryCacheKey("IN_ROWS_LOOKUP", sq.Sql, row);
+        var cacheKey = BuildSubqueryCacheKey("IN_ROWS_LOOKUP", sq, row, ctes);
         return _cache.GetOrAddOperationData(
             cacheKey,
             _ => BuildInSubqueryRowLookupState(sq, row, ctes));
@@ -367,7 +382,15 @@ internal sealed class AstQuerySubqueryLookupEvaluator(
         bool hasOrderBy,
         bool hasGroupBy)
     {
-        var sourceRows = _indexHelper?.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
+        var sourceRows = _indexHelper?.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy);
+        if (sourceRows is null)
+        {
+            foreach (var row in src.EvalRows())
+                yield return row;
+
+            yield break;
+        }
+
         foreach (var row in sourceRows)
             yield return AstQueryRowSourceHelper.CreateSourceEvalRow(src, row);
     }

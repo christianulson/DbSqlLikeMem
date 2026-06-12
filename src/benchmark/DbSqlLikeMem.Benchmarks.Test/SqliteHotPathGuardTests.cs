@@ -46,6 +46,18 @@ public sealed class SqliteHotPathGuardTests
         => RunHotPathFeatures(sessionName, factory, features);
 
     /// <summary>
+    /// EN: Verifies SQLite DML, batch, and typed-field hot-path benchmark features still run on both providers.
+    /// PT-br: Verifica se os recursos de benchmark de DML, batch e campos tipados do SQLite ainda executam em ambos os providers.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(SqliteDmlBatchAndTypedHotPathCases))]
+    public void SqliteSessions_RunDmlBatchAndTypedHotPathGuards(
+        string sessionName,
+        Func<BenchmarkSessionBase> factory,
+        BenchmarkFeatureId[] features)
+        => RunHotPathFeatures(sessionName, factory, features);
+
+    /// <summary>
     /// EN: Provides SQLite hot-path cases for the connection bootstrap and core query benchmarks.
     /// PT-br: Fornece casos de hot path do SQLite para o bootstrap de conexao e os benchmarks de consulta principais.
     /// </summary>
@@ -69,6 +81,14 @@ public sealed class SqliteHotPathGuardTests
         => [Case("Sqlite", () => new SqliteDbSqlLikeMemSession(), StringAggregateHotPathFeatures()),
             Case("Sqlite native", () => new SqliteNativeSession(), StringAggregateHotPathFeatures())];
 
+    /// <summary>
+    /// EN: Provides SQLite hot-path cases for DML, batch, and typed-field benchmarks.
+    /// PT-br: Fornece casos de hot path do SQLite para benchmarks de DML, batch e campos tipados.
+    /// </summary>
+    public static IEnumerable<object[]> SqliteDmlBatchAndTypedHotPathCases()
+        => [Case("Sqlite", () => new SqliteDbSqlLikeMemSession(), DmlBatchAndTypedHotPathFeatures()),
+            Case("Sqlite native", () => new SqliteNativeSession(), DmlBatchAndTypedHotPathFeatures())];
+
     private static BenchmarkFeatureId[] ConnectionAndQueryHotPathFeatures()
         => [
             BenchmarkFeatureId.ConnectionOpen,
@@ -78,6 +98,7 @@ public sealed class SqliteHotPathGuardTests
             BenchmarkFeatureId.SelectExistsPredicate,
             BenchmarkFeatureId.SelectInSubquery,
             BenchmarkFeatureId.SelectNotInSubquery,
+            BenchmarkFeatureId.NotInSubqueryNull,
             BenchmarkFeatureId.SelectScalarSubquery
         ];
 
@@ -94,6 +115,13 @@ public sealed class SqliteHotPathGuardTests
             BenchmarkFeatureId.StringAggregate,
             BenchmarkFeatureId.StringAggregateOrdered,
             BenchmarkFeatureId.StringAggregateLargeGroup
+        ];
+
+    private static BenchmarkFeatureId[] DmlBatchAndTypedHotPathFeatures()
+        => [
+            BenchmarkFeatureId.InsertBatch100,
+            BenchmarkFeatureId.BatchInsert100,
+            BenchmarkFeatureId.TypedFieldTextLengthMatrix
         ];
 
     private static object[] Case(

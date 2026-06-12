@@ -77,6 +77,9 @@ internal static class DbInsertStrategy
         var tableName = setup.TableName;
         var newRows = setup.NewRows;
 
+        if (setup.CanUseDirectArrayBatch)
+            return ExecuteSimpleArrayBatchInsert(setup);
+
         if (!query.HasOnDuplicateKeyUpdate
             && !query.IsOnConflictDoNothing
             && setup.CanUseBatchInsert
@@ -100,6 +103,22 @@ internal static class DbInsertStrategy
         for (int i = beforeCount; i < beforeCount + insertedCount; i++)
             affectedIndexes.Add(i);
         TrySetLastInsertId(setup.Context, table, newRows[^1]);
+        return (insertedCount, 0, affectedIndexes);
+    }
+
+    private static (int Inserted, int Updated, List<int> AffectedIndexes) ExecuteSimpleArrayBatchInsert(InsertExecutionSetup setup)
+    {
+        var table = setup.Table;
+        var newRows = setup.NewArrayRows
+            ?? throw new InvalidOperationException("Direct array insert batch requires materialized array rows.");
+        var beforeCount = table.Count;
+        setup.TableMock.AddBatchArray(newRows, setup.NewArrayExplicitColumnSets);
+        var insertedCount = setup.NewRowsCount;
+        var affectedIndexes = new List<int>(insertedCount);
+        for (int i = beforeCount; i < beforeCount + insertedCount; i++)
+            affectedIndexes.Add(i);
+
+        TrySetLastInsertId(setup.Context, table, new ArrayRow(newRows[^1]));
         return (insertedCount, 0, affectedIndexes);
     }
 
@@ -353,6 +372,8 @@ internal static class DbInsertStrategy
         public TableMock TableMock { get; }
         public string TableName { get; }
         public List<Dictionary<int, object?>> NewRows { get; }
+        public List<object?[]>? NewArrayRows { get; }
+        public IReadOnlyList<ISet<int>?>? NewArrayExplicitColumnSets { get; }
         public int NewRowsCount { get; }
         public int TargetRowCountBefore { get; }
         public bool HasBeforeInsertTrigger { get; }
@@ -361,6 +382,7 @@ internal static class DbInsertStrategy
         public bool HasAfterUpdateTrigger { get; }
         public bool HasForeignKeys { get; }
         public bool CanUseBatchInsert { get; }
+        public bool CanUseDirectArrayBatch { get; }
         public bool HasInsertConflictTargets { get; }
         public bool HasPrimaryKey { get; }
         public bool RequiresOldSnapshotForIndex { get; }
@@ -381,21 +403,33 @@ internal static class DbInsertStrategy
             TableMock = (TableMock)table;
             TargetRowCountBefore = table.Count;
 
-            NewRows = query.InsertSelect is not null
-                ? CreateRowsFromSelect(context, query, table)
-                : CreateRowsFromValues(context, query, table);
-            NewRowsCount = NewRows.Count;
-
             var dialect = context.Dialect;
             var supportsTriggers = dialect.SupportsTriggers;
             HasBeforeInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.BeforeInsert);
             HasAfterInsertTrigger = supportsTriggers && table.HasTriggers(TableTriggerEvent.AfterInsert);
             HasForeignKeys = TableMock.ForeignKeys.Count > 0;
-            ValidateInsertPartitions(query, TableMock);
-            ValidatePartitionedInsertRows(query, TableMock, NewRows);
             CanUseBatchInsert = CanUseBatchInsert(context, table, TableName, query.Table!.DbName, TableMock);
             HasInsertConflictTargets = TableMock.PkIndexArray.Length > 0 || TableMock.UniqueIndexes.Count > 0;
             HasPrimaryKey = TableMock.PkIndexArray.Length > 0;
+            ValidateInsertPartitions(query, TableMock);
+
+            CanUseDirectArrayBatch = CanUseBatchInsert && CanUseDirectArrayValuesPath(query, TableMock);
+            if (CanUseDirectArrayBatch)
+            {
+                var arrayRows = CreateArrayRowsFromValues(context, query, table);
+                NewArrayRows = arrayRows.Rows;
+                NewArrayExplicitColumnSets = arrayRows.ExplicitColumnSets;
+                NewRows = [];
+                NewRowsCount = arrayRows.Rows.Count;
+            }
+            else
+            {
+                NewRows = query.InsertSelect is not null
+                    ? CreateRowsFromSelect(context, query, table)
+                    : CreateRowsFromValues(context, query, table);
+                NewRowsCount = NewRows.Count;
+                ValidatePartitionedInsertRows(query, TableMock, NewRows);
+            }
 
             if (query.HasOnDuplicateKeyUpdate)
             {
@@ -817,6 +851,28 @@ internal static class DbInsertStrategy
         return !tableMock.TriggerManager.HasRegisteredTriggers();
     }
 
+    private static bool CanUseDirectArrayValuesPath(SqlInsertQuery query, TableMock table)
+    {
+        if (query.ValuesRaw.Count <= 1
+            || query.InsertSelect is not null
+            || query.IsReplace
+            || query.HasOnDuplicateKeyUpdate
+            || query.IsOnConflictDoNothing
+            || query.Returning.Count > 0)
+        {
+            return false;
+        }
+
+        if (query.PartitionNames.Count > 0
+            || query.Table?.PartitionNames is { Count: > 0 }
+            || !string.IsNullOrWhiteSpace(table.PartitionClauseSql))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     private static void TrySetLastInsertId(QueryExecutionContext context, ITableMock table, IReadOnlyDictionary<int, object?> insertedRow)
     {
         var identityColumn = table is TableMock tableMock
@@ -851,15 +907,13 @@ internal static class DbInsertStrategy
 
     // --- Helpers de Criação de Linhas ---
 
-    private static List<Dictionary<int, object?>> CreateRowsFromValues(
+    private static (IReadOnlyList<ColumnDef> TargetColumns, int TargetColumnCount) ResolveInsertValueTargets(
         QueryExecutionContext context,
         SqlInsertQuery query,
         ITableMock table)
     {
         var dialect = context.Dialect;
-        var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
-        var colNames = query.Columns; // Lista de colunas do Insert
-        ColumnDef[]? explicitTargetColumns = null;
+        var colNames = query.Columns;
         IReadOnlyList<ColumnDef>? orderedTableColumns = null;
         List<ColumnDef>? nonIdentityColumns = null;
         IReadOnlyList<ColumnDef> targetColumns;
@@ -869,7 +923,7 @@ internal static class DbInsertStrategy
         var firstValueCount = query.ValuesRaw.Count > 0 ? query.ValuesRaw[0].Count : 0;
         if (colNamesCount > 0)
         {
-            explicitTargetColumns = new ColumnDef[colNamesCount];
+            var explicitTargetColumns = new ColumnDef[colNamesCount];
             for (var i = 0; i < colNamesCount; i++)
                 explicitTargetColumns[i] = ResolveInsertColumn(table, colNames[i], dialect);
             targetColumns = explicitTargetColumns;
@@ -898,6 +952,19 @@ internal static class DbInsertStrategy
                 ? firstValueCount
                 : targetColumns.Count;
         }
+
+        return (targetColumns, targetColumnCount);
+    }
+
+    private static List<Dictionary<int, object?>> CreateRowsFromValues(
+        QueryExecutionContext context,
+        SqlInsertQuery query,
+        ITableMock table)
+    {
+        var rows = new List<Dictionary<int, object?>>(query.ValuesRaw.Count);
+        var colNames = query.Columns; // Lista de colunas do Insert
+        var colNamesCount = colNames.Count;
+        var (targetColumns, targetColumnCount) = ResolveInsertValueTargets(context, query, table);
 
         var valuesRawCount = query.ValuesRaw.Count;
         var valuesExprCount = query.ValuesExpr.Count;
@@ -936,6 +1003,58 @@ internal static class DbInsertStrategy
             rows.Add(newRow);
         }
         return rows;
+    }
+
+    private static (List<object?[]> Rows, IReadOnlyList<ISet<int>?> ExplicitColumnSets) CreateArrayRowsFromValues(
+        QueryExecutionContext context,
+        SqlInsertQuery query,
+        ITableMock table)
+    {
+        var rows = new List<object?[]>(query.ValuesRaw.Count);
+        var explicitColumnSets = new List<ISet<int>?>(query.ValuesRaw.Count);
+        var colNamesCount = query.Columns.Count;
+        var (targetColumns, targetColumnCount) = ResolveInsertValueTargets(context, query, table);
+
+        var rowArrayLength = table.Columns.Count;
+        var valuesRawCount = query.ValuesRaw.Count;
+        var valuesExprCount = query.ValuesExpr.Count;
+        for (var rowIndex = 0; rowIndex < valuesRawCount; rowIndex++)
+        {
+            var valueBlock = query.ValuesRaw[rowIndex];
+            var parsedExprBlock = rowIndex < valuesExprCount
+                ? query.ValuesExpr[rowIndex]
+                : null;
+            var valueCount = valueBlock.Count;
+            var parsedExprCount = parsedExprBlock?.Count ?? 0;
+
+            if (colNamesCount > 0 && colNamesCount != valueCount)
+                throw new InvalidOperationException($"Column count ({colNamesCount}) does not match value count ({valueCount}).");
+
+            var newRow = new object?[rowArrayLength];
+            var explicitSet = new HashSet<int>();
+
+            if (targetColumnCount > 0)
+            {
+                var limit = colNamesCount > 0
+                    ? targetColumnCount
+                    : valueCount < targetColumnCount
+                        ? valueCount
+                        : targetColumnCount;
+
+                for (var i = 0; i < limit; i++)
+                {
+                    var parsedExpr = parsedExprBlock is not null && i < parsedExprCount
+                        ? parsedExprBlock[i]
+                        : null;
+                    SetColValue(context, table, targetColumns[i], valueBlock[i], parsedExpr, newRow, explicitSet);
+                }
+            }
+
+            rows.Add(newRow);
+            explicitColumnSets.Add(explicitSet);
+        }
+
+        return (rows, explicitColumnSets);
     }
 
     private static ColumnDef ResolveInsertColumn(ITableMock table, string columnName, ISqlDialect dialect)
@@ -1145,11 +1264,40 @@ internal static class DbInsertStrategy
         SqlExpr? parsedExpr,
         Dictionary<int, object?> row)
     {
+        if (TryResolveInsertColumnValue(context, table, colDef, rawValue, parsedExpr, out var val))
+            row[colDef.Index] = val;
+    }
+
+    private static void SetColValue(
+        QueryExecutionContext context,
+        ITableMock table,
+        ColumnDef colDef,
+        string rawValue,
+        SqlExpr? parsedExpr,
+        object?[] row,
+        ISet<int> explicitlyProvidedColumns)
+    {
+        if (!TryResolveInsertColumnValue(context, table, colDef, rawValue, parsedExpr, out var val))
+            return;
+
+        row[colDef.Index] = val;
+        explicitlyProvidedColumns.Add(colDef.Index);
+    }
+
+    private static bool TryResolveInsertColumnValue(
+        QueryExecutionContext context,
+        ITableMock table,
+        ColumnDef colDef,
+        string rawValue,
+        SqlExpr? parsedExpr,
+        out object? val)
+    {
         object? resolved;
+        val = null;
         if (string.Equals(rawValue, SqlConst.DEFAULT, StringComparison.OrdinalIgnoreCase))
         {
             // Skip value resolution; ApplyDefaultValues will use the column's default
-            return;
+            return false;
         }
 
         if (parsedExpr is LiteralExpr literalExpr)
@@ -1191,11 +1339,11 @@ internal static class DbInsertStrategy
         }
 
         resolved = context.NormalizeResolvedValue(resolved);
-        var val = (resolved is DBNull) ? null : NormalizeValueForColumn(colDef.DbType, resolved);
+        val = (resolved is DBNull) ? null : NormalizeValueForColumn(colDef.DbType, resolved);
         if (val == null && !colDef.Nullable)
             throw table.ColumnCannotBeNull("Idx:" + colDef.Index);
 
-        row[colDef.Index] = val;
+        return true;
     }
 
     private static object? ResolveInsertFallbackValue(

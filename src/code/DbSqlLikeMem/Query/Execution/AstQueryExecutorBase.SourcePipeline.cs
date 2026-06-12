@@ -33,14 +33,22 @@ internal abstract partial class AstQueryExecutorBase
         }
 
         parameterState = _context.SnapshotPositionalParameterState();
-        IEnumerable<Dictionary<string, object?>> sourceRows;
+        IEnumerable<Dictionary<string, object?>>? sourceRows;
         try
         {
-            sourceRows = IndexHelper.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy) ?? src.Rows();
+            sourceRows = IndexHelper.TryRowsFromIndex(src, from, where, hasOrderBy, hasGroupBy);
         }
         finally
         {
             _context.RestorePositionalParameterState(parameterState);
+        }
+
+        if (sourceRows is null)
+        {
+            foreach (var row in src.EvalRows())
+                yield return row;
+
+            yield break;
         }
 
         foreach (var r in sourceRows)
