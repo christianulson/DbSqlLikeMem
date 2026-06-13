@@ -8,21 +8,37 @@ namespace DbSqlLikeMem;
 /// </summary>
 internal sealed class DbConnectionExecutionPlanManager
 {
+    private readonly object _executionPlanLock = new();
     private readonly List<string> _lastExecutionPlans = [];
     private readonly ConcurrentDictionary<string, SelectPlan> _selectPlanCache = new(StringComparer.Ordinal);
     private int _selectPlanCacheGeneration;
+    private string? _lastExecutionPlan;
 
     /// <summary>
     /// EN: Gets the most recent execution plan text.
     /// PT-br: Obtém o texto do plano de execucao mais recente.
     /// </summary>
-    public string? LastExecutionPlan { get; private set; }
+    public string? LastExecutionPlan
+    {
+        get
+        {
+            lock (_executionPlanLock)
+                return _lastExecutionPlan;
+        }
+    }
 
     /// <summary>
     /// EN: Gets the history of recorded execution plans.
     /// PT-br: Obtém o historico de planos de execucao registrados.
     /// </summary>
-    public IReadOnlyList<string> LastExecutionPlans => _lastExecutionPlans;
+    public IReadOnlyList<string> LastExecutionPlans
+    {
+        get
+        {
+            lock (_executionPlanLock)
+                return _lastExecutionPlans.ToArray();
+        }
+    }
 
     /// <summary>
     /// EN: Clears the recorded execution plans.
@@ -30,8 +46,11 @@ internal sealed class DbConnectionExecutionPlanManager
     /// </summary>
     public void ClearExecutionPlans()
     {
-        LastExecutionPlan = null;
-        _lastExecutionPlans.Clear();
+        lock (_executionPlanLock)
+        {
+            _lastExecutionPlan = null;
+            _lastExecutionPlans.Clear();
+        }
     }
 
     /// <summary>
@@ -40,11 +59,8 @@ internal sealed class DbConnectionExecutionPlanManager
     /// </summary>
     public void ClearSelectPlanCache()
     {
-        if (_selectPlanCache.IsEmpty)
-            return;
-
         _selectPlanCache.Clear();
-        _selectPlanCacheGeneration++;
+        System.Threading.Interlocked.Increment(ref _selectPlanCacheGeneration);
     }
 
     /// <summary>
@@ -52,7 +68,7 @@ internal sealed class DbConnectionExecutionPlanManager
     /// PT-br: Obtém o numero atual de geracao do cache de planos de select.
     /// </summary>
     public int GetSelectPlanCacheGeneration()
-        => _selectPlanCacheGeneration;
+        => System.Threading.Volatile.Read(ref _selectPlanCacheGeneration);
 
     /// <summary>
     /// EN: Tries to read a cached select plan by key.
@@ -83,7 +99,10 @@ internal sealed class DbConnectionExecutionPlanManager
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(executionPlan, nameof(executionPlan));
 
-        LastExecutionPlan = executionPlan;
-        _lastExecutionPlans.Add(executionPlan);
+        lock (_executionPlanLock)
+        {
+            _lastExecutionPlan = executionPlan;
+            _lastExecutionPlans.Add(executionPlan);
+        }
     }
 }

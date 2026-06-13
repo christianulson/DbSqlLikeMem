@@ -1,3 +1,4 @@
+using System.Buffers;
 using static DbSqlLikeMem.AstQueryExecutorBase;
 
 namespace DbSqlLikeMem;
@@ -83,59 +84,18 @@ internal static class AstQueryAggregateEvaluator
         if (TryEvalAggregateCount(context, fn, group, ctes, eval, name, out var countValue))
             return countValue;
 
-        if (name is SqlConst.JSON_GROUP_OBJECT or SqlConst.JSON_OBJECTAGG)
-        {
-            if (name == SqlConst.JSON_OBJECTAGG
-                && !context.Dialect.TryGetScalarFunctionDefinition(name, out _))
-            {
-                throw context.NotSupported(name);
-            }
+        var jsonResult = TryEvalJsonAggregate(context, fn, group, ctes, eval, name);
+        if (jsonResult is not null)
+            return jsonResult;
 
-            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
-        }
+        if (IsCorrelationAggregate(name))
+            return EvalCorrelationAggregate(fn, group, ctes, eval, NormalizeCorrelationName(name));
 
-        if (name is SqlConst.JSON_OBJECT_AGG
-            or SqlConst.JSON_OBJECT_AGG_STRICT
-            or SqlConst.JSON_OBJECT_AGG_UNIQUE
-            or SqlConst.JSON_OBJECT_AGG_UNIQUE_STRICT
-            or SqlConst.JSONB_OBJECT_AGG
-            or SqlConst.JSONB_OBJECT_AGG_STRICT
-            or SqlConst.JSONB_OBJECT_AGG_UNIQUE
-            or SqlConst.JSONB_OBJECT_AGG_UNIQUE_STRICT)
-            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
-
-        if (name is "CORR"
-            or "CORR_K"
-            or "CORR_S"
-            or "COVAR_POP"
-            or "COVAR_SAMP"
-            or "COVARIANCE"
-            or "COVARIANCE_SAMP"
-            or "CORRELATION")
-        {
-            var normalized = name switch
-            {
-                "COVARIANCE" => "COVAR_POP",
-                "COVARIANCE_SAMP" => "COVAR_SAMP",
-                "CORRELATION" => "CORR",
-                _ => name
-            };
-            return EvalCorrelationAggregate(fn, group, ctes, eval, normalized);
-        }
-
-        if (name is "GROUP_ID")
+        if (name is "GROUP_ID" or "GROUPING" or "GROUPING_ID")
             return 0;
 
         if (name.StartsWith("APPROX_", StringComparison.OrdinalIgnoreCase))
-        {
-            var definition = fn.ResolvedScalarFunction;
-            if (definition is null || !definition.AllowsCall)
-            {
-                throw context.NotSupported(name);
-            }
-
-            return EvalApproxAggregate(fn, group, ctes, eval, name);
-        }
+            return EvalApproxWithCheck(context, fn, group, ctes, eval, name);
 
         if (name.StartsWith("REGR_", StringComparison.OrdinalIgnoreCase))
             return EvalRegressionAggregate(fn, group, ctes, eval, name);
@@ -144,39 +104,104 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         if (name is "STD" or "STDDEV" or "STDDEV_POP" or "STDDEV_SAMP")
-        {
-            var normalizedName = name == "STD" ? "STDDEV_POP" : name;
-            return EvalStdDevAggregate(context, fn, group, ctes, eval, normalizedName);
-        }
+            return EvalStdDevAggregate(context, fn, group, ctes, eval, name == "STD" ? "STDDEV_POP" : name);
 
         if (name is "RATIO_TO_REPORT")
             return null;
 
         if (name is "MEDIAN" or "PERCENTILE" or "PERCENTILE_CONT" or "PERCENTILE_DISC")
-        {
-            if (!context.Dialect.SupportsSqlServerAggregateFunction(name))
-            {
-                throw context.NotSupported(name);
-            }
-
-            return EvalPercentileAggregate(fn, group, ctes, eval, name);
-        }
+            return EvalPercentileWithCheck(context, fn, group, ctes, eval, name);
 
         if (name is SqlConst.CHECKSUM_AGG)
-        {
-            if (!(fn.ResolvedScalarFunction?.AllowsCall
-                ?? (context.Dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
-                    && checksumDefinition is not null
-                    && checksumDefinition.AllowsCall)))
-                throw context.NotSupported(name);
-        }
+            AssertChecksumSupported(context, fn, name);
 
         if (name is SqlConst.GROUP_CONCAT or SqlConst.STRING_AGG or SqlConst.LISTAGG or SqlConst.LIST)
+            return EvalStringAggregate(context, fn, group, ctes, eval, name);
+
+        return EvalFallbackAggregate(context, fn, group, ctes, eval, name);
+    }
+
+    private static object? TryEvalJsonAggregate(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        if (name is SqlConst.JSON_GROUP_OBJECT or SqlConst.JSON_OBJECTAGG)
         {
-            var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
-            var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
-            return EvalSimpleStringAggregate(context, fn, group, ctes, eval, separator, defaultSeparator);
+            if (name == SqlConst.JSON_OBJECTAGG
+                && !context.Dialect.TryGetScalarFunctionDefinition(name, out _))
+                throw context.NotSupported(name);
+            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
         }
+
+        if (name is SqlConst.JSON_OBJECT_AGG or SqlConst.JSON_OBJECT_AGG_STRICT
+            or SqlConst.JSON_OBJECT_AGG_UNIQUE or SqlConst.JSON_OBJECT_AGG_UNIQUE_STRICT
+            or SqlConst.JSONB_OBJECT_AGG or SqlConst.JSONB_OBJECT_AGG_STRICT
+            or SqlConst.JSONB_OBJECT_AGG_UNIQUE or SqlConst.JSONB_OBJECT_AGG_UNIQUE_STRICT)
+            return EvalJsonGroupObjectAggregate(fn, group, ctes, eval);
+
+        return null;
+    }
+
+    private static bool IsCorrelationAggregate(string name)
+        => name is "CORR" or "CORR_K" or "CORR_S" or "COVAR_POP" or "COVAR_SAMP"
+            or "COVARIANCE" or "COVARIANCE_SAMP" or "CORRELATION";
+
+    private static string NormalizeCorrelationName(string name) => name switch
+    {
+        "COVARIANCE" => "COVAR_POP",
+        "COVARIANCE_SAMP" => "COVAR_SAMP",
+        "CORRELATION" => "CORR",
+        _ => name
+    };
+
+    private static object? EvalApproxWithCheck(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        var definition = fn.ResolvedScalarFunction;
+        if (definition is null || !definition.AllowsCall)
+            throw context.NotSupported(name);
+        return EvalApproxAggregate(fn, group, ctes, eval, name);
+    }
+
+    private static object? EvalPercentileWithCheck(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        if (!context.Dialect.SupportsSqlServerAggregateFunction(name))
+            throw context.NotSupported(name);
+        return EvalPercentileAggregate(fn, group, ctes, eval, name);
+    }
+
+    private static void AssertChecksumSupported(QueryExecutionContext context, FunctionCallExpr fn, string name)
+    {
+        if (!(fn.ResolvedScalarFunction?.AllowsCall
+            ?? (context.Dialect.TryGetScalarFunctionDefinition(fn, out var checksumDefinition)
+                && checksumDefinition is not null && checksumDefinition.AllowsCall)))
+            throw context.NotSupported(name);
+    }
+
+    private static object? EvalStringAggregate(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
+        var defaultSeparator = GetStringAggregateDefaultSeparator(name) ?? string.Empty;
+        return EvalSimpleStringAggregate(context, fn, group, ctes, eval, separator, defaultSeparator);
+    }
+
+    private static object? EvalFallbackAggregate(
+        QueryExecutionContext context, FunctionCallExpr fn,
+        EvalGroup group, IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval, string name)
+    {
+        var streamingResult = TryEvalStreamingAggregate(context, name, fn, group, ctes, eval);
+        if (streamingResult is not null)
+            return streamingResult;
 
         var values = TryGetAggregateValues(context, fn, group, ctes, eval);
         if (values is null)
@@ -239,8 +264,8 @@ internal static class AstQueryAggregateEvaluator
         {
             SqlConst.SUM => AggregateNumericValues(values, AggregateNumericOperation.Sum),
             SqlConst.AVG => AggregateNumericValues(values, AggregateNumericOperation.Average),
-            SqlConst.MIN => AggregateMinMaxValues(values, useMax: false),
-            SqlConst.MAX => AggregateMinMaxValues(values, useMax: true),
+            SqlConst.MIN => AggregateMinMaxValues(context, values, useMax: false),
+            SqlConst.MAX => AggregateMinMaxValues(context, values, useMax: true),
             SqlConst.CHECKSUM_AGG => AggregateChecksumValues(values, binary: false),
             SqlConst.GROUP_CONCAT => EvalStringAggregate(values, separator, ","),
             SqlConst.STRING_AGG => EvalStringAggregate(values, separator, ","),
@@ -282,6 +307,249 @@ internal static class AstQueryAggregateEvaluator
         return result;
     }
 
+    private static bool IsStreamingCompatibleAggregate(string name)
+        => name switch
+        {
+            SqlConst.SUM or SqlConst.AVG or SqlConst.MIN or SqlConst.MAX
+                or SqlConst.COUNT or SqlConst.TOTAL or SqlConst.BIT_AND
+                or SqlConst.BIT_OR or SqlConst.BIT_XOR or SqlConst.BOOL_AND
+                or SqlConst.BOOL_OR or SqlConst.ANY_VALUE => true,
+            _ => false
+        };
+
+    private static object? TryEvalStreamingAggregate(
+        QueryExecutionContext context,
+        string name,
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        if (fn.Distinct || !IsStreamingCompatibleAggregate(name))
+            return null;
+
+        if (group.Rows.Count == 0)
+            return name == SqlConst.TOTAL ? 0d : null;
+
+        var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
+        return EvalStreamingAggregate(context, name, EnumerateGroupValues(group.Rows, fn, ctes, eval), separator);
+    }
+
+    private static object? EvalGroupStreamingValues(
+        QueryExecutionContext context,
+        FunctionCallExpr fn,
+        EvalGroup group,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        string name)
+    {
+        var rows = group.Rows;
+        var rowCount = rows.Count;
+        if (rowCount == 0)
+            return name == SqlConst.TOTAL ? 0d : null;
+
+        var separator = GetAggregateSeparator(fn.Args, group, ctes, eval);
+        return EvalStreamingAggregate(context, name, EnumerateGroupValues(rows, fn, ctes, eval), separator);
+    }
+
+    private static Func<EvalRow, object?> BuildAggregateValueSelector(
+        SqlExpr arg,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval,
+        IDictionary<string, Source> ctes)
+    {
+        var reader = TryBuildColumnReader(arg);
+        if (reader is not null)
+            return reader;
+        return row => eval(arg, row, null, ctes);
+    }
+
+    private static IEnumerable<object?> EnumerateGroupValues(
+        IReadOnlyList<EvalRow> rows,
+        FunctionCallExpr fn,
+        IDictionary<string, Source> ctes,
+        Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
+    {
+        var selector = BuildAggregateValueSelector(fn.Args[0], eval, ctes);
+        for (var i = 0; i < rows.Count; i++)
+            yield return selector(rows[i]);
+    }
+
+    private static object? EvalStreamingAggregate(QueryExecutionContext context, string name, IEnumerable<object?> values, object? separator)
+    {
+        return name switch
+        {
+            SqlConst.SUM => AggregateNumericValuesStreaming(values, AggregateNumericOperation.Sum),
+            SqlConst.AVG => AggregateNumericValuesStreaming(values, AggregateNumericOperation.Average),
+            SqlConst.MIN => AggregateMinMaxValuesStreaming(context, values, useMax: false),
+            SqlConst.MAX => AggregateMinMaxValuesStreaming(context, values, useMax: true),
+            SqlConst.COUNT => AggregateCount(values),
+            SqlConst.TOTAL => AggregateTotalStreaming(values),
+            SqlConst.BIT_AND => AggregateBitwiseValuesStreaming(values, BitwiseAggregateOperation.And),
+            SqlConst.BIT_OR => AggregateBitwiseValuesStreaming(values, BitwiseAggregateOperation.Or),
+            SqlConst.BIT_XOR => AggregateBitwiseValuesStreaming(values, BitwiseAggregateOperation.Xor),
+            SqlConst.BOOL_AND => AggregateBoolValuesStreaming(values, useAnd: true),
+            SqlConst.BOOL_OR => AggregateBoolValuesStreaming(values, useAnd: false),
+            SqlConst.ANY_VALUE => AggregateAnyValueStreaming(values),
+            _ => null
+        };
+    }
+
+    private static object? AggregateNumericValuesStreaming(IEnumerable<object?> values, AggregateNumericOperation op)
+    {
+        decimal? sum = 0m;
+        int count = 0;
+        decimal? min = null;
+        decimal? max = null;
+        bool any = false;
+        bool allIntegral = true;
+
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            if (!TryConvertNumericToDecimal(v, out var d))
+                continue;
+
+            any = true;
+            count++;
+            sum = sum + d;
+            if (v is not int and not long and not short and not byte
+                and not sbyte and not ushort and not uint and not ulong)
+                allIntegral = false;
+            if (!min.HasValue || d < min.Value) min = d;
+            if (!max.HasValue || d > max.Value) max = d;
+        }
+
+        if (!any)
+            return null;
+
+        var raw = op switch
+        {
+            AggregateNumericOperation.Sum => (object?)sum,
+            AggregateNumericOperation.Average => sum / count,
+            AggregateNumericOperation.Min => min,
+            AggregateNumericOperation.Max => max,
+            _ => null
+        };
+
+        if (allIntegral && op != AggregateNumericOperation.Average
+            && raw is decimal dec && dec >= long.MinValue && dec <= long.MaxValue)
+            return (long)dec;
+
+        return raw;
+    }
+
+    private static object? AggregateMinMaxValuesStreaming(QueryExecutionContext context, IEnumerable<object?> values, bool useMax)
+    {
+        object? best = null;
+        bool any = false;
+
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            if (!any)
+            {
+                best = v;
+                any = true;
+                continue;
+            }
+
+            var comparison = CompareAggregateValues(context, v, best);
+            if (useMax ? comparison > 0 : comparison < 0)
+                best = v;
+        }
+
+        return any ? best : null;
+    }
+
+    private static object? AggregateCount(IEnumerable<object?> values)
+    {
+        int count = 0;
+        foreach (var v in values)
+        {
+            if (v is not null and not DBNull)
+                count++;
+        }
+        return count;
+    }
+
+    private static object? AggregateTotalStreaming(IEnumerable<object?> values)
+    {
+        var total = 0d;
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            if (!TryConvertNumericToDouble(v, out var d))
+                continue;
+
+            total += d;
+        }
+        return total;
+    }
+
+    private static object? AggregateBitwiseValuesStreaming(IEnumerable<object?> values, BitwiseAggregateOperation operation)
+    {
+        var hasValue = false;
+        var acc = 0L;
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            var next = Convert.ToInt64(v, CultureInfo.InvariantCulture);
+            if (!hasValue)
+            {
+                acc = next;
+                hasValue = true;
+                continue;
+            }
+
+            acc = operation switch
+            {
+                BitwiseAggregateOperation.And => acc & next,
+                BitwiseAggregateOperation.Or => acc | next,
+                BitwiseAggregateOperation.Xor => acc ^ next,
+                _ => acc
+            };
+        }
+
+        return hasValue ? acc : null;
+    }
+
+    private static object? AggregateBoolValuesStreaming(IEnumerable<object?> values, bool useAnd)
+    {
+        var hasValue = false;
+        var acc = useAnd;
+
+        foreach (var v in values)
+        {
+            if (v is null or DBNull)
+                continue;
+
+            hasValue = true;
+            var current = v!.ToBool();
+            acc = useAnd ? acc && current : acc || current;
+        }
+
+        return hasValue ? acc : null;
+    }
+
+    private static object? AggregateAnyValueStreaming(IEnumerable<object?> values)
+    {
+        foreach (var v in values)
+        {
+            if (!IsNullish(v))
+                return v;
+        }
+
+        return null;
+    }
+
     private static object? EvalJsonGroupObjectAggregate(
         FunctionCallExpr fn,
         EvalGroup group,
@@ -316,64 +584,75 @@ internal static class AstQueryAggregateEvaluator
         if (fn.Args.Count == 0)
             return null;
 
-        var values = new List<double>(group.Rows.Count);
-        foreach (var row in group.Rows)
+        var count = group.Rows.Count;
+        var pool = ArrayPool<double>.Shared;
+        var buffer = pool.Rent(count);
+        int actualCount = 0;
+        try
         {
-            var value = eval(fn.Args[0], row, null, ctes);
-            if (IsNullish(value))
-                continue;
-
-            if (TryConvertNumericToDouble(value, out var numeric))
-                values.Add(numeric);
-        }
-
-        if (values.Count == 0)
-            return null;
-
-        values.Sort();
-
-        var percentile = 0.5d;
-        if (fn.Args.Count > 1)
-        {
-            if (fn.Args[1] is LiteralExpr percentileLiteral)
+            for (var i = 0; i < count; i++)
             {
-                if (!TryConvertNumericToDouble(percentileLiteral.Value, out percentile))
-                    return null;
+                var value = eval(fn.Args[0], group.Rows[i], null, ctes);
+                if (IsNullish(value))
+                    continue;
+
+                if (TryConvertNumericToDouble(value, out var numeric))
+                    buffer[actualCount++] = numeric;
             }
-            else
+
+            if (actualCount == 0)
+                return null;
+
+            Array.Sort(buffer, 0, actualCount);
+
+            var percentile = 0.5d;
+            if (fn.Args.Count > 1)
             {
-                var percentileValue = eval(fn.Args[1], EvalRow.Empty(), null, ctes);
-                if (IsNullish(percentileValue) || !TryConvertNumericToDouble(percentileValue, out percentile))
-                    return null;
+                if (fn.Args[1] is LiteralExpr percentileLiteral)
+                {
+                    if (!TryConvertNumericToDouble(percentileLiteral.Value, out percentile))
+                        return null;
+                }
+                else
+                {
+                    var percentileValue = eval(fn.Args[1], EvalRow.Empty(), null, ctes);
+                    if (IsNullish(percentileValue) || !TryConvertNumericToDouble(percentileValue, out percentile))
+                        return null;
+                }
             }
+
+            if (percentile < 0d)
+                percentile = 0d;
+            else if (percentile > 1d)
+                percentile = 1d;
+
+            var isDiscrete = name.Equals("PERCENTILE_DISC", StringComparison.OrdinalIgnoreCase);
+            if (name.Equals("MEDIAN", StringComparison.OrdinalIgnoreCase))
+                percentile = 0.5d;
+
+            if (isDiscrete)
+            {
+                var index = (int)Math.Ceiling(percentile * actualCount) - 1;
+                if (index < 0)
+                    index = 0;
+                if (index >= actualCount)
+                    index = actualCount - 1;
+                return buffer[index];
+            }
+
+            var rank = percentile * (actualCount - 1);
+            var lowerIndex = (int)Math.Floor(rank);
+            var upperIndex = (int)Math.Ceiling(rank);
+            if (lowerIndex == upperIndex)
+                return buffer[lowerIndex];
+
+            var fraction = rank - lowerIndex;
+            return buffer[lowerIndex] + (buffer[upperIndex] - buffer[lowerIndex]) * fraction;
         }
-
-        if (percentile < 0d)
-            percentile = 0d;
-        else if (percentile > 1d)
-            percentile = 1d;
-        var isDiscrete = name.Equals("PERCENTILE_DISC", StringComparison.OrdinalIgnoreCase);
-        if (name.Equals("MEDIAN", StringComparison.OrdinalIgnoreCase))
-            percentile = 0.5d;
-
-        if (isDiscrete)
+        finally
         {
-            var index = (int)Math.Ceiling(percentile * values.Count) - 1;
-            if (index < 0)
-                index = 0;
-            if (index >= values.Count)
-                index = values.Count - 1;
-            return values[index];
+            pool.Return(buffer);
         }
-
-        var rank = percentile * (values.Count - 1);
-        var lowerIndex = (int)Math.Floor(rank);
-        var upperIndex = (int)Math.Ceiling(rank);
-        if (lowerIndex == upperIndex)
-            return values[lowerIndex];
-
-        var fraction = rank - lowerIndex;
-        return values[lowerIndex] + (values[upperIndex] - values[lowerIndex]) * fraction;
     }
 
     private static object? EvalCorrelationAggregate(
@@ -749,77 +1028,53 @@ internal static class AstQueryAggregateEvaluator
 
     private static object? AggregateNumericValues(IReadOnlyList<object?> values, AggregateNumericOperation operation)
     {
-        if (values.Count == 0)
-            return null;
-
         if (operation == AggregateNumericOperation.Sum
             && TryAggregateIntegralSum(values, out var integralSum))
         {
             return integralSum;
         }
 
-        var useDouble = false;
-        for (var i = 0; i < values.Count; i++)
-        {
-            if (values[i] is float or double)
-            {
-                useDouble = true;
-                break;
-            }
-        }
+        decimal? result = null;
+        decimal? min = null;
+        decimal? max = null;
+        int nonNullCount = 0;
 
-        if (useDouble)
+        foreach (var v in values)
         {
-            var numericValues = new double[values.Count];
-            for (var i = 0; i < values.Count; i++)
-                numericValues[i] = Convert.ToDouble(values[i], CultureInfo.InvariantCulture);
+            if (v is null or DBNull)
+                continue;
 
-            double sum = 0d;
-            double min = numericValues[0];
-            double max = numericValues[0];
-            for (var i = 0; i < numericValues.Length; i++)
+            if (!TryConvertNumericToDecimal(v, out var d))
+                continue;
+
+            nonNullCount++;
+
+            switch (operation)
             {
-                var current = numericValues[i];
-                sum += current;
-                if (current < min)
-                    min = current;
-                if (current > max)
-                    max = current;
+                case AggregateNumericOperation.Sum:
+                    result = (result ?? 0m) + d;
+                    break;
+                case AggregateNumericOperation.Average:
+                    result = (result ?? 0m) + d;
+                    break;
             }
 
-            return operation switch
-            {
-                AggregateNumericOperation.Sum => sum,
-                AggregateNumericOperation.Average => sum / numericValues.Length,
-                AggregateNumericOperation.Min => min,
-                AggregateNumericOperation.Max => max,
-                _ => null
-            };
+            if (operation == AggregateNumericOperation.Min && (!min.HasValue || d < min.Value))
+                min = d;
+
+            if (operation == AggregateNumericOperation.Max && (!max.HasValue || d > max.Value))
+                max = d;
         }
 
-        var decimalValues = new decimal[values.Count];
-        for (var i = 0; i < values.Count; i++)
-            decimalValues[i] = values[i]!.ToDec();
-
-        decimal decimalSum = 0m;
-        decimal decimalMin = decimalValues[0];
-        decimal decimalMax = decimalValues[0];
-        for (var i = 0; i < decimalValues.Length; i++)
-        {
-            var current = decimalValues[i];
-            decimalSum += current;
-            if (current < decimalMin)
-                decimalMin = current;
-            if (current > decimalMax)
-                decimalMax = current;
-        }
+        if (nonNullCount == 0)
+            return null;
 
         return operation switch
         {
-            AggregateNumericOperation.Sum => decimalSum,
-            AggregateNumericOperation.Average => decimalSum / decimalValues.Length,
-            AggregateNumericOperation.Min => decimalMin,
-            AggregateNumericOperation.Max => decimalMax,
+            AggregateNumericOperation.Sum => result,
+            AggregateNumericOperation.Average => result / nonNullCount,
+            AggregateNumericOperation.Min => min,
+            AggregateNumericOperation.Max => max,
             _ => null
         };
     }
@@ -890,7 +1145,7 @@ internal static class AstQueryAggregateEvaluator
         }
     }
 
-    private static object? AggregateMinMaxValues(IReadOnlyList<object?> values, bool useMax)
+    private static object? AggregateMinMaxValues(QueryExecutionContext context, IReadOnlyList<object?> values, bool useMax)
     {
         if (values.Count == 0)
             return null;
@@ -899,7 +1154,7 @@ internal static class AstQueryAggregateEvaluator
         for (var i = 1; i < values.Count; i++)
         {
             var current = values[i];
-            var comparison = CompareAggregateValues(current, best);
+            var comparison = CompareAggregateValues(context, current, best);
             if (useMax ? comparison > 0 : comparison < 0)
             {
                 best = current;
@@ -909,7 +1164,7 @@ internal static class AstQueryAggregateEvaluator
         return best;
     }
 
-    private static int CompareAggregateValues(object? left, object? right)
+    private static int CompareAggregateValues(QueryExecutionContext context, object? left, object? right)
     {
         if (ReferenceEquals(left, right))
             return 0;
@@ -973,9 +1228,7 @@ internal static class AstQueryAggregateEvaluator
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        var leftTextFallback = Convert.ToString(left, CultureInfo.InvariantCulture) ?? string.Empty;
-        var rightTextFallback = Convert.ToString(right, CultureInfo.InvariantCulture) ?? string.Empty;
-        return StringComparer.Ordinal.Compare(leftTextFallback, rightTextFallback);
+        return context.Dialect.Compare(left, right);
     }
 
     private static object? AggregateTotal(IReadOnlyList<object?> values)
@@ -1080,7 +1333,7 @@ internal static class AstQueryAggregateEvaluator
             return null;
 
         var hasDirectValueSelector = TryCreateStringAggregateValueSelector(fn.Args[0], out var valueSelector);
-        List<EvalRow> rows = group.Rows;
+        IReadOnlyList<EvalRow> rows = group.Rows;
         var rowCount = rows.Count;
         if (rowCount == 0)
             return null;
@@ -1096,7 +1349,7 @@ internal static class AstQueryAggregateEvaluator
                 : eval(fn.Args[0], rows[0], null, ctes);
             if (fn.Distinct)
             {
-                if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison: true, out var singleText1, out _))
+                if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(singleValue, useOrdinalTextComparison: context.Dialect.TextComparison == StringComparison.Ordinal, out var singleText1, out _))
                     return null;
 
                 return singleText1;
@@ -1108,13 +1361,20 @@ internal static class AstQueryAggregateEvaluator
             return singleText;
         }
 
+
         var separator = separatorObj?.ToString() ?? defaultSeparator ?? string.Empty;
         var hasSeparator = separator.Length > 0;
         StringBuilder? builder = null;
         var hasValue = false;
         var estimatedCapacity = EstimateStringAggregateCapacity(rowCount, separator.Length);
+        var aggComparer = context.Dialect.TextComparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
         HashSet<string>? seen = fn.Distinct && rowCount > 1
-            ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal)
+            ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), aggComparer)
             : null;
 
         if (!hasDirectValueSelector)
@@ -1130,7 +1390,7 @@ internal static class AstQueryAggregateEvaluator
                     var text = string.Empty;
                     if (seen is not null)
                     {
-                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: true, out text, out var key)
+                        if (!AstQueryAggregateKeyHelper.TryGetStringAggregateKeyAndText(value, useOrdinalTextComparison: context.Dialect.TextComparison == StringComparison.Ordinal, out text, out var key)
                             || !seen.Add(key))
                             continue;
                     }
@@ -1260,7 +1520,7 @@ internal static class AstQueryAggregateEvaluator
     private static List<EvalRow> OrderStringAggregateRows(
         QueryExecutionContext context,
         IReadOnlyList<WindowOrderItem> orderBy,
-        List<EvalRow> rows,
+        IReadOnlyList<EvalRow> rows,
         IDictionary<string, Source> ctes,
         Func<SqlExpr, EvalRow, EvalGroup?, IDictionary<string, Source>, object?> eval)
     {
@@ -1453,11 +1713,18 @@ internal static class AstQueryAggregateEvaluator
 
         var distinct = fn.Distinct;
         var rowCount = group.Rows.Count;
-        HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal) : null;
+        var distinctComparer = context.Dialect.TextComparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
+        HashSet<string>? seen = distinct ? HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), distinctComparer) : null;
+        var selector = BuildAggregateValueSelector(fn.Args[0], eval, ctes);
         long c = 0;
         foreach (var r in group.Rows)
         {
-            var v = eval(fn.Args[0], r, null, ctes);
+            var v = selector(r);
             if (!IsNullish(v))
             {
                 if (seen is not null)
@@ -1508,11 +1775,18 @@ internal static class AstQueryAggregateEvaluator
         var rows = group.Rows;
         var rowCount = rows.Count;
         var values = new List<object?>(rowCount);
+        var valuesComparer = context.Dialect.TextComparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
         HashSet<string>? seen = null;
         if (fn.Distinct)
         {
-            seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), StringComparer.Ordinal);
+            seen = HashSetCompatibilityExtensions.CreateStringHashSet(Math.Max(1, rowCount), valuesComparer);
         }
+        var selector = BuildAggregateValueSelector(fn.Args[0], eval, ctes);
         var traceGroupedCaseWhen = context.Connection.IsDebugTraceCaptureEnabled
             && fn.Name.Equals(SqlConst.SUM, StringComparison.OrdinalIgnoreCase)
             && fn.Args.Count > 0
@@ -1520,7 +1794,7 @@ internal static class AstQueryAggregateEvaluator
         for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
         {
             var r = rows[rowIndex];
-            var v = eval(fn.Args[0], r, null, ctes);
+            var v = selector(r);
             if (traceGroupedCaseWhen)
             {
                 Console.WriteLine(

@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 internal sealed class SqlQueryParsePreludeCache
@@ -5,22 +7,15 @@ internal sealed class SqlQueryParsePreludeCache
     private const int PreludeCacheKeyVersion = 4;
 
     private readonly int _capacity;
-    private readonly object _gate = new();
-    private readonly Dictionary<string, CacheEntry> _entries;
-    private readonly LinkedList<string> _lru = [];
+    private readonly ConcurrentDictionary<string, Prelude> _entries;
+    private readonly object _trimLock = new();
 
     internal readonly record struct Prelude(IReadOnlyList<SqlToken> Tokens, AutoSqlSyntaxFeatures AutoSyntaxFeatures);
-
-    private sealed class CacheEntry(Prelude prelude, LinkedListNode<string> node)
-    {
-        public Prelude Prelude { get; set; } = prelude;
-        public LinkedListNode<string> Node { get; } = node;
-    }
 
     private SqlQueryParsePreludeCache(int capacity)
     {
         _capacity = capacity;
-        _entries = new Dictionary<string, CacheEntry>(capacity <= 0 ? 1 : capacity, StringComparer.Ordinal);
+        _entries = new ConcurrentDictionary<string, Prelude>(StringComparer.Ordinal);
     }
 
     public static SqlQueryParsePreludeCache CreateFromEnvironment()
@@ -65,19 +60,7 @@ internal sealed class SqlQueryParsePreludeCache
             return false;
         }
 
-        lock (_gate)
-        {
-            if (!_entries.TryGetValue(key, out var entry))
-            {
-                prelude = default;
-                return false;
-            }
-
-            _lru.Remove(entry.Node);
-            _lru.AddFirst(entry.Node);
-            prelude = entry.Prelude;
-            return true;
-        }
+        return _entries.TryGetValue(key, out prelude);
     }
 
     public void Set(string key, Prelude prelude)
@@ -85,29 +68,28 @@ internal sealed class SqlQueryParsePreludeCache
         if (_capacity <= 0)
             return;
 
-        lock (_gate)
+        _entries.TryAdd(key, prelude);
+
+        if (_entries.Count > _capacity)
+            TrimExcess();
+    }
+
+    private void TrimExcess()
+    {
+        lock (_trimLock)
         {
-            if (_entries.TryGetValue(key, out var entry))
+            var removeCount = _entries.Count - _capacity;
+            if (removeCount <= 0)
+                return;
+
+            foreach (var kvp in _entries)
             {
-                entry.Prelude = prelude;
-                _lru.Remove(entry.Node);
-                _lru.AddFirst(entry.Node);
-                return;
+                if (removeCount <= 0)
+                    break;
+
+                if (_entries.TryRemove(kvp.Key, out _))
+                    removeCount--;
             }
-
-            var node = new LinkedListNode<string>(key);
-            _lru.AddFirst(node);
-            _entries[key] = new CacheEntry(prelude, node);
-
-            if (_entries.Count <= _capacity)
-                return;
-
-            var tail = _lru.Last;
-            if (tail is null)
-                return;
-
-            _lru.RemoveLast();
-            _entries.Remove(tail.Value);
         }
     }
 }

@@ -2,6 +2,54 @@ namespace DbSqlLikeMem;
 
 internal static partial class DbSelectIntoAndInsertSelectStrategies
 {
+    private static readonly Regex _createTableAsRegex = new(
+        @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s+AS\s+(?<select>(SELECT|WITH)\s+.*)$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _createTableDefRegex = new(
+        @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s*(?<rest>.+)$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _columnDefRegex = new(
+        @"^`?(?<name>[A-Za-z0-9_]+)`?\s+(?<type>[A-Za-z0-9_]+)(\s*\((?<args>[^)]*)\))?(?<rest>.*)$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _constraintCheckRegex = new(
+        @"\b(CONSTRAINT|UNIQUE\s*\(|FOREIGN\s+KEY|CHECK)\b",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex _notNullRegex = new(
+        @"\bNOT\s+NULL\b",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex _primaryKeyRegex = new(
+        @"\bPRIMARY\s+KEY\b",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex _identityRegex = new(
+        @"\bIDENTITY\s*(\(\s*\d+\s*,\s*\d+\s*\))?",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex _tableCheckConstraintRegex = new(
+        @"^(CONSTRAINT\s+`?(?<name>[A-Za-z0-9_]+)`?\s+)?CHECK\s*\((?<expr>.+)\)\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _computedExprRegex = new(
+        @"\b(?:GENERATED\s+ALWAYS\s+)?AS\s*\((?<expr>.+)\)",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _defaultValueRegex = new(
+        @"\bDEFAULT\b\s+(?<value>.+?)(?=\bNOT\s+NULL\b|\bNULL\b|\bPRIMARY\s+KEY\b|\bCONSTRAINT\b|\bUNIQUE\b|\bCHECK\b|$)",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _primaryKeyConstraintRegex = new(
+        @"^(CONSTRAINT\s+`?[A-Za-z0-9_]+`?\s+)?PRIMARY\s+KEY\s*\((?<cols>[^)]*)\)\s*$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+    private static readonly Regex _insertSelectRegex = new(
+        @"^INSERT\s+INTO\s+`?(?<table>[A-Za-z0-9_]+)`?\s*\((?<cols>[^)]*)\)\s*(?<select>(SELECT|WITH)\s+.*)$",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
     private enum ExecuteBlockExceptionHandlerKind
     {
         Any,
@@ -191,8 +239,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
         QueryExecutionContext context)
     {
         // CREATE TABLE name AS SELECT ...
-        var m = Regex.Match(sql, @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s+AS\s+(?<select>(SELECT|WITH)\s+.*)$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _createTableAsRegex.Match(sql);
         if (m.Success)
         {
             var tableName = m.Groups["name"].Value.NormalizeName();
@@ -228,10 +275,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
         }
 
         // CREATE TABLE name (id INT, name VARCHAR(100), ...) [PARTITION BY ...]
-        var createTableMatch = Regex.Match(
-            sql,
-            @"^CREATE\s+TABLE\s+`?(?<name>[A-Za-z0-9_]+)`?\s*(?<rest>.+)$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var createTableMatch = _createTableDefRegex.Match(sql);
         if (!createTableMatch.Success)
             throw new InvalidOperationException(SqlExceptionMessages.InvalidCreateTableStatement());
 
@@ -379,23 +423,20 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     private static (string Name, DbType Type, bool Nullable, bool PrimaryKey, bool Identity, int? Size, int? DecimalPlaces, object? DefaultValue, string? ComputedExpression)? ParseColumnDefinition(string columnSql)
     {
-        var m = Regex.Match(
-            columnSql,
-            @"^`?(?<name>[A-Za-z0-9_]+)`?\s+(?<type>[A-Za-z0-9_]+)(\s*\((?<args>[^)]*)\))?(?<rest>.*)$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _columnDefRegex.Match(columnSql);
         if (!m.Success)
             return null;
 
         var rest = m.Groups["rest"].Value;
-        if (Regex.IsMatch(rest, @"\b(CONSTRAINT|UNIQUE\s*\(|FOREIGN\s+KEY|CHECK)\b", RegexOptions.IgnoreCase))
+        if (_constraintCheckRegex.IsMatch(rest))
             return null;
 
         var name = m.Groups["name"].Value;
         var type = ParseDbTypeFromSqlType(m.Groups["type"].Value);
         var (size, decimalPlaces) = ParseTypeArgs(m.Groups["args"].Value, type);
-        var nullable = !Regex.IsMatch(rest, @"\bNOT\s+NULL\b", RegexOptions.IgnoreCase);
-        var primaryKey = Regex.IsMatch(rest, @"\bPRIMARY\s+KEY\b", RegexOptions.IgnoreCase);
-        var identity = Regex.IsMatch(rest, @"\bIDENTITY\s*(\(\s*\d+\s*,\s*\d+\s*\))?", RegexOptions.IgnoreCase);
+        var nullable = !_notNullRegex.IsMatch(rest);
+        var primaryKey = _primaryKeyRegex.IsMatch(rest);
+        var identity = _identityRegex.IsMatch(rest);
         var defaultValue = ParseColumnDefaultValue(rest);
         var computedExpression = ParseComputedExpression(rest);
         return (name, type, nullable, primaryKey, identity, size, decimalPlaces, defaultValue, computedExpression);
@@ -403,10 +444,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     private static SchemaSnapshotCheckConstraint? ParseTableCheckConstraint(string columnSql)
     {
-        var m = Regex.Match(
-            columnSql,
-            @"^(CONSTRAINT\s+`?(?<name>[A-Za-z0-9_]+)`?\s+)?CHECK\s*\((?<expr>.+)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _tableCheckConstraintRegex.Match(columnSql);
         if (!m.Success)
             return null;
 
@@ -419,10 +457,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     private static string? ParseComputedExpression(string rest)
     {
-        var m = Regex.Match(
-            rest,
-            @"\b(?:GENERATED\s+ALWAYS\s+)?AS\s*\((?<expr>.+)\)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _computedExprRegex.Match(rest);
         if (!m.Success)
             return null;
 
@@ -432,10 +467,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     private static object? ParseColumnDefaultValue(string rest)
     {
-        var m = Regex.Match(
-            rest,
-            @"\bDEFAULT\b\s+(?<value>.+?)(?=\bNOT\s+NULL\b|\bNULL\b|\bPRIMARY\s+KEY\b|\bCONSTRAINT\b|\bUNIQUE\b|\bCHECK\b|$)",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _defaultValueRegex.Match(rest);
         if (!m.Success)
             return null;
 
@@ -474,12 +506,9 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             return DateTime.Now;
         }
 
-        if (string.Equals(value, "NEWSEQUENTIALID", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "NEWSEQUENTIALID()", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "NEWID", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(value, "NEWID()", StringComparison.OrdinalIgnoreCase))
+        if (GuidDefaultValueHelper.TryParseGeneratedGuidDefaultValueText(value, out var guidDefaultValue))
         {
-            return new GuidDefaultValue();
+            return guidDefaultValue;
         }
 
         if (value.Length >= 2 && value[0] == '\'' && value[^1] == '\'')
@@ -526,10 +555,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     private static IReadOnlyList<string> ParsePrimaryKeyConstraint(string columnSql)
     {
-        var m = Regex.Match(
-            columnSql,
-            @"^(CONSTRAINT\s+`?[A-Za-z0-9_]+`?\s+)?PRIMARY\s+KEY\s*\((?<cols>[^)]*)\)\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _primaryKeyConstraintRegex.Match(columnSql);
 
         if (!m.Success)
             return [];
@@ -818,10 +844,7 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
 
     private static Match MatchInsertSelectStatement(string rawSql)
     {
-        var match = Regex.Match(
-            rawSql,
-            @"^INSERT\s+INTO\s+`?(?<table>[A-Za-z0-9_]+)`?\s*\((?<cols>[^)]*)\)\s*(?<select>(SELECT|WITH)\s+.*)$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var match = _insertSelectRegex.Match(rawSql);
         if (!match.Success)
             throw new InvalidOperationException(SqlExceptionMessages.InvalidInsertSelectStatement());
 
@@ -914,9 +937,9 @@ internal static partial class DbSelectIntoAndInsertSelectStrategies
             return true;
         }
 
-        if (column.DefaultValue is GuidDefaultValue)
+        if (GuidDefaultValueHelper.TryGetGeneratedGuidDefaultValue(column.DefaultValue, out var generatedGuidDefaultValue))
         {
-            value = Guid.NewGuid();
+            value = GuidDefaultValueHelper.CreateGuidValue(generatedGuidDefaultValue);
             return true;
         }
 

@@ -153,7 +153,68 @@ internal sealed class AstQueryJoinService(
             yield break;
         }
 
-        var matched = false;
+        if (rightRows.Count >= 20 && TryBuildGenericLeftJoinEqualityLookup(join, rightSource, rightRows, out var genericLookup))
+        {
+            var fullPredicate = join.On;
+            var isComposite = genericLookup.Columns.Count > 1;
+
+            string BuildOuterKey()
+            {
+                if (isComposite)
+                {
+                    var sb = new StringBuilder(Math.Max(16, genericLookup.Columns.Count * 16));
+                    for (var j = 0; j < genericLookup.Columns.Count; j++)
+                    {
+                        if (j > 0) sb.Append('\u001F');
+                        var outerVal = _evalJoinValue(genericLookup.Columns[j].OuterExpr, leftRow, ctes);
+                        sb.Append(outerVal?.ToString() ?? SqlConst.NULL);
+                    }
+                    return sb.ToString();
+                }
+                else
+                {
+                    var outerVal = _evalJoinValue(genericLookup.Columns[0].OuterExpr, leftRow, ctes);
+                    if (outerVal is null || outerVal is DBNull)
+                        return string.Empty;
+                    if (!AstQuerySubqueryLookupSupport.TryCreateInLookupScalarKey(outerVal, null, out var component))
+                        return string.Empty;
+                    return AstQuerySubqueryLookupSupport.BuildLookupScalarKeyString(component);
+                }
+            }
+
+            var outerKey = BuildOuterKey();
+            if (genericLookup.RightRowsByKey.TryGetValue(outerKey, out var matchingRows) && matchingRows.Count > 0)
+            {
+                if (fullPredicate is null)
+                {
+                    for (var i = 0; i < matchingRows.Count; i++)
+                        yield return MergeRows(leftRow, rightSource, matchingRows[i]);
+                }
+                else
+                {
+                    var matched = false;
+                    for (var i = 0; i < matchingRows.Count; i++)
+                    {
+                        var merged = MergeRows(leftRow, rightSource, matchingRows[i]);
+                        if (!_evalJoinPredicate(fullPredicate, merged, ctes))
+                            continue;
+                        matched = true;
+                        yield return merged;
+                    }
+                    if (isLeftJoin && !matched)
+                        yield return CreateNullExtendedRow(leftRow, rightSource);
+                }
+            }
+            else
+            {
+                if (isLeftJoin)
+                    yield return CreateNullExtendedRow(leftRow, rightSource);
+            }
+
+            yield break;
+        }
+
+        var matchedNested = false;
         for (var i = 0; i < rightRows.Count; i++)
         {
             var rightFields = rightRows[i];
@@ -161,11 +222,11 @@ internal sealed class AstQueryJoinService(
             if (!_evalJoinPredicate(join.On, merged, ctes))
                 continue;
 
-            matched = true;
+            matchedNested = true;
             yield return merged;
         }
 
-        if (isLeftJoin && !matched)
+        if (isLeftJoin && !matchedNested)
             yield return CreateNullExtendedRow(leftRow, rightSource);
     }
 
@@ -224,6 +285,91 @@ internal sealed class AstQueryJoinService(
         return true;
     }
 
+    private sealed record EquivJoinColumn(
+        string RightColumn,
+        SqlExpr OuterExpr);
+
+    private bool TryBuildGenericLeftJoinEqualityLookup(
+        SqlJoin join,
+        AstQueryExecutorBase.Source rightSource,
+        IReadOnlyList<Dictionary<string, object?>> rightRows,
+        out GenericLeftJoinEqualityLookup lookup)
+    {
+        lookup = default;
+
+        if (join.On is null)
+            return false;
+
+        var conjuncts = new List<SqlExpr>(1);
+        AstQuerySubqueryLookupSupport.FlattenConjuncts(join.On, conjuncts);
+
+        var eqColumns = new List<EquivJoinColumn>(Math.Min(conjuncts.Count, 8));
+        for (var i = 0; i < conjuncts.Count; i++)
+        {
+            if (conjuncts[i] is BinaryExpr beq
+                && beq.Op == SqlBinaryOp.Eq)
+            {
+                if (AstQueryInnerColumnAnalysisHelper.TryResolveInnerColumnName(beq.Left, rightSource, out var innerColLeft))
+                    eqColumns.Add(new EquivJoinColumn(innerColLeft, beq.Right));
+                else if (AstQueryInnerColumnAnalysisHelper.TryResolveInnerColumnName(beq.Right, rightSource, out var innerColRight))
+                    eqColumns.Add(new EquivJoinColumn(innerColRight, beq.Left));
+            }
+        }
+
+        if (eqColumns.Count == 0)
+            return false;
+
+        var isComposite = eqColumns.Count > 1;
+        var rightRowsByKey = new Dictionary<string, List<Dictionary<string, object?>>>(Math.Max(1, rightRows.Count), StringComparer.Ordinal);
+        for (var i = 0; i < rightRows.Count; i++)
+        {
+            var rightFields = rightRows[i];
+            string? compositeKey = null;
+
+            if (isComposite)
+            {
+                var sb = new StringBuilder(Math.Max(16, eqColumns.Count * 16));
+                for (var j = 0; j < eqColumns.Count; j++)
+                {
+                    if (j > 0) sb.Append('\u001F');
+                    if (!TryGetJoinColumnValue(rightFields, eqColumns[j].RightColumn, out var colValue)
+                        && (!rightSource.TryGetQualifiedColumnName(eqColumns[j].RightColumn, out var qn) || qn is null
+                            || !TryGetJoinColumnValue(rightFields, qn, out colValue)))
+                        sb.Append(SqlConst.NULL);
+                    else
+                        sb.Append(colValue?.ToString() ?? SqlConst.NULL);
+                }
+                compositeKey = sb.ToString();
+            }
+            else
+            {
+                var col = eqColumns[0];
+                if (!TryGetJoinColumnValue(rightFields, col.RightColumn, out var rightValue)
+                    && (!rightSource.TryGetQualifiedColumnName(col.RightColumn, out var qn) || qn is null
+                        || !TryGetJoinColumnValue(rightFields, qn, out rightValue))
+                    || rightValue is null || rightValue is DBNull
+                    || !AstQuerySubqueryLookupSupport.TryCreateInLookupScalarKey(rightValue, null, out var component))
+                    continue;
+
+                compositeKey = AstQuerySubqueryLookupSupport.BuildLookupScalarKeyString(component);
+            }
+
+            if (!rightRowsByKey.TryGetValue(compositeKey!, out var bucket))
+            {
+                bucket = new List<Dictionary<string, object?>>(1);
+                rightRowsByKey[compositeKey!] = bucket;
+            }
+
+            bucket.Add(rightFields);
+        }
+
+        if (rightRowsByKey.Count == 0)
+            return false;
+
+        lookup = new GenericLeftJoinEqualityLookup(eqColumns, rightRowsByKey);
+        return true;
+    }
+
     private static bool TryGetJoinColumnValue(
         Dictionary<string, object?> row,
         string columnName,
@@ -246,6 +392,10 @@ internal sealed class AstQueryJoinService(
 
     private readonly record struct LeftJoinEqualityLookup(
         SqlExpr OuterExpr,
+        Dictionary<string, List<Dictionary<string, object?>>> RightRowsByKey);
+
+    private readonly record struct GenericLeftJoinEqualityLookup(
+        IReadOnlyList<EquivJoinColumn> Columns,
         Dictionary<string, List<Dictionary<string, object?>>> RightRowsByKey);
 
     private IEnumerable<AstQueryExecutorBase.EvalRow> ApplyLateralJoin(
@@ -401,7 +551,7 @@ internal sealed class AstQueryJoinService(
         {
             fields = rightFields;
             sources = new Dictionary<string, AstQueryExecutorBase.Source>(1, StringComparer.OrdinalIgnoreCase);
-            ordinalValues = new object?[rightSource.ColumnNames.Count];
+            ordinalValues = AstQueryExecutorBase.OrdinalPool.Rent(rightSource.ColumnNames.Count);
             ordinalIndexes = new Dictionary<string, int>(Math.Max(1, rightSource.ColumnNames.Count * 3), StringComparer.OrdinalIgnoreCase);
             PopulateSourceColumns(rightSource, rightFields, fields, ordinalValues, ordinalIndexes, 0, nullValue: null);
         }
@@ -419,7 +569,7 @@ internal sealed class AstQueryJoinService(
             var leftOrdinalCount = hasLeftOrdinalMetadata ? leftTemplate.OrdinalValues!.Length : 0;
             if (hasLeftOrdinalMetadata || rightOrdinalCount > 0)
             {
-                ordinalValues = new object?[leftOrdinalCount + rightOrdinalCount];
+                ordinalValues = AstQueryExecutorBase.OrdinalPool.Rent(leftOrdinalCount + rightOrdinalCount);
                 ordinalIndexes = hasLeftOrdinalMetadata
                     ? new Dictionary<string, int>(leftTemplate.OrdinalIndexes!.Count + rightOrdinalCount * 3, StringComparer.OrdinalIgnoreCase)
                     : new Dictionary<string, int>(Math.Max(1, rightOrdinalCount * 3), StringComparer.OrdinalIgnoreCase);

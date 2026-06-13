@@ -102,7 +102,7 @@ internal static class SelectAliasParserHelper
             return false;
 
         var before = raw[..start].TrimEnd();
-        if (before.Length == 0 || before.EndsWith(".", StringComparison.Ordinal))
+        if (before.Length == 0 || before.EndsWith('.'))
             return false;
 
         if (EndsWithOperatorToken(before))

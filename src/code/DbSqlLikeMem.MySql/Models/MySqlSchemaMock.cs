@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.MySql;
 public class MySqlSchemaMock(
     string schemaName,
     MySqlDbMock db,
-    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
+    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null
     ) : SchemaMock(schemaName, db, tables)
 {
     /// <summary>
@@ -21,6 +21,6 @@ public class MySqlSchemaMock(
     protected override TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null)
+        IEnumerable<object?[]>? rows = null)
         => new MySqlTableMock(tableName, this, columns, rows);
 }

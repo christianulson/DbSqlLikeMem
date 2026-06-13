@@ -152,6 +152,9 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
             // REGEXP
             if (TryParseRegexpInfix(ref left, minBp)) continue;
 
+            // MATCH (SQLite: col MATCH 'query')
+            if (TryParseMatchInfix(ref left, minBp)) continue;
+
             // PostgreSQL-style type cast: expr::type
             if (TryParseTypeCastInfix(ref left, minBp)) continue;
 
@@ -507,6 +510,42 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         return true;
     }
 
+    private bool TryParseMatchInfix(ref SqlExpr left, int minBp)
+    {
+        var t = _context.Peek();
+        var negate = false;
+
+        if (SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, SqlConst.NOT))
+        {
+            var next = _context.Peek(1);
+            if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(next, "MATCH"))
+                return false;
+            negate = true;
+        }
+        else if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, "MATCH"))
+        {
+            return false;
+        }
+
+        var (lbp, rbp) = (50, 51);
+        if (lbp < minBp) return false;
+
+        if (negate)
+        {
+            _context.Consume(); // NOT
+            _context.Consume(); // MATCH
+        }
+        else
+        {
+            _context.Consume(); // MATCH
+        }
+
+        var right = ParseExpression(rbp);
+        var expr = (SqlExpr)new BinaryExpr(SqlBinaryOp.FullTextMatch, left, right);
+        left = negate ? new UnaryExpr(SqlUnaryOp.Not, expr) : expr;
+        return true;
+    }
+
     private bool TryParseSoundsLikeInfix(ref SqlExpr left, int minBp)
     {
         var t = _context.Peek();
@@ -617,7 +656,12 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         _context.Consume(); // * or /
         var right = ParseExpression(rbp);
 
-        var op = t.Text == "*" ? SqlBinaryOp.Multiply : SqlBinaryOp.Divide;
+        var op = t.Text switch
+        {
+            "*" => SqlBinaryOp.Multiply,
+            "/" => SqlBinaryOp.Divide,
+            _ => SqlBinaryOp.Modulo
+        };
         left = new BinaryExpr(op, left, right);
         return true;
     }
@@ -1413,11 +1457,14 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
     {
         try
         {
-            var localSql = _context.TokensToSql(tokens);
-            var localTokens = new SqlTokenizer(localSql, _context.Dialect).Tokenize();
+            // Create a mutable copy with EOF sentinel so the parser knows where to stop
+            var withEof = new List<SqlToken>(tokens.Count + 1);
+            withEof.AddRange(tokens);
+            withEof.Add(SqlToken.EOF);
+
             var parser = new SqlExpressionParser(
                 new SqlExpressionParserContext(
-                    localTokens,
+                    withEof,
                     _context.Db,
                     _context.Dialect,
                     _context.Parameters,
@@ -2053,7 +2100,8 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
                 or SqlBinaryOp.Greater
                 or SqlBinaryOp.GreaterOrEqual
                 or SqlBinaryOp.Less
-                or SqlBinaryOp.LessOrEqual;
+                or SqlBinaryOp.LessOrEqual
+                or SqlBinaryOp.FullTextMatch;
         }
 
         bop = default;

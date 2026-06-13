@@ -503,15 +503,22 @@ internal static class AstQueryWindowExecutionHelper
         for (var i = 0; i < partCount; i++)
         {
             var frameRange = partitionContext.GetFrameRange(i);
-            var frameRows = frameRange.IsEmpty
-                ? []
-                : part.GetRange(frameRange.StartIndex, frameRange.EndIndex - frameRange.StartIndex + 1);
-
-            map[part[i]] = partitionContext.QueryExecutionContext.EvalAggregate(
-                aggregateCall,
-                new EvalGroup(frameRows),
-                ctes,
-                eval);
+            if (frameRange.IsEmpty)
+            {
+                map[part[i]] = partitionContext.QueryExecutionContext.EvalAggregate(
+                    aggregateCall,
+                    new EvalGroup([], 0, 0),
+                    ctes,
+                    eval);
+            }
+            else
+            {
+                map[part[i]] = partitionContext.QueryExecutionContext.EvalAggregate(
+                    aggregateCall,
+                    new EvalGroup(part, frameRange.StartIndex, frameRange.EndIndex - frameRange.StartIndex + 1),
+                    ctes,
+                    eval);
+            }
         }
     }
 }

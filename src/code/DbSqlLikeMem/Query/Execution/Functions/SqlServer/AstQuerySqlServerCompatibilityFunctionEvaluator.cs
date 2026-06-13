@@ -68,6 +68,7 @@ internal sealed class AstQuerySqlServerCompatibilityFunctionEvaluator(
             || AstQuerySharedNumericFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result)
             || AstQueryCastConversionFamilyEvaluator.TryEvalParseLikeFunction(context, fn, evalArg, out result)
             || AstQueryCastConversionFamilyEvaluator.TryEvalTryParseLikeFunction(context, fn, evalArg, out result)
+            || (group is not null && AstQueryGroupingFunctionEvaluator.TryEvaluate(context, fn, evalArg, out result))
             || context.TryEvaluate(fn, row, group, ctes, evalArg, _eval, _getTemporalUnit, out result))
         {
             return true;

@@ -33,4 +33,18 @@ SELECT * FROM t ORDER BY iddesc ASC LIMIT 2 OFFSET 1;
     /// <inheritdoc />
     protected override string TranslateSql(object translator, Expression expression)
         => ((Db2Translator)translator).Translate(expression).Sql;
+
+    /// <summary>
+    /// EN: Verifies CONTAINS is emitted when SqlFunctions.Contains is used in WHERE.
+    /// PT-br: Verifica se CONTAINS é emitido quando SqlFunctions.Contains é usado no WHERE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Query")]
+    public void TranslateContainsSqlCorrect()
+    {
+        using var cnn = CreateConnection(CreateDb());
+        var q = CreateQueryable(cnn).Where(f => SqlFunctions.Contains(f.Y, "search") > 0);
+        var sql = TranslateSql(GetTranslatorFromProvider(q.Provider), q.Expression);
+        sql.Should().Contain("CONTAINS(Y, @p0)");
+    }
 }

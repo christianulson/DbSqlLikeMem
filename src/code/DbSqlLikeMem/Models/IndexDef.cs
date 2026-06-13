@@ -83,7 +83,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
 
 
     private readonly Dictionary<IndexKey, Dictionary<int, Dictionary<string, object?>>> _items = new();
-    private readonly Dictionary<IndexKey, BucketReadOnlyView> _readonlyBuckets = new();
     private bool _isDirty;
 
     internal bool IsDirty => _isDirty;
@@ -91,7 +90,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
     internal void MarkDirty()
     {
         _isDirty = true;
-        _readonlyBuckets.Clear();
     }
 
     private void EnsureReady()
@@ -124,12 +122,7 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         IndexKey key,
         Dictionary<int, Dictionary<string, object?>> bucket)
     {
-        if (_readonlyBuckets.TryGetValue(key, out var cached))
-            return cached;
-
-        var view = new BucketReadOnlyView(bucket);
-        _readonlyBuckets[key] = view;
-        return view;
+        return new BucketReadOnlyView(bucket);
     }
 
     private void RemoveBucketIfEmpty(IndexKey key, Dictionary<int, Dictionary<string, object?>> bucket)
@@ -138,7 +131,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
             return;
 
         _items.Remove(key);
-        _readonlyBuckets.Remove(key);
     }
 
     private IReadOnlyDictionary<int, string> GetColumnsByIndex()
@@ -304,7 +296,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
                 {
                     _items.Remove(key);
                 }
-                _readonlyBuckets.Remove(key);
             }
         }
         finally
@@ -321,17 +312,18 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
             EnsureReady();
             foreach (var bucket in _items.Values)
             {
-                var keysToShift = bucket.Keys.Where(k => k > deletedIndex).OrderBy(k => k).ToList();
-                if (keysToShift.Count == 0) continue;
-
-                foreach (var oldIdx in keysToShift)
+                var keysToShift = new List<int>(bucket.Keys.Count);
+                foreach (var key in bucket.Keys)
+                    if (key > deletedIndex)
+                        keysToShift.Add(key);
+                keysToShift.Sort();
+                foreach (var key in keysToShift)
                 {
-                    var rowData = bucket[oldIdx];
-                    bucket.Remove(oldIdx);
-                    bucket[oldIdx - 1] = rowData;
+                    var value = bucket[key];
+                    bucket.Remove(key);
+                    bucket[key - 1] = value;
                 }
             }
-            _readonlyBuckets.Clear();
         }
         finally
         {
@@ -346,7 +338,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         {
             _isDirty = false;
             _items.Clear();
-            _readonlyBuckets.Clear();
             var pkColumnsByIndex = GetColumnsByIndex();
             for (int i = 0; i < Table.Count; i++)
             {
@@ -527,7 +518,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
             {
                 foreach (var column in _includeColumns)
                     idxRow[column.Name] = newRow[column.Index];
-                _readonlyBuckets.Remove(key);
                 return;
             }
             if (Unique && lstItems.Count > 0)
@@ -535,7 +525,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
             idxRow = CreateIndexRow(newRow);
             lstItems.Add(rowIndex, idxRow);
             AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
-            _readonlyBuckets.Remove(key);
         }
         finally
         {
@@ -569,7 +558,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
                 {
                     oldLstItems.Remove(rowIndex);
                     RemoveBucketIfEmpty(oldkey, oldLstItems);
-                    _readonlyBuckets.Remove(oldkey);
                 }
             }
 
@@ -583,7 +571,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
             {
                 foreach (var column in _includeColumns)
                     idxRow[column.Name] = newRow[column.Index];
-                _readonlyBuckets.Remove(key);
                 return;
             }
             if (Unique && lstItems.Count > 0)
@@ -591,7 +578,6 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
             idxRow = CreateIndexRow(newRow);
             lstItems.Add(rowIndex, idxRow);
             AddRowLocatorColumns(idxRow, newRow, pkColumnsByIndex);
-            _readonlyBuckets.Remove(key);
         }
         finally
         {
@@ -606,21 +592,15 @@ public class IndexDef : IReadOnlyDictionary<IndexKey, IReadOnlyDictionary<int, I
         IReadOnlyList<string> changedCols)
     {
         EnsureReady();
+        var changedColsSet = new HashSet<string>(changedCols, StringComparer.OrdinalIgnoreCase);
         var hasChangedKeyCol = false;
         for (var keyColIndex = 0; keyColIndex < KeyCols.Count; keyColIndex++)
         {
-            var keyCol = KeyCols[keyColIndex];
-            for (var changedIndex = 0; changedIndex < changedCols.Count; changedIndex++)
+            if (changedColsSet.Contains(KeyCols[keyColIndex]))
             {
-                if (string.Equals(keyCol, changedCols[changedIndex], StringComparison.OrdinalIgnoreCase))
-                {
-                    hasChangedKeyCol = true;
-                    break;
-                }
-            }
-
-            if (hasChangedKeyCol)
+                hasChangedKeyCol = true;
                 break;
+            }
         }
 
         if (!hasChangedKeyCol)

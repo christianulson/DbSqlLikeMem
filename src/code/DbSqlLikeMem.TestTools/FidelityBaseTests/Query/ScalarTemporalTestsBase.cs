@@ -156,15 +156,15 @@ public abstract class ScalarTemporalTestsBase<T, T2>(
             negativeOffsetText) = result;
 
         literalOffsetMinutes.Should().Be(310);
-        literalOffsetText.Should().Be("310");
+        literalOffsetText.Should().Be("+05:10");
         utcOffsetMinutes.Should().Be(0);
-        utcOffsetText.Should().Be("0");
+        utcOffsetText.Should().Be("+00:00");
         offsetValue.Should().Be(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12), TimeSpan.FromHours(2)));
         switchedValue.Should().Be(new DateTimeOffset(new DateTime(2020, 2, 29, 9, 11, 12), TimeSpan.Zero));
         offsetMinutes.Should().Be(120);
-        offsetText.Should().Be("120");
+        offsetText.Should().Be("+02:00");
         negativeOffsetMinutes.Should().Be(-210);
-        negativeOffsetText.Should().Be("-210");
+        negativeOffsetText.Should().Be("-03:30");
     }
 
     /// <summary>

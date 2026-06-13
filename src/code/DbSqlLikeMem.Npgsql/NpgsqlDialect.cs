@@ -23,12 +23,14 @@ internal sealed class NpgsqlDialect : SqlDialectBase, ISqlDialect
             new KeyValuePair<string, SqlBinaryOp>(">=", SqlBinaryOp.GreaterOrEqual),
             new KeyValuePair<string, SqlBinaryOp>("<", SqlBinaryOp.Less),
             new KeyValuePair<string, SqlBinaryOp>("<=", SqlBinaryOp.LessOrEqual),
+            new KeyValuePair<string, SqlBinaryOp>("@@", SqlBinaryOp.FullTextMatch),
         ],
         operators:
         [
             "->>", "->",
             "#>>", "#>",
             "::",
+            "@@",
             ">=", "<=", "<>", "!=",
             "&&", "||"
         ])

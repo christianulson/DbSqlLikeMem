@@ -1,7 +1,10 @@
+using System.Collections.Concurrent;
+
 namespace DbSqlLikeMem;
 
 internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
 {
+    private static readonly ConcurrentDictionary<string, Regex> _regexpCache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> _hashFunctionNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "STANDARD_HASH",
@@ -241,7 +244,7 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
         {
             if (name == "REGEXP_COUNT")
             {
-                var matches = Regex.Matches(source[startIndex..], pattern, options);
+                var matches = _regexpCache.GetOrAdd(pattern, p => new Regex(p, options)).Matches(source[startIndex..]);
                 result = matches.Count;
                 return true;
             }
@@ -249,11 +252,11 @@ internal static class AstQueryOracleDb2BinaryTextFunctionEvaluator
             if (name == "REGEXP_REPLACE")
             {
                 var replacement = fn.Args.Count >= 3 ? evalArg(2)?.ToString() ?? string.Empty : string.Empty;
-                result = Regex.Replace(source, pattern, replacement, options);
+                result = _regexpCache.GetOrAdd(pattern, p => new Regex(p, options)).Replace(source, replacement);
                 return true;
             }
 
-            var matchesForInstr = Regex.Matches(source[startIndex..], pattern, options);
+            var matchesForInstr = _regexpCache.GetOrAdd(pattern, p => new Regex(p, options)).Matches(source[startIndex..]);
             if (matchesForInstr.Count == 0)
             {
                 result = 0;

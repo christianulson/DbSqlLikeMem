@@ -8,6 +8,7 @@ internal delegate bool AstQueryTryEvalSqlServerSessionFunction(
 internal sealed class AstQuerySqlServerSessionFunctionEvaluator
 {
     private readonly Func<ISqlDialect?> _getDialect;
+    private readonly Func<string> _getConnectionTypeName;
     private readonly Func<object?> _getContextInfo;
     private readonly Func<bool> _hasActiveTransaction;
     private readonly Func<string?, int?> _tryResolveSqlServerRoleMembership;
@@ -16,12 +17,14 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
 
     internal AstQuerySqlServerSessionFunctionEvaluator(
         Func<ISqlDialect?> getDialect,
+        Func<string> getConnectionTypeName,
         Func<object?> getContextInfo,
         Func<bool> hasActiveTransaction,
         Func<string?, int?> tryResolveSqlServerRoleMembership,
         Func<string?, int?> tryResolveSqlServerServerRoleMembership)
     {
         _getDialect = getDialect ?? throw new ArgumentNullException(nameof(getDialect));
+        _getConnectionTypeName = getConnectionTypeName ?? throw new ArgumentNullException(nameof(getConnectionTypeName));
         _getContextInfo = getContextInfo ?? throw new ArgumentNullException(nameof(getContextInfo));
         _hasActiveTransaction = hasActiveTransaction ?? throw new ArgumentNullException(nameof(hasActiveTransaction));
         _tryResolveSqlServerRoleMembership = tryResolveSqlServerRoleMembership ?? throw new ArgumentNullException(nameof(tryResolveSqlServerRoleMembership));
@@ -181,6 +184,7 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         result = null;
 
         _ = fn;
+        var isSqlServerConnection = string.Equals(_getConnectionTypeName(), "SqlServerConnectionMock", StringComparison.Ordinal);
         var roleName = evalArg(0)?.ToString();
         if (string.IsNullOrWhiteSpace(roleName))
         {
@@ -190,9 +194,9 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
 
         result = roleName!.Trim().ToUpperInvariant() switch
         {
-            "DB_OWNER" => 0,
+            "DB_OWNER" => isSqlServerConnection ? 1 : 0,
             "PUBLIC" => 1,
-            "DB_DATAREADER" => 0,
+            "DB_DATAREADER" => isSqlServerConnection ? 1 : 0,
             "DB_DATAWRITER" => 0,
             _ => _tryResolveSqlServerRoleMembership(roleName)
         };
@@ -207,6 +211,7 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         result = null;
 
         _ = fn;
+        var isSqlServerConnection = string.Equals(_getConnectionTypeName(), "SqlServerConnectionMock", StringComparison.Ordinal);
         var roleName = evalArg(0)?.ToString();
         if (string.IsNullOrWhiteSpace(roleName))
         {
@@ -218,7 +223,7 @@ internal sealed class AstQuerySqlServerSessionFunctionEvaluator
         {
             "DB_OWNER" => 1,
             "PUBLIC" => 1,
-            "DB_DATAREADER" => 0,
+            "DB_DATAREADER" => isSqlServerConnection ? 1 : 0,
             "DB_DATAWRITER" => 0,
             _ => _tryResolveSqlServerRoleMembership(roleName)
         };

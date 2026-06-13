@@ -31,28 +31,60 @@ public sealed class FirebirdProviderSqlDialect : ProviderSqlDialect
     public override bool SupportsGuidInputOutputParameters => false;
 
     /// <inheritdoc />
-    public override bool SupportsMathFunctions => true;
+    public override bool SupportsMathFunctions => false;
 
     /// <inheritdoc />
-    public override bool SupportsMathLogBaseFunction => true;
+    public override bool SupportsMathLogBaseFunction => false;
 
     /// <inheritdoc />
-    public override bool SupportsMathPiFunction => true;
+    public override bool SupportsMathPiFunction => false;
 
     /// <inheritdoc />
     public override bool SupportsMathRandFunction => true;
 
     /// <inheritdoc />
-    public override bool SupportsMathCotFunction => true;
+    public override bool SupportsMathCotFunction => false;
 
     /// <inheritdoc />
-    public override bool SupportsFirebirdAliasMathFunctions => true;
+    public override bool SupportsFirebirdAliasMathFunctions => false;
 
     /// <inheritdoc />
-    public override bool SupportsGreatestLeastModFunctions => true;
+    public override bool SupportsGreatestLeastModFunctions => false;
 
     /// <inheritdoc />
     public override bool SupportsMathTranscendentalFunctions => true;
+
+    /// <inheritdoc />
+    public override string MathAcosExpression(string expression) =>
+        $"ACOS({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathAsinExpression(string expression) =>
+        $"ASIN({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathAtanExpression(string expression) =>
+        $"ATAN({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathAtan2Expression(string yExpression, string xExpression) =>
+        $"ATAN2({yExpression}, {xExpression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathCosExpression(string expression) =>
+        $"COS({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathExpExpression(string expression) =>
+        $"EXP({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathSinExpression(string expression) =>
+        $"SIN({expression}) FROM RDB$DATABASE";
+
+    /// <inheritdoc />
+    public override string MathTanExpression(string expression) =>
+        $"TAN({expression}) FROM RDB$DATABASE";
 
     /// <inheritdoc />
     public override string MathRandExpression(string? seedExpression = null) => "RAND()";

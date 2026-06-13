@@ -33,4 +33,18 @@ SELECT * FROM t ORDER BY iddesc ASC LIMIT 2 OFFSET 1;
     /// <inheritdoc />
     protected override string TranslateSql(object translator, Expression expression)
         => ((MySqlTranslator)translator).Translate(expression).Sql;
+
+    /// <summary>
+    /// EN: Verifies MATCH...AGAINST is emitted when SqlFunctions.MatchAgainst is used in WHERE.
+    /// PT-br: Verifica se MATCH...AGAINST é emitido quando SqlFunctions.MatchAgainst é usado no WHERE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Query")]
+    public void TranslateMatchAgainstSqlCorrect()
+    {
+        using var cnn = CreateConnection(CreateDb());
+        var q = CreateQueryable(cnn).Where(f => SqlFunctions.MatchAgainst(f.Y, "search") > 0);
+        var sql = TranslateSql(GetTranslatorFromProvider(q.Provider), q.Expression);
+        sql.Should().Contain("MATCH(Y) AGAINST(@p0)");
+    }
 }

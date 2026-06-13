@@ -67,9 +67,7 @@ internal static class QueryRowValueHelper
             float floatValue => floatValue.ToString("R", CultureInfo.InvariantCulture),
             DateTime dateTime => dateTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
             bool boolValue => boolValue ? "1" : "0",
-            string text => (context?.Dialect.TextComparison ?? StringComparison.OrdinalIgnoreCase) == StringComparison.Ordinal
-                ? text
-                : text.ToUpperInvariant(),
+            string text => text,
             _ => value.ToString() ?? string.Empty
         };
     }
@@ -80,9 +78,11 @@ internal static class QueryRowValueHelper
         if (estimatedCount <= 1)
             return result;
 
+        var comparer = StringComparerFromComparison(context.Dialect.TextComparison);
+
         if (result.Columns.Count == 1)
         {
-            var seenSingle = new HashSet<string>(StringComparer.Ordinal);
+            var seenSingle = new HashSet<string>(comparer);
             var outputSingle = new List<Dictionary<int, object?>>(estimatedCount);
 
             foreach (var row in result)
@@ -99,7 +99,7 @@ internal static class QueryRowValueHelper
             return result;
         }
 
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var seen = new HashSet<string>(comparer);
         var outputRows = new List<Dictionary<int, object?>>(estimatedCount);
 
         foreach (var row in result)
@@ -392,6 +392,20 @@ internal static class QueryRowValueHelper
 
         value = null;
         return false;
+    }
+
+    private static StringComparer StringComparerFromComparison(StringComparison comparison)
+    {
+        return comparison switch
+        {
+            StringComparison.Ordinal => StringComparer.Ordinal,
+            StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+            StringComparison.CurrentCulture => StringComparer.CurrentCulture,
+            StringComparison.CurrentCultureIgnoreCase => StringComparer.CurrentCultureIgnoreCase,
+            StringComparison.InvariantCulture => StringComparer.InvariantCulture,
+            StringComparison.InvariantCultureIgnoreCase => StringComparer.InvariantCultureIgnoreCase,
+            _ => StringComparer.OrdinalIgnoreCase
+        };
     }
 
     private static string BuildDistinctRowKey(

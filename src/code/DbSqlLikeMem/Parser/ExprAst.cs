@@ -36,6 +36,7 @@ internal sealed record CallExpr(
     SqlExpr? Filter = null) : SqlExpr
 {
     internal DbFunctionDef? ResolvedScalarFunction { get; init; }
+    internal FunctionCallExpr? _cachedShim;
 }
 internal sealed record WindowFunctionExpr(string Name, IReadOnlyList<SqlExpr> Args, WindowSpec Spec, bool Distinct = false) : SqlExpr
 {
@@ -93,5 +94,8 @@ internal enum SqlBinaryOp
 
     // pattern / misc
     Regexp,
-    SoundLike
+    SoundLike,
+
+    // full-text search operators
+    FullTextMatch
 }

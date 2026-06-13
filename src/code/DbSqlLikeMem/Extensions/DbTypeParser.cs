@@ -177,8 +177,8 @@ public static class DbTypeParser
     private static string Unquote(string value)
     {
         if (value.Length >= 2 &&
-            ((value.StartsWith("'") && value.EndsWith("'")) ||
-             (value.StartsWith("\"") && value.EndsWith("\""))))
+            ((value.StartsWith('\'') && value.EndsWith('\'')) ||
+             (value.StartsWith('"') && value.EndsWith('"'))))
         {
             return value[1..^1];
         }
@@ -188,8 +188,8 @@ public static class DbTypeParser
     private static bool LooksLikeJson(string value)
     {
         var trimmed = value.Trim();
-        return (trimmed.StartsWith("{", StringComparison.Ordinal) && trimmed.EndsWith("}", StringComparison.Ordinal))
-            || (trimmed.StartsWith("[", StringComparison.Ordinal) && trimmed.EndsWith("]", StringComparison.Ordinal));
+        return (trimmed.StartsWith('{') && trimmed.EndsWith('}'))
+            || (trimmed.StartsWith('[') && trimmed.EndsWith(']'));
     }
 
     private static bool LooksLikeDateTimeOffset(string value)

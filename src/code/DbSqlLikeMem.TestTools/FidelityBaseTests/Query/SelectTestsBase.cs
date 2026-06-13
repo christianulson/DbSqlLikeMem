@@ -228,6 +228,139 @@ ORDER BY Id
     }
 
     /// <summary>
+    /// EN: Verifies that NOT IN with an empty subquery keeps all left-side rows for the current provider.
+    /// PT-br: Verifica se NOT IN com subconsulta vazia mantem todas as linhas do lado esquerdo para o provedor atual.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectNotInSubqueryEmptyTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
+
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (QueryServiceTest s, object[] _) =>
+            {
+                using var command = s.Repo.Cnn.CreateCommand();
+                command.CommandText = $"""
+SELECT Id, Name
+FROM {s.Context.TbUsersFullName}
+WHERE Id NOT IN (
+    SELECT o.{s.Context.TbUsers}Id
+    FROM {s.Context.TbOrdersFullName} o
+    WHERE o.{s.Context.TbUsers}Id = -1
+)
+ORDER BY Id
+""";
+
+                using var reader = await command.ExecuteReaderAsync();
+                return QueryResultSnapshotReader.Capture(reader);
+            });
+
+        AssertSnapshot(
+            RequireSnapshot(result, nameof(SelectNotInSubqueryEmptyTest)),
+            Snapshot(["Id", "Name"], Row(1m, "Alice"), Row(2m, "Bob"), Row(3m, "Carla")));
+    }
+
+    /// <summary>
+    /// EN: Verifies that a local alias inside a NOT IN subquery is not treated as an outer-row reference.
+    /// PT-br: Verifica se um alias local dentro de uma subconsulta NOT IN nao e tratado como referencia da linha externa.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectNotInSubqueryLocalAliasTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
+
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (QueryServiceTest s, object[] _) =>
+            {
+                using var command = s.Repo.Cnn.CreateCommand();
+                command.CommandText = $"""
+SELECT Id, Name
+FROM {s.Context.TbUsersFullName}
+WHERE Id NOT IN (
+    SELECT u.Id
+    FROM {s.Context.TbUsersFullName} u
+    WHERE u.Id = 1
+)
+ORDER BY Id
+""";
+
+                using var reader = await command.ExecuteReaderAsync();
+                return QueryResultSnapshotReader.Capture(reader);
+            });
+
+        AssertSnapshot(
+            RequireSnapshot(result, nameof(SelectNotInSubqueryLocalAliasTest)),
+            Snapshot(["Id", "Name"], Row(2m, "Bob"), Row(3m, "Carla")));
+    }
+
+    /// <summary>
+    /// EN: Verifies that a real correlated NOT IN subquery remains evaluated per outer row.
+    /// PT-br: Verifica se uma subconsulta NOT IN realmente correlacionada continua avaliada por linha externa.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectNotInSubqueryCorrelatedTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
+
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (QueryServiceTest s, object[] _) =>
+            {
+                using var command = s.Repo.Cnn.CreateCommand();
+                command.CommandText = $"""
+SELECT ou.Id, ou.Name
+FROM {s.Context.TbUsersFullName} ou
+WHERE ou.Id NOT IN (
+    SELECT o.{s.Context.TbUsers}Id
+    FROM {s.Context.TbOrdersFullName} o
+    WHERE o.{s.Context.TbUsers}Id = ou.Id
+)
+ORDER BY ou.Id
+""";
+
+                using var reader = await command.ExecuteReaderAsync();
+                return QueryResultSnapshotReader.Capture(reader);
+            });
+
+        AssertSnapshot(
+            RequireSnapshot(result, nameof(SelectNotInSubqueryCorrelatedTest)),
+            Snapshot(["Id", "Name"], Row(3m, "Carla")));
+    }
+
+    /// <summary>
+    /// EN: Verifies that a NULL left operand in NOT IN does not match non-empty subquery results.
+    /// PT-br: Verifica se um operando esquerdo NULL em NOT IN nao corresponde a resultados nao vazios da subconsulta.
+    /// </summary>
+    [FidelityFact]
+    public async Task SelectNotInSubqueryLeftNullOperandTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect,
+            [SelectTestsBaseSeeds.seedUsers, SelectTestsBaseSeeds.seedOrders2]);
+
+        var result = await testService.RunTestAsync<UsersOrdersScenario, QueryServiceTest, QueryResultSnapshot>(
+            async (QueryServiceTest s, object[] _) =>
+            {
+                using var command = s.Repo.Cnn.CreateCommand();
+                command.CommandText = $"""
+SELECT Id, Name
+FROM {s.Context.TbUsersFullName}
+WHERE NULL NOT IN (
+    SELECT o.{s.Context.TbUsers}Id
+    FROM {s.Context.TbOrdersFullName} o
+)
+ORDER BY Id
+""";
+
+                using var reader = await command.ExecuteReaderAsync();
+                return QueryResultSnapshotReader.Capture(reader);
+            });
+
+        AssertSnapshot(RequireSnapshot(result, nameof(SelectNotInSubqueryLeftNullOperandTest)), Snapshot(["Id", "Name"]));
+    }
+
+    /// <summary>
     /// EN: Verifies that an EXISTS predicate returns the expected rowset for the current provider.
     /// PT-br: Verifica se um predicado EXISTS retorna o conjunto de linhas esperado para o provedor atual.
     /// </summary>
@@ -568,7 +701,7 @@ ORDER BY Id
     /// PT-br: Verifica se parametros tipados do provedor fazem roundtrip corretamente para texto ANSI, texto de comprimento fixo, numericos, booleanos, temporais, binario, GUID e nulos.
     /// </summary>
     [FidelityFact]
-    public async Task SelectParameterTypeMatrixTest()
+    public virtual async Task SelectParameterTypeMatrixTest()
     {
         var createdAt = NormalizeParameterDateTimeInput(new DateTime(2024, 1, 2, 3, 4, 5, DateTimeKind.Unspecified));
         var ansiFixedText = "Fixed ANSI";
@@ -601,7 +734,7 @@ ORDER BY Id
     /// PT-br: Verifica se parametros tipados do provedor fazem roundtrip corretamente para valores de data e moeda.
     /// </summary>
     [FidelityFact]
-    public async Task SelectParameterDateCurrencyMatrixTest()
+    public virtual async Task SelectParameterDateCurrencyMatrixTest()
     {
         var dateValue = new DateTime(2024, 1, 2, 0, 0, 0, DateTimeKind.Unspecified);
         var currencyValue = 123.45m;

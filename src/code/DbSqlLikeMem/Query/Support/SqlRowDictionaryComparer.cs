@@ -26,93 +26,9 @@ internal sealed class SqlRowDictionaryComparer(QueryExecutionContext context)
 
     public int GetHashCode(Dictionary<int, object?> row)
     {
-        var hash = new HashCode();
-        var orderedEntries = new List<KeyValuePair<int, object?>>(row.Count);
+        var hc = 0;
         foreach (var entry in row)
-        {
-            orderedEntries.Add(entry);
-        }
-
-        orderedEntries.Sort(static (left, right) => left.Key.CompareTo(right.Key));
-
-        foreach (var entry in orderedEntries)
-        {
-            hash.Add(entry.Key);
-            hash.Add(NormalizeHash(entry.Value));
-        }
-
-        return hash.ToHashCode();
-    }
-
-    private object? NormalizeHash(object? value)
-    {
-        if (value is null or DBNull)
-            return null;
-
-        if (TryNormalizeNumericHash(value, out var numericHash))
-            return numericHash;
-
-        if (value is string text)
-        {
-            return dialect.TextComparison == StringComparison.OrdinalIgnoreCase
-                ? text.ToUpperInvariant()
-                : text;
-        }
-
-        return value;
-    }
-
-    private bool TryNormalizeNumericHash(object value, out string normalized)
-    {
-        normalized = string.Empty;
-
-        if (TryGetNumericValue(value, out var numeric))
-        {
-            normalized = numeric.ToString("G29", CultureInfo.InvariantCulture);
-            return true;
-        }
-
-        if (!dialect.SupportsImplicitNumericStringComparison)
-            return false;
-
-        if (value is string text
-            && decimal.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
-        {
-            normalized = parsed.ToString("G29", CultureInfo.InvariantCulture);
-            return true;
-        }
-
-        return false;
-    }
-
-    private static bool TryGetNumericValue(object value, out decimal numeric)
-    {
-        switch (value)
-        {
-            case byte b:
-                numeric = b;
-                return true;
-            case short s:
-                numeric = s;
-                return true;
-            case int i:
-                numeric = i;
-                return true;
-            case long l:
-                numeric = l;
-                return true;
-            case float f:
-                numeric = (decimal)f;
-                return true;
-            case double d:
-                numeric = (decimal)d;
-                return true;
-            case decimal m:
-                numeric = m;
-                return true;
-            default:
-                numeric = default;
-                return false;
-        }
+            hc += (entry.Key.GetHashCode() * 397) ^ entry.Value.GetHashCodeSql(dialect);
+        return hc;
     }
 }

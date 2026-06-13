@@ -6,6 +6,7 @@ internal static class AstQuerySharedNumericFunctionEvaluator
 {
     private static readonly Random _sharedRandom = new();
     private static readonly object _randomLock = new();
+    private static readonly string[] _roundFormats = Enumerable.Range(0, 29).Select(i => $"F{i}").ToArray();
 
     internal static bool TryEvaluate(
         QueryExecutionContext context,
@@ -137,9 +138,9 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         }
 
         object? current = null;
-        foreach (var index in Enumerable.Range(0, fn.Args.Count))
+        for (var i = 0; i < fn.Args.Count; i++)
         {
-            var value = evalArg(index);
+            var value = evalArg(i);
             if (IsNullish(value))
             {
                 result = null;
@@ -172,17 +173,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var radians))
         {
-            var radians = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = radians * (180d / Math.PI);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalAcosFunction(Func<int, object?> evalArg, out object? result)
@@ -194,16 +192,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Acos(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Acos(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalAbsFunction(Func<int, object?> evalArg, out object? result)
@@ -254,16 +250,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Asin(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Asin(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalAtanFunction(Func<int, object?> evalArg, out object? result)
@@ -275,16 +269,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Atan(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Atan(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalAtan2Function(
@@ -353,17 +345,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = Math.Exp(number);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalCosFunction(Func<int, object?> evalArg, out object? result)
@@ -375,16 +364,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Cos(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Cos(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalCoshFunction(Func<int, object?> evalArg, out object? result)
@@ -396,16 +383,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Cosh(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Cosh(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalCotFunction(Func<int, object?> evalArg, out object? result)
@@ -417,17 +402,15 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            var tangent = Math.Tan(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            var tangent = Math.Tan(d);
             result = tangent == 0d ? null : 1d / tangent;
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalFloorFunction(Func<int, object?> evalArg, out object? result)
@@ -493,9 +476,8 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             if (number <= 0)
             {
                 result = null;
@@ -505,11 +487,9 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             result = Math.Log(number);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalLogFunction(
@@ -565,17 +545,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = number <= 0 ? null : Math.Log10(number);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalModFunction(Func<int, object?> evalArg, out object? result)
@@ -647,17 +624,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var degrees))
         {
-            var degrees = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = degrees * (Math.PI / 180d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalRandFunction(QueryExecutionContext context, Func<int, object?> evalArg, out object? result)
@@ -740,7 +714,8 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             var scale = GetDecimalScale(sourceDecimal);
             if (scale > 0)
             {
-                var text = rounded.ToString($"F{scale}", CultureInfo.InvariantCulture);
+                var format = scale >= 0 && scale < _roundFormats.Length ? _roundFormats[scale] : $"F{scale}";
+                var text = rounded.ToString(format, CultureInfo.InvariantCulture);
                 if (decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out var scaledRounded))
                     return scaledRounded;
             }
@@ -766,6 +741,17 @@ internal static class AstQuerySharedNumericFunctionEvaluator
         return (bits[3] >> 16) & 0x7F;
     }
 
+    private static bool TryConvertToDouble(object? value, out double result)
+    {
+        if (value is double d) { result = d; return true; }
+        if (value is float f) { result = f; return true; }
+        if (value is int i) { result = i; return true; }
+        if (value is long l) { result = l; return true; }
+        if (value is decimal m) { result = (double)m; return true; }
+        try { result = Convert.ToDouble(value, CultureInfo.InvariantCulture); return true; }
+        catch { result = 0; return false; }
+    }
+
     private static bool TryEvalSignFunction(Func<int, object?> evalArg, out object? result)
     {
         var value = evalArg(0);
@@ -775,17 +761,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = number == 0d ? 0 : (number > 0d ? 1 : -1);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalSinFunction(Func<int, object?> evalArg, out object? result)
@@ -797,16 +780,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Sin(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Sin(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalSinhFunction(Func<int, object?> evalArg, out object? result)
@@ -818,16 +799,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Sinh(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Sinh(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalSqrtFunction(Func<int, object?> evalArg, out object? result)
@@ -839,17 +818,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = number < 0 ? null : Math.Sqrt(number);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalTanhFunction(Func<int, object?> evalArg, out object? result)
@@ -861,16 +837,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Tanh(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Tanh(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalAcoshFunction(Func<int, object?> evalArg, out object? result)
@@ -882,17 +856,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = number < 1d ? null : Math.Log(number + Math.Sqrt((number - 1d) * (number + 1d)));
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalAsinhFunction(Func<int, object?> evalArg, out object? result)
@@ -904,17 +875,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = Math.Log(number + Math.Sqrt(number * number + 1d));
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalAtanhFunction(Func<int, object?> evalArg, out object? result)
@@ -926,17 +894,14 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var number))
         {
-            var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
             result = Math.Abs(number) >= 1d ? null : 0.5d * Math.Log((1d + number) / (1d - number));
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 
     private static bool TryEvalTanFunction(Func<int, object?> evalArg, out object? result)
@@ -948,15 +913,13 @@ internal static class AstQuerySharedNumericFunctionEvaluator
             return true;
         }
 
-        try
+        if (TryConvertToDouble(value, out var d))
         {
-            result = Math.Tan(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            result = Math.Tan(d);
             return true;
         }
-        catch
-        {
-            result = null;
-            return true;
-        }
+
+        result = null;
+        return true;
     }
 }

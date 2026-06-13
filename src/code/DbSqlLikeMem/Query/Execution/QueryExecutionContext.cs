@@ -108,11 +108,13 @@ internal sealed class QueryExecutionContext
     private readonly Dictionary<string, object?> _temporalZeroArgCallCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly bool _oracleEmptyStringAsNull;
     private readonly bool _sqliteDecimalRoundTrip;
-    private readonly Dictionary<string, object?> _namedParameterValues;
-    private readonly object?[] _positionalParameterValues;
-    private readonly object?[] _orderedParameterValues;
+    private Dictionary<string, object?>? _namedParameterValues;
+    private object?[]? _positionalParameterValues;
+    private object?[]? _orderedParameterValues;
     private int _positionalParameterScopeDepth;
     private int _orderedParameterCursor;
+    private bool _parametersBuilt;
+    private readonly object _parametersLock = new();
 
     /// <summary>
     /// EN: Creates a query execution context from a connection, dialect, and parameter collection.
@@ -146,7 +148,6 @@ internal sealed class QueryExecutionContext
         var providerName = connection.ProviderExecutionDialect.Name;
         _oracleEmptyStringAsNull = string.Equals(providerName, "oracle", StringComparison.OrdinalIgnoreCase);
         _sqliteDecimalRoundTrip = string.Equals(providerName, "sqlite", StringComparison.OrdinalIgnoreCase);
-        BuildParameterLookupCaches(parameters, out _namedParameterValues, out _positionalParameterValues, out _orderedParameterValues);
     }
 
     private QueryExecutionContext(
@@ -262,7 +263,9 @@ internal sealed class QueryExecutionContext
     /// <returns>EN: True when a positional parameter was consumed. PT-br: Verdadeiro quando um parametro posicional foi consumido.</returns>
     internal bool TryResolveNextPositionalParameter(out object? value)
     {
-        if (_positionalParameterValues.Length > 0)
+        EnsureParametersBuilt();
+
+        if (_positionalParameterValues!.Length > 0)
         {
             if ((uint)_positionalParameterCursor >= (uint)_positionalParameterValues.Length)
             {
@@ -276,7 +279,7 @@ internal sealed class QueryExecutionContext
 
         // Some providers use positional SQL markers but only expose named ADO.NET parameters.
         // In that case we fall back to command order for '?' resolution.
-        if ((uint)_orderedParameterCursor >= (uint)_orderedParameterValues.Length)
+        if ((uint)_orderedParameterCursor >= (uint)_orderedParameterValues!.Length)
         {
             value = null;
             return false;
@@ -301,14 +304,15 @@ internal sealed class QueryExecutionContext
     /// <param name="state">EN: Captured cursor positions. PT-br: Posicoes capturadas dos cursores.</param>
     internal void RestorePositionalParameterState((int PositionalParameterCursor, int OrderedParameterCursor) state)
     {
+        EnsureParametersBuilt();
         _positionalParameterCursor = state.PositionalParameterCursor < 0
             ? 0
-            : state.PositionalParameterCursor > _positionalParameterValues.Length
+            : state.PositionalParameterCursor > _positionalParameterValues!.Length
                 ? _positionalParameterValues.Length
                 : state.PositionalParameterCursor;
         _orderedParameterCursor = state.OrderedParameterCursor < 0
             ? 0
-            : state.OrderedParameterCursor > _orderedParameterValues.Length
+            : state.OrderedParameterCursor > _orderedParameterValues!.Length
                 ? _orderedParameterValues.Length
                 : state.OrderedParameterCursor;
     }
@@ -317,6 +321,21 @@ internal sealed class QueryExecutionContext
     /// EN: Resolves a named or positional parameter token against the current command parameters.
     /// PT-br: Resolve um token de parametro nomeado ou posicional contra os parametros atuais do comando.
     /// </summary>
+    private void EnsureParametersBuilt()
+    {
+        if (_parametersBuilt)
+            return;
+
+        lock (_parametersLock)
+        {
+            if (_parametersBuilt)
+                return;
+
+            BuildParameterLookupCaches(Parameters, out _namedParameterValues, out _positionalParameterValues, out _orderedParameterValues);
+            _parametersBuilt = true;
+        }
+    }
+
     internal bool TryResolveParameter(string parameterToken, out object? value)
     {
         value = null;
@@ -324,10 +343,12 @@ internal sealed class QueryExecutionContext
         if (string.IsNullOrWhiteSpace(parameterToken))
             return false;
 
+        EnsureParametersBuilt();
+
         if (parameterToken == "?")
             return TryResolveNextPositionalParameter(out value);
 
-        if (_namedParameterValues.TryGetValue(parameterToken, out value))
+        if (_namedParameterValues!.TryGetValue(parameterToken, out value))
             return true;
 
         var normalized = parameterToken.TrimStart('@', ':', '?');

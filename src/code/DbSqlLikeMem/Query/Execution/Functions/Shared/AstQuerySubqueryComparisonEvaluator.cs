@@ -32,6 +32,11 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
     private readonly Func<SubqueryExpr, string, EvalRow, IDictionary<string, Source>, List<object?>?> _getOrEvaluateSubqueryFirstColumnValuesForOperation = getOrEvaluateSubqueryFirstColumnValuesForOperation ?? throw new ArgumentNullException(nameof(getOrEvaluateSubqueryFirstColumnValuesForOperation));
     private readonly ConcurrentDictionary<SqlSelectQuery, string> _correlatedLookupCanonicalSqlCache = new(ReferenceEqualityComparer<SqlSelectQuery>.Instance);
 
+    private static readonly string[] _qanyNames = ((SqlBinaryOp[])Enum.GetValues(typeof(SqlBinaryOp)))
+        .Select(op => $"QANY_{op}").ToArray();
+    private static readonly string[] _qallNames = ((SqlBinaryOp[])Enum.GetValues(typeof(SqlBinaryOp)))
+        .Select(op => $"QALL_{op}").ToArray();
+
     internal bool EvalExists(
         ExistsExpr ex,
         EvalRow row,
@@ -180,7 +185,7 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
             return false;
 
         var keyPairCount = keyPairs.Count;
-        var cacheFields = new Dictionary<string, object?>(keyPairCount, StringComparer.OrdinalIgnoreCase);
+        var cacheFields = SqlRowPool.Get(keyPairCount, StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < keyPairCount; i++)
         {
             var outerExpr = keyPairs[i].OuterExpr;
@@ -506,9 +511,12 @@ internal sealed class AstQuerySubqueryComparisonEvaluator(
     }
 
     private static string BuildQuantifiedComparisonOperationName(QuantifiedComparisonExpr quantified)
-        => quantified.Quantifier == SqlQuantifier.Any
-            ? $"QANY_{quantified.Op}"
-            : $"QALL_{quantified.Op}";
+    {
+        var idx = (int)quantified.Op;
+        return quantified.Quantifier == SqlQuantifier.Any
+            ? (uint)idx < (uint)_qanyNames.Length ? _qanyNames[idx] : $"QANY_{quantified.Op}"
+            : (uint)idx < (uint)_qallNames.Length ? _qallNames[idx] : $"QALL_{quantified.Op}";
+    }
 
     private bool EvalAnyQuantifiedComparison(
         SqlBinaryOp op,

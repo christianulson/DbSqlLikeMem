@@ -106,6 +106,13 @@ internal static partial class CommandScalarExecutionPrelude
                 case SqlBinaryOp.LessOrEqual:
                 case SqlBinaryOp.NullSafeEq:
                     return TryEvaluateConstantComparisonBinaryExpression(op, left, right, out value);
+                case SqlBinaryOp.FullTextMatch:
+                    return TryEvaluateConstantFullTextMatchExpression(left, right, out value);
+                case SqlBinaryOp.Modulo:
+                case SqlBinaryOp.Regexp:
+                case SqlBinaryOp.SoundLike:
+                case SqlBinaryOp.Is:
+                    return false;
                 default:
                     return false;
             }
@@ -232,6 +239,54 @@ internal static partial class CommandScalarExecutionPrelude
             }
 
             return false;
+        }
+
+        private static bool TryEvaluateConstantFullTextMatchExpression(
+            object? left,
+            object? right,
+            out object? value)
+        {
+            value = null;
+
+            if (IsNullish(left) || IsNullish(right))
+                return true;
+
+            var leftStr = left?.ToString() ?? string.Empty;
+            var rightStr = right?.ToString() ?? string.Empty;
+
+            if (rightStr.EndsWith("*") && rightStr.Length > 1)
+            {
+                var prefix = rightStr.Substring(0, rightStr.Length - 1);
+                value = leftStr.IndexOf(prefix, StringComparison.OrdinalIgnoreCase) >= 0;
+                return true;
+            }
+
+            if (TryEvalConstantNearOperator(leftStr, rightStr, out var nearValue))
+            {
+                value = nearValue;
+                return true;
+            }
+
+            value = leftStr.IndexOf(rightStr, StringComparison.OrdinalIgnoreCase) >= 0;
+            return true;
+        }
+
+        private static bool TryEvalConstantNearOperator(string leftStr, string rightStr, out bool result)
+        {
+            result = false;
+
+            if (!rightStr.StartsWith("NEAR(", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var closeParen = rightStr.LastIndexOf(')');
+            if (closeParen < 0)
+                return false;
+
+            var inner = rightStr.Substring(5, closeParen - 5);
+            var terms = inner.Split([' ', ','], StringSplitOptions.RemoveEmptyEntries);
+
+            result = terms.Length > 0 && terms.All(t => leftStr.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0);
+            return true;
         }
     }
 }

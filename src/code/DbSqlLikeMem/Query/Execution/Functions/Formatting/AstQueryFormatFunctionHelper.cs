@@ -108,7 +108,7 @@ internal static class AstQueryFormatFunctionHelper
         var normalizedMask = mask!.ToUpperInvariant();
         var trimmed = text.Trim();
         var isNegative = false;
-        if (trimmed.StartsWith("(") && trimmed.EndsWith(")"))
+        if (trimmed.StartsWith('(') && trimmed.EndsWith(')'))
         {
             isNegative = true;
             trimmed = trimmed[1..^1];

@@ -2,6 +2,8 @@ namespace DbSqlLikeMem;
 
 internal static class SqlForJsonClauseHelper
 {
+    private static readonly Regex _sqlStringLiteral = new(@"^N?'(?:''|[^'])*'$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
     internal static SqlForJsonClause? TryParseForJsonClause(
         this SqlQueryParserContext ctx)
     {
@@ -161,7 +163,7 @@ internal static class SqlForJsonClauseHelper
         if (trimmed.Length == 0)
             throw new InvalidOperationException("FOR JSON ROOT requires a string literal root name.");
 
-        if (!Regex.IsMatch(trimmed, @"^N?'(?:''|[^'])*'$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+        if (!_sqlStringLiteral.IsMatch(trimmed))
             throw new InvalidOperationException("FOR JSON ROOT requires a string literal root name.");
 
         return SqlOpenJsonHelper.UnquoteSqlStringLiteral(trimmed);

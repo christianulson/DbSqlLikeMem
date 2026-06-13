@@ -84,12 +84,12 @@ public abstract class DbTransactionMockBase<TConnection>(
     /// <inheritdoc />
     protected override void Dispose(bool disposing)
     {
-        if (!_disposed)
-            _disposed = true;
-
-        if (_completed)
+        if (_disposed)
             return;
 
-        base.Dispose(disposing);
+        if (disposing && !_completed)
+            base.Dispose(disposing);
+
+        _disposed = true;
     }
 }

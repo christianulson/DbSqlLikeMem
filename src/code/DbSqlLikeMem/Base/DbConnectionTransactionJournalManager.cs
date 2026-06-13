@@ -180,15 +180,15 @@ internal sealed class DbConnectionTransactionJournalManager
             entry.Table!.RestoreRowSnapshot(
                 entry.Row!,
                 MergeConcurrentUpdateRollback(
-                    entry.Row!,
-                    entry.OldRowSnapshot,
-                    entry.NewRowSnapshot));
+                    new ArrayRow(entry.Row!),
+                    new ArrayRow(entry.OldRowSnapshot),
+                    new ArrayRow(entry.NewRowSnapshot)));
         }
         else
         {
             entry.Table!.RestoreRowSnapshot(
                 entry.Row!,
-                entry.OldRowSnapshot ?? new Dictionary<int, object?>());
+                entry.OldRowSnapshot is not null ? new ArrayRow(entry.OldRowSnapshot) : new Dictionary<int, object?>());
         }
     }
 
@@ -322,7 +322,7 @@ internal sealed class DbConnectionTransactionJournalManager
     }
 
     private static IReadOnlyDictionary<int, object?> MergeConcurrentUpdateRollback(
-        IDictionary<int, object?> currentRow,
+        IReadOnlyDictionary<int, object?> currentRow,
         IReadOnlyDictionary<int, object?> oldSnapshot,
         IReadOnlyDictionary<int, object?> newSnapshot)
     {

@@ -53,8 +53,8 @@ public abstract class DbConnectionMockBase(
         TableMock Table,
         TransactionJournalEntryKind Kind,
         int RowIndex,
-        Dictionary<int, object?>? Row,
-        Dictionary<int, object?>? OldRowSnapshot,
+        object?[]? Row,
+        object?[]? OldRowSnapshot,
         int PreviousNextIdentity,
         TransactionTableRegistrationKind RegistrationKind,
         string RegistrationKey,
@@ -64,7 +64,7 @@ public abstract class DbConnectionMockBase(
         TransactionFunctionState? FunctionState = null,
         TransactionProcedureState? ProcedureState = null,
         TransactionTriggerState? TriggerState = null,
-        Dictionary<int, object?>? NewRowSnapshot = null);
+        object?[]? NewRowSnapshot = null);
 
     internal sealed record TransactionViewState(
         string SchemaName,
@@ -98,6 +98,7 @@ public abstract class DbConnectionMockBase(
     private readonly DbConnectionTransactionStateManager _transactionState = new();
     private readonly DbConnectionSessionStateManager _sessionState = new();
     private readonly DbConnectionTransactionJournalManager _transactionJournalManager = new();
+    private readonly Dictionary<ITableMock, TransactionTableRegistrationKind> _tableRegistrationCache = new();
     private DbConnectionSchemaSnapshotBridge? _schemaSnapshotBridge;
     private static readonly AsyncLocal<DbConnectionMockBase?> _ambientMutationConnection = new();
 
@@ -136,9 +137,9 @@ public abstract class DbConnectionMockBase(
     private object? _lastInsertId;
     private readonly ISqlDialect _providerSqlDialect = db.Dialect;
     private readonly ISqlDialect _autoSqlDialect = AutoDialectFactory.Create(db.Version);
-    private readonly HashSet<string> _runtimeFunctions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, DbFunctionDef> _runtimeFunctionDefinitions = new(StringComparer.OrdinalIgnoreCase);
-    private string? _currentQueryText;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _runtimeFunctions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DbFunctionDef> _runtimeFunctionDefinitions = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly AsyncLocal<string?> _ambientCurrentQueryText = new();
     private static readonly AsyncLocal<TableTriggerEvent?> _ambientTriggerEvent = new();
 
     internal void ClearExecutionPlans()
@@ -172,7 +173,7 @@ public abstract class DbConnectionMockBase(
     }
 
     internal string? GetCurrentQueryText()
-        => _currentQueryText;
+        => _ambientCurrentQueryText.Value;
 
     internal IDisposable BeginCurrentQueryScope(string? sql)
         => new CurrentQueryScope(this, sql);
@@ -531,9 +532,9 @@ public abstract class DbConnectionMockBase(
         public CurrentQueryScope(DbConnectionMockBase connection, string? sql)
         {
             _connection = connection;
-            _previousQueryText = connection._currentQueryText;
+            _previousQueryText = _ambientCurrentQueryText.Value;
             _previousMutationConnection = _ambientMutationConnection.Value;
-            connection._currentQueryText = sql;
+            _ambientCurrentQueryText.Value = sql;
             _ambientMutationConnection.Value = connection;
         }
 
@@ -542,7 +543,7 @@ public abstract class DbConnectionMockBase(
             if (_connection is null)
                 return;
 
-            _connection._currentQueryText = _previousQueryText;
+            _ambientCurrentQueryText.Value = _previousQueryText;
             _ambientMutationConnection.Value = _previousMutationConnection;
             _connection = null;
         }
@@ -572,24 +573,24 @@ public abstract class DbConnectionMockBase(
     internal void SetLastFoundRows(long value)
     {
         var normalized = Math.Max(0, value);
-        _lastFoundRows = normalized;
-        _lastChangesRows = normalized;
+        System.Threading.Interlocked.Exchange(ref _lastFoundRows, normalized);
+        System.Threading.Interlocked.Exchange(ref _lastChangesRows, normalized);
     }
 
     internal void SetLastSelectRows(long value)
-        => _lastFoundRows = Math.Max(0, value);
+        => System.Threading.Interlocked.Exchange(ref _lastFoundRows, Math.Max(0, value));
 
     internal long GetLastFoundRows()
-        => _lastFoundRows;
+        => System.Threading.Interlocked.Read(ref _lastFoundRows);
 
     internal long GetLastChangesRows()
-        => _lastChangesRows;
+        => System.Threading.Interlocked.Read(ref _lastChangesRows);
 
     internal void SetLastInsertId(object? value)
-        => _lastInsertId = value;
+        => System.Threading.Volatile.Write(ref _lastInsertId, value);
 
     internal object? GetLastInsertId()
-        => _lastInsertId;
+        => System.Threading.Volatile.Read(ref _lastInsertId);
 
     internal int GetCurrentTransactionId()
         => _transactionState.CurrentTransactionId;
@@ -708,7 +709,8 @@ public abstract class DbConnectionMockBase(
         return db.GetSchemaName(null);
     }
 
-    private string _connectionString = "";
+    private static int _nextConnectionId;
+    private string _connectionString = $"DbMock Id={System.Threading.Interlocked.Increment(ref _nextConnectionId)}";
 
     private static string ParseConnectionStringDataSource(string connectionString)
     {
@@ -819,7 +821,7 @@ public abstract class DbConnectionMockBase(
         string? schemaName)
     {
         var schema = Db.GetSchemaName(schemaName ?? Database);
-        return $"{schema}:{tableName.NormalizeName()}";
+        return string.Concat(schema, ":", tableName.NormalizeName());
     }
 
     private IEnumerable<ITableMock> ListTemporaryTables(
@@ -849,6 +851,7 @@ public abstract class DbConnectionMockBase(
         IEnumerable<Dictionary<int, object?>>? rows = null,
         string? schemaName = null)
     {
+        _tableRegistrationCache.Clear();
         var schemaKey = Db.GetSchemaName(schemaName ?? Database);
         var key = BuildTemporaryTableKey(tableName, schemaKey);
         if (!Db.TryGetValue(schemaKey, out var schemaMock) || schemaMock == null)
@@ -872,7 +875,7 @@ public abstract class DbConnectionMockBase(
                 table.AddRange(clonedRows);
             }
         }
-        ClearSelectPlanCache();
+        // Temporary tables are connection-scoped and do not affect cached plans for permanent tables.
         return table;
     }
 
@@ -1002,7 +1005,6 @@ public abstract class DbConnectionMockBase(
         {
             var connectionTable = CreateConnectionGlobalTemporaryTable(tableName, columns, materializedRows, schemaName);
             _globalTemporaryTables[key] = connectionTable;
-            ClearSelectPlanCache();
             return connectionTable;
         }
 
@@ -1043,7 +1045,6 @@ public abstract class DbConnectionMockBase(
             table.AddRange(clonedRows);
         }
 
-        ClearSelectPlanCache();
         return table;
     }
 
@@ -1078,6 +1079,7 @@ public abstract class DbConnectionMockBase(
             }
 
             _globalTemporaryTables.Remove(key);
+            _tableRegistrationCache.Clear();
             tb = null;
             return false;
         }
@@ -1236,25 +1238,28 @@ public abstract class DbConnectionMockBase(
 
     private TransactionTableRegistrationKind GetRegistrationKind(TableMock table)
     {
+        if (_tableRegistrationCache.TryGetValue(table, out var cached))
+            return cached;
+
         foreach (var candidate in _temporaryTables.Values)
         {
             if (ReferenceEquals(candidate, table))
-                return TransactionTableRegistrationKind.ConnectionTemporary;
+                return _tableRegistrationCache[table] = TransactionTableRegistrationKind.ConnectionTemporary;
         }
 
         foreach (var candidate in Db.ListGlobalTemporaryTables(table.Schema.SchemaName))
         {
             if (ReferenceEquals(candidate, table))
-                return TransactionTableRegistrationKind.GlobalTemporary;
+                return _tableRegistrationCache[table] = TransactionTableRegistrationKind.GlobalTemporary;
         }
 
         foreach (var candidate in _globalTemporaryTables.Values)
         {
             if (ReferenceEquals(candidate, table))
-                return TransactionTableRegistrationKind.GlobalTemporary;
+                return _tableRegistrationCache[table] = TransactionTableRegistrationKind.GlobalTemporary;
         }
 
-        return TransactionTableRegistrationKind.Schema;
+        return _tableRegistrationCache[table] = TransactionTableRegistrationKind.Schema;
     }
 
     private string GetRegistrationKey(TableMock table, TransactionTableRegistrationKind registrationKind)
@@ -1535,6 +1540,7 @@ public abstract class DbConnectionMockBase(
                     temporaryKey);
             }
             _globalTemporaryTables.Remove(temporaryKey);
+            _tableRegistrationCache.Clear();
             Db.DropGlobalTemporaryTable(tableName, ifExists, targetSchema);
             ClearSelectPlanCache();
             return;
@@ -1555,6 +1561,7 @@ public abstract class DbConnectionMockBase(
                 }
 
                 _temporaryTables.Remove(temporaryKey);
+                _tableRegistrationCache.Clear();
                 ClearSelectPlanCache();
                 return;
             }
@@ -1743,7 +1750,7 @@ public abstract class DbConnectionMockBase(
     internal bool ContainsRuntimeFunction(string functionName)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        return _runtimeFunctions.Contains(functionName.NormalizeName());
+        return _runtimeFunctions.ContainsKey(functionName.NormalizeName());
     }
 
     internal bool TryGetRuntimeFunction(
@@ -1768,12 +1775,12 @@ public abstract class DbConnectionMockBase(
 
         if (runtimeDefinition is null)
         {
-            _runtimeFunctions.Remove(functionName.NormalizeName());
-            _runtimeFunctionDefinitions.Remove(functionName.NormalizeName());
+            _runtimeFunctions.TryRemove(functionName.NormalizeName(), out _);
+            _runtimeFunctionDefinitions.TryRemove(functionName.NormalizeName(), out _);
         }
         else
         {
-            _runtimeFunctions.Add(functionName.NormalizeName());
+            _runtimeFunctions.TryAdd(functionName.NormalizeName(), 0);
             _runtimeFunctionDefinitions[functionName.NormalizeName()] = runtimeDefinition;
         }
 
@@ -2352,6 +2359,7 @@ public abstract class DbConnectionMockBase(
         }
 
         _temporaryTables.Clear();
+        _tableRegistrationCache.Clear();
 
         if (!Db.GlobalTemporaryTablesShareRowsAcrossConnections)
         {
@@ -2365,8 +2373,9 @@ public abstract class DbConnectionMockBase(
         }
 
         _globalTemporaryTables.Clear();
+        _tableRegistrationCache.Clear();
         _sessionState.ClearAll();
-        _lastInsertId = 0;
+        SetLastInsertId(0);
         SetLastFoundRows(0);
         ClearExecutionPlans();
         ClearSelectPlanCache();
@@ -2560,9 +2569,13 @@ public abstract class DbConnectionMockBase(
 
     private void AttachTransactionJournalToCurrentTables()
     {
+        var tables = Db.ListAllTablesBestEffort();
+        if (tables.Count == 0 && _globalTemporaryTables.Count == 0 && _temporaryTables.Count == 0)
+            return;
+
         var seenTables = new HashSet<ITableMock>(TableReferenceComparer.Instance);
 
-        AttachTransactionJournalToCurrentTables(Db.ListAllTablesBestEffort(), seenTables);
+        AttachTransactionJournalToCurrentTables(tables, seenTables);
         AttachTransactionJournalToCurrentTables(_globalTemporaryTables.Values, seenTables);
         AttachTransactionJournalToCurrentTables(_temporaryTables.Values, seenTables);
     }
@@ -2614,7 +2627,7 @@ public abstract class DbConnectionMockBase(
             mutation.PreviousNextIdentity,
             registrationKind,
             GetRegistrationKey(mutation.Table, registrationKind),
-            NewRowSnapshot: mutation.Kind == TableMutationKind.Update ? TableMock.CloneRow(mutation.Row) : null));
+            NewRowSnapshot: mutation.Kind == TableMutationKind.Update ? TableMock.CloneRow(new ArrayRow(mutation.Row)) : null));
     }
 
     private void RollbackJournalTo(int journalPosition)
@@ -2689,15 +2702,15 @@ public abstract class DbConnectionMockBase(
             entry.Table!.RestoreRowSnapshot(
                 entry.Row!,
                 MergeConcurrentUpdateRollback(
-                    entry.Row!,
-                    entry.OldRowSnapshot,
-                    entry.NewRowSnapshot));
+                    new ArrayRow(entry.Row!),
+                    new ArrayRow(entry.OldRowSnapshot),
+                    new ArrayRow(entry.NewRowSnapshot)));
         }
         else
         {
             entry.Table!.RestoreRowSnapshot(
                 entry.Row!,
-                entry.OldRowSnapshot ?? new Dictionary<int, object?>());
+                entry.OldRowSnapshot is not null ? new ArrayRow(entry.OldRowSnapshot) : new Dictionary<int, object?>());
         }
     }
 
@@ -2854,9 +2867,11 @@ public abstract class DbConnectionMockBase(
         {
             case TransactionTableRegistrationKind.ConnectionTemporary:
                 _temporaryTables.Remove(registrationKey);
+                _tableRegistrationCache.Clear();
                 break;
             case TransactionTableRegistrationKind.GlobalTemporary:
                 _globalTemporaryTables.Remove(registrationKey);
+                _tableRegistrationCache.Clear();
                 Db.RemoveGlobalTemporaryTable(table.TableName, table.Schema.SchemaName);
                 break;
             default:
@@ -2897,7 +2912,7 @@ public abstract class DbConnectionMockBase(
     }
 
     private static IReadOnlyDictionary<int, object?> MergeConcurrentUpdateRollback(
-        IDictionary<int, object?> currentRow,
+        IReadOnlyDictionary<int, object?> currentRow,
         IReadOnlyDictionary<int, object?> oldSnapshot,
         IReadOnlyDictionary<int, object?> newSnapshot)
     {
@@ -2993,6 +3008,7 @@ public abstract class DbConnectionMockBase(
         }
 
         _temporaryTables.Clear();
+        _tableRegistrationCache.Clear();
 
         foreach (var table in _globalTemporaryTables.Values)
         {
@@ -3003,6 +3019,7 @@ public abstract class DbConnectionMockBase(
         }
 
         _globalTemporaryTables.Clear();
+        _tableRegistrationCache.Clear();
     }
 
     internal void MaybeDelayOrDrop()
@@ -3037,6 +3054,7 @@ public abstract class DbConnectionMockBase(
             CurrentTransaction?.Dispose();
             _temporaryTables.Clear();
             _globalTemporaryTables.Clear();
+            _tableRegistrationCache.Clear();
         }
 
         _disposed = true;

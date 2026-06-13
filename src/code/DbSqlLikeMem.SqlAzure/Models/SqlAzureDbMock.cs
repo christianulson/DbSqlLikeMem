@@ -28,6 +28,6 @@ public class SqlAzureDbMock : SqlServerDbMock
     /// </summary>
     protected override SchemaMock NewSchema(
         string schemaName,
-        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null)
         => new SqlAzureSchemaMock(schemaName, this, tables);
 }

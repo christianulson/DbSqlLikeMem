@@ -4,6 +4,8 @@ namespace DbSqlLikeMem;
 
 internal static class AstQuerySubqueryLookupSupport
 {
+    private static readonly ConcurrentDictionary<string, string> _uncorrelatedSubqueryCacheKeys = new(StringComparer.Ordinal);
+
     internal static bool TryBuildCorrelatedLookupCompositeKey(
         IReadOnlyList<CorrelatedLookupKeyPair> keyPairs,
         EvalRow row,
@@ -82,6 +84,31 @@ internal static class AstQuerySubqueryLookupSupport
         row.CorrelatedCacheKeys ??= new Dictionary<string, string>(StringComparer.Ordinal);
         row.CorrelatedCacheKeys[cacheKey] = built;
         return built;
+    }
+
+    internal static bool TryBuildUncorrelatedSubqueryCacheKey(
+        string operation,
+        SubqueryExpr sq,
+        EvalRow row,
+        IDictionary<string, Source> ctes,
+        Func<SqlTableSource, IDictionary<string, Source>, Source> resolveSource,
+        out string cacheKey)
+    {
+        cacheKey = string.Empty;
+        if (!AstQuerySubqueryCorrelationAnalyzer.CanReuseWithoutOuterRow(sq, row, ctes, resolveSource))
+            return false;
+
+        var rawSql = sq.Sql ?? string.Empty;
+        var rawCacheKey = string.Concat(operation, '\u001F', rawSql);
+        cacheKey = _uncorrelatedSubqueryCacheKeys.GetOrAdd(
+            rawCacheKey,
+            _ => string.Concat(
+                operation,
+                '\u001F',
+                "UNCORRELATED",
+                '\u001F',
+                SqlQueryAstCache.NormalizeSql(rawSql)));
+        return true;
     }
 
     internal static SqlQueryBase LimitToSingleRow(SqlQueryBase query)

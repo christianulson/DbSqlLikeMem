@@ -57,7 +57,7 @@ public abstract partial class BenchmarkSessionBase
     [BenchmarkFeature(BenchmarkFeatureId.ApproxCountDistinct)]
     protected virtual void RunApproxCountDistinct()
     {
-        var state = GetPreparedNoopQueryState("NoopQuery");
+        var state = GetPreparedUsersQueryState("ApproxCountDistinct", (1, "Ana"), (2, "Bob"));
         var value = state.Service.RunApproxCountDistinctAsync().GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }

@@ -7,32 +7,24 @@ internal static class AstQueryRowSourceHelper
     internal static EvalRow CreateSourceEvalRow(Source source, Dictionary<string, object?> fields)
     {
         var sourceColumns = source.ColumnNames;
-        var ordinalValues = new object?[sourceColumns.Count];
-        var ordinalIndexes = new Dictionary<string, int>(sourceColumns.Count * 3, StringComparer.OrdinalIgnoreCase);
+        var ordinalValues = OrdinalPool.Rent(sourceColumns.Count);
+        var ordinalIndexes = source.SourceOrdinalIndexes;
+
+        var pooledFields = SqlRowPool.Get(fields.Count);
+        foreach (var kvp in fields)
+            pooledFields[kvp.Key] = kvp.Value;
+
         for (var i = 0; i < sourceColumns.Count; i++)
         {
-            var columnName = sourceColumns[i];
-            var qualifiedName = $"{source.Alias}.{columnName}";
-            var value = fields.TryGetValue(qualifiedName, out var current) ? current : null;
-            ordinalValues[i] = value;
-            ordinalIndexes.TryAdd(qualifiedName, i);
-            ordinalIndexes.TryAdd(columnName, i);
-            if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
-                ordinalIndexes.TryAdd($"{source.Name}.{columnName}", i);
+            var qualifiedName = source.GetQualifiedColumnName(i);
+            ordinalValues[i] = fields.TryGetValue(qualifiedName, out var current) ? current : null;
         }
 
-        var rowSources = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase)
-        {
-            [source.Alias] = source
-        };
-        if (!source.Name.Equals(source.Alias, StringComparison.OrdinalIgnoreCase))
-            rowSources[source.Name] = source;
-
-        return new EvalRow(fields, rowSources)
+        return new EvalRow(pooledFields, source.SourceDict)
         {
             OrdinalValues = ordinalValues,
             OrdinalIndexes = ordinalIndexes,
-            SingleSource = source
+            SingleSource = source.SourceDict.Count == 1 ? source : null
         };
     }
 }

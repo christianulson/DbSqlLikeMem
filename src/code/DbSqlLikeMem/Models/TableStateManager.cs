@@ -2,26 +2,26 @@ namespace DbSqlLikeMem;
 
 internal sealed class TableStateManager(TableMock table)
 {
-    private List<Dictionary<int, object?>>? _backup;
+    private List<object?[]>? _backup;
 
-    internal int FindRowIndexByReference(Dictionary<int, object?> row)
+    internal int FindRowIndexByReference(object?[] row)
         => table.FindRowIndexByReferenceCore(row);
 
-    internal void RemoveRowByReference(Dictionary<int, object?> row)
+    internal void RemoveRowByReference(object?[] row)
     {
         var rowIndex = FindRowIndexByReference(row);
         if (rowIndex >= 0)
             table.RemoveRowByReferenceCore(rowIndex);
     }
 
-    internal void InsertRestoredRow(int rowIndex, Dictionary<int, object?> row)
+    internal void InsertRestoredRow(int rowIndex, object?[] row)
         => table.InsertRestoredRowCore(rowIndex, row);
 
     internal void RestoreRowSnapshot(
-        Dictionary<int, object?> targetRow,
+        object?[] targetRow,
         IReadOnlyDictionary<int, object?> snapshot)
     {
-        targetRow.Clear();
+        Array.Clear(targetRow, 0, targetRow.Length);
         foreach (var entry in snapshot)
             targetRow[entry.Key] = entry.Value;
     }
@@ -34,7 +34,7 @@ internal sealed class TableStateManager(TableMock table)
 
     internal void Backup()
     {
-        var backup = new List<Dictionary<int, object?>>(table.Count);
+        var backup = new List<object?[]>(table.Count);
         for (var i = 0; i < table.Count; i++)
             backup.Add(TableMock.CloneRow(table[i]));
 
@@ -48,7 +48,7 @@ internal sealed class TableStateManager(TableMock table)
 
         table.ClearRowsCore();
         foreach (var row in _backup)
-            table.InsertRestoredRowCore(table.Count, TableMock.CloneRow(row));
+            table.InsertRestoredRowCore(table.Count, TableMock.CloneRow(new ArrayRow(row)));
 
         table.IndexManager.RebuildPkIndex();
         table.IndexManager.MarkAllIndexesDirty();

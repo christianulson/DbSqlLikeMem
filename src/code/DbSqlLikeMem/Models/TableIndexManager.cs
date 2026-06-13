@@ -140,13 +140,13 @@ internal sealed class TableIndexManager(TableMock table)
         table.PrimaryKeyLookup[BuildPkKey(row)] = rowIndex;
     }
 
-    internal void RegisterPrimaryKeys(int startIndex, IReadOnlyList<Dictionary<int, object?>> rows)
+    internal void RegisterPrimaryKeys(int startIndex, IReadOnlyList<object?[]> rows)
     {
         if (table.PrimaryKeyIndexes.Count == 0)
             return;
 
         for (var rowOffset = 0; rowOffset < rows.Count; rowOffset++)
-            table.PrimaryKeyLookup[BuildPkKey(rows[rowOffset])] = startIndex + rowOffset;
+            table.PrimaryKeyLookup[BuildPkKey(new ArrayRow(rows[rowOffset]))] = startIndex + rowOffset;
     }
 
     internal void RemovePrimaryKey(int rowIndex, IReadOnlyDictionary<int, object?> row)
@@ -259,6 +259,7 @@ internal sealed class TableIndexManager(TableMock table)
         if (unique)
             table.UniqueIndexesMutable.Add(idx);
         table.IndexVersionValue++;
+        table.InvalidateIndexesCache();
         return idx;
     }
 
@@ -275,6 +276,7 @@ internal sealed class TableIndexManager(TableMock table)
                 table.UniqueIndexesMutable.RemoveAll(index => string.Equals(index.Name, name, StringComparison.OrdinalIgnoreCase));
 
             table.IndexVersionValue++;
+            table.InvalidateIndexesCache();
             return;
         }
 
@@ -334,6 +336,19 @@ internal sealed class TableIndexManager(TableMock table)
             index.UpdateIndexesWithRow(rowIdx, oldRow, newRow);
     }
 
+    internal void UpdateIndexesWithRow(
+        int rowIdx,
+        object?[]? oldRow,
+        IReadOnlyDictionary<int, object?> newRow)
+    {
+        if (table.IndexesMutable.Count == 0)
+            return;
+
+        var oldRowDict = oldRow is not null ? new ArrayRow(oldRow) : null;
+        foreach (var index in table.IndexesMutable.Values)
+            index.UpdateIndexesWithRow(rowIdx, oldRowDict, newRow);
+    }
+
     internal void RebuildAllIndexes()
     {
         if (table.IndexesMutable.Count == 0)
@@ -358,7 +373,7 @@ internal sealed class TableIndexManager(TableMock table)
             ix.MarkDirty();
     }
 
-    internal void EnsureUniqueOnInsert(Dictionary<int, object?> newRow)
+    internal void EnsureUniqueOnInsert(IReadOnlyDictionary<int, object?> newRow)
     {
         CheckUniquePrimary(newRow, table.Count > 0);
 
@@ -372,7 +387,7 @@ internal sealed class TableIndexManager(TableMock table)
     }
 
     internal void EnsurePrimaryKeyUniqueOnInsert(
-        Dictionary<int, object?> newRow,
+        IReadOnlyDictionary<int, object?> newRow,
         HashSet<IndexKey> batchPrimaryKeys)
     {
         if (table.PrimaryKeyIndexes.Count == 0)
@@ -526,7 +541,7 @@ internal sealed class TableIndexManager(TableMock table)
         return true;
     }
 
-    private void CheckUniquePrimary(Dictionary<int, object?> newRow, bool hasExistingRows)
+    private void CheckUniquePrimary(IReadOnlyDictionary<int, object?> newRow, bool hasExistingRows)
     {
         if (table.PrimaryKeyIndexes.Count <= 0)
             return;

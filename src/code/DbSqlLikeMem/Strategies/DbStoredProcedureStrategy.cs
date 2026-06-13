@@ -2,6 +2,8 @@ namespace DbSqlLikeMem;
 
 internal static class DbStoredProcedureStrategy
 {
+    private static readonly Regex _callProc = new(@"^CALL\s+(`?)(?<name>[A-Za-z0-9_]+)\1\s*(\((?<args>.*)\))?\s*;?\s*$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
     /// <summary>
     /// EN: Implements ExecuteStoredProcedure.
     /// PT-br: Implementa ExecuteStoredProcedure.
@@ -45,9 +47,7 @@ internal static class DbStoredProcedureStrategy
         DbParameterCollection parameters)
     {
         // Supports: CALL proc(@p1, @p2)
-        var m = Regex.Match(callSql.Trim(),
-            @"^CALL\s+(`?)(?<name>[A-Za-z0-9_]+)\1\s*(\((?<args>.*)\))?\s*;?\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var m = _callProc.Match(callSql.Trim());
         if (!m.Success)
             throw new InvalidOperationException(SqlExceptionMessages.InvalidCallStatement());
 

@@ -57,6 +57,20 @@ internal static class AstQuerySelectExecutionHelper
             _ => joinType.ToString().ToUpperInvariant()
         };
 
+    private static readonly System.Collections.Concurrent.ConcurrentBag<StringBuilder> _sbPool = new();
+
+    private static StringBuilder RentStringBuilder(int capacity)
+    {
+        if (_sbPool.TryTake(out var sb))
+        {
+            sb.Clear();
+            return sb;
+        }
+        return new StringBuilder(capacity);
+    }
+
+    private static void ReturnStringBuilder(StringBuilder sb) => _sbPool.Add(sb);
+
     private static string? BuildSelectPlanCacheKey(
         this QueryExecutionContext context,
         SqlSelectQuery query,
@@ -66,27 +80,56 @@ internal static class AstQuerySelectExecutionHelper
             return null;
 
         var cacheDialect = context.Dialect ?? context.Connection.ExecutionDialect;
-        var sb = new StringBuilder(query.RawSql.Length + 160);
-        sb.Append(query.RawSql);
-        sb.Append("|dialect:");
-        sb.Append(cacheDialect.Name);
-        sb.Append(':');
-        sb.Append(cacheDialect.Version);
-        sb.Append("|schema:");
-        sb.Append(context.Connection.GetSelectPlanCacheGeneration());
-        sb.Append("|sources:");
-        sb.Append(sampleRows.Count);
-
-        if (sampleRows.Count == 0)
+        var sb = RentStringBuilder(query.RawSql.Length + 160);
+        try
         {
-            sb.Append("|<empty>");
-            return sb.ToString();
-        }
+            sb.Append(query.RawSql);
+            sb.Append("|dialect:");
+            sb.Append(cacheDialect.Name);
+            sb.Append(':');
+            sb.Append(cacheDialect.Version);
+            sb.Append("|schema:");
+            sb.Append(context.Connection.GetSelectPlanCacheGeneration());
+            sb.Append("|sources:");
+            sb.Append(sampleRows.Count);
 
-        var firstRow = sampleRows[0];
-        if (firstRow.Sources.Count <= 1)
-        {
+            if (sampleRows.Count == 0)
+            {
+                sb.Append("|<empty>");
+                return sb.ToString();
+            }
+
+            var firstRow = sampleRows[0];
+            if (firstRow.Sources.Count <= 1)
+            {
+                foreach (var sourceEntry in firstRow.Sources)
+                {
+                    sb.Append('|');
+                    sb.Append(sourceEntry.Key);
+                    sb.Append('=');
+                    sb.Append(sourceEntry.Value.Name);
+                    sb.Append('/');
+                    sb.Append(sourceEntry.Value.Alias);
+                    sb.Append(':');
+                    for (var i = 0; i < sourceEntry.Value.ColumnNames.Count; i++)
+                    {
+                        if (i > 0)
+                            sb.Append(',');
+
+                        sb.Append(sourceEntry.Value.ColumnNames[i]);
+                    }
+                }
+
+                return sb.ToString();
+            }
+
+            var sources = new List<KeyValuePair<string, Source>>(firstRow.Sources.Count);
             foreach (var sourceEntry in firstRow.Sources)
+                sources.Add(sourceEntry);
+
+            sources.Sort(static (left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Key, right.Key));
+
+            foreach (var sourceEntry in sources)
             {
                 sb.Append('|');
                 sb.Append(sourceEntry.Key);
@@ -106,31 +149,9 @@ internal static class AstQuerySelectExecutionHelper
 
             return sb.ToString();
         }
-
-        var sources = new List<KeyValuePair<string, Source>>(firstRow.Sources.Count);
-        foreach (var sourceEntry in firstRow.Sources)
-            sources.Add(sourceEntry);
-
-        sources.Sort(static (left, right) => StringComparer.OrdinalIgnoreCase.Compare(left.Key, right.Key));
-
-        foreach (var sourceEntry in sources)
+        finally
         {
-            sb.Append('|');
-            sb.Append(sourceEntry.Key);
-            sb.Append('=');
-            sb.Append(sourceEntry.Value.Name);
-            sb.Append('/');
-            sb.Append(sourceEntry.Value.Alias);
-            sb.Append(':');
-            for (var i = 0; i < sourceEntry.Value.ColumnNames.Count; i++)
-            {
-                if (i > 0)
-                    sb.Append(',');
-
-                sb.Append(sourceEntry.Value.ColumnNames[i]);
-            }
+            ReturnStringBuilder(sb);
         }
-
-        return sb.ToString();
     }
 }

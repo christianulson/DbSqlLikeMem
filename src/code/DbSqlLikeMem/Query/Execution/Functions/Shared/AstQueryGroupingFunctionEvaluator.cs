@@ -28,7 +28,7 @@ internal static class AstQueryGroupingFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        if (!string.Equals(context.Connection.ProviderExecutionDialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;
@@ -51,7 +51,7 @@ internal static class AstQueryGroupingFunctionEvaluator
             return false;
         }
 
-        if (!context.Dialect.TryGetScalarFunctionDefinition(fn.Name, out _))
+        if (!string.Equals(context.Connection.ProviderExecutionDialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase))
         {
             result = null;
             return false;

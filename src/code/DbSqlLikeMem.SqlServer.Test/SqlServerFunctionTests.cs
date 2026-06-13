@@ -98,8 +98,8 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
     }
 
     /// <summary>
-    /// EN: Ensures @@TEXTSIZE returns the default mock value across SQL Server versions.
-    /// PT-br: Garante que @@TEXTSIZE retorne o valor padrao do mock em todas as versoes do SQL Server.
+    /// EN: Ensures @@TEXTSIZE returns the SQL Server default value across versions.
+    /// PT-br: Garante que @@TEXTSIZE retorne o valor padrao do SQL Server em todas as versoes.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -111,12 +111,12 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
 
         var value = ExecuteScalar(connection, "SELECT @@TEXTSIZE FROM Users WHERE Id = 1");
 
-        Assert.Equal(4096, Convert.ToInt32(value, CultureInfo.InvariantCulture));
+        Assert.Equal(-1, Convert.ToInt32(value, CultureInfo.InvariantCulture));
     }
 
     /// <summary>
-    /// EN: Ensures NEWSEQUENTIALID returns a GUID across SQL Server versions.
-    /// PT-br: Garante que NEWSEQUENTIALID retorne um GUID em todas as versoes do SQL Server.
+    /// EN: Ensures NEWSEQUENTIALID returns a version 1 GUID across SQL Server versions.
+    /// PT-br: Garante que NEWSEQUENTIALID retorne um GUID de versao 1 em todas as versoes do SQL Server.
     /// </summary>
     /// <param name="version">EN: SQL Server dialect version under test. PT-br: Versão do dialeto SQL Server em teste.</param>
     [Theory]
@@ -131,7 +131,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
             ExecuteNonQuery(connection, "INSERT INTO SequentialGuidUsers (Id) VALUES (DEFAULT)");
 
             var value = ExecuteScalar(connection, "SELECT Id FROM SequentialGuidUsers");
-            Assert.True(Guid.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out _));
+            var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            Assert.True(Guid.TryParse(text, out _));
+            Assert.Equal('1', text.Split('-')[2][0]);
         }
         finally
         {
@@ -296,11 +298,11 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         Assert.Equal(53, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(isowk, '2021-01-01') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal("53", ExecuteScalar(connection, "SELECT DATENAME(isoww, '2021-01-01') FROM Users WHERE Id = 1"));
         Assert.Equal(310, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("310", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
+        Assert.Equal("+05:10", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
         Assert.Equal(310, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("310", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
+        Assert.Equal("+05:10", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, '2007-05-10 00:00:01.1234567 +05:10') FROM Users WHERE Id = 1"));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("0", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"));
+        Assert.Equal("+00:00", ExecuteScalar(connection, "SELECT DATENAME(tz, '2007-05-10T00:00:01.1234567Z') FROM Users WHERE Id = 1"));
         Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEADD(iso_week, 1, '2021-01-01') FROM Users WHERE Id = 1"));
         Assert.Throws<NotSupportedException>(() => ExecuteScalar(connection, "SELECT DATEDIFF(iso_week, '2021-01-01', '2021-01-08') FROM Users WHERE Id = 1"));
         if (version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion)
@@ -366,9 +368,9 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
             Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 10, 11, 12), TimeSpan.FromHours(2)), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00') FROM Users WHERE Id = 1")));
             Assert.Equal(new DateTimeOffset(new DateTime(2020, 2, 29, 9, 11, 12), TimeSpan.Zero), Assert.IsType<DateTimeOffset>(ExecuteScalar(connection, "SELECT SWITCHOFFSET('2020-02-29T10:11:12+01:00', '+00:00') FROM Users WHERE Id = 1")));
             Assert.Equal(120, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal("120", ExecuteScalar(connection, "SELECT DATENAME(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"));
+            Assert.Equal("+02:00", ExecuteScalar(connection, "SELECT DATENAME(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00')) FROM Users WHERE Id = 1"));
             Assert.Equal(-210, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30')) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-            Assert.Equal("-210", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30')) FROM Users WHERE Id = 1"));
+            Assert.Equal("-03:30", ExecuteScalar(connection, "SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30')) FROM Users WHERE Id = 1"));
         }
 
         if (version < SqlServerDialect.FromPartsMinVersion)
@@ -442,17 +444,17 @@ public sealed class SqlServerFunctionTests(ITestOutputHelper helper)
         connection.SetContextInfo([0x0A, 0x0B]);
 
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT GETANSINULL() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(4, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATALENGTH('AB') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(ExecuteScalar(connection, "SELECT DATALENGTH('AB') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING(1) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT GROUPING_ID(1, 2) FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         var expectedContextInfo = new byte[128];
         expectedContextInfo[0] = 0x0A;
         expectedContextInfo[1] = 0x0B;
         Assert.Equal(expectedContextInfo, Assert.IsType<byte[]>(ExecuteScalar(connection, "SELECT CONTEXT_INFO() FROM Users WHERE Id = 1")));
-        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal("localhost", ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
-        Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_ROLEMEMBER('db_datareader') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(System.Diagnostics.Process.GetCurrentProcess().Id, Convert.ToInt32(ExecuteScalar(connection, "SELECT HOST_ID() FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(Environment.MachineName, ExecuteScalar(connection, "SELECT HOST_NAME() FROM Users WHERE Id = 1"));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_MEMBER('db_owner') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
+        Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_ROLEMEMBER('db_datareader') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT IS_SRVROLEMEMBER('sysadmin') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(1, Convert.ToInt32(ExecuteScalar(connection, "SELECT ISDATE('2020-01-01') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));
         Assert.Equal(0, Convert.ToInt32(ExecuteScalar(connection, "SELECT ISDATE('invalid') FROM Users WHERE Id = 1"), CultureInfo.InvariantCulture));

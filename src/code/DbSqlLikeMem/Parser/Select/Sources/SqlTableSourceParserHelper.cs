@@ -8,6 +8,8 @@ namespace DbSqlLikeMem;
 /// </summary>
 internal static class SqlTableSourceParserHelper
 {
+    private static readonly Regex _simpleIdentifier = new(@"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant);
+
     /// <summary>
     /// EN: Parses a table source from the current context.
     /// PT-br: Faz o parsing de uma fonte de tabela a partir do contexto atual.
@@ -161,7 +163,7 @@ internal static class SqlTableSourceParserHelper
             if (dialect.IsKeyword(ident))
                 return true;
 
-            if (!Regex.IsMatch(ident, @"^[A-Za-z_#][A-Za-z0-9_$#]*$", RegexOptions.CultureInvariant))
+            if (!_simpleIdentifier.IsMatch(ident))
                 return true;
 
             return ident.Contains(' ')

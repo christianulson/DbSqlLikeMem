@@ -455,7 +455,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         var sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() => SqlQueryParser.Parse(sql, db, d));
+        var ex = Assert.Throws<NotSupportedException>(() => SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -689,7 +689,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -708,7 +708,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -727,7 +727,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -746,7 +746,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO NOTHING RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -818,7 +818,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -837,7 +837,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -856,7 +856,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE; DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -875,7 +875,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id = DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -894,7 +894,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -913,7 +913,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -932,7 +932,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -951,7 +951,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -970,7 +970,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING EXTRA";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -989,7 +989,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING FROM users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1008,7 +1008,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING USING users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1027,7 +1027,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING SET name = 'b'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1046,7 +1046,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING UPDATE SET name = 'b'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1065,7 +1065,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) WHERE id > 0 DO NOTHING WHERE id = 1";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1084,7 +1084,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1103,7 +1103,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1122,7 +1122,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1141,7 +1141,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1160,7 +1160,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1179,7 +1179,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1198,7 +1198,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1217,7 +1217,7 @@ public sealed class MySqlDialectFeatureParserTests(
 
         var d = Get(version, v => new MySqlDialect(v));
         var db = Get(version, v => new MySqlDbMock(v));
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1236,7 +1236,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0 DO NOTHING RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1255,7 +1255,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING FROM users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1274,7 +1274,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING USING users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1293,7 +1293,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING SET name = 'b'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1312,7 +1312,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING UPDATE SET name = 'b'";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1331,7 +1331,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING WHERE id = 1";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1350,7 +1350,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO NOTHING EXTRA";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1369,7 +1369,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1388,7 +1388,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1407,7 +1407,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1426,7 +1426,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1445,7 +1445,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name FROM users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1464,7 +1464,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name USING users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1483,7 +1483,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET FROM users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1502,7 +1502,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET USING users";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1521,7 +1521,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1540,7 +1540,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1559,7 +1559,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1578,7 +1578,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO SKIP";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1597,7 +1597,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1616,7 +1616,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1635,7 +1635,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET , name = EXCLUDED.name";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1654,7 +1654,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name,";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1673,7 +1673,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name updated_at = NOW()";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1692,7 +1692,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET SET name = EXCLUDED.name";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1711,7 +1711,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name EXCLUDED.name";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1730,7 +1730,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = (EXCLUDED.name";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1749,7 +1749,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1768,7 +1768,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1787,7 +1787,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1806,7 +1806,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1825,7 +1825,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1844,7 +1844,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1863,7 +1863,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1882,7 +1882,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1901,7 +1901,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1920,7 +1920,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1939,7 +1939,7 @@ public sealed class MySqlDialectFeatureParserTests(
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1963,7 +1963,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -1987,7 +1987,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2011,7 +2011,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2035,7 +2035,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2058,7 +2058,7 @@ ON CONFLICT ON CONSTRAINT users_pkey WHERE id > 0
 DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2082,7 +2082,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2106,7 +2106,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2130,7 +2130,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2154,7 +2154,7 @@ DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id
 RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2177,7 +2177,7 @@ ON CONFLICT (id) WHERE id > 0
 DO UPDATE SET name = EXCLUDED.name
 WHERE users.id = EXCLUDED.id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2196,7 +2196,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2215,7 +2215,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE; DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2234,7 +2234,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey WHERE id = DO NOTHING";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2253,7 +2253,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE; RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2272,7 +2272,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2291,7 +2291,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2310,7 +2310,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE id = RETURNING id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2329,7 +2329,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING id +";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2348,7 +2348,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING (id";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -2367,7 +2367,7 @@ WHERE users.id = EXCLUDED.id";
         var db = Get(version, v => new MySqlDbMock(v));
         const string sql = "INSERT INTO users (id, name) VALUES (1, 'a') ON CONFLICT ON CONSTRAINT users_pkey DO UPDATE SET name = EXCLUDED.name WHERE users.id = EXCLUDED.id RETURNING;";
 
-        var ex = Assert.Throws<InvalidOperationException>(() =>
+        var ex = Assert.Throws<NotSupportedException>(() =>
             SqlQueryParser.Parse(sql, db, d));
 
         Assert.Contains("ON DUPLICATE KEY UPDATE", ex.Message, StringComparison.OrdinalIgnoreCase);

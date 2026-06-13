@@ -2,100 +2,55 @@ namespace DbSqlLikeMem;
 
 internal static class AstQuerySharedTextFunctionEvaluator
 {
+    private delegate bool TextFunctionHandler(QueryExecutionContext context, FunctionCallExpr fn, Func<int, object?> evalArg, out object? result);
+
+    private static readonly Dictionary<string, TextFunctionHandler> _textFunctionDispatch = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ASCII"] = static (_, _, arg, out result) => TryEvalAsciiFunction(arg, out result),
+        ["CHAR"] = static (_, _, arg, out result) => TryEvalCharFunction(arg, out result),
+        ["NCHAR"] = static (_, _, arg, out result) => TryEvalCharFunction(arg, out result),
+        ["LIKE"] = static (ctx, fn, arg, out result) => TryEvalLikeFunction(ctx, fn, arg, out result),
+        ["LOWER"] = static (_, _, arg, out result) => TryEvalLowerFunction(arg, out result),
+        ["LCASE"] = static (_, _, arg, out result) => TryEvalLowerFunction(arg, out result),
+        ["UPPER"] = static (_, _, arg, out result) => TryEvalUpperFunction(arg, out result),
+        ["UCASE"] = static (_, _, arg, out result) => TryEvalUpperFunction(arg, out result),
+        ["TRIM"] = static (_, _, arg, out result) => TryEvalTrimFunction(arg, out result),
+        ["RTRIM"] = static (_, _, arg, out result) => TryEvalRTrimFunction(arg, out result),
+        ["LTRIM"] = static (_, _, arg, out result) => TryEvalLTrimFunction(arg, out result),
+        ["LENGTH"] = static (_, _, arg, out result) => TryEvalLengthFunction(arg, out result),
+        ["CHAR_LENGTH"] = static (_, _, arg, out result) => TryEvalLengthFunction(arg, out result),
+        ["CHARACTER_LENGTH"] = static (_, _, arg, out result) => TryEvalLengthFunction(arg, out result),
+        ["LEN"] = static (_, _, arg, out result) => TryEvalLengthFunction(arg, out result),
+        ["SUBSTRING"] = static (_, fn, arg, out result) => TryEvalSubstringFunction(fn, arg, out result),
+        ["SUBSTR"] = static (_, fn, arg, out result) => TryEvalSubstringFunction(fn, arg, out result),
+        ["MID"] = static (_, fn, arg, out result) => TryEvalSubstringFunction(fn, arg, out result),
+        ["LOCATE"] = static (ctx, fn, arg, out result) => TryEvalLocateFunction(ctx, fn, arg, out result),
+        [SqlConst.LEFT] = static (_, fn, arg, out result) => TryEvalLeftFunction(fn, arg, out result),
+        ["UNICODE"] = static (_, _, arg, out result) => TryEvalUnicodeFunction(arg, out result),
+        ["SPACE"] = static (_, _, arg, out result) => TryEvalSpaceFunction(arg, out result),
+        [SqlConst.RIGHT] = static (_, fn, arg, out result) => TryEvalRightFunction(fn, arg, out result),
+        ["INSTR"] = static (ctx, _, arg, out result) => TryEvalInstrFunction(ctx, arg, out result),
+        ["LPAD"] = static (_, fn, arg, out result) => TryEvalLpadFunction(fn, arg, out result),
+        ["REPLACE"] = static (_, _, arg, out result) => TryEvalReplaceFunction(arg, out result),
+        ["OVERLAY"] = static (_, fn, arg, out result) => TryEvalOverlayFunction(fn, arg, out result),
+        ["REVERSE"] = static (_, _, arg, out result) => TryEvalReverseFunction(arg, out result),
+        ["REPEAT"] = static (_, _, arg, out result) => TryEvalRepeatFunction(arg, out result),
+        ["TRANSLATE"] = static (_, fn, arg, out result) => TryEvalTranslateFunction(fn, arg, out result),
+        ["TRANSLATE...USING"] = static (_, fn, arg, out result) => TryEvalTranslateFunction(fn, arg, out result),
+        ["BIT_LENGTH"] = static (_, _, arg, out result) => TryEvalBitLengthFunction(arg, out result),
+        ["OCTET_LENGTH"] = static (_, _, arg, out result) => TryEvalOctetLengthFunction(arg, out result),
+        ["POSITION"] = static (_, _, arg, out result) => TryEvalPositionFunction(arg, out result),
+        ["RPAD"] = static (_, fn, arg, out result) => TryEvalPadRightFunction(fn, arg, out result),
+    };
+
     internal static bool TryEvaluate(
         QueryExecutionContext context,
         FunctionCallExpr fn,
         Func<int, object?> evalArg,
         out object? result)
     {
-        _ = context;
-
-        if (string.Equals(fn.Name, "ASCII", StringComparison.OrdinalIgnoreCase))
-            return TryEvalAsciiFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "CHAR", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "NCHAR", StringComparison.OrdinalIgnoreCase))
-            return TryEvalCharFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "LIKE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalLikeFunction(context, fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, "LOWER", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "LCASE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalLowerFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "UPPER", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "UCASE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalUpperFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "TRIM", StringComparison.OrdinalIgnoreCase))
-            return TryEvalTrimFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "RTRIM", StringComparison.OrdinalIgnoreCase))
-            return TryEvalRTrimFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "LTRIM", StringComparison.OrdinalIgnoreCase))
-            return TryEvalLTrimFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "LENGTH", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "CHAR_LENGTH", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "CHARACTER_LENGTH", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "LEN", StringComparison.OrdinalIgnoreCase))
-            return TryEvalLengthFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "SUBSTRING", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "SUBSTR", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "MID", StringComparison.OrdinalIgnoreCase))
-            return TryEvalSubstringFunction(fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, "LOCATE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalLocateFunction(context, fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, SqlConst.LEFT, StringComparison.OrdinalIgnoreCase))
-            return TryEvalLeftFunction(fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, "UNICODE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalUnicodeFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "SPACE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalSpaceFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, SqlConst.RIGHT, StringComparison.OrdinalIgnoreCase))
-            return TryEvalRightFunction(fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, "INSTR", StringComparison.OrdinalIgnoreCase))
-            return TryEvalInstrFunction(context, evalArg, out result);
-
-        if (string.Equals(fn.Name, "LPAD", StringComparison.OrdinalIgnoreCase))
-            return TryEvalLpadFunction(fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, "REPLACE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalReplaceFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "OVERLAY", StringComparison.OrdinalIgnoreCase))
-            return TryEvalOverlayFunction(fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, "REVERSE", StringComparison.OrdinalIgnoreCase))
-            return TryEvalReverseFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "REPEAT", StringComparison.OrdinalIgnoreCase))
-            return TryEvalRepeatFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "TRANSLATE", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(fn.Name, "TRANSLATE...USING", StringComparison.OrdinalIgnoreCase))
-            return TryEvalTranslateFunction(fn, evalArg, out result);
-
-        if (string.Equals(fn.Name, "BIT_LENGTH", StringComparison.OrdinalIgnoreCase))
-            return TryEvalBitLengthFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "OCTET_LENGTH", StringComparison.OrdinalIgnoreCase))
-            return TryEvalOctetLengthFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "POSITION", StringComparison.OrdinalIgnoreCase))
-            return TryEvalPositionFunction(evalArg, out result);
-
-        if (string.Equals(fn.Name, "RPAD", StringComparison.OrdinalIgnoreCase))
-            return TryEvalPadRightFunction(fn, evalArg, out result);
+        if (_textFunctionDispatch.TryGetValue(fn.Name, out var handler))
+            return handler(context, fn, evalArg, out result);
 
         result = null;
         return false;
@@ -417,11 +372,7 @@ internal static class AstQuerySharedTextFunctionEvaluator
         }
 
         var padNeeded = len - text.Length;
-        var sb = new StringBuilder(len);
-        while (sb.Length < padNeeded)
-            sb.Append(padText);
-
-        var prefix = sb.ToString().Substring(0, padNeeded);
+        var prefix = StringCreatePolyfill.CreateRepeated(padNeeded, padText);
         result = prefix + text;
         return true;
     }
@@ -740,13 +691,9 @@ internal static class AstQuerySharedTextFunctionEvaluator
             return true;
         }
 
-        var padNeeded = len - text.Length;
-        var sb = new StringBuilder(len);
-        sb.Append(text);
-        while (sb.Length < len)
-            sb.Append(padText);
-
-        result = sb.ToString().Substring(0, len);
+        var suffixLen = len - text.Length;
+        var suffix = StringCreatePolyfill.CreateRepeated(suffixLen, padText);
+        result = text + suffix;
         return true;
     }
 

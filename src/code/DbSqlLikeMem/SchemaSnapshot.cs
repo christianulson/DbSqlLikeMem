@@ -648,8 +648,8 @@ public sealed record SchemaSnapshot
         if (value is null)
             return null;
 
-        if (value is GuidDefaultValue)
-            return JsonSerializer.SerializeToElement(new { kind = "guid-default" }, JsonOptions);
+        if (value is GuidDefaultValue guidDefaultValue)
+            return JsonSerializer.SerializeToElement(new { kind = "guid-default", sequential = guidDefaultValue.Sequential }, JsonOptions);
 
         return JsonSerializer.SerializeToElement(value, value.GetType(), JsonOptions);
     }
@@ -670,7 +670,7 @@ public sealed record SchemaSnapshot
             JsonValueKind.Number when value.Value.TryGetDecimal(out var d) => d,
             JsonValueKind.Number => value.Value.GetDouble(),
             JsonValueKind.Object when IsSequenceDef(value.Value) => value.Value.Deserialize<SequenceDef>(JsonOptions),
-            JsonValueKind.Object when IsGuidDefaultValue(value.Value) => new GuidDefaultValue(),
+            JsonValueKind.Object when IsGuidDefaultValue(value.Value) => DeserializeGuidDefaultValue(value.Value),
             _ => value.Value.GetRawText()
         };
     }
@@ -685,6 +685,18 @@ public sealed record SchemaSnapshot
     private static bool IsGuidDefaultValue(JsonElement value)
         => value.TryGetProperty("kind", out var kind)
             && string.Equals(kind.GetString(), "guid-default", StringComparison.OrdinalIgnoreCase);
+
+    private static GuidDefaultValue DeserializeGuidDefaultValue(JsonElement value)
+    {
+        var sequential = false;
+        if (value.TryGetProperty("sequential", out var sequentialValue)
+            && sequentialValue.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            sequential = sequentialValue.GetBoolean();
+        }
+
+        return new GuidDefaultValue(sequential);
+    }
 }
 
 /// <summary>

@@ -33,4 +33,18 @@ SELECT id FROM t ORDER BY iddesc ASC OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY;
     /// <inheritdoc />
     protected override string TranslateSql(object translator, Expression expression)
         => ((OracleTranslator)translator).Translate(expression).Sql;
+
+    /// <summary>
+    /// EN: Verifies CONTAINS is emitted when SqlFunctions.Contains is used in WHERE.
+    /// PT-br: Verifica se CONTAINS é emitido quando SqlFunctions.Contains é usado no WHERE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Query")]
+    public void TranslateContainsSqlCorrect()
+    {
+        using var cnn = CreateConnection(CreateDb());
+        var q = CreateQueryable(cnn).Where(f => SqlFunctions.Contains(f.Y, "search") > 0);
+        var sql = TranslateSql(GetTranslatorFromProvider(q.Provider), q.Expression);
+        sql.Should().Contain("CONTAINS(Y, @p0)");
+    }
 }

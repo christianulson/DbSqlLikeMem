@@ -26,7 +26,7 @@ public abstract class SchemaMock
     protected SchemaMock(
         string schemaName,
         DbMock db,
-        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null,
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null,
         IEnumerable<DbFunctionDef>? functions = null,
         IEnumerable<ProcedureDef>? procedures = null,
         IDictionary<string, SequenceDef>? sequences = null,
@@ -37,7 +37,10 @@ public abstract class SchemaMock
         Db = db;
         if (tables != null)
             foreach (var it in tables)
-                CreateTable(it.Key, it.Value.columns, it.Value.rows);
+            {
+                var t = NewTable(it.Key, it.Value.columns, it.Value.rows);
+                this.tables.Add(it.Key, t);
+            }
         if (sequences != null)
             foreach (var it in sequences)
                 this.sequences.Add(it.Key, it.Value);
@@ -225,7 +228,7 @@ public abstract class SchemaMock
     protected abstract TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null);
+        IEnumerable<object?[]>? rows = null);
 
     /// <summary>
     /// EN: Creates a table and registers it in the schema.
@@ -240,7 +243,20 @@ public abstract class SchemaMock
         IEnumerable<Col> columns,
         IEnumerable<Dictionary<int, object?>>? rows = null)
     {
-        var t = NewTable(tableName, columns, rows);
+        IEnumerable<object?[]>? arrayRows = null;
+        if (rows is not null)
+        {
+            var colList = columns as IReadOnlyList<Col> ?? [.. columns];
+            arrayRows = rows.Select(dict =>
+            {
+                var arr = new object?[colList.Count];
+                foreach (var kv in dict)
+                    if (kv.Key >= 0 && kv.Key < arr.Length)
+                        arr[kv.Key] = kv.Value;
+                return arr;
+            });
+        }
+        var t = NewTable(tableName, columns, arrayRows);
         tables.Add(tableName, t);
         return t;
     }
@@ -256,8 +272,29 @@ public abstract class SchemaMock
     internal TableMock CreateTableInstance(
         string tableName,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null)
+        IEnumerable<object?[]>? rows = null)
         => NewTable(tableName, columns, rows);
+
+    internal TableMock CreateTableInstance(
+        string tableName,
+        IEnumerable<Col> columns,
+        IEnumerable<Dictionary<int, object?>>? rows)
+    {
+        IEnumerable<object?[]>? arrayRows = null;
+        if (rows is not null)
+        {
+            var colList = columns as IReadOnlyList<Col> ?? [.. columns];
+            arrayRows = rows.Select(dict =>
+            {
+                var arr = new object?[colList.Count];
+                foreach (var kv in dict)
+                    if (kv.Key >= 0 && kv.Key < arr.Length)
+                        arr[kv.Key] = kv.Value;
+                return arr;
+            });
+        }
+        return NewTable(tableName, columns, arrayRows);
+    }
 
     #region Tables
 

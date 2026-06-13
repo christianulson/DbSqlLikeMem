@@ -108,6 +108,9 @@ internal static partial class CommandScalarExecutionPrelude
         if (TryEvaluateSimpleCountStarScalar(context, selectQuery, out scalar))
             return true;
 
+        if (TryEvaluateSqlServerGroupingScalar(context, selectQuery, out scalar))
+            return true;
+
         if (TryEvaluateSimpleSelectScalar(context, selectQuery, customFunctionSupported, out scalar))
             return true;
 
@@ -214,6 +217,52 @@ internal static partial class CommandScalarExecutionPrelude
         }
 
         scalar = firstScalar ?? DBNull.Value;
+        return true;
+    }
+
+    private static bool TryEvaluateSqlServerGroupingScalar(
+        QueryExecutionContext context,
+        SqlSelectQuery query,
+        out object? scalar)
+    {
+        scalar = DBNull.Value;
+
+        if (!string.Equals(context.Dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
+            || query.SelectItems.Count != 1
+            || query.GroupBy.Count == 0
+            || query.Ctes.Count > 0
+            || query.Joins.Count > 0
+            || query.Having is not null
+            || query.OrderBy.Count > 0
+            || query.RowLimit is not null
+            || query.ForJson is not null)
+        {
+            return false;
+        }
+
+        var (exprRaw, _) = SelectAliasParserHelper.SplitTrailingAsAlias(query.SelectItems[0].Raw, query.SelectItems[0].Alias);
+        var normalized = exprRaw.Trim();
+        if (!normalized.StartsWith("GROUPING", StringComparison.OrdinalIgnoreCase)
+            && !normalized.StartsWith("GROUPING_ID", StringComparison.OrdinalIgnoreCase)
+            && !normalized.StartsWith("GROUP_ID", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var parsed = SqlExpressionParser.ParseScalar(
+            exprRaw,
+            context.Connection.Db,
+            context.Dialect,
+            context.DbParameters);
+        if (parsed is not CallExpr call
+            || (!call.Name.Equals("GROUPING", StringComparison.OrdinalIgnoreCase)
+                && !call.Name.Equals("GROUPING_ID", StringComparison.OrdinalIgnoreCase)
+                && !call.Name.Equals("GROUP_ID", StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        scalar = 0;
         return true;
     }
 

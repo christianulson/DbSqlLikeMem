@@ -88,7 +88,7 @@ public abstract partial class BenchmarkSessionBase
 
         var state = GetPreparedUsersQueryState(
             "StringAggregateGroupCaseMatrix",
-            (1, "Charlie"), (2, "Alice"), (3, "Bob"));
+            (1, "Charlie"), (2, "Alice"), (3, "Bob"), (4, "Delta"), (5, "Bob"));
         var snapshot = state.Service.RunStringAggregateGroupCaseMatrixAsync().GetAwaiter().GetResult();
         GC.KeepAlive(snapshot);
     }

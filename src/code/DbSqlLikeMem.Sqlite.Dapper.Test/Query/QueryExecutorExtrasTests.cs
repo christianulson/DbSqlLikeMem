@@ -33,4 +33,18 @@ SELECT * FROM t ORDER BY iddesc ASC LIMIT 2 OFFSET 1;
     /// <inheritdoc />
     protected override string TranslateSql(object translator, Expression expression)
         => ((SqliteTranslator)translator).Translate(expression).Sql;
+
+    /// <summary>
+    /// EN: Verifies MATCH is emitted when SqlFunctions.Match is used in WHERE.
+    /// PT-br: Verifica se MATCH é emitido quando SqlFunctions.Match é usado no WHERE.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Query")]
+    public void TranslateMatchSqlCorrect()
+    {
+        using var cnn = CreateConnection(CreateDb());
+        var q = CreateQueryable(cnn).Where(f => SqlFunctions.Match(f.Y, "search"));
+        var sql = TranslateSql(GetTranslatorFromProvider(q.Provider), q.Expression);
+        sql.Should().Contain("Y MATCH @p0");
+    }
 }

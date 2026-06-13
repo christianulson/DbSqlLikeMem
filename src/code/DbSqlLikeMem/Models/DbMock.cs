@@ -20,7 +20,7 @@ public abstract class DbMock
     /// EN: Indicates whether operations should lock for thread safety.
     /// PT-br: Indica se operações devem aplicar bloqueio para segurança de threads.
     /// </summary>
-    public bool ThreadSafe { get; set; }
+    public bool ThreadSafe { get; set; } = true;
 
     /// <summary>
     /// EN: Controls whether execution plans are formatted and captured during command execution.
@@ -89,7 +89,7 @@ public abstract class DbMock
 
     private readonly Dictionary<string, ITableMock> _globalTemporaryTables =
         new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> _runtimeFunctions =
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _runtimeFunctions =
         new(StringComparer.OrdinalIgnoreCase);
     private int _nextFirebirdTransactionId = 1;
 
@@ -134,7 +134,7 @@ public abstract class DbMock
     /// <returns>EN: New schema instance. PT-br: Nova instância de schema.</returns>
     protected abstract SchemaMock NewSchema(
         string schemaName,
-        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null);
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null);
 
     /// <summary>
     /// EN: Creates a schema and registers it in the database.
@@ -145,7 +145,7 @@ public abstract class DbMock
     /// <returns>EN: Created schema. PT-br: Schema criado.</returns>
     public ISchemaMock CreateSchema(
         string schemaName,
-        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null)
+        IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null)
     {
         var s = NewSchema(schemaName, tables);
         Add(schemaName, s);
@@ -750,7 +750,7 @@ public abstract class DbMock
     internal bool ContainsRuntimeFunction(string functionName)
     {
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
-        return _runtimeFunctions.Contains(functionName.NormalizeName());
+        return _runtimeFunctions.ContainsKey(functionName.NormalizeName());
     }
 
     /// <summary>
@@ -773,7 +773,7 @@ public abstract class DbMock
         this[sc].CreateFunction(
             definition,
             orReplace);
-        _runtimeFunctions.Add(definition.Name.NormalizeName());
+        _runtimeFunctions.TryAdd(definition.Name.NormalizeName(), 0);
 
         if (TryGetFunction(definition.Name, out var currentDefinition, sc) && currentDefinition is not null)
             Dialect.Functions.Add(currentDefinition);
@@ -789,7 +789,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         var sc = GetSchemaName(schemaName);
         this[sc].DropFunction(functionName, ifExists);
-        _runtimeFunctions.Remove(functionName.NormalizeName());
+        _runtimeFunctions.TryRemove(functionName.NormalizeName(), out _);
 
         if (TryGetFunction(functionName, out var currentDefinition, null) && currentDefinition is not null)
             Dialect.Functions.Add(currentDefinition);
@@ -806,7 +806,7 @@ public abstract class DbMock
         ArgumentNullExceptionCompatible.ThrowIfNull(definition, nameof(definition));
         var sc = GetSchemaName(schemaName);
         this[sc].RestoreFunction(functionName, definition);
-        _runtimeFunctions.Add(functionName.NormalizeName());
+        _runtimeFunctions.TryAdd(functionName.NormalizeName(), 0);
         if (TryGetFunction(functionName, out var currentDefinition, sc) && currentDefinition is not null)
             Dialect.Functions.Add(currentDefinition);
         else
@@ -821,7 +821,7 @@ public abstract class DbMock
         ArgumentExceptionCompatible.ThrowIfNullOrWhiteSpace(functionName, nameof(functionName));
         var sc = GetSchemaName(schemaName);
         this[sc].RemoveFunction(functionName);
-        _runtimeFunctions.Remove(functionName.NormalizeName());
+        _runtimeFunctions.TryRemove(functionName.NormalizeName(), out _);
         if (TryGetFunction(functionName, out var currentDefinition, null) && currentDefinition is not null)
             Dialect.Functions.Add(currentDefinition);
         else

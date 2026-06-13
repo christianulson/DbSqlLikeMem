@@ -99,9 +99,7 @@ internal static class SqlUnsupported
         };
 
         var message = $"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON CONFLICT. {hint}";
-        return string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
-            ? new NotSupportedException(message)
-            : new InvalidOperationException(message);
+        return new NotSupportedException(message);
     }
 
     /// <summary>
@@ -118,9 +116,7 @@ internal static class SqlUnsupported
         };
 
         var message = $"Dialeto '{FormatDialectLabel(dialect)}' não suporta ON DUPLICATE KEY UPDATE. {hint}";
-        return string.Equals(dialect.Name, "sqlserver", StringComparison.OrdinalIgnoreCase)
-            ? new NotSupportedException(message)
-            : new InvalidOperationException(message);
+        return new NotSupportedException(message);
     }
 
     /// <summary>

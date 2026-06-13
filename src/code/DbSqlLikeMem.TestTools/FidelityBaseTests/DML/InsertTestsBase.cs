@@ -52,6 +52,19 @@ public abstract class InsertTestsBase<T, T2>(
         => RunInsertCountTest(100);
 
     /// <summary>
+    /// EN: Verifies that a multi-row insert preserves row count, defaults, and implicit nullable columns.
+    /// PT-br: Verifica se um insert multi-linha preserva contagem, defaults e colunas anulaveis implicitas.
+    /// </summary>
+    [FidelityFact]
+    public async Task BatchInsertDefaultsAndNullabilityTest()
+    {
+        using var testService = new FidelityTestService<T, T2>(connectionMock, connectionContainer, dialect);
+
+        var count = await testService.RunTestAsync<InsertUsersScenario, BatchInsertDefaultsUsersServiceTest>(3);
+        Convert.ToInt32(count, CultureInfo.InvariantCulture).Should().Be(3);
+    }
+
+    /// <summary>
     /// EN: Verifies that one hundred parallel inserts persist one hundred rows for the current provider.
     /// PT-br: Verifica se cem inserts paralelos persistem cem linhas para o provedor atual.
     /// </summary>

@@ -10,6 +10,7 @@ public sealed class InterceptingDbConnection : DbConnection
 {
     private readonly DbConnection _innerConnection;
     private readonly IReadOnlyList<DbConnectionInterceptor> _interceptors;
+    private readonly bool _hasInterceptors;
 
     /// <summary>
     /// EN: Creates a wrapped connection that dispatches the supplied interceptors.
@@ -25,6 +26,7 @@ public sealed class InterceptingDbConnection : DbConnection
         ArgumentNullExceptionCompatible.ThrowIfNull(interceptors, nameof(interceptors));
         _innerConnection = innerConnection;
         _interceptors = interceptors;
+        _hasInterceptors = interceptors.Count > 0;
     }
 
     /// <summary>
@@ -59,6 +61,12 @@ public sealed class InterceptingDbConnection : DbConnection
     /// <inheritdoc />
     public override void Close()
     {
+        if (!_hasInterceptors)
+        {
+            _innerConnection.Close();
+            return;
+        }
+
         foreach (var interceptor in _interceptors)
             interceptor.ConnectionClosing(this);
 
@@ -71,6 +79,12 @@ public sealed class InterceptingDbConnection : DbConnection
     /// <inheritdoc />
     public override void Open()
     {
+        if (!_hasInterceptors)
+        {
+            _innerConnection.Open();
+            return;
+        }
+
         foreach (var interceptor in _interceptors)
             interceptor.ConnectionOpening(this);
 
@@ -81,7 +95,15 @@ public sealed class InterceptingDbConnection : DbConnection
     }
 
     /// <inheritdoc />
-    public override async Task OpenAsync(CancellationToken cancellationToken)
+    public override Task OpenAsync(CancellationToken cancellationToken)
+    {
+        if (!_hasInterceptors)
+            return _innerConnection.OpenAsync(cancellationToken);
+
+        return OpenAsyncCore(cancellationToken);
+    }
+
+    private async Task OpenAsyncCore(CancellationToken cancellationToken)
     {
         foreach (var interceptor in _interceptors)
             interceptor.ConnectionOpening(this);
@@ -95,6 +117,9 @@ public sealed class InterceptingDbConnection : DbConnection
     /// <inheritdoc />
     protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel)
     {
+        if (!_hasInterceptors)
+            return _innerConnection.BeginTransaction(isolationLevel);
+
         var startingContext = new DbTransactionStartingContext(this, isolationLevel);
         foreach (var interceptor in _interceptors)
             interceptor.TransactionStarting(startingContext);
@@ -114,6 +139,9 @@ public sealed class InterceptingDbConnection : DbConnection
     /// <inheritdoc />
     protected override DbCommand CreateDbCommand()
     {
+        if (!_hasInterceptors)
+            return _innerConnection.CreateCommand();
+
         var innerCommand = _innerConnection.CreateCommand();
         var command = new InterceptingDbCommand(this, innerCommand, _interceptors);
         foreach (var interceptor in _interceptors)

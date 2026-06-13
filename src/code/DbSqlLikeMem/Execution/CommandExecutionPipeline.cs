@@ -46,9 +46,8 @@ internal sealed class CommandExecutionPipeline : ICommandExecutionPipeline
             if (string.IsNullOrWhiteSpace(statementSql))
                 continue;
 
-            var sqlRaw = (statementSql.Length > 0 && (char.IsWhiteSpace(statementSql[0]) || char.IsWhiteSpace(statementSql[^1])))
-                ? statementSql.Trim()
-                : statementSql;
+            var trimmed = statementSql.AsSpan().Trim();
+            var sqlRaw = trimmed.Length == statementSql.Length ? statementSql : trimmed.ToString();
 
             if (metricsEnabled)
                 connection.Metrics.IncrementNonQueryStatement();

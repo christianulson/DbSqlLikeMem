@@ -32,8 +32,7 @@ internal abstract partial class AstQueryExecutorBase
 
         foreach (var r in rows)
         {
-            using var positionalScope = _context.BeginPositionalParameterScope();
-            var outRow = new Dictionary<int, object?>(projectedColumnCount);
+            var outRow = IntDictPool.Get(projectedColumnCount);
             for (int i = 0; i < projectedColumnCount; i++)
                 outRow[i] = selectPlan.Evaluators[i](r, null);
 
@@ -41,37 +40,46 @@ internal abstract partial class AstQueryExecutorBase
             res.JoinFields.Add(r.Fields);
         }
 
+        // Return per-row OrdinalValues arrays to pool; no longer needed after projection.
+        foreach (var r in rows)
+            OrdinalPool.Return(r.OrdinalValues);
+
         return res;
     }
 
     private TableResultMock ProjectGrouped(
         SqlSelectQuery q,
-        IReadOnlyList<MaterializedGroup> groups,
+        IEnumerable<MaterializedGroup> groups,
         IDictionary<string, Source> ctes,
         QueryDebugTraceBuilder? debugTrace = null)
     {
         var projectStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
         var res = new TableResultMock();
-        var groupsList = groups as List<MaterializedGroup> ?? new List<MaterializedGroup>(groups);
-        var hasGroups = groupsList.Count > 0;
 
-        // SQL aggregate semantics: when no GROUP BY is present and the filtered input is empty,
-        // aggregate projections (e.g. COUNT(*)) still return a single row.
-        if (!hasGroups && q.GroupBy.Count == 0)
-            groupsList.Add(new MaterializedGroup(default, new List<EvalRow>()));
-
-        var representativeRows = hasGroups
-            ? new List<EvalRow>(groupsList.Count)
-            : [];
-        if (hasGroups)
+        using var enumerator = groups.GetEnumerator();
+        if (!enumerator.MoveNext())
         {
-            for (var i = 0; i < groupsList.Count; i++)
-                representativeRows.Add(groupsList[i].Rows[0]);
+            // SQL aggregate semantics: when no GROUP BY is present and the filtered input is empty,
+            // aggregate projections (e.g. COUNT(*)) still return a single row.
+            if (q.GroupBy.Count == 0)
+            {
+                var emptyGroup = new MaterializedGroup(default, []);
+                ProjectGroupedCore(q, res, emptyGroup, ctes, debugTrace, projectStart);
+            }
+
+            return res;
         }
+
+        // Use first group's first row to build the select plan.
+        // A single sample row is sufficient for type inference in GROUP BY queries
+        // (aggregate types are determined by function, key column types are uniform).
+        var firstGroup = enumerator.Current;
+        var sampleFirst = firstGroup.Rows.Count > 0 ? firstGroup.Rows[0] : EvalRow.Empty();
+        var sampleRows = new List<EvalRow>(1) { sampleFirst };
 
         var selectPlan = _context.BuildSelectPlan(
             q,
-            representativeRows,
+            sampleRows,
             ctes,
             ParseScalarExpr,
             Eval,
@@ -83,23 +91,91 @@ internal abstract partial class AstQueryExecutorBase
         for (int i = 0; i < columnCount; i++)
             res.Columns.Add(selectPlan.Columns[i]);
 
-        foreach (var g in groupsList)
+        // Process first group, then release its rows
+        ProjectGroupedGroup(firstGroup, selectPlan, groupedColumnCount, res);
+        firstGroup.ReleaseRows();
+
+        // Process remaining groups (each group's rows are released after evaluation)
+        while (enumerator.MoveNext())
         {
-            using var positionalScope = _context.BeginPositionalParameterScope();
-            var eg = new EvalGroup(g.Rows);
-            var outRow = new Dictionary<int, object?>(groupedColumnCount);
-
-            var first = g.Rows.Count > 0 ? g.Rows[0] : EvalRow.Empty();
-            for (int i = 0; i < groupedColumnCount; i++)
-            {
-                var value = selectPlan.Evaluators[i](first, eg);
-                outRow[i] = value;
-            }
-
-            res.Add(outRow);
-            res.JoinFields.Add(first.Fields);
+            var g = enumerator.Current;
+            ProjectGroupedGroup(g, selectPlan, groupedColumnCount, res);
+            g.ReleaseRows();
         }
 
+        debugTrace?.AddStep(
+            "Project",
+            res.Count,
+            res.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
+            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
+
+        return ApplyGroupedPostProcessing(res, q, ctes, debugTrace);
+    }
+
+    private static void ProjectGroupedGroup(
+        MaterializedGroup g,
+        SelectPlan selectPlan,
+        int groupedColumnCount,
+        TableResultMock res)
+    {
+        var eg = new EvalGroup(g.Rows);
+        var outRow = IntDictPool.Get(groupedColumnCount);
+
+        var first = g.Rows.Count > 0 ? g.Rows[0] : EvalRow.Empty();
+        for (int i = 0; i < groupedColumnCount; i++)
+            outRow[i] = selectPlan.Evaluators[i](first, eg);
+
+        res.Add(outRow);
+        res.JoinFields.Add(first.Fields);
+    }
+
+    private void ProjectGroupedCore(
+        SqlSelectQuery q,
+        TableResultMock res,
+        MaterializedGroup group,
+        IDictionary<string, Source> ctes,
+        QueryDebugTraceBuilder? debugTrace,
+        long projectStart)
+    {
+        var selectPlan = _context.BuildSelectPlan(
+            q,
+            [],
+            ctes,
+            ParseScalarExpr,
+            Eval,
+            QueryRowValueHelper.ResolveColumn);
+
+        var columnCount = selectPlan.Columns.Count;
+        var groupedColumnCount = selectPlan.Evaluators.Count;
+
+        for (int i = 0; i < columnCount; i++)
+            res.Columns.Add(selectPlan.Columns[i]);
+
+        var outRow = IntDictPool.Get(groupedColumnCount);
+
+        var first = EvalRow.Empty();
+        var eg = new EvalGroup(group.Rows);
+        for (int i = 0; i < groupedColumnCount; i++)
+            outRow[i] = selectPlan.Evaluators[i](first, eg);
+
+        res.Add(outRow);
+        res.JoinFields.Add(first.Fields);
+
+        debugTrace?.AddStep(
+            "Project",
+            1,
+            res.Count,
+            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
+            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
+    }
+
+    private TableResultMock ApplyGroupedPostProcessing(
+        TableResultMock res,
+        SqlSelectQuery q,
+        IDictionary<string, Source> ctes,
+        QueryDebugTraceBuilder? debugTrace)
+    {
         if (q.DistinctOn.Count > 0)
         {
             var distinctStart = debugTrace is not null ? Stopwatch.GetTimestamp() : 0L;
@@ -112,11 +188,7 @@ internal abstract partial class AstQueryExecutorBase
                     ParseExpr,
                     (expr, row) => Eval(expr, row, group: null, ctes));
 
-            res = _context.ApplyDistinctOn(res, q.DistinctOn, ParseExpr, (expr, row) =>
-            {
-                using var positionalScope = _context.BeginPositionalParameterScope();
-                return Eval(expr, row, group: null, ctes);
-            });
+            res = _context.ApplyDistinctOn(res, q.DistinctOn, ParseExpr, (expr, row) => Eval(expr, row, group: null, ctes));
 
             debugTrace?.AddStep(
                 "Distinct On",
@@ -142,12 +214,6 @@ internal abstract partial class AstQueryExecutorBase
             Cnn.SetLastSelectRows(res.Count);
 
         // ORDER / LIMIT
-        debugTrace?.AddStep(
-            "Project",
-            groupsList.Count,
-            res.Count,
-            TimeSpan.FromTicks(StopwatchCompatible.GetElapsedTicks(projectStart)),
-            QueryDebugTraceFormattingHelper.FormatProjectDebugDetails(q.SelectItems));
         res = _context.ApplyQueryOrderLimit(
             res,
             q,

@@ -350,7 +350,7 @@ public sealed class SqlServerMockTests
         Assert.Equal("dbo", command.ExecuteScalar());
 
         command.CommandText = "SELECT DATALENGTH('AB')";
-        Assert.Equal(4, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(2, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT DATENAME(month, '2020-02-10')";
         Assert.Equal("February", command.ExecuteScalar());
@@ -413,31 +413,31 @@ public sealed class SqlServerMockTests
         Assert.Equal(310, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT DATENAME(tz, '2007-05-10 00:00:01.1234567 +05:10')";
-        Assert.Equal("310", command.ExecuteScalar());
+        Assert.Equal("+05:10", command.ExecuteScalar());
 
         command.CommandText = "SELECT DATEPART(tzoffset, '2007-05-10 00:00:01.1234567 +05:10')";
         Assert.Equal(310, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT DATENAME(tzoffset, '2007-05-10 00:00:01.1234567 +05:10')";
-        Assert.Equal("310", command.ExecuteScalar());
+        Assert.Equal("+05:10", command.ExecuteScalar());
 
         command.CommandText = "SELECT DATEPART(tz, '2007-05-10T00:00:01.1234567Z')";
         Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT DATENAME(tz, '2007-05-10T00:00:01.1234567Z')";
-        Assert.Equal("0", command.ExecuteScalar());
+        Assert.Equal("+00:00", command.ExecuteScalar());
 
         command.CommandText = "SELECT DATEPART(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))";
         Assert.Equal(120, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT DATENAME(tz, TODATETIMEOFFSET('2020-02-29T10:11:12', '+02:00'))";
-        Assert.Equal("120", command.ExecuteScalar());
+        Assert.Equal("+02:00", command.ExecuteScalar());
 
         command.CommandText = "SELECT DATEPART(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30'))";
         Assert.Equal(-210, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT DATENAME(tzoffset, TODATETIMEOFFSET('2020-02-29T10:11:12', '-03:30'))";
-        Assert.Equal("-210", command.ExecuteScalar());
+        Assert.Equal("-03:30", command.ExecuteScalar());
 
         command.CommandText = "SELECT DEGREES(PI())";
         Assert.Equal(180d, Convert.ToDouble(command.ExecuteScalar(), CultureInfo.InvariantCulture));
@@ -542,10 +542,10 @@ public sealed class SqlServerMockTests
         Assert.Equal(0, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT HOST_ID()";
-        Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
+        Assert.Equal(System.Diagnostics.Process.GetCurrentProcess().Id, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));
 
         command.CommandText = "SELECT HOST_NAME()";
-        Assert.Equal("localhost", command.ExecuteScalar());
+        Assert.Equal(Environment.MachineName, command.ExecuteScalar());
 
         command.CommandText = "SELECT ISDATE('2020-01-01')";
         Assert.Equal(1, Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture));

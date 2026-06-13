@@ -3,7 +3,7 @@ namespace DbSqlLikeMem;
 internal static class WindowOrderValueHelper
 {
     internal static object?[][] BuildWindowOrderValuesByIndex(
-        List<AstQueryExecutorBase.EvalRow> partition,
+        IReadOnlyList<AstQueryExecutorBase.EvalRow> partition,
         IReadOnlyList<WindowOrderItem> orderBy,
         Func<SqlExpr, AstQueryExecutorBase.EvalRow, object?> evalOrderExpression)
     {

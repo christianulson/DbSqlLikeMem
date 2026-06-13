@@ -11,6 +11,8 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     private static readonly Regex _cacheKeyHavingPredicateRegex = new(
         @"\bHAVING\s+(?<predicate>.+?)(?=(?:\bORDER\s+BY\b|\bLIMIT\b|\bOFFSET\b|\bUNION\b|$))",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline | RegexOptions.Compiled);
+    private static readonly ConcurrentDictionary<string, Regex> _outerQualifierRegexCache = new();
+    private static readonly ConcurrentDictionary<string, Regex> _aliasDeclarationRegexCache = new();
     private static readonly Regex _qualifiedSqlIdentifierRegex = new(
         @"(?<![A-Za-z0-9_$])([A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*)(?![A-Za-z0-9_$])",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -338,10 +340,9 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
 
         foreach (var qualifier in qualifiers)
         {
-            if (Regex.IsMatch(
-                    sql,
-                    $@"(?<![A-Za-z0-9_$]){Regex.Escape(qualifier!)}\.",
-                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            var regex = _outerQualifierRegexCache.GetOrAdd(qualifier!, static q =>
+                new Regex($@"(?<![A-Za-z0-9_$]){Regex.Escape(q)}\.", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant));
+            if (regex.IsMatch(sql))
                 return true;
         }
 
@@ -397,8 +398,10 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         }
 
         var canonicalSql = sb.ToString().Trim();
-        canonicalSql = NormalizeClauseKeywordSpacingForCacheKey(canonicalSql);
-        canonicalSql = NormalizeRelationalOperatorSpacingForCacheKey(canonicalSql);
+        canonicalSql = NormalizeClauseKeywordSpacingForCacheKey(canonicalSql, sb);
+        sb.Clear();
+        canonicalSql = NormalizeRelationalOperatorSpacingForCacheKey(canonicalSql, sb);
+        sb.Clear();
         canonicalSql = NormalizeSubqueryLocalAliasesForCacheKey(canonicalSql);
         return NormalizeCommutativeAndClausesForCacheKey(canonicalSql);
     }
@@ -407,12 +410,12 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     /// EN: Inserts a space after WHERE and HAVING when they are followed immediately by an opening parenthesis.
     /// PT-br: Insere um espaco apos WHERE e HAVING quando eles sao seguidos imediatamente por um parenteses de abertura.
     /// </summary>
-    private static string NormalizeClauseKeywordSpacingForCacheKey(string sql)
+    private static string NormalizeClauseKeywordSpacingForCacheKey(string sql, StringBuilder sb)
     {
         if (string.IsNullOrWhiteSpace(sql))
             return string.Empty;
 
-        var sb = new StringBuilder(sql.Length + 8);
+        sb.Clear();
         for (var i = 0; i < sql.Length; i++)
         {
             if (TryAppendProtectedSqlSegment(sql, ref i, sb))
@@ -602,15 +605,15 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
         if (string.IsNullOrWhiteSpace(sql) || string.IsNullOrWhiteSpace(alias))
             return sql;
 
-        var pattern =
-            $@"(?<![A-Z0-9_$])(?<kw>FROM|JOIN|APPLY)\s+(?<table>[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?" +
-            $@"{Regex.Escape(alias)}(?![A-Z0-9_$])";
+        var regex = _aliasDeclarationRegexCache.GetOrAdd(alias, static a =>
+            new Regex(
+                $@"(?<![A-Z0-9_$])(?<kw>FROM|JOIN|APPLY)\s+(?<table>[A-Z_][A-Z0-9_$]*(?:\.[A-Z_][A-Z0-9_$]*)*)\s+(?:AS\s+)?" +
+                $@"{Regex.Escape(a)}(?![A-Z0-9_$])",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled));
 
-        return Regex.Replace(
+        return regex.Replace(
             sql,
-            pattern,
-            m => $"{m.Groups["kw"].Value} {m.Groups["table"].Value} {replacementAlias}",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            m => $"{m.Groups["kw"].Value} {m.Groups["table"].Value} {replacementAlias}");
     }
 
     /// <summary>
@@ -681,12 +684,12 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     /// EN: Normalizes spacing around top-level relational operators outside quoted segments so semantically equivalent operator formatting maps to the same cache-key SQL.
     /// PT-br: Normaliza espaçamento ao redor de operadores relacionais no topo fora de segmentos entre aspas para que formatações equivalentes mapeiem para o mesmo SQL de chave de cache.
     /// </summary>
-    private static string NormalizeRelationalOperatorSpacingForCacheKey(string sql)
+    private static string NormalizeRelationalOperatorSpacingForCacheKey(string sql, StringBuilder sb)
     {
         if (string.IsNullOrWhiteSpace(sql))
             return string.Empty;
 
-        var sb = new StringBuilder(sql.Length + 16);
+        sb.Clear();
 
         for (var i = 0; i < sql.Length; i++)
         {
@@ -710,7 +713,9 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             i += opLength - 1;
         }
 
-        return CollapseWhitespaceOutsideQuotedSegments(sb.ToString()).Trim();
+        var intermediate = sb.ToString();
+        sb.Clear();
+        return CollapseWhitespaceOutsideQuotedSegments(intermediate, sb).Trim();
     }
 
     /// <summary>
@@ -784,12 +789,12 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
     /// EN: Collapses repeated whitespace outside quoted or bracket-delimited segments while preserving inner literal content.
     /// PT-br: Colapsa whitespace repetido fora de segmentos entre aspas ou delimitados por colchetes preservando o conteúdo interno de literais.
     /// </summary>
-    private static string CollapseWhitespaceOutsideQuotedSegments(string sql)
+    private static string CollapseWhitespaceOutsideQuotedSegments(string sql, StringBuilder sb)
     {
         if (string.IsNullOrWhiteSpace(sql))
             return string.Empty;
 
-        var sb = new StringBuilder(sql.Length);
+        sb.Clear();
         var previousWasSpace = false;
 
         for (var i = 0; i < sql.Length; i++)
@@ -1116,7 +1121,7 @@ internal static class AstCorrelatedSubqueryCacheKeyBuilder
             return originalPredicate;
 
         segments.Sort(StringComparer.Ordinal);
-        return string.Join(SqlConst._AND_, segments);
+        return string.Join(SqlConst.AND_SPACED, segments);
     }
 
     /// <summary>

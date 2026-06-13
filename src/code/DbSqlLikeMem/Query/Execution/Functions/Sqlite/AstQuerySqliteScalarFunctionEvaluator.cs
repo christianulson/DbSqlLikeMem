@@ -249,7 +249,7 @@ internal static class AstQuerySqliteScalarFunctionEvaluator
             }
 
             builder.Append('$');
-            return new Regex(builder.ToString(), RegexOptions.CultureInvariant);
+            return new Regex(builder.ToString(), RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
         }
     }
 

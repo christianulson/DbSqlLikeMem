@@ -2,6 +2,14 @@ namespace DbSqlLikeMem;
 
 internal static class SqlJsonTableHelper
 {
+    private static readonly Regex _nestedPath = new(@"^NESTED(?:\s+PATH)?\s+(?<path>N?'(?:''|[^'])*')\s+(?<rest>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+    private static readonly Regex _ordinality = new(@"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+FOR\s+ORDINALITY$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex _existsPath = new(@"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+?)\s+EXISTS\s+PATH\s+(?<path>N?'(?:''|[^'])*')$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex _pathSuffix = new(@"\s+PATH\s+(?<path>N?'(?:''|[^'])*')\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex _nameAndType = new(@"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+)$", RegexOptions.CultureInvariant);
+    private static readonly Regex _onEmptyFallback = new(@"^(?<prefix>.*)\s+(?<kind>NULL|ERROR|DEFAULT\s+(?<value>N?'(?:''|[^'])*'))\s+ON\s+EMPTY$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+    private static readonly Regex _onErrorFallback = new(@"^(?<prefix>.*)\s+(?<kind>NULL|ERROR|DEFAULT\s+(?<value>N?'(?:''|[^'])*'))\s+ON\s+ERROR$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
     internal static SqlJsonTableClause ParseJsonTableClause(string rawColumns)
     {
         var items = SqlRawCommaSplitterHelper.SplitRawByComma(rawColumns)
@@ -107,10 +115,7 @@ internal static class SqlJsonTableHelper
         if (!item.StartsWith(SqlConst.NESTED, StringComparison.OrdinalIgnoreCase))
             return ParseJsonTableColumn(rawItem);
 
-        var nestedMatch = Regex.Match(
-            item,
-            @"^NESTED(?:\s+PATH)?\s+(?<path>N?'(?:''|[^'])*')\s+(?<rest>.+)$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+        var nestedMatch = _nestedPath.Match(item);
         if (!nestedMatch.Success)
             throw new InvalidOperationException($"JSON_TABLE nested path definition is invalid: '{rawItem}'.");
 
@@ -133,10 +138,7 @@ internal static class SqlJsonTableHelper
     private static SqlJsonTableColumn ParseJsonTableColumn(string rawItem)
     {
         var item = rawItem.Trim();
-        var ordinalityMatch = Regex.Match(
-            item,
-            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+FOR\s+ORDINALITY$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var ordinalityMatch = _ordinality.Match(item);
         if (ordinalityMatch.Success)
         {
             return new SqlJsonTableColumn(
@@ -147,10 +149,7 @@ internal static class SqlJsonTableHelper
                 true);
         }
 
-        var existsPathMatch = Regex.Match(
-            item,
-            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+?)\s+EXISTS\s+PATH\s+(?<path>N?'(?:''|[^'])*')$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var existsPathMatch = _existsPath.Match(item);
         if (existsPathMatch.Success)
         {
             var existsName = existsPathMatch.Groups["name"].Value.NormalizeName();
@@ -171,20 +170,14 @@ internal static class SqlJsonTableHelper
         var onEmpty = ParseJsonTableColumnFallback(ref item, "ON EMPTY");
 
         string? path = null;
-        var pathMatch = Regex.Match(
-            item,
-            @"\s+PATH\s+(?<path>N?'(?:''|[^'])*')\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        var pathMatch = _pathSuffix.Match(item);
         if (pathMatch.Success)
         {
             path = SqlOpenJsonHelper.UnquoteSqlStringLiteral(pathMatch.Groups["path"].Value);
             item = item[..pathMatch.Index].TrimEnd();
         }
 
-        var nameAndTypeMatch = Regex.Match(
-            item,
-            @"^(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s+(?<type>.+)$",
-            RegexOptions.CultureInvariant);
+        var nameAndTypeMatch = _nameAndType.Match(item);
         if (!nameAndTypeMatch.Success)
             throw new InvalidOperationException($"JSON_TABLE column definition is invalid: '{rawItem}'.");
 
@@ -206,14 +199,9 @@ internal static class SqlJsonTableHelper
 
     private static SqlJsonTableColumnFallback? ParseJsonTableColumnFallback(ref string item, string clauseName)
     {
-        var pattern = clauseName.Equals("ON EMPTY", StringComparison.OrdinalIgnoreCase)
-            ? @"^(?<prefix>.*)\s+(?<kind>NULL|ERROR|DEFAULT\s+(?<value>N?'(?:''|[^'])*'))\s+ON\s+EMPTY$"
-            : @"^(?<prefix>.*)\s+(?<kind>NULL|ERROR|DEFAULT\s+(?<value>N?'(?:''|[^'])*'))\s+ON\s+ERROR$";
-
-        var match = Regex.Match(
-            item,
-            pattern,
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+        var match = clauseName.Equals("ON EMPTY", StringComparison.OrdinalIgnoreCase)
+            ? _onEmptyFallback.Match(item)
+            : _onErrorFallback.Match(item);
         if (!match.Success)
             return null;
 

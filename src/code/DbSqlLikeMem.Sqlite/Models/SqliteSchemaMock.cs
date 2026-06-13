@@ -7,7 +7,7 @@ namespace DbSqlLikeMem.Sqlite;
 public class SqliteSchemaMock(
     string schemaName,
     SqliteDbMock db,
-    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<Dictionary<int, object?>>? rows)>? tables = null
+    IDictionary<string, (IEnumerable<Col> columns, IEnumerable<object?[]>? rows)>? tables = null
     ) : SchemaMock(schemaName, db, tables)
 {
     /// <summary>
@@ -21,6 +21,6 @@ public class SqliteSchemaMock(
     protected override TableMock NewTable(
         string tableName,
         IEnumerable<Col> columns,
-        IEnumerable<Dictionary<int, object?>>? rows = null)
+        IEnumerable<object?[]>? rows = null)
         => new SqliteTableMock(tableName, this, columns, rows);
 }

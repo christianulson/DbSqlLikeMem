@@ -2,6 +2,14 @@ namespace DbSqlLikeMem;
 
 internal static class DbUpdateDeleteFromSelectStrategies
 {
+    private static readonly Regex _regexJoinOn = new(
+        @"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$",
+        RegexOptions.IgnoreCase);
+
+    private static readonly Regex _regexJoinSet = new(
+        @"^(?<ta>[A-Za-z0-9_]+)\.(?<tcol>[A-Za-z0-9_`]+)\s*=\s*(?<sa>[A-Za-z0-9_]+)\.(?<scol>[A-Za-z0-9_`]+)$",
+        RegexOptions.IgnoreCase);
+
     private static readonly Regex _regexDelete = new(
         @"^DELETE\s+(?<a>[A-Za-z0-9_]+)\s+FROM\s+`?(?<table>[A-Za-z0-9_]+)`?\s+(?<a2>[A-Za-z0-9_]+)\s+JOIN\s*\(\s*(?<sub>(SELECT|WITH)\b[\s\S]*?)\s*\)\s+(?<s>[A-Za-z0-9_]+)\s+ON\s+(?<on>[\s\S]*?)\s*;?\s*$",
         RegexOptions.IgnoreCase | RegexOptions.Singleline);
@@ -138,9 +146,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
             throw SqlUnsupported.ForTableDoesNotExist(tableName);
 
         // ParseCreateView ON: s.k = a.k  OR a.k = s.k
-        var onM = Regex.Match(onSql,
-            @"^(?<l>[A-Za-z0-9_]+)\.(?<lc>[A-Za-z0-9_`]+)\s*=\s*(?<r>[A-Za-z0-9_]+)\.(?<rc>[A-Za-z0-9_`]+)$",
-            RegexOptions.IgnoreCase);
+        var onM = _regexJoinOn.Match(onSql);
         if (!onM.Success)
             throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinOnlySimpleEqualityOnSupported());
 
@@ -167,9 +173,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         }
 
         // ParseCreateView SET: a.col = s.col  (single assignment for now)
-        var setM = Regex.Match(setSql,
-            @"^(?<ta>[A-Za-z0-9_]+)\.(?<tcol>[A-Za-z0-9_`]+)\s*=\s*(?<sa>[A-Za-z0-9_]+)\.(?<scol>[A-Za-z0-9_`]+)$",
-            RegexOptions.IgnoreCase);
+        var setM = _regexJoinSet.Match(setSql);
         if (!setM.Success)
             throw new InvalidOperationException(SqlExceptionMessages.UpdateJoinOnlySingleSetAssignmentSupported());
         if (!string.Equals(setM.Groups["ta"].Value, aAlias, StringComparison.OrdinalIgnoreCase) ||
@@ -235,8 +239,8 @@ internal static class DbUpdateDeleteFromSelectStrategies
                 target.UpdateRowColumn(i, setInfo.Index, newVal);
                 if (target is TableMock targetTableMock2)
                 {
-                    if (requiresOldSnapshotForIndex)
-                        targetTableMock2.IndexManager.UpdateIndexesWithRow(i, oldSnapshot, target[i]);
+                    if (requiresOldSnapshotForIndex && oldSnapshot is not null)
+                        targetTableMock2.IndexManager.UpdateIndexesWithRow(i, new ArrayRow(oldSnapshot), target[i]);
                     else
                         targetTableMock2.IndexManager.UpdateIndexesWithRow(i);
                 }
@@ -532,7 +536,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         if (joinCondition is null)
             throw new InvalidOperationException(SqlExceptionMessages.DeleteUsingWhereMustContainJoinEqualityCondition());
 
-        remainingWhere = parts.Count == 0 ? null : string.Join(SqlConst._AND_, parts);
+        remainingWhere = parts.Count == 0 ? null : string.Join(SqlConst.AND_SPACED, parts);
         return joinCondition;
     }
 
@@ -564,7 +568,7 @@ internal static class DbUpdateDeleteFromSelectStrategies
         joinCondition = string.Empty;
 
         var candidate = part;
-        while (candidate.StartsWith("(") && candidate.EndsWith(")"))
+        while (candidate.StartsWith('(') && candidate.EndsWith(')'))
             candidate = candidate[1..^1].Trim();
 
         var onM = _regexOnSql.Match(candidate.ToString());

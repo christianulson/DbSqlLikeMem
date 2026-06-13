@@ -89,9 +89,10 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
 
         if (value is IEnumerable enumerable)
         {
-            result = string.Join(
-                separator,
-                enumerable.Cast<object?>().Select(item => item?.ToString() ?? string.Empty));
+            var items = new List<string?>();
+            foreach (var item in enumerable)
+                items.Add(item?.ToString() ?? string.Empty);
+            result = string.Join(separator, items);
             return true;
         }
 
@@ -173,9 +174,10 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             return true;
         }
 
-        var list = value is IEnumerable enumerable
-            ? enumerable.Cast<object?>().ToList()
-            : [];
+        var list = new List<object?>();
+        if (value is IEnumerable enumerable)
+            foreach (var item in enumerable)
+                list.Add(item);
         var index = list.FindIndex(item => Equals(item, target));
         result = index >= 0 ? index + 1 : (object?)null;
         return true;
@@ -200,9 +202,10 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             return true;
         }
 
-        var list = value is IEnumerable enumerable
-            ? enumerable.Cast<object?>().ToList()
-            : [];
+        var list = new List<object?>();
+        if (value is IEnumerable enumerable)
+            foreach (var item in enumerable)
+                list.Add(item);
 
         var matches = new List<object?>(list.Count);
         for (var i = 0; i < list.Count; i++)
@@ -233,9 +236,10 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             return true;
         }
 
-        var list = value is IEnumerable enumerable
-            ? enumerable.Cast<object?>().ToList()
-            : [];
+        var list = new List<object?>();
+        if (value is IEnumerable enumerable)
+            foreach (var item in enumerable)
+                list.Add(item);
 
         var writeIndented = fn.Args.Count > 1 && Convert.ToBoolean(evalArg(1), CultureInfo.InvariantCulture);
         var options = writeIndented
@@ -275,7 +279,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             {
                 var right = args[1];
                 if (!AstQueryExecutorBase.IsNullish(right) && right is IEnumerable rightEnum)
-                    list.AddRange(rightEnum.Cast<object?>());
+                    foreach (var item in rightEnum)
+                        list.Add(item);
             });
 
     private static bool TryEvalArrayRemoveFunction(
@@ -340,7 +345,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             ? new List<object?>(leftCollection.Count)
             : new List<object?>();
         if (leftEnumerable is not null)
-            list.AddRange(leftEnumerable.Cast<object?>());
+            foreach (var item in leftEnumerable)
+                list.Add(item);
 
         if (isCat)
         {
@@ -353,7 +359,8 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
                     list.Capacity = list.Count + rightCollection.Count;
                 }
 
-                list.AddRange(rightEnum.Cast<object?>());
+                foreach (var item in rightEnum)
+                    list.Add(item);
             }
 
             result = list.ToArray();
@@ -377,9 +384,10 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             return true;
         }
 
-        var list = value is IEnumerable enumerable
-            ? enumerable.Cast<object?>().ToList()
-            : [];
+        var list = new List<object?>();
+        if (value is IEnumerable enumerable)
+            foreach (var item in enumerable)
+                list.Add(item);
 
         if (list.Count == 0)
         {
@@ -403,9 +411,10 @@ internal static class AstQueryPostgresArrayFunctionEvaluator
             return true;
         }
 
-        var list = value is IEnumerable enumerable
-            ? enumerable.Cast<object?>().ToList()
-            : [];
+        var list = new List<object?>();
+        if (value is IEnumerable enumerable)
+            foreach (var item in enumerable)
+                list.Add(item);
 
         if (list.Count == 0)
         {

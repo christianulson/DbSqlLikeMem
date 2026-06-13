@@ -193,7 +193,7 @@ internal static class AstQueryFunctionDispatchHelper
                 throw new InvalidOperationException($"Function '{fn.Name}' expects {expected}, but received {fn.Args.Count}.");
             }
 
-            var runtimeParameterScope = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            var runtimeParameterScope = SqlRowPool.Get(comparer: StringComparer.OrdinalIgnoreCase);
             for (var i = 0; i < runtimeFunction.Parameters.Count; i++)
             {
                 var parameter = runtimeFunction.Parameters[i];
@@ -219,6 +219,7 @@ internal static class AstQueryFunctionDispatchHelper
             finally
             {
                 localParameterScopes.Pop();
+                SqlRowPool.Return(runtimeParameterScope);
             }
         }
 
@@ -246,7 +247,7 @@ internal static class AstQueryFunctionDispatchHelper
             throw new InvalidOperationException($"Function '{fn.Name}' expects {expected}, but received {fn.Args.Count}.");
         }
 
-        var parameterScope = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+        var parameterScope = SqlRowPool.Get(comparer: StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < function.Parameters.Count; i++)
         {
             var parameter = function.Parameters[i];
@@ -272,6 +273,7 @@ internal static class AstQueryFunctionDispatchHelper
         finally
         {
             localParameterScopes.Pop();
+            SqlRowPool.Return(parameterScope);
         }
     }
 

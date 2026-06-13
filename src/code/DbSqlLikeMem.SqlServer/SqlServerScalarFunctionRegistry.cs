@@ -192,7 +192,7 @@ internal static partial class SqlServerScalarFunctionRegistry
                 return true;
             }
 
-            result = offsetMinutes.ToString(CultureInfo.InvariantCulture);
+            result = SqlServerTemporalUnitHelper.FormatTimeZoneOffset(offsetMinutes);
             return true;
         }
         if (context.Dialect.Version < SqlServerDialect.HighPrecisionTemporalFunctionsMinVersion
@@ -673,6 +673,7 @@ internal static partial class SqlServerScalarFunctionRegistry
         {
             var evaluator = new AstQuerySqlServerSessionFunctionEvaluator(
                 getDialect: () => context.Dialect,
+                getConnectionTypeName: () => context.Connection.GetType().Name,
                 getContextInfo: context.Connection.GetContextInfo,
                 hasActiveTransaction: () => context.Connection.HasActiveTransaction || context.HasActiveTransaction,
                 tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,
@@ -696,6 +697,17 @@ internal static partial class SqlServerScalarFunctionRegistry
             return evaluator.TryEvaluate(fn, evalArg, out result);
         }
 #pragma warning restore CS8321
+
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("CONTAINS", "INT") with
+            {
+                AstExecutor = QueryTextSearchFunctionHelper.TryEvalContainsFunction
+            });
+        dialect.AddScalarFunction(
+            DbFunctionDef.CreateScalar("FREETEXT", "INT") with
+            {
+                AstExecutor = QueryTextSearchFunctionHelper.TryEvalContainsFunction
+            });
 
         dialect.AddScalarFunctions(
             DbFunctionDef.CreateScalar("APPLOCK_MODE", "VARCHAR"),
@@ -1201,6 +1213,7 @@ internal static partial class SqlServerScalarFunctionRegistry
     {
         var evaluator = new AstQuerySqlServerSessionFunctionEvaluator(
             getDialect: () => context.Dialect,
+            getConnectionTypeName: () => context.Connection.GetType().Name,
             getContextInfo: context.Connection.GetContextInfo,
             hasActiveTransaction: () => context.Connection.HasActiveTransaction || context.HasActiveTransaction,
             tryResolveSqlServerRoleMembership: AstQuerySqlServerResolutionHelper.TryResolveSqlServerRoleMembership,

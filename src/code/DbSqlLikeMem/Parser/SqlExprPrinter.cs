@@ -129,7 +129,7 @@ internal static class SqlExprPrinter
                 if (bt.Negated) sb.Append(" NOT");
                 sb.Append(" BETWEEN ");
                 Wrap(bt.Low, sb);
-                sb.Append(SqlConst._AND_);
+                sb.Append(SqlConst.AND_SPACED);
                 Wrap(bt.High, sb);
                 break;
 
@@ -164,7 +164,13 @@ internal static class SqlExprPrinter
         SqlBinaryOp.NullSafeEq => "<=>",
         SqlBinaryOp.Regexp => "REGEXP",
         SqlBinaryOp.SoundLike => "SOUNDS LIKE",
+        SqlBinaryOp.Add => "+",
+        SqlBinaryOp.Subtract => "-",
+        SqlBinaryOp.Multiply => "*",
+        SqlBinaryOp.Divide => "/",
+        SqlBinaryOp.Modulo => "%",
         SqlBinaryOp.Concat => "||",
+        SqlBinaryOp.FullTextMatch => "MATCH",
         _ => op.ToString()
     };
 }

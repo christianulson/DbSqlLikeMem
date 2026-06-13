@@ -5,6 +5,7 @@ namespace DbSqlLikeMem;
 internal static class AstQueryExecutorForJsonHelper
 {
     private const string SqlServerForJsonColumnName = "JSON_F52E2B61-18A1-11d1-B105-00805F49916B";
+    private static readonly Regex _jsonAliasRegex = new(@"^(?<qual>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s*\.\s*(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     internal static TableResultMock ApplyForJsonIfNeeded(
         TableResultMock result,
@@ -321,10 +322,7 @@ internal static class AstQueryExecutorForJsonHelper
     private static string? TryGetSimpleQualifiedColumnQualifier(string raw, string? alias)
     {
         var (expression, _) = SelectAliasParserHelper.SplitTrailingAsAlias(raw, alias);
-        var match = Regex.Match(
-            expression.Trim(),
-            @"^(?<qual>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)\s*\.\s*(?<name>\[[^\]]+\]|""[^""]+""|`[^`]+`|[A-Za-z_][A-Za-z0-9_$#]*)$",
-            RegexOptions.CultureInvariant);
+        var match = _jsonAliasRegex.Match(expression.Trim());
 
         return match.Success
             ? match.Groups["qual"].Value.NormalizeName()

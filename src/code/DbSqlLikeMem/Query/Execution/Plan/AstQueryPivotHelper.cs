@@ -38,18 +38,23 @@ internal sealed class AstQueryPivotHelper(
             r => _eval(forExpr, r, null, ctes),
             ReferenceEqualityComparer<EvalRow>.Instance);
 
-        var inItems = pivot.InItems
-            .Select(i => new { i.Alias, Value = _eval(_parseExpr(i.ValueRaw), EvalRow.Empty(), null, ctes) })
-            .ToList();
+        var inItems = new List<(string Alias, object? Value)>(pivot.InItems.Count);
+        foreach (var i in pivot.InItems)
+            inItems.Add((i.Alias, _eval(_parseExpr(i.ValueRaw), EvalRow.Empty(), null, ctes)));
 
         var forColumnNormalized = pivot.ForColumnRaw[(pivot.ForColumnRaw.LastIndexOf('.') + 1)..];
         var aggregateArgNormalized = pivot.AggregateArgRaw[(pivot.AggregateArgRaw.LastIndexOf('.') + 1)..];
-        var groupColumns = source.ColumnNames
-            .Where(c => !c.Equals(pivot.ForColumnRaw, StringComparison.OrdinalIgnoreCase)
-                        && !c.Equals(forColumnNormalized, StringComparison.OrdinalIgnoreCase)
-                        && !c.Equals(pivot.AggregateArgRaw, StringComparison.OrdinalIgnoreCase)
-                        && !c.Equals(aggregateArgNormalized, StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var groupColumns = new List<string>(source.ColumnNames.Count);
+        foreach (var c in source.ColumnNames)
+        {
+            if (!c.Equals(pivot.ForColumnRaw, StringComparison.OrdinalIgnoreCase)
+                && !c.Equals(forColumnNormalized, StringComparison.OrdinalIgnoreCase)
+                && !c.Equals(pivot.AggregateArgRaw, StringComparison.OrdinalIgnoreCase)
+                && !c.Equals(aggregateArgNormalized, StringComparison.OrdinalIgnoreCase))
+            {
+                groupColumns.Add(c);
+            }
+        }
 
         static string BuildPivotGroupKey(EvalRow row, IReadOnlyList<string> columns)
         {
@@ -65,7 +70,18 @@ internal sealed class AstQueryPivotHelper(
             return builder.ToString();
         }
 
-        var grouped = inputRows.GroupBy(r => BuildPivotGroupKey(r, groupColumns)).ToList();
+        var grouped = new Dictionary<string, List<EvalRow>>();
+        foreach (var r in inputRows)
+        {
+            var key = BuildPivotGroupKey(r, groupColumns);
+            if (!grouped.TryGetValue(key, out var list))
+            {
+                list = [];
+                grouped[key] = list;
+            }
+            list.Add(r);
+        }
+
         var result = new TableResultMock();
 
         for (var i = 0; i < groupColumns.Count; i++)
@@ -79,9 +95,10 @@ internal sealed class AstQueryPivotHelper(
         for (var i = 0; i < inItems.Count; i++)
             result.Columns.Add(new TableResultColMock(source.Alias, inItems[i].Alias, inItems[i].Alias, groupColumns.Count + i, pivotAggregateDbType, true));
 
-        foreach (var group in grouped)
+        foreach (var kvp in grouped)
         {
-            var first = group.First();
+            var group = kvp.Value;
+            var first = group[0];
             var outRow = new Dictionary<int, object?>();
 
             for (var i = 0; i < groupColumns.Count; i++)
@@ -89,7 +106,12 @@ internal sealed class AstQueryPivotHelper(
 
             for (var i = 0; i < inItems.Count; i++)
             {
-                var bucket = group.Where(r => forValues[r].EqualsSql(inItems[i].Value, context)).ToList();
+                var bucket = new List<EvalRow>(group.Count);
+                foreach (var r in group)
+                {
+                    if (forValues[r].EqualsSql(inItems[i].Value, context))
+                        bucket.Add(r);
+                }
                 var aggregated = AggregatePivotBucket(pivot.AggregateFunction, aggArgExpr, bucket, ctes, context);
                 outRow[groupColumns.Count + i] = CoercePivotAggregateValue(aggregated, pivot.AggregateFunction, pivotAggregateDbType);
             }
@@ -288,9 +310,9 @@ internal sealed class AstQueryPivotHelper(
             return source;
 
         var inputRows = MaterializeSourceRows(source);
-        var inColumns = new HashSet<string>(
-            unpivot.InItems.Select(static item => item.SourceColumnName),
-            StringComparer.OrdinalIgnoreCase);
+        var inColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in unpivot.InItems)
+            inColumns.Add(item.SourceColumnName);
 
         foreach (var item in unpivot.InItems)
         {
@@ -298,9 +320,12 @@ internal sealed class AstQueryPivotHelper(
                 throw new InvalidOperationException($"UNPIVOT source column '{item.SourceColumnName}' was not found in the input rowset.");
         }
 
-        var groupColumns = source.ColumnNames
-            .Where(column => !inColumns.Contains(column))
-            .ToList();
+        var groupColumns = new List<string>(source.ColumnNames.Count);
+        foreach (var column in source.ColumnNames)
+        {
+            if (!inColumns.Contains(column))
+                groupColumns.Add(column);
+        }
 
         var result = new TableResultMock();
         for (var index = 0; index < groupColumns.Count; index++)
@@ -337,7 +362,12 @@ var unpivotColumnCount = groupColumns.Count + 2;
     }
 
     private List<EvalRow> MaterializeSourceRows(Source source)
-        => [.. source.Rows().Select(fields => _createSourceEvalRow(source, fields))];
+    {
+        var rows = new List<EvalRow>();
+        foreach (var fields in source.Rows())
+            rows.Add(_createSourceEvalRow(source, fields));
+        return rows;
+    }
 
     private object? AggregatePivotBucket(
         string aggregateFunction,

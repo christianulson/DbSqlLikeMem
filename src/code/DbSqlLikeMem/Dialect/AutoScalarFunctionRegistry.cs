@@ -115,5 +115,11 @@ internal static class AutoScalarFunctionRegistry
             AstExecutor = QueryTextSearchFunctionHelper.TryEvalMatchAgainstFunction
         };
         dialect.AddScalarFunction(matchAgainstFunction);
+
+        var containsFunction = DbFunctionDef.CreateScalar("CONTAINS", "INT") with
+        {
+            AstExecutor = QueryTextSearchFunctionHelper.TryEvalContainsFunction
+        };
+        dialect.AddScalarFunction(containsFunction);
     }
 }

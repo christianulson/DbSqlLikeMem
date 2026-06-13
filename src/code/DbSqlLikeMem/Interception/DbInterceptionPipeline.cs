@@ -19,6 +19,8 @@ public static class DbInterceptionPipeline
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         ArgumentNullExceptionCompatible.ThrowIfNull(interceptors, nameof(interceptors));
+        if (interceptors.Length == 0)
+            return connection;
         return new InterceptingDbConnection(connection, interceptors);
     }
 
@@ -35,7 +37,10 @@ public static class DbInterceptionPipeline
     {
         ArgumentNullExceptionCompatible.ThrowIfNull(connection, nameof(connection));
         ArgumentNullExceptionCompatible.ThrowIfNull(options, nameof(options));
-        return new InterceptingDbConnection(connection, options.BuildInterceptors());
+        var interceptors = options.BuildInterceptors();
+        if (interceptors.Length == 0)
+            return connection;
+        return new InterceptingDbConnection(connection, interceptors);
     }
 
     /// <summary>
