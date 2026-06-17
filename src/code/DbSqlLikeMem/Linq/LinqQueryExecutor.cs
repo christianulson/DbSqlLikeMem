@@ -12,6 +12,7 @@ public static class LinqQueryExecutor
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<(string Name, Func<object, object?> Getter)>> ParameterAccessorCache = new();
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<LinqRecordSetter>> RecordSetterCache = new();
     private static readonly ConcurrentDictionary<string, IReadOnlyList<LinqRecordBinding>> RecordPlanCache = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<Type, Func<object>> _instanceFactoryCache = new();
 
     /// <summary>
     /// EN: Executes SQL and materializes the result into the expected type.
@@ -42,6 +43,7 @@ public static class LinqQueryExecutor
         using var command = CreateCommand(connection, sql, parameters);
         using var reader = command.ExecuteReader();
         var metrics = (connection as DbConnectionMockBase)?.Metrics;
+        var metricsEnabled = metrics is { Enabled: true };
 
         var listType = typeof(List<>).MakeGenericType(elementType);
         var list = (IList)Activator.CreateInstance(listType)!;
@@ -49,7 +51,7 @@ public static class LinqQueryExecutor
         if (!reader.Read())
             return list;
 
-        var planStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+        var planStartedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0L;
         var plan = GetRecordPlan(reader, elementType);
         if (planStartedAt != 0)
         {
@@ -61,7 +63,7 @@ public static class LinqQueryExecutor
 
         do
         {
-            var rowStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+            var rowStartedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0L;
             list.Add(MapRecord(reader, elementType, plan));
             if (rowStartedAt != 0)
             {
@@ -81,11 +83,12 @@ public static class LinqQueryExecutor
         using var command = CreateCommand(connection, sql, parameters);
         using var reader = command.ExecuteReader();
         var metrics = (connection as DbConnectionMockBase)?.Metrics;
+        var metricsEnabled = metrics is { Enabled: true };
 
         if (!reader.Read())
             return resultType.IsValueType ? Activator.CreateInstance(resultType) : null;
 
-        var planStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+        var planStartedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0L;
         var plan = GetRecordPlan(reader, resultType);
         if (planStartedAt != 0)
         {
@@ -95,7 +98,7 @@ public static class LinqQueryExecutor
                 StopwatchCompatible.GetElapsedTicks(planStartedAt));
         }
 
-        var rowStartedAt = metrics is null ? 0 : Stopwatch.GetTimestamp();
+        var rowStartedAt = metricsEnabled ? Stopwatch.GetTimestamp() : 0L;
         var mapped = MapRecord(reader, resultType, plan);
         if (rowStartedAt != 0)
         {
@@ -152,8 +155,12 @@ public static class LinqQueryExecutor
         if (IsSimpleType(targetType))
             return ReadValue(record, 0, targetType);
 
-        var instance = Activator.CreateInstance(targetType)
-            ?? throw new InvalidOperationException($"Não foi possível instanciar o tipo {targetType}.");
+        var factory = _instanceFactoryCache.GetOrAdd(targetType, static t =>
+        {
+            var newExpr = Expression.New(t);
+            return Expression.Lambda<Func<object>>(Expression.Convert(newExpr, typeof(object))).Compile();
+        });
+        var instance = factory();
 
         foreach (var binding in plan ?? GetRecordPlan(record, targetType))
             binding.Setter.Setter(instance, ReadValue(record, binding.Ordinal, binding.Setter.PropertyType));

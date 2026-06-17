@@ -179,6 +179,8 @@ public abstract class TableMock
     /// </summary>
     public IReadOnlyList<IReadOnlyDictionary<int, object?>> Items => new ArrayRowListAdapter(_items);
 
+    internal object?[] GetRawRow(int index) => _items[index];
+
     /// <summary>
     /// EN: Gets the check constraints configured for the table.
     /// PT-br: Obtém as restricoes check configuradas para a tabela.

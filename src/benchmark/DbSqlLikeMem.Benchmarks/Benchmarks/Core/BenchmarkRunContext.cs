@@ -18,5 +18,8 @@ internal static class BenchmarkRunContext
     /// </summary>
     /// <param name="profile">EN: The selected benchmark profile. PT-br: O perfil de benchmark selecionado.</param>
     public static void Initialize(BenchmarkRunProfile profile)
-        => RunId = $"{profile.ToString().ToLowerInvariant()}-{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}";
+    {
+        RunId = $"{profile.ToString().ToLowerInvariant()}-{DateTimeOffset.UtcNow:yyyyMMddHHmmssfff}";
+        BenchmarkSessionBase.ResetErrors();
+    }
 }

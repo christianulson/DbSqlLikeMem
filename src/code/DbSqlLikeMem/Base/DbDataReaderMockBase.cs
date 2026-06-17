@@ -554,13 +554,22 @@ public abstract class DbDataReaderMockBase(
 
     private static Func<object, object> CreateConverter(Type targetType)
     {
+        var ic = CultureInfo.InvariantCulture;
+        if (targetType == typeof(int)) return v => Convert.ToInt32(v, ic);
+        if (targetType == typeof(long)) return v => Convert.ToInt64(v, ic);
+        if (targetType == typeof(short)) return v => Convert.ToInt16(v, ic);
+        if (targetType == typeof(byte)) return v => Convert.ToByte(v, ic);
+        if (targetType == typeof(double)) return v => Convert.ToDouble(v, ic);
+        if (targetType == typeof(float)) return v => Convert.ToSingle(v, ic);
+        if (targetType == typeof(decimal)) return v => Convert.ToDecimal(v, ic);
+        if (targetType == typeof(bool)) return v => Convert.ToBoolean(v, ic);
+        if (targetType == typeof(string)) return v => Convert.ToString(v, ic)!;
+        if (targetType == typeof(Guid)) return v => v is Guid g ? g : Guid.Parse(v.ToString()!);
+        if (targetType == typeof(DateTime)) return v => Convert.ToDateTime(v, ic);
+        if (targetType == typeof(DateTimeOffset)) return v => (DateTimeOffset)Convert.ToDateTime(v, ic);
         var method = typeof(Convert).GetMethod("ChangeType", [typeof(object), typeof(Type), typeof(IFormatProvider)]);
-        if (method is null)
-            return v => v!;
-
-        var invariant = CultureInfo.InvariantCulture;
-        var targetTypeLocal = targetType;
-        return v => method.Invoke(null, [v, targetTypeLocal, invariant])!;
+        if (method is null) return v => v!;
+        return v => method.Invoke(null, [v, targetType, ic])!;
     }
 
     private static Func<object, object> GetConverter<T>()

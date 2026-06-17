@@ -121,6 +121,12 @@ internal abstract partial class AstQueryExecutorBase
         if (TryEvaluateSimpleUnionCount(selectQuery, ctes, outerRow, out var fastCountResult))
             return fastCountResult;
 
+        //if (TryExecuteSelectDirect(selectQuery, ctes, out var directResult))
+        //    return directResult;
+
+        if (TryExecuteFastSelectPath(selectQuery, ctes, outerRow, out var fastResult))
+            return fastResult;
+
         var rows = BuildFrom(
             selectQuery.Table,
             ctes,
@@ -394,4 +400,283 @@ internal abstract partial class AstQueryExecutorBase
         return true;
     }
 
+    private bool TryExecuteSelectDirect(
+        SqlSelectQuery q,
+        Dictionary<string, Source> ctes,
+        out TableResultMock result)
+    {
+        result = null!;
+
+        if (q.Joins.Count > 0
+            || q.GroupBy.Count > 0
+            || q.Having is not null
+            || q.DistinctOn.Count > 0
+            || q.Distinct
+            || q.OrderBy.Count > 0
+            || q.RowLimit is not null
+            || q.ForJson is not null
+            || q.Where is null
+            || q.Table is null
+            || q.Table.DerivedUnion is not null)
+            return false;
+
+        if (AstQueryAggregateAnalysisHelper.ContainsAggregate(q, ParseScalarExpr, AggregateExpressionInspector.WalkHasAggregate))
+            return false;
+
+        var src = ResolveSource(q.Table, ctes);
+        if (src.Physical is not TableMock tableMock)
+            return false;
+
+        var rawItems = tableMock.Count;
+        if (rawItems == 0)
+        {
+            var emptyPlan = _context.BuildSelectPlan(q, [], ctes, ParseScalarExpr, Eval, QueryRowValueHelper.ResolveColumn);
+            result = new TableResultMock();
+            for (int i = 0; i < emptyPlan.Columns.Count; i++)
+                result.Columns.Add(emptyPlan.Columns[i]);
+            return true;
+        }
+
+        var columnMapping = src.PhysicalColumnIndexes;
+        if (columnMapping is null || columnMapping.Length == 0)
+            return false;
+
+        var fields = SqlRowPool.Get(src.ColumnNames.Count, StringComparer.OrdinalIgnoreCase);
+        var ordinalValues = OrdinalPool.Rent(src.ColumnNames.Count);
+        var evalRow = new EvalRow(fields, src.SourceDict)
+        {
+            OrdinalIndexes = src.SourceOrdinalIndexes,
+            SingleSource = src.SourceDict.Count == 1 ? src : null
+        };
+
+        var sampleRow = tableMock.GetRawRow(0);
+        for (var i = 0; i < src.ColumnNames.Count; i++)
+        {
+            var idx = columnMapping[i];
+            var val = sampleRow[idx];
+            var qualifiedName = src.GetQualifiedColumnName(i);
+            fields[qualifiedName] = val;
+            ordinalValues[i] = val;
+        }
+        evalRow.OrdinalValues = ordinalValues;
+
+        var sampleRows = new List<EvalRow>(1) { evalRow };
+        var parameterState = _context.SnapshotPositionalParameterState();
+        SelectPlan selectPlan;
+        try
+        {
+            selectPlan = _context.BuildSelectPlan(q, sampleRows, ctes, ParseScalarExpr, Eval, QueryRowValueHelper.ResolveColumn);
+        }
+        finally
+        {
+            _context.RestorePositionalParameterState(parameterState);
+        }
+
+        var hasWindowFunctions = selectPlan.HasWindowFunctions;
+        if (hasWindowFunctions)
+        {
+            OrdinalPool.Return(ordinalValues);
+            SqlRowPool.Return(fields);
+            return false;
+        }
+
+        Func<EvalRow, bool>? compiledPredicate = null;
+        if (q.Where is not null)
+        {
+            var predicateParamState = _context.SnapshotPositionalParameterState();
+            try
+            {
+                compiledPredicate = CompilePredicate(q.Where);
+            }
+            finally
+            {
+                _context.RestorePositionalParameterState(predicateParamState);
+            }
+        }
+
+        result = new TableResultMock();
+        for (int i = 0; i < selectPlan.Columns.Count; i++)
+            result.Columns.Add(selectPlan.Columns[i]);
+
+        var projectedColumnCount = selectPlan.Evaluators.Count;
+
+        for (var rowIdx = 0; rowIdx < rawItems; rowIdx++)
+        {
+            var rawRow = tableMock.GetRawRow(rowIdx);
+
+            for (var i = 0; i < src.ColumnNames.Count; i++)
+                ordinalValues[i] = rawRow[columnMapping[i]];
+
+            evalRow.OrdinalValues = ordinalValues;
+
+            if (compiledPredicate is not null && !compiledPredicate(evalRow))
+                continue;
+
+            var outRow = IntDictPool.Get(projectedColumnCount);
+            for (int i = 0; i < projectedColumnCount; i++)
+                outRow[i] = selectPlan.Evaluators[i](evalRow, null);
+
+            result.Add(outRow);
+            result.JoinFields.Add(fields);
+        }
+
+        OrdinalPool.Return(ordinalValues);
+        return true;
+    }
+
+    private bool TryExecuteFastSelectPath(
+        SqlSelectQuery q,
+        Dictionary<string, Source> ctes,
+        EvalRow? outerRow,
+        out TableResultMock result)
+    {
+        result = null!;
+
+        if (q.Joins.Count > 0
+            || q.GroupBy.Count > 0
+            || q.Having is not null
+            || q.DistinctOn.Count > 0
+            || q.Distinct
+            || q.OrderBy.Count > 0
+            || q.RowLimit is not null
+            || q.ForJson is not null
+            || q.Where is null
+            || q.Table is null
+            || q.Table.DerivedUnion is not null
+            || outerRow is not null)
+            return false;
+
+        if (AstQueryAggregateAnalysisHelper.ContainsAggregate(q, ParseScalarExpr, AggregateExpressionInspector.WalkHasAggregate))
+            return false;
+
+        // Check PK early to avoid resolving source twice (caller also calls BuildFrom)
+        if (q.Table?.Name is null)
+            return false;
+
+        if (!_context.Connection.TryGetTable(q.Table.Name, out var physicalTable, q.Table.DbName)
+            || physicalTable is not TableMock tableMock)
+            return false;
+
+        var pkIndexes = tableMock.PkIndexArray;
+        if (pkIndexes.Length == 0)
+            return false;
+
+        var src = ResolveSource(q.Table, ctes);
+        if (src.Physical is null)
+            return false;
+
+        var parameterState = _context.SnapshotPositionalParameterState();
+        try
+        {
+            if (!PartitionHelper.TryCollectColumnEqualities(q.Where, src, out var equalities))
+                return false;
+
+            for (var i = 0; i < pkIndexes.Length; i++)
+            {
+                var pkColName = tableMock.GetColumnByIndex(pkIndexes[i]).Name.NormalizeName();
+                if (!equalities.ContainsKey(pkColName))
+                    return false;
+            }
+
+            object?[] pkValues;
+            switch (pkIndexes.Length)
+            {
+                case 1:
+                {
+                    var colName = tableMock.GetColumnByIndex(pkIndexes[0]).Name.NormalizeName();
+                    if (!tableMock.TryFindRowByPkValues(equalities[colName], out var rowIdx))
+                    {
+                        result = new TableResultMock();
+                        return true;
+                    }
+                    var fieldRows = src.RowsByIndexes(rowIdx);
+                    var evalRows = new List<EvalRow>(1);
+                    foreach (var fields in fieldRows)
+                        evalRows.Add(AstQueryRowSourceHelper.CreateSourceEvalRow(src, fields));
+                    result = ProjectRows(q, evalRows, ctes);
+                    RecordFastPathMetrics(tableMock, q.Table);
+                    return true;
+                }
+                case 2:
+                {
+                    var colName0 = tableMock.GetColumnByIndex(pkIndexes[0]).Name.NormalizeName();
+                    var colName1 = tableMock.GetColumnByIndex(pkIndexes[1]).Name.NormalizeName();
+                    if (!tableMock.TryFindRowByPkValues(equalities[colName0], equalities[colName1], out var rowIdx))
+                    {
+                        result = new TableResultMock();
+                        return true;
+                    }
+                    var fieldRows2 = src.RowsByIndexes(rowIdx);
+                    var evalRows2 = new List<EvalRow>(1);
+                    foreach (var fields in fieldRows2)
+                        evalRows2.Add(AstQueryRowSourceHelper.CreateSourceEvalRow(src, fields));
+                    result = ProjectRows(q, evalRows2, ctes);
+                    RecordFastPathMetrics(tableMock, q.Table);
+                    return true;
+                }
+                case 3:
+                {
+                    var colName0 = tableMock.GetColumnByIndex(pkIndexes[0]).Name.NormalizeName();
+                    var colName1 = tableMock.GetColumnByIndex(pkIndexes[1]).Name.NormalizeName();
+                    var colName2 = tableMock.GetColumnByIndex(pkIndexes[2]).Name.NormalizeName();
+                    if (!tableMock.TryFindRowByPkValues(equalities[colName0], equalities[colName1], equalities[colName2], out var rowIdx))
+                    {
+                        result = new TableResultMock();
+                        return true;
+                    }
+                    var fieldRows3 = src.RowsByIndexes(rowIdx);
+                    var evalRows3 = new List<EvalRow>(1);
+                    foreach (var fields in fieldRows3)
+                        evalRows3.Add(AstQueryRowSourceHelper.CreateSourceEvalRow(src, fields));
+                    result = ProjectRows(q, evalRows3, ctes);
+                    RecordFastPathMetrics(tableMock, q.Table);
+                    return true;
+                }
+                default:
+                {
+                    pkValues = new object?[pkIndexes.Length];
+                    for (var i = 0; i < pkIndexes.Length; i++)
+                    {
+                        var colName = tableMock.GetColumnByIndex(pkIndexes[i]).Name.NormalizeName();
+                        pkValues[i] = equalities[colName];
+                    }
+                    if (!tableMock.TryFindRowByPkValues(pkValues, out var rowIdx))
+                    {
+                        result = new TableResultMock();
+                        return true;
+                    }
+                    var fieldRowsN = src.RowsByIndexes(rowIdx);
+                    var evalRowsN = new List<EvalRow>(1);
+                    foreach (var fields in fieldRowsN)
+                        evalRowsN.Add(AstQueryRowSourceHelper.CreateSourceEvalRow(src, fields));
+                    result = ProjectRows(q, evalRowsN, ctes);
+                    RecordFastPathMetrics(tableMock, q.Table);
+                    return true;
+                }
+            }
+        }
+        finally
+        {
+            _context.RestorePositionalParameterState(parameterState);
+        }
+    }
+
+    private void RecordFastPathMetrics(TableMock tableMock, SqlTableSource tableSource)
+    {
+        if (!Cnn.Metrics.Enabled)
+            return;
+
+        Cnn.Metrics.IndexLookups++;
+
+        if (tableSource.MySqlIndexHints is { Count: > 0 } hints)
+        {
+            var hintPlan = AstQueryIndexHelper.BuildMySqlIndexHintPlan(
+                hints,
+                tableMock,
+                hasOrderBy: false,
+                hasGroupBy: false);
+
+            TryRecordPrimaryKeyHintMetric(tableMock, hintPlan);
+        }
+    }
 }

@@ -204,18 +204,19 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math benchmark.");
         }
 
-        var abs = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathAbsoluteExpression("-10")}"), CultureInfo.InvariantCulture);
-        var ceiling = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathCeilingExpression("1.2")}"), CultureInfo.InvariantCulture);
-        var degrees = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathDegreesExpression("ACOS(-1)")}"), CultureInfo.InvariantCulture);
-        var floor = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathFloorExpression("1.9")}"), CultureInfo.InvariantCulture);
-        var naturalLog = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathNaturalLogExpression("2.718281828459045")}"), CultureInfo.InvariantCulture);
-        var log10 = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathLog10Expression("1000")}"), CultureInfo.InvariantCulture);
-        var power = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathPowerExpression("2", "3")}"), CultureInfo.InvariantCulture);
-        var radians = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRadiansExpression("180.0")}"), CultureInfo.InvariantCulture);
-        var round = Convert.ToDecimal(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRoundExpression("1.235", 2)}"), CultureInfo.InvariantCulture);
-        var sign = Convert.ToInt32(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSignExpression("-10")}"), CultureInfo.InvariantCulture);
-        var sqrt = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSqrtExpression("9")}"), CultureInfo.InvariantCulture);
-        var square = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathSquareExpression("3")}"), CultureInfo.InvariantCulture);
+        var d = Repo.Dialect;
+        var abs = Convert.ToInt32(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathAbsoluteExpression("-10"))), CultureInfo.InvariantCulture);
+        var ceiling = Convert.ToInt32(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathCeilingExpression("1.2"))), CultureInfo.InvariantCulture);
+        var degrees = Convert.ToDouble(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathDegreesExpression("ACOS(-1)"))), CultureInfo.InvariantCulture);
+        var floor = Convert.ToInt32(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathFloorExpression("1.9"))), CultureInfo.InvariantCulture);
+        var naturalLog = Convert.ToDouble(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathNaturalLogExpression("2.718281828459045"))), CultureInfo.InvariantCulture);
+        var log10 = Convert.ToDouble(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathLog10Expression("1000"))), CultureInfo.InvariantCulture);
+        var power = Convert.ToDouble(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathPowerExpression("2", "3"))), CultureInfo.InvariantCulture);
+        var radians = Convert.ToDouble(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathRadiansExpression("180.0"))), CultureInfo.InvariantCulture);
+        var round = Convert.ToDecimal(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathRoundExpression("1.235", 2))), CultureInfo.InvariantCulture);
+        var sign = Convert.ToInt32(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathSignExpression("-10"))), CultureInfo.InvariantCulture);
+        var sqrt = Convert.ToDouble(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathSqrtExpression("9"))), CultureInfo.InvariantCulture);
+        var square = Convert.ToDouble(await Repo.ExecuteScalarAsync(d.ScalarSelect(d.MathSquareExpression("3"))), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(abs);
         GC.KeepAlive(ceiling);
@@ -298,7 +299,7 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math rand benchmark.");
         }
 
-        var rand = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathRandExpression("1")}"), CultureInfo.InvariantCulture);
+        var rand = Convert.ToDouble(await Repo.ExecuteScalarAsync(Repo.Dialect.ScalarSelect(Repo.Dialect.MathRandExpression("1"))), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(rand);
 
@@ -359,7 +360,7 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the math cotangent benchmark.");
         }
 
-        var cot = Convert.ToDouble(await Repo.ExecuteScalarAsync($"SELECT {Repo.Dialect.MathCotExpression("1")}"), CultureInfo.InvariantCulture);
+        var cot = Convert.ToDouble(await Repo.ExecuteScalarAsync(Repo.Dialect.ScalarSelect(Repo.Dialect.MathCotExpression("1"))), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(cot);
 
@@ -429,10 +430,11 @@ public partial class QueryServiceTest
             throw new NotSupportedException($"{Repo.Dialect.DisplayName} does not support the DB2 alias math benchmark.");
         }
 
-        var absVal = Convert.ToInt32(await Repo.ExecuteScalarAsync("SELECT ABSVAL(-10)"), CultureInfo.InvariantCulture);
-        var mod = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT MOD(10, 3)"), CultureInfo.InvariantCulture);
-        var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNC(1.9)"), CultureInfo.InvariantCulture);
-        var truncate = Convert.ToDecimal(await Repo.ExecuteScalarAsync("SELECT TRUNCATE(1.987, 2)"), CultureInfo.InvariantCulture);
+        var d = Repo.Dialect;
+        var absVal = Convert.ToInt32(await Repo.ExecuteScalarAsync(d.ScalarSelect("ABSVAL(-10)")), CultureInfo.InvariantCulture);
+        var mod = Convert.ToDecimal(await Repo.ExecuteScalarAsync(d.ScalarSelect("MOD(10, 3)")), CultureInfo.InvariantCulture);
+        var trunc = Convert.ToDecimal(await Repo.ExecuteScalarAsync(d.ScalarSelect("TRUNC(1.9)")), CultureInfo.InvariantCulture);
+        var truncate = Convert.ToDecimal(await Repo.ExecuteScalarAsync(d.ScalarSelect("TRUNCATE(1.987, 2)")), CultureInfo.InvariantCulture);
 
         GC.KeepAlive(absVal);
         GC.KeepAlive(mod);

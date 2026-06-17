@@ -151,6 +151,10 @@ CREATE TABLE {context.TbOrdersFullName} (
         NormalizeOracleParameterValue(value);
 
     /// <inheritdoc />
+    public override string ScalarSelect(string expression) =>
+        $"SELECT {expression} FROM DUAL";
+
+    /// <inheritdoc />
     public override string SelectParameterProjection(string projectionList) =>
         $"SELECT {projectionList} FROM DUAL";
 

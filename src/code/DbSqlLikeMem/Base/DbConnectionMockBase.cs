@@ -1280,7 +1280,7 @@ public abstract class DbConnectionMockBase(
 
         _transactionJournalManager.Append(new TransactionJournalEntry(
             table,
-            TransactionJournalEntryKind.CreateIndex,
+            TransactionJournalEntryKind.CreateTable,
             -1,
             null,
             null,
@@ -1299,7 +1299,7 @@ public abstract class DbConnectionMockBase(
 
         _transactionJournalManager.Append(new TransactionJournalEntry(
             table,
-            TransactionJournalEntryKind.DropIndex,
+            TransactionJournalEntryKind.DropTable,
             -1,
             null,
             null,

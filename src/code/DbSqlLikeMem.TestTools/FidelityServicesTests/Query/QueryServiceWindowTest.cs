@@ -12,7 +12,7 @@ public partial class QueryServiceTest
     /// </summary>
     public async Task<QueryResultSnapshot> RunWindowRankDenseRank(params object[] pars)
     {
-        var expectedFirstName = pars.Length > 1 ? (string)pars[1] : "Alice";
+        var expectedFirstName = pars.Length > 0 ? (string)pars[0] : "Alice";
         var rows = new List<QueryResultRowSnapshot>(4);
 
         using var command = Repo.Cnn.CreateCommand();

@@ -117,7 +117,13 @@ public abstract partial class BenchmarkSessionBase(
 
     private static readonly object _logSync = new();
 
-    private static readonly ConcurrentDictionary<string, int> Errors = [];
+    internal static readonly ConcurrentDictionary<string, int> Errors = [];
+
+    /// <summary>
+    /// EN: Clears the error deduplication state so subsequent errors are logged as new entries.
+    /// PT-br: Limpa o estado de deduplicacao de erros para que erros subsequentes sejam registrados como novas entradas.
+    /// </summary>
+    internal static void ResetErrors() => Errors.Clear();
 
     protected virtual void LogBenchmarkIssue(string txt, BenchmarkFeatureId feature, Exception ex)
     {

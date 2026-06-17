@@ -386,6 +386,13 @@ CREATE TEMPORARY TABLE {TemporaryUsersTableName(context)} (
         name;
 
     /// <summary>
+    /// EN: Wraps a scalar expression in a SELECT statement suitable for the provider.
+    /// PT-br: Encapsula uma expressao escalar em uma instrucao SELECT adequada para o provedor.
+    /// </summary>
+    public virtual string ScalarSelect(string expression) =>
+        $"SELECT {expression}";
+
+    /// <summary>
     /// EN: Creates a provider-specific parameter for the non-directional command path when special handling is required.
     /// PT-br: Cria um parametro especifico do provedor para o caminho de comando sem direcao quando um tratamento especial for necessario.
     /// </summary>

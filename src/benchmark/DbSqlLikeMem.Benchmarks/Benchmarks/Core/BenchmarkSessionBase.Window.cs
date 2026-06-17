@@ -38,7 +38,7 @@ public abstract partial class BenchmarkSessionBase
         var state = GetPreparedUsersQueryState(
             "WindowRankDenseRank",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowRankDenseRank("Aaron");
+        var value = state.Service.RunWindowRankDenseRank("Aaron").GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -48,7 +48,7 @@ public abstract partial class BenchmarkSessionBase
         var state = GetPreparedUsersQueryState(
             "WindowFirstLastValue",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowFirstLastValue("Aaron");
+        var value = state.Service.RunWindowFirstLastValue("Aaron").GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -58,7 +58,7 @@ public abstract partial class BenchmarkSessionBase
         var state = GetPreparedUsersQueryState(
             "WindowNtile",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowNtile("Aaron");
+        var value = state.Service.RunWindowNtile("Aaron").GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -68,7 +68,7 @@ public abstract partial class BenchmarkSessionBase
         var state = GetPreparedUsersQueryState(
             "WindowPercentRankCumeDist",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowPercentRankCumeDist("Aaron");
+        var value = state.Service.RunWindowPercentRankCumeDist("Aaron").GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 
@@ -78,7 +78,7 @@ public abstract partial class BenchmarkSessionBase
         var state = GetPreparedUsersQueryState(
             "WindowNthValue",
             (1, "Aaron"), (2, "Bravo"), (3, "Bravo"), (4, "Charlie"));
-        var value = state.Service.RunWindowNthValue("Aaron");
+        var value = state.Service.RunWindowNthValue("Aaron").GetAwaiter().GetResult();
         GC.KeepAlive(value);
     }
 }

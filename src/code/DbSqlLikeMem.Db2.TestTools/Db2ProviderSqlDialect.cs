@@ -229,6 +229,10 @@ DECLARE GLOBAL TEMPORARY TABLE SESSION.{TemporaryUsersTableName(context)} (
         SetDb2ParameterSize(parameter, value);
 
     /// <inheritdoc />
+    public override string ScalarSelect(string expression) =>
+        $"SELECT {expression} FROM SYSIBM.SYSDUMMY1";
+
+    /// <inheritdoc />
     public override string SelectParameterProjection(string projectionList) =>
         $"SELECT {projectionList} FROM SYSIBM.SYSDUMMY1";
 

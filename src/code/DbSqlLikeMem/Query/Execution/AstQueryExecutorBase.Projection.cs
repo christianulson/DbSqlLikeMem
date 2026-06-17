@@ -33,8 +33,11 @@ internal abstract partial class AstQueryExecutorBase
         foreach (var r in rows)
         {
             var outRow = IntDictPool.Get(projectedColumnCount);
-            for (int i = 0; i < projectedColumnCount; i++)
-                outRow[i] = selectPlan.Evaluators[i](r, null);
+            using (var positionalScope = _context.BeginPositionalParameterScope())
+            {
+                for (int i = 0; i < projectedColumnCount; i++)
+                    outRow[i] = selectPlan.Evaluators[i](r, null);
+            }
 
             res.Add(outRow);
             res.JoinFields.Add(r.Fields);

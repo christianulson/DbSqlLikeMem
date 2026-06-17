@@ -801,6 +801,8 @@ internal abstract partial class AstQueryExecutorBase(QueryExecutionContext conte
         /// </summary>
         internal Dictionary<string, Source> SourceDict => _sourceDict;
 
+        internal int[]? PhysicalColumnIndexes => _physicalColumnIndexes;
+
         private Source(
             string name,
             string alias,

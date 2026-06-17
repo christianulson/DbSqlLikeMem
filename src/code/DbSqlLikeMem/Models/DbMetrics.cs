@@ -566,11 +566,26 @@ public sealed class DbMetrics
 
     internal void IncrementBatchPhaseCancellation(string phase) => BatchPhaseCancellations.AddOrUpdate(phase, 1, _incrementHandler);
 
-    internal void IncrementBatchPhaseElapsedTicks(string phase, long elapsedTicks) => BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    internal void IncrementBatchPhaseElapsedTicks(string phase, long elapsedTicks)
+    {
+        if (!Enabled)
+            return;
+        BatchPhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    }
 
-    internal void IncrementPerformancePhaseHit(string phase) => PerformancePhaseHits.AddOrUpdate(phase, 1, _incrementHandler);
+    internal void IncrementPerformancePhaseHit(string phase)
+    {
+        if (!Enabled)
+            return;
+        PerformancePhaseHits.AddOrUpdate(phase, 1, _incrementHandler);
+    }
 
-    internal void IncrementPerformancePhaseElapsedTicks(string phase, long elapsedTicks) => PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    internal void IncrementPerformancePhaseElapsedTicks(string phase, long elapsedTicks)
+    {
+        if (!Enabled)
+            return;
+        PerformancePhaseElapsedTicks.AddOrUpdate(phase, elapsedTicks, (_, current) => current + elapsedTicks);
+    }
 
     internal string? FormatPerformancePhases()
     {
