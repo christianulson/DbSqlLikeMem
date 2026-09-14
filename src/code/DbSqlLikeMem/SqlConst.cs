@@ -891,6 +891,14 @@ public static class SqlConst
     /// PT-br: Palavra-chave SQL usada para introduzir uma clausula FOR.
     /// </summary>
     public const string FOR = "FOR";
+    /// <summary>EN: SQL keyword used in SELECT ... FOR SHARE / LOCK IN SHARE MODE. PT-br: Palavra-chave SQL usada em SELECT ... FOR SHARE / LOCK IN SHARE MODE.</summary>
+    public const string SHARE = "SHARE";
+    /// <summary>EN: SQL keyword used in LOCK IN SHARE MODE / LOCK TABLES. PT-br: Palavra-chave SQL usada em LOCK IN SHARE MODE / LOCK TABLES.</summary>
+    public const string LOCK = "LOCK";
+    /// <summary>EN: SQL keyword used in SELECT ... FOR UPDATE NOWAIT. PT-br: Palavra-chave SQL usada em SELECT ... FOR UPDATE NOWAIT.</summary>
+    public const string NOWAIT = "NOWAIT";
+    /// <summary>EN: SQL keyword used in SELECT ... FOR UPDATE SKIP LOCKED. PT-br: Palavra-chave SQL usada em SELECT ... FOR UPDATE SKIP LOCKED.</summary>
+    public const string LOCKED = "LOCKED";
     /// <summary>
     /// EN: SQL keyword used for query or DML options.
     /// PT-br: Palavra-chave SQL usada para opcoes de consulta ou DML.

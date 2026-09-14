@@ -19,6 +19,7 @@ internal static class SqlSelectOrUnionQueryHelper
             var rowLimit = ctx.TryParseRowLimitTail(orderBy.Count > 0);
             var forJson = ctx.TryParseForJsonClause();
             rowLimit ??= first.RowLimit;
+            ctx.TryParseLockingClause();
             ctx.TryConsumeQueryHintOption();
             ctx.ExpectEndOrUnionBoundary();
 
@@ -51,6 +52,7 @@ internal static class SqlSelectOrUnionQueryHelper
             ctx,
             readOrderByItems);
         var unionRowLimit = ctx.TryParseRowLimitTail(unionOrderBy.Count > 0);
+        ctx.TryParseLockingClause();
         ctx.TryConsumeQueryHintOption();
         ctx.ExpectEndOrUnionBoundary();
 

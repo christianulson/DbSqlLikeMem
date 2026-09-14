@@ -741,8 +741,8 @@ internal sealed class SqlQueryParser
             ? SqlOrderByHelper.TryParseOrderBy(
                 _ctx,
                 boundary => boundary
-                    ? _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON)
-                    : _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING))
+                    ? _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON, SqlConst.LOCK)
+                    : _ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.LOCK))
             : [];
         if (distinctOn.Count > 0 && orderBy.Count > 0)
         {
@@ -762,7 +762,10 @@ internal sealed class SqlQueryParser
             ? SqlForJsonClauseHelper.TryParseForJsonClause(_ctx)
             : null;
         if (allowOrderByAndLimit)
+        {
+            _ctx.TryParseLockingClause();
             _ctx.TryConsumeQueryHintOption();
+        }
         if (top is not null)
             rowLimit ??= top;
 
@@ -780,6 +783,7 @@ internal sealed class SqlQueryParser
                 && !IsWord(t, SqlConst.OFFSET)
                 && !IsWord(t, SqlConst.FETCH)
                 && !IsWord(t, SqlConst.FOR)
+                && !IsWord(t, SqlConst.LOCK)
                 && !IsWord(t, SqlConst.OPTION)
                 && !IsSymbol(t, ";"))
             {
@@ -1035,7 +1039,7 @@ internal sealed class SqlQueryParser
         if (!_ctx.IsWord(SqlConst.WHERE)) return null;
         _ctx.Consume();
         // SqlConst.ON here is important for INSERT ... SELECT ... WHERE ... ON DUPLICATE ...
-        var txt = SqlQueryParserContext.NormalizeClauseText(_ctx.ReadClauseTextUntilTopLevelStop(SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.HAVING, SqlConst.FOR, SqlConst.ON, SqlConst.RETURNING).AsSpan());
+        var txt = SqlQueryParserContext.NormalizeClauseText(_ctx.ReadClauseTextUntilTopLevelStop(SqlConst.GROUP, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.HAVING, SqlConst.FOR, SqlConst.ON, SqlConst.RETURNING, SqlConst.LOCK).AsSpan());
         return _ctx.ParseWhere(txt);
     }
 
@@ -1045,7 +1049,7 @@ internal sealed class SqlQueryParser
         if (!_ctx.IsWord(SqlConst.GROUP)) return list;
         _ctx.Consume();
         _ctx.ExpectWord(SqlConst.BY);
-        list.AddRange(_ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.HAVING, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON));
+        list.AddRange(_ctx.ParseCommaSeparatedRawItemsUntilAny(SqlConst.HAVING, SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON, SqlConst.LOCK));
         if (list.Count == 0)
             throw new InvalidOperationException("GROUP BY sem expressões.");
         return list;
@@ -1055,7 +1059,7 @@ internal sealed class SqlQueryParser
     {
         if (!_ctx.IsWord(SqlConst.HAVING)) return null;
         _ctx.Consume();
-        var txt = SqlQueryParserContext.NormalizeClauseText(_ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON).AsSpan());
+        var txt = SqlQueryParserContext.NormalizeClauseText(_ctx.ReadClauseTextUntilTopLevelStop(SqlConst.ORDER, SqlConst.LIMIT, SqlConst.OFFSET, SqlConst.FETCH, SqlConst.ROWS, SqlConst.UNION, SqlConst.FOR, SqlConst.RETURNING, SqlConst.ON, SqlConst.LOCK).AsSpan());
         return _ctx.ParseWhere(txt);
     }
 
