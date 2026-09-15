@@ -29,7 +29,7 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
         return [.. rows.Select(MapObject).Where(x => x is not null).Cast<DatabaseObjectReference>()];
     }
 
-    /// <inheritdoc/>
+/// <inheritdoc/>
     public async Task<DatabaseObjectReference?> GetObjectAsync(
         ConnectionDefinition connection,
         DatabaseObjectReference reference,
@@ -37,6 +37,34 @@ public sealed class SqlDatabaseMetadataProvider(ISqlQueryExecutor queryExecutor)
     {
         var listed = await ListObjectsAsync(connection, cancellationToken);
         var exists = listed.Any(o =>
+            string.Equals(o.Schema, reference.Schema, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(o.Name, reference.Name, StringComparison.OrdinalIgnoreCase) &&
+            o.Type == reference.Type);
+
+        if (!exists)
+        {
+            return null;
+        }
+
+        return await GetObjectDetailsAsync(connection, reference, cancellationToken);
+    }
+
+    /// <summary>
+    /// EN: Gets detailed metadata for a database object when the object list has already been loaded.
+    /// PT-br: Obtem metadados detalhados de um objeto de banco quando a listagem ja foi carregada.
+    /// </summary>
+    /// <param name="connection">EN: Connection definition used to query metadata. PT-br: Definicao de conexao usada para consultar metadados.</param>
+    /// <param name="reference">EN: Database object reference to hydrate. PT-br: Referencia do objeto de banco a ser enriquecida.</param>
+    /// <param name="listedObjects">EN: Previously listed objects used to confirm the reference exists. PT-br: Objetos ja listados usados para confirmar a existencia da referencia.</param>
+    /// <param name="cancellationToken">EN: Cancellation token for the operation. PT-br: Token de cancelamento para a operacao.</param>
+    /// <returns>EN: The populated object reference, or null when the object is not part of the list. PT-br: A referencia populada do objeto, ou null quando o objeto nao faz parte da lista.</returns>
+    public async Task<DatabaseObjectReference?> GetObjectAsync(
+        ConnectionDefinition connection,
+        DatabaseObjectReference reference,
+        IReadOnlyCollection<DatabaseObjectReference> listedObjects,
+        CancellationToken cancellationToken = default)
+    {
+        var exists = listedObjects.Any(o =>
             string.Equals(o.Schema, reference.Schema, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(o.Name, reference.Name, StringComparison.OrdinalIgnoreCase) &&
             o.Type == reference.Type);

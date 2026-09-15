@@ -139,7 +139,7 @@ test('validateTemplateBaselineProfileAlignment reports governance drift', () => 
       worker: 'Different focus'
     },
     evidenceFiles: ['CHANGELOG.md']
-  });
+  }, '2026-03-08');
 
   assert.equal(warnings.length, 4);
   assert.ok(warnings.some((warning) => warning.includes('Current baseline')));
@@ -154,13 +154,13 @@ test('validateTemplateBaselineProfileAlignment reports overdue review windows', 
     currentBaseline: 'vCurrent',
     promotionStagingPath: 'templates/dbsqllikemem/vNext',
     reviewCadence: 'quarterly',
-    lastReviewedOn: '2025-12-31',
-    nextPlannedReviewOn: '2026-01-15',
+    lastReviewedOn: '2026-03-31',
+    nextPlannedReviewOn: '2026-06-30',
     profileFocusById: {
       api: 'Light integration tests for tables, views, functions, and repositories.'
     },
     evidenceFiles: ['CHANGELOG.md']
-  }, '2026-03-08');
+  }, '2026-08-01');
 
   assert.equal(warnings.length, 1);
   assert.ok(warnings.some((warning) => warning.includes('overdue')));

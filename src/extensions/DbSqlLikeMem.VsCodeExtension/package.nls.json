@@ -2,5 +2,20 @@
   "displayName": "DbSqlLikeMem Tools",
   "description": "VS Code extension to browse database objects and generate POCO classes for DbSqlLikeMem.",
   "viewsContainer.title": "DbSqlLikeMem",
-  "views.connections.name": "Connections"
+  "views.connections.name": "Connections",
+  "views.welcome": "Add a connection to explore database objects.\n[Add Connection](command:dbSqlLikeMem.addConnection)",
+  "command.openManager.title": "DbSqlLikeMem: Open Manager",
+  "command.addConnection.title": "DbSqlLikeMem: Add Connection",
+  "command.configureMappings.title": "DbSqlLikeMem: Configure Mappings",
+  "command.generateClasses.title": "DbSqlLikeMem: Generate Test Classes",
+  "command.generateModelClasses.title": "DbSqlLikeMem: Generate Model Classes",
+  "command.generateRepositoryClasses.title": "DbSqlLikeMem: Generate Repository Classes",
+  "command.configureTemplates.title": "DbSqlLikeMem: Configure Templates",
+  "command.checkConsistency.title": "DbSqlLikeMem: Check Consistency",
+  "command.refresh.title": "DbSqlLikeMem: Refresh",
+  "command.exportState.title": "DbSqlLikeMem: Export State",
+  "command.importState.title": "DbSqlLikeMem: Import State",
+  "command.setFilter.title": "DbSqlLikeMem: Set Filter",
+  "command.editConnection.title": "DbSqlLikeMem: Edit Connection",
+  "command.removeConnection.title": "DbSqlLikeMem: Remove Connection"
 }

@@ -1,5 +1,6 @@
 using System.ComponentModel.Design;
 using Microsoft.VisualStudio.Shell;
+using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
 namespace DbSqlLikeMem.VisualStudioExtension.Commands;
 
@@ -31,7 +32,7 @@ internal sealed class OpenToolWindowCommand
         ThreadHelper.ThrowIfNotOnUIThread();
         var window = package.FindToolWindow(typeof(DbSqlLikeMemToolWindow), 0, true);
         if (window?.Frame is null)
-            throw new InvalidOperationException("Não foi possível criar a janela da extensão DbSqlLikeMem.");
+            throw new InvalidOperationException(UiResources.FailedToOpenToolWindow);
 
         Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(((Microsoft.VisualStudio.Shell.Interop.IVsWindowFrame)window.Frame).Show());
     }

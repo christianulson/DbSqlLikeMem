@@ -9,14 +9,16 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 public partial class TemplateConfigurationDialog : Window
 {
     private readonly TemplateReviewMetadata? reviewMetadata;
+    private readonly string workspaceDirectory;
 
     /// <summary>
     /// Initializes a dialog to configure model and repository templates and output folders.
     /// Inicializa uma janela para configurar templates e pastas de saída de modelos e repositórios.
     /// </summary>
-    public TemplateConfigurationDialog(TemplateConfiguration current)
+    public TemplateConfigurationDialog(TemplateConfiguration current, string workspaceDirectory)
     {
         InitializeComponent();
+        this.workspaceDirectory = workspaceDirectory;
         reviewMetadata = LoadReviewMetadata();
         TemplateBaselineProfileComboBox.ItemsSource = TemplateBaselineCatalog.GetProfiles().OrderBy(profile => profile.DisplayName).ToArray();
         TemplateBaselineProfileComboBox.SelectedValue = "api";
@@ -64,7 +66,7 @@ public partial class TemplateConfigurationDialog : Window
     {
         if (TemplateBaselineProfileComboBox.SelectedItem is not TemplateBaselineProfile profile)
         {
-            MessageBox.Show(this, "Select a template baseline profile before applying it.", UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, UiResources.TemplateBaselineRequired, UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -73,7 +75,7 @@ public partial class TemplateConfigurationDialog : Window
 
         if (repositoryRoot is null)
         {
-            MessageBox.Show(this, "Could not locate templates/dbsqllikemem from the current environment.", UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, UiResources.TemplateBaselineNotFound, UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -131,7 +133,7 @@ public partial class TemplateConfigurationDialog : Window
 
         var fullPath = Path.IsPathRooted(path)
             ? Path.GetFullPath(path)
-            : Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), path));
+            : Path.GetFullPath(Path.Combine(workspaceDirectory, path));
 
         if (!File.Exists(fullPath))
         {
@@ -144,7 +146,7 @@ public partial class TemplateConfigurationDialog : Window
         {
             MessageBox.Show(
                 this,
-                $"Unsupported template tokens: {string.Join(", ", unsupportedTokens)}",
+                string.Format(UiResources.UnsupportedTemplateTokensDetail, string.Join(", ", unsupportedTokens)),
                 UiResources.ValidationTitle,
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -158,8 +160,10 @@ public partial class TemplateConfigurationDialog : Window
     {
         try
         {
-            var fullPath = Path.GetFullPath(directory);
-            _ = Directory.CreateDirectory(fullPath);
+            var fullPath = Path.IsPathRooted(directory)
+                ? Path.GetFullPath(directory)
+                : Path.GetFullPath(Path.Combine(workspaceDirectory, directory));
+            _ = Path.GetDirectoryName(fullPath);
             return true;
         }
         catch (Exception ex)
@@ -173,7 +177,7 @@ public partial class TemplateConfigurationDialog : Window
     {
         BaselineSummaryTextBlock.Text = TemplateBaselineProfileComboBox.SelectedItem is TemplateBaselineProfile profile
             ? TemplateBaselinePresentation.BuildProfileSummary(profile, reviewMetadata)
-            : "Select a template baseline profile to preview its intended use, test focus, and review cadence.";
+            : UiResources.TemplateBaselineSummaryHint;
     }
 
     private static TemplateReviewMetadata? LoadReviewMetadata()

@@ -39,6 +39,26 @@
             <Button Padding="10,4" Margin="0,0,8,8" Click="OnExportSettingsClick">
                 <TextBlock Text="Exportar estado" />
             </Button>
+            <TextBox x:Name="GlobalFilterTextBox"
+                     MinWidth="140"
+                     Margin="0,0,8,8"
+                     Padding="4,3"
+                     VerticalAlignment="Center"
+                     ToolTip="Filtrar objetos pelo nome"
+                     TextChanged="OnGlobalFilterTextChanged" />
+            <ComboBox x:Name="GlobalFilterModeComboBox"
+                      MinWidth="76"
+                      Margin="0,0,8,8"
+                      VerticalAlignment="Center"
+                      SelectionChanged="OnGlobalFilterModeChanged" />
+            <Button x:Name="ClearGlobalFilterButton"
+                    Padding="6,3"
+                    Margin="0,0,8,8"
+                    VerticalAlignment="Center"
+                    Content="✕"
+                    Click="OnClearGlobalFilterClick"
+                    ToolTip="Limpar filtro"
+                    Visibility="Collapsed" />
         </WrapPanel>
 
         <Grid Grid.Row="2">

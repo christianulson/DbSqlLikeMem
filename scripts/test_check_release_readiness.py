@@ -193,7 +193,7 @@ class CheckReleaseReadinessWorkflowTests(unittest.TestCase):
             )
             self._write(
                 root / ".github" / "workflows" / "vscode-extension-publish.yml",
-                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
+                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nvsce publish --packagePath\n',
             )
 
             failures = sut.check_workflows(root)
@@ -213,7 +213,7 @@ class CheckReleaseReadinessWorkflowTests(unittest.TestCase):
             )
             self._write(
                 root / ".github" / "workflows" / "vscode-extension-publish.yml",
-                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
+                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nvsce publish --packagePath\n',
             )
 
             failures = sut.check_workflows(root)
@@ -233,7 +233,7 @@ class CheckReleaseReadinessWorkflowTests(unittest.TestCase):
             )
             self._write(
                 root / ".github" / "workflows" / "vscode-extension-publish.yml",
-                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nnpm run publish\n',
+                'tags:\n- "vscode-v*"\nVSCE_PAT\nsrc/extensions/DbSqlLikeMem.VsCodeExtension/package.json\nvsce publish --packagePath\n',
             )
 
             failures = sut.check_workflows(root)

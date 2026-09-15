@@ -236,6 +236,14 @@ public class ObjectConsistencyCheckerTests
             => Task.FromResult(dbObject);
 
         /// <summary>
+        /// EN: Returns the configured in-memory object using a previously listed collection.
+        /// PT-br: Retorna o objeto em memoria configurado usando uma colecao ja listada.
+        /// </summary>
+        public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
+            IReadOnlyCollection<DatabaseObjectReference> listedObjects, CancellationToken cancellationToken = default)
+            => Task.FromResult(dbObject);
+
+        /// <summary>
         /// EN: Returns the configured in-memory object list for consistency checks.
         /// PT-br: Retorna a lista de objetos em memoria configurada para as checagens de consistencia.
         /// </summary>

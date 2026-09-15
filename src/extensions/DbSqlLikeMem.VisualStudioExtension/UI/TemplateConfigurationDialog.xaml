@@ -30,7 +30,7 @@
             <Button Content="Apply baseline" Width="120" Margin="8,0,0,0" Click="OnApplyBaselineClick" />
         </StackPanel>
 
-        <TextBlock x:Name="BaselineSummaryTextBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray" />
+        <TextBlock x:Name="BaselineSummaryTextBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8" />
 
         <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.ModelTemplateLabel}" />
         <TextBox x:Name="ModelTemplatePathTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" />
@@ -50,7 +50,7 @@
         <TextBlock Grid.Row="7" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Repository file pattern" />
         <TextBox x:Name="RepositoryFileNamePatternTextBox" Grid.Row="7" Grid.Column="1" Margin="0,0,0,8" />
 
-        <TextBlock Grid.Row="8" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray"
+<TextBlock Grid.Row="8" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8"
                    Text="Profiles come from templates/dbsqllikemem/vCurrent and can be edited after applying." />
 
         <StackPanel Grid.Row="9" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">

@@ -229,5 +229,16 @@ public sealed class QualityRegressionTests
             DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)
             => Task.FromResult<DatabaseObjectReference?>(dbObject);
+
+        /// <summary>
+        /// EN: Returns the same in-memory object for every metadata lookup using a previously listed collection.
+        /// PT-br: Retorna o mesmo objeto em memoria para toda consulta de metadados usando uma colecao ja listada.
+        /// </summary>
+        public Task<DatabaseObjectReference?> GetObjectAsync(
+            ConnectionDefinition connection,
+            DatabaseObjectReference reference,
+            IReadOnlyCollection<DatabaseObjectReference> listedObjects,
+            CancellationToken cancellationToken = default)
+            => Task.FromResult<DatabaseObjectReference?>(dbObject);
     }
 }

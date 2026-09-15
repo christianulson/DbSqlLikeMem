@@ -30,7 +30,7 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 - Model e Repository agora também aceitam padrão configurável de nome de arquivo, reutilizando placeholders como `{NamePascal}`, `{Schema}`, `{DatabaseType}`, `{DatabaseName}` e `{Namespace}`.
 - Check de consistência para artefatos gerados (teste/model/repositório), com status visual por objeto na árvore, tooltip com os artefatos faltantes e validação do trio completo por objeto, incluindo detecção de drift quando o arquivo existente aponta para outro objeto/fonte ou carrega snapshot estrutural defasado em relação ao objeto atual, inclusive para `Sequence`.
 - Ações de geração/consistência respeitam o nó selecionado da TreeView (`Database`, `ObjectType` ou objeto individual).
-- Menus de contexto de geração/consistência disponíveis em todos os níveis relevantes da árvore (tipo de banco, database, tipo de objeto, objeto e detalhes como colunas/FKs).
+- Menus de geração/consistência disponíveis no database, tipo de objeto e objeto individual.
 - Exportação/importação do estado em JSON.
 
 > Atualmente a extensão usa metadata real via bridge `.NET` e mantém fallback legado apenas para o cenário `SqlServer` quando a ponte ainda não está publicada no workspace.
@@ -53,7 +53,7 @@ Extensão equivalente ao fluxo desenhado para o Visual Studio Extension Core, ad
 ## Rodar localmente
 
 ```bash
-cd src/DbSqlLikeMem.VsCodeExtension
+cd src/extensions/DbSqlLikeMem.VsCodeExtension
 npm install
 npm run compile
 npm test
@@ -80,7 +80,7 @@ O projeto já foi ajustado para empacotar/publicar via `@vscode/vsce`.
 ### 2) Empacotar localmente (`.vsix`)
 
 ```bash
-cd src/DbSqlLikeMem.VsCodeExtension
+cd src/extensions/DbSqlLikeMem.VsCodeExtension
 npm install
 npm run compile
 npm run package
@@ -91,7 +91,7 @@ O arquivo `.vsix` será gerado na pasta da extensão.
 ### 3) Publicar manualmente (opcional)
 
 ```bash
-cd src/DbSqlLikeMem.VsCodeExtension
+cd src/extensions/DbSqlLikeMem.VsCodeExtension
 npm run publish
 ```
 
@@ -101,9 +101,9 @@ npm run publish
 
 Workflow disponível: `.github/workflows/vscode-extension-publish.yml`.
 
-Fonte da versão publicada: `src/DbSqlLikeMem.VsCodeExtension/package.json`.
+Fonte da versão publicada: `src/extensions/DbSqlLikeMem.VsCodeExtension/package.json`.
 
-Contrato do workflow: `.github/workflows/vscode-extension-publish.yml` valida explicitamente `src/DbSqlLikeMem.VsCodeExtension/package.json` antes de empacotar/publicar, mantendo o fluxo `tag vscode-v* -> package.json -> publish`.
+Contrato do workflow: `.github/workflows/vscode-extension-publish.yml` valida explicitamente `src/extensions/DbSqlLikeMem.VsCodeExtension/package.json` antes de empacotar/publicar, mantendo o fluxo `tag vscode-v* -> package.json -> publish`.
 
 Configuração necessária no repositório:
 
@@ -113,21 +113,26 @@ Como acionar:
 
 - Manualmente via `workflow_dispatch` (com opção de apenas build ou build+publish).
 - Automaticamente via tag `vscode-v*` (ex.: `vscode-v0.1.0`).
-- Antes de criar a tag, revise `../../CHANGELOG.md` e `../../docs/publishing.md` para manter release notes e limitações abertas alinhadas ao publish.
+- Antes de criar a tag, revise `../../../CHANGELOG.md` e `../../../docs/publishing.md` para manter release notes e limitações abertas alinhadas ao publish.
 
 
 ### Dica para ambientes que bloqueiam binários em PR
 
-Este projeto não versiona mais o `icon.png` diretamente. Em vez disso, o arquivo é gerado automaticamente a partir de `resources/icon.png.base64` durante os comandos de `package` e `publish` (`npm run generate:icon`).
+Este projeto versiona o `icon.png` e o `resources/icon.png.base64`. O PNG é regenerado a partir do base64 durante os comandos de `package` e `publish` (`npm run generate:icon`), permitindo revisar o ícone em PR sem depender de diff binário.
 
 Assim você mantém ícone no VSIX sem incluir diff binário no PR.
 
-## Próximos incrementos sugeridos
+## Requisitos e credenciais
 
-1. Trocar `FakeMetadataProvider` por metadata real via drivers por banco.
-2. Persistir secret em `SecretStorage` em vez de `globalState`.
-3. Adicionar ícones por tipo de objeto e status de consistência.
-4. Oferecer Webview para editar mapeamentos de forma avançada.
+- Instale o runtime **.NET 8 x64** no ambiente onde a extensão executa; em SSH/WSL/Dev Containers, isso significa o ambiente remoto.
+- O pacote inclui o bridge .NET. O fallback SQL Server usa `sqlcmd` somente quando o bridge não está presente.
+- SQLite inclui a dependência nativa por meio de `Microsoft.Data.Sqlite`. DB2 pode exigir componentes nativos do fornecedor.
+- Conexões são armazenadas no `SecretStorage`; o estado antigo em texto puro é migrado na ativação.
+- A exportação JSON omite credenciais. Após importar, use **Edit Connection** para fornecê-las.
+- No Manager, deixe a connection string vazia ao editar para manter a credencial existente. **New connection** limpa a edição atual.
+- Configurações continuam globais à extensão; a geração usa a primeira pasta do workspace.
+- Gere arquivos em um workspace confiável com sistema de arquivos local. Workspaces virtuais não são suportados.
+- Confira [a revisão de publicação](../RELEASE_REVIEW.md) antes do release.
 
 
 ## Tokens suportados nos templates
@@ -162,7 +167,7 @@ public class {{ClassName}}
 2. Use **Configure Templates** para informar os arquivos `.txt` e pastas de saída de Model/Repository.
    - O comando agora oferece baseline pronta do repositório em `templates/dbsqllikemem/vCurrent/api` e `templates/dbsqllikemem/vCurrent/worker`, além da opção de manter valores customizados.
    - O mesmo quick pick agora reaproveita `review-metadata.json` para mostrar cadência, última revisão, próxima janela e drift entre metadata versionado e catálogo da extensão.
-   - Se um template existente usar placeholders fora do contrato suportado, a extensão bloqueia a configuração ou faz fallback para o template padrão na geração.
+   - Se um template existente usar placeholders fora do contrato suportado, a extensão bloqueia a configuração e interrompe a geração. Templates configurados ausentes também interrompem a operação.
    - O mesmo fluxo agora também permite configurar o padrão de nome de arquivo de `Model` e `Repository`.
 3. Use o menu de contexto do database para gerar:
    - classes de teste (ação existente),

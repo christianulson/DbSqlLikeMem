@@ -673,6 +673,33 @@ namespace DbSqlLikeMem.VisualStudioExtension.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Exporting settings....
+        /// </summary>
+        public static string ExportingSettings {
+            get {
+                return ResourceManager.GetString("ExportingSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Importing settings....
+        /// </summary>
+        public static string ImportingSettings {
+            get {
+                return ResourceManager.GetString("ImportingSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Extracting scenario....
+        /// </summary>
+        public static string ExtractingScenario {
+            get {
+                return ResourceManager.GetString("ExtractingScenario", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Provide output directories for Model and Repository..
         /// </summary>
         public static string OutputDirectoriesRequired {
@@ -813,6 +840,15 @@ namespace DbSqlLikeMem.VisualStudioExtension.Properties {
         public static string SelectAllButton {
             get {
                 return ResourceManager.GetString("SelectAllButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select.
+        /// </summary>
+        public static string SelectColumnHeader {
+            get {
+                return ResourceManager.GetString("SelectColumnHeader", resourceCulture);
             }
         }
         
@@ -1029,6 +1065,249 @@ namespace DbSqlLikeMem.VisualStudioExtension.Properties {
         public static string ValidationTitle {
             get {
                 return ResourceManager.GetString("ValidationTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ready..
+        /// </summary>
+        public static string StatusReady {
+            get {
+                return ResourceManager.GetString("StatusReady", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to connect: {0}.
+        /// </summary>
+        public static string FailedToConnectDetail {
+            get {
+                return ResourceManager.GetString("FailedToConnectDetail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cancellation requested..
+        /// </summary>
+        public static string CancellationRequested {
+            get {
+                return ResourceManager.GetString("CancellationRequested", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No test environment connections were found..
+        /// </summary>
+        public static string NoHarnessConnectionsFound {
+            get {
+                return ResourceManager.GetString("NoHarnessConnectionsFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Loading test environment....
+        /// </summary>
+        public static string LoadingTestEnvironment {
+            get {
+                return ResourceManager.GetString("LoadingTestEnvironment", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Objects loaded for {0}..
+        /// </summary>
+        public static string ObjectsLoadedForConnection {
+            get {
+                return ResourceManager.GetString("ObjectsLoadedForConnection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to load objects for {0}. See the log..
+        /// </summary>
+        public static string FailedToLoadObjectsForConnection {
+            get {
+                return ResourceManager.GetString("FailedToLoadObjectsForConnection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refreshing database objects....
+        /// </summary>
+        public static string RefreshingDatabaseObjects {
+            get {
+                return ResourceManager.GetString("RefreshingDatabaseObjects", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Refreshing objects for {0}....
+        /// </summary>
+        public static string RefreshingConnectionObjects {
+            get {
+                return ResourceManager.GetString("RefreshingConnectionObjects", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Generating test classes....
+        /// </summary>
+        public static string GeneratingTestClasses {
+            get {
+                return ResourceManager.GetString("GeneratingTestClasses", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Generating {0} classes....
+        /// </summary>
+        public static string GeneratingClassesFor {
+            get {
+                return ResourceManager.GetString("GeneratingClassesFor", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unsupported template tokens: {0}.
+        /// </summary>
+        public static string UnsupportedTemplateTokensDetail {
+            get {
+                return ResourceManager.GetString("UnsupportedTemplateTokensDetail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} classes generated: {1}..
+        /// </summary>
+        public static string ClassesGeneratedCount {
+            get {
+                return ResourceManager.GetString("ClassesGeneratedCount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ...and {0} more file(s)..
+        /// </summary>
+        public static string OverwritePreviewMoreItems {
+            get {
+                return ResourceManager.GetString("OverwritePreviewMoreItems", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The operation could not be completed. Detail: {0}.
+        /// </summary>
+        public static string UnexpectedErrorDetail {
+            get {
+                return ResourceManager.GetString("UnexpectedErrorDetail", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a mapping baseline profile before applying it..
+        /// </summary>
+        public static string MappingBaselineRequired {
+            get {
+                return ResourceManager.GetString("MappingBaselineRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a baseline profile to preview the recommended mapping defaults for this object type..
+        /// </summary>
+        public static string MappingBaselineSummaryHint {
+            get {
+                return ResourceManager.GetString("MappingBaselineSummaryHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file name pattern does not produce a valid file name. Detail: {0}.
+        /// </summary>
+        public static string InvalidFileNamePattern {
+            get {
+                return ResourceManager.GetString("InvalidFileNamePattern", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The namespace is not a valid C# namespace: {0}.
+        /// </summary>
+        public static string InvalidNamespace {
+            get {
+                return ResourceManager.GetString("InvalidNamespace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a template baseline profile before applying it..
+        /// </summary>
+        public static string TemplateBaselineRequired {
+            get {
+                return ResourceManager.GetString("TemplateBaselineRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not locate templates/dbsqllikemem from the current environment..
+        /// </summary>
+        public static string TemplateBaselineNotFound {
+            get {
+                return ResourceManager.GetString("TemplateBaselineNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a template baseline profile to preview its intended use, test focus, and review cadence..
+        /// </summary>
+        public static string TemplateBaselineSummaryHint {
+            get {
+                return ResourceManager.GetString("TemplateBaselineSummaryHint", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not create the DbSqlLikeMem tool window..
+        /// </summary>
+        public static string FailedToOpenToolWindow {
+            get {
+                return ResourceManager.GetString("FailedToOpenToolWindow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Loading objects for {0}....
+        /// </summary>
+        public static string LoadingConnectionObjects {
+            get {
+                return ResourceManager.GetString("LoadingConnectionObjects", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter objects by name.
+        /// </summary>
+        public static string GlobalFilterToolTip {
+            get {
+                return ResourceManager.GetString("GlobalFilterToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter mode.
+        /// </summary>
+        public static string GlobalFilterModeLabel {
+            get {
+                return ResourceManager.GetString("GlobalFilterModeLabel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Clear filter.
+        /// </summary>
+        public static string ClearGlobalFilterToolTip {
+            get {
+                return ResourceManager.GetString("ClearGlobalFilterToolTip", resourceCulture);
             }
         }
     }

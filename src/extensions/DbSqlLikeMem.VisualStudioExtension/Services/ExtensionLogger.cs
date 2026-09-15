@@ -4,6 +4,8 @@ namespace DbSqlLikeMem.VisualStudioExtension.Services;
 
 internal static class ExtensionLogger
 {
+    private static readonly object SyncRoot = new();
+
     public static void Log(string message)
     {
         try
@@ -12,7 +14,10 @@ internal static class ExtensionLogger
             Directory.CreateDirectory(root);
             var file = Path.Combine(root, "visual-studio-extension.log");
             var line = $"[{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}] {message}{Environment.NewLine}";
-            File.AppendAllText(file, line);
+            lock (SyncRoot)
+            {
+                File.AppendAllText(file, line);
+            }
         }
         catch
         {

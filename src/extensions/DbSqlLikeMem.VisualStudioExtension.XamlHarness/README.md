@@ -5,7 +5,7 @@ Aplicacao WPF simples para validar o carregamento dos XAML da extensao fora do V
 ## Como usar
 
 ```bash
-dotnet run --project src/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj
+dotnet run --project src/extensions/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj
 ```
 
 O projeto agora expõe dois profiles em `Properties/launchSettings.json`:
@@ -15,7 +15,7 @@ O projeto agora expõe dois profiles em `Properties/launchSettings.json`:
 Exemplo para abrir o profile com ambiente:
 
 ```bash
-dotnet run --project src/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj --launch-profile "DbSqlLikeMem.XamlHarness (Load Environment)"
+dotnet run --project src/extensions/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj --launch-profile "DbSqlLikeMem.XamlHarness (Load Environment)"
 ```
 
 Ao abrir com o profile de ambiente, o harness:

@@ -65,9 +65,12 @@ jobs:
       - name: Locate generated VSIX
         id: locate_vsix
         shell: pwsh
+        env:
+          VSIX_PROJECT: ${{ github.event.inputs.vsix_project || 'src/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj' }}
         run: |
-          $vsix = Get-ChildItem -Path . -Recurse -Filter *.vsix |
-            Where-Object { $_.FullName -notmatch '\\bin\\.*\\TestResults\\|\\obj\\' } |
+          $projectDir = Split-Path -Parent $env:VSIX_PROJECT
+          $vsix = Get-ChildItem -Path $projectDir -Recurse -Filter *.vsix |
+            Where-Object { $_.FullName -notmatch '\\obj\\' } |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
 
@@ -93,6 +96,7 @@ jobs:
           PUBLISH_MANIFEST: ${{ github.event.inputs.publish_manifest || 'eng/visualstudio/PublishManifest.json' }}
         run: |
           python scripts/check_release_readiness.py --strict-marketplace-placeholders
+          if ($LASTEXITCODE -ne 0) { throw 'Release readiness validation failed.' }
 
           if (-not $env:VS_MARKETPLACE_TOKEN) {
             Write-Error "Secret VS_MARKETPLACE_TOKEN não configurado."

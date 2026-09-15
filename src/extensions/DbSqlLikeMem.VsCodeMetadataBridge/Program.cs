@@ -15,6 +15,10 @@ internal static class Program
     public static async Task<int> Main(string[] args)
     {
         var options = BridgeCommandOptions.Parse(args);
+        if (args.Any(arg => string.Equals(arg, "--connection-string-stdin", StringComparison.OrdinalIgnoreCase)))
+        {
+            options = options with { ConnectionString = await Console.In.ReadToEndAsync() };
+        }
         if (string.IsNullOrWhiteSpace(options.Operation))
         {
             return WriteError("Missing --operation. Use list-objects or test-connection.");

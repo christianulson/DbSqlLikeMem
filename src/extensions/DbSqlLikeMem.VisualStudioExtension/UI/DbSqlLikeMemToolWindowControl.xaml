@@ -7,6 +7,9 @@
              xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
              xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
              xmlns:ui="clr-namespace:DbSqlLikeMem.VisualStudioExtension.UI"
+             xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+             Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
+             Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
              mc:Ignorable="d"
              d:DesignHeight="480"
              d:DesignWidth="420">
@@ -39,6 +42,15 @@
         </Grid.RowDefinitions>
 
         <WrapPanel Grid.Row="0" Orientation="Horizontal">
+            <WrapPanel.Style>
+                <Style TargetType="WrapPanel">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                            <Setter Property="IsEnabled" Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </WrapPanel.Style>
             <Button Padding="10,4" MinWidth="156" Margin="0,0,8,8" Click="OnAddConnectionClick">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <imaging:CrispImage Style="{StaticResource ToolbarIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Add}" />
@@ -63,6 +75,28 @@
                     <TextBlock Text="{x:Static prop:Resources.ExportSettingsButton}" />
                 </StackPanel>
             </Button>
+            <TextBox x:Name="GlobalFilterTextBox"
+                     MinWidth="140"
+                     Margin="0,0,8,8"
+                     Padding="4,3"
+                     VerticalAlignment="Center"
+                     ToolTip="{x:Static prop:Resources.GlobalFilterToolTip}"
+                     AutomationProperties.Name="{x:Static prop:Resources.GlobalFilterToolTip}"
+                     TextChanged="OnGlobalFilterTextChanged" />
+            <ComboBox x:Name="GlobalFilterModeComboBox"
+                      MinWidth="76"
+                      Margin="0,0,8,8"
+                      VerticalAlignment="Center"
+                      SelectionChanged="OnGlobalFilterModeChanged"
+                      AutomationProperties.Name="{x:Static prop:Resources.GlobalFilterModeLabel}" />
+            <Button x:Name="ClearGlobalFilterButton"
+                    Padding="6,3"
+                    Margin="0,0,8,8"
+                    VerticalAlignment="Center"
+                    Content="✕"
+                    Click="OnClearGlobalFilterClick"
+                    ToolTip="{x:Static prop:Resources.ClearGlobalFilterToolTip}"
+                    Visibility="Collapsed" />
         </WrapPanel>
 
         <Grid Grid.Row="2">
@@ -156,16 +190,17 @@
                 </TreeView.ContextMenu>
             </TreeView>
 
-            <Border Background="#80FFFFFF"
+            <Border Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
                     Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Border HorizontalAlignment="Center"
                         VerticalAlignment="Center"
-                        Width="260"
-                        Padding="20"
-                        Background="#F8FFFFFF"
+                        MaxWidth="260"
+                        Margin="12"
+                        Padding="12"
+                        Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
                         CornerRadius="10">
                     <StackPanel HorizontalAlignment="Center">
-                        <ProgressBar Width="220"
+                        <ProgressBar MaxWidth="220"
                                      Height="10"
                                      IsIndeterminate="True"
                                      Margin="0,0,0,12" />
@@ -173,12 +208,13 @@
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    FontWeight="SemiBold" />
+                        <Button Content="{x:Static prop:Resources.CancelButton}" Padding="12,6" Margin="0,12,0,0" Click="OnCancelOperationClick" />
                     </StackPanel>
                 </Border>
             </Border>
         </Grid>
 
-        <Border Grid.Row="3" Margin="0,8,0,0" Padding="6" Background="#11000000" CornerRadius="4">
+        <Border Grid.Row="3" Margin="0,8,0,0" Padding="6" Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" CornerRadius="4">
             <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
         </Border>
     </Grid>

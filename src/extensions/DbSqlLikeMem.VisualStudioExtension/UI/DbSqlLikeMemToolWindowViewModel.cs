@@ -57,6 +57,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private readonly SqlDatabaseMetadataProvider metadataProvider = new(new AdoNetSqlQueryExecutor());
     private readonly ConnectionMappingService connectionMappingService = new();
     private readonly SemaphoreSlim operationLock = new(1, 1);
+    private readonly string workspaceDirectory;
     private readonly string stateFilePath;
     private readonly string legacyStateFilePath;
 
@@ -80,6 +81,9 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// </summary>
     public DbSqlLikeMemToolWindowViewModel(bool loadPersistedState = true, string? storageScopeKey = null)
     {
+        workspaceDirectory = !string.IsNullOrWhiteSpace(storageScopeKey) && Path.IsPathRooted(storageScopeKey!)
+            ? Path.GetDirectoryName(storageScopeKey!) ?? Directory.GetCurrentDirectory()
+            : Directory.GetCurrentDirectory();
         stateFilePath = string.IsNullOrWhiteSpace(storageScopeKey)
             ? statePersistenceService.GetDefaultStatePath()
             : statePersistenceService.GetScopedStatePath(storageScopeKey!);
@@ -94,26 +98,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Gets the root explorer nodes shown in the tree.
-    /// Obtém os nós raiz do explorador mostrados na árvore.
+    /// Gets the directory used as the base for relative generation paths.
+    /// Obtém o diretório usado como base para caminhos relativos de geração.
     /// </summary>
-    public ObservableCollection<ExplorerNode> Nodes { get; } = [];
+    public string WorkspaceDirectory => workspaceDirectory;
 
     /// <summary>
-    /// Gets the current status message displayed to the user.
-    /// Obtém a mensagem de status atual exibida ao usuário.
-    /// </summary>
-    public string StatusMessage { get; private set; } = "Pronto.";
-
-    /// <summary>
-    /// Gets a value indicating whether an operation is currently running.
-    /// Obtém um valor que indica se uma operação está em andamento.
-    /// </summary>
-    public bool IsBusy { get; private set; }
-
-    /// <summary>
-    /// Gets or sets the text used to filter displayed database objects.
-    /// Obtém ou define o texto usado para filtrar objetos de banco exibidos.
+    /// Gets or sets the global filter text applied to every object in the tree.
+    /// Obtém ou define o texto do filtro global aplicado a todos os objetos da árvore.
     /// </summary>
     public string ObjectFilterText
     {
@@ -127,13 +119,14 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
             objectFilterText = value;
             OnPropertyChanged(nameof(ObjectFilterText));
+            OnPropertyChanged(nameof(HasObjectFilter));
             RefreshTree();
         }
     }
 
     /// <summary>
-    /// Gets or sets the filtering mode used when applying object filters.
-    /// Obtém ou define o modo de filtragem usado ao aplicar filtros de objetos.
+    /// Gets or sets the matching mode used by the global object filter.
+    /// Obtém ou define o modo de correspondência usado pelo filtro global de objetos.
     /// </summary>
     public FilterMode ObjectFilterMode
     {
@@ -150,6 +143,47 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             RefreshTree();
         }
     }
+
+    /// <summary>
+    /// Gets whether the global object filter is currently restricting the tree.
+    /// Obtém se o filtro global de objetos está restringindo a árvore no momento.
+    /// </summary>
+    public bool HasObjectFilter => !string.IsNullOrWhiteSpace(objectFilterText);
+
+    /// <summary>
+    /// Clears the global object filter and refreshes the tree.
+    /// Limpa o filtro global de objetos e atualiza a árvore.
+    /// </summary>
+    public void ClearGlobalObjectFilter()
+    {
+        if (string.IsNullOrEmpty(objectFilterText))
+        {
+            return;
+        }
+
+        objectFilterText = string.Empty;
+        OnPropertyChanged(nameof(ObjectFilterText));
+        OnPropertyChanged(nameof(HasObjectFilter));
+        RefreshTree();
+    }
+
+    /// <summary>
+    /// Gets the root explorer nodes shown in the tree.
+    /// Obtém os nós raiz do explorador mostrados na árvore.
+    /// </summary>
+    public ObservableCollection<ExplorerNode> Nodes { get; } = [];
+
+    /// <summary>
+    /// Gets the current status message displayed to the user.
+    /// Obtém a mensagem de status atual exibida ao usuário.
+    /// </summary>
+    public string StatusMessage { get; private set; } = Resources.StatusReady;
+
+    /// <summary>
+    /// Gets a value indicating whether an operation is currently running.
+    /// Obtém um valor que indica se uma operação está em andamento.
+    /// </summary>
+    public bool IsBusy { get; private set; }
 
     /// <summary>
     /// Occurs when a bindable property value changes.
@@ -175,7 +209,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             ExtensionLogger.Log($"TestConnectionAsync error: {ex}");
-            return (false, $"Falha ao conectar: {ex.Message}");
+            return (false, string.Format(Resources.FailedToConnectDetail, ex.Message));
         }
     }
 
@@ -256,6 +290,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         }
 
         objectsByConnection.Remove(connection.Id);
+        healthByObject.Clear();
         SaveState();
         RefreshTree();
     }
@@ -397,7 +432,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     public void CancelCurrentOperation()
     {
         currentOperationCts?.Cancel();
-        SetStatusMessage("Cancelamento solicitado.");
+        SetStatusMessage(Resources.CancellationRequested);
     }
 
     /// <summary>
@@ -411,9 +446,21 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             throw new ArgumentException(Resources.InvalidExportPath, nameof(filePath));
         }
 
-        var state = BuildPersistedState();
-        await statePersistenceService.ExportAsync(state, filePath);
-        SetStatusMessage(Resources.SettingsExportedSuccessfully);
+        if (!TryBeginOperation(Resources.ExportingSettings))
+        {
+            return;
+        }
+
+        try
+        {
+            var state = BuildPersistedState();
+            await statePersistenceService.ExportAsync(state, filePath);
+            SetStatusMessage(Resources.SettingsExportedSuccessfully);
+        }
+        finally
+        {
+            EndOperation();
+        }
     }
 
     /// <summary>
@@ -427,34 +474,50 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             throw new ArgumentException(Resources.InvalidImportPath, nameof(filePath));
         }
 
-        var imported = await statePersistenceService.ImportAsync(filePath);
-        if (imported is null)
+        if (!TryBeginOperation(Resources.ImportingSettings))
         {
-            throw new InvalidOperationException(Resources.InvalidOrEmptySettingsFile);
+            return;
         }
 
-        connections.Clear();
-        foreach (var connection in imported.Connections)
+        try
         {
-            var decrypted = ConnectionStringProtector.Unprotect(connection.ConnectionString);
-            connections.Add(new ConnectionDefinition(connection.Id, connection.DatabaseType, connection.DatabaseName, decrypted, connection.DisplayName));
-        }
+            var imported = await statePersistenceService.ImportAsync(filePath);
+            if (imported is null)
+            {
+                throw new InvalidOperationException(Resources.InvalidOrEmptySettingsFile);
+            }
 
-        mappings.Clear();
-        foreach (var mapping in imported.Mappings)
+            var importedConnections = imported.Connections.Select(connection =>
+                new ConnectionDefinition(connection.Id, connection.DatabaseType, connection.DatabaseName,
+                    ConnectionStringProtector.Unprotect(connection.ConnectionString), connection.DisplayName)).ToArray();
+            var importedMappings = imported.Mappings.ToArray();
+
+            connections.Clear();
+            foreach (var connection in importedConnections)
+            {
+                connections.Add(connection);
+            }
+
+            mappings.Clear();
+            foreach (var mapping in importedMappings)
+            {
+                mappings.Add(mapping);
+            }
+
+            templateConfiguration = imported.TemplateConfiguration ?? TemplateConfiguration.Default;
+
+            objectsByConnection.Clear();
+            healthByObject.Clear();
+            objectTypeFilters.Clear();
+
+            SaveState();
+            RefreshTree();
+            SetStatusMessage(Resources.SettingsImportedSuccessfully);
+        }
+        finally
         {
-            mappings.Add(mapping);
+            EndOperation();
         }
-
-        templateConfiguration = imported.TemplateConfiguration ?? TemplateConfiguration.Default;
-
-        objectsByConnection.Clear();
-        healthByObject.Clear();
-        objectTypeFilters.Clear();
-
-        SaveState();
-        RefreshTree();
-        SetStatusMessage(Resources.SettingsImportedSuccessfully);
     }
 
     /// <summary>
@@ -481,6 +544,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         objectFilterMode = FilterMode.Like;
         OnPropertyChanged(nameof(ObjectFilterText));
         OnPropertyChanged(nameof(ObjectFilterMode));
+        OnPropertyChanged(nameof(HasObjectFilter));
 
         foreach (var connection in harnessConnections)
         {
@@ -492,11 +556,11 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
 
         if (connections.Count == 0)
         {
-            SetStatusMessage("Nenhuma conexao do ambiente de teste foi encontrada.");
+            SetStatusMessage(Resources.NoHarnessConnectionsFound);
             return;
         }
 
-        SetStatusMessage("Carregando ambiente de teste...");
+        SetStatusMessage(Resources.LoadingTestEnvironment);
         await RefreshObjectsAsync().ConfigureAwait(false);
     }
 
@@ -539,7 +603,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!TryBeginOperation($"Carregando objetos de {connection.FriendlyName}..."))
+        if (!TryBeginOperation(string.Format(Resources.LoadingConnectionObjects, connection.FriendlyName)))
         {
             return;
         }
@@ -560,12 +624,12 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             }
 
             RefreshTree();
-            SetStatusMessage($"Objetos carregados para {connection.FriendlyName}.");
+            SetStatusMessage(string.Format(Resources.ObjectsLoadedForConnection, connection.FriendlyName));
         }
         catch (Exception ex)
         {
             ExtensionLogger.Log($"EnsureConnectionObjectsLoadedAsync error [{connection.DatabaseName}]: {ex}");
-            SetStatusMessage($"Falha ao carregar objetos de {connection.FriendlyName}. Veja o log.");
+            SetStatusMessage(string.Format(Resources.FailedToLoadObjectsForConnection, connection.FriendlyName));
         }
         finally
         {
@@ -579,7 +643,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task RefreshObjectsAsync()
     {
-        if (!TryBeginOperation("Atualizando objetos de banco..."))
+        if (!TryBeginOperation(Resources.RefreshingDatabaseObjects))
         {
             return;
         }
@@ -599,6 +663,10 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     var objects = await metadataProvider.ListObjectsAsync(connection, token);
                     var enriched = await EnrichTableObjectsAsync(connection, objects, token);
                     return (connection.Id, objects: enriched, error: (string?)null);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -631,10 +699,56 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Previews generated files that would be overwritten for a selected node.
-    /// Lista previamente os arquivos gerados que seriam sobrescritos para um nó selecionado.
+    /// EN: Refreshes the objects of a single connection while keeping the other cached results intact.
+    /// PT-br: Atualiza os objetos de uma unica conexao mantendo os demais resultados em cache intactos.
     /// </summary>
-    public IReadOnlyCollection<string> PreviewConflictsForNode(ExplorerNode node)
+    public async Task RefreshObjectsAsync(string connectionId)
+    {
+        var connection = connections.FirstOrDefault(c => c.Id == connectionId);
+        if (connection is null)
+        {
+            return;
+        }
+
+        if (!TryBeginOperation(string.Format(Resources.RefreshingConnectionObjects, connection.DatabaseName)))
+        {
+            return;
+        }
+
+        try
+        {
+            var token = currentOperationCts?.Token ?? CancellationToken.None;
+            try
+            {
+                var objects = await metadataProvider.ListObjectsAsync(connection, token);
+                var enriched = await EnrichTableObjectsAsync(connection, objects, token);
+                objectsByConnection[connection.Id] = enriched;
+                healthByObject.Clear();
+                SetStatusMessage(string.Format(Resources.ObjectsUpdatedCount, 1));
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                ExtensionLogger.Log($"RefreshObjectsAsync error [{connection.DatabaseName}]: {ex}");
+                SetStatusMessage(string.Format(Resources.PartialUpdateFailureCount, 1));
+            }
+
+            RefreshTree();
+        }
+        finally
+        {
+            EndOperation();
+        }
+    }
+
+    /// <summary>
+    /// EN: Validates the requested artifact destinations and previews files that would be overwritten.
+    /// PT-br: Valida os destinos dos artefatos solicitados e lista arquivos que seriam sobrescritos.
+    /// </summary>
+    public IReadOnlyCollection<string> PreviewConflictsForNode(ExplorerNode node, bool includeTests = true, bool includeModels = false, bool includeRepositories = false)
     {
         var connection = ResolveConnection(node);
         if (connection is null || !objectsByConnection.TryGetValue(connection.Id, out var objects))
@@ -651,7 +765,28 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id)
             ?? connectionMappingService.CreateDefaultConfiguration(connection.Id);
 
-        return [.. FindExistingFiles(connection, mapping, selectedObjects)];
+        var paths = new List<string>();
+        foreach (var dbObject in selectedObjects)
+        {
+            mapping.Mappings.TryGetValue(dbObject.Type, out var objectMapping);
+            if (includeTests && objectMapping is not null)
+            {
+                paths.Add(GeneratedFilePath.Resolve(NormalizePath(objectMapping.OutputDirectory),
+                    ResolveFileName(objectMapping.FileNamePattern, connection, dbObject, objectMapping.Namespace)));
+            }
+            if (includeModels)
+            {
+                paths.Add(GeneratedFilePath.Resolve(NormalizePath(templateConfiguration.ModelOutputDirectory),
+                    TemplateFileNamePatternResolver.Resolve(templateConfiguration.ModelFileNamePattern, "Model", connection, dbObject, objectMapping?.Namespace)));
+            }
+            if (includeRepositories)
+            {
+                paths.Add(GeneratedFilePath.Resolve(NormalizePath(templateConfiguration.RepositoryOutputDirectory),
+                    TemplateFileNamePatternResolver.Resolve(templateConfiguration.RepositoryFileNamePattern, "Repository", connection, dbObject, objectMapping?.Namespace)));
+            }
+        }
+        GeneratedFilePath.EnsureUnique(paths);
+        return paths.Where(File.Exists).ToArray();
     }
 
     /// <summary>
@@ -660,7 +795,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     /// </summary>
     public async Task<IReadOnlyCollection<string>> GenerateForNodeAsync(ExplorerNode node)
     {
-        if (!TryBeginOperation("Gerando classes de teste..."))
+        if (!TryBeginOperation(Resources.GeneratingTestClasses))
         {
             return [];
         }
@@ -694,7 +829,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             var request = new GenerationRequest(connection, selectedObjects);
             var generated = await generator.GenerateAsync(
                 request,
-                mapping,
+                ResolveMappingPaths(mapping),
                 o =>
                 {
                     mapping.Mappings.TryGetValue(o.Type, out var objectMapping);
@@ -787,46 +922,58 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var connection = connections.FirstOrDefault(c => c.Id == connectionId)
             ?? throw new InvalidOperationException(Resources.ConnectionNotFound);
 
-        var scenario = new Dictionary<string, object?>
+        if (!TryBeginOperation(Resources.ExtractingScenario))
         {
-            ["scenarioName"] = scenarioName,
-            ["databaseType"] = connection.DatabaseType,
-            ["connectionName"] = connection.FriendlyName,
-            ["createdAtUtc"] = DateTime.UtcNow,
-            ["tables"] = new List<Dictionary<string, object?>>()
-        };
+            return string.Empty;
+        }
 
-        var tableEntries = (List<Dictionary<string, object?>>)scenario["tables"]!;
-        tableEntries.Add(new Dictionary<string, object?>
+        try
         {
-            ["schema"] = schema,
-            ["table"] = table,
-            ["filter"] = filter,
-            ["rows"] = selectedRows
-        });
-
-        if (includeParentFk)
-        {
-            var parentRows = await LoadParentRowsByForeignKeysAsync(connection, schema, table, selectedRows);
-            foreach (var parent in parentRows)
+            var scenario = new Dictionary<string, object?>
             {
-                tableEntries.Add(parent);
+                ["scenarioName"] = scenarioName,
+                ["databaseType"] = connection.DatabaseType,
+                ["connectionName"] = connection.FriendlyName,
+                ["createdAtUtc"] = DateTime.UtcNow,
+                ["tables"] = new List<Dictionary<string, object?>>()
+            };
+
+            var tableEntries = (List<Dictionary<string, object?>>)scenario["tables"]!;
+            tableEntries.Add(new Dictionary<string, object?>
+            {
+                ["schema"] = schema,
+                ["table"] = table,
+                ["filter"] = filter,
+                ["rows"] = selectedRows
+            });
+
+            if (includeParentFk)
+            {
+                var parentRows = await LoadParentRowsByForeignKeysAsync(connection, schema, table, selectedRows);
+                foreach (var parent in parentRows)
+                {
+                    tableEntries.Add(parent);
+                }
             }
-        }
 
-        var outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DbSqlLikeMem", "Scenarios");
-        Directory.CreateDirectory(outputDirectory);
-        var safeName = string.Concat((scenarioName ?? "Scenario").Where(ch => !Path.GetInvalidFileNameChars().Contains(ch))).Trim();
-        if (string.IsNullOrWhiteSpace(safeName))
+            var outputDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DbSqlLikeMem", "Scenarios");
+            Directory.CreateDirectory(outputDirectory);
+            var safeName = string.Concat((scenarioName ?? "Scenario").Where(ch => !Path.GetInvalidFileNameChars().Contains(ch))).Trim();
+            if (string.IsNullOrWhiteSpace(safeName))
+            {
+                safeName = "Scenario";
+            }
+
+            var outputPath = Path.Combine(outputDirectory, $"{safeName}-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
+            var json = JsonSerializer.Serialize(scenario, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(outputPath, json);
+            SetStatusMessage(string.Format(Resources.ScenarioExtractedSuccessfullyPath, outputPath));
+            return outputPath;
+        }
+        finally
         {
-            safeName = "Scenario";
+            EndOperation();
         }
-
-        var outputPath = Path.Combine(outputDirectory, $"{safeName}-{DateTime.UtcNow:yyyyMMddHHmmss}.json");
-        var json = JsonSerializer.Serialize(scenario, new JsonSerializerOptions { WriteIndented = true });
-        File.WriteAllText(outputPath, json);
-        SetStatusMessage(string.Format(Resources.ScenarioExtractedSuccessfullyPath, outputPath));
-        return outputPath;
     }
 
     private async Task<IReadOnlyCollection<string>> GenerateFromTemplateForNodeAsync(
@@ -837,7 +984,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         string suffix,
         string fallbackTemplate)
     {
-        if (!TryBeginOperation($"Gerando classes de {suffix.ToLowerInvariant()}..."))
+        if (!TryBeginOperation(string.Format(Resources.GeneratingClassesFor, suffix.ToLowerInvariant())))
         {
             return [];
         }
@@ -872,25 +1019,43 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                 template = await Task.Run(() => File.ReadAllText(normalizedTemplatePath), token);
             }
 
+            var unsupportedTokens = TemplateTokenCatalog.FindUnsupportedTokens(template);
+            if (unsupportedTokens.Count > 0)
+            {
+                throw new InvalidOperationException(string.Format(Resources.UnsupportedTemplateTokensDetail, string.Join(", ", unsupportedTokens)));
+            }
             var normalizedOutputDirectory = NormalizePath(outputDirectory);
-            Directory.CreateDirectory(normalizedOutputDirectory);
-            var generatedFiles = new List<string>(selectedObjects.Length);
+            var plannedFiles = new List<(string Path, string Content)>(selectedObjects.Length);
             var mapping = mappings.FirstOrDefault(m => m.ConnectionId == connection.Id);
             foreach (var dbObject in selectedObjects)
             {
                 ObjectTypeMapping? objectMapping = null;
                 mapping?.Mappings.TryGetValue(dbObject.Type, out objectMapping);
                 var fileName = TemplateFileNamePatternResolver.Resolve(fileNamePattern, suffix, connection, dbObject, objectMapping?.Namespace);
-                var className = Path.GetFileNameWithoutExtension(fileName);
+                var className = GenerationRuleSet.ToPascalCase(Path.GetFileNameWithoutExtension(fileName));
+                className = new string(className.Select(ch => char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_').ToArray());
+                if (!char.IsLetter(className[0]) && className[0] != '_')
+                {
+                    className = "_" + className;
+                }
                 var content = TemplateContentRenderer.Render(template, className, dbObject, connection, objectMapping?.Namespace);
 
-                var filePath = Path.Combine(normalizedOutputDirectory, fileName);
-                await Task.Run(() => File.WriteAllText(filePath, content), token);
-                generatedFiles.Add(filePath);
+                var filePath = GeneratedFilePath.Resolve(normalizedOutputDirectory, fileName);
+                plannedFiles.Add((filePath, content));
             }
 
-            SetStatusMessage($"Classes de {suffix.ToLowerInvariant()} geradas: {selectedObjects.Length}.");
-            return generatedFiles;
+            GeneratedFilePath.EnsureUnique(plannedFiles.Select(file => file.Path));
+            foreach (var file in plannedFiles)
+            {
+                token.ThrowIfCancellationRequested();
+                await Task.Run(() =>
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                    File.WriteAllText(file.Path, file.Content);
+                }, token);
+            }
+            SetStatusMessage(string.Format(Resources.ClassesGeneratedCount, suffix.ToLowerInvariant(), selectedObjects.Length));
+            return plannedFiles.Select(file => file.Path).ToArray();
         }
         finally
         {
@@ -944,7 +1109,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     return;
                 }
 
-                var filePath = Path.Combine((string)objectMapping.OutputDirectory, ResolveFileName((string)objectMapping.FileNamePattern, connection, dbObject, objectMapping.Namespace));
+                var filePath = GeneratedFilePath.Resolve(NormalizePath(objectMapping.OutputDirectory), ResolveFileName(objectMapping.FileNamePattern, connection, dbObject, objectMapping.Namespace));
                 var modelPath = Path.Combine(
                     NormalizePath(templateConfiguration.ModelOutputDirectory),
                     TemplateFileNamePatternResolver.Resolve(templateConfiguration.ModelFileNamePattern, "Model", connection, dbObject, objectMapping?.Namespace));
@@ -984,7 +1149,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     return;
                 }
 
-                var result = await checker.CheckAsync(connection, snapshot, metadataProvider, token);
+                var result = await checker.CheckAsync(connection, snapshot, metadataProvider, objects, token);
                 updates.Add((BuildObjectKey(connection.Id, dbObject), result));
             }));
 
@@ -1002,6 +1167,50 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         {
             EndOperation();
         }
+    }
+
+    /// <summary>
+    /// EN: Returns the stable key of an explorer node used to restore selection after refreshes.
+    /// PT-br: Retorna a chave estavel de um no do explorador usada para restaurar a selecao apos atualizacoes.
+    /// </summary>
+    public string GetNodeKey(ExplorerNode node) => BuildNodeKey(node);
+
+    /// <summary>
+    /// EN: Finds an explorer node by its stable key in the current tree.
+    /// PT-br: Localiza um no do explorador pela sua chave estavel na arvore atual.
+    /// </summary>
+    public ExplorerNode? FindNodeByKey(string key)
+        => EnumerateNodes(Nodes).FirstOrDefault(node => string.Equals(BuildNodeKey(node), key, StringComparison.Ordinal));
+
+    /// <summary>
+    /// EN: Returns the ancestor chain (root to target) of a node identified by its stable key.
+    /// PT-br: Retorna a cadeia de ancestrais (raiz ate o alvo) de um no identificado pela sua chave estavel.
+    /// </summary>
+    public IReadOnlyList<ExplorerNode> GetNodePath(string key)
+    {
+        var path = new List<ExplorerNode>();
+        return TryFindPath(Nodes, key, path) ? path : [];
+    }
+
+    private static bool TryFindPath(IEnumerable<ExplorerNode> nodes, string key, List<ExplorerNode> path)
+    {
+        foreach (var node in nodes)
+        {
+            path.Add(node);
+            if (string.Equals(BuildNodeKey(node), key, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (TryFindPath(node.Children, key, path))
+            {
+                return true;
+            }
+
+            path.RemoveAt(path.Count - 1);
+        }
+
+        return false;
     }
 
     private void LoadState()
@@ -1092,9 +1301,12 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
                     ConnectionId = connection.Id
                 };
 
-                var objects = objectsByConnection.TryGetValue(connection.Id, out var loadedObjects)
-                    ? loadedObjects
-                    : [];
+                var objects = !string.IsNullOrWhiteSpace(objectFilterText)
+                    && objectsByConnection.TryGetValue(connection.Id, out var loadedObjects)
+                    ? objectFilterService.Filter(loadedObjects, objectFilterText, objectFilterMode)
+                    : objectsByConnection.TryGetValue(connection.Id, out var cachedObjects)
+                        ? cachedObjects
+                        : [];
 
                 var schemaGroups = objects
                     .GroupBy(o => string.IsNullOrWhiteSpace(o.Schema) ? connection.DatabaseName : o.Schema, StringComparer.OrdinalIgnoreCase)
@@ -1319,7 +1531,7 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         var detailedMap = new Dictionary<string, DatabaseObjectReference>(StringComparer.OrdinalIgnoreCase);
         foreach (var table in tableObjects)
         {
-            var detailed = await metadataProvider.GetObjectAsync(connection, table, token);
+            var detailed = await metadataProvider.GetObjectAsync(connection, table, objects, token);
             if (detailed is not null)
             {
                 detailedMap[BuildObjectKey(connection.Id, table)] = detailed;
@@ -1691,6 +1903,11 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
             return $"[{identifier.Replace("]", "]]")}]";
         }
 
+        if (DatabaseTypeNormalizer.NormalizeKey(databaseType) is "mysql" or "mariadb")
+        {
+            return $"`{identifier.Replace("`", "``")}`";
+        }
+
         return $"\"{identifier.Replace("\"", "\"\"")}\"";
     }
 
@@ -1801,26 +2018,6 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
         return [];
     }
 
-    private static IEnumerable<string> FindExistingFiles(
-        ConnectionDefinition connection,
-        ConnectionMappingConfiguration mapping,
-        IReadOnlyCollection<DatabaseObjectReference> objects)
-    {
-        foreach (var obj in objects)
-        {
-            if (!mapping.Mappings.TryGetValue(obj.Type, out var objectMapping))
-            {
-                continue;
-            }
-
-            var path = Path.Combine(objectMapping.OutputDirectory, ResolveFileName(objectMapping.FileNamePattern, connection, obj, objectMapping.Namespace));
-            if (File.Exists(path))
-            {
-                yield return path;
-            }
-        }
-    }
-
     private static string ResolveFileName(
         string fileNamePattern,
         ConnectionDefinition connection,
@@ -1868,18 +2065,21 @@ public sealed class DbSqlLikeMemToolWindowViewModel : INotifyPropertyChanged
     private static string BuildObjectKey(string connectionId, DatabaseObjectReference dbObject)
         => $"{connectionId}|{dbObject.Schema}|{dbObject.Name}|{dbObject.Type}";
 
-    private static string NormalizePath(string path)
+    private ConnectionMappingConfiguration ResolveMappingPaths(ConnectionMappingConfiguration configuration)
+        => new(configuration.ConnectionId, configuration.Mappings.ToDictionary(pair => pair.Key, pair =>
+            new ObjectTypeMapping(pair.Key, NormalizePath(pair.Value.OutputDirectory), pair.Value.FileNamePattern, pair.Value.Namespace)));
+
+    private string NormalizePath(string path)
     {
         if (Path.IsPathRooted(path))
         {
             return Path.GetFullPath(path);
         }
 
-        var baseDirectory = Directory.GetCurrentDirectory();
-        return Path.GetFullPath(Path.Combine(baseDirectory, path));
+        return Path.GetFullPath(Path.Combine(workspaceDirectory, path));
     }
 
-    private static string NormalizePathOrEmpty(string path)
+    private string NormalizePathOrEmpty(string path)
         => string.IsNullOrWhiteSpace(path) ? string.Empty : NormalizePath(path);
 
     private void SetStatusMessage(string message)

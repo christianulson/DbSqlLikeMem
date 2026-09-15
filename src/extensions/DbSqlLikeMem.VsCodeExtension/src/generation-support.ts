@@ -76,7 +76,8 @@ export interface GeneratedArtifactMetadata {
 }
 
 export function sanitizeClassName(value: string): string {
-  return value.replace(/[^a-zA-Z0-9_]/g, '_');
+  const sanitized = value.replace(/[^a-zA-Z0-9_]/g, '_');
+  return /^[a-zA-Z_]/.test(sanitized) ? sanitized : `_${sanitized}`;
 }
 
 export function buildTestClassName(
@@ -92,7 +93,7 @@ export function buildTestClassFilePath(
   objectMapping: TestObjectMappingReference
 ): string {
   const className = buildTestClassName(objectRef, objectMapping);
-  return path.join(workspaceFolder, objectMapping.targetFolder, `${className}.cs`);
+  return resolveGeneratedFilePath(workspaceFolder, objectMapping.targetFolder, `${className}.cs`);
 }
 
 export function buildTemplateClassFilePath(
@@ -105,7 +106,25 @@ export function buildTemplateClassFilePath(
   namespace?: string
 ): string {
   const fileName = resolveTemplateFileName(objectRef, kind, connection, fileNamePattern, namespace);
-  return path.join(workspaceFolder, targetFolder, fileName);
+  return resolveGeneratedFilePath(workspaceFolder, targetFolder, fileName);
+}
+
+export function resolveGeneratedFilePath(workspaceFolder: string, targetFolder: string, fileName: string): string {
+  if (!fileName || /[<>:"/\\\\|?*\x00-\x1f]/.test(fileName) || /[. ]$/.test(fileName)) {
+    throw new Error(`Invalid generated file name: ${fileName}`);
+  }
+  return path.resolve(workspaceFolder, targetFolder, fileName);
+}
+
+export function ensureUniqueGenerationTargets(paths: readonly string[]): void {
+  const targets = new Set<string>();
+  for (const filePath of paths) {
+    const target = process.platform === 'win32' ? path.resolve(filePath).toLowerCase() : path.resolve(filePath);
+    if (targets.has(target)) {
+      throw new Error(`Multiple objects target the same file: ${filePath}. Use a file name pattern that includes the schema or object type.`);
+    }
+    targets.add(target);
+  }
 }
 
 export function evaluateGenerationConsistency(

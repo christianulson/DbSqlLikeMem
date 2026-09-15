@@ -143,13 +143,27 @@ public sealed class ObjectConsistencyChecker
     /// EN: Compares the persisted snapshot against the current database object metadata.
     /// PT-br: Compara o snapshot persistido com os metadados atuais do objeto de banco.
     /// </summary>
-    public async Task<ObjectHealthResult> CheckAsync(
+    public Task<ObjectHealthResult> CheckAsync(
         ConnectionDefinition connection,
         LocalObjectSnapshot snapshot,
         IDatabaseMetadataProvider provider,
         CancellationToken cancellationToken = default)
+        => CheckAsync(connection, snapshot, provider, null, cancellationToken);
+
+    /// <summary>
+    /// EN: Compares the persisted snapshot against the current database object metadata using a previously listed object collection.
+    /// PT-br: Compara o snapshot persistido com os metadados atuais do objeto de banco usando uma colecao de objetos ja listada.
+    /// </summary>
+    public async Task<ObjectHealthResult> CheckAsync(
+        ConnectionDefinition connection,
+        LocalObjectSnapshot snapshot,
+        IDatabaseMetadataProvider provider,
+        IReadOnlyCollection<DatabaseObjectReference>? listedObjects,
+        CancellationToken cancellationToken = default)
     {
-        var databaseObject = await provider.GetObjectAsync(connection, snapshot.Reference, cancellationToken).ConfigureAwait(false);
+        var databaseObject = listedObjects is null
+            ? await provider.GetObjectAsync(connection, snapshot.Reference, cancellationToken).ConfigureAwait(false)
+            : await provider.GetObjectAsync(connection, snapshot.Reference, listedObjects, cancellationToken).ConfigureAwait(false);
 
         if (databaseObject is null)
         {

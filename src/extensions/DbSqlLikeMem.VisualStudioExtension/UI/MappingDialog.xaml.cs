@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.IO;
 using DbSqlLikeMem.VisualStudioExtension.Core.Generation;
@@ -10,6 +11,11 @@ namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
 public partial class MappingDialog : Window
 {
+    private static readonly Regex NamespacePattern = new(
+        @"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$",
+        RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(200));
+
     private readonly DatabaseObjectType objectType;
     private readonly ConnectionMappingService connectionMappingService = new();
     private readonly TemplateReviewMetadata? reviewMetadata;
@@ -61,7 +67,7 @@ public partial class MappingDialog : Window
     {
         if (TemplateBaselineProfileComboBox.SelectedItem is not TemplateBaselineProfile profile)
         {
-            MessageBox.Show(this, "Select a mapping baseline profile before applying it.", UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(this, UiResources.MappingBaselineRequired, UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -86,6 +92,29 @@ public partial class MappingDialog : Window
             return;
         }
 
+        try
+        {
+            _ = GeneratedFilePath.Resolve(OutputDirectory, FileNamePattern
+                .Replace("{NamePascal}", "Sample", StringComparison.OrdinalIgnoreCase)
+                .Replace("{Name}", "sample", StringComparison.OrdinalIgnoreCase)
+                .Replace("{Type}", objectType.ToString(), StringComparison.OrdinalIgnoreCase)
+                .Replace("{Schema}", "dbo", StringComparison.OrdinalIgnoreCase)
+                .Replace("{DatabaseType}", "SqlServer", StringComparison.OrdinalIgnoreCase)
+                .Replace("{DatabaseName}", "ERP", StringComparison.OrdinalIgnoreCase)
+                .Replace("{Namespace}", "Sample.Namespace", StringComparison.OrdinalIgnoreCase));
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, string.Format(UiResources.InvalidFileNamePattern, ex.Message), UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Namespace) && !NamespacePattern.IsMatch(Namespace))
+        {
+            MessageBox.Show(this, string.Format(UiResources.InvalidNamespace, Namespace), UiResources.ValidationTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
         DialogResult = true;
         Close();
     }
@@ -94,7 +123,7 @@ public partial class MappingDialog : Window
     {
         BaselineSummaryTextBlock.Text = TemplateBaselineProfileComboBox.SelectedItem is TemplateBaselineProfile profile
             ? TemplateBaselinePresentation.BuildMappingSummary(profile, objectType, reviewMetadata)
-            : "Select a baseline profile to preview the recommended mapping defaults for this object type.";
+            : UiResources.MappingBaselineSummaryHint;
     }
 
     private static TemplateReviewMetadata? LoadReviewMetadata()

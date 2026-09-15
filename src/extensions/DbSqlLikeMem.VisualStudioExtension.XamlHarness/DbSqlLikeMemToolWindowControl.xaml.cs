@@ -27,6 +27,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         ExplorerNodeKind.Object
     ];
     private readonly DbSqlLikeMemToolWindowViewModel viewModel;
+    private readonly System.Windows.Threading.DispatcherTimer globalFilterTimer;
 
     /// <summary>
     /// EN: Initializes the harness control and loads either persisted state or a clean harness state.
@@ -38,6 +39,61 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         var loadPersistedState = !IsHarnessLoadEnvironmentEnabled();
         viewModel = new DbSqlLikeMemToolWindowViewModel(loadPersistedState, loadPersistedState ? ResolveStorageScopeKey() : null);
         DataContext = viewModel;
+
+        GlobalFilterModeComboBox.ItemsSource = new[]
+        {
+            new ComboBoxItem { Content = "Contém", Tag = nameof(FilterMode.Like) },
+            new ComboBoxItem { Content = "Exato", Tag = nameof(FilterMode.Equals) }
+        };
+        GlobalFilterModeComboBox.SelectedIndex = viewModel.ObjectFilterMode == FilterMode.Equals ? 1 : 0;
+        GlobalFilterTextBox.Text = viewModel.ObjectFilterText;
+        UpdateGlobalFilterUi();
+
+        globalFilterTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(300)
+        };
+        globalFilterTimer.Tick += OnGlobalFilterTimerTick;
+    }
+
+    private void OnGlobalFilterTextChanged(object sender, TextChangedEventArgs e)
+    {
+        globalFilterTimer.Stop();
+        globalFilterTimer.Start();
+    }
+
+    private void OnGlobalFilterTimerTick(object? sender, EventArgs e)
+    {
+        globalFilterTimer.Stop();
+        viewModel.ObjectFilterText = GlobalFilterTextBox.Text;
+        UpdateGlobalFilterUi();
+    }
+
+    private void OnGlobalFilterModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (GlobalFilterModeComboBox.SelectedItem is ComboBoxItem item
+            && string.Equals(item.Tag?.ToString(), nameof(FilterMode.Equals), StringComparison.OrdinalIgnoreCase))
+        {
+            viewModel.ObjectFilterMode = FilterMode.Equals;
+        }
+        else
+        {
+            viewModel.ObjectFilterMode = FilterMode.Like;
+        }
+    }
+
+    private void OnClearGlobalFilterClick(object sender, RoutedEventArgs e)
+    {
+        globalFilterTimer.Stop();
+        GlobalFilterTextBox.Text = string.Empty;
+        viewModel.ClearGlobalObjectFilter();
+        UpdateGlobalFilterUi();
+    }
+
+    private void UpdateGlobalFilterUi()
+    {
+        var hasFilter = !string.IsNullOrWhiteSpace(GlobalFilterTextBox.Text);
+        ClearGlobalFilterButton.Visibility = hasFilter ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>
@@ -291,7 +347,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
                 isObjectTypeNodeSelected,
                 isTableNodeSelected,
                 hasObjectTypeFilter,
-                isGenerationSupportedSelected));
+                isGenerationSupportedSelected,
+                viewModel.IsBusy));
 
         EditConnectionMenuItem.Visibility = visibility.EditConnectionVisible ? Visibility.Visible : Visibility.Collapsed;
         RefreshConnectionMenuItem.Visibility = visibility.RefreshConnectionVisible ? Visibility.Visible : Visibility.Collapsed;
@@ -399,7 +456,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             return;
         }
 
-        var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration())
+        var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration(), viewModel.WorkspaceDirectory)
         {
             Owner = Window.GetWindow(this)
         };

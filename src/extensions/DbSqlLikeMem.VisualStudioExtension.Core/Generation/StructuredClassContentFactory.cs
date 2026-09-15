@@ -43,8 +43,8 @@ public static class StructuredClassContentFactory
     private static string BuildTableLike(DatabaseObjectReference dbObject, string? @namespace, string? databaseType)
     {
         var effectiveDatabaseType = string.IsNullOrWhiteSpace(databaseType) ? "MySql" : databaseType!;
-        var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
-        var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
+        var className = $"{ToIdentifier(GenerationRuleSet.ToPascalCase(dbObject.Name))}{dbObject.Type}Factory";
+        var methodName = $"Create{dbObject.Type}{ToIdentifier(GenerationRuleSet.ToPascalCase(dbObject.Name))}";
 
         var columns = ReadColumns(dbObject);
         var primaryKey = ReadPrimaryKey(dbObject);
@@ -96,6 +96,7 @@ public static class StructuredClassContentFactory
         sb.AppendLine($"// DBSqlLikeMem:PrimaryKey={Get(dbObject, "PrimaryKey")}");
         sb.AppendLine($"// DBSqlLikeMem:Indexes={Get(dbObject, "Indexes")}");
         sb.AppendLine($"// DBSqlLikeMem:ForeignKeys={Get(dbObject, "ForeignKeys")}");
+        sb.AppendLine($"// DBSqlLikeMem:Triggers={Get(dbObject, "Triggers")}");
     }
 
     private static void AppendColumns(StringBuilder sb, IReadOnlyList<ColumnMeta> columns, string effectiveDatabaseType, string? schemaName)
@@ -172,8 +173,8 @@ public static class StructuredClassContentFactory
 
     private static string BuildRoutine(DatabaseObjectReference dbObject, string? @namespace)
     {
-        var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
-        var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
+        var className = $"{ToIdentifier(GenerationRuleSet.ToPascalCase(dbObject.Name))}{dbObject.Type}Factory";
+        var methodName = $"Create{dbObject.Type}{ToIdentifier(GenerationRuleSet.ToPascalCase(dbObject.Name))}";
         var sb = new StringBuilder();
         AppendRoutineFileHeader(sb, dbObject, @namespace);
         sb.AppendLine($"public static class {className}");
@@ -202,12 +203,12 @@ public static class StructuredClassContentFactory
             var parameters = ReadRoutineFunctionParameters(dbObject, "Parameters");
             var parametersCode = BuildRoutineFunctionParamCodes(parameters);
             var returnTypeSql = Get(dbObject, "ReturnTypeSql");
-            var bodySql = string.IsNullOrWhiteSpace(Get(dbObject, "BodySql")) ? "NULL" : Get(dbObject, "BodySql");
+            var bodySql = Get(dbObject, "BodySql");
 
             sb.AppendLine($"    public static DbFunctionDef {methodName}(this DbMock db)");
             sb.AppendLine("    {");
             sb.AppendLine(
-                $"        var function = DbFunctionDef.CreateUserDefined({Literal(dbObject.Name)}, {NullableLiteral(returnTypeSql)}, [{string.Join(", ", parametersCode)}], {Literal(bodySql)}, db);");
+                $"        var function = DbFunctionDef.CreateUserDefined({Literal(dbObject.Name)}, {NullableLiteral(returnTypeSql)}, [{string.Join(", ", parametersCode)}], {NullableLiteral(bodySql)}, db);");
             sb.AppendLine($"        db.AddFunction(function, schemaName: {Literal(dbObject.Schema)});");
             sb.AppendLine("        return function;");
             sb.AppendLine("    }");
@@ -234,8 +235,8 @@ public static class StructuredClassContentFactory
 
     private static string BuildSequence(DatabaseObjectReference dbObject, string? @namespace)
     {
-        var className = $"{GenerationRuleSet.ToPascalCase(dbObject.Name)}{dbObject.Type}Factory";
-        var methodName = $"Create{dbObject.Type}{GenerationRuleSet.ToPascalCase(dbObject.Name)}";
+        var className = $"{ToIdentifier(GenerationRuleSet.ToPascalCase(dbObject.Name))}{dbObject.Type}Factory";
+        var methodName = $"Create{dbObject.Type}{ToIdentifier(GenerationRuleSet.ToPascalCase(dbObject.Name))}";
         var startValue = ParseNullableLong(Get(dbObject, "StartValue")) ?? 1L;
         var incrementBy = ParseNullableLong(Get(dbObject, "IncrementBy")) ?? 1L;
         var currentValue = ParseNullableLong(Get(dbObject, "CurrentValue"));
@@ -500,6 +501,21 @@ public static class StructuredClassContentFactory
 
     private static string Bool(bool value) => value ? "true" : "false";
     private static string Literal(string value) => GenerationRuleSet.Literal(value);
+
+    private static string ToIdentifier(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return "Object";
+        }
+
+        if (char.IsLetter(value[0]) || value[0] == '_')
+        {
+            return value;
+        }
+
+        return "_" + value;
+    }
 
     private static string NullableLiteral(string? value)
     {

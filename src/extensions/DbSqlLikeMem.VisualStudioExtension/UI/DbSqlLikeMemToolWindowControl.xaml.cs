@@ -35,6 +35,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     ];
 
     private readonly DbSqlLikeMemToolWindowViewModel viewModel;
+    private readonly System.Windows.Threading.DispatcherTimer globalFilterTimer;
 
     /// <summary>
     /// EN: Initializes the tool window user control and its view model.
@@ -46,6 +47,21 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         InitializeComponent();
         viewModel = new DbSqlLikeMemToolWindowViewModel(ShouldLoadPersistedState(), ResolveStorageScopeKey());
         DataContext = viewModel;
+
+        GlobalFilterModeComboBox.ItemsSource = new[]
+        {
+            new ComboBoxItem { Content = UiResources.ContainsOption, Tag = nameof(FilterMode.Like) },
+            new ComboBoxItem { Content = UiResources.ExactOption, Tag = nameof(FilterMode.Equals) }
+        };
+        GlobalFilterModeComboBox.SelectedIndex = viewModel.ObjectFilterMode == FilterMode.Equals ? 1 : 0;
+        GlobalFilterTextBox.Text = viewModel.ObjectFilterText;
+        UpdateGlobalFilterUi();
+
+        globalFilterTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(300)
+        };
+        globalFilterTimer.Tick += OnGlobalFilterTimerTick;
     }
 
     /// <summary>
@@ -84,6 +100,46 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
     }
 
+    private void OnGlobalFilterTextChanged(object sender, TextChangedEventArgs e)
+    {
+        globalFilterTimer.Stop();
+        globalFilterTimer.Start();
+    }
+
+    private void OnGlobalFilterTimerTick(object? sender, EventArgs e)
+    {
+        globalFilterTimer.Stop();
+        viewModel.ObjectFilterText = GlobalFilterTextBox.Text;
+        UpdateGlobalFilterUi();
+    }
+
+    private void OnGlobalFilterModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (GlobalFilterModeComboBox.SelectedItem is ComboBoxItem item
+            && string.Equals(item.Tag?.ToString(), nameof(FilterMode.Equals), StringComparison.OrdinalIgnoreCase))
+        {
+            viewModel.ObjectFilterMode = FilterMode.Equals;
+        }
+        else
+        {
+            viewModel.ObjectFilterMode = FilterMode.Like;
+        }
+    }
+
+    private void OnClearGlobalFilterClick(object sender, RoutedEventArgs e)
+    {
+        globalFilterTimer.Stop();
+        GlobalFilterTextBox.Text = string.Empty;
+        viewModel.ClearGlobalObjectFilter();
+        UpdateGlobalFilterUi();
+    }
+
+    private void UpdateGlobalFilterUi()
+    {
+        var hasFilter = !string.IsNullOrWhiteSpace(GlobalFilterTextBox.Text);
+        ClearGlobalFilterButton.Visibility = hasFilter ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private async void OnAddConnectionClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
         {
@@ -118,7 +174,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             var dialog = new ConnectionDialog
             {
                 Owner = System.Windows.Window.GetWindow(this),
-                ConnectionName = existing?.DatabaseName ?? selected.Label,
+                ConnectionName = existing?.FriendlyName ?? selected.Label,
                 DatabaseType = existing?.DatabaseType ?? DatabaseTypeCatalog.DefaultDatabaseType,
                 ConnectionString = existing?.ConnectionString ?? string.Empty
             };
@@ -174,7 +230,8 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
                 isObjectTypeNodeSelected,
                 isTableNodeSelected,
                 hasObjectTypeFilter,
-                isGenerationSupportedSelected));
+                isGenerationSupportedSelected,
+                viewModel.IsBusy));
 
         EditConnectionMenuItem.Visibility = visibility.EditConnectionVisible ? Visibility.Visible : Visibility.Collapsed;
         RemoveConnectionMenuItem.Visibility = visibility.RemoveConnectionVisible ? Visibility.Visible : Visibility.Collapsed;
@@ -301,7 +358,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             return;
         }
 
-        var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration()) { Owner = System.Windows.Window.GetWindow(this) };
+        var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration(), viewModel.WorkspaceDirectory) { Owner = System.Windows.Window.GetWindow(this) };
         if (dialog.ShowDialog() == true)
         {
             viewModel.ConfigureTemplates(
@@ -346,7 +403,18 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     }
 
     private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
-        => await RunSafeAsync(viewModel.RefreshObjectsAsync);
+        => await RunSafeAsync(async () =>
+        {
+            var selected = ExplorerNodeSelectionResolver.GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
+            if (selected?.ConnectionId is string connectionId
+                && (selected.Kind == ExplorerNodeKind.Connection || selected.Kind == ExplorerNodeKind.Schema))
+            {
+                await viewModel.RefreshObjectsAsync(connectionId);
+                return;
+            }
+
+            await viewModel.RefreshObjectsAsync();
+        });
 
     private async void OnImportSettingsClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
@@ -402,7 +470,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
                 return;
             }
 
-            var conflicts = viewModel.PreviewConflictsForNode(selected);
+            var conflicts = viewModel.PreviewConflictsForNode(selected, includeModels: true, includeRepositories: true);
             if (conflicts.Count > 0)
             {
                 var preview = string.Join(Environment.NewLine, conflicts.Take(10));
@@ -460,6 +528,11 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
                 return;
             }
 
+            if (!ConfirmTemplateOverwrite(selected, models: true))
+            {
+                return;
+            }
+
             var generatedFiles = await viewModel.GenerateModelClassesForNodeAsync(selected);
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             AddFilesToActiveProject(generatedFiles);
@@ -472,6 +545,11 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             if (selected is null || !GenerationSupportedKinds.Contains(selected.Kind))
             {
                 MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectNodeToGenerateRepositoryClasses, UiResources.GenerateRepositoryClassesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (!ConfirmTemplateOverwrite(selected, models: false))
+            {
                 return;
             }
 
@@ -568,7 +646,10 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
                 try
                 {
                     var path = await viewModel.ExtractScenarioAsync(selected.ConnectionId, dialog.ScenarioName, chosen.Schema, chosen.TableName, dialog.FilterText, selectedRows, dialog.IncludeParentReferences);
-                    MessageBox.Show(dialog, string.Format(UiResources.ScenarioExtractedWithFile, Environment.NewLine, path), UiResources.ExtractScenarioButton, MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        MessageBox.Show(dialog, string.Format(UiResources.ScenarioExtractedWithFile, Environment.NewLine, path), UiResources.ExtractScenarioButton, MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
                 }
                 finally
                 {
@@ -582,13 +663,21 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     private static DataTable BuildRowsDataTable(IReadOnlyCollection<IReadOnlyDictionary<string, object?>> rows)
     {
         var table = new DataTable();
-        table.Columns.Add("_Selected", typeof(bool));
+
 
         var orderedColumns = rows
             .SelectMany(r => r.Keys)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+        var selectionColumn = "_Selected";
+        while (orderedColumns.Contains(selectionColumn, StringComparer.OrdinalIgnoreCase))
+        {
+            selectionColumn = "_" + selectionColumn;
+        }
+        table.ExtendedProperties["SelectionColumn"] = selectionColumn;
+        table.Columns.Add(selectionColumn, typeof(bool));
 
         foreach (var column in orderedColumns)
         {
@@ -598,7 +687,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         foreach (var row in rows)
         {
             var dataRow = table.NewRow();
-            dataRow["_Selected"] = false;
+            dataRow[selectionColumn] = false;
 
             foreach (var column in orderedColumns)
             {
@@ -624,17 +713,109 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         return null;
     }
 
+    private bool ConfirmTemplateOverwrite(ExplorerNode selected, bool models)
+    {
+        var conflicts = viewModel.PreviewConflictsForNode(selected, includeTests: false, includeModels: models, includeRepositories: !models);
+        if (conflicts.Count == 0)
+        {
+            return true;
+        }
+        var preview = string.Join(Environment.NewLine, conflicts.Take(10));
+        if (conflicts.Count > 10)
+        {
+            preview += Environment.NewLine + string.Format(UiResources.OverwritePreviewMoreItems, conflicts.Count - 10);
+        }
+        var message = string.Format(UiResources.OverwritePreviewMessage, conflicts.Count, Environment.NewLine, preview);
+        return MessageBox.Show(System.Windows.Window.GetWindow(this), message, UiResources.OverwritePreviewTitle,
+            MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+    }
+
     private async Task RunSafeAsync(Func<Task> action)
     {
+        var selectedKey = ExplorerTree.SelectedItem is ExplorerNode selected ? viewModel.GetNodeKey(selected) : null;
         try
         {
             await action();
         }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is an expected user action.
+        }
         catch (Exception ex)
         {
             ExtensionLogger.Log($"UI operation error: {ex}");
-            MessageBox.Show(System.Windows.Window.GetWindow(this), ex.Message, UiResources.UnexpectedErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(
+                System.Windows.Window.GetWindow(this),
+                string.Format(UiResources.UnexpectedErrorDetail, ex.Message),
+                UiResources.UnexpectedErrorTitle,
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
+        finally
+        {
+            RestoreSelection(selectedKey);
+        }
+    }
+
+    private void RestoreSelection(string? key)
+    {
+        if (string.IsNullOrEmpty(key))
+        {
+            return;
+        }
+
+        var path = viewModel.GetNodePath(key);
+        if (path.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var ancestor in path)
+        {
+            ancestor.IsExpanded = true;
+        }
+
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            var target = viewModel.FindNodeByKey(key);
+            if (target is null)
+            {
+                return;
+            }
+
+            var item = FindTreeViewItem(ExplorerTree, target);
+            if (item is not null)
+            {
+                item.IsSelected = true;
+                item.BringIntoView();
+            }
+        }), System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    private static TreeViewItem? FindTreeViewItem(ItemsControl parent, ExplorerNode target)
+    {
+        for (var i = 0; i < parent.Items.Count; i++)
+        {
+            if (parent.ItemContainerGenerator.ContainerFromIndex(i) is not TreeViewItem item)
+            {
+                continue;
+            }
+
+            if (ReferenceEquals(item.DataContext, target))
+            {
+                return item;
+            }
+
+            item.IsExpanded = true;
+            item.UpdateLayout();
+            var found = FindTreeViewItem(item, target);
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private static void AddFilesToActiveProject(IEnumerable<string> files)
@@ -679,7 +860,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         foreach (DteProjectItem item in items)
         {
             var itemPath = item.FileCount > 0 ? item.FileNames[1] : string.Empty;
-            if (string.Equals(Path.GetFullPath(itemPath), Path.GetFullPath(fullPath), StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(itemPath) && string.Equals(Path.GetFullPath(itemPath), Path.GetFullPath(fullPath), StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

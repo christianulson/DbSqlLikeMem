@@ -25,6 +25,9 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 5. **Indicadores visuais de consistência**
    - Nó de objeto com marcador de status: 🟢 sincronizado, 🟡 divergente ou trio local incompleto, 🔴 ausente.
 
+6. **Filtro global de objetos**
+   - Campo na toolbar para filtrar objetos por nome em toda a árvore, com modo Contém/Exato e botão de limpar (aplicado com debounce).
+
 6. **Hardening básico**
    - Mensagens de status operacionais na UI.
    - Log local em `%LocalAppData%/DbSqlLikeMem/visual-studio-extension.log`.
@@ -64,19 +67,24 @@ Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
 ## Compatibilidade VSIX
 
-- Compatível com Visual Studio **2022 e linha futura (incluindo 2026)** (`[17.0,19.0)`) nas edições Community/Professional/Enterprise.
+- Manifesto destinado ao Visual Studio **2022 e 2026 x64** (`[17.0,19.0)`) nas edições Community/Professional/Enterprise. A instalação e o carregamento nessas versões ainda precisam de validação do pacote final.
+- A geração resolve pastas relativas a partir da solução aberta. Sem solução, usa o diretório atual.
+- A prévia de sobrescrita abrange testes, models e repositories; destinos duplicados são rejeitados antes de gravar.
+- O botão de cancelar permanece acessível durante operações longas.
+- Exportações DPAPI são vinculadas ao usuário e ambiente Windows; importar em outro ambiente pode exigir cadastrar as conexões novamente.
+- Consulte [a revisão de publicação](../RELEASE_REVIEW.md) para a validação restante.
 
 ## Publicação da VSIX
 
 - Workflow: `.github/workflows/vsix-publish.yml`
 - Secret: `VS_MARKETPLACE_TOKEN`
 - Tag automática: `vsix-v*`
-- Fonte da versão publicada: `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`
-- Contrato do workflow: `.github/workflows/vsix-publish.yml` valida explicitamente `src/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest` antes do build/publish, mantendo o fluxo `tag vsix-v* -> source.extension.vsixmanifest -> publish`.
+- Fonte da versão publicada: `src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest`
+- Contrato do workflow: `.github/workflows/vsix-publish.yml` valida explicitamente `src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest` antes do build/publish, mantendo o fluxo `tag vsix-v* -> source.extension.vsixmanifest -> publish`.
 - Manifesto operacional: `eng/visualstudio/PublishManifest.json`
 - Auditoria base: `python scripts/check_release_readiness.py`
 - Auditoria estrita no publish: `python scripts/check_release_readiness.py --strict-marketplace-placeholders`
-- Antes de criar a tag `vsix-v*`, revise `../../CHANGELOG.md` e `../../docs/publishing.md` para manter release notes e limitações abertas visíveis no fluxo de publicação.
+- Antes de criar a tag `vsix-v*`, revise `../../../CHANGELOG.md` e `../../../docs/publishing.md` para manter release notes e limitações abertas visíveis no fluxo de publicação.
 
 Antes do publish final, confirme o `publisher` do marketplace no manifesto operacional.
 
@@ -131,5 +139,5 @@ public class {{ClassName}}
 - Execução:
 
 ```bash
-dotnet run --project src/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj
+dotnet run --project src/extensions/DbSqlLikeMem.VisualStudioExtension.XamlHarness/DbSqlLikeMem.VisualStudioExtension.XamlHarness.csproj
 ```

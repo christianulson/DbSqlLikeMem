@@ -37,6 +37,7 @@
   <data name="IncludeParentsCheckbox" xml:space="preserve"><value>Include parent table data (FK)</value></data>
   <data name="LoadDataButton" xml:space="preserve"><value>Load data</value></data>
   <data name="SelectAllButton" xml:space="preserve"><value>Select all</value></data>
+  <data name="SelectColumnHeader" xml:space="preserve"><value>Select</value></data>
   <data name="ClearAllButton" xml:space="preserve"><value>Clear all</value></data>
   <data name="ExtractScenarioButton" xml:space="preserve"><value>Extract scenario</value></data>
   <data name="CloseButton" xml:space="preserve"><value>Close</value></data>
@@ -105,6 +106,9 @@
   <data name="ColumnsLabel" xml:space="preserve"><value>Colonnes</value></data>
   <data name="TriggersLabel" xml:space="preserve"><value>Déclencheurs</value></data>
   <data name="OperationAlreadyInProgress" xml:space="preserve"><value>An operation is already in progress.</value></data>
+  <data name="ExportingSettings" xml:space="preserve"><value>Exporting settings...</value></data>
+  <data name="ImportingSettings" xml:space="preserve"><value>Importing settings...</value></data>
+  <data name="ExtractingScenario" xml:space="preserve"><value>Extracting scenario...</value></data>
 
   <data name="SelectObjectTypeToConfigureMappings" xml:space="preserve"><value>Select an object type to configure mappings.</value></data>
   <data name="SelectObjectTypeToConfigureTemplates" xml:space="preserve"><value>Select an object type to configure templates.</value></data>
@@ -115,4 +119,25 @@
   <data name="NoObjectsLoadedUseRefresh" xml:space="preserve"><value>No objects loaded to generate. Use Refresh objects first.</value></data>
   <data name="NoObjectsLoadedForGeneration" xml:space="preserve"><value>No objects loaded to generate.</value></data>
   <data name="ForeignKeysLabel" xml:space="preserve"><value>Foreign keys</value></data>
-</root>
+  <data name="StatusReady" xml:space="preserve"><value>Ready.</value></data>
+  <data name="FailedToConnectDetail" xml:space="preserve"><value>Failed to connect: {0}</value></data>
+  <data name="CancellationRequested" xml:space="preserve"><value>Cancellation requested.</value></data>
+  <data name="NoHarnessConnectionsFound" xml:space="preserve"><value>No test environment connections were found.</value></data>
+  <data name="LoadingTestEnvironment" xml:space="preserve"><value>Loading test environment...</value></data>
+  <data name="ObjectsLoadedForConnection" xml:space="preserve"><value>Objects loaded for {0}.</value></data>
+  <data name="FailedToLoadObjectsForConnection" xml:space="preserve"><value>Failed to load objects for {0}. See the log.</value></data>
+  <data name="RefreshingDatabaseObjects" xml:space="preserve"><value>Refreshing database objects...</value></data>
+  <data name="RefreshingConnectionObjects" xml:space="preserve"><value>Refreshing objects for {0}...</value></data>
+  <data name="GeneratingTestClasses" xml:space="preserve"><value>Generating test classes...</value></data>
+  <data name="GeneratingClassesFor" xml:space="preserve"><value>Generating {0} classes...</value></data>
+  <data name="UnsupportedTemplateTokensDetail" xml:space="preserve"><value>Unsupported template tokens: {0}</value></data>
+  <data name="ClassesGeneratedCount" xml:space="preserve"><value>{0} classes generated: {1}.</value></data>  <data name="OverwritePreviewMoreItems" xml:space="preserve"><value>...and {0} more file(s).</value></data>
+  <data name="UnexpectedErrorDetail" xml:space="preserve"><value>The operation could not be completed. Detail: {0}</value></data>  <data name="MappingBaselineRequired" xml:space="preserve"><value>Select a mapping baseline profile before applying it.</value></data>
+  <data name="MappingBaselineSummaryHint" xml:space="preserve"><value>Select a baseline profile to preview the recommended mapping defaults for this object type.</value></data>
+  <data name="InvalidFileNamePattern" xml:space="preserve"><value>The file name pattern does not produce a valid file name. Detail: {0}</value></data>
+  <data name="InvalidNamespace" xml:space="preserve"><value>The namespace is not a valid C# namespace: {0}</value></data>
+  <data name="TemplateBaselineRequired" xml:space="preserve"><value>Select a template baseline profile before applying it.</value></data>
+  <data name="TemplateBaselineNotFound" xml:space="preserve"><value>Could not locate templates/dbsqllikemem from the current environment.</value></data>
+  <data name="TemplateBaselineSummaryHint" xml:space="preserve"><value>Select a template baseline profile to preview its intended use, test focus, and review cadence.</value></data>  <data name="FailedToOpenToolWindow" xml:space="preserve"><value>Could not create the DbSqlLikeMem tool window.</value></data>  <data name="LoadingConnectionObjects" xml:space="preserve"><value>Loading objects for {0}...</value></data>  <data name="GlobalFilterToolTip" xml:space="preserve"><value>Filter objects by name</value></data>
+  <data name="GlobalFilterModeLabel" xml:space="preserve"><value>Filter mode</value></data>
+  <data name="ClearGlobalFilterToolTip" xml:space="preserve"><value>Clear filter</value></data></root>

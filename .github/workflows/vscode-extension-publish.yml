@@ -33,9 +33,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
-          cache-dependency-path: src/extensions/DbSqlLikeMem.VsCodeExtension/package.json
+          cache-dependency-path: src/extensions/DbSqlLikeMem.VsCodeExtension/package-lock.json
 
       - name: Validate VS Code version source contract
         working-directory: .
@@ -47,11 +47,19 @@ jobs:
 
           echo "VS Code version source: src/extensions/DbSqlLikeMem.VsCodeExtension/package.json"
 
+      - name: Setup .NET metadata bridge SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Compile extension
         run: npm run compile
+
+      - name: Run extension tests
+        run: npm test
 
       - name: Package VSIX
         run: npm run package
@@ -81,4 +89,4 @@ jobs:
             echo "Secret VSCE_PAT não configurado." >&2
             exit 1
           fi
-          npm run publish -- -p "$VSCE_PAT"
+          npx --no-install vsce publish --packagePath "${{ steps.locate_vsix.outputs.path }}"

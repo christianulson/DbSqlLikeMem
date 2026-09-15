@@ -87,5 +87,13 @@ public static class OrdersTableFactory {}
         public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
             CancellationToken cancellationToken = default)
             => Task.FromResult<DatabaseObjectReference?>(dbObject);
+
+        /// <summary>
+        /// EN: Returns the in-memory object using a previously listed collection.
+        /// PT-br: Retorna o objeto em memoria usando uma colecao ja listada.
+        /// </summary>
+        public Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference,
+            IReadOnlyCollection<DatabaseObjectReference> listedObjects, CancellationToken cancellationToken = default)
+            => Task.FromResult<DatabaseObjectReference?>(dbObject);
     }
 }

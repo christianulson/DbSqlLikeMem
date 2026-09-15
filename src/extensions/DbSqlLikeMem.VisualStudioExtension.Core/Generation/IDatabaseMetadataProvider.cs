@@ -19,4 +19,14 @@ public interface IDatabaseMetadataProvider
     /// Obtém metadados detalhados para um objeto de banco específico.
     /// </summary>
     Task<DatabaseObjectReference?> GetObjectAsync(ConnectionDefinition connection, DatabaseObjectReference reference, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets detailed metadata for a specific database object using a previously listed object collection.
+    /// Obtém metadados detalhados para um objeto de banco específico usando uma coleção de objetos já listada.
+    /// </summary>
+    Task<DatabaseObjectReference?> GetObjectAsync(
+        ConnectionDefinition connection,
+        DatabaseObjectReference reference,
+        IReadOnlyCollection<DatabaseObjectReference> listedObjects,
+        CancellationToken cancellationToken = default);
 }

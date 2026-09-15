@@ -188,7 +188,7 @@ ORDER BY SchemaName, ObjectType, ObjectName;
        , COLUMN_DEFAULT AS `DefaultValue`
        , CHARACTER_MAXIMUM_LENGTH AS `CharMaxLen`
        , NUMERIC_PRECISION AS `NumPrecision`
-       , NUMERIC_SCALE AS 'NumScale'
+       , NUMERIC_SCALE AS `NumScale`
        , COLUMN_TYPE AS `ColumnType`
        , GENERATION_EXPRESSION AS `ColumnGenerated`
     FROM INFORMATION_SCHEMA.COLUMNS
@@ -355,13 +355,13 @@ ORDER BY s.name
 
         public string BuildObjectColumnsQuery()
             => """
-  SELECT c.name AS [ColumnName]
+SELECT c.name AS [ColumnName]
        , t.name AS [DataType]
        , c.column_id AS [Ordinal]
        , c.is_nullable AS [IsNullable]
        , c.is_identity AS [IsIdentity]
        , OBJECT_DEFINITION(c.default_object_id) AS [DefaultValue]
-       , c.max_length AS [CharMaxLen]
+       , CASE WHEN t.name IN ('nchar', 'nvarchar', 'sysname') AND c.max_length > 0 THEN c.max_length / 2 ELSE c.max_length END AS [CharMaxLen]
        , c.precision AS [NumPrecision]
        , c.scale AS [NumScale]
        , '' AS [ColumnType]
@@ -474,7 +474,7 @@ SELECT s.name AS [SchemaName]
      , p.parameter_id AS [Ordinal]
      , CASE WHEN p.has_default_value = 1 THEN COALESCE(CONVERT(nvarchar(4000), p.default_value), '') ELSE '' END AS [DefaultValue]
      , CASE WHEN p.is_nullable = 1 THEN 'YES' ELSE 'NO' END AS [IsNullable]
-     , p.max_length AS [CharMaxLen]
+     , CASE WHEN t.name IN ('nchar', 'nvarchar', 'sysname') AND p.max_length > 0 THEN p.max_length / 2 ELSE p.max_length END AS [CharMaxLen]
      , p.precision AS [NumPrecision]
      , p.scale AS [NumScale]
      , '0' AS [IsVariadic]
@@ -846,7 +846,7 @@ SELECT RTRIM(COLNAME) AS ColumnName, RTRIM(TYPENAME) AS DataType, COLNO AS Ordin
        CASE IDENTITY WHEN 'Y' THEN 'identity' ELSE '' END AS Extra,
        DEFAULT AS DefaultValue,
        LENGTH AS CharMaxLen,
-       SCALE AS NumPrecision,
+       CASE TYPENAME WHEN 'DECIMAL' THEN LENGTH WHEN 'NUMERIC' THEN LENGTH ELSE NULL END AS NumPrecision,
        SCALE AS NumScale,
        RTRIM(TYPENAME) AS ColumnType,
        '' AS ColumnGenerated
@@ -927,7 +927,7 @@ SELECT RTRIM(ROUTINESCHEMA) AS SchemaName
      , COALESCE(DEFAULT, '') AS DefaultValue
      , CASE WHEN NULLS = 'Y' THEN 'YES' ELSE 'NO' END AS IsNullable
      , LENGTH AS CharMaxLen
-     , SCALE AS NumPrecision
+     , CASE TYPENAME WHEN 'DECIMAL' THEN LENGTH WHEN 'NUMERIC' THEN LENGTH ELSE NULL END AS NumPrecision
      , SCALE AS NumScale
      , CASE WHEN COALESCE(PARM_MODE, '') = 'V' THEN '1' ELSE '0' END AS IsVariadic
      , '0' AS IsOrderByClause
@@ -1033,9 +1033,9 @@ SELECT TRIM(i.RDB$INDEX_NAME) AS IndexName
 
         public string BuildSequenceMetadataQuery()
             => """
-SELECT TRIM(g.RDB$GENERATOR_NAME) AS StartValue
-     , '1' AS IncrementBy
-     , '1' AS CurrentValue
+SELECT CAST(NULL AS BIGINT) AS StartValue
+     , CAST(NULL AS BIGINT) AS IncrementBy
+     , CAST(NULL AS BIGINT) AS CurrentValue
   FROM RDB$GENERATORS g
  WHERE COALESCE(g.RDB$SYSTEM_FLAG, 0) = 0
    AND TRIM(g.RDB$GENERATOR_NAME) = @objectName;

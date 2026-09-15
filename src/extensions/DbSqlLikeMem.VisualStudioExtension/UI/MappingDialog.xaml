@@ -27,7 +27,7 @@
             <Button Content="Apply baseline" Width="120" Margin="8,0,0,0" Click="OnApplyBaselineClick" />
         </StackPanel>
 
-        <TextBlock x:Name="BaselineSummaryTextBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray" />
+        <TextBlock x:Name="BaselineSummaryTextBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8" />
 
         <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.FilePatternLabel}" />
         <TextBox x:Name="FilePatternTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" />
@@ -38,7 +38,7 @@
         <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Namespace (optional)" />
         <TextBox x:Name="NamespaceTextBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" />
 
-        <TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Foreground="DimGray"
+<TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8"
                    Text="Profiles reuse the versioned defaults from templates/dbsqllikemem/vCurrent for the selected object type and can still be edited before saving." />
 
         <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">

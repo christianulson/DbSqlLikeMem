@@ -4,9 +4,9 @@
     "coding"
   ],
   "identity": {
-    "internalName": "DbSqlLikeMem"
+    "internalName": "DbSqlLikeMem.VisualStudioExtension"
   },
-  "overview": "README.md",
+  "overview": "../../src/extensions/DbSqlLikeMem.VisualStudioExtension/README.md",
   "priceCategory": "free",
   "publisher": "dbsqllikemem",
   "qna": true,

@@ -17,7 +17,7 @@ public sealed class ClassGenerator
         Func<DatabaseObjectReference, string> classContentFactory,
         CancellationToken cancellationToken = default)
     {
-        var writtenFiles = new List<string>();
+        var plannedFiles = new List<(string Path, string Content)>();
 
         foreach (var dbObject in request.SelectedObjects)
         {
@@ -28,18 +28,25 @@ public sealed class ClassGenerator
                 continue;
             }
 
-            Directory.CreateDirectory(mapping.OutputDirectory);
             var fileName = ResolveFileName(mapping.FileNamePattern, request.Connection, dbObject, mapping.Namespace);
-            var fullPath = Path.Combine(mapping.OutputDirectory, fileName);
+            var fullPath = GeneratedFilePath.Resolve(mapping.OutputDirectory, fileName);
             var content = classContentFactory(dbObject);
 
-#pragma warning disable AsyncFixer02 // Blocking call inside an async method
-            File.WriteAllText(fullPath, content);
-#pragma warning restore AsyncFixer02 // Blocking call inside an async method
-            writtenFiles.Add(fullPath);
+            plannedFiles.Add((fullPath, content));
         }
 
-        return writtenFiles;
+        GeneratedFilePath.EnsureUnique(plannedFiles.Select(file => file.Path));
+        foreach (var file in plannedFiles)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await Task.Run(() =>
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(file.Path)!);
+                File.WriteAllText(file.Path, file.Content);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        return plannedFiles.Select(file => file.Path).ToArray();
     }
 
     private static string ResolveFileName(

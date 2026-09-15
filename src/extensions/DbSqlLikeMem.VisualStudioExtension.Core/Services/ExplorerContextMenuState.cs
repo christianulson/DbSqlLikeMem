@@ -16,7 +16,8 @@ public sealed class ExplorerContextMenuSelection
         bool isObjectTypeNodeSelected,
         bool isTableNodeSelected,
         bool hasObjectTypeFilter,
-        bool isGenerationSupportedSelected)
+        bool isGenerationSupportedSelected,
+        bool isBusy = false)
     {
         IsConnectionNodeSelected = isConnectionNodeSelected;
         IsSchemaNodeSelected = isSchemaNodeSelected;
@@ -24,6 +25,7 @@ public sealed class ExplorerContextMenuSelection
         IsTableNodeSelected = isTableNodeSelected;
         HasObjectTypeFilter = hasObjectTypeFilter;
         IsGenerationSupportedSelected = isGenerationSupportedSelected;
+        IsBusy = isBusy;
     }
 
     /// <summary>
@@ -61,6 +63,12 @@ public sealed class ExplorerContextMenuSelection
     /// PT-br: Obtem se o no selecionado suporta acoes de geracao.
     /// </summary>
     public bool IsGenerationSupportedSelected { get; }
+
+    /// <summary>
+    /// EN: Gets whether an operation is currently running.
+    /// PT-br: Obtem se uma operacao esta em andamento.
+    /// </summary>
+    public bool IsBusy { get; }
 
     /// <summary>
     /// EN: Gets whether scenario extraction should be available for the current selection.
@@ -272,7 +280,7 @@ public static class ExplorerContextMenuStateCalculator
             selection.IsConnectionNodeSelected,
             selection.IsConnectionNodeSelected,
             showConnectionActions,
-            showConnectionActions,
+            showConnectionActions && selection.IsBusy,
             showConnectionActions,
             selection.IsObjectTypeNodeSelected,
             selection.IsObjectTypeNodeSelected,

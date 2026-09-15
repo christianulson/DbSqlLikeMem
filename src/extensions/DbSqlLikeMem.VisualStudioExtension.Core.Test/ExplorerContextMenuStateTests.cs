@@ -22,7 +22,8 @@ public sealed class ExplorerContextMenuStateTests
             isObjectTypeNodeSelected: false,
             isTableNodeSelected: false,
             hasObjectTypeFilter: false,
-            isGenerationSupportedSelected: false));
+            isGenerationSupportedSelected: false,
+            isBusy: true));
 
         Assert.Equal(isConnectionNodeSelected, state.EditConnectionVisible);
         Assert.Equal(isConnectionNodeSelected, state.RemoveConnectionVisible);
@@ -34,6 +35,28 @@ public sealed class ExplorerContextMenuStateTests
         Assert.False(state.ConfigureTemplatesVisible);
         Assert.False(state.GenerateAllClassesVisible);
         Assert.True(state.HasVisibleAction);
+    }
+
+    /// <summary>
+    /// EN: Verifies the cancel action stays hidden on connection selections while no operation is running.
+    /// PT-br: Verifica se a acao de cancelar permanece oculta em selecoes de conexao quando nenhuma operacao esta em andamento.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "ExplorerContextMenuState")]
+    public void Calculate_ConnectionSelection_WithoutRunningOperation_HidesCancelAction()
+    {
+        var state = ExplorerContextMenuStateCalculator.Calculate(new ExplorerContextMenuSelection(
+            isConnectionNodeSelected: true,
+            isSchemaNodeSelected: false,
+            isObjectTypeNodeSelected: false,
+            isTableNodeSelected: false,
+            hasObjectTypeFilter: false,
+            isGenerationSupportedSelected: false,
+            isBusy: false));
+
+        Assert.False(state.CancelConnectionOperationVisible);
+        Assert.True(state.RefreshConnectionVisible);
+        Assert.True(state.EditConnectionVisible);
     }
 
     /// <summary>

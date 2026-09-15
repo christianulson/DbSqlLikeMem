@@ -1,5 +1,8 @@
 using System.Data;
 using System.Windows;
+using System.Windows.Controls;
+using DbSqlLikeMem.VisualStudioExtension.Services;
+using UiResources = DbSqlLikeMem.VisualStudioExtension.Properties.Resources;
 
 namespace DbSqlLikeMem.VisualStudioExtension.UI;
 
@@ -89,13 +92,21 @@ public partial class TestScenarioDialog : Window
     }
 
     /// <summary>
-    /// Sets dialog busy state.
-    /// Define o estado de ocupado do diálogo.
+    /// Sets dialog busy state while keeping the close action available.
+    /// Define o estado de ocupado do diálogo mantendo a ação de fechar disponível.
     /// </summary>
     public void SetBusy(bool isBusy)
     {
         Cursor = isBusy ? System.Windows.Input.Cursors.Wait : null;
-        IsEnabled = !isBusy;
+        ScenarioNameTextBox.IsEnabled = !isBusy;
+        TableComboBox.IsEnabled = !isBusy;
+        FilterTextBox.IsEnabled = !isBusy;
+        IncludeParentsCheckBox.IsEnabled = !isBusy;
+        LoadDataButton.IsEnabled = !isBusy;
+        SelectAllButton.IsEnabled = !isBusy;
+        ClearAllButton.IsEnabled = !isBusy;
+        RowsGrid.IsEnabled = !isBusy;
+        ExtractScenarioButton.IsEnabled = !isBusy;
     }
 
     /// <summary>
@@ -104,6 +115,8 @@ public partial class TestScenarioDialog : Window
     /// </summary>
     public List<IReadOnlyDictionary<string, object?>> GetSelectedRows()
     {
+        RowsGrid.CommitEdit(DataGridEditingUnit.Cell, true);
+        RowsGrid.CommitEdit(DataGridEditingUnit.Row, true);
         var selected = new List<IReadOnlyDictionary<string, object?>>();
         if (RowsGrid.ItemsSource is not DataView view)
         {
@@ -112,7 +125,8 @@ public partial class TestScenarioDialog : Window
 
         foreach (DataRowView rowView in view)
         {
-            if (rowView.Row.Field<bool>("_Selected") != true)
+            var selectionColumn = view.Table.ExtendedProperties["SelectionColumn"] as string ?? "_Selected";
+            if (rowView.Row.Field<bool>(selectionColumn) != true)
             {
                 continue;
             }
@@ -120,7 +134,7 @@ public partial class TestScenarioDialog : Window
             var data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             foreach (DataColumn column in view.Table.Columns)
             {
-                if (column.ColumnName == "_Selected")
+                if (column.ColumnName == selectionColumn)
                 {
                     continue;
                 }
@@ -136,18 +150,47 @@ public partial class TestScenarioDialog : Window
     }
 
     private async void OnLoadDataClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(LoadDataRequested);
+
+    private async void OnExtractClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(ExtractRequested);
+
+    private async Task RunSafeAsync(Func<Task>? action)
     {
-        if (LoadDataRequested is not null)
+        if (action is null)
         {
-            await LoadDataRequested();
+            return;
+        }
+        try
+        {
+            await action();
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is an expected user action.
+        }
+        catch (Exception ex)
+        {
+            ExtensionLogger.Log($"Scenario operation error: {ex}");
+            MessageBox.Show(this, ex.Message, UiResources.UnexpectedErrorTitle, MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
-    private async void OnExtractClick(object sender, RoutedEventArgs e)
+    private void OnTableSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (ExtractRequested is not null)
+        if (RowsGrid is not null)
         {
-            await ExtractRequested();
+            RowsGrid.ItemsSource = null;
+        }
+    }
+
+    private void OnAutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+    {
+        var selectionColumn = (RowsGrid.ItemsSource as DataView)?.Table.ExtendedProperties["SelectionColumn"] as string ?? "_Selected";
+        e.Column.IsReadOnly = e.PropertyName != selectionColumn;
+        if (e.PropertyName == selectionColumn)
+        {
+            e.Column.Header = UiResources.SelectColumnHeader;
         }
     }
 
@@ -169,7 +212,8 @@ public partial class TestScenarioDialog : Window
 
         foreach (DataRowView rowView in view)
         {
-            rowView.Row["_Selected"] = selected;
+            var selectionColumn = view.Table.ExtendedProperties["SelectionColumn"] as string ?? "_Selected";
+            rowView.Row[selectionColumn] = selected;
         }
     }
 }

@@ -25,6 +25,7 @@ internal sealed class AdoNetSqlQueryExecutor : ISqlQueryExecutor
 
         using var command = dbConnection.CreateCommand();
         command.CommandText = sql;
+        command.CommandTimeout = 60;
 
         foreach (var parameterPair in parameters)
         {

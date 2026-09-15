@@ -318,7 +318,7 @@ def check_required_files(root: Path) -> list[str]:
 
     for path_group in required_path_groups:
         if resolve_first_existing_path(*path_group) is None:
-            failures.append(f"required file not found: {path_group[0].relative_to(root)}")
+            failures.append(f"required file not found: {path_group[0].relative_to(root).as_posix()}")
 
     return failures
 
@@ -334,7 +334,7 @@ def check_snapshots(root: Path) -> list[str]:
     failures: list[str] = []
     for path, profile in checks:
         for issue in validate_snapshot(path, profile):
-            failures.append(f"{path.relative_to(root)}: {issue}")
+            failures.append(f"{path.relative_to(root).as_posix()}: {issue}")
 
     return failures
 
@@ -563,7 +563,7 @@ def check_docs(root: Path) -> list[str]:
         content = load_text(path)
         for token in required_tokens:
             if token not in content:
-                failures.append(f"{path.relative_to(root)}: missing reference '{token}'")
+                failures.append(f"{path.relative_to(root).as_posix()}: missing reference '{token}'")
 
     return failures
 
@@ -592,7 +592,7 @@ def check_workflows(root: Path) -> list[str]:
             '- "vscode-v*"',
             "VSCE_PAT",
             "src/extensions/DbSqlLikeMem.VsCodeExtension/package.json",
-            "npm run publish",
+            "vsce publish --packagePath",
         ],
     }
 
@@ -601,7 +601,7 @@ def check_workflows(root: Path) -> list[str]:
         content = load_text(path)
         for token in tokens:
             if token not in content:
-                failures.append(f"{path.relative_to(root)}: missing token '{token}'")
+                failures.append(f"{path.relative_to(root).as_posix()}: missing token '{token}'")
 
     return failures
 
@@ -667,7 +667,7 @@ def check_release_communication(root: Path) -> list[str]:
         content = load_text(path)
         for token in tokens:
             if token not in content:
-                failures.append(f"{path.relative_to(root)}: missing release communication token '{token}'")
+                failures.append(f"{path.relative_to(root).as_posix()}: missing release communication token '{token}'")
 
     return failures
 
@@ -705,7 +705,7 @@ def check_template_baselines(root: Path) -> list[str]:
         content = load_text(path)
         for token in tokens:
             if token not in content:
-                failures.append(f"{path.relative_to(root)}: missing token '{token}'")
+                failures.append(f"{path.relative_to(root).as_posix()}: missing token '{token}'")
 
         referenced_tokens = sorted(set(TEMPLATE_TOKEN_RE.findall(content)))
         unsupported_tokens = [
@@ -713,7 +713,7 @@ def check_template_baselines(root: Path) -> list[str]:
         ]
         if unsupported_tokens:
             failures.append(
-                f"{path.relative_to(root)}: unsupported template tokens {', '.join(unsupported_tokens)}"
+                f"{path.relative_to(root).as_posix()}: unsupported template tokens {', '.join(unsupported_tokens)}"
             )
 
     return failures
@@ -876,7 +876,7 @@ def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], 
     icon_path = extension_root / str(data.get("icon", "")).strip()
     if not icon_path.exists():
         failures.append(
-            f"src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: referenced icon not found at '{icon_path.relative_to(root)}'"
+            f"src/extensions/DbSqlLikeMem.VsCodeExtension/package.json: referenced icon not found at '{icon_path.relative_to(root).as_posix()}'"
         )
 
     required_files = [
@@ -889,7 +889,7 @@ def check_vscode_extension(root: Path, repository_url: str) -> tuple[list[str], 
     ]
     for path in required_files:
         if not path.exists():
-            failures.append(f"required VS Code extension file not found: {path.relative_to(root)}")
+            failures.append(f"required VS Code extension file not found: {path.relative_to(root).as_posix()}")
 
     package_nls = json.loads(load_text(extension_root / "package.nls.json"))
     package_nls_pt_br = json.loads(load_text(extension_root / "package.nls.pt-br.json"))
@@ -983,12 +983,11 @@ def check_visual_studio_extension(
 
     vsix_root = ET.fromstring(load_text(vsix_manifest_path))
     namespace = {"vsix": "http://schemas.microsoft.com/developer/vsx-schema/2011"}
-    identifier = vsix_root.find("vsix:Identifier", namespace)
+    identifier = vsix_root.find("vsix:Metadata/vsix:Identity", namespace)
     if identifier is None:
-        failures.append("src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing Identifier node")
+        failures.append("src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing Metadata/Identity node")
     else:
-        version_node = identifier.find("vsix:Version", namespace)
-        version_text = (version_node.text or "").strip() if version_node is not None else None
+        version_text = identifier.attrib.get("Version", "").strip()
         failures.extend(
             validate_semver(
                 "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest",
@@ -1002,14 +1001,17 @@ def check_visual_studio_extension(
             "src/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj: missing MinimumVisualStudioVersion"
         )
 
-    supported_products = vsix_root.findall(".//vsix:SupportedProducts/vsix:VisualStudio", namespace)
+    supported_products = vsix_root.findall("vsix:Installation/vsix:InstallationTarget", namespace)
     if not supported_products:
         failures.append(
-            "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing SupportedProducts/VisualStudio entries"
+            "src/extensions/DbSqlLikeMem.VisualStudioExtension/source.extension.vsixmanifest: missing Installation/InstallationTarget entries"
         )
     elif minimum_visual_studio_version:
         expected_prefix = f"[{minimum_visual_studio_version},"
         for product in supported_products:
+            architecture = product.find("vsix:ProductArchitecture", namespace)
+            if architecture is None or (architecture.text or "").strip() != "amd64":
+                failures.append("VSIX InstallationTarget must declare ProductArchitecture amd64")
             version_range = str(product.attrib.get("Version", "")).strip()
             if not version_range.startswith(expected_prefix):
                 failures.append(
@@ -1028,6 +1030,21 @@ def check_visual_studio_extension(
     internal_name = str(publish_manifest.get("identity", {}).get("internalName", "")).strip()
     if not internal_name:
         failures.append("eng/visualstudio/PublishManifest.json: missing identity.internalName")
+    elif identifier is not None:
+        manifest_id = str(identifier.attrib.get("Id", "")).strip()
+        if internal_name != manifest_id:
+            failures.append(
+                "eng/visualstudio/PublishManifest.json: "
+                f"identity.internalName '{internal_name}' must match the VSIX manifest Identity Id '{manifest_id}'"
+            )
+
+    manifest_publisher = str(identifier.attrib.get("Publisher", "")).strip() if identifier is not None else ""
+    publish_publisher = str(publish_manifest.get("publisher", "")).strip()
+    if manifest_publisher and publish_publisher and manifest_publisher.lower() != publish_publisher.lower():
+        failures.append(
+            "eng/visualstudio/PublishManifest.json: "
+            f"publisher '{publish_publisher}' must match the VSIX manifest Publisher '{manifest_publisher}'"
+        )
 
     overview = str(publish_manifest.get("overview", "")).strip()
     if not overview:
