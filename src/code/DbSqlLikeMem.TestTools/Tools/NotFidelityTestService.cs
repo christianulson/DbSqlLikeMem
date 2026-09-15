@@ -161,13 +161,13 @@ public class NotFidelityTestService<TCnn1>(
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
         try
         {
-            await testScenario!.CreateScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.CreateScenarioAsync);
             objResult = await serviceTest!.RunTestAsync(args);
         }
         finally
         {
             CaptureDiagnostics(repo);
-            await testScenario!.DropScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.DropScenarioAsync);
         }
 
         return objResult;
@@ -197,13 +197,13 @@ public class NotFidelityTestService<TCnn1>(
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
         try
         {
-            await testScenario!.CreateScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.CreateScenarioAsync);
             return await fnRunTest(serviceTest!, args);
         }
         finally
         {
             CaptureDiagnostics(repo);
-            await testScenario!.DropScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.DropScenarioAsync);
         }
     }
 
@@ -243,15 +243,15 @@ public class NotFidelityTestService<TCnn1>(
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
         try
         {
-            await testScenario!.CreateScenarioAsync();
-            await testScenario2!.CreateScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.CreateScenarioAsync);
+            await RunScenarioWithRetryAsync(repo, testScenario2!.CreateScenarioAsync);
             objResult = await serviceTest!.RunTestAsync(args);
         }
         finally
         {
             CaptureDiagnostics(repo);
-            await testScenario2!.DropScenarioAsync();
-            await testScenario!.DropScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario2!.DropScenarioAsync);
+            await RunScenarioWithRetryAsync(repo, testScenario!.DropScenarioAsync);
         }
 
         return objResult;
@@ -284,16 +284,60 @@ public class NotFidelityTestService<TCnn1>(
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
         try
         {
-            await testScenario!.CreateScenarioAsync();
-            await testScenario2!.CreateScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.CreateScenarioAsync);
+            await RunScenarioWithRetryAsync(repo, testScenario2!.CreateScenarioAsync);
             return await fnRunTest(serviceTest!, args);
         }
         finally
         {
             CaptureDiagnostics(repo);
-            await testScenario2!.DropScenarioAsync();
-            await testScenario!.DropScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario2!.DropScenarioAsync);
+            await RunScenarioWithRetryAsync(repo, testScenario!.DropScenarioAsync);
         }
+    }
+
+    /// <summary>
+    /// EN: Runs a scenario setup or teardown step, retrying transient Firebird metadata conflicts.
+    /// PT-br: Executa uma etapa de criacao ou remocao de cenario, tentando novamente conflitos transientes de metadados do Firebird.
+    /// </summary>
+    /// <param name="repo">EN: Repository used by the scenario step. PT-br: Repositorio usado pela etapa do cenario.</param>
+    /// <param name="action">EN: The scenario step to run. PT-br: A etapa do cenario a ser executada.</param>
+    private static async Task RunScenarioWithRetryAsync(RepoService repo, Func<Task> action)
+    {
+        const int maxAttempts = 5;
+        var delay = TimeSpan.FromMilliseconds(200);
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await action();
+                return;
+            }
+            catch (Exception ex) when (attempt < maxAttempts && ShouldRetryTransientMetadataUpdate(repo.Dialect, ex))
+            {
+                await Task.Delay(delay);
+                delay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * 2);
+            }
+        }
+    }
+
+    /// <summary>
+    /// EN: Indicates whether the exception is a transient Firebird metadata conflict that can be retried.
+    /// PT-br: Indica se a excecao e um conflito transiente de metadados do Firebird que pode ser tentado novamente.
+    /// </summary>
+    /// <param name="dialect">EN: The provider dialect used by the failing step. PT-br: O dialeto do provedor usado pela etapa que falhou.</param>
+    /// <param name="exception">EN: The exception raised by the failing step. PT-br: A excecao levantada pela etapa que falhou.</param>
+    private static bool ShouldRetryTransientMetadataUpdate(ProviderSqlDialect dialect, Exception exception)
+    {
+        if (dialect.Provider != ProviderId.Firebird)
+            return false;
+
+        var message = exception.GetBaseException().Message;
+        return message.Contains("deadlock", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("update conflicts with concurrent update", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("lock conflict on no wait transaction", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("concurrent transaction number", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -349,12 +393,12 @@ public class NotFidelityTestService<TCnn1>(
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
         try
         {
-            await testScenario!.CreateScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.CreateScenarioAsync);
             objResult = await fnRunTest(serviceTest!, args);
         }
         finally
         {
-            await testScenario!.DropScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.DropScenarioAsync);
         }
 
         return objResult;
@@ -394,14 +438,14 @@ public class NotFidelityTestService<TCnn1>(
         ArgumentNullExceptionCompatible.ThrowIfNull(serviceTest, nameof(serviceTest));
         try
         {
-            await testScenario!.CreateScenarioAsync();
-            await testScenario2!.CreateScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario!.CreateScenarioAsync);
+            await RunScenarioWithRetryAsync(repo, testScenario2!.CreateScenarioAsync);
             objResult = await fnRunTest(serviceTest!, args);
         }
         finally
         {
-            await testScenario2!.DropScenarioAsync();
-            await testScenario!.DropScenarioAsync();
+            await RunScenarioWithRetryAsync(repo, testScenario2!.DropScenarioAsync);
+            await RunScenarioWithRetryAsync(repo, testScenario!.DropScenarioAsync);
         }
 
         return objResult;

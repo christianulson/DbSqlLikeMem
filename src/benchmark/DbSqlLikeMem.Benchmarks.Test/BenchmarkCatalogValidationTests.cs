@@ -11,6 +11,7 @@ namespace DbSqlLikeMem.Benchmarks.Test;
 /// EN: Covers the benchmark automation catalog and its command-line validation flow.
 /// PT-br: Cobre o catalogo de automacao de benchmarks e seu fluxo de validacao por linha de comando.
 /// </summary>
+[Collection("BenchmarkRunContext")]
 public sealed class BenchmarkCatalogValidationTests(
         ITestOutputHelper helper
     ) : XUnitTestBase(helper)

@@ -155,12 +155,6 @@ public class RepoService(
     {
         if (Cnn.State == ConnectionState.Open) return;
 
-        if (dialect.Provider != ProviderId.Oracle)
-        {
-            await Cnn.OpenAsync();
-            return;
-        }
-
         const int maxAttempts = 5;
 
         for (var attempt = 1; ; attempt++)
@@ -170,16 +164,19 @@ public class RepoService(
                 await Cnn.OpenAsync();
                 return;
             }
-            catch (DbException ex) when (attempt < maxAttempts && IsOracleListenerBusy(ex))
+            catch (DbException ex) when (attempt < maxAttempts && ShouldRetryConnectionOpen(ex))
             {
-                // Oracle can briefly reject concurrent handler requests under load.
-                await Task.Delay(TimeSpan.FromMilliseconds(100 * attempt));
+                // Some engines can briefly reject concurrent connection requests under load.
+                await Task.Delay(TimeSpan.FromMilliseconds(200 * Math.Pow(2, attempt - 1)));
             }
         }
     }
 
-    private static bool IsOracleListenerBusy(DbException ex)
-        => ex.Message.Contains("ORA-12516", StringComparison.OrdinalIgnoreCase);
+    private static bool ShouldRetryConnectionOpen(DbException ex)
+        => ex.Message.Contains("ORA-12516", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("too many clients", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("opened with engine instance", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("incompatible with current", StringComparison.OrdinalIgnoreCase);
 
     private static IEnumerable<string> SplitStatements(string sql)
     {

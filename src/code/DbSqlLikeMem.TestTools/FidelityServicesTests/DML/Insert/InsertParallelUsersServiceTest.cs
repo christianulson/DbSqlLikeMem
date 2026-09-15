@@ -55,10 +55,16 @@ public class InsertParallelUsersServiceTest(
         return lst[0].Count;
     }
 
+    /// <summary>
+    /// EN: Limits parallel concurrency for engines whose default connection budget cannot hold one connection per row.
+    /// PT-br: Limita a concorrencia paralela para engines cujo orcamento padrao de conexoes nao comporta uma conexao por linha.
+    /// </summary>
     private int GetMaxConcurrency(int rowCount)
         => Math.Max(1, Repo.Dialect.Provider == ProviderId.Oracle
             ? Math.Min(rowCount, 8)
-            : rowCount);
+            : Repo.Dialect.Provider == ProviderId.Npgsql
+                ? Math.Min(rowCount, 16)
+                : rowCount);
 
     private Task<int> ExecuteParameterizedInsertOnConnectionAsync(
         RepoService parallelRepo,

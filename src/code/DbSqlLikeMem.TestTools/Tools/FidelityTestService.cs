@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -14,6 +15,7 @@ public class FidelityTestService<TCnn1, TCnn2>
     where TCnn1 : DbConnection
     where TCnn2 : DbConnection
 {
+    private static readonly ConcurrentDictionary<ProviderId, bool> UnavailableContainerProviders = new();
     private readonly RepoService? repoContainer;
     private readonly TimeSpan temporalComparisonTolerance;
 
@@ -58,10 +60,14 @@ public class FidelityTestService<TCnn1, TCnn2>
     {
         this.temporalComparisonTolerance = temporalComparisonTolerance;
 
-        if (!TestEnv.RunContainerTests.Value
-            || !ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
+        if (!TestEnv.RunContainerTests.Value)
             return;
-        
+
+        if (!ProviderConnectionStringResolver.TryResolve(dialect.Provider, out var connectionString))
+        {
+            throw Xunit.Sdk.SkipException.ForSkip($"Container connection string for provider {dialect.Provider} is not configured.");
+        }
+
         if (dialect.Provider == ProviderId.Sqlite && string.IsNullOrWhiteSpace(connectionString))
         {
             // Keep SQLite clones pointed at the same shared in-memory database for this test run.
@@ -69,6 +75,37 @@ public class FidelityTestService<TCnn1, TCnn2>
         }
 
         repoContainer = new RepoService(() => connectionContainer(connectionString), dialect);
+
+        EnsureContainerConnectionAvailable();
+    }
+
+    /// <summary>
+    /// EN: Ensures the container connection can be opened and skips the test when the container is unavailable.
+    /// PT-br: Garante que a conexao do container possa ser aberta e ignora o teste quando o container esta indisponivel.
+    /// </summary>
+    private void EnsureContainerConnectionAvailable()
+    {
+        var provider = RepoMock.Dialect.Provider;
+
+        if (UnavailableContainerProviders.ContainsKey(provider))
+        {
+            throw Xunit.Sdk.SkipException.ForSkip($"Container connection for provider {provider} is not available.");
+        }
+
+        try
+        {
+            repoContainer!.EnsureConnectionOpenAsync().GetAwaiter().GetResult();
+        }
+        catch (DbException ex)
+        {
+            UnavailableContainerProviders.TryAdd(provider, true);
+            throw Xunit.Sdk.SkipException.ForSkip($"Container connection for provider {provider} is not available: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            UnavailableContainerProviders.TryAdd(provider, true);
+            throw Xunit.Sdk.SkipException.ForSkip($"Container connection for provider {provider} is not available: {ex.Message}");
+        }
     }
 
     /// <summary>

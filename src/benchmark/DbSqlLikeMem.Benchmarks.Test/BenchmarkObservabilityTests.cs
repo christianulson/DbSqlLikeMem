@@ -4,6 +4,7 @@ namespace DbSqlLikeMem.Benchmarks.Test;
 /// EN: Verifies the benchmark observability contracts used by logs and exported run metadata.
 /// PT-br: Verifica os contratos de observabilidade do benchmark usados por logs e metadados exportados da execucao.
 /// </summary>
+[Collection("BenchmarkRunContext")]
 public sealed class BenchmarkObservabilityTests
 {
     /// <summary>

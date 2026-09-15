@@ -3,9 +3,24 @@ namespace DbSqlLikeMem;
 /// <summary>Locking clause used in SELECT ... FOR UPDATE / FOR SHARE / LOCK IN SHARE MODE.</summary>
 public enum SqlLockingClause
 {
+    /// <summary>
+    /// None
+    /// </summary>
     None,
+
+    /// <summary>
+    /// For Update
+    /// </summary>
     ForUpdate,
+
+    /// <summary>
+    /// For Share
+    /// </summary>
     ForShare,
+
+    /// <summary>
+    /// Lock
+    /// </summary>
     LockInShareMode
 }
 

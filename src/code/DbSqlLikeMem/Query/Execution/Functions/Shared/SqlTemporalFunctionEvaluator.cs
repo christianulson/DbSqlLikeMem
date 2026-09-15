@@ -302,13 +302,13 @@ internal static class SqlTemporalFunctionEvaluator
         if (string.Equals(context.Connection.ProviderExecutionDialect.Name, "firebird", StringComparison.OrdinalIgnoreCase))
         {
             var firebirdNow = new DateTime(
-                utcNow.Year,
-                utcNow.Month,
-                utcNow.Day,
-                utcNow.Hour,
-                utcNow.Minute,
-                utcNow.Second,
-                utcNow.Millisecond,
+                localNow.Year,
+                localNow.Month,
+                localNow.Day,
+                localNow.Hour,
+                localNow.Minute,
+                localNow.Second,
+                localNow.Millisecond,
                 DateTimeKind.Unspecified);
 
             value = kind switch
