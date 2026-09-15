@@ -146,4 +146,20 @@
   <data name="GlobalFilterToolTip" xml:space="preserve"><value>Filter objects by name</value></data>
   <data name="GlobalFilterModeLabel" xml:space="preserve"><value>Filter mode</value></data>
   <data name="ClearGlobalFilterToolTip" xml:space="preserve"><value>Clear filter</value></data>
+  <data name="RefreshAllConnectionsLabel" xml:space="preserve"><value>Refresh all connections</value></data>
+  <data name="RefreshConnectionLabel" xml:space="preserve"><value>Refresh connection</value></data>
+  <data name="GlobalTemplatesHelp" xml:space="preserve"><value>These templates apply to all connections in this workspace.</value></data>
+  <data name="ScenarioPreviewHint" xml:space="preserve"><value>Load data after choosing a table or changing the SQL filter.</value></data>
+  <data name="ScenarioPreviewEmpty" xml:space="preserve"><value>No rows found for this table and filter.</value></data>
+  <data name="ScenarioPreviewCount" xml:space="preserve"><value>Preview: {0} row(s), up to 200. Mark the rows to extract.</value></data>
+  <data name="ScenarioWorking" xml:space="preserve"><value>Working… Please wait.</value></data>
+  <data name="ScenarioPreviewLabel" xml:space="preserve"><value>Table data preview</value></data>
+  <data name="MappingBaselineLabel" xml:space="preserve"><value>Mapping profile</value></data>
+  <data name="TemplateBaselineLabel" xml:space="preserve"><value>Template profile</value></data>
+  <data name="ApplyBaselineButton" xml:space="preserve"><value>Apply profile</value></data>
+  <data name="NamespaceOptionalLabel" xml:space="preserve"><value>Namespace (optional)</value></data>
+  <data name="MappingProfileHelp" xml:space="preserve"><value>Apply a profile to fill in the fields below, then adjust the values before saving.</value></data>
+  <data name="TemplateProfileHelp" xml:space="preserve"><value>Applying a profile replaces the fields below. Review the paths and file names before saving.</value></data>
+  <data name="ModelFilePatternLabel" xml:space="preserve"><value>Model file pattern</value></data>
+  <data name="RepositoryFilePatternLabel" xml:space="preserve"><value>Repository file pattern</value></data>
 </root>

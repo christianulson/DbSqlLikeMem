@@ -140,4 +140,20 @@
   <data name="TemplateBaselineNotFound" xml:space="preserve"><value>Não foi possível localizar templates/dbsqllikemem no ambiente atual.</value></data>
   <data name="TemplateBaselineSummaryHint" xml:space="preserve"><value>Selecione um perfil de baseline de template para visualizar o uso pretendido, o foco de testes e a cadência de revisão.</value></data>  <data name="FailedToOpenToolWindow" xml:space="preserve"><value>Não foi possível criar a janela da extensão DbSqlLikeMem.</value></data>  <data name="LoadingConnectionObjects" xml:space="preserve"><value>Carregando objetos de {0}...</value></data>  <data name="GlobalFilterToolTip" xml:space="preserve"><value>Filtrar objetos pelo nome</value></data>
   <data name="GlobalFilterModeLabel" xml:space="preserve"><value>Modo do filtro</value></data>
-  <data name="ClearGlobalFilterToolTip" xml:space="preserve"><value>Limpar filtro</value></data></root>
+  <data name="ClearGlobalFilterToolTip" xml:space="preserve"><value>Limpar filtro</value></data>  <data name="RefreshAllConnectionsLabel" xml:space="preserve"><value>Atualizar todas as conexões</value></data>
+  <data name="RefreshConnectionLabel" xml:space="preserve"><value>Atualizar conexão</value></data>
+  <data name="GlobalTemplatesHelp" xml:space="preserve"><value>Estes templates se aplicam a todas as conexões deste workspace.</value></data>
+  <data name="ScenarioPreviewHint" xml:space="preserve"><value>Carregue os dados após escolher uma tabela ou alterar o filtro SQL.</value></data>
+  <data name="ScenarioPreviewEmpty" xml:space="preserve"><value>Nenhuma linha encontrada para esta tabela e filtro.</value></data>
+  <data name="ScenarioPreviewCount" xml:space="preserve"><value>Prévia: {0} linha(s), até 200. Marque as linhas a extrair.</value></data>
+  <data name="ScenarioWorking" xml:space="preserve"><value>Processando… Aguarde.</value></data>
+  <data name="ScenarioPreviewLabel" xml:space="preserve"><value>Prévia dos dados da tabela</value></data>
+  <data name="MappingBaselineLabel" xml:space="preserve"><value>Perfil de mapeamento</value></data>
+  <data name="TemplateBaselineLabel" xml:space="preserve"><value>Perfil de templates</value></data>
+  <data name="ApplyBaselineButton" xml:space="preserve"><value>Aplicar perfil</value></data>
+  <data name="NamespaceOptionalLabel" xml:space="preserve"><value>Namespace (opcional)</value></data>
+  <data name="MappingProfileHelp" xml:space="preserve"><value>Aplique um perfil para preencher os campos abaixo e ajuste os valores antes de salvar.</value></data>
+  <data name="TemplateProfileHelp" xml:space="preserve"><value>Aplicar um perfil substitui os campos abaixo. Revise os caminhos e nomes de arquivo antes de salvar.</value></data>
+  <data name="ModelFilePatternLabel" xml:space="preserve"><value>Padrão do arquivo de modelo</value></data>
+  <data name="RepositoryFilePatternLabel" xml:space="preserve"><value>Padrão do arquivo de repositório</value></data>
+</root>

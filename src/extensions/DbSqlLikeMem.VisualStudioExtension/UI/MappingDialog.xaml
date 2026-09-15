@@ -4,46 +4,29 @@
         xmlns:prop="clr-namespace:DbSqlLikeMem.VisualStudioExtension.Properties"
         Title="{x:Static prop:Resources.MappingDialogTitle}"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        SizeToContent="WidthAndHeight">
-    <Grid Margin="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="360" />
-        </Grid.ColumnDefinitions>
-
-        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Mapping baseline" />
-        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Orientation="Horizontal">
-            <ComboBox x:Name="TemplateBaselineProfileComboBox" Width="230" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectionChanged="OnBaselineSelectionChanged" />
-            <Button Content="Apply baseline" Width="120" Margin="8,0,0,0" Click="OnApplyBaselineClick" />
+        ResizeMode="CanResizeWithGrip"
+        Width="640" Height="480" MinWidth="480" MinHeight="360">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="{x:Static prop:Resources.CancelButton}" MinWidth="90" Padding="12,6" Margin="0,0,8,0" IsCancel="True" />
+            <Button Content="{x:Static prop:Resources.SaveButton}" MinWidth="90" Padding="12,6" IsDefault="True" Click="OnSaveClick" />
         </StackPanel>
-
-        <TextBlock x:Name="BaselineSummaryTextBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8" />
-
-        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.FilePatternLabel}" />
-        <TextBox x:Name="FilePatternTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" />
-
-        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.OutputDirectoryLabel}" />
-        <TextBox x:Name="OutputDirectoryTextBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8" />
-
-        <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Namespace (optional)" />
-        <TextBox x:Name="NamespaceTextBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" />
-
-<TextBlock Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8"
-                   Text="Profiles reuse the versioned defaults from templates/dbsqllikemem/vCurrent for the selected object type and can still be edited before saving." />
-
-        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="{x:Static prop:Resources.CancelButton}" Width="90" Margin="0,0,8,0" IsCancel="True" />
-            <Button Content="{x:Static prop:Resources.SaveButton}" Width="90" IsDefault="True" Click="OnSaveClick" />
-        </StackPanel>
-    </Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0">
+            <StackPanel>
+                <Label Content="{x:Static prop:Resources.MappingBaselineLabel}" Target="{Binding ElementName=TemplateBaselineProfileComboBox}" Padding="0,0,0,4" />
+                <DockPanel Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Content="{x:Static prop:Resources.ApplyBaselineButton}" Padding="12,4" Margin="8,0,0,0" Click="OnApplyBaselineClick" />
+                    <ComboBox x:Name="TemplateBaselineProfileComboBox" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectionChanged="OnBaselineSelectionChanged" AutomationProperties.Name="{x:Static prop:Resources.MappingBaselineLabel}" />
+                </DockPanel>
+                <TextBlock x:Name="BaselineSummaryTextBlock" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <TextBlock Text="{x:Static prop:Resources.MappingProfileHelp}" TextWrapping="Wrap" Margin="0,0,0,16" />
+                <Label Content="{x:Static prop:Resources.FilePatternLabel}" Target="{Binding ElementName=FilePatternTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="FilePatternTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.FilePatternLabel}" />
+                <Label Content="{x:Static prop:Resources.OutputDirectoryLabel}" Target="{Binding ElementName=OutputDirectoryTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="OutputDirectoryTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.OutputDirectoryLabel}" />
+                <Label Content="{x:Static prop:Resources.NamespaceOptionalLabel}" Target="{Binding ElementName=NamespaceTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="NamespaceTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.NamespaceOptionalLabel}" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </Window>

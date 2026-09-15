@@ -17,14 +17,20 @@ internal sealed class BridgeMetadataProvider(
 
         foreach (var reference in objects)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             DatabaseObjectReference detailed;
             try
             {
-                detailed = await _provider.GetObjectDetailsAsync(connection, reference, cancellationToken) ?? reference;
+                detailed = await _provider.GetObjectDetailsAsync(connection, reference, cancellationToken)
+                    ?? throw new InvalidOperationException("Object metadata is unavailable.");
             }
-            catch
+            catch (OperationCanceledException)
             {
-                detailed = reference;
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Could not load metadata for '{reference.Schema}.{reference.Name}' ({reference.Type}): {ex.Message}", ex);
             }
 
             result.Add(BridgeMetadataMapper.ToBridgeObject(detailed));

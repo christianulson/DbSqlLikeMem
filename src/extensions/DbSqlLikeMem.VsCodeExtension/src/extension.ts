@@ -28,6 +28,7 @@ import {
 import { findUnsupportedTemplateTokens } from './template-token-catalog';
 import { persistConnectionState, restoreConnectionSecrets, withoutConnectionSecrets } from './state-storage';
 import { parseSqlServerConnectionString } from './connection-string';
+import { createManagerViewState, readMappingNamespace, serializeWebviewData } from './manager-state';
 
 type DatabaseObjectType = 'Table' | 'View' | 'Procedure' | 'Function' | 'Sequence';
 type FilterMode = 'Equals' | 'Like';
@@ -763,6 +764,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(vscode.window.registerTreeDataProvider('dbSqlLikeMem.connections', treeProvider));
 
+  let managerPanel: vscode.WebviewPanel | undefined;
+  let selectedMappingConnectionId = state.connections[0]?.id ?? '';
+  const notifyManager = async (message: unknown): Promise<void> => {
+    if (managerPanel) {
+      try {
+        await managerPanel.webview.postMessage(message);
+      } catch {
+        // The panel can close while a database operation is completing.
+      }
+    }
+  };
+
   let commandRunning = false;
   const runSafely = async (action: () => Promise<unknown>): Promise<void> => {
     if (commandRunning) {
@@ -770,11 +783,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       return;
     }
     commandRunning = true;
+    await notifyManager({ type: 'busy', busy: true });
     try {
       await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: 'DbSqlLikeMem' }, action);
     } catch (error) {
-      await vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+      const message = error instanceof Error ? error.message : String(error);
+      await notifyManager({ type: 'feedback', kind: 'error', message });
+      if (!managerPanel?.visible) {
+        await vscode.window.showErrorMessage(message);
+      }
     } finally {
+      await notifyManager({ type: 'state', state: createManagerViewState(state) });
+      await notifyManager({ type: 'busy', busy: false });
       commandRunning = false;
     }
   };
@@ -782,148 +802,154 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand(name, (item?: DbNodeItem) => runSafely(() => action(item)));
 
   context.subscriptions.push(
-    registerCommand('dbSqlLikeMem.openManager', async () => {
+    vscode.commands.registerCommand('dbSqlLikeMem.openManager', async () => {
+      if (managerPanel) {
+        managerPanel.reveal();
+        return;
+      }
       const panel = vscode.window.createWebviewPanel(
         'dbSqlLikeMem.manager',
         vscode.l10n.t('DbSqlLikeMem Manager'),
         vscode.ViewColumn.Active,
-        { enableScripts: true }
+        { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'resources')] }
       );
       context.subscriptions.push(panel);
-
-      let selectedMappingConnectionId = state.connections[0]?.id ?? '';
+      managerPanel = panel;
+      panel.onDidDispose(() => { if (managerPanel === panel) { managerPanel = undefined; } });
 
       const render = (): void => {
-        panel.webview.html = getManagerHtml(panel.webview, state, selectedMappingConnectionId);
+        panel.webview.html = getManagerHtml(panel.webview, state, selectedMappingConnectionId, context.extensionUri);
       };
 
-      panel.webview.onDidReceiveMessage(async (message: unknown) => runSafely(async () => {
-        if (!message || typeof message !== 'object' || !("type" in message)) {
+      panel.webview.onDidReceiveMessage(async (message: unknown) => {
+        if (message && typeof message === 'object' && 'type' in message && message.type === 'ready') {
+          await notifyManager({ type: 'state', state: createManagerViewState(state) });
+          await notifyManager({ type: 'busy', busy: commandRunning });
           return;
         }
-
-        const payload = message as Record<string, unknown>;
-
-        if (payload.type === 'saveConnection') {
-          const existingId = String(payload.connectionId ?? '').trim();
-          const name = String(payload.name ?? '').trim();
-          const databaseType = normalizeDatabaseType(String(payload.databaseType ?? '').trim());
-          const databaseName = String(payload.databaseName ?? '').trim();
-          const existingConnection = state.connections.find(connection => connection.id === existingId);
-          if (existingId && !existingConnection) {
-            throw new Error(vscode.l10n.t('Connection no longer exists. Reopen the manager.'));
-          }
-          const connectionString = String(payload.connectionString ?? '').trim() || existingConnection?.connectionString || '';
-
-          if (!name || !databaseType || !databaseName || !connectionString) {
-            vscode.window.showWarningMessage(vscode.l10n.t('Fill in all connection fields.'));
+        await runSafely(async () => {
+          if (!message || typeof message !== 'object' || !("type" in message)) {
             return;
           }
 
-          const draftConnection: ConnectionDefinition = {
-            id: existingId || `${databaseType}-${databaseName}-${Date.now()}`,
-            name,
-            databaseType,
-            databaseName,
-            connectionString
-          };
+          const payload = message as Record<string, unknown>;
 
-          if (!await validateAndNotifyConnection(metadataProvider, draftConnection, false)) {
-            return;
-          }
-
-          if (existingId) {
-            const index = state.connections.findIndex((x) => x.id === existingId);
-            if (index >= 0) {
-              state.connections[index] = {
-                id: existingId,
-                name,
-                databaseType,
-                databaseName,
-                connectionString
-              };
+          if (payload.type === 'saveConnection') {
+            const existingId = String(payload.connectionId ?? '').trim();
+            const name = String(payload.name ?? '').trim();
+            const databaseType = normalizeDatabaseType(String(payload.databaseType ?? '').trim());
+            const databaseName = String(payload.databaseName ?? '').trim();
+            const existingConnection = state.connections.find(connection => connection.id === existingId);
+            if (existingId && !existingConnection) {
+              throw new Error(vscode.l10n.t('Connection no longer exists. Reopen the manager.'));
             }
-          } else {
-            const connectionId = draftConnection.id;
-            state.connections.push(draftConnection);
+            const connectionString = String(payload.connectionString ?? '').trim() || existingConnection?.connectionString || '';
 
-            if (!state.mappingConfigurations.some((x) => x.connectionId === connectionId)) {
-              state.mappingConfigurations.push({
-                connectionId,
-                mappings: createDefaultMappings('src/Generated', 'Factory')
-              });
+            if (!name || !databaseType || !databaseName || !connectionString) {
+              throw new Error(vscode.l10n.t('Fill in all connection fields.'));
             }
-          }
 
-          await saveState(context, state);
-          selectedMappingConnectionId = existingId || draftConnection.id;
-          metadataProvider.clearConnectionWarnings(draftConnection.id);
-          await refreshTree();
-          render();
-          vscode.window.showInformationMessage(existingId ? vscode.l10n.t('Connection {0} updated.', name) : vscode.l10n.t('Connection {0} saved.', name));
-          return;
-        }
+            const draftConnection: ConnectionDefinition = {
+              id: existingId || `${databaseType}-${databaseName}-${Date.now()}`,
+              name,
+              databaseType,
+              databaseName,
+              connectionString
+            };
 
-        if (payload.type === 'removeConnection') {
-          const connectionId = String(payload.connectionId ?? '');
-          const connection = state.connections.find(candidate => candidate.id === connectionId);
-          if (!connection) {
-            return;
-          }
-          const confirmed = await vscode.window.showWarningMessage(
-            vscode.l10n.t('Remove connection {0}?', connection.name), { modal: true }, vscode.l10n.t('Remove'));
-          if (confirmed !== vscode.l10n.t('Remove')) {
-            return;
-          }
+            if (!await validateAndNotifyConnection(metadataProvider, draftConnection, false)) {
+              return;
+            }
 
-          state.connections = state.connections.filter((x) => x.id !== connectionId);
-          state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
-          await saveState(context, state);
-          selectedMappingConnectionId = state.connections[0]?.id ?? '';
-          await refreshTree();
-          render();
-          vscode.window.showInformationMessage(vscode.l10n.t('Connection removed.'));
-          return;
-        }
+            if (existingId) {
+              const index = state.connections.findIndex((x) => x.id === existingId);
+              if (index >= 0) {
+                state.connections[index] = {
+                  id: existingId,
+                  name,
+                  databaseType,
+                  databaseName,
+                  connectionString
+                };
+              }
+            } else {
+              const connectionId = draftConnection.id;
+              state.connections.push(draftConnection);
 
-        if (payload.type === 'saveMapping') {
-          const connectionId = String(payload.connectionId ?? '').trim();
-          const tableFolder = String(payload.tableFolder ?? '').trim();
-          const tableSuffix = String(payload.tableSuffix ?? '').trim();
-          const viewFolder = String(payload.viewFolder ?? '').trim();
-          const viewSuffix = String(payload.viewSuffix ?? '').trim();
-          const procedureFolder = String(payload.procedureFolder ?? '').trim();
-          const procedureSuffix = String(payload.procedureSuffix ?? '').trim();
-          const functionFolder = String(payload.functionFolder ?? '').trim();
-          const functionSuffix = String(payload.functionSuffix ?? '').trim();
-          const sequenceFolder = String(payload.sequenceFolder ?? '').trim();
-          const sequenceSuffix = String(payload.sequenceSuffix ?? '').trim();
-          const namespace = String(payload.namespace ?? '').trim();
+              if (!state.mappingConfigurations.some((x) => x.connectionId === connectionId)) {
+                state.mappingConfigurations.push({
+                  connectionId,
+                  mappings: createDefaultMappings('src/Generated', 'Factory')
+                });
+              }
+            }
 
-          if (!state.connections.some(connection => connection.id === connectionId) || !tableFolder || !tableSuffix || !viewFolder || !viewSuffix || !procedureFolder || !procedureSuffix || !functionFolder || !functionSuffix || !sequenceFolder || !sequenceSuffix) {
-            vscode.window.showWarningMessage(vscode.l10n.t('Fill in connection, folders and mapping suffixes.'));
+            await saveState(context, state);
+            selectedMappingConnectionId = existingId || draftConnection.id;
+            metadataProvider.clearConnectionWarnings(draftConnection.id);
+            await refreshTree();
+            await notifyManager({ type: 'saved', requestId: payload.requestId, kind: 'connection', connectionId: draftConnection.id,
+              message: existingId ? vscode.l10n.t('Connection {0} updated.', name) : vscode.l10n.t('Connection {0} saved.', name) });
             return;
           }
 
-          const mapping: ConnectionMappingConfiguration = {
-            connectionId,
-            mappings: [
-              { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: namespace || undefined },
-              { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: namespace || undefined },
-              { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: namespace || undefined },
-              { objectType: 'Function', targetFolder: functionFolder, fileSuffix: functionSuffix, namespace: namespace || undefined },
-              { objectType: 'Sequence', targetFolder: sequenceFolder, fileSuffix: sequenceSuffix, namespace: namespace || undefined }
-            ]
-          };
+          if (payload.type === 'removeConnection') {
+            const connectionId = String(payload.connectionId ?? '');
+            const connection = state.connections.find(candidate => candidate.id === connectionId);
+            if (!connection) {
+              return;
+            }
+            const confirmed = await vscode.window.showWarningMessage(
+              vscode.l10n.t('Remove connection {0}?', connection.name), { modal: true }, vscode.l10n.t('Remove'));
+            if (confirmed !== vscode.l10n.t('Remove')) {
+              return;
+            }
 
-          state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
-          state.mappingConfigurations.push(mapping);
-          await saveState(context, state);
-          selectedMappingConnectionId = connectionId;
-          render();
-          vscode.window.showInformationMessage(vscode.l10n.t('Mappings saved.'));
-        }
-      }));
+            state.connections = state.connections.filter((x) => x.id !== connectionId);
+            state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
+            await saveState(context, state);
+            selectedMappingConnectionId = state.connections[0]?.id ?? '';
+            await refreshTree();
+            await notifyManager({ type: 'saved', requestId: payload.requestId, kind: 'remove', connectionId, message: vscode.l10n.t('Connection removed.') });
+            return;
+          }
+
+          if (payload.type === 'saveMapping') {
+            const connectionId = String(payload.connectionId ?? '').trim();
+            const tableFolder = String(payload.tableFolder ?? '').trim();
+            const tableSuffix = String(payload.tableSuffix ?? '').trim();
+            const viewFolder = String(payload.viewFolder ?? '').trim();
+            const viewSuffix = String(payload.viewSuffix ?? '').trim();
+            const procedureFolder = String(payload.procedureFolder ?? '').trim();
+            const procedureSuffix = String(payload.procedureSuffix ?? '').trim();
+            const functionFolder = String(payload.functionFolder ?? '').trim();
+            const functionSuffix = String(payload.functionSuffix ?? '').trim();
+            const sequenceFolder = String(payload.sequenceFolder ?? '').trim();
+            const sequenceSuffix = String(payload.sequenceSuffix ?? '').trim();
+
+            if (!state.connections.some(connection => connection.id === connectionId) || !tableFolder || !tableSuffix || !viewFolder || !viewSuffix || !procedureFolder || !procedureSuffix || !functionFolder || !functionSuffix || !sequenceFolder || !sequenceSuffix) {
+              throw new Error(vscode.l10n.t('Fill in connection, folders and mapping suffixes.'));
+            }
+
+            const mapping: ConnectionMappingConfiguration = {
+              connectionId,
+              mappings: [
+                { objectType: 'Table', targetFolder: tableFolder, fileSuffix: tableSuffix, namespace: readMappingNamespace(payload, 'Table') },
+                { objectType: 'View', targetFolder: viewFolder, fileSuffix: viewSuffix, namespace: readMappingNamespace(payload, 'View') },
+                { objectType: 'Procedure', targetFolder: procedureFolder, fileSuffix: procedureSuffix, namespace: readMappingNamespace(payload, 'Procedure') },
+                { objectType: 'Function', targetFolder: functionFolder, fileSuffix: functionSuffix, namespace: readMappingNamespace(payload, 'Function') },
+                { objectType: 'Sequence', targetFolder: sequenceFolder, fileSuffix: sequenceSuffix, namespace: readMappingNamespace(payload, 'Sequence') }
+              ]
+            };
+
+            state.mappingConfigurations = state.mappingConfigurations.filter((x) => x.connectionId !== connectionId);
+            state.mappingConfigurations.push(mapping);
+            await saveState(context, state);
+            selectedMappingConnectionId = connectionId;
+            await notifyManager({ type: 'saved', requestId: payload.requestId, kind: 'mapping', connectionId, message: vscode.l10n.t('Mappings saved.') });
+          }
+        });
+      });
 
       render();
     }),
@@ -2241,249 +2267,111 @@ async function resolveConnectionFromItem(
 }
 
 
-function getManagerHtml(webview: vscode.Webview, state: ExtensionState, selectedConnectionId = ''): string {
+function getManagerHtml(webview: vscode.Webview, state: ExtensionState, selectedConnectionId: string, extensionUri: vscode.Uri): string {
   const tr = {
-    noConnectionConfigured: vscode.l10n.t('No connection configured.'),
-    addConnectionForMappings: vscode.l10n.t('Add a connection to configure mappings.'),
-    name: vscode.l10n.t('Name'),
-    type: vscode.l10n.t('Type'),
-    database: vscode.l10n.t('Database'),
-    actions: vscode.l10n.t('Actions'),
-    editConnection: vscode.l10n.t('Edit connection'),
-    deleteConnection: vscode.l10n.t('Delete connection'),
-    connection: vscode.l10n.t('Connection'),
-    managerTitle: vscode.l10n.t('DbSqlLikeMem Manager'),
-    visualInterface: vscode.l10n.t('DbSqlLikeMem - Visual Interface'),
-    addEditConnection: vscode.l10n.t('Add/Edit Connection'),
-    databaseType: vscode.l10n.t('Database type'),
-    primaryDatabase: vscode.l10n.t('Primary Database / Schema'),
-    connectionString: vscode.l10n.t('Connection string'),
-    saveConnection: vscode.l10n.t('Save connection'),
-    configureMappings: vscode.l10n.t('Configure Mappings'),
-    tableFolder: vscode.l10n.t('Table folder'),
-    tableSuffix: vscode.l10n.t('Table suffix'),
-    viewFolder: vscode.l10n.t('View folder'),
-    viewSuffix: vscode.l10n.t('View suffix'),
-    procedureFolder: vscode.l10n.t('Procedure folder'),
-    procedureSuffix: vscode.l10n.t('Procedure suffix'),
-    functionFolder: vscode.l10n.t('Function folder'),
-    functionSuffix: vscode.l10n.t('Function suffix'),
-    sequenceFolder: vscode.l10n.t('Sequence folder'),
-    sequenceSuffix: vscode.l10n.t('Sequence suffix'),
-    optionalNamespace: vscode.l10n.t('Namespace (optional)'),
-    saveMappings: vscode.l10n.t('Save mappings'),
-    registeredConnections: vscode.l10n.t('Registered connections'),
-    mappingsSummary: vscode.l10n.t('Mappings summary'),
-    newConnection: vscode.l10n.t('New connection'),
-    keepCredentials: vscode.l10n.t('Leave blank when editing to keep the saved connection string.')
+    managerHelp: vscode.l10n.t("Manage connections and choose where generated files are saved."),
+    connectionDetails: vscode.l10n.t("Connection details"),
+    editHint: vscode.l10n.t("Editing a saved connection"),
+    addHint: vscode.l10n.t("Add a database connection"),
+    requiredHint: vscode.l10n.t("Name, database and connection string are required for new connections."),
+    mappingHelp: vscode.l10n.t("Each object type keeps its own output folder, suffix and namespace."),
+    targetFolder: vscode.l10n.t("Output folder"),
+    fileSuffix: vscode.l10n.t("File suffix"),
+    working: vscode.l10n.t("Working… Please wait."),
+    ready: vscode.l10n.t("Ready."),
+    unsaved: vscode.l10n.t("Unsaved changes"),
+    requiredField: vscode.l10n.t("Fill in this field."),
+    draftLifetime: vscode.l10n.t("Unsaved changes are kept while this Manager stays open."),
+    resetConnection: vscode.l10n.t("Discard connection changes"),
+    resetMapping: vscode.l10n.t("Discard mapping changes"),
+    showSecret: vscode.l10n.t("Show connection string"),
+    hideSecret: vscode.l10n.t("Hide connection string"),
+    connectionCount: vscode.l10n.t("Connections"),
+    emptyConnections: vscode.l10n.t("Add your first connection to configure generation."),
+    missingConnection: vscode.l10n.t("The edited connection was removed. Copy any changes you need before starting a new connection."),
+    tableLabel: vscode.l10n.t("Tables"),
+    viewLabel: vscode.l10n.t("Views"),
+    procedureLabel: vscode.l10n.t("Procedures"),
+    functionLabel: vscode.l10n.t("Functions"),
+    sequenceLabel: vscode.l10n.t("Sequences"),
+    managerTitle: vscode.l10n.t("DbSqlLikeMem Manager"),
+    name: vscode.l10n.t("Name"),
+    databaseType: vscode.l10n.t("Database type"),
+    primaryDatabase: vscode.l10n.t("Primary Database / Schema"),
+    connectionString: vscode.l10n.t("Connection string"),
+    keepCredentials: vscode.l10n.t("Leave blank when editing to keep the saved connection string."),
+    saveConnection: vscode.l10n.t("Save connection"),
+    configureMappings: vscode.l10n.t("Configure Mappings"),
+    connection: vscode.l10n.t("Connection"),
+    optionalNamespace: vscode.l10n.t("Namespace (optional)"),
+    saveMappings: vscode.l10n.t("Save mappings"),
+    addConnectionForMappings: vscode.l10n.t("Add a connection to configure mappings."),
+    registeredConnections: vscode.l10n.t("Registered connections"),
+    type: vscode.l10n.t("Type"),
+    database: vscode.l10n.t("Database"),
+    actions: vscode.l10n.t("Actions"),
+    editConnection: vscode.l10n.t("Edit connection"),
+    deleteConnection: vscode.l10n.t("Delete connection"),
+    newConnection: vscode.l10n.t("New connection")
   };
 
-  const connectionOptions = state.connections
-    .map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.name)} (${escapeHtml(c.databaseType)} / ${escapeHtml(c.databaseName)})</option>`)
-    .join('');
-  const databaseTypeOptions = SUPPORTED_DATABASE_TYPES
-    .map((databaseType) => `<option>${escapeHtml(databaseType)}</option>`)
-    .join('');
+  const data = serializeWebviewData({
+    ...createManagerViewState(state), selectedConnectionId,
+    databaseTypes: SUPPORTED_DATABASE_TYPES,
+    objectTypes: SUPPORTED_DATABASE_OBJECT_TYPES,
+    labels: tr
+  });
   const nonce = generateNonce();
-  const csp = [
-    "default-src 'none'",
-    `img-src ${webview.cspSource} data:`,
-    `style-src ${webview.cspSource} 'unsafe-inline'`,
-    `font-src ${webview.cspSource}`,
-    `script-src 'nonce-${nonce}'`
-  ].join('; ');
-
-  const mappingByConnection = new Map(state.mappingConfigurations.map((m) => [m.connectionId, m]));
-  const mappingFormData = JSON.stringify(Object.fromEntries(
-    state.mappingConfigurations.map((m) => [
-      m.connectionId,
-      Object.fromEntries(m.mappings.map((x) => [x.objectType, { targetFolder: x.targetFolder, fileSuffix: x.fileSuffix, namespace: x.namespace ?? '' }]))
-    ])
-  )).replace(/</g, '\\u003c');
-  const connectionsTable = state.connections.length === 0
-    ? `<p><em>${escapeHtml(tr.noConnectionConfigured)}</em></p>`
-    : `<table><thead><tr><th>${escapeHtml(tr.name)}</th><th>${escapeHtml(tr.type)}</th><th>${escapeHtml(tr.database)}</th><th>${escapeHtml(tr.actions)}</th></tr></thead><tbody>${state.connections
-      .map((c) => `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.databaseType)}</td><td>${escapeHtml(c.databaseName)}</td><td class="actions"><button class="icon-btn" title="${escapeHtml(tr.editConnection)}" aria-label="${escapeHtml(tr.editConnection)}" data-edit="${escapeHtml(c.id)}" data-name="${escapeHtml(c.name)}" data-type="${escapeHtml(c.databaseType)}" data-db="${escapeHtml(c.databaseName)}">${escapeHtml(tr.editConnection)}</button><button class="icon-btn" title="${escapeHtml(tr.deleteConnection)}" aria-label="${escapeHtml(tr.deleteConnection)}" data-remove="${escapeHtml(c.id)}">${escapeHtml(tr.deleteConnection)}</button></td></tr>`)
-      .join('')}</tbody></table>`;
-
-  const mappingsTable = state.connections.length === 0
-    ? `<p><em>${escapeHtml(tr.addConnectionForMappings)}</em></p>`
-    : `<table><thead><tr><th>${escapeHtml(tr.connection)}</th>${SUPPORTED_DATABASE_OBJECT_TYPES.map((objectType) => `<th>${escapeHtml(objectType)}</th>`).join('')}</tr></thead><tbody>${state.connections
-      .map((c) => {
-        const map = mappingByConnection.get(c.id);
-        const byType = (type: DatabaseObjectType): string => {
-          const m = map?.mappings.find((x) => x.objectType === type);
-          return m ? `${escapeHtml(m.targetFolder)} / ${escapeHtml(m.fileSuffix)}` : '-';
-        };
-        return `<tr><td>${escapeHtml(c.name)}</td>${SUPPORTED_DATABASE_OBJECT_TYPES.map((objectType) => `<td>${byType(objectType)}</td>`).join('')}</tr>`;
-      }).join('')}</tbody></table>`;
-
-  return `<!DOCTYPE html>
-<html lang="${escapeHtml(vscode.env.language)}">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(tr.managerTitle)}</title>
-  <meta http-equiv="Content-Security-Policy" content="${csp}" />
-  <style>
-    * { box-sizing: border-box; }
-    body { background: var(--vscode-editor-background); font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 16px; }
-    h2 { margin-top: 20px; }
-    .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
-    .panel { min-width: 0; border: 1px solid var(--vscode-panel-border); padding: 12px; border-radius: 6px; }
-    label { display: block; margin-top: 8px; font-size: 12px; opacity: 0.9; }
-    input, select { width: 100%; margin-top: 4px; padding: 6px; background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); }
-    button { margin-top: 10px; padding: 6px 10px; cursor: pointer; color: var(--vscode-button-foreground); background: var(--vscode-button-background); border: 1px solid var(--vscode-button-border, transparent); }
-    button:hover { background: var(--vscode-button-hoverBackground); }
-    button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
-    button:disabled { opacity: 0.5; cursor: default; }
-    .table-scroll { overflow-x: auto; }
-    .hint { font-size: 12px; color: var(--vscode-descriptionForeground); }
-    @media (max-width: 700px) { .grid { grid-template-columns: minmax(0, 1fr); } body { padding: 8px; } }
-    .icon-btn { min-height: 30px; padding: 4px 8px; margin-top: 0; margin-right: 4px; display: inline-flex; align-items: center; justify-content: center; color: var(--vscode-foreground); background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-button-border); border-radius: 4px; }
-    .icon-btn .codicon { font-size: 14px; line-height: 1; }
-    .actions { display: flex; flex-wrap: wrap; gap: 4px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { border: 1px solid var(--vscode-panel-border); padding: 6px; text-align: left; }
-    .full { grid-column: 1 / -1; }
-  </style>
-</head>
-<body>
-  <h1>${escapeHtml(tr.visualInterface)}</h1>
-  <div class="grid">
-    <section class="panel">
-      <h2>${escapeHtml(tr.addEditConnection)}</h2>
-      <input id="connectionIdHidden" type="hidden" />
-      <label for="name">${escapeHtml(tr.name)}</label><input id="name" />
-      <label for="databaseType">${escapeHtml(tr.databaseType)}</label>
-      <select id="databaseType">
-        ${databaseTypeOptions}
-      </select>
-      <label for="databaseName">${escapeHtml(tr.primaryDatabase)}</label><input id="databaseName" />
-      <label for="connectionString">${escapeHtml(tr.connectionString)}</label><input id="connectionString" type="password" aria-describedby="credentialsHint" autocomplete="off" />
-      <p id="credentialsHint" class="hint">${escapeHtml(tr.keepCredentials)}</p>
-      <button id="saveConnection">${escapeHtml(tr.saveConnection)}</button>
-      <button id="newConnection">${escapeHtml(tr.newConnection)}</button>
-    </section>
-
-    <section class="panel">
-      <h2>${escapeHtml(tr.configureMappings)}</h2>
-      <label for="connectionId">${escapeHtml(tr.connection)}</label>
-      <select id="connectionId">${connectionOptions}</select>
-      <label for="tableFolder">${escapeHtml(tr.tableFolder)}</label><input id="tableFolder" value="src/Models/Tables" />
-      <label for="tableSuffix">${escapeHtml(tr.tableSuffix)}</label><input id="tableSuffix" value="TableTests" />
-      <label for="viewFolder">${escapeHtml(tr.viewFolder)}</label><input id="viewFolder" value="src/Models/Views" />
-      <label for="viewSuffix">${escapeHtml(tr.viewSuffix)}</label><input id="viewSuffix" value="ViewTests" />
-      <label for="procedureFolder">${escapeHtml(tr.procedureFolder)}</label><input id="procedureFolder" value="src/Models/Procedures" />
-      <label for="procedureSuffix">${escapeHtml(tr.procedureSuffix)}</label><input id="procedureSuffix" value="ProcedureTests" />
-      <label for="functionFolder">${escapeHtml(tr.functionFolder)}</label><input id="functionFolder" value="src/Models/Functions" />
-      <label for="functionSuffix">${escapeHtml(tr.functionSuffix)}</label><input id="functionSuffix" value="FunctionTests" />
-      <label for="sequenceFolder">${escapeHtml(tr.sequenceFolder)}</label><input id="sequenceFolder" value="src/Models/Sequences" />
-      <label for="sequenceSuffix">${escapeHtml(tr.sequenceSuffix)}</label><input id="sequenceSuffix" value="SequenceTests" />
-      <label for="namespace">${escapeHtml(tr.optionalNamespace)}</label><input id="namespace" />
-      <button id="saveMapping">${escapeHtml(tr.saveMappings)}</button>
-    </section>
-
-    <section class="panel full">
-      <h2>${escapeHtml(tr.registeredConnections)}</h2>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="${escapeHtml(tr.registeredConnections)}">${connectionsTable}</div>
-    </section>
-
-    <section class="panel full">
-      <h2>${escapeHtml(tr.mappingsSummary)}</h2>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="${escapeHtml(tr.mappingsSummary)}">${mappingsTable}</div>
-    </section>
-  </div>
-
-  <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
-    const defaultDatabaseType = ${JSON.stringify(DEFAULT_DATABASE_TYPE)};
-    const mappingFormData = ${mappingFormData};
-
-    function hydrateMappingForm() {
-      const connectionId = document.getElementById('connectionId').value;
-      const selected = mappingFormData[connectionId] || {};
-      document.getElementById('saveMapping').disabled = !connectionId;
-      document.getElementById('tableFolder').value = selected.Table?.targetFolder || 'src/Models/Tables';
-      document.getElementById('tableSuffix').value = selected.Table?.fileSuffix || 'TableTests';
-      document.getElementById('viewFolder').value = selected.View?.targetFolder || 'src/Models/Views';
-      document.getElementById('viewSuffix').value = selected.View?.fileSuffix || 'ViewTests';
-      document.getElementById('procedureFolder').value = selected.Procedure?.targetFolder || 'src/Models/Procedures';
-      document.getElementById('procedureSuffix').value = selected.Procedure?.fileSuffix || 'ProcedureTests';
-      document.getElementById('functionFolder').value = selected.Function?.targetFolder || 'src/Models/Functions';
-      document.getElementById('functionSuffix').value = selected.Function?.fileSuffix || 'FunctionTests';
-      document.getElementById('sequenceFolder').value = selected.Sequence?.targetFolder || 'src/Models/Sequences';
-      document.getElementById('sequenceSuffix').value = selected.Sequence?.fileSuffix || 'SequenceTests';
-      document.getElementById('namespace').value = selected.Table?.namespace || selected.View?.namespace || selected.Procedure?.namespace || selected.Function?.namespace || selected.Sequence?.namespace || '';
-    }
-
-    document.getElementById('saveConnection')?.addEventListener('click', () => {
-      vscode.postMessage({
-        type: 'saveConnection',
-        connectionId: document.getElementById('connectionIdHidden').value,
-        name: document.getElementById('name').value,
-        databaseType: document.getElementById('databaseType').value,
-        databaseName: document.getElementById('databaseName').value,
-        connectionString: document.getElementById('connectionString').value
-      });
-    });
-
-    document.getElementById('newConnection').addEventListener('click', () => {
-      ['connectionIdHidden', 'name', 'databaseName', 'connectionString'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('databaseType').value = defaultDatabaseType;
-      document.getElementById('name').focus();
-    });
-
-    document.getElementById('connectionId')?.addEventListener('change', hydrateMappingForm);
-    const preferredConnectionId = ${JSON.stringify(selectedConnectionId)};
-    if (preferredConnectionId) {
-      const option = Array.from(document.querySelectorAll('#connectionId option'))
-        .find(option => option.getAttribute('value') === preferredConnectionId);
-      if (option) {
-        document.getElementById('connectionId').value = preferredConnectionId;
-      }
-    }
-    hydrateMappingForm();
-
-    document.getElementById('saveMapping')?.addEventListener('click', () => {
-      vscode.postMessage({
-        type: 'saveMapping',
-        connectionId: document.getElementById('connectionId').value,
-        tableFolder: document.getElementById('tableFolder').value,
-        tableSuffix: document.getElementById('tableSuffix').value,
-        viewFolder: document.getElementById('viewFolder').value,
-        viewSuffix: document.getElementById('viewSuffix').value,
-        procedureFolder: document.getElementById('procedureFolder').value,
-        procedureSuffix: document.getElementById('procedureSuffix').value,
-        functionFolder: document.getElementById('functionFolder').value,
-        functionSuffix: document.getElementById('functionSuffix').value,
-        sequenceFolder: document.getElementById('sequenceFolder').value,
-        sequenceSuffix: document.getElementById('sequenceSuffix').value,
-        namespace: document.getElementById('namespace').value
-      });
-    });
-
-    document.querySelectorAll('[data-edit]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.getElementById('connectionIdHidden').value = btn.getAttribute('data-edit') || '';
-        document.getElementById('name').value = btn.getAttribute('data-name') || '';
-        document.getElementById('databaseType').value = btn.getAttribute('data-type') || defaultDatabaseType;
-        document.getElementById('databaseName').value = btn.getAttribute('data-db') || '';
-        document.getElementById('connectionString').value = '';
-        document.getElementById('connectionId').value = btn.getAttribute('data-edit') || '';
-        hydrateMappingForm();
-        document.getElementById('name').focus();
-      });
-    });
-
-    document.querySelectorAll('[data-remove]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        vscode.postMessage({ type: 'removeConnection', connectionId: btn.getAttribute('data-remove') });
-      });
-    });
-  </script>
-</body>
-</html>`;
+  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'resources', 'manager.js'));
+  const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'resources', 'manager.css'));
+  const csp = "default-src 'none'; style-src " + webview.cspSource + "; script-src 'nonce-" + nonce + "';";
+  const mappingFields = SUPPORTED_DATABASE_OBJECT_TYPES.map(type => {
+    const id = type.toLowerCase();
+    const label = tr[(id + 'Label') as keyof typeof tr];
+    return '<fieldset class="mapping-card"><legend>' + escapeHtml(label) + '</legend><div class="mapping-fields">'
+      + '<label for="' + id + 'Folder">' + escapeHtml(tr.targetFolder) + '<input id="' + id + 'Folder" required /></label>'
+      + '<label for="' + id + 'Suffix">' + escapeHtml(tr.fileSuffix) + '<input id="' + id + 'Suffix" required /></label>'
+      + '<label for="' + id + 'Namespace">' + escapeHtml(tr.optionalNamespace) + '<input id="' + id + 'Namespace" /></label>'
+      + '</div></fieldset>';
+  }).join('');
+  return '<!DOCTYPE html><html lang="' + escapeHtml(vscode.env.language) + '"><head>'
+    + '<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">'
+    + '<meta http-equiv="Content-Security-Policy" content="' + csp + '">'
+    + '<title>' + escapeHtml(tr.managerTitle) + '</title><link rel="stylesheet" href="' + styleUri + '"></head><body>'
+    + '<main><header><h1>' + escapeHtml(tr.managerTitle) + '</h1><p class="hint">' + escapeHtml(tr.managerHelp) + '</p></header>'
+    + '<p class="hint">' + escapeHtml(tr.draftLifetime) + '</p>'
+    + '<div id="feedback" class="feedback" role="status" aria-live="polite">' + escapeHtml(tr.ready) + '</div>'
+    + '<div class="workspace-grid"><section class="panel connection-panel" aria-labelledby="connectionHeading">'
+    + '<h2 id="connectionHeading">' + escapeHtml(tr.connectionDetails) + '</h2><p id="editorMode" class="hint"></p>'
+    + '<form id="connectionForm"><fieldset id="connectionFields"><legend class="sr-only">' + escapeHtml(tr.connectionDetails) + '</legend>'
+    + '<input id="connectionIdHidden" type="hidden">'
+    + '<label for="name">' + escapeHtml(tr.name) + '<input id="name" required autocomplete="off"></label>'
+    + '<label for="databaseType">' + escapeHtml(tr.databaseType) + '<select id="databaseType"></select></label>'
+    + '<label for="databaseName">' + escapeHtml(tr.primaryDatabase) + '<input id="databaseName" required></label>'
+    + '<label for="connectionString">' + escapeHtml(tr.connectionString) + '</label><div class="secret-field">'
+    + '<input id="connectionString" type="password" autocomplete="off" required aria-describedby="credentialsHint">'
+    + '<button id="toggleSecret" class="secondary" type="button" aria-pressed="false">' + escapeHtml(tr.showSecret) + '</button></div>'
+    + '<p id="credentialsHint" class="hint">' + escapeHtml(tr.requiredHint) + '</p>'
+    + '<div class="button-row"><button id="saveConnection" type="submit">' + escapeHtml(tr.saveConnection) + '</button>'
+    + '<button id="newConnection" class="secondary" type="button">' + escapeHtml(tr.newConnection) + '</button>'
+    + '<button id="resetConnection" class="secondary" type="button">' + escapeHtml(tr.resetConnection) + '</button></div>'
+    + '<p id="connectionStatus" class="hint" role="status"></p>'
+    + '</fieldset></form></section>'
+    + '<section class="panel mapping-panel" aria-labelledby="mappingHeading"><h2 id="mappingHeading">' + escapeHtml(tr.configureMappings) + '</h2>'
+    + '<p class="hint">' + escapeHtml(tr.mappingHelp) + '</p>'
+    + '<form id="mappingForm"><fieldset id="mappingFields"><legend class="sr-only">' + escapeHtml(tr.configureMappings) + '</legend>'
+    + '<label for="connectionId">' + escapeHtml(tr.connection) + '<select id="connectionId"></select></label>'
+    + '<p id="mappingStatus" class="hint" role="status"></p><div id="mappingCards">' + mappingFields + '</div>'
+    + '<div class="button-row"><button id="saveMapping" type="submit">' + escapeHtml(tr.saveMappings) + '</button>'
+    + '<button id="resetMapping" class="secondary" type="button">' + escapeHtml(tr.resetMapping) + '</button></div>'
+    + '</fieldset></form><p id="emptyMapping" class="hint">' + escapeHtml(tr.addConnectionForMappings) + '</p></section></div>'
+    + '<section class="panel" aria-labelledby="connectionsHeading"><div class="section-heading"><h2 id="connectionsHeading">' + escapeHtml(tr.registeredConnections) + '</h2><span id="connectionCount" class="badge"></span></div>'
+    + '<p id="emptyConnections" class="hint">' + escapeHtml(tr.emptyConnections) + '</p>'
+    + '<div class="table-scroll" tabindex="0" role="region" aria-labelledby="connectionsHeading"><table id="connectionsTable"><thead><tr>'
+    + [tr.name, tr.type, tr.database, tr.actions].map(label => '<th scope="col">' + escapeHtml(label) + '</th>').join('')
+    + '</tr></thead><tbody id="connectionRows"></tbody></table></div></section></main>'
+    + '<script id="managerData" type="application/json" nonce="' + nonce + '">' + data + '</script>'
+    + '<script nonce="' + nonce + '" src="' + scriptUri + '"></script></body></html>';
 }
 
 function escapeHtml(value: string): string {

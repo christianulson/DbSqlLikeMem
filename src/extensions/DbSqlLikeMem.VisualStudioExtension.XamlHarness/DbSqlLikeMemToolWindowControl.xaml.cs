@@ -27,7 +27,11 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         ExplorerNodeKind.Object
     ];
     private readonly DbSqlLikeMemToolWindowViewModel viewModel;
-    private readonly System.Windows.Threading.DispatcherTimer globalFilterTimer;
+    private readonly System.Windows.Threading.DispatcherTimer globalFilterTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(300)
+    };
+    private bool initializingFilters = true;
 
     /// <summary>
     /// EN: Initializes the harness control and loads either persisted state or a clean harness state.
@@ -49,28 +53,44 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         GlobalFilterTextBox.Text = viewModel.ObjectFilterText;
         UpdateGlobalFilterUi();
 
-        globalFilterTimer = new System.Windows.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(300)
-        };
         globalFilterTimer.Tick += OnGlobalFilterTimerTick;
+        initializingFilters = false;
+        Unloaded += (_, _) => ApplyPendingGlobalFilter();
     }
 
     private void OnGlobalFilterTextChanged(object sender, TextChangedEventArgs e)
     {
+        if (initializingFilters)
+        {
+            return;
+        }
+
+        UpdateGlobalFilterUi();
         globalFilterTimer.Stop();
         globalFilterTimer.Start();
     }
 
     private void OnGlobalFilterTimerTick(object? sender, EventArgs e)
+        => ApplyPendingGlobalFilter();
+
+    private void ApplyPendingGlobalFilter()
     {
         globalFilterTimer.Stop();
-        viewModel.ObjectFilterText = GlobalFilterTextBox.Text;
+        if (!initializingFilters && viewModel.ObjectFilterText != GlobalFilterTextBox.Text)
+        {
+            viewModel.ObjectFilterText = GlobalFilterTextBox.Text;
+        }
         UpdateGlobalFilterUi();
     }
 
     private void OnGlobalFilterModeChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (initializingFilters)
+        {
+            return;
+        }
+
+        ApplyPendingGlobalFilter();
         if (GlobalFilterModeComboBox.SelectedItem is ComboBoxItem item
             && string.Equals(item.Tag?.ToString(), nameof(FilterMode.Equals), StringComparison.OrdinalIgnoreCase))
         {
@@ -86,6 +106,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     {
         globalFilterTimer.Stop();
         GlobalFilterTextBox.Text = string.Empty;
+        globalFilterTimer.Stop();
         viewModel.ClearGlobalObjectFilter();
         UpdateGlobalFilterUi();
     }
@@ -227,12 +248,10 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         => _ = RunSafeAsync(async () =>
         {
             var selected = GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
-            if (selected is null)
+            if (selected?.ConnectionId is string connectionId)
             {
-                return;
+                await viewModel.RefreshObjectsAsync(connectionId);
             }
-
-            await viewModel.EnsureConnectionObjectsLoadedAsync(selected);
         });
 
     private void OnImportSettingsClick(object sender, RoutedEventArgs e)
@@ -450,12 +469,6 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnConfigureTemplatesClick(object sender, RoutedEventArgs e)
     {
-        var selected = GetEffectiveSelectedNode(ExplorerTree.SelectedItem as ExplorerNode);
-        if (selected is null || selected.Kind != ExplorerNodeKind.ObjectType)
-        {
-            return;
-        }
-
         var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration(), viewModel.WorkspaceDirectory)
         {
             Owner = Window.GetWindow(this)
@@ -543,6 +556,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     {
         try
         {
+            ApplyPendingGlobalFilter();
             await action().ConfigureAwait(true);
         }
         catch (Exception ex)

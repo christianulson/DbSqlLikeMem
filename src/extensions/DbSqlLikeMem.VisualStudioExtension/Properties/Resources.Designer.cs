@@ -1310,5 +1310,100 @@ namespace DbSqlLikeMem.VisualStudioExtension.Properties {
                 return ResourceManager.GetString("ClearGlobalFilterToolTip", resourceCulture);
             }
         }
+        /// <summary>
+        /// EN: Gets the localized text for refresh all connections label.
+        /// PT-br: Obtem o texto localizado de Atualizar todas as conexões.
+        /// </summary>
+        public static string RefreshAllConnectionsLabel => ResourceManager.GetString("RefreshAllConnectionsLabel", resourceCulture) ?? "Refresh all connections";
+
+        /// <summary>
+        /// EN: Gets the localized text for refresh connection label.
+        /// PT-br: Obtem o texto localizado de Atualizar conexão.
+        /// </summary>
+        public static string RefreshConnectionLabel => ResourceManager.GetString("RefreshConnectionLabel", resourceCulture) ?? "Refresh connection";
+
+        /// <summary>
+        /// EN: Gets the localized text for global templates help.
+        /// PT-br: Obtem o texto localizado de Estes templates se aplicam a todas as conexões deste workspace..
+        /// </summary>
+        public static string GlobalTemplatesHelp => ResourceManager.GetString("GlobalTemplatesHelp", resourceCulture) ?? "These templates apply to all connections in this workspace.";
+
+        /// <summary>
+        /// EN: Gets the localized text for scenario preview hint.
+        /// PT-br: Obtem o texto localizado de Carregue os dados após escolher uma tabela ou alterar o filtro SQL..
+        /// </summary>
+        public static string ScenarioPreviewHint => ResourceManager.GetString("ScenarioPreviewHint", resourceCulture) ?? "Load data after choosing a table or changing the SQL filter.";
+
+        /// <summary>
+        /// EN: Gets the localized text for scenario preview empty.
+        /// PT-br: Obtem o texto localizado de Nenhuma linha encontrada para esta tabela e filtro..
+        /// </summary>
+        public static string ScenarioPreviewEmpty => ResourceManager.GetString("ScenarioPreviewEmpty", resourceCulture) ?? "No rows found for this table and filter.";
+
+        /// <summary>
+        /// EN: Gets the localized text for scenario preview count.
+        /// PT-br: Obtem o texto localizado de Prévia: 0 linha(s), até 200. Marque as linhas a extrair..
+        /// </summary>
+        public static string ScenarioPreviewCount => ResourceManager.GetString("ScenarioPreviewCount", resourceCulture) ?? "Preview: {0} row(s), up to 200. Mark the rows to extract.";
+
+        /// <summary>
+        /// EN: Gets the localized text for scenario working.
+        /// PT-br: Obtem o texto localizado de Processando… Aguarde..
+        /// </summary>
+        public static string ScenarioWorking => ResourceManager.GetString("ScenarioWorking", resourceCulture) ?? "Working… Please wait.";
+
+        /// <summary>
+        /// EN: Gets the localized text for scenario preview label.
+        /// PT-br: Obtem o texto localizado de Prévia dos dados da tabela.
+        /// </summary>
+        public static string ScenarioPreviewLabel => ResourceManager.GetString("ScenarioPreviewLabel", resourceCulture) ?? "Table data preview";
+
+        /// <summary>
+        /// EN: Gets the localized text for mapping baseline label.
+        /// PT-br: Obtem o texto localizado de Perfil de mapeamento.
+        /// </summary>
+        public static string MappingBaselineLabel => ResourceManager.GetString("MappingBaselineLabel", resourceCulture) ?? "Mapping profile";
+
+        /// <summary>
+        /// EN: Gets the localized text for template baseline label.
+        /// PT-br: Obtem o texto localizado de Perfil de templates.
+        /// </summary>
+        public static string TemplateBaselineLabel => ResourceManager.GetString("TemplateBaselineLabel", resourceCulture) ?? "Template profile";
+
+        /// <summary>
+        /// EN: Gets the localized text for apply baseline button.
+        /// PT-br: Obtem o texto localizado de Aplicar perfil.
+        /// </summary>
+        public static string ApplyBaselineButton => ResourceManager.GetString("ApplyBaselineButton", resourceCulture) ?? "Apply profile";
+
+        /// <summary>
+        /// EN: Gets the localized text for namespace optional label.
+        /// PT-br: Obtem o texto localizado de Namespace (opcional).
+        /// </summary>
+        public static string NamespaceOptionalLabel => ResourceManager.GetString("NamespaceOptionalLabel", resourceCulture) ?? "Namespace (optional)";
+
+        /// <summary>
+        /// EN: Gets the localized text for mapping profile help.
+        /// PT-br: Obtem o texto localizado de Aplique um perfil para preencher os campos abaixo e ajuste os valores antes de salvar..
+        /// </summary>
+        public static string MappingProfileHelp => ResourceManager.GetString("MappingProfileHelp", resourceCulture) ?? "Apply a profile to fill in the fields below, then adjust the values before saving.";
+
+        /// <summary>
+        /// EN: Gets the localized text for template profile help.
+        /// PT-br: Obtem o texto localizado de Aplicar um perfil substitui os campos abaixo. Revise os caminhos e nomes de arquivo antes de salvar..
+        /// </summary>
+        public static string TemplateProfileHelp => ResourceManager.GetString("TemplateProfileHelp", resourceCulture) ?? "Applying a profile replaces the fields below. Review the paths and file names before saving.";
+
+        /// <summary>
+        /// EN: Gets the localized text for model file pattern label.
+        /// PT-br: Obtem o texto localizado de Padrão do arquivo de modelo.
+        /// </summary>
+        public static string ModelFilePatternLabel => ResourceManager.GetString("ModelFilePatternLabel", resourceCulture) ?? "Model file pattern";
+
+        /// <summary>
+        /// EN: Gets the localized text for repository file pattern label.
+        /// PT-br: Obtem o texto localizado de Padrão do arquivo de repositório.
+        /// </summary>
+        public static string RepositoryFilePatternLabel => ResourceManager.GetString("RepositoryFilePatternLabel", resourceCulture) ?? "Repository file pattern";
     }
 }

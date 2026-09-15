@@ -31,7 +31,10 @@
                 <TextBlock Text="Adicionar conexão" FontWeight="SemiBold" />
             </Button>
             <Button Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick">
-                <TextBlock Text="Atualizar objetos" />
+                <TextBlock Text="Atualizar todas as conexões" />
+            </Button>
+            <Button Padding="10,4" Margin="0,0,8,8" Click="OnConfigureTemplatesClick">
+                <TextBlock Text="Configurar templates" />
             </Button>
             <Button Padding="10,4" Margin="0,0,8,8" Click="OnImportSettingsClick">
                 <TextBlock Text="Importar estado" />

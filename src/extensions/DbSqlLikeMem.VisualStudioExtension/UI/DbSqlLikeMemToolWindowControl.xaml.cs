@@ -35,7 +35,11 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     ];
 
     private readonly DbSqlLikeMemToolWindowViewModel viewModel;
-    private readonly System.Windows.Threading.DispatcherTimer globalFilterTimer;
+    private readonly System.Windows.Threading.DispatcherTimer globalFilterTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(300)
+    };
+    private bool initializingFilters = true;
 
     /// <summary>
     /// EN: Initializes the tool window user control and its view model.
@@ -57,11 +61,9 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         GlobalFilterTextBox.Text = viewModel.ObjectFilterText;
         UpdateGlobalFilterUi();
 
-        globalFilterTimer = new System.Windows.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromMilliseconds(300)
-        };
         globalFilterTimer.Tick += OnGlobalFilterTimerTick;
+        initializingFilters = false;
+        Unloaded += (_, _) => ApplyPendingGlobalFilter();
     }
 
     /// <summary>
@@ -102,19 +104,37 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnGlobalFilterTextChanged(object sender, TextChangedEventArgs e)
     {
+        if (initializingFilters)
+        {
+            return;
+        }
+
+        UpdateGlobalFilterUi();
         globalFilterTimer.Stop();
         globalFilterTimer.Start();
     }
 
     private void OnGlobalFilterTimerTick(object? sender, EventArgs e)
+        => ApplyPendingGlobalFilter();
+
+    private void ApplyPendingGlobalFilter()
     {
         globalFilterTimer.Stop();
-        viewModel.ObjectFilterText = GlobalFilterTextBox.Text;
+        if (!initializingFilters && viewModel.ObjectFilterText != GlobalFilterTextBox.Text)
+        {
+            viewModel.ObjectFilterText = GlobalFilterTextBox.Text;
+        }
         UpdateGlobalFilterUi();
     }
 
     private void OnGlobalFilterModeChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (initializingFilters)
+        {
+            return;
+        }
+
+        ApplyPendingGlobalFilter();
         if (GlobalFilterModeComboBox.SelectedItem is ComboBoxItem item
             && string.Equals(item.Tag?.ToString(), nameof(FilterMode.Equals), StringComparison.OrdinalIgnoreCase))
         {
@@ -130,6 +150,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     {
         globalFilterTimer.Stop();
         GlobalFilterTextBox.Text = string.Empty;
+        globalFilterTimer.Stop();
         viewModel.ClearGlobalObjectFilter();
         UpdateGlobalFilterUi();
     }
@@ -350,14 +371,6 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
     private void OnConfigureTemplatesClick(object sender, RoutedEventArgs e)
     {
-        if (ExplorerTree.SelectedItem is not ExplorerNode selected
-            || selected.Kind != ExplorerNodeKind.ObjectType
-            || selected.ObjectType is not DatabaseObjectType)
-        {
-            MessageBox.Show(System.Windows.Window.GetWindow(this), UiResources.SelectObjectTypeToConfigureTemplates, UiResources.ConfigureTemplatesMenu, MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
         var dialog = new TemplateConfigurationDialog(viewModel.GetTemplateConfiguration(), viewModel.WorkspaceDirectory) { Owner = System.Windows.Window.GetWindow(this) };
         if (dialog.ShowDialog() == true)
         {
@@ -401,6 +414,9 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
 
         viewModel.ClearObjectTypeFilter(selected);
     }
+
+    private async void OnRefreshAllObjectsClick(object sender, RoutedEventArgs e)
+        => await RunSafeAsync(() => viewModel.RefreshObjectsAsync());
 
     private async void OnRefreshObjectsClick(object sender, RoutedEventArgs e)
         => await RunSafeAsync(async () =>
@@ -646,7 +662,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
                 try
                 {
                     var path = await viewModel.ExtractScenarioAsync(selected.ConnectionId, dialog.ScenarioName, chosen.Schema, chosen.TableName, dialog.FilterText, selectedRows, dialog.IncludeParentReferences);
-                    if (!string.IsNullOrEmpty(path))
+                    if (dialog.IsVisible && !string.IsNullOrEmpty(path))
                     {
                         MessageBox.Show(dialog, string.Format(UiResources.ScenarioExtractedWithFile, Environment.NewLine, path), UiResources.ExtractScenarioButton, MessageBoxButton.OK, MessageBoxImage.Information);
                     }
@@ -735,6 +751,7 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         var selectedKey = ExplorerTree.SelectedItem is ExplorerNode selected ? viewModel.GetNodeKey(selected) : null;
         try
         {
+            ApplyPendingGlobalFilter();
             await action();
         }
         catch (OperationCanceledException)

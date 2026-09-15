@@ -57,10 +57,16 @@
                     <TextBlock Text="{x:Static prop:Resources.AddConnectionButton}" FontWeight="SemiBold" />
                 </StackPanel>
             </Button>
-            <Button Padding="10,4" Margin="0,0,8,8" Click="OnRefreshObjectsClick">
+            <Button Padding="10,4" Margin="0,0,8,8" Click="OnRefreshAllObjectsClick" ToolTip="{x:Static prop:Resources.RefreshAllConnectionsLabel}">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <imaging:CrispImage Style="{StaticResource ToolbarIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Rerun}" />
-                    <TextBlock Text="{x:Static prop:Resources.RefreshObjectsButton}" />
+                    <TextBlock Text="{x:Static prop:Resources.RefreshAllConnectionsLabel}" />
+                </StackPanel>
+            </Button>
+            <Button Padding="10,4" Margin="0,0,8,8" Click="OnConfigureTemplatesClick" ToolTip="{x:Static prop:Resources.GlobalTemplatesHelp}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <imaging:CrispImage Style="{StaticResource ToolbarIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Settings}" />
+                    <TextBlock Text="{x:Static prop:Resources.ConfigureTemplatesMenu}" />
                 </StackPanel>
             </Button>
             <Button Padding="10,4" Margin="0,0,8,8" Click="OnImportSettingsClick">
@@ -96,6 +102,7 @@
                     Content="✕"
                     Click="OnClearGlobalFilterClick"
                     ToolTip="{x:Static prop:Resources.ClearGlobalFilterToolTip}"
+                    AutomationProperties.Name="{x:Static prop:Resources.ClearGlobalFilterToolTip}"
                     Visibility="Collapsed" />
         </WrapPanel>
 
@@ -118,7 +125,7 @@
                                 <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.EditQuery}" />
                             </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem x:Name="RefreshConnectionMenuItem" Header="{x:Static prop:Resources.RefreshObjectsButton}" Click="OnRefreshObjectsClick">
+                        <MenuItem x:Name="RefreshConnectionMenuItem" Header="{x:Static prop:Resources.RefreshConnectionLabel}" Click="OnRefreshObjectsClick">
                             <MenuItem.Icon>
                                 <imaging:CrispImage Style="{StaticResource ContextIconStyle}" Moniker="{x:Static catalog:KnownMonikers.Rerun}" />
                             </MenuItem.Icon>

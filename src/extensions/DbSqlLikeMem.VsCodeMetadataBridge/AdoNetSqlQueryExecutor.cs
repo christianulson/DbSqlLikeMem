@@ -186,7 +186,12 @@ internal sealed class BridgeSqlQueryExecutor : ISqlQueryExecutor
             return null;
         }
 
-        var assemblyNameCandidate = fullTypeName.Substring(0, lastDotIndex);
+        var assemblyNameCandidate = fullTypeName switch
+        {
+            "Oracle.ManagedDataAccess.Client.OracleClientFactory" => "Oracle.ManagedDataAccess",
+            "MySql.Data.MySqlClient.MySqlClientFactory" => "MySql.Data",
+            _ => fullTypeName.Substring(0, lastDotIndex)
+        };
         try
         {
             var assembly = Assembly.Load(new AssemblyName(assemblyNameCandidate));

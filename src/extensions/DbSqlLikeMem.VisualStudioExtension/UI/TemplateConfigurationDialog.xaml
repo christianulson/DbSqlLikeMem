@@ -4,58 +4,36 @@
         xmlns:prop="clr-namespace:DbSqlLikeMem.VisualStudioExtension.Properties"
         Title="{x:Static prop:Resources.TemplateConfigTitle}"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
-        SizeToContent="WidthAndHeight">
-    <Grid Margin="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="420" />
-        </Grid.ColumnDefinitions>
-
-        <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Template baseline" />
-        <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Orientation="Horizontal">
-            <ComboBox x:Name="TemplateBaselineProfileComboBox" Width="280" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectionChanged="OnBaselineSelectionChanged" />
-            <Button Content="Apply baseline" Width="120" Margin="8,0,0,0" Click="OnApplyBaselineClick" />
+        ResizeMode="CanResizeWithGrip"
+        Width="720" Height="640" MinWidth="480" MinHeight="360">
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="{x:Static prop:Resources.CancelButton}" MinWidth="90" Padding="12,6" Margin="0,0,8,0" IsCancel="True" />
+            <Button Content="{x:Static prop:Resources.SaveButton}" MinWidth="90" Padding="12,6" IsDefault="True" Click="OnSaveClick" />
         </StackPanel>
-
-        <TextBlock x:Name="BaselineSummaryTextBlock" Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8" />
-
-        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.ModelTemplateLabel}" />
-        <TextBox x:Name="ModelTemplatePathTextBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" />
-
-        <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.RepositoryTemplateLabel}" />
-        <TextBox x:Name="RepositoryTemplatePathTextBox" Grid.Row="3" Grid.Column="1" Margin="0,0,0,8" />
-
-        <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.ModelOutputLabel}" />
-        <TextBox x:Name="ModelOutputDirectoryTextBox" Grid.Row="4" Grid.Column="1" Margin="0,0,0,8" />
-
-        <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="{x:Static prop:Resources.RepositoryOutputLabel}" />
-        <TextBox x:Name="RepositoryOutputDirectoryTextBox" Grid.Row="5" Grid.Column="1" Margin="0,0,0,8" />
-
-        <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Model file pattern" />
-        <TextBox x:Name="ModelFileNamePatternTextBox" Grid.Row="6" Grid.Column="1" Margin="0,0,0,8" />
-
-        <TextBlock Grid.Row="7" Grid.Column="0" Margin="0,0,8,8" VerticalAlignment="Center" Text="Repository file pattern" />
-        <TextBox x:Name="RepositoryFileNamePatternTextBox" Grid.Row="7" Grid.Column="1" Margin="0,0,0,8" />
-
-<TextBlock Grid.Row="8" Grid.Column="1" Margin="0,0,0,8" TextWrapping="Wrap" Opacity="0.8"
-                   Text="Profiles come from templates/dbsqllikemem/vCurrent and can be edited after applying." />
-
-        <StackPanel Grid.Row="9" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="{x:Static prop:Resources.CancelButton}" Width="90" Margin="0,0,8,0" IsCancel="True" />
-            <Button Content="{x:Static prop:Resources.SaveButton}" Width="90" IsDefault="True" Click="OnSaveClick" />
-        </StackPanel>
-    </Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0">
+            <StackPanel>
+                <TextBlock Text="{x:Static prop:Resources.GlobalTemplatesHelp}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                <Label Content="{x:Static prop:Resources.TemplateBaselineLabel}" Target="{Binding ElementName=TemplateBaselineProfileComboBox}" Padding="0,0,0,4" />
+                <DockPanel Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Content="{x:Static prop:Resources.ApplyBaselineButton}" Padding="12,4" Margin="8,0,0,0" Click="OnApplyBaselineClick" />
+                    <ComboBox x:Name="TemplateBaselineProfileComboBox" DisplayMemberPath="DisplayName" SelectedValuePath="Id" SelectionChanged="OnBaselineSelectionChanged" AutomationProperties.Name="{x:Static prop:Resources.TemplateBaselineLabel}" />
+                </DockPanel>
+                <TextBlock x:Name="BaselineSummaryTextBlock" TextWrapping="Wrap" Margin="0,0,0,8" />
+                <TextBlock Text="{x:Static prop:Resources.TemplateProfileHelp}" TextWrapping="Wrap" Margin="0,0,0,16" />
+                <Label Content="{x:Static prop:Resources.ModelTemplateLabel}" Target="{Binding ElementName=ModelTemplatePathTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="ModelTemplatePathTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.ModelTemplateLabel}" />
+                <Label Content="{x:Static prop:Resources.RepositoryTemplateLabel}" Target="{Binding ElementName=RepositoryTemplatePathTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="RepositoryTemplatePathTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.RepositoryTemplateLabel}" />
+                <Label Content="{x:Static prop:Resources.ModelOutputLabel}" Target="{Binding ElementName=ModelOutputDirectoryTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="ModelOutputDirectoryTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.ModelOutputLabel}" />
+                <Label Content="{x:Static prop:Resources.RepositoryOutputLabel}" Target="{Binding ElementName=RepositoryOutputDirectoryTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="RepositoryOutputDirectoryTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.RepositoryOutputLabel}" />
+                <Label Content="{x:Static prop:Resources.ModelFilePatternLabel}" Target="{Binding ElementName=ModelFileNamePatternTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="ModelFileNamePatternTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.ModelFilePatternLabel}" />
+                <Label Content="{x:Static prop:Resources.RepositoryFilePatternLabel}" Target="{Binding ElementName=RepositoryFileNamePatternTextBox}" Padding="0,0,0,4" />
+                <TextBox x:Name="RepositoryFileNamePatternTextBox" Padding="6,4" Margin="0,0,0,12" AutomationProperties.Name="{x:Static prop:Resources.RepositoryFilePatternLabel}" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </Window>

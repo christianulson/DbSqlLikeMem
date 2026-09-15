@@ -6,6 +6,32 @@ Foram corrigidos defeitos no código e nos contratos de publicação das extens�
 
 ## Correções
 
+### Ciclo 4 (revisão após o commit ff7221f5, com foco em UI/UX)
+
+| Área | Problema encontrado | Correção |
+| --- | --- | --- |
+| VS Code: formulários | Salvar recriava a página; trocar conexão descartava alterações | Manager único, atualização por mensagens, rascunhos por conexão e indicação de alterações pendentes. Rascunhos ficam somente na memória enquanto o painel está aberto, com ação explícita para descartá-los |
+| VS Code: mapeamentos | Um único campo sobrescrevia namespaces diferentes de tabelas, views e rotinas | Pasta, sufixo e namespace editáveis separadamente por tipo de objeto |
+| VS Code: interação | Progresso fora do formulário, comandos simultâneos e telas desatualizadas | Progresso e erros no painel, bloqueio temporário dos campos, sincronização com comandos externos e identificação da solicitação para não limpar rascunhos de um painel reaberto |
+| VS Code: apresentação e acessibilidade | Formulário extenso e dados de conexão interpolados no script | Layout adaptável, grupos com labels, foco visível, campos de senha e estados vazios. Dados do webview sem credenciais salvas e JSON escapado contra fechamento do elemento script |
+| VSIX e harness: filtro | Texto persistido disparava eventos antes da inicialização do temporizador | Inicialização protegida, aplicação do filtro pendente antes de ações e parada do temporizador ao descarregar o controle |
+| VSIX: navegação | Atualização da toolbar dependia da seleção; templates globais exigiam selecionar um tipo de objeto | Ações distintas para atualizar todas as conexões ou somente a selecionada; configuração global de templates disponível na toolbar |
+| VSIX: diálogos | Mapeamentos/templates tinham tamanho fixo, textos em inglês e acesso fraco por teclado | Janelas redimensionáveis, rolagem, botões fora da área rolável, rótulos associados aos campos e recursos EN/pt-BR |
+| VSIX: cenários | Mudança de filtro mantinha linhas antigas; conclusão assíncrona podia acessar janela fechada | Prévia invalidada ao mudar tabela/filtro, contagem e limite de linhas visíveis, progresso, ações dependentes de dados e proteção contra mensagens após fechar |
+| Bridge: fidelidade | Falha ao ler detalhes era silenciosamente convertida em metadados parciais; escapes eram removidos em cada etapa | Erro com identificação do objeto e propagação de cancelamento; escapes preservados até a decodificação final dos campos |
+| Bridge: provedores | Carregador inferia assembly pelo namespace, falhando para Oracle e MySql.Data | Nomes de assembly explícitos para essas factories; Oracle.ManagedDataAccess.dll confirmado no pacote local |
+
+**Verificação desta rodada:** TypeScript com `--noEmit`, sintaxe do JavaScript do Manager e do arquivo de regressões, XML de 7 arquivos, referências XAML de recursos/eventos, 44 chaves pt-BR do Manager e `git diff --check`. Quatro testes adicionados em `tests/manager-state.test.js` cobrem isolamento de credenciais, JSON do webview e namespaces independentes/legados; não foram executados.
+
+**Ainda pendente nesta rodada:** builds, restores, execução de testes, geração/instalação de VSIX e execução nos hosts reais, conforme a política do AGENTS.md. A ferramenta de navegador falhou ao iniciar, portanto não houve confirmação visual de layout, zoom, contraste ou navegação por teclado. As alterações C# e os provedores precisam de validação de compilação/runtime.
+
+**Roteiro de aceite manual:**
+- No Manager, editar duas conexões e dois mapeamentos alternadamente; salvar um formulário e verificar que os outros rascunhos continuam presentes.
+- Editar uma conexão com senha salva e deixar a string vazia; verificar que a credencial continua válida. Confirmar namespaces distintos após salvar e reabrir.
+- Reabrir a VSIX/harness com filtro persistido; alterar o filtro e executar uma ação imediatamente; conferir atualização global e por conexão.
+- Redimensionar diálogos, percorrer campos por teclado e conferir os textos EN/pt-BR. Na extração, mudar o filtro, carregar uma prévia vazia e fechar durante a consulta.
+- No bridge, verificar nomes com `|`, `;` e barras invertidas, falha de permissão para metadados e conexão Oracle com o provider empacotado.
+
 ### Ciclo 3 (aprofundamento de UI/UX, consistência e localização)
 
 | Área | Problema encontrado | Alteração |

@@ -126,6 +126,11 @@ internal static class BridgeMetadataMapper
             sb.Append(ch);
         }
 
+        if (escape)
+        {
+            sb.Append('\\');
+        }
+
         return sb.ToString();
     }
 
@@ -150,6 +155,8 @@ internal static class BridgeMetadataMapper
 
             if (ch == '\\')
             {
+                // Keep escapes until the final field is decoded.
+                sb.Append(ch);
                 escape = true;
                 continue;
             }
