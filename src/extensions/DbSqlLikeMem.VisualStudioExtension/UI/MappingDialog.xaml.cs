@@ -94,14 +94,20 @@ public partial class MappingDialog : Window
 
         try
         {
-            _ = GeneratedFilePath.Resolve(OutputDirectory, FileNamePattern
-                .Replace("{NamePascal}", "Sample", StringComparison.OrdinalIgnoreCase)
-                .Replace("{Name}", "sample", StringComparison.OrdinalIgnoreCase)
-                .Replace("{Type}", objectType.ToString(), StringComparison.OrdinalIgnoreCase)
-                .Replace("{Schema}", "dbo", StringComparison.OrdinalIgnoreCase)
-                .Replace("{DatabaseType}", "SqlServer", StringComparison.OrdinalIgnoreCase)
-                .Replace("{DatabaseName}", "ERP", StringComparison.OrdinalIgnoreCase)
-                .Replace("{Namespace}", "Sample.Namespace", StringComparison.OrdinalIgnoreCase));
+            var resolvedSample = ReplaceIgnoreCase(
+                ReplaceIgnoreCase(
+                    ReplaceIgnoreCase(
+                        ReplaceIgnoreCase(
+                            ReplaceIgnoreCase(
+                                ReplaceIgnoreCase(
+                                    ReplaceIgnoreCase(FileNamePattern, "{NamePascal}", "Sample"),
+                                    "{Name}", "sample"),
+                                "{Type}", objectType.ToString()),
+                            "{Schema}", "dbo"),
+                        "{DatabaseType}", "SqlServer"),
+                    "{DatabaseName}", "ERP"),
+                "{Namespace}", "Sample.Namespace");
+            _ = GeneratedFilePath.Resolve(OutputDirectory, resolvedSample);
         }
         catch (Exception ex)
         {
@@ -124,6 +130,23 @@ public partial class MappingDialog : Window
         BaselineSummaryTextBlock.Text = TemplateBaselineProfileComboBox.SelectedItem is TemplateBaselineProfile profile
             ? TemplateBaselinePresentation.BuildMappingSummary(profile, objectType, reviewMetadata)
             : UiResources.MappingBaselineSummaryHint;
+    }
+
+    private static string ReplaceIgnoreCase(string value, string oldValue, string newValue)
+    {
+        var current = value;
+        var startIndex = 0;
+        while (true)
+        {
+            var index = current.IndexOf(oldValue, startIndex, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                return current;
+            }
+
+            current = current.Substring(0, index) + newValue + current.Substring(index + oldValue.Length);
+            startIndex = index + newValue.Length;
+        }
     }
 
     private static TemplateReviewMetadata? LoadReviewMetadata()

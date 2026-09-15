@@ -45,6 +45,8 @@ Foram corrigidos defeitos no código e nos contratos de publicação das extens�
 | VSIX: acessibilidade | Controles dos diálogos sem nomes para leitores de tela | `AutomationProperties.Name` nos campos de conexão e de cenário |
 | VSIX: logging | `ExtensionLogger` com `AppendAllText` concorrente podia perder logs em refresh paralelo | Escrita protegida por lock |
 | VSIX: workflow | Localização do `.vsix` varria o repositório inteiro e podia pegar artefato errado | Busca restrita ao diretório do projeto VSIX |
+| VSIX: arquitetura | Projeto compilava como AnyCPU (MSIL) enquanto o DB2 é AMD64 e o manifesto declara amd64 (warning MSB3270) | `<PlatformTarget>x64</PlatformTarget>` no projeto VSIX, alinhado ao harness e ao manifesto |
+| VSIX: build | `string.Replace` com `StringComparison` (indisponível no net472) na validação do MappingDialog; `GetNodePath` com `string?` não estreitado; `Dispatcher.BeginInvoke` violava VSTHRD | `ReplaceIgnoreCase` local no diálogo; checagem `key is null || key.Length == 0`; `SwitchToMainThreadAsync` no lugar de `BeginInvoke` |
 | VS Code: contrato | Títulos de comandos sem tokens nls (não traduzíveis) | Tokens `%command.*.title%` adicionados com traduções pt-BR |
 | VS Code: UI | Strings de seções/tooltips da árvore sem l10n; IDs de nós colidiam para objetos que diferem só por caixa | `vscode.l10n.t` nas seções e tooltips; índice único no ID do nó |
 | VS Code: validação | Cadastro/edição bloqueado quando o banco está indisponível; senhas com `;` quebravam o parse do fallback SQL Server | Opção "Save anyway" na falha de validação; parser de connection string extraído para `connection-string.ts` com suporte a aspas/chaves e 8 testes novos |

@@ -106,7 +106,6 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     {
         globalFilterTimer.Stop();
         GlobalFilterTextBox.Text = string.Empty;
-        globalFilterTimer.Stop();
         viewModel.ClearGlobalObjectFilter();
         UpdateGlobalFilterUi();
     }

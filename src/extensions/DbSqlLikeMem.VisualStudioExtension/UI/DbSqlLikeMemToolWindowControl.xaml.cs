@@ -150,7 +150,6 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
     {
         globalFilterTimer.Stop();
         GlobalFilterTextBox.Text = string.Empty;
-        globalFilterTimer.Stop();
         viewModel.ClearGlobalObjectFilter();
         UpdateGlobalFilterUi();
     }
@@ -770,13 +769,13 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
         }
         finally
         {
-            RestoreSelection(selectedKey);
+            await RestoreSelectionAsync(selectedKey);
         }
     }
 
-    private void RestoreSelection(string? key)
+    private async Task RestoreSelectionAsync(string? key)
     {
-        if (string.IsNullOrEmpty(key))
+        if (key is null || key.Length == 0)
         {
             return;
         }
@@ -792,21 +791,19 @@ public partial class DbSqlLikeMemToolWindowControl : UserControl
             ancestor.IsExpanded = true;
         }
 
-        Dispatcher.BeginInvoke(new Action(() =>
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var target = viewModel.FindNodeByKey(key);
+        if (target is null)
         {
-            var target = viewModel.FindNodeByKey(key);
-            if (target is null)
-            {
-                return;
-            }
+            return;
+        }
 
-            var item = FindTreeViewItem(ExplorerTree, target);
-            if (item is not null)
-            {
-                item.IsSelected = true;
-                item.BringIntoView();
-            }
-        }), System.Windows.Threading.DispatcherPriority.Loaded);
+        var item = FindTreeViewItem(ExplorerTree, target);
+        if (item is not null)
+        {
+            item.IsSelected = true;
+            item.BringIntoView();
+        }
     }
 
     private static TreeViewItem? FindTreeViewItem(ItemsControl parent, ExplorerNode target)
