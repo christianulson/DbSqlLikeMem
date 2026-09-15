@@ -1423,7 +1423,7 @@ Este documento organiza as funcionalidades do DbSqlLikeMem em camadas de profund
 - Incremento desta sessão: os workflows `vsix-publish.yml` e `vscode-extension-publish.yml` passaram a validar explicitamente a presença da fonte de versão antes do build/pack, reduzindo drift entre o prefixo de tag documentado e o artefato efetivamente publicado.
 - Incremento desta sessão: os READMEs operacionais das extensões passaram a explicitar também o contrato `workflow -> fonte de versão -> publish`, e o auditor passou a vigiar essa mensagem diretamente no ponto de uso.
 - Gap remanescente explicitado: o `publisher` final do Visual Studio Marketplace ainda depende de definição operacional externa ao código.
-- TODO: fechar a definição operacional do `publisher`/identidade final de marketplace e automatizar a última etapa que hoje ainda depende de valor externo ao repositório.
+- Incremento desta sessão: o `publisher` do Visual Studio Marketplace foi definido como `dbsqllikemem` no `eng/visualstudio/PublishManifest.json`, mesma identidade usada pela extensão VS Code.
 
 #### 6.2.3 Operação contínua
 

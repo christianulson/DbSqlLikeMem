@@ -15,8 +15,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0' Or '$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.6" />
-    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.6" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.13" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
   </ItemGroup>
 
   <ItemGroup>

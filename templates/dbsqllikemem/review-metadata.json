@@ -2,8 +2,8 @@
   "currentBaseline": "vCurrent",
   "promotionStagingPath": "templates/dbsqllikemem/vNext",
   "reviewCadence": "quarterly",
-  "lastReviewedOn": "2026-03-08",
-  "nextPlannedReviewOn": "2026-06-30",
+  "lastReviewedOn": "2026-09-14",
+  "nextPlannedReviewOn": "2026-12-31",
   "profiles": {
     "api": {
       "focus": "Light integration tests for tables, views, functions, and repositories."

@@ -85,6 +85,6 @@ Objetivo: registrar andamento de sprint, próximos passos imediatos e riscos de 
 
 ## Riscos e bloqueios
 
-- Risco atual: publicação de extensões ainda depende de credenciais/identidade final de marketplace fora do código.
-- Mitigação: auditor registra warning explícito para placeholder restante e valida automaticamente o restante da cadeia objetiva de release.
-- Gap mantido intencionalmente: `publisher` do `eng/visualstudio/PublishManifest.json` não foi inventado no código sem uma definição operacional confirmada.
+- Risco atual: publicação de extensões ainda depende de credenciais de marketplace fora do código (o `publisher` já está definido como `dbsqllikemem`).
+- Mitigação: auditor valida automaticamente o restante da cadeia objetiva de release.
+- Resolvido: `publisher` do `eng/visualstudio/PublishManifest.json` passou a ser `dbsqllikemem`, mesma identidade usada pela extensão VS Code.

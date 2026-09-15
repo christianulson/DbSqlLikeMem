@@ -123,10 +123,10 @@ Workflow preparado:
 
 1. Criar PAT para publicação no Visual Studio Marketplace.
 2. Salvar no GitHub como secret `VS_MARKETPLACE_TOKEN`.
-3. Confirmar os campos operacionais finais em `eng/visualstudio/PublishManifest.json`, principalmente `publisher`.
+3. Confirmar os campos operacionais finais em `eng/visualstudio/PublishManifest.json` (o `publisher` já está definido como `dbsqllikemem`).
 4. Garantir que exista um projeto VSIX (workflow usa `src/extensions/DbSqlLikeMem.VisualStudioExtension/DbSqlLikeMem.VisualStudioExtension.csproj`).
 
-> O campo `repo` do manifesto já aponta para o repositório oficial; o `publisher` ainda deve ser confirmado antes da publicação final.
+> O campo `repo` do manifesto já aponta para o repositório oficial; o `publisher` está definido como `dbsqllikemem`, o mesmo identidade usada pela extensão VS Code.
 
 ### Como publicar
 
@@ -149,7 +149,7 @@ A extensão em `src/extensions/DbSqlLikeMem.VsCodeExtension` está preparada par
 - O workflow executa `python3 scripts/check_release_readiness.py` antes de instalar dependências/empacotar.
 - A versão operacional da extensão sai de `src/extensions/DbSqlLikeMem.VsCodeExtension/package.json`; a tag automática deve seguir `vscode-v<versao-da-extensao>`.
 
-As URLs de repositório/bugs/homepage do `package.json` já foram alinhadas ao repositório oficial; mantenha a revisão do `publisher` e use `python3 scripts/check_release_readiness.py` como auditoria final de readiness.
+As URLs de repositório/bugs/homepage do `package.json` já foram alinhadas ao repositório oficial; o `publisher` (`dbsqllikemem`) também é usado pelo manifesto da VSIX; use `python3 scripts/check_release_readiness.py` como auditoria final de readiness.
 
 ## Mapa de versões e tags
 
@@ -169,7 +169,7 @@ npm run package
 npm run publish
 ```
 
-> Antes de publicar, confirme o `publisher` final e rode `python3 scripts/check_release_readiness.py`.
+> Antes de publicar, rode `python3 scripts/check_release_readiness.py`; o `publisher` (`dbsqllikemem`) já está definido nos manifestos.
 
 ## Links relacionados
 
