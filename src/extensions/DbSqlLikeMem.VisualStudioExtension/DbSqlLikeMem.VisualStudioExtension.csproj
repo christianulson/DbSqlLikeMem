@@ -8,6 +8,11 @@
 		<RootNamespace>DbSqlLikeMem.VisualStudioExtension</RootNamespace>
 
 		<!-- VSIX / VSSDK required properties -->
+		<VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
+		<DebuggerFlavor>VsixDebugger</DebuggerFlavor>
+		<VsixDeployOnDebug>true</VsixDeployOnDebug>
+		<VSSDKTargetPlatformRegRootSuffix>Exp</VSSDKTargetPlatformRegRootSuffix>
+		<RunUpdateConfigOnVsixDeploy>true</RunUpdateConfigOnVsixDeploy>
 		<MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
 		<GeneratePkgDefFile>true</GeneratePkgDefFile>
 		<UseCodebase>true</UseCodebase>
@@ -27,8 +32,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<ProjectCapability Include="CreateVsixContainer" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- VSSDK BuildTools must be listed first — it injects the pkgdef/vsix targets -->
-		<PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2120" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.9.820" PrivateAssets="all" />
 		<PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" NoWarn="NU1605" />
 		<PackageReference Include="Microsoft.VisualStudio.ImageCatalog" Version="17.14.40260" />
 		<PackageReference Include="Microsoft.VisualStudio.Imaging" Version="17.14.40264" />
@@ -57,6 +66,7 @@
 
 	<ItemGroup>
 		<EmbeddedResource Update="Properties\Resources.resx">
+			<MergeWithCTO>true</MergeWithCTO>
 			<Generator>PublicResXFileCodeGenerator</Generator>
 			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
 		</EmbeddedResource>
@@ -65,13 +75,13 @@
 			<AutoGen>true</AutoGen>
 			<DependentUpon>Resources.resx</DependentUpon>
 		</Compile>
-		<EmbeddedResource Update="Properties\Resources.*.resx">
-			<DependentUpon>Resources.resx</DependentUpon>
-		</EmbeddedResource>
 	</ItemGroup>
 
 	<ItemGroup>
-		<VSCTCompile Include="DbSqlLikeMemExtension.vsct" />
+		<!-- The VSSDK merge task derives the .CTMENU key from the CTO file name. -->
+		<VSCTCompile Include="Menus.vsct">
+			<ResourceName>Menus.ctmenu</ResourceName>
+		</VSCTCompile>
 		<None Update="source.extension.vsixmanifest">
 			<SubType>Designer</SubType>
 		</None>
@@ -79,6 +89,11 @@
 			<Link>LICENSE</Link>
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
+		<Content Include="bin\$(Configuration)\net472\SQLitePCLRaw.core.dll" Link="SQLitePCLRaw.core.dll" IncludeInVSIX="true" />
+		<Content Include="bin\$(Configuration)\net472\SQLitePCLRaw.batteries_v2.dll" Link="SQLitePCLRaw.batteries_v2.dll" IncludeInVSIX="true" />
+		<Content Include="bin\$(Configuration)\net472\SQLitePCLRaw.provider.dynamic_cdecl.dll" Link="SQLitePCLRaw.provider.dynamic_cdecl.dll" IncludeInVSIX="true" />
+		<Content Include="bin\$(Configuration)\net472\runtimes\win-x64\native\e_sqlite3.dll" Link="runtimes\win-x64\native\e_sqlite3.dll" IncludeInVSIX="true" />
+		<Content Include="bin\$(Configuration)\net472\clidriver\**" Link="clidriver\%(RecursiveDir)%(Filename)%(Extension)" IncludeInVSIX="true" />
 	</ItemGroup>
 
 </Project>

@@ -6,15 +6,19 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:catalog="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.ImageCatalog"
              xmlns:imaging="clr-namespace:Microsoft.VisualStudio.Imaging;assembly=Microsoft.VisualStudio.Imaging"
+             xmlns:theming="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Imaging"
+             xmlns:utilities="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Utilities"
              xmlns:ui="clr-namespace:DbSqlLikeMem.VisualStudioExtension.UI"
              xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
              Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}"
              Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+             x:Name="RootControl"
              mc:Ignorable="d"
              d:DesignHeight="480"
              d:DesignWidth="420">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <utilities:BrushToColorConverter x:Key="BrushToColorConverter" />
         <Style x:Key="ToolbarIconStyle" TargetType="{x:Type imaging:CrispImage}">
             <Setter Property="Width" Value="14" />
             <Setter Property="Height" Value="14" />
@@ -33,7 +37,8 @@
         </HierarchicalDataTemplate>
     </UserControl.Resources>
 
-    <Grid Margin="8">
+    <Grid Margin="8"
+          theming:ImageThemingUtilities.ImageBackgroundColor="{Binding Background, ElementName=RootControl, Converter={StaticResource BrushToColorConverter}}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="8" />

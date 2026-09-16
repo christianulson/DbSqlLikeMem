@@ -2,6 +2,18 @@
 
 Projeto VSIX para hospedar a interface do DbSqlLikeMem no Visual Studio.
 
+## Como abrir a tela
+
+Depois de compilar e iniciar a instância de destino, abra **Exibir (View) > Outras Janelas (Other Windows) > DbSqlLikeMem Explorer**. O mesmo comando também fica em **Ferramentas (Tools) > DbSqlLikeMem Explorer**.
+
+Outra forma é abrir **Exibir > Outras Janelas > Janela de Comandos** e executar:
+
+```text
+DbSqlLikeMem.OpenExplorer
+```
+
+O nome do comando permanece igual em todas as linguagens do Visual Studio. A VSIX instalada na instância experimental aparece na janela identificada como **Experimental Instance**.
+
 ## Evoluções implementadas
 
 1. **Conexões reais + ciclo de vida**
@@ -120,17 +132,42 @@ public class {{ClassName}}
 }
 ```
 
-## Troubleshooting de depuração no VS 2022
+## Depuração no Visual Studio 2022/2026
 
-- Para depurar a VSIX, inicie com o perfil **VS 2022 Experimental** (`/rootsuffix Exp`).
-- Para depurar com deploy automático da extensão, prefira o perfil **DbSqlLikeMem.VisualStudioExtension** (`commandName: Project`); os perfis `Executable` apenas abrem o devenv e podem não instalar/atualizar a VSIX.
-- Se o comando não aparecer, verifique em **View > Other Windows > DbSqlLikeMem Explorer**.
-- Erros de binding como `GlyphButton`, `AIReviewStatusControl`, `SccCompartment`, `TrackingListView` e `CopilotBadgeDataSource` normalmente são de componentes internos do próprio Visual Studio/Copilot/Git e **não** da janela do DbSqlLikeMem.
-- Os erros de log `TrackingListView.Background` e `CopilotBadgeDataSource -> WindowTitleBarButton.HelpText` também são conhecidos como ruído de binding do shell do VS e não bloqueiam o carregamento do pacote da extensão por si só.
-- Também entram nessa categoria de ruído do shell mensagens como: `ProjectMruListBoxViewModel.Count`, `StatusControl.PullRequestDropdownText`, `AISuggestionStatusControl.ProgressText`, `AIReviewStatusControl.ProgressText`, `SectionControl.MinSqueeze` e `FileListView.MaxHeight=NaN`.
-- Em geral esses bindings são de UI interna do VS (MRU/Copilot/review pane) e podem aparecer mesmo sem a DbSqlLikeMem aberta.
-- Para confirmar a causa, rode com log (`/log`) e inspecione `%APPDATA%\Microsoft\VisualStudio\17.0_*Exp\ActivityLog.xml` buscando por `DbSqlLikeMem`.
-- Se ainda não aparecer, execute `devenv /rootsuffix Exp /setup` e reabra a instância experimental para forçar atualização dos menus VSCT.
+1. Defina **DbSqlLikeMem.VisualStudioExtension** como projeto de inicialização e selecione **Debug**.
+2. Use o depurador **VSIX**. No seletor de destino da barra de depuração, escolha a instalação desejada do Visual Studio. Nas propriedades de debug, o destino é **VSIX Debug Target**.
+3. Mantenha o sufixo **Exp**. Pressione **F5** para compilar, implantar a VSIX e abrir a segunda instância do Visual Studio.
+4. Na janela **Experimental Instance**, abra o Explorer pelo menu ou comando descrito acima.
+
+O projeto usa `DebuggerFlavor=VsixDebugger`, `VsixDeployOnDebug=true` e `RunUpdateConfigOnVsixDeploy=true`. O destino escolhido é armazenado localmente em `DbSqlLikeMem.VisualStudioExtension.csproj.user`, na propriedade `DeployTargetInstanceId`; esse arquivo não é versionado. A implantação e o depurador devem apontar para a mesma instalação.
+
+Após atualizar estas configurações, recarregue o projeto no Visual Studio para atualizar a barra de depuração. Se ela continuar exibindo apenas perfis de executável, confira se o arquivo `.csproj.user` ainda contém algum `DebuggerFlavor=ProjectDebugger` e selecione o depurador VSIX nas propriedades.
+
+Os perfis de `Properties/launchSettings.json` são alternativas para iniciar um executável manualmente. O caminho do `devenv.exe` nesses perfis deve corresponder à instalação escolhida para implantar a extensão. Para F5 com implantação coordenada, use o depurador VSIX.
+
+### Pontos de interrupção e diagnóstico
+
+- `DbSqlLikeMemExtensionPackage.InitializeAsync`: inicialização do pacote.
+- `OpenToolWindowCommand.InitializeAsync`: registro do comando.
+- `OpenToolWindowCommand.Execute`: clique no menu ou execução de `DbSqlLikeMem.OpenExplorer`.
+- `DbSqlLikeMemToolWindow` e `DbSqlLikeMemToolWindowControl`: criação da tela.
+
+Com `AdditionalArguments=/log`, o ActivityLog fica em:
+
+- VS 2022: `%APPDATA%\Microsoft\VisualStudio\17.0_*Exp\ActivityLog.xml`.
+- VS 2026: `%APPDATA%\Microsoft\VisualStudio\18.0_*Exp\ActivityLog.xml`.
+
+Busque por `DbSqlLikeMemExtensionPackage`, `OpenToolWindowCommand` ou pelo GUID `f175ddf6-0067-43ed-9fd7-5780f8e8ff70`. O registro bem-sucedido grava `Registered DbSqlLikeMem.OpenExplorer.`; a abertura grava `Opened DbSqlLikeMem Explorer.`. Falhas de registro deixam de ser ignoradas e falhas ao abrir exibem uma mensagem e o detalhe no log.
+
+Se o menu continuar ausente após F5, confira o horário da DLL implantada em `%LOCALAPPDATA%\Microsoft\VisualStudio\<instância>Exp\Extensions` e o ActivityLog dessa mesma instância. A presença na lista de extensões confirma a instalação do manifesto; o registro dos comandos e o carregamento do pacote precisam funcionar também.
+
+### Contrato do menu
+
+`Menus.vsct` gera `Menus.cto`, mesclado pelo VSSDK no recurso neutro da extensão. O nome `Menus.ctmenu` é compartilhado por `VSCTCompile/ResourceName` e `ProvideMenuResource`. A versão do recurso é 2 para solicitar a atualização do registro de menus após a alteração.
+
+O botão usa diretamente o grupo padrão de **Outras Janelas**, com uma segunda posição no menu **Ferramentas**. O nome canônico começa com ponto no VSCT para manter `DbSqlLikeMem.OpenExplorer` independente do menu e do idioma.
+
+Referências: [recursos de comandos VSCT](https://learn.microsoft.com/en-us/visualstudio/extensibility/internals/how-to-create-a-dot-vsct-file?view=visualstudio) e [nomes canônicos dos comandos](https://devblogs.microsoft.com/visualstudio/improve-the-commands-in-your-extensions/).
 
 ## Harness local para validar XAML (fora do VS)
 

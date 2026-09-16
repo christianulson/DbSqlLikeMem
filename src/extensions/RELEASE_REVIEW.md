@@ -6,6 +6,22 @@ Foram corrigidos defeitos no código e nos contratos de publicação das extens�
 
 ## Correções
 
+### Ícones da tool window (2026-09-16)
+
+- Os ícones dos botões da toolbar (ex.: Add Connection) não eram renderizados pelo `CrispImage`; a hierarquia não definia `ImageThemingUtilities.ImageBackgroundColor`, exigência do serviço de imagens do VS para selecionar o tema do ícone.
+- Correção em `DbSqlLikeMemToolWindowControl.xaml`: converter `BrushToColorConverter` (de `Microsoft.VisualStudio.Utilities`) registrado em `UserControl.Resources`; propriedade anexa `ImageThemingUtilities.ImageBackgroundColor` aplicada no `Grid` raiz, vinculada ao `Background` do UserControl (`ElementName=RootControl`) através do converter.
+- O assembly `Microsoft.VisualStudio.Utilities.dll` não precisa ir no VSIX — o VS 2022 o fornece em `Common7\IDE`.
+
+### Registro da janela e depuração VSIX (2026-09-16)
+
+- A tabela de comandos passou a `Menus.vsct`, alinhando o nome do CTO, o recurso mesclado e `ProvideMenuResource("Menus.ctmenu", 2)`. Foi removida a inclusão manual do CTO como recurso direto.
+- O botão foi ligado diretamente ao grupo padrão de **Exibir > Outras Janelas**, com uma segunda posição em **Ferramentas**. O comando canônico é `DbSqlLikeMem.OpenExplorer`.
+- O projeto usa o depurador nativo `VsixDebugger`, implantação ao depurar e atualização da configuração da instância. A configuração local que forçava `ProjectDebugger` foi corrigida.
+- A instância aberta durante a análise era VS 2026; a configuração local de debug foi alinhada a `18.0_cdae9a69Exp`. O VS 2022 permanece selecionável como destino pelo depurador VSIX.
+- O registro e a abertura da janela gravam informações no ActivityLog. Serviço de comandos indisponível gera erro explícito; falhas de abertura exibem mensagem e log.
+- Verificações realizadas: leitura dos artefatos existentes, validação do novo VSCT contra o schema oficial instalado, avaliação de propriedades/itens do MSBuild sem targets e inspeção do diff. Não foram executados build, restore, testes, reinstalação ou abertura da nova VSIX no IDE.
+- Instruções de F5, menus, comando e pontos de interrupção estão no [README da VSIX](DbSqlLikeMem.VisualStudioExtension/README.md#depuração-no-visual-studio-20222026).
+
 ### Ciclo 4 (revisão após o commit ff7221f5, com foco em UI/UX)
 
 | Área | Problema encontrado | Correção |
@@ -47,6 +63,8 @@ Foram corrigidos defeitos no código e nos contratos de publicação das extens�
 | VSIX: workflow | Localização do `.vsix` varria o repositório inteiro e podia pegar artefato errado | Busca restrita ao diretório do projeto VSIX |
 | VSIX: arquitetura | Projeto compilava como AnyCPU (MSIL) enquanto o DB2 é AMD64 e o manifesto declara amd64 (warning MSB3270) | `<PlatformTarget>x64</PlatformTarget>` no projeto VSIX, alinhado ao harness e ao manifesto |
 | VSIX: build | `string.Replace` com `StringComparison` (indisponível no net472) na validação do MappingDialog; `GetNodePath` com `string?` não estreitado; `Dispatcher.BeginInvoke` violava VSTHRD | `ReplaceIgnoreCase` local no diálogo; checagem `key is null || key.Length == 0`; `SwitchToMainThreadAsync` no lugar de `BeginInvoke` |
+| VSIX: geração do pacote | Projeto SDK-style usava import manual do `Microsoft.VsSDK.targets` que conflitava com os recursos WPF (`MSB3577` em `.resources`); o `Microsoft.VSSDK.BuildTools` 17.x não injetava os targets; faltavam DLLs do SQLitePCLRaw e do clidriver do DB2 no container | Adotada a configuração do template oficial do VS 18: `VSSDKBuildToolsAutoSetup=true` + `Microsoft.VSSDK.BuildTools 18.9.820` + `ProjectCapability CreateVsixContainer`, sem import manual; DLLs do SQLitePCLRaw (`core`, `batteries_v2`, `provider.dynamic_cdecl`), `e_sqlite3` nativo (x64) e `clidriver` declarados como `Content` com `IncludeInVSIX` |
+| VSIX: menu invisível | O assembly inspecionado tinha a chave mesclada `DbSqlLikeMemExtension.CTMENU` e um recurso direto `Menus.ctmenu` de 635 bytes; a presença desse recurso direto não comprovava registro e exibição no shell | Substituído o target manual por `Menus.vsct` → `Menus.cto`, `ResourceName=Menus.ctmenu` e `MergeWithCTO` no recurso neutro, conforme o pipeline do VSSDK; validação no IDE permanece pendente |
 | VS Code: contrato | Títulos de comandos sem tokens nls (não traduzíveis) | Tokens `%command.*.title%` adicionados com traduções pt-BR |
 | VS Code: UI | Strings de seções/tooltips da árvore sem l10n; IDs de nós colidiam para objetos que diferem só por caixa | `vscode.l10n.t` nas seções e tooltips; índice único no ID do nó |
 | VS Code: validação | Cadastro/edição bloqueado quando o banco está indisponível; senhas com `;` quebravam o parse do fallback SQL Server | Opção "Save anyway" na falha de validação; parser de connection string extraído para `connection-string.ts` com suporte a aspas/chaves e 8 testes novos |

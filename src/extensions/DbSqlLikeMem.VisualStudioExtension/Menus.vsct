@@ -6,19 +6,28 @@
   <Commands package="guidDbSqlLikeMemPackage">
     <Groups>
       <Group guid="guidDbSqlLikeMemCmdSet" id="DbSqlLikeMemGroup" priority="0x0600">
-        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS" />
       </Group>
     </Groups>
 
     <Buttons>
       <Button guid="guidDbSqlLikeMemCmdSet" id="OpenToolWindowCommandId" priority="0x0100" type="Button">
-        <Parent guid="guidDbSqlLikeMemCmdSet" id="DbSqlLikeMemGroup" />
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
         <Strings>
           <ButtonText>DbSqlLikeMem Explorer</ButtonText>
+          <CommandName>DbSqlLikeMem Explorer</CommandName>
+          <CanonicalName>.DbSqlLikeMem.OpenExplorer</CanonicalName>
+          <LocCanonicalName>.DbSqlLikeMem.OpenExplorer</LocCanonicalName>
         </Strings>
       </Button>
     </Buttons>
   </Commands>
+
+  <CommandPlacements>
+    <CommandPlacement guid="guidDbSqlLikeMemCmdSet" id="OpenToolWindowCommandId" priority="0x0100">
+      <Parent guid="guidDbSqlLikeMemCmdSet" id="DbSqlLikeMemGroup" />
+    </CommandPlacement>
+  </CommandPlacements>
 
   <Symbols>
     <GuidSymbol name="guidDbSqlLikeMemPackage" value="{F175DDF6-0067-43ED-9FD7-5780F8E8FF70}" />

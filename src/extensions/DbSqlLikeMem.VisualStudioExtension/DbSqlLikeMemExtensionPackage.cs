@@ -12,7 +12,7 @@ namespace DbSqlLikeMem.VisualStudioExtension;
 /// </summary>
 [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 [InstalledProductRegistration("DbSqlLikeMem", "Explorer e geração de classes para objetos de banco", "0.1.2")]
-[ProvideMenuResource("Menus.ctmenu", 1)]
+[ProvideMenuResource("Menus.ctmenu", 2)]
 [ProvideAutoLoad(UIContextGuids80.NoSolution, PackageAutoLoadFlags.BackgroundLoad)]
 [ProvideAutoLoad(UIContextGuids80.SolutionExists, PackageAutoLoadFlags.BackgroundLoad)]
 [ProvideToolWindow(typeof(DbSqlLikeMemToolWindow))]
@@ -25,10 +25,7 @@ public sealed class DbSqlLikeMemExtensionPackage : AsyncPackage
     /// </summary>
     public const string PackageGuidString = "f175ddf6-0067-43ed-9fd7-5780f8e8ff70";
 
-    /// <summary>
-    /// Initializes commands and services required by the extension package.
-    /// Inicializa os comandos e serviços necessários pelo pacote da extensão.
-    /// </summary>
+    /// <inheritdoc />
     protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
     {
         await base.InitializeAsync(cancellationToken, progress);
