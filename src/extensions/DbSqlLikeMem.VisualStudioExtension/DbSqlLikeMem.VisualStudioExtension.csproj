@@ -6,6 +6,7 @@
 		<OutputType>Library</OutputType>
 		<AssemblyName>DbSqlLikeMem.VisualStudioExtension</AssemblyName>
 		<RootNamespace>DbSqlLikeMem.VisualStudioExtension</RootNamespace>
+		<IsPackable>false</IsPackable>
 
 		<!-- VSIX / VSSDK required properties -->
 		<VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
