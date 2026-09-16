@@ -880,6 +880,7 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         if (TryParseCase(t, out var cs)) return cs;
         if (TryParseNot(t, out var nt)) return nt;
         if (TryParseStar(t, out var st)) return st;
+        if (TryParseBinaryCast(t, out var bin)) return bin;
         if (TryParseParenOrRow(t, out var pr)) return pr;
         if (TryParseNullTrueFalse(t, out var l1)) return l1;
         if (TryParseString(t, out var l2)) return l2;
@@ -910,6 +911,24 @@ internal sealed class SqlExpressionParser(SqlExpressionParserContext context)
         _context.Consume();
 
         expr = new LiteralExpr(literalToken.Text);
+        return true;
+    }
+
+    /// <summary>
+    /// EN: Consumes the MySQL BINARY cast prefix and parses the inner expression.
+    /// The cast is a no-op for string comparisons in the in-memory engine.
+    /// PT-br: Consome o prefixo de cast BINARY do MySQL e parseia a expressão interna.
+    /// O cast é um no-op para comparações de string no motor in-memory.
+    /// </summary>
+    private bool TryParseBinaryCast(SqlToken t, out SqlExpr expr)
+    {
+        expr = default!;
+
+        if (!SqlExpressionParserContext.IsKeywordOrIdentifierWord(t, "BINARY"))
+            return false;
+
+        _context.Consume(); // BINARY
+        expr = ParseExpression(0);
         return true;
     }
 
